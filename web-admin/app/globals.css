@@ -1,0 +1,287 @@
+@import "tailwindcss";
+
+/* Import Arabic font */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+
+:root { color-scheme: light only; }
+
+:root {
+  /* Brand/base tokens (LIGHT) */
+  --background: #ffffff;
+  --foreground: #111827; /* gray-900 */
+  --muted: #f3f4f6; /* gray-100 */
+  --muted-foreground: #6b7280; /* gray-500 */
+  --border: #d1d5db; /* gray-300 */
+  --ring: #3b82f6; /* blue-500 */ 
+
+  /* Form tokens */
+  --input-bg: #ffffff;
+  --input-text: #111827;
+  --input-placeholder: #9ca3af; /* gray-400 */
+  --focus-ring: #3b82f6; /* blue-500 */
+}
+
+@theme inline {
+  /* Expose tokens to Tailwind */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Disable dark mode for now
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Brand/base tokens (DARK) * /
+    --background: #0a0a0a;
+    --foreground: #e5e7eb; /* gray-200 * /
+    --muted: #111214;
+    --muted-foreground: #9ca3af; /* gray-400 * /
+    --border: #374151; /* gray-700 * /
+    --ring: #60a5fa; /* blue-400 * /
+
+    /* Form tokens * /
+    --input-bg: #111214;
+    --input-text: #e5e7eb;
+    --input-placeholder: #9ca3af;
+    --focus-ring: #60a5fa;
+  }
+}
+*/
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Base typography */
+@layer base {
+  h1 { font-size: 1.875rem; line-height: 2.25rem; font-weight: 700; }
+  h2 { font-size: 1.5rem; line-height: 2rem; font-weight: 600; }
+  h3 { font-size: 1.25rem; line-height: 1.75rem; font-weight: 600; }
+
+  /* Global form control styling */
+  input, select, textarea {
+    background-color: var(--input-bg);
+    color: var(--input-text);
+    border-color: var(--border);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--input-placeholder);
+    opacity: 1;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+    border-color: var(--focus-ring);
+  }
+  input[disabled], select[disabled], textarea[disabled],
+  input[readonly], select[readonly], textarea[readonly] {
+    opacity: .7;
+    cursor: not-allowed;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Optional scrollbar styling */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 6px; }
+*::-webkit-scrollbar-track { background-color: var(--muted); }
+
+/* Arabic font for RTL */
+[dir="rtl"] body {
+  font-family: 'Noto Sans Arabic', Arial, sans-serif;
+  font-feature-settings: "kern" 1, "liga" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Arabic text rendering improvements */
+[dir="rtl"] * {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Better line height for Arabic text */
+[dir="rtl"] p,
+[dir="rtl"] span,
+[dir="rtl"] div,
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6 {
+  line-height: 1.8;
+  letter-spacing: 0;
+}
+
+/* Fix text truncation for Arabic - allow wrapping instead of cutting */
+[dir="rtl"] .truncate {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+}
+
+/* Better truncate behavior for RTL - multi-line support */
+[dir="rtl"] .line-clamp-1,
+[dir="rtl"] .line-clamp-2,
+[dir="rtl"] .line-clamp-3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.8;
+}
+
+[dir="rtl"] .line-clamp-1 {
+  -webkit-line-clamp: 1;
+  max-height: 1.8em;
+}
+
+[dir="rtl"] .line-clamp-2 {
+  -webkit-line-clamp: 2;
+  max-height: 3.6em;
+}
+
+[dir="rtl"] .line-clamp-3 {
+  -webkit-line-clamp: 3;
+  max-height: 5.4em;
+}
+
+/* Prevent text cutting in Arabic */
+[dir="rtl"] input,
+[dir="rtl"] textarea,
+[dir="rtl"] select,
+[dir="rtl"] button {
+  font-family: 'Noto Sans Arabic', Arial, sans-serif;
+  text-align: right;
+  direction: rtl;
+}
+
+/* Arabic text in buttons and links */
+[dir="rtl"] button,
+[dir="rtl"] a {
+  text-align: inherit;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* RTL Layout Adjustments */
+
+/* Text alignment */
+[dir="rtl"] .text-left {
+  text-align: right;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left;
+}
+
+/* Flex direction */
+[dir="rtl"] .flex-row {
+  flex-direction: row-reverse;
+}
+
+/* Margin utilities - left to right */
+[dir="rtl"] .ml-1 { margin-left: 0; margin-right: 0.25rem; }
+[dir="rtl"] .ml-2 { margin-left: 0; margin-right: 0.5rem; }
+[dir="rtl"] .ml-3 { margin-left: 0; margin-right: 0.75rem; }
+[dir="rtl"] .ml-4 { margin-left: 0; margin-right: 1rem; }
+[dir="rtl"] .ml-5 { margin-left: 0; margin-right: 1.25rem; }
+[dir="rtl"] .ml-6 { margin-left: 0; margin-right: 1.5rem; }
+[dir="rtl"] .ml-8 { margin-left: 0; margin-right: 2rem; }
+[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+
+/* Margin utilities - right to left */
+[dir="rtl"] .mr-1 { margin-right: 0; margin-left: 0.25rem; }
+[dir="rtl"] .mr-2 { margin-right: 0; margin-left: 0.5rem; }
+[dir="rtl"] .mr-3 { margin-right: 0; margin-left: 0.75rem; }
+[dir="rtl"] .mr-4 { margin-right: 0; margin-left: 1rem; }
+[dir="rtl"] .mr-5 { margin-right: 0; margin-left: 1.25rem; }
+[dir="rtl"] .mr-6 { margin-right: 0; margin-left: 1.5rem; }
+[dir="rtl"] .mr-8 { margin-right: 0; margin-left: 2rem; }
+[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+
+/* Padding utilities - left to right */
+[dir="rtl"] .pl-1 { padding-left: 0; padding-right: 0.25rem; }
+[dir="rtl"] .pl-2 { padding-left: 0; padding-right: 0.5rem; }
+[dir="rtl"] .pl-3 { padding-left: 0; padding-right: 0.75rem; }
+[dir="rtl"] .pl-4 { padding-left: 0; padding-right: 1rem; }
+[dir="rtl"] .pl-5 { padding-left: 0; padding-right: 1.25rem; }
+[dir="rtl"] .pl-6 { padding-left: 0; padding-right: 1.5rem; }
+[dir="rtl"] .pl-8 { padding-left: 0; padding-right: 2rem; }
+
+/* Padding utilities - right to left */
+[dir="rtl"] .pr-1 { padding-right: 0; padding-left: 0.25rem; }
+[dir="rtl"] .pr-2 { padding-right: 0; padding-left: 0.5rem; }
+[dir="rtl"] .pr-3 { padding-right: 0; padding-left: 0.75rem; }
+[dir="rtl"] .pr-4 { padding-right: 0; padding-left: 1rem; }
+[dir="rtl"] .pr-5 { padding-right: 0; padding-left: 1.25rem; }
+[dir="rtl"] .pr-6 { padding-right: 0; padding-left: 1.5rem; }
+[dir="rtl"] .pr-8 { padding-right: 0; padding-left: 2rem; }
+
+/* Border radius */
+[dir="rtl"] .rounded-l { border-radius: 0 0.25rem 0.25rem 0; }
+[dir="rtl"] .rounded-r { border-radius: 0.25rem 0 0 0.25rem; }
+[dir="rtl"] .rounded-tl { border-radius: 0 0.25rem 0 0; }
+[dir="rtl"] .rounded-tr { border-radius: 0.25rem 0 0 0; }
+[dir="rtl"] .rounded-bl { border-radius: 0 0 0 0.25rem; }
+[dir="rtl"] .rounded-br { border-radius: 0 0 0.25rem 0; }
+
+/* Border width */
+[dir="rtl"] .border-l { border-left: 0; border-right: 1px solid; }
+[dir="rtl"] .border-r { border-right: 0; border-left: 1px solid; }
+[dir="rtl"] .border-l-2 { border-left: 0; border-right: 2px solid; }
+[dir="rtl"] .border-r-2 { border-right: 0; border-left: 2px solid; }
+[dir="rtl"] .border-l-4 { border-left: 0; border-right: 4px solid; }
+[dir="rtl"] .border-r-4 { border-right: 0; border-left: 4px solid; }
+
+/* Transform utilities for icon flipping */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+
+/* Position utilities */
+[dir="rtl"] .left-0 { left: auto; right: 0; }
+[dir="rtl"] .right-0 { right: auto; left: 0; }
+[dir="rtl"] .left-4 { left: auto; right: 1rem; }
+[dir="rtl"] .right-4 { right: auto; left: 1rem; }
+
+/* Justify content */
+[dir="rtl"] .justify-start {
+  justify-content: flex-end;
+}
+
+[dir="rtl"] .justify-end {
+  justify-content: flex-start;
+}
+
+/* Items alignment */
+[dir="rtl"] .items-start {
+  align-items: flex-end;
+}
+
+[dir="rtl"] .items-end {
+  align-items: flex-start;
+}
