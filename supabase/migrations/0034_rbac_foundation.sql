@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS sys_auth_permissions (
   for_screen_only SMALLINT DEFAULT 0,     -- 0=no, 1=yes, 2=not always
   feature_code TEXT,
   screen_code TEXT,
-  is_internal_use_only NOT NULL DEFAULT false, -- for use by the developers not for public users 
+  is_internal_use_only BOOLEAN NOT NULL DEFAULT false, -- for use by the developers not for public users 
   is_enabled BOOLEAN NOT NULL DEFAULT true, -- to be signed to other users 
   is_active BOOLEAN NOT NULL DEFAULT true,
   rec_status     SMALLINT DEFAULT 1,

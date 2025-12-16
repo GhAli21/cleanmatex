@@ -32,7 +32,7 @@ BEGIN
     resource_type, resource_id, allow
   )
   SELECT
-    p_user_id,//
+    p_user_id,
     p_tenant_id,
     sp.code,
     NULL::TEXT,                    -- NULL = tenant-wide

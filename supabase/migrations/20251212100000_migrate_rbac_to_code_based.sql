@@ -249,6 +249,25 @@ DO $$ BEGIN RAISE NOTICE 'Created new code-based primary keys'; END $$;
 -- STEP 10: CREATE NEW FOREIGN KEY CONSTRAINTS (CODE-BASED)
 -- ============================================================================
 
+-- Drop existing code-based foreign keys if they exist (idempotent)
+ALTER TABLE org_auth_user_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_roles_role_code_fkey CASCADE;
+
+ALTER TABLE org_auth_user_resource_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_roles_role_code_fkey CASCADE;
+
+ALTER TABLE org_auth_user_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_permissions_permission_code_fkey CASCADE;
+
+ALTER TABLE org_auth_user_resource_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_permissions_permission_code_fkey CASCADE;
+
+ALTER TABLE sys_auth_role_default_permissions
+  DROP CONSTRAINT IF EXISTS sys_auth_role_default_permissions_role_code_fkey CASCADE;
+
+ALTER TABLE sys_auth_role_default_permissions
+  DROP CONSTRAINT IF EXISTS sys_auth_role_default_permissions_permission_code_fkey CASCADE;
+
 -- org_auth_user_roles → sys_auth_roles
 ALTER TABLE org_auth_user_roles
   ADD CONSTRAINT org_auth_user_roles_role_code_fkey
@@ -302,6 +321,19 @@ DO $$ BEGIN RAISE NOTICE 'Created new code-based foreign key constraints'; END $
 -- ============================================================================
 -- STEP 9: CREATE NEW UNIQUE CONSTRAINTS (CODE-BASED)
 -- ============================================================================
+
+-- Drop existing unique constraints if they exist (idempotent)
+ALTER TABLE org_auth_user_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_roles_user_tenant_role_unique CASCADE;
+
+ALTER TABLE org_auth_user_resource_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_roles_unique CASCADE;
+
+ALTER TABLE org_auth_user_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_permissions_unique CASCADE;
+
+ALTER TABLE org_auth_user_resource_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_permissions_unique CASCADE;
 
 -- org_auth_user_roles: unique per user + tenant + role
 ALTER TABLE org_auth_user_roles

@@ -339,8 +339,24 @@ BEGIN
   IF v_count < 10 THEN
     RAISE WARNING 'Expected at least 10 navigation items, found %', v_count;
   ELSE
+    
     RAISE NOTICE '✅ Navigation seed completed. % items inserted.', v_count;
   END IF;
 END $$;
+
+-- ==================================================================
+-- Update feature_code and category_main from permission code
+-- Extract the part before ':' from code and use INITCAP for formatting
+-- ==================================================================
+
+UPDATE sys_auth_permissions m
+SET feature_code = s.codd,
+    category_main = s.codd
+FROM (
+  SELECT code, (INITCAP(SUBSTRING(code FROM 1 FOR POSITION(':' IN code)-1))) codd
+  FROM sys_auth_permissions
+) s
+WHERE m.code = s.code;
+-- AND m.feature_code IS NULL;
 
 COMMIT;

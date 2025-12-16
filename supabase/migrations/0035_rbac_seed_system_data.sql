@@ -207,8 +207,8 @@ BEGIN
   
   -- Assign all permissions to super_admin
   FOR perm_code_var IN SELECT code FROM sys_auth_permissions LOOP
-    INSERT INTO sys_auth_role_default_permissions (role_id, permission_id)
-    SELECT role_id_var, permission_id
+    INSERT INTO sys_auth_role_default_permissions (role_id, permission_id, role_code, permission_code)
+    SELECT role_id_var, permission_id, 'super_admin', perm_code_var
     FROM sys_auth_permissions
     WHERE code = perm_code_var
     ON CONFLICT DO NOTHING;
@@ -219,8 +219,8 @@ BEGIN
   
   -- Assign all permissions to tenant_admin (same as super_admin for now, scope handled by RLS)
   FOR perm_code_var IN SELECT code FROM sys_auth_permissions LOOP
-    INSERT INTO sys_auth_role_default_permissions (role_id, permission_id)
-    SELECT role_id_var, permission_id
+    INSERT INTO sys_auth_role_default_permissions (role_id, permission_id, role_code, permission_code)
+    SELECT role_id_var, permission_id, 'tenant_admin', perm_code_var
     FROM sys_auth_permissions
     WHERE code = perm_code_var
     ON CONFLICT DO NOTHING;
@@ -229,9 +229,9 @@ BEGIN
   -- Branch Manager: Branch-scoped operational permissions
   SELECT role_id INTO role_id_var FROM sys_auth_roles WHERE code = 'branch_manager';
   
-  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id)
-  SELECT role_id_var, permission_id FROM sys_auth_permissions
-  WHERE code IN (
+  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id, role_code, permission_code)
+  SELECT role_id_var, permission_id, 'branch_manager', sp.code FROM sys_auth_permissions sp
+  WHERE sp.code IN (
     -- Orders (most operations)
     'orders:create', 'orders:read', 'orders:update', 'orders:cancel', 'orders:split',
     'orders:transition', 'orders:assign', 'orders:print', 'orders:discount', 'orders:notes',
@@ -265,9 +265,9 @@ BEGIN
   -- Operator: Operational permissions
   SELECT role_id INTO role_id_var FROM sys_auth_roles WHERE code = 'operator';
   
-  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id)
-  SELECT role_id_var, permission_id FROM sys_auth_permissions
-  WHERE code IN (
+  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id, role_code, permission_code)
+  SELECT role_id_var, permission_id, 'operator', sp.code FROM sys_auth_permissions sp
+  WHERE sp.code IN (
     -- Orders (operational)
     'orders:create', 'orders:read', 'orders:update', 'orders:split', 'orders:transition',
     'orders:print', 'orders:discount', 'orders:notes', 'orders:history', 'orders:urgent',
@@ -292,9 +292,9 @@ BEGIN
   -- Viewer: Read-only permissions
   SELECT role_id INTO role_id_var FROM sys_auth_roles WHERE code = 'viewer';
   
-  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id)
-  SELECT role_id_var, permission_id FROM sys_auth_permissions
-  WHERE code IN (
+  INSERT INTO sys_auth_role_default_permissions (role_id, permission_id, role_code, permission_code)
+  SELECT role_id_var, permission_id, 'viewer', sp.code FROM sys_auth_permissions sp
+  WHERE sp.code IN (
     -- Orders (read-only)
     'orders:read', 'orders:history',
     -- Customers (read-only)

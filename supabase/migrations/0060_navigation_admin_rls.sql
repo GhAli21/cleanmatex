@@ -1,5 +1,5 @@
 -- ==================================================================
--- 0059_navigation_admin_rls.sql
+-- 0060_navigation_admin_rls.sql
 -- Purpose: Add RLS policies for admin users to manage navigation components
 -- Author: CleanMateX Development Team
 -- Created: 2025-01-27
@@ -7,6 +7,12 @@
 -- ==================================================================
 
 BEGIN;
+
+-- Drop existing policies if they exist (idempotent)
+DROP POLICY IF EXISTS navigation_admin_read_policy ON sys_components_cd;
+DROP POLICY IF EXISTS navigation_admin_insert_policy ON sys_components_cd;
+DROP POLICY IF EXISTS navigation_admin_update_policy ON sys_components_cd;
+DROP POLICY IF EXISTS navigation_admin_delete_policy ON sys_components_cd;
 
 -- Policy: Admin users can read all navigation components (including inactive)
 CREATE POLICY navigation_admin_read_policy ON sys_components_cd

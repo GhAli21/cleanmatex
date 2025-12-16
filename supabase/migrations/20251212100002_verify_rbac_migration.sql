@@ -54,16 +54,19 @@ DECLARE
   remaining_fk_count INTEGER;
 BEGIN
   -- Count remaining ID-based FKs using same logic as TEST 3
+  -- Only check public schema, exclude auth schema (Supabase system tables)
   SELECT COUNT(*) INTO remaining_fk_count
   FROM information_schema.table_constraints
   WHERE constraint_type = 'FOREIGN KEY'
     AND constraint_name LIKE '%_id_fkey'
+    AND table_schema = 'public'
     AND table_name LIKE '%auth%';
 
   IF remaining_fk_count > 0 THEN
     RAISE NOTICE '🔧 Auto-repair: Found % remaining ID-based foreign keys, cleaning up...', remaining_fk_count;
     
     -- Drop all remaining ID-based FKs (match TEST 3 query pattern exactly)
+    -- Only check public schema, exclude auth schema (Supabase system tables)
     FOR fk_record IN
       SELECT 
         table_schema,
@@ -72,6 +75,7 @@ BEGIN
       FROM information_schema.table_constraints
       WHERE constraint_type = 'FOREIGN KEY'
         AND constraint_name LIKE '%_id_fkey'
+        AND table_schema = 'public'
         AND table_name LIKE '%auth%'
       ORDER BY table_name, constraint_name
     LOOP
@@ -99,6 +103,7 @@ BEGIN
     FROM information_schema.table_constraints
     WHERE constraint_type = 'FOREIGN KEY'
       AND constraint_name LIKE '%_id_fkey'
+      AND table_schema = 'public'
       AND table_name LIKE '%auth%';
 
     IF remaining_fk_count = 0 THEN
@@ -211,17 +216,20 @@ DECLARE
   fk_count INTEGER;
   old_fk_count INTEGER;
 BEGIN
-  -- Count code-based FKs
+  -- Count code-based FKs (only in public schema)
   SELECT COUNT(*) INTO fk_count
   FROM information_schema.table_constraints
   WHERE constraint_type = 'FOREIGN KEY'
-    AND constraint_name LIKE '%_code_fkey';
+    AND constraint_name LIKE '%_code_fkey'
+    AND table_schema = 'public';
 
   -- Count old ID-based FKs (should be 0)
+  -- Only check public schema, exclude auth schema (Supabase system tables)
   SELECT COUNT(*) INTO old_fk_count
   FROM information_schema.table_constraints
   WHERE constraint_type = 'FOREIGN KEY'
     AND constraint_name LIKE '%_id_fkey'
+    AND table_schema = 'public'
     AND table_name LIKE '%auth%';
 
   IF fk_count < 6 THEN

@@ -20,6 +20,7 @@ DECLARE
   dropped_count INTEGER := 0;
 BEGIN
   -- Find and drop all foreign keys matching TEST 3 pattern exactly
+  -- Only check public schema, exclude auth schema (Supabase system tables)
   FOR fk_record IN
     SELECT 
       table_schema,
@@ -28,6 +29,7 @@ BEGIN
     FROM information_schema.table_constraints
     WHERE constraint_type = 'FOREIGN KEY'
       AND constraint_name LIKE '%_id_fkey'
+      AND table_schema = 'public'
       AND table_name LIKE '%auth%'
     ORDER BY table_name, constraint_name
   LOOP
@@ -61,10 +63,12 @@ DECLARE
   remaining_fk_count INTEGER;
 BEGIN
   -- Use same query as TEST 3
+  -- Only check public schema, exclude auth schema (Supabase system tables)
   SELECT COUNT(*) INTO remaining_fk_count
   FROM information_schema.table_constraints
   WHERE constraint_type = 'FOREIGN KEY'
     AND constraint_name LIKE '%_id_fkey'
+    AND table_schema = 'public'
     AND table_name LIKE '%auth%';
 
   IF remaining_fk_count > 0 THEN
