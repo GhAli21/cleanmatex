@@ -1,0 +1,120 @@
+{
+  "newOrder": {
+    "title": "New Order",
+    "tabs": {
+      "dryCleaning": "Dry Cleaning",
+      "laundry": "Laundry",
+      "pressedIroned": "Pressed / Ironed",
+      "repairs": "Repairs",
+      "alterations": "Alterations",
+      "detail": "Detail",
+      "cleaning": "Cleaning",
+      "ready": "Ready",
+      "pickups": "Pickups"
+    },
+    "customer": {
+      "label": "Customer",
+      "selectPlaceholder": "Select customer",
+      "addCustomer": "Add customer",
+      "searchPlaceholder": "Search name or phone"
+    },
+    "express": {
+      "label": "Express",
+      "toggleOn": "Express enabled",
+      "toggleOff": "Express disabled"
+    },
+    "serviceCategory": {
+      "title": "Service categories",
+      "empty": "No categories found",
+      "showAll": "Show all"
+    },
+    "itemsGrid": {
+      "title": "Items",
+      "qtyLabel": "Qty",
+      "priceLabel": "Price",
+      "addItem": "Item",
+      "addPhoto": "Photo",
+      "customItemTitle": "Describe an Item",
+      "fieldName": "Name",
+      "fieldQuantity": "Quantity",
+      "fieldPrice": "Price (per item)",
+      "fieldPieces": "Pieces (per item)",
+      "fieldSection": "Section",
+      "fieldTaxExempt": "Tax exempt",
+      "submit": "Submit",
+      "cancel": "Cancel",
+      "noItems": "No items in this category"
+    },
+    "notesPalette": {
+      "title": "Notes & Stains",
+      "saveNotes": "Save",
+      "commonNotes": "Common notes",
+      "colors": "Colors",
+      "more": "More"
+    },
+    "orderSummary": {
+      "title": "Order summary",
+      "item": "Item",
+      "items": "Items",
+      "notes": "Notes",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "tax": "Tax",
+      "total": "Total",
+      "quickDrop": "Quick Drop",
+      "retail": "Retail",
+      "empty": "No items added yet",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "schedule": {
+      "title": "Ready / Delivery date",
+      "inStore": "In-Store",
+      "pickup": "Pickup",
+      "delivery": "Delivery",
+      "apply": "Apply",
+      "cancel": "Cancel",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "selectTime": "Select time"
+    },
+    "payment": {
+      "title": "Payment",
+      "amount": "Amount",
+      "cash": "Cash",
+      "card": "Card",
+      "check": "Check",
+      "invoice": "Invoice",
+      "payOnCollection": "Pay on collection",
+      "discountPercent": "Discount %",
+      "discountValue": "Discount amount",
+      "addPromo": "Add Promo",
+      "giftCard": "Gift Card",
+      "payAllOrders": "Pay all orders",
+      "submit": "Submit",
+      "close": "Close"
+    },
+    "actions": {
+      "submitOrder": "Submit",
+      "submitWithDate": "Submit {date}",
+      "printReceipt": "Print receipt",
+      "shareWhatsapp": "Share on WhatsApp",
+      "saveDraft": "Save as draft",
+      "cancelOrder": "Cancel order"
+    },
+    "toasts": {
+      "orderCreated": "Order has been created",
+      "orderUpdated": "Order has been updated",
+      "orderDeleted": "Order has been deleted",
+      "paymentSuccess": "Payment completed",
+      "paymentPending": "Payment is pending",
+      "validationError": "Please complete required fields"
+    },
+    "validation": {
+      "customerRequired": "Customer is required",
+      "atLeastOneItem": "Add at least one item",
+      "dateRequired": "Select ready or delivery date",
+      "paymentRequired": "Select payment method"
+    }
+  }
+}

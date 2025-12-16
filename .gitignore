@@ -1,0 +1,74 @@
+# .gitignore
+
+# Ignore ghost Windows device file
+web-admin/nul
+web-admin/nul.*
+nul.*
+
+# Environment variables
+.env
+.env.*
+!.env.example
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# Dependencies
+node_modules/
+npm-debug.log*
+.pnp
+.pnp.js
+
+# Supabase
+.supabase/
+supabase/.temp/
+
+# Testing
+coverage/
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+.next/
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+
+# Flutter
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+.packages
+build/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker volumes (keep for data persistence)
+# But ignore if you want clean clones:
+# postgres_data/
+# redis_data/
+# minio_data/
+
+# Supabase
+.branches/
+.temp/
+
+# Misc
+*.pem
+*.key
+.vercel

@@ -1,0 +1,120 @@
+{
+  "newOrder": {
+    "title": "طلب جديد",
+    "tabs": {
+      "dryCleaning": "تنظيف جاف",
+      "laundry": "غسيل",
+      "pressedIroned": "كي / كبس",
+      "repairs": "تصليحات",
+      "alterations": "تعديلات",
+      "detail": "تفاصيل",
+      "cleaning": "قيد الغسيل",
+      "ready": "جاهز",
+      "pickups": "الاستلامات"
+    },
+    "customer": {
+      "label": "العميل",
+      "selectPlaceholder": "اختر العميل",
+      "addCustomer": "إضافة عميل",
+      "searchPlaceholder": "بحث بالاسم أو الهاتف"
+    },
+    "express": {
+      "label": "مستعجل",
+      "toggleOn": "تم تفعيل المستعجل",
+      "toggleOff": "تم إلغاء المستعجل"
+    },
+    "serviceCategory": {
+      "title": "فئات الخدمة",
+      "empty": "لا توجد فئات",
+      "showAll": "عرض الكل"
+    },
+    "itemsGrid": {
+      "title": "العناصر",
+      "qtyLabel": "الكمية",
+      "priceLabel": "السعر",
+      "addItem": "عنصر",
+      "addPhoto": "صورة",
+      "customItemTitle": "وصف عنصر",
+      "fieldName": "الاسم",
+      "fieldQuantity": "الكمية",
+      "fieldPrice": "السعر (للوحدة)",
+      "fieldPieces": "القطع (للوحدة)",
+      "fieldSection": "القسم",
+      "fieldTaxExempt": "معفي من الضريبة",
+      "submit": "حفظ",
+      "cancel": "إلغاء",
+      "noItems": "لا توجد عناصر في هذه الفئة"
+    },
+    "notesPalette": {
+      "title": "الملاحظات والبقع",
+      "saveNotes": "حفظ",
+      "commonNotes": "ملاحظات شائعة",
+      "colors": "الألوان",
+      "more": "المزيد"
+    },
+    "orderSummary": {
+      "title": "ملخص الطلب",
+      "item": "عنصر",
+      "items": "عناصر",
+      "notes": "ملاحظات",
+      "subtotal": "الإجمالي الفرعي",
+      "discount": "الخصم",
+      "tax": "الضريبة",
+      "total": "الإجمالي",
+      "quickDrop": "إيداع سريع",
+      "retail": "بيع مباشر",
+      "empty": "لم تتم إضافة عناصر بعد",
+      "edit": "تعديل",
+      "delete": "حذف"
+    },
+    "schedule": {
+      "title": "تاريخ الجاهزية / التوصيل",
+      "inStore": "في الفرع",
+      "pickup": "استلام",
+      "delivery": "توصيل",
+      "apply": "تطبيق",
+      "cancel": "إلغاء",
+      "today": "اليوم",
+      "tomorrow": "غداً",
+      "selectTime": "اختر الوقت"
+    },
+    "payment": {
+      "title": "الدفع",
+      "amount": "المبلغ",
+      "cash": "نقداً",
+      "card": "بطاقة",
+      "check": "شيك",
+      "invoice": "فاتورة",
+      "payOnCollection": "دفع عند الاستلام",
+      "discountPercent": "نسبة الخصم %",
+      "discountValue": "قيمة الخصم",
+      "addPromo": "قسيمة خصم",
+      "giftCard": "بطاقة هدية",
+      "payAllOrders": "دفع كل الطلبات",
+      "submit": "تأكيد",
+      "close": "إغلاق"
+    },
+    "actions": {
+      "submitOrder": "تأكيد الطلب",
+      "submitWithDate": "تأكيد {date}",
+      "printReceipt": "طباعة الإيصال",
+      "shareWhatsapp": "إرسال بالواتساب",
+      "saveDraft": "حفظ كمسودة",
+      "cancelOrder": "إلغاء الطلب"
+    },
+    "toasts": {
+      "orderCreated": "تم إنشاء الطلب",
+      "orderUpdated": "تم تحديث الطلب",
+      "orderDeleted": "تم حذف الطلب",
+      "paymentSuccess": "تم الدفع بنجاح",
+      "paymentPending": "الدفع قيد الانتظار",
+      "validationError": "يرجى استكمال الحقول المطلوبة"
+    },
+    "validation": {
+      "customerRequired": "العميل مطلوب",
+      "atLeastOneItem": "أضف عنصراً واحداً على الأقل",
+      "dateRequired": "اختر تاريخ الجاهزية أو التوصيل",
+      "paymentRequired": "اختر طريقة الدفع"
+    }
+  }
+}

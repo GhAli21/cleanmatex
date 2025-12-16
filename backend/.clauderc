@@ -1,0 +1,151 @@
+# Backend-Specific Claude Code Configuration
+# Location: backend/.clauderc
+
+context: "NestJS Backend API for CleanMateX Laundry SaaS"
+
+# Critical Files (Always Check These First)
+critical_files:
+  - "prisma/schema.prisma"      # Database schema (SOURCE OF TRUTH)
+  - "src/main.ts"                # Application entry point
+  - "src/app.module.ts"          # Root module
+  - ".env.example"               # Environment variables template
+  - "src/common/guards/"         # Auth/tenant guards
+  - "src/common/decorators/"     # Custom decorators
+
+# Module Structure (Follow This Pattern)
+module_structure:
+  required_files:
+    - "*.module.ts"              # Module definition
+    - "*.controller.ts"          # HTTP request handlers
+    - "*.service.ts"             # Business logic
+    - "dto/*.dto.ts"             # Data Transfer Objects
+    - "*.spec.ts"                # Unit tests
+  
+  optional_files:
+    - "entities/*.entity.ts"     # Domain entities (if not using Prisma)
+    - "interfaces/*.interface.ts" # TypeScript interfaces
+    - "*.e2e-spec.ts"            # E2E tests
+
+# NestJS CLI Commands
+nest_commands:
+  new_module: "nest g module modules/{name}"
+  new_controller: "nest g controller modules/{name} --no-spec"
+  new_service: "nest g service modules/{name} --no-spec"
+  new_guard: "nest g guard common/guards/{name} --no-spec"
+  new_decorator: "nest g decorator common/decorators/{name} --no-spec"
+  new_interceptor: "nest g interceptor common/interceptors/{name} --no-spec"
+
+# When Creating New Modules
+new_module_checklist:
+  - "Create module folder: src/modules/{module-name}/"
+  - "Generate module: nest g module modules/{module-name}"
+  - "Generate controller: nest g controller modules/{module-name}"
+  - "Generate service: nest g service modules/{module-name}"
+  - "Create dto/ folder for DTOs"
+  - "Add Swagger/OpenAPI decorators (@ApiTags, @ApiOperation)"
+  - "Implement multi-tenant filtering in service"
+  - "Add JwtAuthGuard and TenantGuard to controller"
+  - "Add validation pipes to DTOs"
+  - "Write unit tests in *.spec.ts"
+  - "Register module in app.module.ts"
+
+# Testing Commands
+testing:
+  unit: "npm run test"
+  unit_watch: "npm run test:watch"
+  unit_coverage: "npm run test:cov"
+  e2e: "npm run test:e2e"
+  specific_file: "npm run test -- orders.service.spec.ts"
+
+# Database Commands (Prisma)
+database:
+  migrate_dev: "npx prisma migrate dev --name {description}"
+  migrate_deploy: "npx prisma migrate deploy"
+  generate: "npx prisma generate"
+  studio: "npx prisma studio"
+  seed: "npx prisma db seed"
+  reset: "npx prisma migrate reset"
+  format: "npx prisma format"
+
+# Code Quality
+code_quality:
+  lint: "npm run lint"
+  lint_fix: "npm run lint:fix"
+  format: "npm run format"
+  typecheck: "npm run typecheck"
+
+# Development
+development:
+  start: "npm run start:dev"
+  debug: "npm run start:debug"
+  build: "npm run build"
+  production: "npm run start:prod"
+
+# Important Patterns to Follow
+patterns:
+  service_pattern: |
+    @Injectable()
+    export class OrdersService {
+      constructor(private prisma: PrismaService) {}
+      
+      async create(dto: CreateOrderDto, tenantId: string) {
+        // ALWAYS include tenantId
+        return this.prisma.order.create({
+          data: {
+            ...dto,
+            tenantOrgId: tenantId,  // CRITICAL!
+          }
+        });
+      }
+    }
+  
+  controller_pattern: |
+    @ApiTags('orders')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, TenantGuard)
+    @Controller('orders')
+    export class OrdersController {
+      constructor(private ordersService: OrdersService) {}
+      
+      @Post()
+      @ApiOperation({ summary: 'Create order' })
+      async create(
+        @Body() dto: CreateOrderDto,
+        @TenantId() tenantId: string
+      ) {
+        return this.ordersService.create(dto, tenantId);
+      }
+    }
+  
+  dto_pattern: |
+    import { IsString, IsUUID, IsArray } from 'class-validator';
+    import { ApiProperty } from '@nestjs/swagger';
+    
+    export class CreateOrderDto {
+      @ApiProperty({ description: 'Customer UUID' })
+      @IsUUID()
+      customerId: string;
+      
+      @ApiProperty({ description: 'Order items' })
+      @IsArray()
+      @ValidateNested({ each: true })
+      items: OrderItemDto[];
+    }
+
+# Security Checklist (Before Committing)
+security_checklist:
+  - "All queries include tenantOrgId filter"
+  - "DTOs have validation decorators"
+  - "Controllers have authentication guards"
+  - "Authorization checked for user roles"
+  - "No secrets in code (use .env)"
+  - "Input sanitization applied"
+  - "Error messages don't leak sensitive info"
+
+# Performance Checklist
+performance_checklist:
+  - "Use Prisma's 'include' to avoid N+1 queries"
+  - "Add database indexes for frequent queries"
+  - "Implement pagination for list endpoints"
+  - "Use transactions for multi-table operations"
+  - "Cache frequently accessed data (Redis)"

@@ -1,0 +1,842 @@
+/**
+ * OrderService
+ * Core business logic for order operations
+ * PRD-010: Advanced Order Management with workflow support
+ */
+
+import { createClient } from '@/lib/supabase/server';
+import { WorkflowService } from './workflow-service';
+import type { OrderStatus } from '@/lib/types/workflow';
+
+export interface CreateOrderParams {
+  tenantId: string;
+  customerId: string;
+  branchId?: string;
+  orderTypeId: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalPrice: number;
+    serviceCategoryCode?: string;
+    notes?: string;
+    hasStain?: boolean;
+    hasDamage?: boolean;
+    stainNotes?: string;
+    damageNotes?: string;
+  }>;
+  isQuickDrop?: boolean;
+  quickDropQuantity?: number;
+  priority?: string;
+  express?: boolean;
+  customerNotes?: string;
+  internalNotes?: string;
+  paymentMethod?: string;
+  userId: string;
+  userName: string;
+}
+
+export interface CreateOrderResult {
+  success: boolean;
+  order?: {
+    id: string;
+    orderNo: string;
+    currentStatus: string;
+    readyByAt: string;
+  };
+  error?: string;
+}
+
+export interface EstimateReadyByParams {
+  items: Array<{
+    serviceCategoryCode: string;
+    turnaroundHh?: number;
+    quantity: number;
+  }>;
+  isQuickDrop?: boolean;
+  express?: boolean;
+}
+
+export interface EstimateReadyByResult {
+  success: boolean;
+  readyByAt?: string;
+  error?: string;
+}
+
+export class OrderService {
+  /**
+   * Create new order with workflow logic
+   * PRD-010: Quick Drop vs Normal order handling
+   */
+  static async createOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
+    try {
+      const supabase = await createClient();
+      const {
+        tenantId,
+        customerId,
+        branchId,
+        orderTypeId,
+        items,
+        isQuickDrop,
+        quickDropQuantity,
+        priority,
+        express,
+        customerNotes,
+        internalNotes,
+        paymentMethod,
+        userId,
+        userName,
+      } = params;
+
+      // Determine initial status based on Quick Drop vs Normal
+      let initialStatus: string;
+      let transitionFrom: string;
+      let v_orderStatus: string;
+      
+      //v_orderStatus = 'intake';
+      //v_orderStatus = 'preparation';
+      //v_orderStatus = 'sorting';
+      //v_orderStatus = 'washing';
+      //v_orderStatus = 'drying';
+      //v_orderStatus = 'finishing';
+      //v_orderStatus = 'assembly';
+      //v_orderStatus = 'qa';
+      //v_orderStatus = 'packing';
+      //v_orderStatus = 'ready';
+      //v_orderStatus = 'out_for_delivery';
+      //v_orderStatus = 'delivered';
+      //v_orderStatus = 'closed';
+      //v_orderStatus = 'cancelled';
+
+      v_orderStatus = 'processing';
+      transitionFrom = 'intake';
+
+      if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
+        // Quick Drop: insufficient items → preparing stage
+        initialStatus = 'preparing';
+        transitionFrom = 'intake';
+        v_orderStatus = 'intake';
+
+      } else {
+        // Normal order: has items → processing stage
+        initialStatus = 'processing';
+        transitionFrom = 'intake';
+        v_orderStatus = 'processing';
+      }
+
+      // Generate order number
+      const { data: orderNoData, error: orderNoError } = await supabase.rpc(
+        'generate_order_number',
+        { p_tenant_org_id: tenantId }
+      );
+
+      if (orderNoError || !orderNoData) {
+        return {
+          success: false,
+          error: 'Failed to generate order number',
+        };
+      }
+
+      const orderNo = orderNoData as string;
+
+      // Calculate totals
+      const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
+      const discount = 0; // TODO: Apply discounts
+      const tax = 0; // TODO: Calculate tax
+      const total = subtotal - discount + tax;
+
+      // Get primary service category from first item
+      const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
+
+      // Get default workflow template
+      const { data: templateData } = await supabase
+        .from('org_tenant_workflow_templates_cf')
+        .select('template_id')
+        .eq('tenant_org_id', tenantId)
+        .eq('is_default', true)
+        .eq('is_active', true)
+        .single();
+
+      const workflowTemplateId = templateData?.template_id || null;
+
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from('org_orders_mst')
+        .insert({
+          tenant_org_id: tenantId,
+          branch_id: branchId,
+          customer_id: customerId,
+          order_type_id: orderTypeId,
+          order_no: orderNo,
+          status: v_orderStatus, // 'intake', 
+          current_status: initialStatus,
+          current_stage: transitionFrom, //initialStatus
+          priority: priority || 'normal',
+          priority_multiplier: express ? 0.5 : 1.0,
+          total_items: items.length > 0 ? items.length : quickDropQuantity || 0,
+          subtotal,
+          discount,
+          tax,
+          total,
+          payment_status: paymentMethod ? 'partial' : 'pending',
+          payment_method: paymentMethod,
+          paid_amount: 0,
+          service_category_code: primaryServiceCategory,
+          is_order_quick_drop: isQuickDrop || false,
+          quick_drop_quantity: quickDropQuantity,
+          customer_notes: customerNotes,
+          internal_notes: internalNotes,
+          workflow_template_id: workflowTemplateId,
+        })
+        .select()
+        .single();
+
+      if (orderError || !order) {
+        return {
+          success: false,
+          error: orderError?.message || 'Failed to create order',
+        };
+      }
+
+      // Create order items (only if not Quick Drop or if items were provided)
+      if (items.length > 0) {
+        const itemsToInsert = items.map((item, index) => ({
+          order_id: order.id,
+          tenant_org_id: tenantId,
+          service_category_code: item.serviceCategoryCode,
+          order_item_srno: `${orderNo}-${index + 1}`,
+          product_id: item.productId,
+          quantity: item.quantity,
+          price_per_unit: item.pricePerUnit,
+          total_price: item.totalPrice,
+          status: 'pending',
+          item_status: initialStatus,
+          item_stage: initialStatus,
+          notes: item.notes,
+          has_stain: item.hasStain,
+          has_damage: item.hasDamage,
+          stain_notes: item.stainNotes,
+          damage_notes: item.damageNotes,
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('org_order_items_dtl')
+          .insert(itemsToInsert);
+
+        if (itemsError) {
+          console.error('Failed to create order items:', itemsError);
+          // Continue anyway - items can be added later in preparation
+        }
+      }
+
+      // Calculate ready_by date
+      const readyByAt = await this.estimateReadyBy({
+        items: items.map(item => ({
+          serviceCategoryCode: item.serviceCategoryCode || '',
+          quantity: item.quantity,
+        })),
+        isQuickDrop,
+        express,
+      });
+
+      // Update order with ready_by date
+      if (readyByAt.success && readyByAt.readyByAt) {
+        await supabase
+          .from('org_orders_mst')
+          .update({
+            ready_by: readyByAt.readyByAt,
+            ready_by_at_new: readyByAt.readyByAt,
+          })
+          .eq('id', order.id);
+      }
+
+      return {
+        success: true,
+        order: {
+          id: order.id,
+          orderNo: order.order_no,
+          currentStatus: order.current_status,
+          readyByAt: readyByAt.readyByAt || '',
+        },
+      };
+    } catch (error) {
+      console.error('OrderService.createOrder error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Estimate ready-by date based on items and priority
+   * PRD-010: Calculate SLA based on service categories and express mode
+   */
+  static async estimateReadyBy(params: EstimateReadyByParams): Promise<EstimateReadyByResult> {
+    try {
+      const supabase = await createClient();
+      const { items, isQuickDrop, express } = params;
+
+      // If Quick Drop with no items, use default turnaround
+      if (isQuickDrop && items.length === 0) {
+        const defaultHours = 24; // Default 24 hours for Quick Drop
+        const readyByAt = new Date(Date.now() + defaultHours * 60 * 60 * 1000);
+        return {
+          success: true,
+          readyByAt: readyByAt.toISOString(),
+        };
+      }
+
+      // Get max turnaround from service categories
+      let maxTurnaround = 0;
+      for (const item of items) {
+        const { data: category } = await supabase
+          .from('sys_service_category_cd')
+          .select('turnaround_hh, turnaround_hh_express')
+          .eq('service_category_code', item.serviceCategoryCode)
+          .single();
+
+        if (category) {
+          const turnaround = express ? category.turnaround_hh_express : category.turnaround_hh;
+          maxTurnaround = Math.max(maxTurnaround, turnaround || 0);
+        }
+      }
+
+      // Fallback to default if no category found
+      if (maxTurnaround === 0) {
+        maxTurnaround = express ? 12 : 24;
+      }
+
+      // Apply priority multiplier if express
+      const multiplier = express ? 0.5 : 1.0;
+      const finalTurnaround = maxTurnaround * multiplier;
+
+      // Calculate ready-by date
+      const readyByAt = new Date(Date.now() + finalTurnaround * 60 * 60 * 1000);
+
+      return {
+        success: true,
+        readyByAt: readyByAt.toISOString(),
+      };
+    } catch (error) {
+      console.error('OrderService.estimateReadyBy error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Split order into suborder
+   * PRD-010: Create suborder with specific items
+   */
+  static async splitOrder(
+    orderId: string,
+    tenantId: string,
+    itemIds: string[],
+    reason: string,
+    userId: string,
+    userName: string
+  ): Promise<any> {
+    try {
+      const supabase = await createClient();
+
+      // Get parent order
+      const { data: parentOrder, error: orderError } = await supabase
+        .from('org_orders_mst')
+        .select('*')
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (orderError || !parentOrder) {
+        return {
+          success: false,
+          error: 'Parent order not found',
+        };
+      }
+
+      // Get items to move
+      const { data: items, error: itemsError } = await supabase
+        .from('org_order_items_dtl')
+        .select('*')
+        .in('id', itemIds)
+        .eq('order_id', orderId)
+        .eq('tenant_org_id', tenantId);
+
+      if (itemsError || !items || items.length === 0) {
+        return {
+          success: false,
+          error: 'Items not found or already moved',
+        };
+      }
+
+      // Generate suborder number
+      const { data: orderNoData, error: orderNoError } = await supabase.rpc(
+        'generate_order_number',
+        { p_tenant_org_id: tenantId }
+      );
+
+      if (orderNoError || !orderNoData) {
+        return {
+          success: false,
+          error: 'Failed to generate suborder number',
+        };
+      }
+
+      // Create suborder
+      const { data: suborder, error: suborderError } = await supabase
+        .from('org_orders_mst')
+        .insert({
+          tenant_org_id: tenantId,
+          branch_id: parentOrder.branch_id,
+          customer_id: parentOrder.customer_id,
+          order_type_id: parentOrder.order_type_id,
+          order_no: orderNoData,
+          status: 'intake',
+          current_status: parentOrder.current_status,
+          current_stage: parentOrder.current_stage,
+          priority: parentOrder.priority,
+          priority_multiplier: parentOrder.priority_multiplier,
+          total_items: items.length,
+          subtotal: items.reduce((sum, item) => sum + item.total_price, 0),
+          discount: 0,
+          tax: 0,
+          total: items.reduce((sum, item) => sum + item.total_price, 0),
+          workflow_template_id: parentOrder.workflow_template_id,
+          parent_order_id: orderId,
+          order_subtype: 'split_child',
+          customer_notes: `Split from ${parentOrder.order_no}: ${reason}`,
+          internal_notes: `Split order created - reason: ${reason}`,
+        })
+        .select()
+        .single();
+
+      if (suborderError || !suborder) {
+        return {
+          success: false,
+          error: 'Failed to create suborder',
+        };
+      }
+
+      // Move items to suborder
+      const { error: moveError } = await supabase
+        .from('org_order_items_dtl')
+        .update({ order_id: suborder.id })
+        .in('id', itemIds);
+
+      if (moveError) {
+        return {
+          success: false,
+          error: 'Failed to move items to suborder',
+        };
+      }
+
+      // Update parent order
+      await supabase
+        .from('org_orders_mst')
+        .update({
+          has_split: true,
+          total_items: parentOrder.total_items - items.length,
+        })
+        .eq('id', orderId);
+
+      // Log to history
+      await supabase.rpc('log_order_action', {
+        p_tenant_org_id: tenantId,
+        p_order_id: orderId,
+        p_action_type: 'SPLIT',
+        p_from_value: null,
+        p_to_value: suborder.id,
+        p_done_by: userId,
+        p_payload: {
+          reason,
+          suborder_no: suborder.order_no,
+          items_moved: items.length,
+        },
+      });
+
+      return {
+        success: true,
+        suborder: {
+          id: suborder.id,
+          orderNo: suborder.order_no,
+        },
+      };
+    } catch (error) {
+      console.error('OrderService.splitOrder error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Create issue for order or item
+   * PRD-010: Track issues with photos and priority
+   */
+  static async createIssue(
+    orderId: string,
+    orderItemId: string | null,
+    tenantId: string,
+    issueCode: string,
+    issueText: string,
+    photoUrl?: string,
+    priority: string = 'normal',
+    userId: string
+  ): Promise<any> {
+    try {
+      const supabase = await createClient();
+
+      const { data: issue, error: issueError } = await supabase
+        .from('org_order_item_issues')
+        .insert({
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          order_item_id: orderItemId || orderId, // Use order ID as fallback
+          issue_code: issueCode,
+          issue_text: issueText,
+          photo_url: photoUrl,
+          priority,
+          created_by: userId,
+        })
+        .select()
+        .single();
+
+      if (issueError || !issue) {
+        return {
+          success: false,
+          error: 'Failed to create issue',
+        };
+      }
+
+      // Update order/item to indicate issue exists
+      if (orderItemId) {
+        await supabase
+          .from('org_order_items_dtl')
+          .update({ item_issue_id: issue.id, item_is_rejected: true })
+          .eq('id', orderItemId);
+      }
+
+      await supabase
+        .from('org_orders_mst')
+        .update({ has_issue: true, is_rejected: true })
+        .eq('id', orderId);
+
+      // Log to history
+      await supabase.rpc('log_order_action', {
+        p_tenant_org_id: tenantId,
+        p_order_id: orderId,
+        p_action_type: 'ISSUE_CREATED',
+        p_from_value: null,
+        p_to_value: issueCode,
+        p_done_by: userId,
+        p_payload: {
+          issue_id: issue.id,
+          issue_text: issueText,
+          priority,
+        },
+      });
+
+      return {
+        success: true,
+        issue,
+      };
+    } catch (error) {
+      console.error('OrderService.createIssue error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Resolve issue
+   * PRD-010: Mark issue as solved with notes
+   */
+  static async resolveIssue(
+    issueId: string,
+    tenantId: string,
+    solvedNotes: string,
+    userId: string
+  ): Promise<any> {
+    try {
+      const supabase = await createClient();
+
+      const { data: issue, error: issueError } = await supabase
+        .from('org_order_item_issues')
+        .update({
+          solved_at: new Date().toISOString(),
+          solved_by: userId,
+          solved_notes: solvedNotes,
+        })
+        .eq('id', issueId)
+        .eq('tenant_org_id', tenantId)
+        .select()
+        .single();
+
+      if (issueError || !issue) {
+        return {
+          success: false,
+          error: 'Failed to resolve issue',
+        };
+      }
+
+      // Check if all issues for order are resolved
+      const { data: allIssues } = await supabase
+        .from('org_order_item_issues')
+        .select('solved_at')
+        .eq('order_id', issue.order_id)
+        .eq('tenant_org_id', tenantId);
+
+      const allResolved = allIssues?.every(i => i.solved_at !== null);
+
+      if (allResolved) {
+        await supabase
+          .from('org_orders_mst')
+          .update({ has_issue: false })
+          .eq('id', issue.order_id);
+      }
+
+      // Log to history
+      await supabase.rpc('log_order_action', {
+        p_tenant_org_id: tenantId,
+        p_order_id: issue.order_id,
+        p_action_type: 'ISSUE_SOLVED',
+        p_from_value: issue.issue_code,
+        p_to_value: 'resolved',
+        p_done_by: userId,
+        p_payload: {
+          issue_id: issueId,
+          solved_notes: solvedNotes,
+        },
+      });
+
+      return {
+        success: true,
+        issue,
+      };
+    } catch (error) {
+      console.error('OrderService.resolveIssue error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get order history timeline
+   * PRD-010: Complete audit trail
+   */
+  static async getOrderHistory(orderId: string, tenantId: string): Promise<any[]> {
+    try {
+      const supabase = await createClient();
+
+      const { data, error } = await supabase
+        .from('org_order_history')
+        .select('*')
+        .eq('order_id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .order('done_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch order history:', error);
+        return [];
+      }
+
+      return (data || []) as any[];
+    } catch (error) {
+      console.error('OrderService.getOrderHistory error:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Split order by pieces (NEW)
+   * Creates a new sub-order with selected pieces from items
+   * PRD-010: Piece-level splitting for processing modal
+   */
+  static async splitOrderByPieces(
+    orderId: string,
+    tenantId: string,
+    pieceIds: string[],
+    reason: string,
+    userId: string,
+    userName: string
+  ): Promise<any> {
+    try {
+      const supabase = await createClient();
+
+      // Parse piece IDs to extract itemId and pieceNumber
+      // Format: "{itemId}-piece-{pieceNumber}"
+      const pieceMap = new Map<string, number[]>();
+
+      pieceIds.forEach(pieceId => {
+        const match = pieceId.match(/^(.+)-piece-(\d+)$/);
+        if (match) {
+          const itemId = match[1];
+          const pieceNumber = parseInt(match[2], 10);
+          const existing = pieceMap.get(itemId) || [];
+          existing.push(pieceNumber);
+          pieceMap.set(itemId, existing);
+        }
+      });
+
+      if (pieceMap.size === 0) {
+        return {
+          success: false,
+          error: 'No valid piece IDs found',
+        };
+      }
+
+      // Get original order
+      const { data: originalOrder, error: orderError } = await supabase
+        .from('org_orders_mst')
+        .select('*')
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (orderError || !originalOrder) {
+        return {
+          success: false,
+          error: 'Order not found or access denied',
+        };
+      }
+
+      // Get items that have pieces being split
+      const itemIds = Array.from(pieceMap.keys());
+      const { data: items, error: itemsError } = await supabase
+        .from('org_order_items_dtl')
+        .select('*')
+        .in('id', itemIds)
+        .eq('tenant_org_id', tenantId);
+
+      if (itemsError || !items || items.length === 0) {
+        return {
+          success: false,
+          error: 'Items not found',
+        };
+      }
+
+      // Generate new order number
+      const timestamp = Date.now().toString().slice(-6);
+      const newOrderNo = `${originalOrder.order_no}-S${timestamp}`;
+
+      // Create sub-order
+      const { data: suborder, error: createError } = await supabase
+        .from('org_orders_mst')
+        .insert({
+          tenant_org_id: tenantId,
+          order_no: newOrderNo,
+          customer_id: originalOrder.customer_id,
+          branch_id: originalOrder.branch_id,
+          service_category_code: originalOrder.service_category_code,
+          status: 'processing',
+          current_status: 'processing',
+          parent_order_id: orderId,
+          order_subtype: 'split',
+          priority: originalOrder.priority,
+          payment_status: 'pending',
+          subtotal: 0,
+          total: 0,
+          received_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (createError || !suborder) {
+        return {
+          success: false,
+          error: 'Failed to create sub-order',
+        };
+      }
+
+      // Create items in sub-order and update original items
+      let movedPieces = 0;
+      for (const item of items) {
+        const piecesToMove = pieceMap.get(item.id) || [];
+        const movingQuantity = piecesToMove.length;
+
+        if (movingQuantity === 0) continue;
+
+        // Create new item in suborder with the moving quantity
+        await supabase
+          .from('org_order_items_dtl')
+          .insert({
+            tenant_org_id: tenantId,
+            order_id: suborder.id,
+            product_id: item.product_id,
+            service_category_code: item.service_category_code,
+            product_name: item.product_name,
+            product_name2: item.product_name2,
+            quantity: movingQuantity,
+            quantity_ready: 0,
+            price_per_unit: item.price_per_unit,
+            total_price: item.price_per_unit * movingQuantity,
+            status: item.status,
+            created_at: new Date().toISOString(),
+          });
+
+        // Update original item quantity
+        const newQuantity = item.quantity - movingQuantity;
+        await supabase
+          .from('org_order_items_dtl')
+          .update({
+            quantity: newQuantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', item.id)
+          .eq('tenant_org_id', tenantId);
+
+        movedPieces += movingQuantity;
+      }
+
+      // Mark original order as having split
+      await supabase
+        .from('org_orders_mst')
+        .update({
+          has_split: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId);
+
+      // Log history
+      await supabase
+        .from('org_order_history')
+        .insert({
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          action_type: 'SPLIT',
+          from_value: orderId,
+          to_value: suborder.id,
+          done_by: userId,
+          done_at: new Date().toISOString(),
+          payload: {
+            reason,
+            pieces_moved: movedPieces,
+            new_order_no: newOrderNo,
+            piece_ids: pieceIds,
+          },
+        });
+
+      return {
+        success: true,
+        suborder,
+      };
+    } catch (error) {
+      console.error('OrderService.splitOrderByPieces error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+}
+

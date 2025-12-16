@@ -1,0 +1,170 @@
+# Web Admin Dashboard - Claude Code Configuration
+# Location: web-admin/.clauderc
+
+context: "Next.js Admin Dashboard for CleanMateX Laundry SaaS"
+
+# Important Files
+important_files:
+  - "app/[locale]/layout.tsx"           # Root layout
+  - "lib/api/client.ts"                 # API client
+  - "components/ui/*"                   # UI components
+  - "messages/*.json"                   # i18n translations
+  - "middleware.ts"                     # Next.js middleware
+  - "next.config.js"                    # Next.js configuration
+
+# Component Structure
+component_structure:
+  - "Use React Server Components by default"
+  - "Add 'use client' only when needed (interactivity, hooks)"
+  - "Separate components into ui/, forms/, layouts/"
+  - "Use TypeScript interfaces for props"
+  - "Export named components, not default"
+
+# Page Structure (App Router)
+page_structure:
+  layout: "layout.tsx"                  # Shared layout
+  page: "page.tsx"                      # Page component
+  loading: "loading.tsx"                # Loading state
+  error: "error.tsx"                    # Error boundary
+  not-found: "not-found.tsx"            # 404 page
+
+# Styling Rules
+styling:
+  framework: "TailwindCSS"
+  approach: "Mobile-first responsive design"
+  rtl: "Support RTL with dir='rtl' for Arabic"
+  utilities: "Use Tailwind utility classes"
+  custom: "Use CSS variables for theming"
+  examples:
+    - "flex items-center justify-between"
+    - "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+    - "p-4 md:p-6 lg:p-8"
+    - "text-right rtl:text-left"
+
+# i18n (Internationalization)
+i18n:
+  library: "next-intl"
+  languages: ["en", "ar"]
+  usage: |
+    import { useTranslations } from 'next-intl';
+    const t = useTranslations('orders');
+    <h1>{t('title')}</h1>
+  files: "messages/en.json, messages/ar.json"
+  rules:
+    - "All user-facing text must use translation keys"
+    - "Test RTL layout for Arabic"
+    - "Use semantic keys: 'orders.create.title' not 'label1'"
+
+# API Integration
+api:
+  client: "axios or fetch in lib/api/client.ts"
+  state: "React Query (TanStack Query)"
+  patterns: |
+    // Using React Query
+    const { data, isLoading, error } = useQuery({
+      queryKey: ['orders', filters],
+      queryFn: () => api.getOrders(filters)
+    });
+    
+    const mutation = useMutation({
+      mutationFn: api.createOrder,
+      onSuccess: () => queryClient.invalidateQueries(['orders'])
+    });
+
+# Forms
+forms:
+  library: "react-hook-form"
+  validation: "zod"
+  example: |
+    import { useForm } from 'react-hook-form';
+    import { zodResolver } from '@hookform/resolvers/zod';
+    import * as z from 'zod';
+    
+    const schema = z.object({
+      customerName: z.string().min(1),
+      phone: z.string().min(10)
+    });
+    
+    const form = useForm({
+      resolver: zodResolver(schema)
+    });
+
+# State Management
+state:
+  server: "React Query (for API data)"
+  local: "useState/useReducer"
+  global: "Zustand (minimal usage)"
+  url: "useSearchParams (for filters)"
+
+# Development Commands
+commands:
+  dev: "npm run dev"
+  build: "npm run build"
+  start: "npm run start"
+  lint: "npm run lint"
+  test: "npm run test"
+
+# Component Templates
+templates:
+  page_component: |
+    export default function OrdersPage() {
+      return (
+        <div className="container mx-auto py-6">
+          <h1 className="text-2xl font-bold">Orders</h1>
+          {/* Content */}
+        </div>
+      );
+    }
+  
+  client_component: |
+    'use client';
+    
+    import { useState } from 'react';
+    
+    export function OrderForm() {
+      const [isLoading, setIsLoading] = useState(false);
+      
+      return (
+        <form>
+          {/* Form fields */}
+        </form>
+      );
+    }
+
+# UI Components (shadcn/ui)
+ui_components:
+  button: "import { Button } from '@/components/ui/button'"
+  input: "import { Input } from '@/components/ui/input'"
+  dialog: "import { Dialog } from '@/components/ui/dialog'"
+  table: "import { Table } from '@/components/ui/table'"
+  card: "import { Card } from '@/components/ui/card'"
+
+# Best Practices
+best_practices:
+  - "Use TypeScript for all files"
+  - "Implement loading and error states"
+  - "Add proper error boundaries"
+  - "Optimize images with next/image"
+  - "Use dynamic imports for heavy components"
+  - "Add meta tags for SEO"
+  - "Test responsive design at all breakpoints"
+  - "Ensure accessibility (ARIA labels)"
+
+# Performance Optimization
+performance:
+  - "Use React.memo for expensive components"
+  - "Implement virtualization for long lists"
+  - "Use Next.js Image optimization"
+  - "Add proper caching headers"
+  - "Lazy load non-critical components"
+  - "Debounce search inputs"
+
+# Testing
+testing:
+  e2e: "Playwright"
+  unit: "Jest + React Testing Library"
+  example: |
+    test('renders order list', async () => {
+      render(<OrdersPage />);
+      expect(screen.getByText('Orders')).toBeInTheDocument();
+    });

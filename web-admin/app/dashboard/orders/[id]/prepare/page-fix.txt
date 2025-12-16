@@ -1,0 +1,12 @@
+async function PreparationContent({ orderId }: { orderId: string }) {
+  // Get authenticated user and tenant context
+  const { tenantId } = await getAuthContext();
+
+  // Fetch order with tenant context
+  const result = await getOrder(tenantId, orderId);
+
+  if (!result.success || !result.data) {
+    notFound();
+  }
+
+  const order = result.data;

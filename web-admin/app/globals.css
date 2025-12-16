@@ -262,11 +262,27 @@ body {
   transform: scaleX(-1);
 }
 
-/* Position utilities */
-[dir="rtl"] .left-0 { left: auto; right: 0; }
-[dir="rtl"] .right-0 { right: auto; left: 0; }
+/* Position utilities - but not for fixed layout elements like sidebar */
 [dir="rtl"] .left-4 { left: auto; right: 1rem; }
 [dir="rtl"] .right-4 { right: auto; left: 1rem; }
+
+/* Sidebar positioning in RTL - Force sidebar to right side */
+[dir="rtl"] aside.fixed {
+  left: auto !important;
+  right: 0 !important;
+}
+
+/* Ensure sidebar border is on left in RTL */
+[dir="rtl"] aside.fixed {
+  border-left: 1px solid rgb(229 231 235);
+  border-right: none;
+}
+
+/* Ensure sidebar border is on right in LTR */
+[dir="ltr"] aside.fixed {
+  border-right: 1px solid rgb(229 231 235);
+  border-left: none;
+}
 
 /* Justify content */
 [dir="rtl"] .justify-start {

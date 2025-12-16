@@ -1,0 +1,79 @@
+
+as you are a professional software engineer backend and frontend and mobile apps and expert in Node.js, Supabase, flutter, UI/UX, Naming convention , and all needed tech stack for my CleanMateX project , generate a set of development rules and instructions for my AI coding assistance (Claude Code). each tech rules in separate file.
+
+#ONLY rules and instructions not large files.
+
+example of naming :
+
+- Naming Rules:-
+
+Model files end with (_model)
+
+Screen ends with (_screen)
+
+State Files end with _stat.dart
+
+Widget ends with ( _widget)
+
+Card separate files ends with ( _card )
+
+View only widget ends with ( _vw)
+
+High level constants or reusable files start with (app_ ) such as app_theme.dart
+
+High level reusable widgets files start with (app_ ) and ends with _widget such as app_custom_txt_fld_widget.dart.
+
+Model files: End with _model (e.g., user_model.dart).
+
+Screen files: End with _screen (e.g., login_screen.dart).
+
+Widget files: End with _widget (e.g., app_button_widget.dart).
+
+Card widgets: End with _card (e.g., appointment_card.dart).
+
+View-only widgets: End with _vw (e.g., profile_vw.dart).
+
+High-level constants: Start with app_ (e.g., app_theme.dart).
+
+Utils file end with ( _util.dart )
+
+as you are a professional software engineer backend and frontend and mobile apps and expert in Node.js, Supabase, flutter , and all needed tech stack for this project , generate a set of development rules and instructions for my AI coding assistance. each tech rules in separate file
+
+netstat -ano | findstr :5432
+
+docker ps | findstr cmx-postgres
+
+
+docker run --name postgresql-container -p 5432:5432 -e POSTGRES_USER=myuser -e POSTGRES_PASSWORD=mypassword -d postgres
+docker run --name cmx-postgres -p 5432:5432 -e POSTGRES_USER=cmx_user -e POSTGRES_PASSWORD=cmx_pass_dev -d cmx_db
+cleanmatex_postgres
+
+psql -h 127.0.0.1 -p 5432 -U cmx_user -d cmx_db -c "select version(), inet_server_addr(), inet_server_port();"
+
+
+-------------
+I'm ready to start building CleanMateX. Please begin implementation following the development plans in docs/plan/.
+
+Start with PRD-000 (database core dev) use details and instructions in docs/plan/000_database_core_dev_prd.md
+--
+
+I'm ready to start building CleanMateX. Please begin implementation following the development plans in docs/plan/.
+
+Start with PRD-001 (Authentication & Authorization).
+
+Key context:
+- Database: Supabase PostgreSQL (local dev setup ready)
+- Frontend: Next.js in web-admin/
+- All plans are in docs/plan/
+- Follow CLAUDE.md for architecture patterns
+
+Please implement PRD-001 step by step, starting with:
+1. Review the PRD at docs/plan/001_auth_dev_prd.md
+2. Create the necessary database migrations
+3. Implement RLS policies
+4. Build the backend API endpoints
+5. Create the frontend authentication UI
+6. Add tests
+
+Show me your implementation plan before starting, and let me approve it.
+

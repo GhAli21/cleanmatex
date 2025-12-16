@@ -1,0 +1,39 @@
+{
+  "name": "cleanmatex",
+  "version": "0.1.0",
+  "description": "Multi-tenant SaaS for Laundry & Dry Cleaning Management",
+  "private": true,
+  "scripts": {
+    "services:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/start-services.ps1",
+    "services:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/stop-services.ps1",
+    "db:reset": "powershell -ExecutionPolicy Bypass -File ./scripts/dev/reset-db.sh",
+    "test:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-test.ps1",
+    "validate:env": "node scripts/validate-env.js",
+    "supabase:start": "cd supabase && supabase start",
+    "supabase:stop": "cd supabase && supabase stop",
+    "supabase:status": "cd supabase && supabase status",
+    "supabase:reset": "cd supabase && supabase db reset",
+    "supabase:types": "cd supabase && supabase gen types typescript --local > ../web-admin/types/database.ts"
+  },
+  "keywords": [
+    "laundry",
+    "dry-cleaning",
+    "saas",
+    "multi-tenant"
+  ],
+  "author": "CleanMateX Team",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "workspaces": [
+    "web-admin",
+    "backend",
+    "packages/*"
+  ],
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.7",
+    "ioredis": "^5.8.2"
+  }
+}

@@ -1,0 +1,414 @@
+/**
+ * Permission Service
+ * 
+ * Handles permission checking, caching, and RBAC operations
+ * Uses effective_permissions table for fast O(1) lookups
+ * 
+ * NOTE: This file is client-safe. Server-side functions use dynamic imports
+ * to avoid static analysis issues with server-only modules.
+ */
+
+import { supabase } from '@/lib/supabase/client';
+
+// ========================
+// Types
+// ========================
+
+export interface Permission {
+  permission_code: string;
+  resource_type: string | null;
+  resource_id: string | null;
+}
+
+export interface UserRole {
+  role_id: string;
+  role_code: string;
+  role_name: string;
+}
+
+export interface WorkflowRole {
+  workflow_role: string;
+}
+
+export interface PermissionCheckOptions {
+  resourceType?: string;
+  resourceId?: string;
+}
+
+// ========================
+// Client-Side Permission Checks
+// ========================
+
+/**
+ * Get all permissions for current user
+ * @param tenantId - Tenant ID (optional, uses current tenant if not provided)
+ * @returns Array of permission codes
+ */
+export async function getUserPermissions(tenantId?: string): Promise<string[]> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('get_user_permissions');
+
+    if (error) {
+      console.error('Error fetching user permissions:', error);
+      return [];
+    }
+
+    // Extract permission codes
+    return (data || []).map((p: Permission) => p.permission_code);
+  } catch (error) {
+    console.error('Error in getUserPermissions:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if user has specific permission
+ * @param permission - Permission code (e.g., 'orders:create')
+ * @param options - Optional resource type and ID for scoped permissions
+ * @returns True if user has permission
+ */
+export async function hasPermission(
+  permission: string,
+  options?: PermissionCheckOptions
+): Promise<boolean> {
+  const client = supabase;
+
+  try {
+    if (options?.resourceType && options?.resourceId) {
+      // Resource-scoped permission check
+      const { data, error } = await client.rpc('has_resource_permission', {
+        p_permission: permission,
+        p_resource_type: options.resourceType,
+        p_resource_id: options.resourceId,
+      });
+
+      if (error) {
+        console.error('Error checking resource permission:', error);
+        return false;
+      }
+
+      return data === true;
+    } else {
+      // Tenant-wide permission check
+      const { data, error } = await client.rpc('has_permission', {
+        p_permission: permission,
+      });
+
+      if (error) {
+        console.error('Error checking permission:', error);
+        return false;
+      }
+
+      return data === true;
+    }
+  } catch (error) {
+    console.error('Error in hasPermission:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if user has any of the specified permissions
+ * @param permissions - Array of permission codes
+ * @returns True if user has at least one permission
+ */
+export async function hasAnyPermission(permissions: string[]): Promise<boolean> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('has_any_permission', {
+      p_permissions: permissions,
+    });
+
+    if (error) {
+      console.error('Error checking any permission:', error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error('Error in hasAnyPermission:', error);
+    return false;
+  }
+}
+
+/**
+ * Check if user has all of the specified permissions
+ * @param permissions - Array of permission codes
+ * @returns True if user has all permissions
+ */
+export async function hasAllPermissions(permissions: string[]): Promise<boolean> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('has_all_permissions', {
+      p_permissions: permissions,
+    });
+
+    if (error) {
+      console.error('Error checking all permissions:', error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error('Error in hasAllPermissions:', error);
+    return false;
+  }
+}
+
+/**
+ * Get user roles
+ * @returns Array of user roles
+ */
+export async function getUserRoles(): Promise<UserRole[]> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('get_user_roles');
+
+    if (error) {
+      console.error('Error fetching user roles:', error);
+      return [];
+    }
+
+    return (data || []) as UserRole[];
+  } catch (error) {
+    console.error('Error in getUserRoles:', error);
+    return [];
+  }
+}
+
+/**
+ * Get workflow roles for current user
+ * @returns Array of workflow role codes
+ */
+export async function getUserWorkflowRoles(): Promise<string[]> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('get_user_workflow_roles');
+
+    if (error) {
+      console.error('Error fetching workflow roles:', error);
+      return [];
+    }
+
+    return (data || []).map((r: WorkflowRole) => r.workflow_role);
+  } catch (error) {
+    console.error('Error in getUserWorkflowRoles:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if user has specific workflow role
+ * @param workflowRole - Workflow role code (e.g., 'ROLE_RECEPTION')
+ * @returns True if user has workflow role
+ */
+export async function hasWorkflowRole(workflowRole: string): Promise<boolean> {
+  const client = supabase;
+
+  try {
+    const { data, error } = await client.rpc('has_workflow_role', {
+      p_workflow_role: workflowRole,
+    });
+
+    if (error) {
+      console.error('Error checking workflow role:', error);
+      return false;
+    }
+
+    return data === true;
+  } catch (error) {
+    console.error('Error in hasWorkflowRole:', error);
+    return false;
+  }
+}
+
+// ========================
+// Server-Side Permission Checks
+// ========================
+
+/**
+ * Get all permissions for current user (server-side)
+ * Uses Redis cache with 15-minute TTL
+ * @param userId - User ID (required for caching)
+ * @param tenantId - Tenant ID (required for caching)
+ * @returns Array of permission codes
+ */
+export async function getUserPermissionsServer(
+  userId?: string,
+  tenantId?: string
+): Promise<string[]> {
+  // Try cache first if userId and tenantId provided
+  if (userId && tenantId) {
+    try {
+      // Dynamic import for server-only cache functions
+      const cacheService = await import('@/lib/services/permission-cache');
+      const cached = await cacheService.getCachedPermissions(userId, tenantId);
+      
+      if (cached) {
+        return cached;
+      }
+    } catch (cacheError) {
+      // Cache not available, continue to database lookup
+      console.warn('Cache not available, falling back to database:', cacheError);
+    }
+  }
+
+  // Dynamic import for server-only Supabase client
+  const { createClient } = await import('@/lib/supabase/server');
+  const client = await createClient();
+
+  try {
+    const { data, error } = await client.rpc('get_user_permissions');
+
+    if (error) {
+      console.error('Error fetching user permissions:', error);
+      return [];
+    }
+
+    const permissions = (data || []).map((p: Permission) => p.permission_code);
+
+    // Cache permissions for 15 minutes (900 seconds)
+    if (userId && tenantId) {
+      try {
+        const cacheService = await import('@/lib/services/permission-cache');
+        await cacheService.setCachedPermissions(userId, tenantId, permissions, 900);
+      } catch (cacheError) {
+        // Cache not available, continue without caching
+        console.warn('Cache not available for write:', cacheError);
+      }
+    }
+
+    return permissions;
+  } catch (error) {
+    console.error('Error in getUserPermissionsServer:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if user has specific permission (server-side)
+ * @param permission - Permission code
+ * @param options - Optional resource type and ID
+ * @returns True if user has permission
+ */
+export async function hasPermissionServer(
+  permission: string,
+  options?: PermissionCheckOptions
+): Promise<boolean> {
+  // Dynamic import for server-only Supabase client
+  const { createClient } = await import('@/lib/supabase/server');
+  const client = await createClient();
+
+  try {
+    if (options?.resourceType && options?.resourceId) {
+      const { data, error } = await client.rpc('has_resource_permission', {
+        p_permission: permission,
+        p_resource_type: options.resourceType,
+        p_resource_id: options.resourceId,
+      });
+
+      if (error) {
+        console.error('Error checking resource permission:', error);
+        return false;
+      }
+
+      return data === true;
+    } else {
+      const { data, error } = await client.rpc('has_permission', {
+        p_permission: permission,
+      });
+
+      if (error) {
+        console.error('Error checking permission:', error);
+        return false;
+      }
+
+      return data === true;
+    }
+  } catch (error) {
+    console.error('Error in hasPermissionServer:', error);
+    return false;
+  }
+}
+
+// ========================
+// Permission Management (Admin Only)
+// ========================
+
+/**
+ * Rebuild effective permissions for a user
+ * Called automatically on role/permission changes, but can be triggered manually
+ * @param userId - User ID
+ * @param tenantId - Tenant ID
+ */
+export async function rebuildUserPermissions(
+  userId: string,
+  tenantId: string
+): Promise<void> {
+  // Dynamic import for server-only Supabase client
+  const { createClient } = await import('@/lib/supabase/server');
+  const client = await createClient();
+
+  try {
+    const { error } = await client.rpc('cmx_rebuild_user_permissions', {
+      p_user_id: userId,
+      p_tenant_id: tenantId,
+    });
+
+    if (error) {
+      console.error('Error rebuilding user permissions:', error);
+      throw new Error('Failed to rebuild user permissions');
+    }
+  } catch (error) {
+    console.error('Error in rebuildUserPermissions:', error);
+    throw error;
+  }
+}
+
+// ========================
+// Permission Caching (Server-Only)
+// ========================
+// Cache functions are in @/lib/services/permission-cache.ts (server-only)
+// Use dynamic imports to access these functions from client components
+
+/**
+ * Cache invalidation on permission changes
+ * Invalidates Redis cache when permissions change
+ * @param userId - User ID
+ * @param tenantId - Tenant ID
+ */
+export async function invalidatePermissionCache(
+  userId: string,
+  tenantId: string
+): Promise<void> {
+  try {
+    // Dynamic import for server-only cache functions
+    const cacheService = await import('@/lib/services/permission-cache');
+    await cacheService.invalidatePermissionCache(userId, tenantId);
+  } catch (error) {
+    console.error('Error invalidating permission cache:', error);
+    // Don't throw - cache invalidation failure shouldn't break the app
+  }
+}
+
+/**
+ * Invalidate all permission caches for a tenant
+ * Useful when role permissions change
+ * @param tenantId - Tenant ID
+ */
+export async function invalidateTenantPermissionCache(tenantId: string): Promise<void> {
+  try {
+    // Dynamic import for server-only cache functions
+    const cacheService = await import('@/lib/services/permission-cache');
+    await cacheService.invalidateTenantPermissionCache(tenantId);
+  } catch (error) {
+    console.error('Error invalidating tenant permission cache:', error);
+  }
+}
+

@@ -1,0 +1,369 @@
+
+The Plan:
+
+1. Fix docker-compose.yml
+What I'll Remove:
+# ❌ DELETE THIS - Duplicate of Supabase's Postgres
+postgres:
+  image: postgres:16-alpine
+  container_name: cmx-postgres
+  # ... entire service block
+# ❌ DELETE THIS - Not needed, use npx commands instead
+prisma-cli:
+  image: node:20-alpine
+  container_name: cmx-prisma-cli
+  # ... entire service block
+What I'll Keep:
+Redis (cache/queue)
+Redis Commander (GUI)
+MinIO (S3 storage)
+Result:
+Saves ~200MB RAM (no duplicate Postgres)
+Cleaner service list
+No port conflicts
+2. About Prisma - IMPORTANT
+Current Prisma Setup (from your architecture):
+Prisma does NOT run as a service - it's a library that runs inside your Node.js app.
+How Prisma Works:
+┌─────────────────────────────────────┐
+│  Web Admin (Next.js)                │
+│  ├─ Prisma Client (imported lib)   │
+│  │  └─ Connects to Supabase DB     │
+│  │     (port 54322 via DATABASE_URL)│
+│  └─ Supabase JS Client              │
+│     └─ Connects to PostgREST        │
+│        (port 54321)                 │
+└─────────────────────────────────────┘
+Prisma Commands You'll Use:
+# Run from web-admin/ folder
+cd web-admin
+
+# 1. After Supabase migrations - sync schema
+npx prisma db pull
+
+# 2. Generate TypeScript types
+npx prisma generate
+
+# 3. Browse database visually
+npx prisma studio
+
+# 4. Test connection
+npx tsx scripts/test-prisma-connection.ts
+DATABASE_URL Configuration:
+# web-admin/.env
+# Prisma connects DIRECTLY to Supabase's Postgres
+DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
+
+# NOT the Docker postgres (5432) ❌
+# NOT PostgREST API (54321) ❌
+Why Remove prisma-cli Container?
+❌ Unnecessary complexity
+❌ Needs volume mounts and syncing
+✅ Faster to run npx prisma directly
+✅ Uses your local node_modules
+✅ No Docker overhead
+3. Rewrite start-services.ps1
+New Structure:
+# STEP 1: Start Supabase Local
+Write-Host "Starting Supabase..." -ForegroundColor Cyan
+supabase start
+# Waits for all 10 Supabase containers
+
+# STEP 2: Wait for Supabase health
+Write-Host "Checking Supabase health..." -ForegroundColor Cyan
+# Poll port 54321 until responsive (max 60s)
+# Poll port 54323 (Studio) until responsive
+
+# STEP 3: Start Docker Services (Redis, MinIO only)
+Write-Host "Starting Docker services..." -ForegroundColor Cyan
+docker-compose up -d redis redis-commander minio
+# NOTE: No postgres, no prisma-cli
+
+# STEP 4: Verify Docker services
+Write-Host "Checking Docker services..." -ForegroundColor Cyan
+# Test Redis: port 6379
+# Test Redis Commander: port 8081
+# Test MinIO API: port 9000
+# Test MinIO Console: port 9001
+
+# STEP 5: Summary & Next Steps
+Write-Host "`n✅ All services running!" -ForegroundColor Green
+Write-Host "`nService URLs:" -ForegroundColor Yellow
+Write-Host "  Supabase Studio:    http://localhost:54323"
+Write-Host "  Supabase API:       http://localhost:54321"
+Write-Host "  Redis Commander:    http://localhost:8081"
+Write-Host "  MinIO Console:      http://localhost:9001"
+Write-Host "`nNext steps:" -ForegroundColor Yellow
+Write-Host "  1. cd web-admin"
+Write-Host "  2. npm run dev"
+Write-Host "  3. Open http://localhost:3000"
+Improvements Over Current Script:
+✅ Starts Supabase automatically
+✅ Waits for services to be ready (not just ports open)
+✅ Shows clear status messages with colors
+✅ Displays service URLs at the end
+✅ Better error handling
+✅ Skips already-running services
+4. Create stop-services.ps1
+# Stop in reverse order
+Write-Host "Stopping Docker services..." -ForegroundColor Cyan
+docker-compose down
+
+Write-Host "Stopping Supabase..." -ForegroundColor Cyan
+supabase stop
+
+Write-Host "✅ All services stopped" -ForegroundColor Green
+5. Create status-services.ps1
+# Show what's running
+Write-Host "=== Supabase Status ===" -ForegroundColor Cyan
+supabase status
+
+Write-Host "`n=== Docker Status ===" -ForegroundColor Cyan
+docker-compose ps
+
+Write-Host "`n=== Port Check ===" -ForegroundColor Cyan
+# Test each port and show ✅ or ❌
+# 54321 (Supabase API)
+# 54323 (Studio)
+# 6379 (Redis)
+# 8081 (Redis Commander)
+# 9000/9001 (MinIO)
+6. Update .env.example
+# ============================================
+# Database (Prisma connects to Supabase Postgres)
+# ============================================
+# Local development (Supabase Local):
+DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
+
+# ❌ DO NOT USE: postgresql://...@localhost:5432/cmx_db
+#    (That's the old Docker postgres - removed)
+
+# Production (Supabase Cloud with pooling):
+# DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
+
+# ============================================
+# Supabase Configuration
+# ============================================
+# Get these from: supabase status
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGc...
+SUPABASE_SERVICE_ROLE_KEY=eyJhbGc...
+7. Create Quick Start Guide
+New file: docs/dev/QUICK_START.md
+# Daily Development Startup
+
+## Prerequisites
+- Docker Desktop running
+- Supabase CLI installed (`npm i -g supabase`)
+- Node.js 20+
+
+## Option 1: Automated (Recommended)
+```powershell
+# From project root
+.\scripts\dev\start-services.ps1
+
+# Then in new terminal:
+cd web-admin
+npm run dev
+Option 2: Manual
+# Terminal 1: Infrastructure
+supabase start
+docker-compose up -d redis redis-commander minio
+
+# Terminal 2: Web Admin
+cd web-admin
+npm run dev
+Port Reference
+Service	Port	URL
+Supabase API	54321	http://localhost:54321
+Supabase Studio	54323	http://localhost:54323
+Supabase DB	54322	postgres://postgres:postgres@localhost:54322/postgres
+Web Admin	3000	http://localhost:3000
+Redis	6379	-
+Redis Commander	8081	http://localhost:8081
+MinIO API	9000	http://localhost:9000
+MinIO Console	9001	http://localhost:9001
+Prisma Workflow
+# After Supabase migrations
+cd web-admin
+npx prisma db pull      # Sync schema from DB
+npx prisma generate     # Generate types
+npx prisma studio       # Browse data
+
+---
+
+## Summary of Changes
+
+### Files I'll Modify:
+1. ✏️ `docker-compose.yml` - Remove postgres & prisma-cli services
+2. ✏️ `scripts/dev/start-services.ps1` - Complete rewrite
+3. ✏️ `.env.example` - Update DATABASE_URL comments
+
+### Files I'll Create:
+4. ➕ `scripts/dev/stop-services.ps1` - Shutdown script
+5. ➕ `scripts/dev/status-services.ps1` - Status checker
+6. ➕ `docs/dev/QUICK_START.md` - Startup guide
+
+### What About Prisma?
+- **No container needed** - it's a library, not a service
+- Runs inside your Next.js app
+- Use `npx prisma` commands directly
+- Connects to Supabase Postgres (port 54322)
+
+---
+
+## Expected Result
+
+After running `start-services.ps1`, you'll see:
+✅ All services running! Service URLs: Supabase Studio: http://localhost:54323 Supabase API: http://localhost:54321 Redis Commander: http://localhost:8081 MinIO Console: http://localhost:9001 Next steps:
+cd web-admin
+npm run dev
+Open http://localhost:3000
+
+**Docker will show 13 containers:**
+- 10 Supabase containers (supabase_*)
+- 3 Docker containers (cmx-redis, cmx-redis-commander, cmx-minio)
+
+---
+
+**Ready to proceed? I'll make these changes exactly as described above.**
+
+
+------------------------
+
+✅ All Tasks Completed Successfully!
+I've successfully completed all 13 tasks to clean up your service architecture and update documentation. Here's what was accomplished:
+📋 Summary of Changes
+Infrastructure Cleanup (Tasks 1-3)
+✅ Removed duplicate PostgreSQL from docker-compose.yml
+Removed postgres service (port 5432)
+Removed postgres_data volume
+Now using only Supabase's PostgreSQL (port 54322)
+✅ Removed Prisma CLI container
+Removed prisma-cli service
+Use npx prisma commands directly instead
+Removed prisma_node_modules volume
+Result: Cleaner docker-compose.yml with only 3 services (Redis, MinIO, Redis Commander)
+PowerShell Scripts (Tasks 4-6)
+✅ Created scripts/dev/start-services.ps1
+Starts Supabase Local first (10 containers including Postgres on 54322)
+Then starts Docker services (Redis, MinIO, Redis Commander)
+Health checks for all services
+Beautiful color-coded output with service URLs
+✅ Created scripts/dev/stop-services.ps1
+Graceful shutdown in correct order
+Stops Docker first, then Supabase
+Clear status messages
+✅ Created scripts/dev/status-services.ps1
+Shows Supabase status
+Shows Docker container status
+Port availability check with ✓/✗ indicators
+Service URLs reference
+Configuration (Task 7)
+✅ Updated .env.example
+Changed DATABASE_URL to use port 54322 (Supabase postgres)
+Added warning about NOT using port 5432
+Clear comments explaining local vs production setup
+New Documentation (Tasks 8-10)
+✅ Created docs/dev/QUICK_START.md
+Comprehensive daily startup guide
+Automated and manual workflows
+Prisma usage instructions
+Troubleshooting quick reference
+Pro tips and VS Code integration
+✅ Created docs/dev/SERVICES_REFERENCE.md
+Complete architecture diagram
+Detailed service descriptions
+Port mapping table
+Connection strings reference
+Data flow explanations
+Resource usage estimates
+✅ Created docs/dev/TROUBLESHOOTING.md
+Common startup issues
+Port conflict resolution
+Database connection problems
+Prisma issues
+RLS policy debugging
+Performance troubleshooting
+Emergency reset procedures
+Updated Existing Documentation (Tasks 11-13)
+✅ Updated .claude/docs/architecture.md
+Clarified Prisma is a library, NOT a service
+Updated infrastructure section (Supabase + Docker, no separate postgres)
+Removed references to Docker postgres on port 5432
+Added note about Supabase Local including PostgreSQL
+✅ Updated .claude/docs/dev_commands.md
+Added PowerShell scripts section
+Updated Docker services list (removed postgres)
+Fixed service URLs (removed localhost:5432)
+Updated workflow to use automated scripts
+Removed Docker postgres psql commands
+✅ Updated CLAUDE.md
+Added "Daily Startup" section
+Quick reference to PowerShell scripts
+Link to Quick Start Guide
+Important note about using Supabase's postgres
+🎯 Final Result
+Your Development Stack Now:
+13 Containers Total:
+├─ 10 Supabase containers (supabase start)
+│  ├─ PostgreSQL (port 54322) ✅ THE ONLY POSTGRES
+│  ├─ PostgREST API (port 54321)
+│  ├─ Studio (port 54323)
+│  ├─ GoTrue Auth
+│  ├─ Storage
+│  ├─ Realtime
+│  ├─ Kong
+│  ├─ Mailpit (port 54324)
+│  ├─ Meta
+│  └─ Analytics
+│
+└─ 3 Docker containers (docker-compose)
+   ├─ Redis (port 6379)
+   ├─ Redis Commander (port 8081)
+   └─ MinIO (ports 9000, 9001)
+Your Daily Workflow:
+# Morning - Start everything
+.\scripts\dev\start-services.ps1
+
+# Check status anytime
+.\scripts\dev\status-services.ps1
+
+# Start web admin
+cd web-admin
+npm run dev
+
+# Evening - Stop everything
+.\scripts\dev\stop-services.ps1
+📚 Documentation Structure
+CleanMateX Documentation:
+├─ CLAUDE.md (main entry point)
+│  └─ Now includes Daily Startup section
+│
+├─ .claude/docs/ (detailed references)
+│  ├─ architecture.md ✅ Updated
+│  └─ dev_commands.md ✅ Updated
+│
+├─ docs/dev/ (new developer guides)
+│  ├─ QUICK_START.md ✅ New
+│  ├─ SERVICES_REFERENCE.md ✅ New
+│  └─ TROUBLESHOOTING.md ✅ New
+│
+├─ scripts/dev/ (automation scripts)
+│  ├─ start-services.ps1 ✅ New
+│  ├─ stop-services.ps1 ✅ New
+│  └─ status-services.ps1 ✅ New
+│
+├─ docker-compose.yml ✅ Cleaned up
+└─ .env.example ✅ Updated
+🚀 Next Steps
+Test the new startup script:
+.\scripts\dev\start-services.ps1
+Verify all services are running:
+.\scripts\dev\status-services.ps1
+Read the Quick Start Guide:
+docs/dev/QUICK_START.md
+Remove old Docker volumes (optional):
+docker volume ls | grep postgres_data
+docker volume rm <postgres_data_volume_name>
+All tasks completed successfully! Your development environment is now cleaner, better documented, and easier to manage. 🎉

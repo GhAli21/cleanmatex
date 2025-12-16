@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma db pull:*)",
+      "Bash(docker exec:*)",
+      "Bash(supabase db push:*)",
+      "Bash(psql:*)",
+      "Bash(supabase db execute:*)",
+      "Bash(supabase db reset:*)",
+      "Bash(test:*)",
+      "Bash(supabase db query:*)",
+      "Bash(node ../scripts/create-test-user.js:*)",
+      "Bash(npx supabase migration:*)",
+      "Bash(npx supabase db reset:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run dev)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(lsof:*)",
+      "Bash(cat:*)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(\"f:\\jhapp\\cleanmatex\\docs\\features\\SAAS_Platform_Management\\PROGRESS_SUMMARY.md\")",
+      "Bash(npm run build:*)",
+      "Bash(timeout 90 npm run dev:*)"
+    ]
+  },
+  "outputStyle": "default"
+}

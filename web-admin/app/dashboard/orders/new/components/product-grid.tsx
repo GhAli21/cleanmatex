@@ -1,0 +1,144 @@
+/**
+ * Product Grid Component
+ * Display products in a grid with add/remove functionality
+ * Re-Design: PRD-010 Advanced Orders - Enhanced with ProductCard and StainConditionToggles
+ */
+
+'use client';
+
+import { memo } from 'react';
+import { useTranslations } from 'next-intl';
+import { useRTL } from '@/lib/hooks/useRTL';
+import { ProductCard } from './product-card';
+import { StainConditionToggles } from './stain-condition-toggles';
+import { Plus, Camera } from 'lucide-react';
+
+interface Product {
+  id: string;
+  product_code: string;
+  product_name: string | null;
+  product_name2: string | null;
+  default_sell_price: number | null;
+  default_express_sell_price: number | null;
+  product_image?: string | null;
+  product_icon?: string | null;
+}
+
+interface OrderItem {
+  productId: string;
+  quantity: number;
+  pricePerUnit: number;
+  totalPrice: number;
+  serviceCategoryCode?: string;
+}
+
+interface ProductGridProps {
+  products: Product[];
+  items: OrderItem[];
+  express: boolean;
+  onAddItem: (product: Product) => void;
+  onRemoveItem: (productId: string) => void;
+  onQuantityChange: (productId: string, quantity: number) => void;
+  selectedConditions?: string[];
+  onConditionToggle?: (condition: string) => void;
+  onOpenCustomItemModal?: () => void;
+}
+
+export const ProductGrid = memo(function ProductGrid({
+  products,
+  items,
+  express,
+  onAddItem,
+  onRemoveItem,
+  onQuantityChange,
+  selectedConditions = [],
+  onConditionToggle = () => {},
+  onOpenCustomItemModal,
+}: ProductGridProps) {
+  const t = useTranslations('newOrder.itemsGrid');
+  const isRTL = useRTL();
+
+  const getItemQuantity = (productId: string): number => {
+    const item = items.find((i) => i.productId === productId);
+    return item?.quantity || 0;
+  };
+
+  const getItemPrice = (product: Product): number => {
+    if (express && product.default_express_sell_price) {
+      return product.default_express_sell_price;
+    }
+    return product.default_sell_price || 0;
+  };
+
+  const hasItems = items.length > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Product Grid */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h2 className={`text-xl font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('selectItems')}</h2>
+
+        {products.length === 0 ? (
+          <div className={`${isRTL ? 'text-right' : 'text-center'} py-12 text-gray-500`}>
+            <p>{t('noProductsAvailable')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {/* Product Cards */}
+            {products.map((product) => {
+              const quantity = getItemQuantity(product.id);
+              const price = getItemPrice(product);
+
+              return (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  quantity={quantity}
+                  price={price}
+                  express={express}
+                  onAdd={() => onAddItem(product)}
+                  onIncrement={() => onQuantityChange(product.id, quantity + 1)}
+                  onDecrement={() => onQuantityChange(product.id, quantity - 1)}
+                />
+              );
+            })}
+
+            {/* Custom Item Button */}
+            <button
+              onClick={onOpenCustomItemModal}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
+            >
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <Plus className="w-8 h-8" />
+              </div>
+              <span className="font-semibold">{t('customItem')}</span>
+              <span className="text-xs text-gray-500">{t('describeItem')}</span>
+            </button>
+
+            {/* Photo Button */}
+            <button
+              onClick={() => {
+                // TODO: Implement photo capture
+                console.log('Photo capture not yet implemented');
+              }}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600"
+            >
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <Camera className="w-8 h-8" />
+              </div>
+              <span className="font-semibold">{t('addPhoto')}</span>
+              <span className="text-xs text-gray-500">{t('captureItem')}</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Stain/Condition Toggles Section */}
+      <StainConditionToggles
+        selectedConditions={selectedConditions}
+        onConditionToggle={onConditionToggle}
+        disabled={!hasItems}
+      />
+    </div>
+  );
+});

@@ -1,0 +1,169 @@
+
+- Supabase Reset:-
+supabase db reset
+node scripts/db/create-demo-admins.js
+
+OLD
+.\scripts\db\reset-with-seeds.ps1
+
+===========
+- Daily:-**
+.\scripts\dev\start-services.ps1
+.\scripts\dev\status-services.ps1
+.\scripts\dev\stop-services.ps1
+
+OLD
+.\scripts\dev\start-services.ps1
+.\scripts\dev\status-services.ps1
+.\scripts\dev\stop-services.ps1
+
+URLs:
+  Supabase Studio : http://127.0.0.1:54323
+  Supabase API    : http://127.0.0.1:54321
+  Redis Commander : http://127.0.0.1:8081
+  MinIO Console   : http://127.0.0.1:9001
+  
+Next Steps:
+  1. cd web-admin
+  2. npm run dev
+  3. Open http://localhost:3000
+  
+-------------------
+
+Supabase Studio Local:
+http://localhost:54323
+
+Minio:
+http://localhost:9001/login
+
+Redis:
+http://localhost:8081/
+
+----------
+# 1) Create the app database owned by cmx_user
+docker exec -it cmx-postgres psql -U cmx_user -d postgres -c "CREATE DATABASE cmx_db OWNER cmx_user;"
+
+# 2) Optional: ensure password
+docker exec -it cmx-postgres psql -U cmx_user -d postgres -c "ALTER USER cmx_user WITH PASSWORD 'cmx_pass_dev';"
+
+# 3) Sanity check
+docker exec -it cmx-postgres psql -U cmx_user -d cmx_db -c "SELECT current_user, current_database();"
+
+----------
+
+npm run services:start    # Start all infrastructure
+npm run services:stop     # Stop services
+npm run test:smoke        # Verify everything works
+npm run validate:env      # 
+
+
+
+----------------
+
+Waiting for Postgres on localhost:5432 ...
+âœ… Postgres is up.
+â³ Waiting for Supabase API on localhost:54321 ...
+âœ… Supabase API is up.
+â³ Waiting for Supabase Studio on localhost:54323 ...
+âœ… Supabase Studio is up.
+â³ Waiting for Inbucket on localhost:54324 ...
+âœ… Inbucket is up.
+â³ Waiting for MinIO on localhost:9000 ...
+âœ… MinIO is up.
+â³ Waiting for MinIO Console on localhost:9001 ...
+âœ… MinIO Console is up.
+â³ Waiting for Redis on localhost:6379 ...
+âœ… Redis is up.
+â³ Waiting for Redis Commander on localhost:8081 ...
+âœ… Redis Commander is up.
+
+â••••••••••••••••••••••••••••••••••••
+•••              http://localhost:9000
+  MinIO Console:      http://localhost:9001
+  Inbucket (Email):   http://localhost:54324
+â•••••••••••••••••••••••••••••••••••••••••••••••••••••••
+
+ðŸŽ‰ Ready to start developing!
+
+Next steps:
+  1. cd web-admin; npm run dev       (Start admin dashboard)
+  
+   ▲ Next.js 15.5.4
+   - Local:        http://localhost:3000   
+   - Network:      http://172.27.240.1:3000
+   - Environments: .env.local, .env
+   
+  2. cd backend; npm run dev         (Start backend API)
+
+To stop services: docker compose down
+
+# Introspect your database schema
+docker-compose run --rm prisma-cli npx prisma db pull
+
+# Generate TypeScript types
+docker-compose run --rm prisma-cli npx prisma generate
+
+----
+
+docker exec -it cmx-postgres psql -U cmx_user -d postgres -c "ALTER USER cmx_user WITH PASSWORD 'cmx_pass_dev';"
+
+-----
+
+in supabase status result error responce from daemon: No such container: supabase_db_cleanmatex
+cd supabase
+supabase start
+
+Started supabase local development setup.
+
+         API URL: http://127.0.0.1:54321
+     GraphQL URL: http://127.0.0.1:54321/graphql/v1
+  S3 Storage URL: http://127.0.0.1:54321/storage/v1/s3
+         MCP URL: http://127.0.0.1:54321/mcp
+    Database URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      Studio URL: http://127.0.0.1:54323
+     Mailpit URL: http://127.0.0.1:54324
+ Publishable key: sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH
+      Secret key: sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz
+   S3 Access Key: 625729a08b95bf1b7ff351a663f3a23c
+   S3 Secret Key: 850181e4652dd023b7a98c58ae0d2d34bd487ee0cc3254aed6eda37307425907  
+       S3 Region: local
+PS F:\jhapp\cleanmatex\supabase> 
+
+so supabase/.env
+COMPOSE_PROJECT_NAME=cleanmatex
+SUPABASE_URL=http://localhost:54321
+SUPABASE_ANON_KEY=sb_publishable_ACJWIzQHLZjBrEguHvfOXg_3BJgxAaH
+SUPABASE_SERVICE_ROLE_KEY=sb_secret_N7UND0UgjsKTKV-Uddkm0Hg_xSvEMPvz
+
+
+
+Once containers show healthy:
+
+Open Supabase Studio → http://localhost:54323
+
+Test API → http://localhost:54321/rest/v1
+
+Your Postgres DB → localhost:5432
+
+---
+
+test the complete infrastructure setup
+proceed with the next module
+
+Test the setup:
+
+   npm run services:start
+   npm run test:smoke
+   
+
+Start developing:
+   
+      cd web-admin
+   npm install
+   npm run dev
+   
+   
+Move to next module:
+Module 002: Authentication & Authorization
+Module 003: Tenant Management
+All documentation is in the docs/ folder. Start with docs/development-setup.md for detailed instructions!

@@ -1,0 +1,114 @@
+# .clauderc - Claude Code Configuration for CleanMateX Laundry SaaS
+# Location: Project Root
+
+# Project Information
+project:
+  name: "CleanMateX - Laundry SaaS"
+  type: "multi-tenant-saas"
+  description: "Full-featured laundry management platform for GCC market"
+  version: "0.1.0"
+
+# Tech Stack
+stack:
+  backend: "NestJS + Prisma + PostgreSQL"
+  frontend-web: "Next.js 14 + TypeScript + TailwindCSS"
+  frontend-mobile: "Flutter 3.16+"
+  database: "PostgreSQL 16"
+  cache: "Redis 7"
+  storage: "MinIO/S3"
+  queue: "BullMQ"
+
+# Key Directories
+directories:
+  backend: "./backend"
+  web: "./web-admin"
+  mobile: "./mobile-apps"
+  docs: "./docs"
+  shared: "./shared"
+  templates: "./templates"
+
+# Coding Standards
+standards:
+  - "Use TypeScript strict mode everywhere"
+  - "Follow Airbnb style guide for TS/JS"
+  - "Use async/await, never callbacks"
+  - "Prefer functional programming patterns"
+  - "Write bilingual support (English + Arabic)"
+  - "Use meaningful variable names in camelCase"
+  - "Add JSDoc comments for complex functions"
+
+# Critical Rules (NEVER VIOLATE)
+critical_rules:
+  - "🔴 ALWAYS add tenant_org_id filtering in ALL database queries"
+  - "🔴 NEVER hardcode sensitive data (API keys, passwords)"
+  - "🔴 ALWAYS validate user input with DTOs/schemas"
+  - "🔴 ALWAYS use environment variables for configuration"
+  - "🔴 ALWAYS follow the database schema in prisma/schema.prisma"
+  - "🔴 ALWAYS support RTL (Right-to-Left) for Arabic"
+  - "🔴 NEVER skip writing tests for business logic"
+  - "🔴 ALWAYS use transactions for multi-table operations"
+
+# Testing Requirements
+testing:
+  unit-tests: "Jest (backend), Flutter Test (mobile)"
+  integration-tests: "Required for all API endpoints"
+  e2e-tests: "Playwright (web), Flutter integration tests (mobile)"
+  coverage-target: "80%+"
+
+# Security Checklist
+security:
+  - "Row-Level Security (RLS) for multi-tenancy"
+  - "JWT authentication with refresh tokens"
+  - "Input sanitization and validation"
+  - "Rate limiting on all public APIs"
+  - "SQL injection prevention via Prisma ORM"
+  - "XSS protection on frontend"
+  - "CORS configuration"
+  - "Helmet.js for HTTP headers"
+
+# Performance Targets
+performance:
+  api-response-p50: "< 300ms"
+  api-response-p95: "< 800ms"
+  page-load: "< 2s"
+  search-query: "< 1s for 100k orders"
+  database-queries: "Use indexes, avoid N+1"
+
+# Code Review Checklist
+code_review:
+  - "Multi-tenant security verified"
+  - "Error handling implemented"
+  - "Tests written and passing"
+  - "API documented (Swagger/OpenAPI)"
+  - "i18n keys added for all text"
+  - "No console.logs in production"
+  - "Environment variables used"
+  - "Database indexes added if needed"
+  - "No hardcoded values"
+  - "TypeScript types defined"
+
+# Git Workflow
+git:
+  main-branch: "main"
+  develop-branch: "develop"
+  feature-prefix: "feature/"
+  bugfix-prefix: "bugfix/"
+  commit-convention: "conventional-commits"
+  # Examples:
+  # feat(orders): add order status history
+  # fix(auth): resolve token refresh issue
+  # docs(api): update order endpoints
+
+# Documentation
+documentation:
+  api: "OpenAPI/Swagger"
+  code: "JSDoc/TSDoc comments"
+  readme: "Keep updated with setup instructions"
+  changelog: "Maintain CHANGELOG.md"
+
+# AI Assistant Preferences
+ai_preferences:
+  style: "Detailed explanations for learning"
+  approach: "Incremental, test-driven development"
+  review: "Always review for security and performance"
+  testing: "Write tests alongside code"

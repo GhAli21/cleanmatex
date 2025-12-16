@@ -1,0 +1,1139 @@
+# NestJS Backend Development Rules
+
+## What is NestJS?
+NestJS is a **Node.js framework** for building efficient, scalable server-side applications. Think of it as an organized way to build your backend API.
+
+**Key Concepts:**
+- **Modules**: Organize code by feature (like folders for orders, customers, auth)
+- **Controllers**: Handle HTTP requests (GET, POST, PUT, DELETE)
+- **Services**: Contains business logic (the "brain" of each feature)
+- **Providers**: Injectable dependencies (database, external APIs, utilities)
+- **DTOs**: Data Transfer Objects - define what data comes in/out
+
+## Project Structure
+```
+/src
+  /common
+    /decorators     # Custom decorators
+    /filters        # Exception filters
+    /guards         # Auth guards
+    /interceptors   # Request/response interceptors
+    /pipes          # Validation pipes
+  /config
+    database.config.ts
+    redis.config.ts
+    app.config.ts
+  /modules
+    /auth
+      /dto          # Request/response DTOs
+      /entities     # Database entities
+      /guards       # Feature guards
+      auth.controller.ts
+      auth.service.ts
+      auth.module.ts
+    /orders
+      /dto
+      /entities
+      /services
+      orders.controller.ts
+      orders.module.ts
+    /customers
+    /payments
+  /database
+    /migrations     # SQL migration files
+    /seeds          # Test data
+  main.ts           # Application entry point
+```
+
+## Module Organization
+
+### Feature Module Example
+```typescript
+// src/modules/orders/orders.module.ts
+import { Module } from '@nestjs/common';
+import { OrdersController } from './orders.controller';
+import { OrdersService } from './orders.service';
+import { PrismaModule } from '../prisma/prisma.module';
+
+/**
+ * EXPLANATION:
+ * - @Module decorator tells NestJS this is a module
+ * - imports: Other modules this module depends on
+ * - controllers: HTTP endpoint handlers
+ * - providers: Services that can be injected
+ * - exports: Make services available to other modules
+ */
+@Module({
+  imports: [PrismaModule], // Import database module
+  controllers: [OrdersController],
+  providers: [OrdersService],
+  exports: [OrdersService], // Allow other modules to use OrdersService
+})
+export class OrdersModule {}
+```
+
+## Controllers: Handling HTTP Requests
+
+### RESTful Controller
+```typescript
+// src/modules/orders/orders.controller.ts
+import { 
+  Controller, 
+  Get, 
+  Post, 
+  Patch, 
+  Delete, 
+  Body, 
+  Param, 
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { OrdersService } from './orders.service';
+import { CreateOrderDto, UpdateOrderDto, OrderQueryDto } from './dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+
+/**
+ * EXPLANATION:
+ * - @Controller('orders') creates routes like /api/v1/orders
+ * - @ApiTags groups endpoints in Swagger docs
+ * - @UseGuards protects routes (requires authentication)
+ */
+@ApiTags('Orders') // Groups in Swagger UI
+@Controller('orders')
+@UseGuards(JwtAuthGuard) // All routes require JWT token
+@ApiBearerAuth() // Shows lock icon in Swagger
+export class OrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
+
+  /**
+   * GET /api/v1/orders
+   * Lists all orders with optional filters
+   */
+  @Get()
+  @ApiOperation({ summary: 'List all orders' })
+  async findAll(@Query() query: OrderQueryDto) {
+    return this.ordersService.findAll(query);
+  }
+
+  /**
+   * GET /api/v1/orders/:id
+   * Get a specific order by ID
+   */
+  @Get(':id')
+  @ApiOperation({ summary: 'Get order by ID' })
+  async findOne(@Param('id') id: string) {
+    return this.ordersService.findOne(id);
+  }
+
+  /**
+   * POST /api/v1/orders
+   * Create a new order
+   */
+  @Post()
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create new order' })
+  async create(@Body() createOrderDto: CreateOrderDto) {
+    return this.ordersService.create(createOrderDto);
+  }
+
+  /**
+   * PATCH /api/v1/orders/:id
+   * Update an existing order
+   */
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update order' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateOrderDto: UpdateOrderDto,
+  ) {
+    return this.ordersService.update(id, updateOrderDto);
+  }
+
+  /**
+   * DELETE /api/v1/orders/:id
+   * Soft delete an order
+   */
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete order' })
+  async remove(@Param('id') id: string) {
+    return this.ordersService.remove(id);
+  }
+
+  /**
+   * POST /api/v1/orders/:id/assign-driver
+   * Custom action - assign driver to order
+   */
+  @Post(':id/assign-driver')
+  @ApiOperation({ summary: 'Assign driver to order' })
+  async assignDriver(
+    @Param('id') orderId: string,
+    @Body('driverId') driverId: string,
+  ) {
+    return this.ordersService.assignDriver(orderId, driverId);
+  }
+}
+```
+
+**KEY POINTS:**
+- Controllers are **thin** - they just route requests to services
+- Always use DTOs for validation
+- Use HTTP status codes correctly (200, 201, 204, 400, 404, etc.)
+- Document with Swagger decorators
+
+## Services: Business Logic
+
+### Service Implementation
+```typescript
+// src/modules/orders/orders.service.ts
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateOrderDto, UpdateOrderDto, OrderQueryDto } from './dto';
+
+/**
+ * EXPLANATION:
+ * - @Injectable makes this class available for dependency injection
+ * - Services contain all business logic
+ * - Controllers call services, services call database
+ */
+@Injectable()
+export class OrdersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async findAll(query: OrderQueryDto) {
+    const { status, customerId, page = 1, limit = 20 } = query;
+    
+    // Build where clause based on filters
+    const where = {
+      ...(status && { status }),
+      ...(customerId && { customerId }),
+      deletedAt: null, // Only active records
+    };
+
+    // Execute query with pagination
+    const [orders, total] = await Promise.all([
+      this.prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          customer: true,
+          items: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      data: orders,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async findOne(id: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        customer: true,
+        items: {
+          include: {
+            service: true,
+          },
+        },
+        driver: true,
+      },
+    });
+
+    if (!order || order.deletedAt) {
+      throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    return order;
+  }
+
+  async create(createOrderDto: CreateOrderDto) {
+    const { customerId, items } = createOrderDto;
+
+    // Validate customer exists
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+    
+    if (!customer) {
+      throw new BadRequestException('Customer not found');
+    }
+
+    // Calculate total
+    const total = await this.calculateTotal(items);
+
+    // Create order with items in a transaction
+    const order = await this.prisma.$transaction(async (tx) => {
+      const newOrder = await tx.order.create({
+        data: {
+          customerId,
+          status: 'PENDING',
+          total,
+          items: {
+            create: items.map(item => ({
+              serviceId: item.serviceId,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+
+      return newOrder;
+    });
+
+    // Emit event for background processing (notifications, etc.)
+    this.eventEmitter.emit('order.created', order);
+
+    return order;
+  }
+
+  async update(id: string, updateOrderDto: UpdateOrderDto) {
+    // Check if order exists
+    await this.findOne(id);
+
+    // Update order
+    const updatedOrder = await this.prisma.order.update({
+      where: { id },
+      data: updateOrderDto,
+      include: {
+        items: true,
+      },
+    });
+
+    return updatedOrder;
+  }
+
+  async remove(id: string) {
+    // Soft delete
+    await this.prisma.order.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async assignDriver(orderId: string, driverId: string) {
+    const order = await this.findOne(orderId);
+    
+    if (order.status !== 'READY_FOR_PICKUP') {
+      throw new BadRequestException('Order must be ready for pickup');
+    }
+
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data: {
+        driverId,
+        status: 'OUT_FOR_DELIVERY',
+      },
+      include: {
+        driver: true,
+      },
+    });
+
+    // Send notification to driver
+    this.eventEmitter.emit('order.assigned', updatedOrder);
+
+    return updatedOrder;
+  }
+
+  private async calculateTotal(items: Array<{ serviceId: string; quantity: number; price: number }>) {
+    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }
+}
+```
+
+## DTOs: Data Validation
+
+### Input DTOs with Validation
+```typescript
+// src/modules/orders/dto/create-order.dto.ts
+import { IsUUID, IsArray, ValidateNested, ArrayMinSize } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
+
+/**
+ * EXPLANATION:
+ * - DTOs define the shape of data
+ * - class-validator decorators validate incoming data
+ * - ApiProperty adds Swagger documentation
+ */
+export class OrderItemDto {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  serviceId: string;
+
+  @ApiProperty({ example: 2, minimum: 1 })
+  @IsInt()
+  @Min(1)
+  quantity: number;
+
+  @ApiProperty({ example: 25.50 })
+  @IsNumber()
+  @Min(0)
+  price: number;
+}
+
+export class CreateOrderDto {
+  @ApiProperty({ example: '123e4567-e89b-12d3-a456-426614174000' })
+  @IsUUID()
+  customerId: string;
+
+  @ApiProperty({ type: [OrderItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items: OrderItemDto[];
+}
+
+// src/modules/orders/dto/update-order.dto.ts
+import { PartialType } from '@nestjs/swagger';
+
+/**
+ * EXPLANATION:
+ * - PartialType makes all fields optional
+ * - Inherits all validation from CreateOrderDto
+ * - Great for PATCH endpoints
+ */
+export class UpdateOrderDto extends PartialType(CreateOrderDto) {
+  @ApiPropertyOptional({ enum: OrderStatus })
+  @IsEnum(OrderStatus)
+  @IsOptional()
+  status?: OrderStatus;
+}
+
+// src/modules/orders/dto/order-query.dto.ts
+export class OrderQueryDto {
+  @ApiPropertyOptional({ enum: OrderStatus })
+  @IsEnum(OrderStatus)
+  @IsOptional()
+  status?: OrderStatus;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
+  customerId?: string;
+
+  @ApiPropertyOptional({ default: 1 })
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  page?: number = 1;
+
+  @ApiPropertyOptional({ default: 20 })
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  @IsOptional()
+  limit?: number = 20;
+}
+```
+
+## Authentication & Authorization
+
+### JWT Strategy
+```typescript
+// src/modules/auth/strategies/jwt.strategy.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+import { ConfigService } from '@nestjs/config';
+
+/**
+ * EXPLANATION:
+ * - PassportStrategy handles JWT validation
+ * - Extracts token from Authorization header
+ * - Validates and decodes token
+ * - Returns user object attached to request
+ */
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor(
+    private configService: ConfigService,
+    private usersService: UsersService,
+  ) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: configService.get<string>('JWT_SECRET'),
+    });
+  }
+
+  async validate(payload: any) {
+    const user = await this.usersService.findOne(payload.sub);
+    
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    // This user object is attached to req.user
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      tenantId: user.tenantId,
+    };
+  }
+}
+```
+
+### Auth Guard
+```typescript
+// src/modules/auth/guards/jwt-auth.guard.ts
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Reflector } from '@nestjs/core';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private reflector: Reflector) {
+    super();
+  }
+
+  canActivate(context: ExecutionContext) {
+    // Check if route is public
+    const isPublic = this.reflector.get<boolean>(
+      'isPublic',
+      context.getHandler(),
+    );
+    
+    if (isPublic) {
+      return true;
+    }
+
+    return super.canActivate(context);
+  }
+}
+
+// Usage: Make a route public
+@Public()
+@Post('login')
+async login(@Body() loginDto: LoginDto) {
+  return this.authService.login(loginDto);
+}
+```
+
+## Multi-Tenancy with RLS
+
+### Tenant Context Interceptor
+```typescript
+// src/common/interceptors/tenant.interceptor.ts
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+/**
+ * EXPLANATION:
+ * - Sets tenant context for database queries
+ * - Ensures users only see their tenant's data
+ * - Works with PostgreSQL Row Level Security
+ */
+@Injectable()
+export class TenantInterceptor implements NestInterceptor {
+  constructor(private prisma: PrismaService) {}
+
+  async intercept(context: ExecutionContext, next: CallHandler) {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    if (user?.tenantId) {
+      // Set tenant ID in database session
+      await this.prisma.$executeRaw`
+        SELECT set_config('app.current_tenant_id', ${user.tenantId}, true)
+      `;
+    }
+
+    return next.handle();
+  }
+}
+```
+
+## Error Handling
+
+### Global Exception Filter
+```typescript
+// src/common/filters/http-exception.filter.ts
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      message = typeof exceptionResponse === 'string' 
+        ? exceptionResponse 
+        : (exceptionResponse as any).message;
+    }
+
+    // Log error
+    console.error('Exception:', exception);
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+```
+
+## Configuration
+
+### Environment-based Config
+```typescript
+// src/config/configuration.ts
+export default () => ({
+  port: parseInt(process.env.PORT, 10) || 3000,
+  database: {
+    url: process.env.DATABASE_URL,
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET,
+    expiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  },
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT, 10) || 6379,
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY,
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
+  },
+});
+
+// src/main.ts
+import { ConfigService } from '@nestjs/config';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  
+  const port = configService.get<number>('port');
+  await app.listen(port);
+}
+```
+
+## API Documentation (Swagger/OpenAPI)
+
+### Setup Swagger
+```typescript
+// src/main.ts
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('CleanMateX API')
+    .setDescription('Laundry & Dry-Clean Management API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('Auth', 'Authentication endpoints')
+    .addTag('Orders', 'Order management')
+    .addTag('Customers', 'Customer management')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
+  await app.listen(3000);
+  console.log('API Docs available at: http://localhost:3000/api/docs');
+}
+```
+
+## Testing
+
+### Unit Tests
+```typescript
+// src/modules/orders/orders.service.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { OrdersService } from './orders.service';
+import { PrismaService } from '../prisma/prisma.service';
+
+describe('OrdersService', () => {
+  let service: OrdersService;
+  let prisma: PrismaService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OrdersService,
+        {
+          provide: PrismaService,
+          useValue: {
+            order: {
+              findMany: jest.fn(),
+              findUnique: jest.fn(),
+              create: jest.fn(),
+            },
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<OrdersService>(OrdersService);
+    prisma = module.get<PrismaService>(PrismaService);
+  });
+
+  it('should create an order', async () => {
+    const orderDto = {
+      customerId: 'uuid',
+      items: [{ serviceId: 'uuid', quantity: 1, price: 10 }],
+    };
+
+    jest.spyOn(prisma.order, 'create').mockResolvedValue({
+      id: 'new-uuid',
+      ...orderDto,
+      status: 'PENDING',
+      total: 10,
+    } as any);
+
+    const result = await service.create(orderDto);
+    
+    expect(result).toBeDefined();
+    expect(result.status).toBe('PENDING');
+    expect(prisma.order.create).toHaveBeenCalled();
+  });
+});
+```
+
+## Essential Packages
+
+```json
+{
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/core": "^10.0.0",
+    "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/config": "^3.0.0",
+    "@nestjs/swagger": "^7.0.0",
+    "@nestjs/jwt": "^10.0.0",
+    "@nestjs/passport": "^10.0.0",
+    "passport": "^0.6.0",
+    "passport-jwt": "^4.0.0",
+    "class-validator": "^0.14.0",
+    "class-transformer": "^0.5.1",
+    "@prisma/client": "^5.0.0",
+    "bcrypt": "^5.1.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^10.0.0",
+    "jest": "^29.0.0",
+    "prisma": "^5.0.0"
+  }
+}
+```
+
+## Common Patterns
+
+### 1. Decorator for Current User
+```typescript
+// src/common/decorators/current-user.decorator.ts
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const CurrentUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
+
+// Usage
+@Get('profile')
+async getProfile(@CurrentUser() user: User) {
+  return user;
+}
+```
+
+### 2. Response Transformation
+```typescript
+// src/common/interceptors/transform.interceptor.ts
+@Injectable()
+export class TransformInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler) {
+    return next.handle().pipe(
+      map(data => ({
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      })),
+    );
+  }
+}
+```
+
+## Naming Conventions
+
+### File Naming
+
+- **Modules**: `{name}.module.ts` (e.g., `orders.module.ts`, `auth.module.ts`)
+- **Controllers**: `{name}.controller.ts` (e.g., `orders.controller.ts`)
+- **Services**: `{name}.service.ts` (e.g., `orders.service.ts`, `order.service.ts`)
+- **DTOs**: `{name}.dto.ts` (e.g., `create-order.dto.ts`, `update-order.dto.ts`)
+- **Entities**: `{name}.entity.ts` (e.g., `order.entity.ts`, `customer.entity.ts`)
+- **Guards**: `{name}.guard.ts` (e.g., `jwt-auth.guard.ts`, `roles.guard.ts`)
+- **Interceptors**: `{name}.interceptor.ts` (e.g., `transform.interceptor.ts`)
+- **Filters**: `{name}.filter.ts` (e.g., `http-exception.filter.ts`)
+- **Pipes**: `{name}.pipe.ts` (e.g., `validation.pipe.ts`)
+- **Decorators**: `{name}.decorator.ts` (e.g., `current-user.decorator.ts`)
+
+### Class Naming
+
+- **Modules**: `PascalCase` with `Module` suffix (e.g., `OrdersModule`, `AuthModule`)
+- **Controllers**: `PascalCase` with `Controller` suffix (e.g., `OrdersController`)
+- **Services**: `PascalCase` with `Service` suffix (e.g., `OrdersService`, `OrderService`)
+- **DTOs**: `PascalCase` with `Dto` suffix (e.g., `CreateOrderDto`, `UpdateOrderDto`)
+- **Entities**: `PascalCase` (e.g., `Order`, `Customer`)
+- **Guards**: `PascalCase` with `Guard` suffix (e.g., `JwtAuthGuard`, `RolesGuard`)
+
+### Variable & Function Naming
+
+- **Variables**: `camelCase` (e.g., `orderList`, `selectedOrder`, `isLoading`)
+- **Functions/Methods**: `camelCase` (e.g., `getOrders()`, `createOrder()`)
+- **Private members**: `_camelCase` (e.g., `_orderRepository`, `_logger`)
+- **Constants**: `UPPER_SNAKE_CASE` (e.g., `MAX_ORDER_ITEMS`, `DEFAULT_PAGE_SIZE`)
+- **Enums**: `PascalCase` (e.g., `OrderStatus`, `PaymentMethod`)
+
+### Examples
+
+```typescript
+// ✅ Good: Clear, descriptive names
+@Module({ imports: [PrismaModule], controllers: [OrdersController] })
+export class OrdersModule {}
+
+@Controller('orders')
+export class OrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
+  
+  @Get()
+  async getOrders(@Query() query: OrderQueryDto) {
+    return this.ordersService.findAll(query);
+  }
+}
+
+// ❌ Bad: Unclear or inconsistent names
+@Module({})
+export class Orders {} // Should be OrdersModule
+
+@Controller('orders')
+export class OrdersCtrl {} // Should be OrdersController
+
+async get() {} // Should be getOrders
+```
+
+---
+
+## Code Reuse Patterns
+
+### 1. Extract Common Decorators
+
+```typescript
+// ✅ Good: Reusable decorator
+// src/common/decorators/current-user.decorator.ts
+import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+
+export const CurrentUser = createParamDecorator(
+  (data: unknown, ctx: ExecutionContext) => {
+    const request = ctx.switchToHttp().getRequest();
+    return request.user;
+  },
+);
+
+// Usage in multiple controllers
+@Get('profile')
+async getProfile(@CurrentUser() user: User) {
+  return user;
+}
+
+// ❌ Bad: Duplicate user extraction logic
+@Get('profile')
+async getProfile(@Req() req: Request) {
+  const user = req.user; // Repeated in every endpoint
+}
+```
+
+### 2. Extract Common Interceptors
+
+```typescript
+// ✅ Good: Reusable interceptor
+// src/common/interceptors/transform.interceptor.ts
+@Injectable()
+export class TransformInterceptor implements NestInterceptor {
+  intercept(context: ExecutionContext, next: CallHandler) {
+    return next.handle().pipe(
+      map(data => ({
+        success: true,
+        data,
+        timestamp: new Date().toISOString(),
+      })),
+    );
+  }
+}
+
+// Apply globally in main.ts
+app.useGlobalInterceptors(new TransformInterceptor());
+
+// ❌ Bad: Duplicate response transformation
+return { success: true, data: orders }; // Repeated everywhere
+```
+
+### 3. Extract Common Guards
+
+```typescript
+// ✅ Good: Reusable guard
+// src/common/guards/jwt-auth.guard.ts
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {
+  canActivate(context: ExecutionContext) {
+    return super.canActivate(context);
+  }
+}
+
+// Usage in multiple controllers
+@Controller('orders')
+@UseGuards(JwtAuthGuard)
+export class OrdersController {}
+
+// ❌ Bad: Duplicate auth logic
+// Auth logic repeated in every controller
+```
+
+### 4. Extract Common DTOs
+
+```typescript
+// ✅ Good: Reusable base DTOs
+// src/common/dto/pagination.dto.ts
+export class PaginationDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
+}
+
+// Extend in feature DTOs
+export class OrderQueryDto extends PaginationDto {
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+}
+
+// ❌ Bad: Duplicate pagination fields
+export class OrderQueryDto {
+  page?: number; // Repeated in every query DTO
+  limit?: number;
+}
+```
+
+### 5. Extract Common Services
+
+```typescript
+// ✅ Good: Reusable base service
+// src/common/services/base.service.ts
+export abstract class BaseService<T> {
+  constructor(protected readonly repository: Repository<T>) {}
+
+  async findAll(options?: FindManyOptions<T>): Promise<T[]> {
+    return this.repository.find(options);
+  }
+
+  async findOne(id: string): Promise<T> {
+    const entity = await this.repository.findOne({ where: { id } as any });
+    if (!entity) {
+      throw new NotFoundException(`${this.getEntityName()} not found`);
+    }
+    return entity;
+  }
+
+  protected abstract getEntityName(): string;
+}
+
+// Extend in feature services
+@Injectable()
+export class OrdersService extends BaseService<Order> {
+  constructor(@InjectRepository(Order) repository: Repository<Order>) {
+    super(repository);
+  }
+
+  protected getEntityName(): string {
+    return 'Order';
+  }
+}
+
+// ❌ Bad: Duplicate CRUD logic
+// findAll, findOne repeated in every service
+```
+
+### 6. Extract Common Exception Filters
+
+```typescript
+// ✅ Good: Reusable exception filter
+// src/common/filters/http-exception.filter.ts
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    const request = ctx.getRequest();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      message = exception.message;
+    }
+
+    response.status(status).json({
+      statusCode: status,
+      message,
+      timestamp: new Date().toISOString(),
+      path: request.url,
+    });
+  }
+}
+
+// Apply globally in main.ts
+app.useGlobalFilters(new GlobalExceptionFilter());
+
+// ❌ Bad: Duplicate error handling
+// Error handling repeated in every controller
+```
+
+### 7. Extract Common Utilities
+
+```typescript
+// ✅ Good: Reusable utilities
+// src/common/utils/formatters.ts
+export class Formatters {
+  static formatCurrency(amount: number, locale: string = 'en'): string {
+    return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      style: 'currency',
+      currency: 'OMR',
+    }).format(amount);
+  }
+
+  static formatDate(date: Date, locale: string = 'en'): string {
+    return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    }).format(date);
+  }
+}
+
+// Usage
+Formatters.formatCurrency(25.50, locale)
+
+// ❌ Bad: Duplicate formatting logic
+// Formatting logic repeated everywhere
+```
+
+### 8. Extract Common Constants
+
+```typescript
+// ✅ Good: Reusable constants
+// src/common/constants/app.constants.ts
+export const APP_CONSTANTS = {
+  MAX_ORDER_ITEMS: 100,
+  DEFAULT_PAGE_SIZE: 20,
+  MAX_FILE_SIZE_MB: 10,
+} as const;
+
+export const ORDER_STATUSES = {
+  PENDING: 'PENDING',
+  PROCESSING: 'PROCESSING',
+  READY: 'READY',
+  DELIVERED: 'DELIVERED',
+} as const;
+
+// Usage
+const maxItems = APP_CONSTANTS.MAX_ORDER_ITEMS;
+
+// ❌ Bad: Magic numbers/strings
+const maxItems = 100; // What does 100 mean?
+```
+
+### 9. Extract Common Middleware
+
+```typescript
+// ✅ Good: Reusable middleware
+// src/common/middleware/tenant.middleware.ts
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
+  use(req: Request, res: Response, next: NextFunction) {
+    const tenantId = req.headers['x-tenant-id'] as string;
+    if (tenantId) {
+      req['tenantId'] = tenantId;
+    }
+    next();
+  }
+}
+
+// Apply in module
+export class OrdersModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('orders');
+  }
+}
+
+// ❌ Bad: Duplicate tenant extraction
+// Tenant extraction repeated in every controller
+```
+
+### 10. Extract Common Pipes
+
+```typescript
+// ✅ Good: Reusable validation pipe
+// src/common/pipes/validation.pipe.ts
+@Injectable()
+export class ValidationPipe extends PipeTransform {
+  transform(value: any, metadata: ArgumentMetadata) {
+    // Validation logic
+    return value;
+  }
+}
+
+// Apply globally in main.ts
+app.useGlobalPipes(new ValidationPipe());
+
+// ❌ Bad: Duplicate validation logic
+// Validation repeated in every controller method
+```
+
+---
+
+## Learning Resources
+- **NestJS Docs**: https://docs.nestjs.com
+- **NestJS Fundamentals Course**: https://learn.nestjs.com (free)
+- **Prisma Docs**: https://www.prisma.io/docs

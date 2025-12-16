@@ -1,0 +1,56 @@
+# Internationalization (i18n) and RTL Rules
+
+## Overview
+Rules for implementing bilingual support (English/Arabic) with RTL layout.
+
+## Rules
+
+### Always Add Translation Keys
+- Always add new message keys into `en.json` and `ar.json`
+- Never hardcode user-facing strings
+- Use translation keys consistently throughout the app
+
+### Backend Strategy
+- Store EN/AR fields in database: `name`/`name2`, `description`/`description2`
+- Return both languages in API responses
+- Use bilingual field pattern for all user-facing text
+
+### Frontend Setup (Next.js)
+- Use next-intl provider and locale-aware `<html dir>` attribute
+- Use Tailwind RTL utilities for spacing, alignment, and icon direction
+- Test Arabic screens, forms, tables, and navigation
+
+### Languages Supported
+- English (en) - Default
+- Arabic (ar) - RTL support required
+
+### RTL Support
+- Set `dir="rtl"` on HTML element when locale is Arabic
+- Use Tailwind RTL classes: `rtl:text-right`, `rtl:ml-0 rtl:mr-4`
+- Flip icons automatically: `rtl:rotate-180`
+- Use direction-aware spacing and alignment
+
+### Date & Time Formatting
+- Use locale-aware date formatting: `ar-OM` for Arabic, `en-OM` for English
+- Use locale-aware currency formatting: `ar-OM` for Arabic, `en-OM` for English
+- Format according to user locale preference
+
+### Font Setup
+- Import Noto Sans Arabic font for Arabic text
+- Apply Arabic font when `dir="rtl"`
+
+### Testing Checklist
+- All text aligns correctly in Arabic
+- Forms flow right-to-left
+- Tables display correctly
+- Navigation menus appear on correct side
+- Icons face correct direction
+- Modals and dropdowns position correctly
+- Charts and graphs display properly
+- Print layouts work in both directions
+
+## Conventions
+- Always use translation keys, never hardcode strings
+- Always test RTL layout for Arabic interface
+- Always include both English and Arabic fields in database
+- Always format dates and currency according to locale

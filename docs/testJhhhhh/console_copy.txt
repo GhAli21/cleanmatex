@@ -1,0 +1,450 @@
+Navigated to http://localhost:3000/dashboard/processing
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: true
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: true, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:246 [JH] 🔵 ProcessingPage 31 - Calculating stats {ordersCount: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 31 - Calculating stats {ordersCount: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:272 [JH] 🔵 ProcessingPage 33 - Calculating filteredOrders {ordersCount: 0, filteredOrdersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:279 [JH] 🔵 ProcessingPage 34 - Calculating filteredOrders - result: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:288 [JH] 🔵 ProcessingPage 35 - Calculating filteredOrders - result: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:319 [JH] 🔵 ProcessingPage 42 - Calculating filteredOrders - result: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 33 - Calculating filteredOrders {ordersCount: 0, filteredOrdersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 34 - Calculating filteredOrders - result: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 35 - Calculating filteredOrders - result: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 42 - Calculating filteredOrders - result: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:373 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: true
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+ [JH] 🟢 ProcessingPage 7 - useEffect triggered {currentTenant: undefined, filters: {…}, hasCurrentTenant: false, authLoading: true}
+ [JH] 🟢 ProcessingPage 8 - ⏳ Auth is loading, waiting...
+ [JH] Start ProcessingPage()
+ [JH] 🟣 ProcessingPage: 1 - authLoading: true
+ [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+ [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: true, …}
+ [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+ [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+ [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+ [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+ [JH] Start ProcessingPage()
+ [JH] 🟣 ProcessingPage: 1 - authLoading: true
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:373 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: 'null', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:63 [JH] 🟢 ProcessingPage 7 - useEffect triggered {currentTenant: undefined, filters: {…}, hasCurrentTenant: false, authLoading: false}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:78 [JH] 🟢 ProcessingPage 9.0 - in if (!currentTenant) block - currentTenant: null
+installHook.js:1 [JH] 🟢 ProcessingPage 9.1 - ❌ No current tenant after auth loaded! {authLoading: false, currentTenant: 'null'}
+overrideMethod @ installHook.js:1
+error @ intercept-console-error.js:57
+ProcessingPage.useEffect @ F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:79
+react_stack_bottom_frame @ react-dom-client.development.js:23669
+runWithFiberInDEV @ react-dom-client.development.js:872
+commitHookEffectListMount @ react-dom-client.development.js:12345
+commitHookPassiveMountEffects @ react-dom-client.development.js:12466
+commitPassiveMountOnFiber @ react-dom-client.development.js:14387
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14390
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14380
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14514
+recursivelyTraversePassiveMountEffects @ react-dom-client.development.js:14360
+commitPassiveMountOnFiber @ react-dom-client.development.js:14399
+flushPassiveEffects @ react-dom-client.development.js:16338
+eval @ react-dom-client.development.js:15974
+performWorkUntilDeadline @ scheduler.development.js:45
+<ProcessingPage>
+exports.jsx @ react-jsx-runtime.development.js:323
+ClientPageRoot @ client-page.js:20
+react_stack_bottom_frame @ react-dom-client.development.js:23584
+renderWithHooksAgain @ react-dom-client.development.js:6893
+renderWithHooks @ react-dom-client.development.js:6805
+updateFunctionComponent @ react-dom-client.development.js:9247
+beginWork @ react-dom-client.development.js:10807
+runWithFiberInDEV @ react-dom-client.development.js:872
+performUnitOfWork @ react-dom-client.development.js:15727
+workLoopConcurrentByScheduler @ react-dom-client.development.js:15721
+renderRootConcurrent @ react-dom-client.development.js:15696
+performWorkOnRoot @ react-dom-client.development.js:14990
+performWorkOnRootViaSchedulerTask @ react-dom-client.development.js:16816
+performWorkUntilDeadline @ scheduler.development.js:45
+"use client"
+Function.all @ VM2644 <anonymous>:1
+Function.all @ VM2644 <anonymous>:1
+Function.all @ VM2644 <anonymous>:1
+initializeElement @ react-server-dom-webpack-client.browser.development.js:1343
+eval @ react-server-dom-webpack-client.browser.development.js:3066
+initializeModelChunk @ react-server-dom-webpack-client.browser.development.js:1246
+resolveModelChunk @ react-server-dom-webpack-client.browser.development.js:1101
+processFullStringRow @ react-server-dom-webpack-client.browser.development.js:2899
+processFullBinaryRow @ react-server-dom-webpack-client.browser.development.js:2766
+processBinaryChunk @ react-server-dom-webpack-client.browser.development.js:2969
+progress @ react-server-dom-webpack-client.browser.development.js:3233
+"use server"
+ResponseInstance @ react-server-dom-webpack-client.browser.development.js:2041
+createResponseFromOptions @ react-server-dom-webpack-client.browser.development.js:3094
+exports.createFromReadableStream @ react-server-dom-webpack-client.browser.development.js:3478
+eval @ app-index.js:130
+(app-pages-browser)/../node_modules/next/dist/client/app-index.js @ main-app.js?v=1763052738767:160
+options.factory @ webpack.js:1
+__webpack_require__ @ webpack.js:1
+fn @ webpack.js:1
+eval @ app-next-dev.js:14
+eval @ app-bootstrap.js:59
+loadScriptsInSequence @ app-bootstrap.js:24
+appBootstrap @ app-bootstrap.js:53
+eval @ app-next-dev.js:13
+(app-pages-browser)/../node_modules/next/dist/client/app-next-dev.js @ main-app.js?v=1763052738767:182
+options.factory @ webpack.js:1
+__webpack_require__ @ webpack.js:1
+__webpack_exec__ @ main-app.js?v=1763052738767:1878
+(anonymous) @ main-app.js?v=1763052738767:1879
+webpackJsonpCallback @ webpack.js:1
+(anonymous) @ main-app.js?v=1763052738767:9
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'false', error: 'No tenant found. Please ensure you are logged in.', currentTenant: 'null', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:381 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: null
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'false', error: 'No tenant found. Please ensure you are logged in.', currentTenant: 'null', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: null
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'false', error: 'No tenant found. Please ensure you are logged in.', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:381 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'false', error: 'No tenant found. Please ensure you are logged in.', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+F:\jhapp\cleanmatex\web-admin\lib\hooks\useTenantSettings.ts:69 [useTenantSettingsWithDefaults] Hook state: {tenantId: undefined, data: undefined, isLoading: false, error: null}
+F:\jhapp\cleanmatex\web-admin\lib\hooks\useTenantSettings.ts:84 [useTenantSettingsWithDefaults] Final settings: {splitOrderEnabled: true, rejectEnabled: true, trackByPiece: true, rejectColor: '#10B981'}
+installHook.js:1 [useTenantSettingsWithDefaults] Hook state: {tenantId: undefined, data: undefined, isLoading: false, error: null}
+installHook.js:1 [useTenantSettingsWithDefaults] Final settings: {splitOrderEnabled: true, rejectEnabled: true, trackByPiece: true, rejectColor: '#10B981'}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\components\processing-modal.tsx:91 [ProcessingModal] Settings loaded: {tenantId: undefined, trackByPiece: true, splitOrderEnabled: true, rejectEnabled: true, settingsLoading: false}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:63 [JH] 🟢 ProcessingPage 7 - useEffect triggered {currentTenant: '11111111-1111-1111-1111-111111111111', filters: {…}, hasCurrentTenant: true, authLoading: false}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:88 [JH] 🟢 ProcessingPage 10 - Calling loadOrders from useEffect
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:93 [JH] 🔵 ProcessingPage 11 - STEP 1: loadOrders called
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:100 [JH] 🔵 ProcessingPage 12 - STEP 2: Preparing to fetch orders {apiUrl: '/api/v1/orders?', filters: {…}}
+installHook.js:1 [ProcessingModal] Settings loaded: {tenantId: undefined, trackByPiece: true, splitOrderEnabled: true, rejectEnabled: true, settingsLoading: false}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:373 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:27 [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:373 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 0, loading: 'true', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0} {orders: 0, pieces: 0, weight: 0, value: 0, unpaid: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: [] {ordersCount: 0}
+installHook.js:1 [JH] 🔵 ProcessingPage 52 - Loading state - returning loading spinner
+ [JH] 🔵 ProcessingPage 13 - STEP 3: Fetch completed {status: 200, ok: true}
+ [JH] 🔵 ProcessingPage 14 - STEP 4: Response parsed {success: true, hasData: true, hasOrders: true, ordersCount: 4, rawResponse: {…}}
+ [JH] 🔵 ProcessingPage 15 - STEP 5: Entering transformation loop {ordersToTransform: 4}
+ [JH] 🔵 ProcessingPage 16 - STEP 6.1: Transforming order ORD-20251107-0003 {rawOrder: {…}, hasCustomer: true, hasItems: true, status: 'processing', currentStatus: 'processing'}
+ [JH] 🔵 ProcessingPage 17 - STEP 6.1b: Customer extracted {customerName: 'Gehad Ali', customerData: {…}}
+ [JH] 🔵 ProcessingPage 18 - STEP 6.1c: Items extracted {itemsCount: 1, items: Array(1)}
+ [JH] 🔵 ProcessingPage 19 - STEP 6.1d: Transformation complete {id: 'f0060602-70e1-42f7-a59f-58b66c6a66b7', order_no: 'ORD-20251107-0003', ready_by_at: '2025-11-08T19:59:54.274+00:00', customer_name: 'Gehad Ali', customer_name2: 'جهاد علي', …}
+ [JH] 🔵 ProcessingPage 16 - STEP 6.2: Transforming order ORD-20251107-0002 {rawOrder: {…}, hasCustomer: true, hasItems: true, status: 'processing', currentStatus: 'processing'}
+ [JH] 🔵 ProcessingPage 17 - STEP 6.2b: Customer extracted {customerName: 'Gehad Ali', customerData: {…}}
+ [JH] 🔵 ProcessingPage 18 - STEP 6.2c: Items extracted {itemsCount: 1, items: Array(1)}
+ [JH] 🔵 ProcessingPage 19 - STEP 6.2d: Transformation complete {id: '5d8e6cfe-b33f-472d-88e0-48be6fd7539d', order_no: 'ORD-20251107-0002', ready_by_at: '2025-11-08T19:17:00.501+00:00', customer_name: 'Gehad Ali', customer_name2: 'جهاد علي', …}
+ [JH] 🔵 ProcessingPage 16 - STEP 6.3: Transforming order ORD-20251107-0001 {rawOrder: {…}, hasCustomer: true, hasItems: true, status: 'processing', currentStatus: 'processing'}
+ [JH] 🔵 ProcessingPage 17 - STEP 6.3b: Customer extracted {customerName: 'Gehad Ali', customerData: {…}}
+ [JH] 🔵 ProcessingPage 18 - STEP 6.3c: Items extracted {itemsCount: 2, items: Array(2)}
+ [JH] 🔵 ProcessingPage 19 - STEP 6.3d: Transformation complete {id: '9aaa156a-4051-40bf-a8ac-dd3f239d1db1', order_no: 'ORD-20251107-0001', ready_by_at: '2025-11-10T18:16:03.479+00:00', customer_name: 'Gehad Ali', customer_name2: 'جهاد علي', …}
+ [JH] 🔵 ProcessingPage 16 - STEP 6.4: Transforming order CMX-2025-0001 {rawOrder: {…}, hasCustomer: true, hasItems: true, status: 'intake', currentStatus: 'intake'}
+ [JH] 🔵 ProcessingPage 17 - STEP 6.4b: Customer extracted {customerName: 'Gehad Ali', customerData: {…}}
+ [JH] 🔵 ProcessingPage 18 - STEP 6.4c: Items extracted {itemsCount: 2, items: Array(2)}
+ [JH] 🔵 ProcessingPage 19 - STEP 6.4d: Transformation complete {id: '55555555-5555-5555-5555-555555555555', order_no: 'CMX-2025-0001', ready_by_at: '2025-11-10T17:21:58.9755+00:00', customer_name: 'Gehad Ali', customer_name2: 'جهاد علي', …}
+ [JH] 🔵 ProcessingPage 20 - STEP 7.1: Filtering ORD-20251107-0003status: processingcurrentStatus: processingstatusLower: processingcurrentStatusLower: processingisProcessing: truepasses: true
+ [JH] 🔵 ProcessingPage 20 - STEP 7.2: Filtering ORD-20251107-0002status: processingcurrentStatus: processingstatusLower: processingcurrentStatusLower: processingisProcessing: truepasses: true
+ [JH] 🔵 ProcessingPage 20 - STEP 7.3: Filtering ORD-20251107-0001status: processingcurrentStatus: processingstatusLower: processingcurrentStatusLower: processingisProcessing: truepasses: true
+ [JH] 🔵 ProcessingPage 20 - STEP 7.4: Filtering CMX-2025-0001status: intakecurrentStatus: intakestatusLower: intakecurrentStatusLower: intakeisProcessing: falsepasses: false
+ [JH] 🔵 ProcessingPage 21 - STEP 8: Final results summarytotalFetched: 4processingOrders: 3
+ [JH] 🔵 ProcessingPage 22 - STEP 8b: Final results summary {totalFetched: 4, processingOrders: 3}
+ [JH] 🔵 ProcessingPage 25 - STEP 9: Setting orders state ( 3 ) orders
+ [JH] 🔵 ProcessingPage 26 - STEP 9: Setting orders state {ordersCount: 3}
+ [JH] 🔵 ProcessingPage 27 - STEP 10: Orders state set successfully
+ [JH] 🔵 ProcessingPage 30 - STEP 11: Finally block - setting loading to false
+ [JH] Start ProcessingPage()
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:31 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:32 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:47 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 3, loading: 'false', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:55 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:246 [JH] 🔵 ProcessingPage 31 - Calculating stats {ordersCount: 3, pieces: 8, weight: 0, value: 87, unpaid: 87}
+installHook.js:1 [JH] 🔵 ProcessingPage 31 - Calculating stats {ordersCount: 3, pieces: 8, weight: 0, value: 87, unpaid: 87}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:263 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 3, pieces: 8, weight: 0, value: 87, unpaid: 87} {orders: 3, pieces: 8, weight: 0, value: 87, unpaid: 87}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:272 [JH] 🔵 ProcessingPage 33 - Calculating filteredOrders {ordersCount: 3, filteredOrdersCount: 3}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:279 [JH] 🔵 ProcessingPage 34 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:288 [JH] 🔵 ProcessingPage 35 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:295 [JH] 🔵 ProcessingPage 36 - Calculating filteredOrders - aVal: 2025-11-08T19:17:00.501+00:00 bVal: 2025-11-08T19:59:54.274+00:00 sortField: ready_by_at
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:304 [JH] 🔵 ProcessingPage 38 - Calculating filteredOrders - aVal: 1762629420501 bVal: 1762631994274 sortField: ready_by_at
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:295 [JH] 🔵 ProcessingPage 36 - Calculating filteredOrders - aVal: 2025-11-10T18:16:03.479+00:00 bVal: 2025-11-08T19:59:54.274+00:00 sortField: ready_by_at
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:304 [JH] 🔵 ProcessingPage 38 - Calculating filteredOrders - aVal: 1762798563479 bVal: 1762631994274 sortField: ready_by_at
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:314 [JH] 🔵 ProcessingPage 40 - Calculating filteredOrders - aVal: 1762798563479 bVal: 1762631994274 sortField: ready_by_at
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:319 [JH] 🔵 ProcessingPage 42 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+installHook.js:1 [JH] 🔵 ProcessingPage 33 - Calculating filteredOrders {ordersCount: 3, filteredOrdersCount: 3}
+installHook.js:1 [JH] 🔵 ProcessingPage 34 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+installHook.js:1 [JH] 🔵 ProcessingPage 35 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+installHook.js:1 [JH] 🔵 ProcessingPage 36 - Calculating filteredOrders - aVal: 2025-11-08T19:17:00.501+00:00 bVal: 2025-11-08T19:59:54.274+00:00 sortField: ready_by_at
+installHook.js:1 [JH] 🔵 ProcessingPage 38 - Calculating filteredOrders - aVal: 1762629420501 bVal: 1762631994274 sortField: ready_by_at
+installHook.js:1 [JH] 🔵 ProcessingPage 36 - Calculating filteredOrders - aVal: 2025-11-10T18:16:03.479+00:00 bVal: 2025-11-08T19:59:54.274+00:00 sortField: ready_by_at
+installHook.js:1 [JH] 🔵 ProcessingPage 38 - Calculating filteredOrders - aVal: 1762798563479 bVal: 1762631994274 sortField: ready_by_at
+installHook.js:1 [JH] 🔵 ProcessingPage 40 - Calculating filteredOrders - aVal: 1762798563479 bVal: 1762631994274 sortField: ready_by_at
+installHook.js:1 [JH] 🔵 ProcessingPage 42 - Calculating filteredOrders - result: (3) [{…}, {…}, {…}] {ordersCount: 3}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:324 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: (3) [{…}, {…}, {…}] {ordersCount: 3}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\page.tsx:381 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+installHook.js:1 [JH] Start ProcessingPage()
+installHook.js:1 [JH] 🟣 ProcessingPage: 1 - authLoading: false
+installHook.js:1 [JH] 🟣 ProcessingPage: 2 - currentTenant: {tenant_id: '11111111-1111-1111-1111-111111111111', tenant_name: 'Demo Laundry LLC', tenant_slug: 'demo-laundry', user_role: 'admin', is_active: true, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 3 - RENDER {ordersCount: 3, loading: 'false', error: '', currentTenant: '11111111-1111-1111-1111-111111111111', authLoading: false, …}
+installHook.js:1 [JH] 🟣 ProcessingPage 4 - Current Tenant: 11111111-1111-1111-1111-111111111111
+installHook.js:1 [JH] 🔵 ProcessingPage 32 - Stats calculated - stats: {orders: 3, pieces: 8, weight: 0, value: 87, unpaid: 87} {orders: 3, pieces: 8, weight: 0, value: 87, unpaid: 87}
+installHook.js:1 [JH] 🔵 ProcessingPage 43 - Calculated filteredOrders - filteredOrders: (3) [{…}, {…}, {…}] {ordersCount: 3}
+installHook.js:1 [JH] 🔵 ProcessingPage 53 - Rendering ProcessingPage
+F:\jhapp\cleanmatex\web-admin\lib\hooks\useTenantSettings.ts:69 [useTenantSettingsWithDefaults] Hook state: {tenantId: undefined, data: undefined, isLoading: false, error: null}
+F:\jhapp\cleanmatex\web-admin\lib\hooks\useTenantSettings.ts:84 [useTenantSettingsWithDefaults] Final settings: {splitOrderEnabled: true, rejectEnabled: true, trackByPiece: true, rejectColor: '#10B981'}
+installHook.js:1 [useTenantSettingsWithDefaults] Hook state: {tenantId: undefined, data: undefined, isLoading: false, error: null}
+installHook.js:1 [useTenantSettingsWithDefaults] Final settings: {splitOrderEnabled: true, rejectEnabled: true, trackByPiece: true, rejectColor: '#10B981'}
+F:\jhapp\cleanmatex\web-admin\app\dashboard\processing\components\processing-modal.tsx:91 [ProcessingModal] Settings loaded: {tenantId: undefined, trackByPiece: true, splitOrderEnabled: true, rejectEnabled: true, settingsLoading: false}
+installHook.js:1 [ProcessingModal] Settings loaded: {tenantId: undefined, trackByPiece: true, splitOrderEnabled: true, rejectEnabled: true, settingsLoading: false}

@@ -1,0 +1,466 @@
+'use client'
+
+/**
+ * Roles Management Page
+ * 
+ * Features:
+ * - View all roles (system + custom)
+ * - Create custom roles
+ * - Edit role permissions
+ * - Assign roles to users
+ * - Delete custom roles
+ */
+
+import { useState, useEffect, useCallback } from 'react'
+import { useTranslations } from 'next-intl'
+import { Plus, Shield, Edit, Trash2, Users, CheckCircle2 } from 'lucide-react'
+import { getAllRoles, getRolePermissions, createCustomRole, updateCustomRole, deleteCustomRole } from '@/lib/services/role-service'
+import { RequirePermission } from '@/components/auth/RequirePermission'
+import type { Role } from '@/lib/services/role-service'
+
+export default function RolesManagementPage() {
+  const t = useTranslations('settings')
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loading, setLoading] = useState(true)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null)
+  const [formData, setFormData] = useState({
+    code: '',
+    name: '',
+    name2: '',
+    description: '',
+  })
+
+  useEffect(() => {
+    loadRoles()
+  }, [])
+
+  const loadRoles = async () => {
+    try {
+      setLoading(true)
+      const allRoles = await getAllRoles()
+      setRoles(allRoles)
+    } catch (error) {
+      console.error('Error loading roles:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCreate = async () => {
+    try {
+      await createCustomRole(formData)
+      await loadRoles()
+      setShowCreateModal(false)
+      setFormData({ code: '', name: '', name2: '', description: '' })
+    } catch (error) {
+      console.error('Error creating role:', error)
+      alert('Failed to create role')
+    }
+  }
+
+  const handleEdit = (role: Role) => {
+    setSelectedRole(role)
+    setFormData({
+      code: role.code,
+      name: role.name,
+      name2: role.name2 || '',
+      description: role.description || '',
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdate = async () => {
+    if (!selectedRole) return
+    try {
+      await updateCustomRole(selectedRole.role_id, formData)
+      await loadRoles()
+      setShowEditModal(false)
+      setSelectedRole(null)
+    } catch (error) {
+      console.error('Error updating role:', error)
+      alert('Failed to update role')
+    }
+  }
+
+  const handleDelete = async (role: Role) => {
+    if (!confirm(`Delete role "${role.name}"?`)) return
+    try {
+      await deleteCustomRole(role.role_id)
+      await loadRoles()
+    } catch (error) {
+      console.error('Error deleting role:', error)
+      const message = error instanceof Error ? error.message : 'Failed to delete role'
+      alert(message)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  const systemRoles = roles.filter(r => r.is_system)
+  const customRoles = roles.filter(r => !r.is_system)
+
+  return (
+    <div className="max-w-6xl">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">{t('rolesManagement')}</h2>
+          <p className="text-sm text-gray-500 mt-1">{t('manageRolesDesc')}</p>
+        </div>
+        <RequirePermission resource="roles" action="create">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Plus className="h-5 w-5" />
+            {t('createRole')}
+          </button>
+        </RequirePermission>
+      </div>
+
+      {/* System Roles */}
+      <div className="mb-8">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('systemRoles')}</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {systemRoles.map((role) => (
+            <RoleCard
+              key={role.role_id}
+              role={role}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              isSystem={true}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Custom Roles */}
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('customRoles')}</h3>
+        {customRoles.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <Shield className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">{t('noCustomRoles')}</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {customRoles.map((role) => (
+              <RoleCard
+                key={role.role_id}
+                role={role}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                isSystem={false}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <CreateRoleModal
+          formData={formData}
+          setFormData={setFormData}
+          onSave={handleCreate}
+          onClose={() => {
+            setShowCreateModal(false)
+            setFormData({ code: '', name: '', name2: '', description: '' })
+          }}
+        />
+      )}
+
+      {/* Edit Modal */}
+      {showEditModal && selectedRole && (
+        <EditRoleModal
+          role={selectedRole}
+          formData={formData}
+          setFormData={setFormData}
+          onSave={handleUpdate}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedRole(null)
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Role Card Component
+function RoleCard({
+  role,
+  onEdit,
+  onDelete,
+  isSystem,
+}: {
+  role: Role
+  onEdit: (role: Role) => void
+  onDelete: (role: Role) => void
+  isSystem: boolean
+}) {
+  const [permissionCount, setPermissionCount] = useState<number | null>(null)
+
+  const loadPermissionCount = useCallback(async () => {
+    try {
+      const permissions = await getRolePermissions(role.role_id)
+      setPermissionCount(permissions.length)
+    } catch (error) {
+      console.error('Error loading permissions:', error)
+    }
+  }, [role.role_id])
+
+  useEffect(() => {
+    loadPermissionCount()
+  }, [loadPermissionCount])
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-blue-600" />
+          <div>
+            <h4 className="font-semibold text-gray-900">{role.name}</h4>
+            {role.name2 && <p className="text-sm text-gray-500">{role.name2}</p>}
+          </div>
+        </div>
+        {isSystem && (
+          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+            System
+          </span>
+        )}
+      </div>
+
+      {role.description && (
+        <p className="text-sm text-gray-600 mb-3">{role.description}</p>
+      )}
+
+      <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
+        <div className="flex items-center gap-1">
+          <CheckCircle2 className="h-4 w-4" />
+          {permissionCount !== null ? `${permissionCount} permissions` : 'Loading...'}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+        <RequirePermission resource="roles" action="update">
+          <button
+            onClick={() => onEdit(role)}
+            className="flex items-center gap-1 px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          >
+            <Edit className="h-4 w-4" />
+            Edit
+          </button>
+        </RequirePermission>
+        {!isSystem && (
+          <RequirePermission resource="roles" action="delete">
+            <button
+              onClick={() => onDelete(role)}
+              className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          </RequirePermission>
+        )}
+        <button
+          className="flex items-center gap-1 px-3 py-1 text-sm text-gray-600 hover:bg-gray-50 rounded transition-colors ml-auto"
+        >
+          <Users className="h-4 w-4" />
+          Assign
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Create Role Modal
+function CreateRoleModal({
+  formData,
+  setFormData,
+  onSave,
+  onClose,
+}: {
+  formData: { code: string; name: string; name2: string; description: string }
+  setFormData: (data: { code: string; name: string; name2: string; description: string }) => void
+  onSave: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Create Custom Role</h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Code *
+            </label>
+            <input
+              type="text"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+              placeholder="e.g., cashier, manager"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Lowercase letters and underscores only</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Name (English) *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              placeholder="e.g., Cashier"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Name (Arabic)
+            </label>
+            <input
+              type="text"
+              value={formData.name2}
+              onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
+              placeholder="e.g., أمين الصندوق"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Describe what this role can do..."
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={onSave}
+            disabled={!formData.code || !formData.name}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            Create Role
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Edit Role Modal
+function EditRoleModal({
+  role,
+  formData,
+  setFormData,
+  onSave,
+  onClose,
+}: {
+  role: Role
+  formData: { code: string; name: string; name2: string; description: string }
+  setFormData: (data: { code: string; name: string; name2: string; description: string }) => void
+  onSave: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Edit Role: {role.name}</h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Code
+            </label>
+            <input
+              type="text"
+              value={formData.code}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+            />
+            <p className="text-xs text-gray-500 mt-1">Role code cannot be changed</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Name (English) *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role Name (Arabic)
+            </label>
+            <input
+              type="text"
+              value={formData.name2}
+              onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 mt-6">
+          <button
+            onClick={onSave}
+            disabled={!formData.name}
+            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+          >
+            Save Changes
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+

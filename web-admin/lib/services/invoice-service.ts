@@ -1,0 +1,592 @@
+/**
+ * Invoice Service for CleanMateX
+ *
+ * Handles all invoice-related operations including:
+ * - Invoice creation and management
+ * - Invoice calculation (totals, discounts, taxes)
+ * - Invoice status tracking
+ * - Invoice retrieval and updates
+ */
+
+import { prisma } from '../prisma';
+import type {
+  Invoice,
+  InvoiceStatus,
+  CreateInvoiceInput,
+  UpdateInvoiceInput,
+  InvoiceMetadata,
+  PaymentSummary,
+} from '../types/payment';
+
+// ============================================================================
+// Invoice Creation
+// ============================================================================
+
+/**
+ * Create an invoice for an order
+ */
+export async function createInvoice(
+  input: CreateInvoiceInput
+): Promise<Invoice> {
+  // Get order details
+  const order = await prisma.org_orders_mst.findUnique({
+    where: { id: input.order_id },
+    include: {
+      items: true,
+    },
+  });
+
+  if (!order) {
+    throw new Error('Order not found');
+  }
+
+  // Generate invoice number
+  const invoiceNo = await generateInvoiceNumber(order.tenant_org_id);
+
+  // Calculate total
+  const total = calculateInvoiceTotal({
+    subtotal: input.subtotal,
+    discount: input.discount || 0,
+    tax: input.tax || 0,
+  });
+
+  // Create invoice
+  const invoice = await prisma.org_invoice_mst.create({
+    data: {
+      order_id: input.order_id,
+      tenant_org_id: order.tenant_org_id,
+      invoice_no: invoiceNo,
+      subtotal: input.subtotal,
+      discount: input.discount || 0,
+      tax: input.tax || 0,
+      total,
+      status: 'pending',
+      due_date: input.due_date ? new Date(input.due_date) : undefined,
+      payment_method: input.payment_method,
+      paid_amount: 0,
+      metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+      rec_notes: input.rec_notes,
+      created_at: new Date(),
+    },
+  });
+
+  return mapInvoiceToType(invoice);
+}
+
+/**
+ * Generate unique invoice number for tenant
+ */
+async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const prefix = `INV-${year}${month}`;
+
+  // Get count of invoices this month
+  const count = await prisma.org_invoice_mst.count({
+    where: {
+      tenant_org_id: tenantOrgId,
+      invoice_no: {
+        startsWith: prefix,
+      },
+    },
+  });
+
+  const sequence = String(count + 1).padStart(5, '0');
+  return `${prefix}-${sequence}`;
+}
+
+// ============================================================================
+// Invoice Retrieval
+// ============================================================================
+
+/**
+ * Get invoice by ID
+ */
+export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    return null;
+  }
+
+  return mapInvoiceToType(invoice);
+}
+
+/**
+ * Get invoice by invoice number
+ */
+export async function getInvoiceByNumber(
+  tenantOrgId: string,
+  invoiceNo: string
+): Promise<Invoice | null> {
+  const invoice = await prisma.org_invoice_mst.findFirst({
+    where: {
+      tenant_org_id: tenantOrgId,
+      invoice_no: invoiceNo,
+    },
+  });
+
+  if (!invoice) {
+    return null;
+  }
+
+  return mapInvoiceToType(invoice);
+}
+
+/**
+ * Get all invoices for an order
+ */
+export async function getInvoicesForOrder(
+  orderId: string
+): Promise<Invoice[]> {
+  const invoices = await prisma.org_invoice_mst.findMany({
+    where: {
+      order_id: orderId,
+    },
+    orderBy: {
+      created_at: 'desc',
+    },
+  });
+
+  return invoices.map(mapInvoiceToType);
+}
+
+/**
+ * Get invoices by status
+ */
+export async function getInvoicesByStatus(
+  tenantOrgId: string,
+  status: InvoiceStatus
+): Promise<Invoice[]> {
+  const invoices = await prisma.org_invoice_mst.findMany({
+    where: {
+      tenant_org_id: tenantOrgId,
+      status,
+    },
+    orderBy: {
+      created_at: 'desc',
+    },
+  });
+
+  return invoices.map(mapInvoiceToType);
+}
+
+/**
+ * List all invoices with filtering and pagination
+ */
+export async function listInvoices(params: {
+  tenantOrgId?: string;
+  status?: InvoiceStatus;
+  dateFrom?: string;
+  dateTo?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<{ invoices: Invoice[]; total: number }> {
+  const where: any = {};
+
+  if (params.tenantOrgId) {
+    where.tenant_org_id = params.tenantOrgId;
+  }
+
+  if (params.status) {
+    where.status = params.status;
+  }
+
+  if (params.dateFrom || params.dateTo) {
+    where.created_at = {};
+    if (params.dateFrom) {
+      where.created_at.gte = new Date(params.dateFrom);
+    }
+    if (params.dateTo) {
+      where.created_at.lte = new Date(params.dateTo);
+    }
+  }
+
+  const [invoices, total] = await Promise.all([
+    prisma.org_invoice_mst.findMany({
+      where,
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: params.limit || 50,
+      skip: params.offset || 0,
+    }),
+    prisma.org_invoice_mst.count({ where }),
+  ]);
+
+  return {
+    invoices: invoices.map(mapInvoiceToType),
+    total,
+  };
+}
+
+// ============================================================================
+// Invoice Updates
+// ============================================================================
+
+/**
+ * Update invoice
+ */
+export async function updateInvoice(
+  invoiceId: string,
+  input: UpdateInvoiceInput
+): Promise<Invoice> {
+  const updateData: any = {
+    updated_at: new Date(),
+    updated_by: input.paid_by,
+  };
+
+  if (input.status !== undefined) {
+    updateData.status = input.status;
+  }
+
+  if (input.payment_method !== undefined) {
+    updateData.payment_method = input.payment_method;
+  }
+
+  if (input.paid_amount !== undefined) {
+    updateData.paid_amount = input.paid_amount;
+  }
+
+  if (input.paid_at !== undefined) {
+    updateData.paid_at = new Date(input.paid_at);
+  }
+
+  if (input.paid_by !== undefined) {
+    updateData.paid_by = input.paid_by;
+  }
+
+  if (input.metadata !== undefined) {
+    updateData.metadata = JSON.stringify(input.metadata);
+  }
+
+  if (input.rec_notes !== undefined) {
+    updateData.rec_notes = input.rec_notes;
+  }
+
+  const invoice = await prisma.org_invoice_mst.update({
+    where: { id: invoiceId },
+    data: updateData,
+  });
+
+  return mapInvoiceToType(invoice);
+}
+
+/**
+ * Update invoice status
+ */
+export async function updateInvoiceStatus(
+  invoiceId: string,
+  status: InvoiceStatus,
+  updatedBy?: string
+): Promise<Invoice> {
+  const invoice = await prisma.org_invoice_mst.update({
+    where: { id: invoiceId },
+    data: {
+      status,
+      updated_at: new Date(),
+      updated_by: updatedBy,
+    },
+  });
+
+  return mapInvoiceToType(invoice);
+}
+
+/**
+ * Mark invoice as paid
+ */
+export async function markInvoiceAsPaid(
+  invoiceId: string,
+  paidAmount: number,
+  paidBy?: string
+): Promise<Invoice> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    throw new Error('Invoice not found');
+  }
+
+  const newPaidAmount = Number(invoice.paid_amount) + paidAmount;
+  const newStatus: InvoiceStatus =
+    newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+
+  return updateInvoice(invoiceId, {
+    status: newStatus,
+    paid_amount: newPaidAmount,
+    paid_at: newStatus === 'paid' ? new Date().toISOString() : undefined,
+    paid_by: paidBy,
+  });
+}
+
+// ============================================================================
+// Invoice Calculations
+// ============================================================================
+
+/**
+ * Calculate invoice total
+ */
+export function calculateInvoiceTotal(params: {
+  subtotal: number;
+  discount: number;
+  tax: number;
+}): number {
+  const { subtotal, discount, tax } = params;
+  return subtotal - discount + tax;
+}
+
+/**
+ * Calculate discount amount
+ */
+export function calculateDiscountAmount(
+  subtotal: number,
+  discountType: 'percentage' | 'amount',
+  discountValue: number
+): number {
+  if (discountType === 'percentage') {
+    return (subtotal * discountValue) / 100;
+  }
+  return discountValue;
+}
+
+/**
+ * Calculate tax amount
+ */
+export function calculateTaxAmount(
+  amount: number,
+  taxRate: number
+): number {
+  return (amount * taxRate) / 100;
+}
+
+/**
+ * Apply discount to invoice
+ */
+export async function applyDiscountToInvoice(
+  invoiceId: string,
+  discountAmount: number,
+  reason?: string
+): Promise<Invoice> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    throw new Error('Invoice not found');
+  }
+
+  const newTotal = calculateInvoiceTotal({
+    subtotal: Number(invoice.subtotal),
+    discount: Number(invoice.discount) + discountAmount,
+    tax: Number(invoice.tax),
+  });
+
+  // Update metadata to track discount reason
+  const metadata: InvoiceMetadata = invoice.metadata
+    ? JSON.parse(invoice.metadata as string)
+    : {};
+
+  if (reason) {
+    metadata.manual_discount_reason = reason;
+  }
+
+  const updated = await prisma.org_invoice_mst.update({
+    where: { id: invoiceId },
+    data: {
+      discount: Number(invoice.discount) + discountAmount,
+      total: newTotal,
+      metadata: JSON.stringify(metadata),
+      updated_at: new Date(),
+    },
+  });
+
+  return mapInvoiceToType(updated);
+}
+
+/**
+ * Calculate payment summary for display
+ */
+export function calculatePaymentSummary(
+  subtotal: number,
+  manualDiscount: number,
+  promoDiscount: number,
+  giftCardApplied: number,
+  taxRate: number = 0
+): PaymentSummary {
+  const totalDiscount = manualDiscount + promoDiscount;
+  const amountAfterDiscount = subtotal - totalDiscount;
+  const tax = calculateTaxAmount(amountAfterDiscount, taxRate);
+  const totalBeforeGiftCard = amountAfterDiscount + tax;
+  const total = Math.max(0, totalBeforeGiftCard - giftCardApplied);
+
+  return {
+    subtotal,
+    manualDiscount,
+    promoDiscount,
+    giftCardApplied,
+    tax,
+    total,
+  };
+}
+
+// ============================================================================
+// Invoice Status Checks
+// ============================================================================
+
+/**
+ * Check if invoice is fully paid
+ */
+export async function isInvoicePaid(invoiceId: string): Promise<boolean> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    return false;
+  }
+
+  return Number(invoice.paid_amount) >= Number(invoice.total);
+}
+
+/**
+ * Check if invoice is overdue
+ */
+export async function isInvoiceOverdue(invoiceId: string): Promise<boolean> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice || !invoice.due_date) {
+    return false;
+  }
+
+  const now = new Date();
+  const dueDate = new Date(invoice.due_date);
+
+  return (
+    now > dueDate &&
+    invoice.status !== 'paid' &&
+    invoice.status !== 'cancelled'
+  );
+}
+
+/**
+ * Get remaining balance for invoice
+ */
+export async function getInvoiceBalance(invoiceId: string): Promise<number> {
+  const invoice = await prisma.org_invoice_mst.findUnique({
+    where: { id: invoiceId },
+  });
+
+  if (!invoice) {
+    throw new Error('Invoice not found');
+  }
+
+  return Number(invoice.total) - Number(invoice.paid_amount);
+}
+
+// ============================================================================
+// Invoice Statistics
+// ============================================================================
+
+/**
+ * Get invoice statistics for tenant
+ */
+export async function getInvoiceStats(tenantOrgId: string): Promise<{
+  total_invoices: number;
+  paid_invoices: number;
+  pending_invoices: number;
+  overdue_invoices: number;
+  total_revenue: number;
+  outstanding_amount: number;
+}> {
+  const invoices = await prisma.org_invoice_mst.findMany({
+    where: {
+      tenant_org_id: tenantOrgId,
+    },
+  });
+
+  const now = new Date();
+
+  const stats = invoices.reduce(
+    (acc, invoice) => {
+      acc.total_invoices++;
+
+      if (invoice.status === 'paid') {
+        acc.paid_invoices++;
+        acc.total_revenue += Number(invoice.total);
+      } else if (invoice.status === 'pending' || invoice.status === 'partial') {
+        acc.pending_invoices++;
+        const remaining = Number(invoice.total) - Number(invoice.paid_amount);
+        acc.outstanding_amount += remaining;
+
+        // Check if overdue
+        if (invoice.due_date && new Date(invoice.due_date) < now) {
+          acc.overdue_invoices++;
+        }
+      }
+
+      return acc;
+    },
+    {
+      total_invoices: 0,
+      paid_invoices: 0,
+      pending_invoices: 0,
+      overdue_invoices: 0,
+      total_revenue: 0,
+      outstanding_amount: 0,
+    }
+  );
+
+  return stats;
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Map Prisma invoice model to Invoice type
+ */
+function mapInvoiceToType(invoice: any): Invoice {
+  return {
+    id: invoice.id,
+    order_id: invoice.order_id,
+    tenant_org_id: invoice.tenant_org_id,
+    invoice_no: invoice.invoice_no,
+    subtotal: Number(invoice.subtotal),
+    discount: Number(invoice.discount),
+    tax: Number(invoice.tax),
+    total: Number(invoice.total),
+    status: invoice.status as InvoiceStatus,
+    due_date: invoice.due_date?.toISOString(),
+    payment_method: invoice.payment_method,
+    paid_amount: Number(invoice.paid_amount),
+    paid_at: invoice.paid_at?.toISOString(),
+    paid_by: invoice.paid_by ?? undefined,
+    metadata: invoice.metadata ? JSON.parse(invoice.metadata) : undefined,
+    rec_notes: invoice.rec_notes ?? undefined,
+    created_at: invoice.created_at.toISOString(),
+    created_by: invoice.created_by ?? undefined,
+    updated_at: invoice.updated_at?.toISOString(),
+    updated_by: invoice.updated_by ?? undefined,
+  };
+}
+
+/**
+ * Format amount to OMR currency
+ */
+export function formatOMR(amount: number): string {
+  return `OMR ${amount.toFixed(3)}`;
+}
+
+/**
+ * Parse OMR string to number
+ */
+export function parseOMR(omrString: string): number {
+  return parseFloat(omrString.replace('OMR', '').trim());
+}

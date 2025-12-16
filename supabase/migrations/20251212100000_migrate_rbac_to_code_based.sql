@@ -1,0 +1,511 @@
+-- ============================================================================
+-- RBAC Migration: ID-Based to Code-Based System
+-- ============================================================================
+-- Description: Migrate RBAC system from UUID primary keys to code-based primary keys
+-- Author: Claude Code
+-- Date: 2025-12-12
+-- Impact: BREAKING CHANGE - All RBAC functionality
+-- Rollback: See 20251212100001_rollback_rbac_to_id_based.sql
+-- ============================================================================
+
+BEGIN;
+
+-- ============================================================================
+-- STEP 1: ADD CODE IMMUTABILITY TRIGGERS
+-- ============================================================================
+-- Purpose: Prevent role and permission codes from being changed after creation
+-- This ensures referential integrity and prevents breaking changes
+
+-- Trigger function for sys_auth_roles
+CREATE OR REPLACE FUNCTION prevent_code_update_roles()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.code IS DISTINCT FROM NEW.code THEN
+    RAISE EXCEPTION 'Role code cannot be changed after creation. Attempted to change from % to %', OLD.code, NEW.code;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply trigger to sys_auth_roles
+CREATE TRIGGER enforce_code_immutability_roles
+  BEFORE UPDATE ON sys_auth_roles
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_code_update_roles();
+
+-- Trigger function for sys_auth_permissions
+CREATE OR REPLACE FUNCTION prevent_code_update_permissions()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF OLD.code IS DISTINCT FROM NEW.code THEN
+    RAISE EXCEPTION 'Permission code cannot be changed after creation. Attempted to change from % to %', OLD.code, NEW.code;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Apply trigger to sys_auth_permissions
+CREATE TRIGGER enforce_code_immutability_permissions
+  BEFORE UPDATE ON sys_auth_permissions
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_code_update_permissions();
+
+COMMENT ON FUNCTION prevent_code_update_roles() IS 'Enforces immutability of role codes after creation';
+COMMENT ON FUNCTION prevent_code_update_permissions() IS 'Enforces immutability of permission codes after creation';
+
+-- ============================================================================
+-- STEP 2: ADD TEMPORARY BACKUP COLUMNS
+-- ============================================================================
+-- Purpose: Preserve existing UUIDs for potential rollback
+
+ALTER TABLE sys_auth_roles ADD COLUMN IF NOT EXISTS old_role_id UUID;
+ALTER TABLE sys_auth_permissions ADD COLUMN IF NOT EXISTS old_permission_id UUID;
+
+-- Copy existing IDs to temp columns
+UPDATE sys_auth_roles SET old_role_id = role_id WHERE old_role_id IS NULL;
+UPDATE sys_auth_permissions SET old_permission_id = permission_id WHERE old_permission_id IS NULL;
+
+-- Verify backup columns populated
+DO $$
+DECLARE
+  role_count INTEGER;
+  perm_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO role_count FROM sys_auth_roles WHERE old_role_id IS NULL;
+  SELECT COUNT(*) INTO perm_count FROM sys_auth_permissions WHERE old_permission_id IS NULL;
+
+  IF role_count > 0 THEN
+    RAISE EXCEPTION 'Failed to backup role IDs: % roles have NULL old_role_id', role_count;
+  END IF;
+
+  IF perm_count > 0 THEN
+    RAISE EXCEPTION 'Failed to backup permission IDs: % permissions have NULL old_permission_id', perm_count;
+  END IF;
+
+  RAISE NOTICE 'Backup columns populated successfully';
+END $$;
+
+-- ============================================================================
+-- STEP 3: DROP DEPENDENT FOREIGN KEY CONSTRAINTS
+-- ============================================================================
+-- Purpose: Remove FK constraints before dropping primary keys
+-- Use dynamic approach to find and drop ALL FKs referencing role_id or permission_id
+
+DO $$
+DECLARE
+  fk_record RECORD;
+  dropped_count INTEGER := 0;
+BEGIN
+  -- Find and drop all foreign keys that reference role_id columns
+  FOR fk_record IN
+    SELECT 
+      tc.table_schema,
+      tc.table_name,
+      tc.constraint_name
+    FROM information_schema.table_constraints AS tc
+    JOIN information_schema.key_column_usage AS kcu
+      ON tc.constraint_name = kcu.constraint_name
+      AND tc.table_schema = kcu.table_schema
+    JOIN information_schema.constraint_column_usage AS ccu
+      ON ccu.constraint_name = tc.constraint_name
+      AND ccu.table_schema = tc.table_schema
+    WHERE tc.constraint_type = 'FOREIGN KEY'
+      AND kcu.column_name IN ('role_id', 'permission_id')
+      AND (tc.table_name LIKE '%auth%' OR ccu.table_name LIKE '%auth%')
+  LOOP
+    EXECUTE format('ALTER TABLE %I.%I DROP CONSTRAINT IF EXISTS %I CASCADE',
+      fk_record.table_schema,
+      fk_record.table_name,
+      fk_record.constraint_name
+    );
+    dropped_count := dropped_count + 1;
+  END LOOP;
+
+  RAISE NOTICE 'Dropped % ID-based foreign key constraints', dropped_count;
+END $$;
+
+-- ============================================================================
+-- STEP 4: DROP PRIMARY KEY CONSTRAINTS
+-- ============================================================================
+
+ALTER TABLE sys_auth_roles
+  DROP CONSTRAINT IF EXISTS sys_auth_roles_pkey CASCADE;
+
+ALTER TABLE sys_auth_permissions
+  DROP CONSTRAINT IF EXISTS sys_auth_permissions_pkey CASCADE;
+
+ALTER TABLE sys_auth_role_default_permissions
+  DROP CONSTRAINT IF EXISTS sys_auth_role_default_permissions_pkey CASCADE;
+
+DO $$ BEGIN RAISE NOTICE 'Dropped all ID-based primary key constraints'; END $$;
+
+-- ============================================================================
+-- STEP 5: DROP UNIQUE CONSTRAINTS (to be recreated with code-based keys)
+-- ============================================================================
+
+-- org_auth_user_roles unique constraints
+ALTER TABLE org_auth_user_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_roles_user_id_tenant_org_id_role_id_key CASCADE;
+
+-- org_auth_user_resource_roles unique constraints
+ALTER TABLE org_auth_user_resource_roles
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_roles_user_id_tenant_org_id_resource__key CASCADE;
+
+-- org_auth_user_permissions unique constraints
+ALTER TABLE org_auth_user_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_permissions_user_id_tenant_org_id_permission_i_key CASCADE;
+
+-- org_auth_user_resource_permissions unique constraints
+ALTER TABLE org_auth_user_resource_permissions
+  DROP CONSTRAINT IF EXISTS org_auth_user_resource_permissions_user_id_tenant_org_id_res_key CASCADE;
+
+DO $$ BEGIN RAISE NOTICE 'Dropped all ID-based unique constraints'; END $$;
+
+-- ============================================================================
+-- STEP 6: ADD CODE COLUMNS TO ASSIGNMENT TABLES
+-- ============================================================================
+-- Purpose: Add role_code and permission_code columns before dropping ID columns
+
+-- Add role_code to assignment tables
+ALTER TABLE org_auth_user_roles ADD COLUMN IF NOT EXISTS role_code TEXT;
+ALTER TABLE org_auth_user_resource_roles ADD COLUMN IF NOT EXISTS role_code TEXT;
+
+-- Add permission_code to assignment tables
+ALTER TABLE org_auth_user_permissions ADD COLUMN IF NOT EXISTS permission_code TEXT;
+ALTER TABLE org_auth_user_resource_permissions ADD COLUMN IF NOT EXISTS permission_code TEXT;
+
+-- Populate code columns from existing ID columns by joining with master tables
+UPDATE org_auth_user_roles our
+SET role_code = sar.code
+FROM sys_auth_roles sar
+WHERE our.role_id = sar.role_id;
+
+UPDATE org_auth_user_resource_roles ourr
+SET role_code = sar.code
+FROM sys_auth_roles sar
+WHERE ourr.role_id = sar.role_id;
+
+UPDATE org_auth_user_permissions oup
+SET permission_code = sap.code
+FROM sys_auth_permissions sap
+WHERE oup.permission_id = sap.permission_id;
+
+UPDATE org_auth_user_resource_permissions ourp
+SET permission_code = sap.code
+FROM sys_auth_permissions sap
+WHERE ourp.permission_id = sap.permission_id;
+
+DO $$ BEGIN RAISE NOTICE 'Added and populated code columns in assignment tables'; END $$;
+
+-- ============================================================================
+-- STEP 7: REMOVE UUID COLUMNS
+-- ============================================================================
+
+-- Remove UUID columns from master tables
+ALTER TABLE sys_auth_roles DROP COLUMN IF EXISTS role_id CASCADE;
+ALTER TABLE sys_auth_permissions DROP COLUMN IF EXISTS permission_id CASCADE;
+
+-- Remove UUID columns from dependent tables
+ALTER TABLE org_auth_user_roles DROP COLUMN IF EXISTS role_id CASCADE;
+ALTER TABLE org_auth_user_resource_roles DROP COLUMN IF EXISTS role_id CASCADE;
+ALTER TABLE org_auth_user_permissions DROP COLUMN IF EXISTS permission_id CASCADE;
+ALTER TABLE org_auth_user_resource_permissions DROP COLUMN IF EXISTS permission_id CASCADE;
+
+-- Remove UUID columns from mapping table
+ALTER TABLE sys_auth_role_default_permissions
+  DROP COLUMN IF EXISTS role_id CASCADE,
+  DROP COLUMN IF EXISTS permission_id CASCADE;
+
+DO $$ BEGIN RAISE NOTICE 'Dropped all UUID ID columns'; END $$;
+
+-- ============================================================================
+-- STEP 8: SET CODE COLUMNS AS NOT NULL
+-- ============================================================================
+
+ALTER TABLE org_auth_user_roles ALTER COLUMN role_code SET NOT NULL;
+ALTER TABLE org_auth_user_resource_roles ALTER COLUMN role_code SET NOT NULL;
+ALTER TABLE org_auth_user_permissions ALTER COLUMN permission_code SET NOT NULL;
+ALTER TABLE org_auth_user_resource_permissions ALTER COLUMN permission_code SET NOT NULL;
+
+DO $$ BEGIN RAISE NOTICE 'Set code columns as NOT NULL'; END $$;
+
+-- ============================================================================
+-- STEP 9: CREATE NEW PRIMARY KEYS (CODE-BASED)
+-- ============================================================================
+
+-- sys_auth_roles: code is now the primary key
+ALTER TABLE sys_auth_roles ADD PRIMARY KEY (code);
+
+-- sys_auth_permissions: code is now the primary key
+ALTER TABLE sys_auth_permissions ADD PRIMARY KEY (code);
+
+-- sys_auth_role_default_permissions: composite key on codes
+ALTER TABLE sys_auth_role_default_permissions
+  ADD PRIMARY KEY (role_code, permission_code);
+
+DO $$ BEGIN RAISE NOTICE 'Created new code-based primary keys'; END $$;
+
+-- ============================================================================
+-- STEP 10: CREATE NEW FOREIGN KEY CONSTRAINTS (CODE-BASED)
+-- ============================================================================
+
+-- org_auth_user_roles → sys_auth_roles
+ALTER TABLE org_auth_user_roles
+  ADD CONSTRAINT org_auth_user_roles_role_code_fkey
+  FOREIGN KEY (role_code)
+  REFERENCES sys_auth_roles(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- org_auth_user_resource_roles → sys_auth_roles
+ALTER TABLE org_auth_user_resource_roles
+  ADD CONSTRAINT org_auth_user_resource_roles_role_code_fkey
+  FOREIGN KEY (role_code)
+  REFERENCES sys_auth_roles(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- org_auth_user_permissions → sys_auth_permissions
+ALTER TABLE org_auth_user_permissions
+  ADD CONSTRAINT org_auth_user_permissions_permission_code_fkey
+  FOREIGN KEY (permission_code)
+  REFERENCES sys_auth_permissions(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- org_auth_user_resource_permissions → sys_auth_permissions
+ALTER TABLE org_auth_user_resource_permissions
+  ADD CONSTRAINT org_auth_user_resource_permissions_permission_code_fkey
+  FOREIGN KEY (permission_code)
+  REFERENCES sys_auth_permissions(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- sys_auth_role_default_permissions → sys_auth_roles
+ALTER TABLE sys_auth_role_default_permissions
+  ADD CONSTRAINT sys_auth_role_default_permissions_role_code_fkey
+  FOREIGN KEY (role_code)
+  REFERENCES sys_auth_roles(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+-- sys_auth_role_default_permissions → sys_auth_permissions
+ALTER TABLE sys_auth_role_default_permissions
+  ADD CONSTRAINT sys_auth_role_default_permissions_permission_code_fkey
+  FOREIGN KEY (permission_code)
+  REFERENCES sys_auth_permissions(code)
+  ON DELETE CASCADE
+  ON UPDATE CASCADE;
+
+DO $$ BEGIN RAISE NOTICE 'Created new code-based foreign key constraints'; END $$;
+
+-- ============================================================================
+-- STEP 9: CREATE NEW UNIQUE CONSTRAINTS (CODE-BASED)
+-- ============================================================================
+
+-- org_auth_user_roles: unique per user + tenant + role
+ALTER TABLE org_auth_user_roles
+  ADD CONSTRAINT org_auth_user_roles_user_tenant_role_unique
+  UNIQUE (user_id, tenant_org_id, role_code);
+
+-- org_auth_user_resource_roles: unique per user + tenant + resource + role
+ALTER TABLE org_auth_user_resource_roles
+  ADD CONSTRAINT org_auth_user_resource_roles_unique
+  UNIQUE (user_id, tenant_org_id, resource_type, resource_id, role_code);
+
+-- org_auth_user_permissions: unique per user + tenant + permission
+ALTER TABLE org_auth_user_permissions
+  ADD CONSTRAINT org_auth_user_permissions_unique
+  UNIQUE (user_id, tenant_org_id, permission_code);
+
+-- org_auth_user_resource_permissions: unique per user + tenant + resource + permission
+ALTER TABLE org_auth_user_resource_permissions
+  ADD CONSTRAINT org_auth_user_resource_permissions_unique
+  UNIQUE (user_id, tenant_org_id, resource_type, resource_id, permission_code);
+
+DO $$ BEGIN RAISE NOTICE 'Created new code-based unique constraints'; END $$;
+
+-- ============================================================================
+-- STEP 10: DROP OLD ID-BASED INDEXES
+-- ============================================================================
+
+DROP INDEX IF EXISTS idx_org_auth_user_roles_role CASCADE;
+DROP INDEX IF EXISTS idx_org_auth_user_resource_roles_role CASCADE;
+DROP INDEX IF EXISTS idx_org_auth_user_perms_perm CASCADE;
+DROP INDEX IF EXISTS idx_org_auth_user_resource_perms_perm CASCADE;
+DROP INDEX IF EXISTS idx_sys_auth_role_perms_role CASCADE;
+DROP INDEX IF EXISTS idx_sys_auth_role_perms_perm CASCADE;
+
+DO $$ BEGIN RAISE NOTICE 'Dropped old ID-based indexes'; END $$;
+
+-- ============================================================================
+-- STEP 11: CREATE NEW CODE-BASED INDEXES
+-- ============================================================================
+
+-- org_auth_user_roles indexes
+CREATE INDEX idx_org_auth_user_roles_role_code
+  ON org_auth_user_roles(role_code) WHERE is_active = true;
+
+CREATE INDEX idx_org_auth_user_roles_tenant_role
+  ON org_auth_user_roles(tenant_org_id, role_code) WHERE is_active = true;
+
+-- org_auth_user_resource_roles indexes
+CREATE INDEX idx_org_auth_user_resource_roles_role_code
+  ON org_auth_user_resource_roles(role_code) WHERE is_active = true;
+
+CREATE INDEX idx_org_auth_user_resource_roles_tenant_role
+  ON org_auth_user_resource_roles(tenant_org_id, role_code) WHERE is_active = true;
+
+-- org_auth_user_permissions indexes
+CREATE INDEX idx_org_auth_user_perms_permission_code
+  ON org_auth_user_permissions(permission_code);
+
+CREATE INDEX idx_org_auth_user_perms_tenant_permission
+  ON org_auth_user_permissions(tenant_org_id, permission_code);
+
+-- org_auth_user_resource_permissions indexes
+CREATE INDEX idx_org_auth_user_resource_perms_permission_code
+  ON org_auth_user_resource_permissions(permission_code);
+
+CREATE INDEX idx_org_auth_user_resource_perms_tenant_permission
+  ON org_auth_user_resource_permissions(tenant_org_id, permission_code);
+
+-- sys_auth_role_default_permissions indexes
+CREATE INDEX idx_sys_auth_role_perms_role_code
+  ON sys_auth_role_default_permissions(role_code);
+
+CREATE INDEX idx_sys_auth_role_perms_permission_code
+  ON sys_auth_role_default_permissions(permission_code);
+
+DO $$ BEGIN RAISE NOTICE 'Created new code-based indexes'; END $$;
+
+-- ============================================================================
+-- STEP 12: UPDATE COMMENTS
+-- ============================================================================
+
+COMMENT ON TABLE sys_auth_roles IS 'Role definitions - PRIMARY KEY: code (migrated from role_id UUID)';
+COMMENT ON TABLE sys_auth_permissions IS 'Permission definitions - PRIMARY KEY: code (migrated from permission_id UUID)';
+COMMENT ON COLUMN sys_auth_roles.code IS 'Unique role identifier (immutable) - now serves as PRIMARY KEY';
+COMMENT ON COLUMN sys_auth_permissions.code IS 'Unique permission identifier (immutable, format: resource:action) - now serves as PRIMARY KEY';
+COMMENT ON COLUMN sys_auth_roles.old_role_id IS 'Backup of original UUID primary key (for rollback purposes only)';
+COMMENT ON COLUMN sys_auth_permissions.old_permission_id IS 'Backup of original UUID primary key (for rollback purposes only)';
+
+-- ============================================================================
+-- STEP 13: VERIFICATION
+-- ============================================================================
+
+-- Verify no orphaned records
+DO $$
+DECLARE
+  orphaned_roles INTEGER;
+  orphaned_perms INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO orphaned_roles
+  FROM org_auth_user_roles
+  WHERE role_code NOT IN (SELECT code FROM sys_auth_roles);
+
+  SELECT COUNT(*) INTO orphaned_perms
+  FROM org_auth_user_permissions
+  WHERE permission_code NOT IN (SELECT code FROM sys_auth_permissions);
+
+  IF orphaned_roles > 0 THEN
+    RAISE EXCEPTION 'Found % orphaned role assignments', orphaned_roles;
+  END IF;
+
+  IF orphaned_perms > 0 THEN
+    RAISE EXCEPTION 'Found % orphaned permission assignments', orphaned_perms;
+  END IF;
+
+  RAISE NOTICE 'Verification passed: No orphaned records found';
+END $$;
+
+-- Verify primary keys
+DO $$
+DECLARE
+  role_pk_count INTEGER;
+  perm_pk_count INTEGER;
+  role_perm_pk_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO role_pk_count
+  FROM information_schema.table_constraints
+  WHERE table_name = 'sys_auth_roles'
+    AND constraint_type = 'PRIMARY KEY'
+    AND constraint_name = 'sys_auth_roles_pkey';
+
+  SELECT COUNT(*) INTO perm_pk_count
+  FROM information_schema.table_constraints
+  WHERE table_name = 'sys_auth_permissions'
+    AND constraint_type = 'PRIMARY KEY'
+    AND constraint_name = 'sys_auth_permissions_pkey';
+
+  SELECT COUNT(*) INTO role_perm_pk_count
+  FROM information_schema.table_constraints
+  WHERE table_name = 'sys_auth_role_default_permissions'
+    AND constraint_type = 'PRIMARY KEY'
+    AND constraint_name = 'sys_auth_role_default_permissions_pkey';
+
+  IF role_pk_count = 0 OR perm_pk_count = 0 OR role_perm_pk_count = 0 THEN
+    RAISE EXCEPTION 'Primary key constraints not found correctly';
+  END IF;
+
+  RAISE NOTICE 'Verification passed: All primary keys created successfully';
+END $$;
+
+-- Verify foreign keys
+DO $$
+DECLARE
+  fk_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO fk_count
+  FROM information_schema.table_constraints
+  WHERE constraint_type = 'FOREIGN KEY'
+    AND table_name LIKE '%auth%'
+    AND constraint_name LIKE '%_code_fkey';
+
+  IF fk_count < 6 THEN
+    RAISE EXCEPTION 'Expected at least 6 code-based foreign keys, found %', fk_count;
+  END IF;
+
+  RAISE NOTICE 'Verification passed: Found % code-based foreign keys', fk_count;
+END $$;
+
+-- Verify triggers
+DO $$
+DECLARE
+  trigger_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO trigger_count
+  FROM information_schema.triggers
+  WHERE trigger_name LIKE '%code_immutability%';
+
+  IF trigger_count < 2 THEN
+    RAISE EXCEPTION 'Expected 2 code immutability triggers, found %', trigger_count;
+  END IF;
+
+  RAISE NOTICE 'Verification passed: Code immutability triggers active';
+END $$;
+
+-- ============================================================================
+-- MIGRATION COMPLETE
+-- ============================================================================
+
+DO $$ BEGIN RAISE NOTICE '========================================'; END $$;
+DO $$ BEGIN RAISE NOTICE 'RBAC Migration to Code-Based System COMPLETE'; END $$;
+DO $$ BEGIN RAISE NOTICE '========================================'; END $$;
+DO $$ BEGIN RAISE NOTICE 'Summary:'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Removed UUID-based primary keys (role_id, permission_id)'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Created code-based primary keys'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Updated all foreign key constraints'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Created code immutability triggers'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Verified data integrity'; END $$;
+DO $$ BEGIN RAISE NOTICE '  - Backup columns preserved: old_role_id, old_permission_id'; END $$;
+DO $$ BEGIN RAISE NOTICE '========================================'; END $$;
+DO $$ BEGIN RAISE NOTICE 'NEXT STEPS:'; END $$;
+DO $$ BEGIN RAISE NOTICE '  1. Update backend APIs to use codes'; END $$;
+DO $$ BEGIN RAISE NOTICE '  2. Update frontend to use codes'; END $$;
+DO $$ BEGIN RAISE NOTICE '  3. Update Supabase types: npm run types:generate'; END $$;
+DO $$ BEGIN RAISE NOTICE '  4. Test all RBAC functionality'; END $$;
+DO $$ BEGIN RAISE NOTICE '  5. Remove backup columns after confirmed success'; END $$;
+DO $$ BEGIN RAISE NOTICE '========================================'; END $$;
+
+COMMIT;
