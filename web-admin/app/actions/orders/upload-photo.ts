@@ -1,7 +1,7 @@
 'use server';
 
 import { uploadOrderPhoto } from '@/lib/storage/minio-client';
-import { getCurrentTenant } from '@/lib/auth/get-session';
+import { getAuthContext } from '@/lib/auth/server-auth';
 
 interface UploadPhotoInput {
   orderId: string;
@@ -23,10 +23,7 @@ export async function uploadPhotoAction(
 ): Promise<UploadPhotoResult> {
   try {
     // Get current tenant
-    const tenant = await getCurrentTenant();
-    if (!tenant) {
-      return { success: false, error: 'Unauthorized' };
-    }
+    const authContext = await getAuthContext();
 
     // Extract form data
     const orderId = formData.get('orderId') as string;
@@ -55,7 +52,7 @@ export async function uploadPhotoAction(
       orderId,
       buffer,
       file.name,
-      tenant.id
+      authContext.tenantId
     );
 
     return {
@@ -80,10 +77,7 @@ export async function uploadMultiplePhotos(
 ): Promise<{ success: boolean; urls?: string[]; error?: string }> {
   try {
     // Get current tenant
-    const tenant = await getCurrentTenant();
-    if (!tenant) {
-      return { success: false, error: 'Unauthorized' };
-    }
+    const authContext = await getAuthContext();
 
     // Validate files
     for (const file of files) {
@@ -99,7 +93,7 @@ export async function uploadMultiplePhotos(
     const uploadPromises = files.map(async (file) => {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
-      return uploadOrderPhoto(orderId, buffer, file.name, tenant.id);
+      return uploadOrderPhoto(orderId, buffer, file.name, authContext.tenantId);
     });
 
     const urls = await Promise.all(uploadPromises);

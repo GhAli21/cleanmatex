@@ -32,8 +32,9 @@ async function getAuthContext() {
   };
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { tenantId, userId, userName } = await getAuthContext();
 
     const body = await request.json();
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     if (pieceIds && pieceIds.length > 0) {
       // Piece-level splitting (NEW)
       result = await OrderService.splitOrderByPieces(
-        params.id,
+        id,
         tenantId,
         pieceIds,
         reason,
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     } else if (itemIds && itemIds.length > 0) {
       // Item-level splitting (LEGACY)
       result = await OrderService.splitOrder(
-        params.id,
+        id,
         tenantId,
         itemIds,
         reason,

@@ -31,14 +31,14 @@ export default function AddressCard({
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-1">
             <h4 className="font-semibold text-gray-900">{address.label}</h4>
-            {address.is_default && (
+            {address.isDefault && (
               <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
                 Default
               </span>
             )}
           </div>
-          {address.building_name && (
-            <p className="text-xs text-gray-500">{address.building_name}</p>
+          {address.building && (
+            <p className="text-xs text-gray-500">{address.building}</p>
           )}
         </div>
 
@@ -118,7 +118,7 @@ export default function AddressCard({
 
       {/* Actions */}
       <div className="flex items-center space-x-3 pt-3 border-t border-gray-100">
-        {!address.is_default && onSetDefault && (
+        {!address.isDefault && onSetDefault && (
           <button
             onClick={() => onSetDefault(address.id)}
             className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
@@ -129,7 +129,7 @@ export default function AddressCard({
 
         {onEdit && (
           <>
-            {!address.is_default && onSetDefault && (
+            {!address.isDefault && onSetDefault && (
               <span className="text-gray-300">|</span>
             )}
             <button
@@ -147,9 +147,9 @@ export default function AddressCard({
             <button
               onClick={() => onDelete(address.id)}
               className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
-              disabled={address.is_default}
+              disabled={address.isDefault}
               title={
-                address.is_default
+                address.isDefault
                   ? 'Cannot delete default address. Set another address as default first.'
                   : 'Delete address'
               }

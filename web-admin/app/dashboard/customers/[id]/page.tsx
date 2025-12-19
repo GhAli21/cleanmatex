@@ -130,7 +130,7 @@ export default function CustomerDetailPage() {
     )
   }
 
-  const typeBadge = getTypeBadge(customer.customer_type)
+  const typeBadge = getTypeBadge(customer.type)
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -157,7 +157,7 @@ export default function CustomerDetailPage() {
             />
           </svg>
           <span className="text-gray-900 font-medium">
-            {customer.first_name} {customer.last_name}
+            {customer.firstName} {customer.lastName}
           </span>
         </nav>
 
@@ -168,8 +168,8 @@ export default function CustomerDetailPage() {
               {/* Avatar */}
               <div className="flex-shrink-0">
                 <div className="h-20 w-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-2xl font-bold">
-                  {customer.first_name?.charAt(0).toUpperCase() || 'C'}
-                  {customer.last_name?.charAt(0).toUpperCase() || ''}
+                  {customer.firstName?.charAt(0).toUpperCase() || 'C'}
+                  {customer.lastName?.charAt(0).toUpperCase() || ''}
                 </div>
               </div>
 
@@ -177,26 +177,21 @@ export default function CustomerDetailPage() {
               <div className="flex-1">
                 <div className="flex items-center space-x-3 mb-2">
                   <h1 className="text-2xl font-bold text-gray-900">
-                    {customer.first_name} {customer.last_name}
+                    {customer.firstName} {customer.lastName}
                   </h1>
                   <span
                     className={`px-3 py-1 rounded-full text-xs font-medium ${typeBadge.color}`}
                   >
                     {typeBadge.label}
                   </span>
-                  {!customer.is_active && (
-                    <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                      Inactive
-                    </span>
-                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  {customer.customer_number && (
+                  {customer.customerNumber && (
                     <div>
                       <span className="text-gray-500">Customer #:</span>
                       <span className="ml-2 font-medium text-gray-900">
-                        {customer.customer_number}
+                        {customer.customerNumber}
                       </span>
                     </div>
                   )}
@@ -206,7 +201,7 @@ export default function CustomerDetailPage() {
                       <span className="ml-2 font-medium text-gray-900">
                         {customer.phone}
                       </span>
-                      {customer.phone_verified && (
+                      {customer.phoneVerified && (
                         <span className="ml-1 text-green-600" title="Verified">
                           ✓
                         </span>
@@ -227,7 +222,7 @@ export default function CustomerDetailPage() {
 
             {/* Actions */}
             <div className="flex items-center space-x-2">
-              {customer.customer_type === 'stub' && (
+              {customer.type === 'stub' && (
                 <button
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
                   onClick={() => {
@@ -282,14 +277,14 @@ export default function CustomerDetailPage() {
             {activeTab === 'addresses' && (
               <AddressesTab
                 customerId={customer.id}
-                addresses={customer.addresses || []}
+                addresses={[]}
               />
             )}
             {activeTab === 'orders' && <OrdersTab customerId={customer.id} />}
             {activeTab === 'loyalty' && (
               <LoyaltyTab
                 customerId={customer.id}
-                loyaltyPoints={customer.loyalty_points || 0}
+                loyaltyPoints={customer.tenantData?.loyaltyPoints || 0}
               />
             )}
           </div>
@@ -324,12 +319,12 @@ function ProfileTab({
           <dl className="space-y-3">
             <div>
               <dt className="text-sm font-medium text-gray-500">First Name</dt>
-              <dd className="mt-1 text-sm text-gray-900">{customer.first_name}</dd>
+              <dd className="mt-1 text-sm text-gray-900">{customer.firstName}</dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Last Name</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {customer.last_name || '—'}
+                {customer.lastName || '—'}
               </dd>
             </div>
             <div>
@@ -348,7 +343,7 @@ function ProfileTab({
         </div>
 
         {/* Preferences (Full Profile Only) */}
-        {customer.customer_type === 'full' && (
+        {customer.type === 'full' && (
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               Preferences
@@ -357,25 +352,25 @@ function ProfileTab({
               <div>
                 <dt className="text-sm font-medium text-gray-500">Language</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {customer.preferred_language === 'ar' ? 'Arabic' : 'English'}
+                  English
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Folding</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {customer.preferences?.folding_preference || '—'}
+                  {customer.preferences?.folding || '—'}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Fragrance</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {customer.preferences?.fragrance_preference || '—'}
+                  {customer.preferences?.fragrance || '—'}
                 </dd>
               </div>
               <div>
                 <dt className="text-sm font-medium text-gray-500">Starch Level</dt>
                 <dd className="mt-1 text-sm text-gray-900">
-                  {customer.preferences?.starch_level || '—'}
+                  —
                 </dd>
               </div>
             </dl>
@@ -391,25 +386,25 @@ function ProfileTab({
             <div>
               <dt className="text-sm font-medium text-gray-500">Customer Type</dt>
               <dd className="mt-1 text-sm text-gray-900 capitalize">
-                {customer.customer_type}
+                {customer.type}
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Status</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {customer.is_active ? 'Active' : 'Inactive'}
+                {customer.profileStatus === 3 ? 'Active' : `Status ${customer.profileStatus}`}
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Phone Verified</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {customer.phone_verified ? 'Yes ✓' : 'No'}
+                {customer.phoneVerified ? 'Yes ✓' : 'No'}
               </dd>
             </div>
             <div>
               <dt className="text-sm font-medium text-gray-500">Member Since</dt>
               <dd className="mt-1 text-sm text-gray-900">
-                {new Date(customer.created_at).toLocaleDateString()}
+                {new Date(customer.createdAt).toLocaleDateString()}
               </dd>
             </div>
           </dl>

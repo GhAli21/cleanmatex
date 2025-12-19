@@ -105,11 +105,47 @@ export function useHasResourcePermission(
 export function useHasAnyResourcePermission(
   checks: Array<[string, string, ResourceType, string]>
 ): boolean {
-  const results = checks.map(([resource, action, resourceType, resourceId]) =>
-    useHasResourcePermission(resource, action, resourceType, resourceId)
-  )
+  const { currentTenant, permissions } = useAuth()
+  const [hasAnyPermission, setHasAnyPermission] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
-  return results.some((result) => result === true)
+  useEffect(() => {
+    if (!currentTenant || checks.length === 0) {
+      setHasAnyPermission(false)
+      return
+    }
+
+    const checkPermissions = async () => {
+      setIsChecking(true)
+      try {
+        // Check global permissions first
+        for (const [resource, action] of checks) {
+          const permissionCode = `${resource}:${action}`
+          if (permissions.includes(permissionCode)) {
+            setHasAnyPermission(true)
+            setIsChecking(false)
+            return
+          }
+        }
+
+        // Check resource-scoped permissions
+        const permissionPromises = checks.map(([resource, action, resourceType, resourceId]) =>
+          checkResourcePermission(resource, action, resourceType, resourceId)
+        )
+        const results = await Promise.all(permissionPromises)
+        setHasAnyPermission(results.some((result) => result === true))
+      } catch (error) {
+        console.error('Error checking resource permissions:', error)
+        setHasAnyPermission(false)
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    checkPermissions()
+  }, [checks, currentTenant, permissions])
+
+  return isChecking ? false : hasAnyPermission
 }
 
 /**
@@ -130,9 +166,47 @@ export function useHasAnyResourcePermission(
 export function useHasAllResourcePermissions(
   checks: Array<[string, string, ResourceType, string]>
 ): boolean {
-  const results = checks.map(([resource, action, resourceType, resourceId]) =>
-    useHasResourcePermission(resource, action, resourceType, resourceId)
-  )
+  const { currentTenant, permissions } = useAuth()
+  const [hasAllPermissions, setHasAllPermissions] = useState(false)
+  const [isChecking, setIsChecking] = useState(false)
 
-  return results.every((result) => result === true)
+  useEffect(() => {
+    if (!currentTenant || checks.length === 0) {
+      setHasAllPermissions(false)
+      return
+    }
+
+    const checkPermissions = async () => {
+      setIsChecking(true)
+      try {
+        // Check if all have global permissions first
+        const allHaveGlobal = checks.every(([resource, action]) => {
+          const permissionCode = `${resource}:${action}`
+          return permissions.includes(permissionCode)
+        })
+
+        if (allHaveGlobal) {
+          setHasAllPermissions(true)
+          setIsChecking(false)
+          return
+        }
+
+        // Check resource-scoped permissions
+        const permissionPromises = checks.map(([resource, action, resourceType, resourceId]) =>
+          checkResourcePermission(resource, action, resourceType, resourceId)
+        )
+        const results = await Promise.all(permissionPromises)
+        setHasAllPermissions(results.every((result) => result === true))
+      } catch (error) {
+        console.error('Error checking resource permissions:', error)
+        setHasAllPermissions(false)
+      } finally {
+        setIsChecking(false)
+      }
+    }
+
+    checkPermissions()
+  }, [checks, currentTenant, permissions])
+
+  return isChecking ? false : hasAllPermissions
 }

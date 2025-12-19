@@ -14,11 +14,11 @@ import type { BatchUpdateRequest, PieceUpdate } from '@/types/order';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabase = createClient();
-    const orderId = params.id;
+    const { id: orderId } = await params;
+    const supabase = await createClient();
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -157,7 +157,7 @@ export async function POST(
 
     if (allItems) {
       const allReady = allItems.every(
-        item => item.quantity_ready >= item.quantity
+        item => (item.quantity_ready ?? 0) >= (item.quantity ?? 0)
       );
 
       if (allReady && orderRackLocation) {

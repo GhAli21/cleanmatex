@@ -11,16 +11,16 @@ import { isPreparationEnabled } from '@/lib/config/features';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
-    const { id: orderId, itemId } = params;
+    const { id: orderId, itemId } = await params;
     const data = await request.json();
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
@@ -70,15 +70,15 @@ export async function PATCH(
 
 export async function DELETE(
   _request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
-    const { id: orderId, itemId } = params;
+    const { id: orderId, itemId } = await params;
 
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,

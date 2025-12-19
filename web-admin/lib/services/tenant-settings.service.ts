@@ -28,7 +28,7 @@ export class TenantSettingsService {
     settingCode: string
   ): Promise<boolean> {
     try {
-      // @ts-ignore - RPC function exists but types not regenerated
+      // @ts-expect-error - RPC function exists but types not regenerated
       const { data, error } = await this.supabase.rpc('fn_is_setting_allowed', {
         p_tenant_org_id: tenantId,
         p_setting_code: settingCode,
@@ -58,7 +58,7 @@ export class TenantSettingsService {
     settingCode: string
   ): Promise<any> {
     try {
-      // @ts-ignore - RPC function exists but types not regenerated
+      // @ts-expect-error - RPC function exists but types not regenerated
       const { data, error } = await this.supabase.rpc('fn_get_setting_value', {
         p_tenant_org_id: tenantId,
         p_setting_code: settingCode,
@@ -69,7 +69,7 @@ export class TenantSettingsService {
         return null;
       }
 
-      // @ts-ignore - data structure from database
+      // @ts-expect-error - data structure from database
       return data?.value ?? null;
     } catch (error) {
       console.error(`[TenantSettingsService] Exception getting setting value for ${settingCode}:`, error);

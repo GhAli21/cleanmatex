@@ -54,7 +54,7 @@ export async function GET() {
     console.log('Jh In GET() [ 3 ] : userRole', userRole);
     // Get user permissions
     
-    const { data: permissionsData, error: permsError } = await supabase.rpc('get_role_permissions_jh', {
+    const { data: permissionsData, error: permsError } = await (supabase.rpc as any)('get_role_permissions_jh', {
       p_role_code: userRole as string,
     })
     

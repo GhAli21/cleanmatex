@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
@@ -29,8 +29,9 @@ interface AssemblyOrder {
   items: AssemblyItem[];
 }
 
-export default function AssemblyDetailPage({ params }: { params: { id: string } }) {
+export default function AssemblyDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
   const [order, setOrder] = useState<AssemblyOrder | null>(null);
@@ -40,7 +41,7 @@ export default function AssemblyDetailPage({ params }: { params: { id: string } 
 
   useEffect(() => {
     const loadOrder = async () => {
-      if (!currentTenant) return;
+      if (!currentTenant || !params.id) return;
       
       setLoading(true);
       try {
@@ -60,6 +61,7 @@ export default function AssemblyDetailPage({ params }: { params: { id: string } 
   }, [params.id, currentTenant]);
 
   const handleAssemble = async () => {
+    if (!params.id) return;
     setSubmitting(true);
     try {
       // Transition to next stage (QA or READY depending on workflow)
@@ -72,7 +74,7 @@ export default function AssemblyDetailPage({ params }: { params: { id: string } 
         }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success && params.id) {
         router.push(`/dashboard/orders/${params.id}`);
       } else {
         setError(json.error || 'Failed to complete assembly');

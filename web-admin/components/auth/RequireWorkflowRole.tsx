@@ -17,6 +17,8 @@
 import React from 'react'
 import {
   useHasWorkflowRole,
+  useHasAnyWorkflowRole,
+  useHasAllWorkflowRoles,
   type WorkflowRole,
 } from '@/lib/hooks/use-has-workflow-role'
 
@@ -70,8 +72,8 @@ export function RequireAnyWorkflowRole({
   children,
   fallback = null,
 }: RequireAnyWorkflowRoleProps) {
-  // Check if user has any of the workflow roles
-  const hasAnyRole = roles.some((role) => useHasWorkflowRole(role))
+  // Use the hook that handles multiple role checks
+  const hasAnyRole = useHasAnyWorkflowRole(roles)
 
   if (!hasAnyRole) {
     return <>{fallback}</>
@@ -104,8 +106,8 @@ export function RequireAllWorkflowRoles({
   children,
   fallback = null,
 }: RequireAllWorkflowRolesProps) {
-  // Check if user has all of the workflow roles
-  const hasAllRoles = roles.every((role) => useHasWorkflowRole(role))
+  // Use the hook that handles multiple role checks
+  const hasAllRoles = useHasAllWorkflowRoles(roles)
 
   if (!hasAllRoles) {
     return <>{fallback}</>

@@ -33,9 +33,10 @@ async function getAuthContext() {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; itemId: string } }
+  { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
+    const { id, itemId } = await params;
     const { tenantId, userId, userName } = await getAuthContext();
 
     const body = await request.json();
@@ -49,8 +50,8 @@ export async function POST(
     }
 
     const result = await ItemProcessingService.recordProcessingStep({
-      orderId: params.id,
-      orderItemId: params.itemId,
+      orderId: id,
+      orderItemId: itemId,
       tenantId,
       stepCode: parsed.data.stepCode,
       stepSeq: parsed.data.stepSeq,

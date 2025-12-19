@@ -35,7 +35,9 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
     },
     ref
   ) => {
-    const checkboxId = id || React.useId();
+    // Always call useId unconditionally to follow React hooks rules
+    const generatedId = React.useId();
+    const checkboxId = id || generatedId;
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!disabled) {

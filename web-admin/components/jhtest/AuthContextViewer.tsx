@@ -38,7 +38,7 @@ export default function AuthContextViewer() {
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Auth Context (useAuth Hook)</h2>
           <p className="text-sm text-gray-600 mt-1">
-            Live data from the application's auth context provider
+            Live data from the application&apos;s auth context provider
           </p>
         </div>
         <button

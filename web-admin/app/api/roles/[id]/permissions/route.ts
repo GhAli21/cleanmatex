@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -29,7 +29,7 @@ export async function PUT(
       );
     }
 
-    const roleId = params.id;
+    const { id: roleId } = await params;
     const body = await request.json();
     const { permissionCodes } = body;
 
@@ -46,7 +46,7 @@ export async function PUT(
     // Get permission IDs for the codes
     const { data: allPermissions, error: permError } = await supabase
       .from('sys_auth_permissions')
-      .select('permission_id, code')
+      .select('*')
       .eq('is_active', true);
 
     if (permError || !allPermissions) {
@@ -57,7 +57,7 @@ export async function PUT(
     }
 
     const codeToIdMap = new Map(
-      allPermissions.map(p => [p.code, p.permission_id])
+      allPermissions.map((p: any) => [p.code, p.auth_permission_code || p.code])
     );
 
     // Get permission IDs for new permissions

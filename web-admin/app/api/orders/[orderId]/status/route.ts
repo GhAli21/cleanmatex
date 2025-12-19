@@ -11,10 +11,10 @@ import type { OrderStatus } from '@/lib/types/workflow';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
     const body = await request.json();
     const { toStatus, notes } = body;
 
@@ -26,7 +26,7 @@ export async function PATCH(
     }
 
     // Get authenticated user
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
@@ -112,13 +112,13 @@ export async function PATCH(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
 
     // Get authenticated user
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,
@@ -155,16 +155,20 @@ export async function GET(
     }
 
     // Get workflow settings to determine allowed transitions
-    const { data: settings } = await supabase
+    let query = supabase
       .from('org_workflow_settings_cf')
       .select('status_transitions')
       .eq('tenant_org_id', tenantId)
-      .eq('service_category_code', order.service_category_code || null)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
+    
+    if (order.service_category_code) {
+      query = query.eq('service_category_code', order.service_category_code);
+    }
+    
+    const { data: settings } = await query.single();
 
     const transitions = settings?.status_transitions as Record<string, string[]> | null;
-    const allowedTransitions = transitions?.[order.status] || [];
+    const allowedTransitions = (order.status && transitions?.[order.status]) || [];
 
     return NextResponse.json({
       success: true,

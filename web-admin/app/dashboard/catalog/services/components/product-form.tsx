@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
+import { Badge } from '@/components/ui/badge'
 
 interface CategoryOption {
   code: string
@@ -170,14 +170,14 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         {/* Category */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('category')}</label>
-          <Select value={values.service_category_code} onValueChange={(v) => setField('service_category_code', v as any)}>
+          <select value={values.service_category_code} onChange={(e) => setField('service_category_code', e.target.value)}>
             <option value="">--</option>
             {categories.map((c) => (
               <option key={c.code} value={c.code}>
                 {isRtl ? c.name2 || c.name : c.name}
               </option>
             ))}
-          </Select>
+          </select>
         </div>
 
         {/* Code */}
@@ -201,11 +201,11 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         {/* Unit */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('unit')}</label>
-          <Select value={values.product_unit} onValueChange={(v) => setField('product_unit', v as any)}>
+          <select value={values.product_unit} onChange={(e) => setField('product_unit', e.target.value as any)}>
             <option value="piece">{t('unitPiece')}</option>
             <option value="kg">{t('unitKg')}</option>
             <option value="item">Item</option>
-          </Select>
+          </select>
         </div>
 
         {/* Prices */}
@@ -236,7 +236,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         {/* Status */}
         <div className="flex items-end gap-2">
           <Button type="submit" disabled={saving}>{saving ? t('loading') : mode === 'create' ? t('create') : tCommon('update')}</Button>
-          {values.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="secondary">{t('disableCategories')}</Badge>}
+          {values.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}
           <Button type="button" variant="secondary" onClick={() => setField('is_active', !values.is_active)}>
             {values.is_active ? t('disableCategories') : t('enableCategories')}
           </Button>

@@ -1,14 +1,16 @@
 "use client";
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
-export default function EditWorkflowPage({ params }: { params: { id: string } }) {
+export default function EditWorkflowPage() {
   const router = useRouter();
+  const params = useParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [json, setJson] = useState('');
 
   useEffect(() => {
+    if (!params.id) return;
     (async () => {
       try {
         const res = await fetch('/api/v1/workflows/config?page=1&limit=100');

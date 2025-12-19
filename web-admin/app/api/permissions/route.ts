@@ -38,9 +38,8 @@ export async function GET(request: NextRequest) {
     // Get all active permissions
     const { data: permissions, error } = await supabase
       .from('sys_auth_permissions')
-      .select('permission_id, code, name, name2, category, description, is_active')
+      .select('*')
       .eq('is_active', true)
-      .order('category')
       .order('code');
 
     if (error) {
@@ -53,13 +52,13 @@ export async function GET(request: NextRequest) {
 
     // Group permissions by category
     const grouped = (permissions || []).reduce((acc, perm) => {
-      const category = perm.category || 'other';
+      const category = (perm as any).category || 'other';
       if (!acc[category]) {
         acc[category] = [];
       }
       acc[category].push(perm);
       return acc;
-    }, {} as Record<string, Permission[]>);
+    }, {} as Record<string, any[]>);
 
     return NextResponse.json({
       success: true,

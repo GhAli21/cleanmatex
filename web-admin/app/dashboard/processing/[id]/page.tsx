@@ -8,7 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin } from 'lucide-react';
@@ -45,8 +45,9 @@ const PROCESSING_STEPS = [
   { code: 'finishing', labelKey: 'steps.finishing' },
 ];
 
-export default function ProcessingDetailPage({ params }: { params: { id: string } }) {
+export default function ProcessingDetailPage() {
   const router = useRouter();
+  const params = useParams();
   const t = useTranslations('processing');
   const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
@@ -58,7 +59,7 @@ export default function ProcessingDetailPage({ params }: { params: { id: string 
   const [rackLocationError, setRackLocationError] = useState('');
 
   const loadOrder = async () => {
-    if (!currentTenant) return;
+    if (!currentTenant || !params.id) return;
     
     setLoading(true);
     setError('');
@@ -83,6 +84,7 @@ export default function ProcessingDetailPage({ params }: { params: { id: string 
   }, [params.id, currentTenant]);
 
   const handleRecordStep = async (itemId: string, stepCode: string, stepSeq: number) => {
+    if (!params.id) return;
     setSubmitting(true);
     setError('');
     try {
@@ -119,6 +121,7 @@ export default function ProcessingDetailPage({ params }: { params: { id: string 
     setSubmitting(true);
     setError('');
     try {
+      if (!params.id) return;
       const res = await fetch(`/api/v1/orders/${params.id}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +132,7 @@ export default function ProcessingDetailPage({ params }: { params: { id: string 
         }),
       });
       const json = await res.json();
-      if (json.success) {
+      if (json.success && params.id) {
         router.push(`/dashboard/orders/${params.id}`);
       } else {
         setError(json.error || t('error.transitionFailed') || 'Failed to transition to ready');

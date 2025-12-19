@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Badge } from "@/components/ui/Badge";
+import { Badge } from '@/components/ui/badge';
 import { useAuth } from "@/lib/auth/auth-context";
 
 interface ServiceCategory {
@@ -140,7 +140,7 @@ export default function CategoriesPage() {
                       {enabled ? (
                         <Badge variant="success">{t("standard")}</Badge>
                       ) : (
-                        <Badge variant="secondary">{t("disableCategories")}</Badge>
+                        <Badge variant="default">{t("disableCategories")}</Badge>
                       )}
                     </div>
                     {ctg.ctg_desc && (

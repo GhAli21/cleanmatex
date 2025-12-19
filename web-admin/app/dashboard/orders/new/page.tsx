@@ -598,6 +598,52 @@ export default function NewOrderPage() {
     ) as string[];
   }, [items]);
 
+  // Memoized callbacks for modals (moved from JSX to fix React hooks rules)
+  const handleCustomerModalOpen = useCallback(() => {
+    setCustomerModalOpen(true);
+  }, []);
+
+  const handleCustomerModalClose = useCallback(() => {
+    setCustomerModalOpen(false);
+  }, []);
+
+  const handleCustomerEditModalClose = useCallback(() => {
+    setCustomerEditModalOpen(false);
+  }, []);
+
+  const handlePaymentModalClose = useCallback(() => {
+    setPaymentModalOpen(false);
+  }, []);
+
+  const handleSelectCustomer = useCallback((customer: Customer) => {
+    console.log('Selected customer:', customer);
+    if (!customer.id) {
+      console.error('Customer missing ID:', customer);
+      cmxMessage.error(t('errors.invalidCustomer') || 'Invalid customer selected');
+      return; 
+    }
+    setSelectedCustomerId(customer.id);
+    setCustomerName(customer.phone ? customer.phone + ' - ' + (customer.name || customer.name2 || customer.displayName || '') : (customer.name || customer.name2 || customer.displayName || ''));
+    setCustomerModalOpen(false);
+  }, [t]);
+
+  // Memoized order items for OrderSummaryPanel
+  const memoizedOrderItems = useMemo(() => 
+    items.map(item => {
+      const product = products.find(p => p.id === item.productId);
+      return {
+        id: item.productId, // Use productId as id for now
+        productId: item.productId,
+        productName: product?.product_name || 'Unknown Product',
+        productName2: product?.product_name2 || undefined,
+        quantity: item.quantity,
+        pricePerUnit: item.pricePerUnit,
+        totalPrice: item.totalPrice,
+        notes: item.notes,
+      };
+    }), [items, products]
+  );
+
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       {/* Header Navigation - Full Width <OrderHeaderNav />*/}
@@ -640,23 +686,9 @@ export default function NewOrderPage() {
           <div className={`w-96 ${isRTL ? 'border-r' : 'border-l'} border-gray-200 bg-white overflow-y-auto`}>
             <OrderSummaryPanel
               customerName={customerName}
-              onSelectCustomer={useCallback(() => setCustomerModalOpen(true), [])}
+              onSelectCustomer={handleCustomerModalOpen}
               onEditCustomer={handleOpenEditModal}
-              items={useMemo(() => 
-                items.map(item => {
-                  const product = products.find(p => p.id === item.productId);
-                  return {
-                    id: item.productId, // Use productId as id for now
-                    productId: item.productId,
-                    productName: product?.product_name || 'Unknown Product',
-                    productName2: product?.product_name2 || undefined,
-                    quantity: item.quantity,
-                    pricePerUnit: item.pricePerUnit,
-                    totalPrice: item.totalPrice,
-                    notes: item.notes,
-                  };
-                }), [items, products]
-              )}
+              items={memoizedOrderItems}
               onDeleteItem={(itemId) => handleRemoveItem(itemId)}
               isQuickDrop={isQuickDrop}
               onQuickDropToggle={setIsQuickDrop}
@@ -678,25 +710,15 @@ export default function NewOrderPage() {
       {/* Customer Picker Modal */}
       <CustomerPickerModal
         open={customerModalOpen}
-        onClose={useCallback(() => setCustomerModalOpen(false), [])}
-        onSelectCustomer={useCallback((customer) => {
-          console.log('Selected customer:', customer);
-          if (!customer.id) {
-            console.error('Customer missing ID:', customer);
-            cmxMessage.error(t('errors.invalidCustomer') || 'Invalid customer selected');
-            return; 
-          }
-          setSelectedCustomerId(customer.id);
-          setCustomerName(customer.phone ? customer.phone + ' - ' + (customer.name || customer.name2 || customer.displayName || '') : (customer.name || customer.name2 || customer.displayName || ''));
-          setCustomerModalOpen(false);
-        }, [t])}
+        onClose={handleCustomerModalClose}
+        onSelectCustomer={handleSelectCustomer}
       />
 
       {/* Customer Edit Modal */}
       <CustomerEditModal
         open={customerEditModalOpen}
         customerId={selectedCustomerId}
-        onClose={useCallback(() => setCustomerEditModalOpen(false), [])}
+        onClose={handleCustomerEditModalClose}
         onSuccess={handleCustomerUpdateSuccess}
       />
       
@@ -704,7 +726,7 @@ export default function NewOrderPage() {
       {currentTenant && (
         <PaymentModalEnhanced
           open={paymentModalOpen}
-          onClose={useCallback(() => setPaymentModalOpen(false), [])}
+          onClose={handlePaymentModalClose}
           onSubmit={handlePaymentSubmit}
           total={total}
           tenantOrgId={currentTenant.id}

@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -29,7 +29,7 @@ export async function DELETE(
       );
     }
 
-    const assignmentId = params.id;
+    const { id: assignmentId } = await params;
 
     // Remove workflow role
     await removeWorkflowRoleFromUser(assignmentId);

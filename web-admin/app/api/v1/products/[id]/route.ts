@@ -53,12 +53,13 @@ async function getAuthContext() {
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await getAuthContext();
+    const { id } = await params;
 
-    const product = await getProductById(params.id);
+    const product = await getProductById(id);
 
     return NextResponse.json({
       success: true,
@@ -99,10 +100,11 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await getAuthContext();
+    const { id } = await params;
 
     const body: Partial<ProductUpdateRequest> = await request.json();
 
@@ -116,7 +118,7 @@ export async function PATCH(
 
     // Update product
     const product = await updateProduct({
-      id: params.id,
+      id,
       ...body,
     });
 
@@ -162,12 +164,13 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     await getAuthContext();
+    const { id } = await params;
 
-    await deleteProduct(params.id);
+    await deleteProduct(id);
 
     return NextResponse.json({
       success: true,

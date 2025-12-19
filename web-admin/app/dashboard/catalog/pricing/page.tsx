@@ -100,23 +100,23 @@ export default function PricingPage() {
         <form onSubmit={onCreate} className="grid grid-cols-1 gap-3 md:grid-cols-4">
           <Input placeholder={t('priceListName')} value={name} onChange={(e) => setName(e.target.value)} />
           <Input placeholder={t('priceListNameAr')} value={name2} onChange={(e) => setName2(e.target.value)} />
-          <Select value={type} onValueChange={(v) => setType(v as any)}>
+          <select value={type} onChange={(e) => setType(e.target.value as any)}>
             <option value="standard">{t('standard')}</option>
             <option value="express">{t('express')}</option>
             <option value="vip">{t('vip')}</option>
             <option value="seasonal">{t('seasonal')}</option>
             <option value="b2b">{t('b2b')}</option>
             <option value="promotional">{t('promotional')}</option>
-          </Select>
+          </select>
           <div className="grid grid-cols-2 gap-2">
             <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
             <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
           <Input type="number" placeholder="Priority" value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
-          <Select value={isDefault ? 'yes' : 'no'} onValueChange={(v) => setIsDefault(v === 'yes')}>
+          <select value={isDefault ? 'yes' : 'no'} onChange={(e) => setIsDefault(e.target.value === 'yes')}>
             <option value="no">{t('no')}</option>
             <option value="yes">{t('yes')}</option>
-          </Select>
+          </select>
           <div className="flex gap-2">
             <Button type="submit" disabled={creating}>{creating ? t('loading') : t('create')}</Button>
           </div>

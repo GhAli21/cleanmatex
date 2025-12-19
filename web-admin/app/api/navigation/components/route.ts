@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Helper function to check if user has admin access or navigation management permissions
  */
-async function checkNavigationAccess(supabase: ReturnType<typeof createClient>) {
+async function checkNavigationAccess(supabase: SupabaseClient) {
   // Get user's tenants
   const { data: tenants, error: tenantsError } = await supabase.rpc('get_user_tenants')
   if (tenantsError || !tenants || tenants.length === 0) {

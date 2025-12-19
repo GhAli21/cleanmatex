@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { Textarea } from '@/components/ui/textarea'
 
 interface ImportResult {
   success: boolean
@@ -69,10 +70,10 @@ export default function ImportModal({ onClose }: ImportModalProps) {
             <div className="md:col-span-1">
               <label className="mb-1 block text-sm font-medium">{t('downloadTemplate')}</label>
               <div className="flex gap-2">
-                <Button type="button" variant={template === 'basic' ? 'default' : 'secondary'} onClick={() => setTemplate('basic')}>
+                <Button type="button" variant={template === 'basic' ? 'primary' : 'secondary'} onClick={() => setTemplate('basic')}>
                   {t('basicTemplate')}
                 </Button>
-                <Button type="button" variant={template === 'advanced' ? 'default' : 'secondary'} onClick={() => setTemplate('advanced')}>
+                <Button type="button" variant={template === 'advanced' ? 'primary' : 'secondary'} onClick={() => setTemplate('advanced')}>
                   {t('advancedTemplate')}
                 </Button>
               </div>
@@ -85,7 +86,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
             </div>
             <div className="md:col-span-2">
               <label className="mb-1 block text-sm font-medium">{t('uploadFile')}</label>
-              <Input as="textarea" rows={10} value={csv} onChange={(e: any) => setCsv(e.target.value)} placeholder={template === 'basic' ? sampleBasic : sampleAdvanced} />
+              <Textarea rows={10} value={csv} onChange={(e: any) => setCsv(e.target.value)} placeholder={template === 'basic' ? sampleBasic : sampleAdvanced} />
             </div>
           </div>
 

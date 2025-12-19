@@ -30,8 +30,9 @@ async function getAuthContext() {
   };
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { tenantId, userId } = await getAuthContext();
 
     const body = await request.json();
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     const result = await OrderService.createIssue(
-      params.id,
+      id,
       parsed.data.orderItemId || null,
       tenantId,
       parsed.data.issueCode,

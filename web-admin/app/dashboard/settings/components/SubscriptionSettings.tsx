@@ -17,9 +17,9 @@ interface SubscriptionSettingsProps {
 export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
   const router = useRouter();
 
-  // @ts-ignore - subscription is added in API response
+  // @ts-expect-error - subscription is added in API response
   const subscription = tenant.subscription;
-  // @ts-ignore
+  // @ts-expect-error
   const usage = tenant.usage;
 
   if (!subscription) {

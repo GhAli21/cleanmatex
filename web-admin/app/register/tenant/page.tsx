@@ -1,7 +1,7 @@
 /**
  * Tenant Registration Page
  * Multi-step self-service registration form
- * Route: /register (public)
+ * Route: /register/tenant (public)
  */
 
 'use client';
@@ -45,7 +45,7 @@ const LANGUAGES = [
   { value: 'ar', label: 'Arabic (العربية)' },
 ];
 
-export default function RegisterPage() {
+export default function TenantRegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [isLoading, setIsLoading] = useState(false);
@@ -179,7 +179,7 @@ export default function RegisterPage() {
       }
 
       // Redirect to success page or dashboard
-      router.push('/register/success');
+      router.push('/register/tenant/success');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -459,3 +459,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+

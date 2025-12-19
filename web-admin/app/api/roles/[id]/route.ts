@@ -17,7 +17,7 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -31,7 +31,7 @@ export async function GET(
       );
     }
 
-    const roleId = params.id;
+    const { id: roleId } = await params;
 
     // Get role permissions
     const permissions = await getRolePermissions(roleId);
@@ -56,7 +56,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -70,7 +70,7 @@ export async function PATCH(
       );
     }
 
-    const roleId = params.id;
+    const { id: roleId } = await params;
 
     // Parse request body
     const body = await request.json();
@@ -78,7 +78,6 @@ export async function PATCH(
 
     // Update role
     const updatedRole = await updateCustomRole(roleId, {
-      code,
       name,
       name2,
       description,
@@ -104,7 +103,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Verify authentication
@@ -118,7 +117,7 @@ export async function DELETE(
       );
     }
 
-    const roleId = params.id;
+    const { id: roleId } = await params;
 
     // Delete role
     await deleteCustomRole(roleId);

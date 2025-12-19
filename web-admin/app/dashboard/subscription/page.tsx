@@ -652,7 +652,7 @@ export default function SubscriptionPage() {
 
               <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                 <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                  New Features You'll Get:
+                  New Features You&apos;ll Get:
                 </h3>
                 <ul className="space-y-1 text-sm text-gray-700">
                   {selectedPlan.feature_flags.pdf_invoices && <li>✓ PDF Invoices</li>}
@@ -670,7 +670,7 @@ export default function SubscriptionPage() {
                 </h3>
                 <p className="text-sm text-gray-600">
                   Payment gateway integration coming soon. For now, your plan will be upgraded immediately
-                  and you'll receive an invoice via email.
+                  and you&apos;ll receive an invoice via email.
                 </p>
               </div>
 

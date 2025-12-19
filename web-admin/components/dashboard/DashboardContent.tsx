@@ -7,6 +7,7 @@
  */
 
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { UsageWidget } from '@/components/dashboard/UsageWidget'
@@ -152,12 +153,12 @@ export default function DashboardContent() {
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <a
+            <Link
               href="/dashboard/customers"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
               {t('addFirstCustomer')} {isRTL ? '←' : '→'}
-            </a>
+            </Link>
           </li>
           <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg
@@ -173,12 +174,12 @@ export default function DashboardContent() {
                 d="M12 6v6m0 0v6m0-6h6m-6 0H6"
               />
             </svg>
-            <a
+            <Link
               href="/dashboard/orders/new"
               className="text-blue-600 hover:text-blue-700 font-medium"
             >
               {t('createFirstOrder')} {isRTL ? '←' : '→'}
-            </a>
+            </Link>
           </li>
           <li className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
             <svg

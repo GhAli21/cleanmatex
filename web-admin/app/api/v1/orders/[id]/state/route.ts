@@ -63,7 +63,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const allowedTransitions = await WorkflowService.getAllowedTransitions(
       id,
       tenantId,
-      order.current_status
+      (order.current_status ?? undefined) as any
     );
 
     // Return data in the format expected by the modal

@@ -6,7 +6,7 @@ import { getOrderForPrep } from '@/app/actions/orders/get-order';
 import { FastItemizer } from '../components/FastItemizer';
 
 interface PreparationPageProps {
-  params: { orderId: string };
+  params: Promise<{ orderId: string }>;
 }
 
 async function PreparationContent({ orderId }: { orderId: string }) {
@@ -37,7 +37,8 @@ async function PreparationContent({ orderId }: { orderId: string }) {
   );
 }
 
-export default function PreparationPage({ params }: PreparationPageProps) {
+export default async function PreparationPage({ params }: PreparationPageProps) {
+  const { orderId } = await params;
   return (
     <Suspense
       fallback={
@@ -46,7 +47,7 @@ export default function PreparationPage({ params }: PreparationPageProps) {
         </div>
       }
     >
-      <PreparationContent orderId={params.orderId} />
+      <PreparationContent orderId={orderId} />
     </Suspense>
   );
 }

@@ -54,18 +54,7 @@ export function Widget({
   const { hasRole } = useRole()
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  // Role-based access control
-  if (roles && !hasRole(roles)) {
-    return null // Hide widget if user doesn't have required role
-  }
-
-  // Feature flag check (TODO: integrate with actual feature flags service)
-  if (featureFlag) {
-    // For now, all features are enabled in development
-    // Later: check against actual feature flags
-  }
-
-  // Auto-refresh functionality
+  // Auto-refresh functionality (must be called before any early returns)
   useEffect(() => {
     if (autoRefresh && onRefresh) {
       const interval = setInterval(() => {
@@ -75,6 +64,17 @@ export function Widget({
       return () => clearInterval(interval)
     }
   }, [autoRefresh, onRefresh])
+
+  // Role-based access control (check after hooks)
+  if (roles && !hasRole(roles)) {
+    return null // Hide widget if user doesn't have required role
+  }
+
+  // Feature flag check (TODO: integrate with actual feature flags service)
+  if (featureFlag) {
+    // For now, all features are enabled in development
+    // Later: check against actual feature flags
+  }
 
   // Manual refresh handler
   const handleRefresh = async () => {

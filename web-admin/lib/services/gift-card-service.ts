@@ -560,7 +560,7 @@ export async function generateGiftCardNumber(
   const timestamp = Date.now().toString().slice(-8);
   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
 
-  let cardNumber = `${prefix}${timestamp}${random}`;
+  const cardNumber = `${prefix}${timestamp}${random}`;
 
   // Ensure uniqueness
   const existing = await prisma.org_gift_cards_mst.findFirst({

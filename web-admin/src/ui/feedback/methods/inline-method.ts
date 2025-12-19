@@ -7,7 +7,7 @@ import type { MessageType, MessageOptions, MessageResult, InlineMessage } from '
 
 // Store for inline messages (for components to subscribe)
 let inlineMessageStore: InlineMessage | null = null;
-let inlineMessageListeners: Set<(message: InlineMessage | null) => void> = new Set();
+const inlineMessageListeners: Set<(message: InlineMessage | null) => void> = new Set();
 
 /**
  * Display a message as an inline message object

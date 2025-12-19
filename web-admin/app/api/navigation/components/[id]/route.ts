@@ -7,9 +7,10 @@ import { createClient } from '@/lib/supabase/server'
  */
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -32,7 +33,7 @@ export async function GET(
     const { data, error } = await supabase
       .from('sys_components_cd')
       .select('*')
-      .eq('comp_id', params.id)
+      .eq('comp_id', id)
       .single()
 
     if (error) {
@@ -56,9 +57,10 @@ export async function GET(
  */
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -139,7 +141,7 @@ export async function PUT(
     const { data, error } = await supabase
       .from('sys_components_cd')
       .update(updateData)
-      .eq('comp_id', params.id)
+      .eq('comp_id', id)
       .select()
       .single()
 
@@ -167,9 +169,10 @@ export async function PUT(
  */
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const supabase = await createClient()
 
     // Check authentication
@@ -193,7 +196,7 @@ export async function DELETE(
     const { data: children } = await supabase
       .from('sys_components_cd')
       .select('comp_id')
-      .eq('parent_comp_id', params.id)
+      .eq('parent_comp_id', id)
       .limit(1)
 
     if (children && children.length > 0) {
@@ -207,7 +210,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('sys_components_cd')
       .delete()
-      .eq('comp_id', params.id)
+      .eq('comp_id', id)
 
     if (error) {
       console.error('Error deleting component:', error)

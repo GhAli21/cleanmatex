@@ -325,7 +325,7 @@ export default function JwtViewerJhTest() {
           </pre>
         ) : (
           <p className="text-sm text-gray-600 italic">
-            Click "Show" to reveal the full raw token
+            Click &quot;Show&quot; to reveal the full raw token
           </p>
         )}
       </div>

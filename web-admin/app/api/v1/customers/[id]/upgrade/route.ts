@@ -126,7 +126,7 @@ export async function POST(
     }
 
     // 7. Check if customer is already full profile
-    if (currentCustomer.profileStatus === 'full') {
+    if (currentCustomer.profileStatus === 2) { // 2 = full profile
       return NextResponse.json(
         { error: 'Customer already has a full profile' },
         { status: 409 }
@@ -134,7 +134,7 @@ export async function POST(
     }
 
     // 8. Check if customer is guest (guests can't upgrade directly)
-    if (currentCustomer.profileStatus === 'guest') {
+    if (currentCustomer.profileStatus === 0) { // 0 = guest
       return NextResponse.json(
         {
           error: 'Guest customers cannot upgrade directly. Please add phone number first.',

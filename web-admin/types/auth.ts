@@ -144,6 +144,7 @@ export interface AuthError extends Error {
 export interface FormErrors {
   email?: string
   password?: string
+  confirmPassword?: string
   displayName?: string
   general?: string
 }

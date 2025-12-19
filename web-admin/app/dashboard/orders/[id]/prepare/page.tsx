@@ -7,9 +7,9 @@ import Link from 'next/link';
 import { ChevronLeft, AlertCircle } from 'lucide-react';
 
 interface PreparationPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 async function PreparationContent({ orderId }: { orderId: string }) {
@@ -40,7 +40,7 @@ async function PreparationContent({ orderId }: { orderId: string }) {
           </div>
           <p className="text-yellow-800 mb-4">
             This order is in <span className="font-semibold">{order.status}</span> status and cannot be prepared.
-            Preparation is only available for orders in "intake" or "preparation" status.
+            Preparation is only available for orders in &quot;intake&quot; or &quot;preparation&quot; status.
           </p>
           <Link
             href={`/dashboard/orders/${orderId}`}
@@ -98,7 +98,8 @@ async function PreparationContent({ orderId }: { orderId: string }) {
   );
 }
 
-export default function PreparationPage({ params }: PreparationPageProps) {
+export default async function PreparationPage({ params }: PreparationPageProps) {
+  const { id } = await params;
   return (
     <Suspense
       fallback={
@@ -107,7 +108,7 @@ export default function PreparationPage({ params }: PreparationPageProps) {
         </div>
       }
     >
-      <PreparationContent orderId={params.id} />
+      <PreparationContent orderId={id} />
     </Suspense>
   );
 }

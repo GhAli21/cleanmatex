@@ -104,7 +104,7 @@ export function PaymentModalEnhanced({
 
   // Calculate totals
   const calculateTotals = () => {
-    let subtotal = total;
+    const subtotal = total;
 
     // Manual discount
     let manualDiscount = 0;

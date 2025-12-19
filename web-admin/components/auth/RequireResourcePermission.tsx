@@ -22,6 +22,8 @@
 import React from 'react'
 import {
   useHasResourcePermission,
+  useHasAnyResourcePermission,
+  useHasAllResourcePermissions,
   type ResourceType,
 } from '@/lib/hooks/use-has-resource-permission'
 
@@ -102,11 +104,8 @@ export function RequireAnyResourcePermission({
   children,
   fallback = null,
 }: RequireAnyResourcePermissionProps) {
-  // Check each resource permission
-  const hasAnyPermission = checks.some(
-    ([resource, action, resourceType, resourceId]) =>
-      useHasResourcePermission(resource, action, resourceType, resourceId)
-  )
+  // Use the hook that handles multiple permission checks
+  const hasAnyPermission = useHasAnyResourcePermission(checks)
 
   if (!hasAnyPermission) {
     return <>{fallback}</>
@@ -144,11 +143,8 @@ export function RequireAllResourcePermissions({
   children,
   fallback = null,
 }: RequireAllResourcePermissionsProps) {
-  // Check each resource permission
-  const hasAllPermissions = checks.every(
-    ([resource, action, resourceType, resourceId]) =>
-      useHasResourcePermission(resource, action, resourceType, resourceId)
-  )
+  // Use the hook that handles multiple permission checks
+  const hasAllPermissions = useHasAllResourcePermissions(checks)
 
   if (!hasAllPermissions) {
     return <>{fallback}</>

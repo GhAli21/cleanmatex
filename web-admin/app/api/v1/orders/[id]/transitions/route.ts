@@ -11,15 +11,16 @@ async function getAuthContext() {
   return { tenantId: tenants[0].tenant_id as string };
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { tenantId } = await getAuthContext();
     const supabase = await createClient();
 
     const { data: order, error } = await supabase
       .from('org_orders_mst')
       .select('status, service_category_code')
-      .eq('id', params.id)
+      .eq('id', id)
       .eq('tenant_org_id', tenantId)
       .single();
 
@@ -30,8 +31,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     // Fetch tenant workflow settings to compute allowed transitions
     const result = await WorkflowService.isTransitionAllowed({
       tenantId,
-      fromStatus: order.status,
-      toStatus: order.status, // placeholder; we'll compute options below
+      fromStatus: order.status as any,
+      toStatus: order.status as any,
       serviceCategoryCode: order.service_category_code || undefined,
     });
 
@@ -40,16 +41,16 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       .from('org_workflow_settings_cf')
       .select('status_transitions')
       .eq('tenant_org_id', tenantId)
-      .eq('service_category_code', order.service_category_code || null)
+      .eq('service_category_code', (order.service_category_code || null) as any)
       .eq('is_active', true)
       .single();
 
     let allowed: string[] = [];
     if (settings?.status_transitions) {
-      allowed = (settings.status_transitions as Record<string, string[]>)[order.status] || [];
+      allowed = (settings.status_transitions as Record<string, string[]>)[(order.status as any)] || [];
     } else {
       const { WORKFLOW_TRANSITIONS } = await import('@/lib/services/workflow-constants');
-      allowed = WORKFLOW_TRANSITIONS[order.status] || [];
+      allowed = WORKFLOW_TRANSITIONS[(order.status as any)] || [];
     }
 
     return NextResponse.json({ success: true, data: allowed, meta: { check: result } });

@@ -9,14 +9,14 @@ import { isPreparationEnabled } from '@/lib/config/features';
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
-    const { id: orderId } = params;
-    const supabase = createClient();
+    const { id: orderId } = await params;
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,

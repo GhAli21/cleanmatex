@@ -12,7 +12,7 @@ export async function GET() {
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
-    const supabase = createClient();
+    const supabase = await createClient();
     const {
       data: { user },
       error: authError,

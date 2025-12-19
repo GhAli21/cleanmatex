@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
-import { Badge } from '@/components/ui/Badge'
+import { Badge } from '@/components/ui/badge'
 import ImportModal from './components/import-modal'
 import ExportModal from './components/export-modal'
 
@@ -170,7 +170,7 @@ export default function ServicesPage() {
                     <td className="px-4 py-2">{isRtl ? p.category_name2 || p.category_name : p.category_name}</td>
                     <td className="px-4 py-2">{p.default_sell_price ?? '-'}</td>
                     <td className="px-4 py-2">{p.product_unit ?? '-'}</td>
-                    <td className="px-4 py-2">{p.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="secondary">{t('disableCategories')}</Badge>}</td>
+                    <td className="px-4 py-2">{p.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}</td>
                     <td className="px-4 py-2">
                       <div className="flex gap-2">
                         <Button size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/services/${p.id}`)}>
