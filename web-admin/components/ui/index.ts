@@ -18,8 +18,8 @@ export type { CardProps, CardHeaderProps, CardFooterProps } from './Card';
 export { Alert, AlertDescription } from './Alert';
 export type { AlertProps, AlertVariant, AlertDescriptionProps } from './Alert';
 
-export { Badge } from './badge';
-export type { BadgeProps, BadgeVariant, BadgeSize } from './badge';
+export { Badge } from './Badge';
+export type { BadgeProps, BadgeVariant, BadgeSize } from './Badge';
 
 export { ProgressBar } from './ProgressBar';
 export type { ProgressBarProps } from './ProgressBar';
