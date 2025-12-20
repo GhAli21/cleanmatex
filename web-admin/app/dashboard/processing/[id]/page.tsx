@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
 
 interface ProcessingItem {

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { Switch } from "@/components/ui/Switch";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui';
 import { useAuth } from "@/lib/auth/auth-context";
 
 interface ServiceCategory {
