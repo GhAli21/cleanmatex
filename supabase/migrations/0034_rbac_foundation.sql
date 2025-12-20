@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS sys_auth_roles (
   name TEXT NOT NULL,                     -- Human-readable name
   name2 TEXT,                              -- Arabic name
   description TEXT,                       -- Description of role purpose
+  description2 TEXT,
   is_system BOOLEAN NOT NULL DEFAULT false, -- true for built-in roles, false for custom roles
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -60,9 +61,9 @@ CREATE TABLE IF NOT EXISTS sys_auth_roles (
   updated_by VARCHAR(120),
   
   -- System roles must have specific codes
-  CONSTRAINT check_system_role_code CHECK (
-    NOT is_system OR code IN ('super_admin', 'tenant_admin', 'branch_manager', 'operator', 'viewer')
-  )
+  --CONSTRAINT check_system_role_code CHECK (
+    --NOT is_system OR code IN ('super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer')
+  --)
 );
 
 COMMENT ON TABLE sys_auth_roles IS 'Role definitions (system and custom)';

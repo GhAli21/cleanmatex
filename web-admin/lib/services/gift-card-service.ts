@@ -202,6 +202,7 @@ export async function applyGiftCard(
       // Record transaction
       await tx.org_gift_card_transactions.create({
         data: {
+          tenant_org_id: giftCard.tenant_org_id,
           gift_card_id: giftCard.id,
           transaction_type: 'redemption',
           amount: input.amount,
@@ -278,6 +279,7 @@ export async function refundToGiftCard(
       // Record transaction
       await tx.org_gift_card_transactions.create({
         data: {
+          tenant_org_id: giftCard.tenant_org_id,
           gift_card_id: giftCard.id,
           transaction_type: 'refund',
           amount: actualRefund,

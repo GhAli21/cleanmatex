@@ -358,7 +358,7 @@ export async function findCustomerById(
       totalOrders,
       totalSpent,
       lastOrderAt,
-      joinedAt: customer.org_customers_mst[0].created_at,
+      joinedAt: customer.org_customers_mst[0].created_at || new Date().toISOString(),
     },
   };
 }
@@ -570,7 +570,9 @@ export async function searchCustomers(
       id: c.id,
       customerNumber: c.id, // Using id as customer number for now
       displayName: c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
-      firstName: c.first_name || null,
+      name: c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || null,
+      name2: null, // Arabic name - would need to be added to database
+      firstName: c.first_name || '',
       lastName: c.last_name || null,
       phone: c.phone || null,
       email: c.email || null,
@@ -636,7 +638,7 @@ export async function searchCustomersProgressive(
       displayName: c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
       name: c.name || null,
       name2: c.name2 || null,
-      firstName: c.first_name || null,
+      firstName: c.first_name || '',
       lastName: c.last_name || null,
       phone: c.phone || null,
       email: c.email || null,
@@ -696,7 +698,7 @@ export async function searchCustomersProgressive(
             displayName: sysCustomer.display_name || `${sysCustomer.first_name || ''} ${sysCustomer.last_name || ''}`.trim() || 'Unknown',
             name: sysCustomer.name || null,
             name2: sysCustomer.name2 || null,
-            firstName: sysCustomer.first_name || null,
+            firstName: sysCustomer.first_name || '',
             lastName: sysCustomer.last_name || null,
             phone: sysCustomer.phone || null,
             email: sysCustomer.email || null,
@@ -718,7 +720,7 @@ export async function searchCustomersProgressive(
             displayName: sysCustomer.display_name || `${sysCustomer.first_name || ''} ${sysCustomer.last_name || ''}`.trim() || 'Unknown',
             name: sysCustomer.name || null,
             name2: sysCustomer.name2 || null,
-            firstName: sysCustomer.first_name || null,
+            firstName: sysCustomer.first_name || '',
             lastName: sysCustomer.last_name || null,
             phone: sysCustomer.phone || null,
             email: sysCustomer.email || null,
@@ -764,7 +766,7 @@ export async function searchCustomersProgressive(
         displayName: c.display_name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
         name: c.name || null,
         name2: c.name2 || null,
-        firstName: c.first_name || null,
+        firstName: c.first_name || '',
         lastName: c.last_name || null,
         phone: c.phone || null,
         email: c.email || null,
@@ -1081,7 +1083,7 @@ export async function searchCustomersAll(
       customerNumber: c.customer_number,
       name: c.name,
       name2: c.name2,
-      firstName: c.first_name,
+      firstName: c.first_name || '',
       lastName: c.last_name,
       displayName: c.display_name,
       preferences: c.preferences as unknown as CustomerPreferences,
@@ -1092,7 +1094,7 @@ export async function searchCustomersAll(
       loyaltyPoints: c.org_customers_mst[0]?.loyalty_points || 0,
       totalOrders: orderCountMap.get(c.id) || 0,
       lastOrderAt: null, // TODO: Optimize this query
-      createdAt: c.created_at,
+      createdAt: c.created_at || new Date().toISOString(),
     })) || [];
 
   return {
@@ -1282,6 +1284,8 @@ export async function mergeCustomers(
   console.log('Jh In mergeCustomers(): curUserId', curUserId);
   console.log('Jh In mergeCustomers(): curUserRole', curUserRole);
   
+  const { sourceCustomerId, targetCustomerId, reason } = request;
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -1289,8 +1293,6 @@ export async function mergeCustomers(
   if (!user) {
     throw new Error('Unauthorized customerId: '+sourceCustomerId);
   }
-
-  const { sourceCustomerId, targetCustomerId, reason } = request;
 
   // Verify both customers belong to this tenant
   const { data: sourceLink } = await supabase
@@ -1420,7 +1422,7 @@ export async function getCustomerStatistics(): Promise<CustomerStatistics> {
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const newThisMonth =
-    customers?.filter((c) => new Date(c.created_at) >= firstDayOfMonth).length || 0;
+    customers?.filter((c) => c.created_at && new Date(c.created_at) >= firstDayOfMonth).length || 0;
 
   const active = customers?.filter((c) => c.org_customers_mst[0]?.is_active).length || 0;
   const inactive = total - active;
@@ -1445,7 +1447,7 @@ function mapToCustomer(row: any): Customer {
   return {
     id: row.id,
     customerNumber: row.customer_number,
-    firstName: row.first_name,
+    firstName: row.first_name || '',
     lastName: row.last_name,
     displayName: row.disply_name,
     name: row.name,

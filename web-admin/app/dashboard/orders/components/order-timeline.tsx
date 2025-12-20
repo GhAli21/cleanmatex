@@ -16,7 +16,7 @@ interface HistoryEntry {
   to_value: string | null;
   payload: any;
   done_by: string | null;
-  done_at: string;
+  done_at: string | null;
 }
 
 interface OrderTimelineProps {
@@ -217,7 +217,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
 
                     <div className={`mt-2 flex items-center gap-2 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <span>
-                        {formatTimestamp(entry.done_at)}
+                        {entry.done_at ? formatTimestamp(entry.done_at) : 'N/A'}
                       </span>
                       {entry.payload?.done_by_name && (
                         <>

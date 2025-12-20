@@ -322,7 +322,7 @@ export function OrderDetailClient({ order, translations: t, locale }: OrderDetai
           {/* Order Timeline */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.orderTimeline}</h2>
-            <OrderTimeline order={order} />
+            <OrderTimeline orderId={order.id} currentStatus={order.status} />
           </div>
 
           {/* Quick Actions */}

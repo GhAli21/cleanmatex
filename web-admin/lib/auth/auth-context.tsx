@@ -7,7 +7,7 @@
  * Handles multi-tenant user support with tenant switching
  */
 
-import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback, useRef, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase/client'
 import {
@@ -36,7 +36,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 /**
  * Auth Provider Component
  */
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   // State

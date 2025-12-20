@@ -169,10 +169,10 @@ export default function SubscriptionPage() {
     }
   };
 
-  const getProgressColor = (percentage: number): string => {
-    if (percentage >= 90) return 'red';
-    if (percentage >= 70) return 'yellow';
-    return 'green';
+  const getProgressVariant = (percentage: number): 'default' | 'success' | 'warning' | 'danger' => {
+    if (percentage >= 90) return 'danger';
+    if (percentage >= 70) return 'warning';
+    return 'success';
   };
 
   const getDaysRemaining = (trialEnd: string): number => {
@@ -330,7 +330,7 @@ export default function SubscriptionPage() {
                 <ProgressBar
                   value={usage.usage.ordersPercentage}
                   max={100}
-                  color={getProgressColor(usage.usage.ordersPercentage)}
+                  variant={getProgressVariant(usage.usage.ordersPercentage)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {usage.usage.ordersPercentage.toFixed(1)}% used
@@ -350,7 +350,7 @@ export default function SubscriptionPage() {
                 <ProgressBar
                   value={usage.usage.usersPercentage}
                   max={100}
-                  color={getProgressColor(usage.usage.usersPercentage)}
+                  variant={getProgressVariant(usage.usage.usersPercentage)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {usage.usage.usersPercentage.toFixed(1)}% used
@@ -370,7 +370,7 @@ export default function SubscriptionPage() {
                 <ProgressBar
                   value={usage.usage.branchesPercentage}
                   max={100}
-                  color={getProgressColor(usage.usage.branchesPercentage)}
+                  variant={getProgressVariant(usage.usage.branchesPercentage)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {usage.usage.branchesPercentage.toFixed(1)}% used
@@ -390,7 +390,7 @@ export default function SubscriptionPage() {
                 <ProgressBar
                   value={usage.usage.storagePercentage}
                   max={100}
-                  color={getProgressColor(usage.usage.storagePercentage)}
+                  variant={getProgressVariant(usage.usage.storagePercentage)}
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {usage.usage.storagePercentage.toFixed(1)}% used
@@ -570,7 +570,7 @@ export default function SubscriptionPage() {
       </Card>
 
       {/* Cancel Subscription Button */}
-      {isPaidPlan && tenant?.status !== 'canceling' && (
+      {isPaidPlan && tenant?.status !== 'canceled' && (
         <div className="flex justify-end">
           <Button
             variant="danger"
@@ -597,7 +597,7 @@ export default function SubscriptionPage() {
                   disabled={isProcessing}
                 >
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="width" d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
@@ -733,14 +733,16 @@ export default function SubscriptionPage() {
                   onChange={(e) => setCancelReason(e.target.value)}
                   disabled={isProcessing}
                   className="w-full"
-                >
-                  <option value="">Select a reason</option>
-                  <option value="Too expensive">Too expensive</option>
-                  <option value="Missing features">Missing features</option>
-                  <option value="Switching to competitor">Switching to competitor</option>
-                  <option value="No longer needed">No longer needed</option>
-                  <option value="Other">Other</option>
-                </Select>
+                  options={[
+                    { value: '', label: 'Select a reason' },
+                    { value: 'Too expensive', label: 'Too expensive' },
+                    { value: 'Missing features', label: 'Missing features' },
+                    { value: 'Switching to competitor', label: 'Switching to competitor' },
+                    { value: 'No longer needed', label: 'No longer needed' },
+                    { value: 'Other', label: 'Other' },
+                  ]}
+                  placeholder="Select a reason"
+                />
               </div>
 
               <div className="mb-6">

@@ -75,10 +75,10 @@ export default function ProcessingPage() {
 
 
     if (!currentTenant) {
-      console.log('[JH] 🟢 ProcessingPage 9.0 - in if (!currentTenant) block - currentTenant:', currentTenant?.tenant_id ? currentTenant.tenant_id : 'null');
+      console.log('[JH] 🟢 ProcessingPage 9.0 - in if (!currentTenant) block - currentTenant: null');
       console.error('[JH] 🟢 ProcessingPage 9.1 - ❌ No current tenant after auth loaded!', {
         authLoading,
-        currentTenant: currentTenant?.tenant_id ? currentTenant.tenant_id : 'null',
+        currentTenant: 'null',
       });
       setLoading(false);
       setError('No tenant found. Please ensure you are logged in.');
@@ -417,7 +417,7 @@ export default function ProcessingPage() {
         <ProcessingModal
           isOpen={isModalOpen}
           orderId={selectedOrderId}
-          tenantId={currentTenant.id}
+          tenantId={currentTenant.tenant_id}
           onClose={handleModalClose}
           onRefresh={handleModalRefresh}
         />

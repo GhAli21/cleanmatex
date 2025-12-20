@@ -40,17 +40,23 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
 
       const data = await response.json();
       setUsage(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load usage data');
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to load usage data';
+      if (err instanceof Error) {
+        errorMessage = (err as Error).message;
+      } else if (typeof err === 'string') {
+        errorMessage = err as string;
+      }
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getProgressColor = (percentage: number): string => {
-    if (percentage >= 90) return 'red';
-    if (percentage >= 70) return 'yellow';
-    return 'green';
+  const getProgressVariant = (percentage: number): 'default' | 'success' | 'warning' | 'danger' => {
+    if (percentage >= 90) return 'danger';
+    if (percentage >= 70) return 'warning';
+    return 'success';
   };
 
   const hasWarnings = usage && usage.warnings.length > 0;
@@ -146,7 +152,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
           <ProgressBar
             value={usage.usage.ordersPercentage}
             max={100}
-            color={getProgressColor(usage.usage.ordersPercentage)}
+            variant={getProgressVariant(usage.usage.ordersPercentage)}
             size={compact ? 'sm' : 'md'}
           />
         </div>
@@ -178,7 +184,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
           <ProgressBar
             value={usage.usage.usersPercentage}
             max={100}
-            color={getProgressColor(usage.usage.usersPercentage)}
+            variant={getProgressVariant(usage.usage.usersPercentage)}
             size={compact ? 'sm' : 'md'}
           />
         </div>
@@ -210,7 +216,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
           <ProgressBar
             value={usage.usage.branchesPercentage}
             max={100}
-            color={getProgressColor(usage.usage.branchesPercentage)}
+            variant={getProgressVariant(usage.usage.branchesPercentage)}
             size={compact ? 'sm' : 'md'}
           />
         </div>

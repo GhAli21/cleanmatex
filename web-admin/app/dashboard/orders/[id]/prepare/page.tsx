@@ -74,8 +74,7 @@ async function PreparationContent({ orderId }: { orderId: string }) {
         <div className="text-right">
           <div className="text-sm text-gray-600">Customer</div>
           <div className="text-lg font-semibold text-gray-900">
-            {order.org_customers_mst.sys_customers_mst.first_name}{' '}
-            {order.org_customers_mst.sys_customers_mst.last_name || ''}
+            {order.customer?.name || 'N/A'}
           </div>
         </div>
       </div>
@@ -93,7 +92,7 @@ async function PreparationContent({ orderId }: { orderId: string }) {
       </div>
 
       {/* Preparation Form */}
-      <PreparationForm order={order} />
+      <PreparationForm order={{ ...order, org_order_items_dtl: order.items || [] }} />
     </div>
   );
 }

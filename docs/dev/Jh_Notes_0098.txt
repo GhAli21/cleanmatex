@@ -1,0 +1,49 @@
+
+Order Actions-Status:
+F:\jhapp\cleanmatex\web-admin\app\dashboard\orders\components\order-actions.tsx
+
+npx tsc --noEmit --pretty false
+npx tsc --noEmit
+
+Clean:
+Remove-Item -Recurse -Force node_modules
+
+Remove-Item -Force package-lock.json
+# OR
+Remove-Item -Force pnpm-lock.yaml
+# OR
+Remove-Item -Force yarn.lock
+
+npm cache clean --force
+
+Then Install:
+Use One Command (Do not mix them.):
+npm install
+# or
+pnpm install
+# or
+yarn install
+
+- Next step (important)
+
+After reinstall, if the build still fails, run:
+
+npx tsc --noEmit --pretty false
+
+PS F:\jhapp\cleanmatex\web-admin> npm i -D @types/react@^19 @types/react-dom@^19
+
+up to date, audited 815 packages in 5s
+
+178 packages are looking for funding
+  run `npm fund` for details
+
+1 moderate severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+PS F:\jhapp\cleanmatex\web-admin>
+npm i @tanstack/react-table react-hook-form class-variance-authority minio qrcode
+npm i @radix-ui/react-avatar @radix-ui/react-dropdown-menu @radix-ui/react-label @radix-ui/react-separator @radix-ui/react-slot @radix-ui/react-tabs
+npm i -D @types/qrcode

@@ -141,40 +141,40 @@ export function OrderActions({ order }: OrderActionsProps) {
   const actionButtons = [];
 
   // Intake → Preparation
-  if (currentStatus === 'INTAKE' && canMoveTo('PREPARATION')) {
+  if (currentStatus === 'intake' && canMoveTo('preparation')) {
     actionButtons.push({
       label: t('buttons.startPreparation'),
-      status: 'PREPARATION' as OrderStatus,
+      status: 'preparation' as OrderStatus,
       color: 'blue',
       icon: Package,
     });
   }
 
   // Various statuses → Ready
-  if (canMoveTo('READY') && currentStatus !== 'READY') {
+  if (canMoveTo('ready') && currentStatus !== 'ready') {
     actionButtons.push({
       label: t('buttons.markAsReady'),
-      status: 'READY' as OrderStatus,
+      status: 'ready' as OrderStatus,
       color: 'green',
       icon: CheckCircle,
     });
   }
 
   // Ready → Out for Delivery
-  if (currentStatus === 'READY' && canMoveTo('OUT_FOR_DELIVERY')) {
+  if (currentStatus === 'ready' && canMoveTo('out_for_delivery')) {
     actionButtons.push({
       label: t('buttons.outForDelivery'),
-      status: 'OUT_FOR_DELIVERY' as OrderStatus,
+      status: 'out_for_delivery' as OrderStatus,
       color: 'teal',
       icon: ArrowRight,
     });
   }
 
   // Out for Delivery / Ready → Delivered
-  if (canMoveTo('DELIVERED') && currentStatus !== 'DELIVERED') {
+  if (canMoveTo('delivered') && currentStatus !== 'delivered') {
     actionButtons.push({
       label: t('buttons.markAsDelivered'),
-      status: 'DELIVERED' as OrderStatus,
+      status: 'delivered' as OrderStatus,
       color: 'purple',
       icon: CheckCircle,
     });
@@ -205,11 +205,11 @@ export function OrderActions({ order }: OrderActionsProps) {
         ))}
 
         {/* Cancel Order - Always available if not already cancelled/closed */}
-        {currentStatus !== 'CANCELLED' &&
-          currentStatus !== 'CLOSED' &&
-          canMoveTo('CANCELLED') && (
+        {currentStatus !== 'cancelled' &&
+          currentStatus !== 'closed' &&
+          canMoveTo('cancelled') && (
             <Button
-              onClick={() => handleStatusClick('CANCELLED')}
+              onClick={() => handleStatusClick('cancelled')}
               disabled={loading}
               variant="outline"
               className={`w-full border-red-300 text-red-700 hover:bg-red-50 ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -233,9 +233,7 @@ export function OrderActions({ order }: OrderActionsProps) {
               })}
             </DialogTitle>
             <DialogDescription className={isRTL ? 'text-right' : 'text-left'}>
-              {selectedStatus && (locale === 'ar' 
-                ? STATUS_META[selectedStatus].descriptionAr 
-                : STATUS_META[selectedStatus].description)}
+              {selectedStatus && STATUS_META[selectedStatus].description}
             </DialogDescription>
           </DialogHeader>
 

@@ -235,7 +235,7 @@ export default function CustomerCreateModal({
                   dir="ltr"
                   className={`flex-1 block w-full px-3 py-2 border border-gray-300 ${isRTL ? 'rounded-l-md' : 'rounded-r-md'} shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm`}
                   placeholder="90123456"
-                  required={customerType !== 'guest'}
+                  required
                 />
               </div>
             </div>

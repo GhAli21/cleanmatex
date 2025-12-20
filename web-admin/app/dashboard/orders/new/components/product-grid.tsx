@@ -20,6 +20,7 @@ interface Product {
   product_name2: string | null;
   default_sell_price: number | null;
   default_express_sell_price: number | null;
+  service_category_code: string | null;
   product_image?: string | null;
   product_icon?: string | null;
 }

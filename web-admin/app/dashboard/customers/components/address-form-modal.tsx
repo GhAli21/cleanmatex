@@ -45,15 +45,15 @@ export default function AddressFormModal({
   // Form state
   const [formData, setFormData] = useState({
     label: address?.label || '',
-    street_address: address?.street_address || '',
-    building_name: address?.building_name || '',
+    street_address: address?.street || '',
+    building_name: address?.building || '',
     area: address?.area || '',
     city: address?.city || '',
-    postal_code: address?.postal_code || '',
-    gps_latitude: address?.gps_latitude?.toString() || '',
-    gps_longitude: address?.gps_longitude?.toString() || '',
-    delivery_instructions: address?.delivery_instructions || '',
-    is_default: address?.is_default || false,
+    postal_code: address?.postalCode || '',
+    gps_latitude: address?.latitude?.toString() || '',
+    gps_longitude: address?.longitude?.toString() || '',
+    delivery_instructions: address?.deliveryNotes || '',
+    is_default: address?.isDefault || false,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -136,19 +136,19 @@ export default function AddressFormModal({
     try {
       const addressData = {
         label: formData.label,
-        street_address: formData.street_address,
-        building_name: formData.building_name || undefined,
+        street: formData.street_address,
+        building: formData.building_name || undefined,
         area: formData.area,
         city: formData.city,
-        postal_code: formData.postal_code || undefined,
-        gps_latitude: formData.gps_latitude
+        postalCode: formData.postal_code || undefined,
+        latitude: formData.gps_latitude
           ? parseFloat(formData.gps_latitude)
           : undefined,
-        gps_longitude: formData.gps_longitude
+        longitude: formData.gps_longitude
           ? parseFloat(formData.gps_longitude)
           : undefined,
-        delivery_instructions: formData.delivery_instructions || undefined,
-        is_default: formData.is_default,
+        deliveryNotes: formData.delivery_instructions || undefined,
+        isDefault: formData.is_default,
       }
 
       let result: CustomerAddress

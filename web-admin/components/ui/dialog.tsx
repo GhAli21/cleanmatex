@@ -142,11 +142,12 @@ export function DialogClose({ children, asChild }: DialogCloseProps) {
   }
 
   if (asChild && React.isValidElement(children)) {
+    const originalOnClick = (children.props as any)?.onClick;
     return React.cloneElement(children, {
       onClick: (e: React.MouseEvent) => {
         context.onOpenChange(false);
-        if (children.props.onClick) {
-          children.props.onClick(e);
+        if (originalOnClick && typeof originalOnClick === 'function') {
+          originalOnClick(e);
         }
       },
     } as any);

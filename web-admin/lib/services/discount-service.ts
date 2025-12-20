@@ -72,6 +72,7 @@ export async function validatePromoCode(
     // Check max uses
     if (
       promoCode.max_uses !== null &&
+      promoCode.current_uses !== null &&
       promoCode.current_uses >= promoCode.max_uses
     ) {
       return {
@@ -127,7 +128,7 @@ export async function validatePromoCode(
     }
 
     // Check customer usage limit
-    if (input.customer_id) {
+    if (input.customer_id && promoCode.max_uses_per_customer !== null) {
       const customerUsageCount = await prisma.org_promo_usage_log.count({
         where: {
           promo_code_id: promoCode.id,
@@ -203,6 +204,7 @@ export async function applyPromoCode(
   promoCodeId: string,
   orderId: string,
   invoiceId: string,
+  tenantOrgId: string,
   customerId: string | undefined,
   discountAmount: number,
   orderTotalBefore: number,
@@ -214,6 +216,7 @@ export async function applyPromoCode(
       // Record usage
       await tx.org_promo_usage_log.create({
         data: {
+          tenant_org_id: tenantOrgId,
           promo_code_id: promoCodeId,
           customer_id: customerId,
           order_id: orderId,
@@ -504,12 +507,12 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
   ).size;
 
   const remainingUses =
-    promoCode.max_uses !== null
+    promoCode.max_uses !== null && promoCode.current_uses !== null
       ? Math.max(0, promoCode.max_uses - promoCode.current_uses)
       : null;
 
   return {
-    total_uses: promoCode.current_uses,
+    total_uses: promoCode.current_uses || 0,
     total_discount_given: totalDiscountGiven,
     remaining_uses: remainingUses,
     unique_customers: uniqueCustomers,

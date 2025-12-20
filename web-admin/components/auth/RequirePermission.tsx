@@ -20,7 +20,7 @@ import {
 // Single Permission Check
 // ========================
 
-interface RequirePermissionProps {
+export interface RequirePermissionProps {
   resource: string
   action: string
   fallback?: ReactNode
@@ -54,7 +54,7 @@ export function RequirePermission({
 // Multiple Permission Checks
 // ========================
 
-interface RequireAnyPermissionProps {
+export interface RequireAnyPermissionProps {
   permissions: string[] // Array of 'resource:action' strings
   fallback?: ReactNode
   children: ReactNode
@@ -82,7 +82,7 @@ export function RequireAnyPermission({
   return <>{children}</>
 }
 
-interface RequireAllPermissionsProps {
+export interface RequireAllPermissionsProps {
   permissions: string[] // Array of 'resource:action' strings
   fallback?: ReactNode
   children: ReactNode

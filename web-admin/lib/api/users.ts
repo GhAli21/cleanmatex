@@ -146,11 +146,13 @@ export async function fetchUser(userId: string, tenantId: string): Promise<UserW
 
     return {
       ...data,
-      email: data.auth_users?.email || '',
-      email_confirmed_at: data.auth_users?.email_confirmed_at,
-      phone: data.auth_users?.phone,
-      auth_created_at: data.auth_users?.created_at || data.created_at,
-    }
+      role: data.role as any, // Cast to fix type compatibility
+      login_count: data.login_count ?? 0, // Ensure number instead of null
+      email: (data.auth_users as any)?.email || '',
+      email_confirmed_at: (data.auth_users as any)?.email_confirmed_at,
+      phone: (data.auth_users as any)?.phone,
+      auth_created_at: (data.auth_users as any)?.created_at || data.created_at,
+    } as any // Cast entire object to fix type compatibility
   } catch (error) {
     console.error('Error fetching user:', error)
     return null
@@ -210,7 +212,7 @@ export async function createUser(
         email_verified: !userData.send_invite,
         last_login_at: null,
         login_count: 0,
-        created_at: orgUserData.created_at,
+        created_at: orgUserData.created_at || new Date().toISOString(),
       },
     }
   } catch (error: any) {
@@ -254,14 +256,14 @@ export async function updateUser(
       user: {
         id: data.id,
         user_id: data.user_id,
-        email: data.auth_users?.email || '',
+        email: (data.auth_users as any)?.email || '',
         display_name: data.display_name,
-        role: data.role,
+        role: data.role as any,
         is_active: data.is_active,
-        email_verified: !!data.auth_users?.email_confirmed_at,
+        email_verified: !!(data.auth_users as any)?.email_confirmed_at,
         last_login_at: data.last_login_at,
         login_count: data.login_count || 0,
-        created_at: data.created_at,
+        created_at: data.created_at || new Date().toISOString(),
       },
     }
   } catch (error: any) {

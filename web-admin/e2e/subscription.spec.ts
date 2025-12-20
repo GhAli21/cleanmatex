@@ -161,7 +161,7 @@ test.describe('Subscription Management Flow', () => {
 
   test('displays usage warnings when limits approached', async ({ page }) => {
     // Check for warnings section
-    const warnings Section = page.locator('text=⚠️ Warnings');
+    const warningsSection = page.locator('text=⚠️ Warnings');
 
     if (await warningsSection.isVisible()) {
       // Should show warning count

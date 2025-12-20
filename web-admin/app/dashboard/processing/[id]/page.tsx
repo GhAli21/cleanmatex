@@ -14,7 +14,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/Input';
 
 interface ProcessingItem {
@@ -283,29 +283,27 @@ export default function ProcessingDetailPage() {
 
               return (
                 <Card key={item.id} variant="bordered" padding="md" className="hover:shadow-md transition-shadow">
-                  <CardHeader
-                    title={
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                            {item.product_name}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                            <span>
-                              <span className="font-medium">{t('quantity') || 'Quantity'}:</span>{' '}
-                              {item.quantity}
-                            </span>
-                            <Badge 
-                              variant={item.item_status === 'ready' ? 'success' : 'info'} 
-                              size="sm"
-                            >
-                              {item.item_status || t('status.processing') || 'Processing'}
-                            </Badge>
-                          </div>
+                  <CardHeader>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          {item.product_name}
+                        </h3>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                          <span>
+                            <span className="font-medium">{t('quantity') || 'Quantity'}:</span>{' '}
+                            {item.quantity}
+                          </span>
+                          <Badge 
+                            variant={item.item_status === 'ready' ? 'success' : 'info'} 
+                            size="sm"
+                          >
+                            {item.item_status || t('status.processing') || 'Processing'}
+                          </Badge>
                         </div>
                       </div>
-                    }
-                  />
+                    </div>
+                  </CardHeader>
 
                   {/* Progress Bar */}
                   <div className="mb-4">

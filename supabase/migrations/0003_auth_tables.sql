@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS org_users_mst (
 
   -- User details
   display_name      VARCHAR(255),
-  role              VARCHAR(50) NOT NULL DEFAULT 'viewer',
+  role              TEXT, -- role_code from sys_auth_roles
   is_active         BOOLEAN NOT NULL DEFAULT true,
   
   -- additional Data

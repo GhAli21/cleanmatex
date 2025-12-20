@@ -34,6 +34,8 @@
 4. **Use free/open-source tools whenever possible**
 5. **Bilingual support (EN/AR) is mandatory**
 6. **All documentation files must be placed under the docs/ directory according to the type of documentation. **: `docs/`
+7. **Always after finish Implement or modify any frontend component Do run build (npm run build) and fix the issues to make sure the project always ready for deploy**
+8. **When you run build and you find issues fix it and keep run build until it success and keep updating the issue info to common issues file**: .claude/docs/common_issues.md
 
 ## 🔑 Operating Model
 

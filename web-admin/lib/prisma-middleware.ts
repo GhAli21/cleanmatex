@@ -20,7 +20,8 @@ export function applyTenantMiddleware(
   prisma: PrismaClient,
   getTenantId: () => string | null
 ) {
-  prisma.$use(async (params, next) => {
+  // Type assertion: $use exists on PrismaClient but may not be in types
+  (prisma as any).$use(async (params: any, next: any) => {
     // Get current tenant ID from session
     const tenantId = getTenantId()
 

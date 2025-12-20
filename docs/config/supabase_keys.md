@@ -14,3 +14,5 @@ supabase.com login details:
 jhtest.dev21@gmail.com
 password
 Jh@supa12
+Database Password:
+JhMD2326AbooD

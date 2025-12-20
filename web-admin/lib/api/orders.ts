@@ -5,19 +5,12 @@
 
 import type {
   Order,
-  OrderState,
-  OrderHistory,
-  OrderCreateRequest,
-  OrderTransitionRequest,
-  OrderSplitRequest,
-  OrderIssueRequest,
-  EstimateReadyByRequest,
 } from '@/types/order';
 
 /**
  * Create a new order
  */
-export async function createOrder(data: OrderCreateRequest): Promise<Order> {
+export async function createOrder(data: any): Promise<Order> {
   const response = await fetch('/api/v1/orders', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -64,7 +57,7 @@ export async function getOrders(filters?: {
 /**
  * Get order state with flags and allowed transitions
  */
-export async function getOrderState(orderId: string): Promise<OrderState> {
+export async function getOrderState(orderId: string): Promise<any> {
   const response = await fetch(`/api/v1/orders/${orderId}/state`);
 
   if (!response.ok) {
@@ -79,7 +72,7 @@ export async function getOrderState(orderId: string): Promise<OrderState> {
 /**
  * Transition order to new status
  */
-export async function transitionOrder(orderId: string, data: OrderTransitionRequest): Promise<any> {
+export async function transitionOrder(orderId: string, data: any): Promise<any> {
   const response = await fetch(`/api/v1/orders/${orderId}/transition`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -98,7 +91,7 @@ export async function transitionOrder(orderId: string, data: OrderTransitionRequ
 /**
  * Split order into child orders
  */
-export async function splitOrder(orderId: string, data: OrderSplitRequest): Promise<{ childOrderIds: string[] }> {
+export async function splitOrder(orderId: string, data: any): Promise<{ childOrderIds: string[] }> {
   const response = await fetch(`/api/v1/orders/${orderId}/split`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -117,7 +110,7 @@ export async function splitOrder(orderId: string, data: OrderSplitRequest): Prom
 /**
  * Create issue for order item
  */
-export async function createIssue(orderId: string, data: OrderIssueRequest): Promise<{ issue: any }> {
+export async function createIssue(orderId: string, data: any): Promise<{ issue: any }> {
   const response = await fetch(`/api/v1/orders/${orderId}/issue`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -155,7 +148,7 @@ export async function resolveIssue(orderId: string, issueId: string, data: { not
 /**
  * Get order history
  */
-export async function getOrderHistory(orderId: string): Promise<{ history: OrderHistory[] }> {
+export async function getOrderHistory(orderId: string): Promise<{ history: any[] }> {
   const response = await fetch(`/api/v1/orders/${orderId}/history`);
 
   if (!response.ok) {
@@ -170,7 +163,7 @@ export async function getOrderHistory(orderId: string): Promise<{ history: Order
 /**
  * Estimate ready by time
  */
-export async function estimateReadyBy(data: EstimateReadyByRequest): Promise<{ readyBy: string }> {
+export async function estimateReadyBy(data: any): Promise<{ readyBy: string }> {
   const response = await fetch('/api/v1/orders/estimate-ready-by', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

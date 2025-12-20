@@ -92,7 +92,7 @@ export default function WorkflowRolesPage() {
 
   if (loading) {
     return (
-      <RequirePermission permission="settings:workflow_roles:view">
+      <RequirePermission resource="settings" action="workflow_roles:view">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -101,7 +101,7 @@ export default function WorkflowRolesPage() {
   }
 
   return (
-    <RequirePermission permission="settings:workflow_roles:view">
+    <RequirePermission resource="settings" action="workflow_roles:view">
       <div className="max-w-6xl space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">

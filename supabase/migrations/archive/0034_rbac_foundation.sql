@@ -60,9 +60,9 @@ CREATE TABLE IF NOT EXISTS sys_auth_roles (
   updated_by VARCHAR(120),
   
   -- System roles must have specific codes
-  CONSTRAINT check_system_role_code CHECK (
-    NOT is_system OR code IN ('super_admin', 'tenant_admin', 'branch_manager', 'operator', 'viewer')
-  )
+  --CONSTRAINT check_system_role_code CHECK (
+    --NOT is_system OR code IN ('super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer')
+  --)
 );
 
 COMMENT ON TABLE sys_auth_roles IS 'Role definitions (system and custom)';

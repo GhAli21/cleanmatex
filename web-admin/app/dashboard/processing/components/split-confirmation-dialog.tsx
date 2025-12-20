@@ -120,7 +120,7 @@ export function SplitConfirmationDialog({
             {t('cancel')}
           </Button>
           <Button
-            variant="destructive"
+            variant="danger"
             onClick={handleConfirm}
             disabled={isLoading || !reason.trim()}
           >

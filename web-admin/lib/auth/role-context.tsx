@@ -7,12 +7,12 @@
  * Used for UI-level authorization decisions
  */
 
-import { createContext, useContext, useMemo, useCallback } from 'react'
+import { createContext, useContext, useMemo, useCallback, type ReactNode } from 'react'
 import { useAuth } from './auth-context'
 import type { UserRole } from '@/config/navigation'
 
 // Role hierarchy: admin > operator > viewer
-const ROLE_HIERARCHY: Record<UserRole, number> = {
+const ROLE_HIERARCHY: Partial<Record<UserRole, number>> = {
   admin: 3,
   operator: 2,
   viewer: 1,
@@ -35,7 +35,7 @@ const RoleContext = createContext<RoleContextType | undefined>(undefined)
  * Role Provider Component
  * Wraps the app to provide role-based access control
  */
-export function RoleProvider({ children }: { children: React.ReactNode }) {
+export function RoleProvider({ children }: { children: ReactNode }) {
   const { currentTenant } = useAuth()
 
   // Get user role from current tenant (normalize to lowercase)

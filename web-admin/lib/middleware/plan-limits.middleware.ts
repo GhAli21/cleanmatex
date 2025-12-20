@@ -9,8 +9,8 @@ import {
   canCreateOrder,
   canAddUser,
   canAddBranch,
-  type LimitCheckResult,
 } from '@/lib/services/usage-tracking.service';
+import type { LimitCheckResult } from '@/lib/types/tenant';
 
 // ========================
 // Error Responses

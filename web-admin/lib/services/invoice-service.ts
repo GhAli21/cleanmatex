@@ -32,7 +32,7 @@ export async function createInvoice(
   const order = await prisma.org_orders_mst.findUnique({
     where: { id: input.order_id },
     include: {
-      items: true,
+      org_order_items_dtl: true,
     },
   });
 

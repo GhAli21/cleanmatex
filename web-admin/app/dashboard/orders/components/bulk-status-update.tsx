@@ -40,20 +40,20 @@ export function BulkStatusUpdate({
   const [error, setError] = useState<string | null>(null);
 
   const availableStatuses: OrderStatus[] = [
-    'DRAFT',
-    'INTAKE',
-    'PREPARATION',
-    'SORTING',
-    'WASHING',
-    'DRYING',
-    'FINISHING',
-    'ASSEMBLY',
-    'QA',
-    'PACKING',
-    'READY',
-    'OUT_FOR_DELIVERY',
-    'DELIVERED',
-    'CLOSED',
+    'draft',
+    'intake',
+    'preparation',
+    'processing',
+    'washing',
+    'drying',
+    'finishing',
+    'assembly',
+    'qa',
+    'packing',
+    'ready',
+    'out_for_delivery',
+    'delivered',
+    'closed',
   ];
 
   const handleSubmit = async () => {

@@ -8,7 +8,7 @@
  * Supports dynamic locale switching with RTL support
  */
 
-import { ReactNode, useState, useEffect } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NextIntlClientProvider } from 'next-intl'
 import { AuthProvider } from '@/lib/auth/auth-context'

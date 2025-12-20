@@ -19,6 +19,7 @@ interface PieChartData {
   name: string
   value: number
   color: string
+  [key: string]: string | number
 }
 
 interface PieChartProps {
@@ -40,14 +41,9 @@ export function PieChartComponent({
   outerRadius = 80,
   formatter,
 }: PieChartProps) {
-  const renderLabel = ({
-    name,
-    percent,
-  }: {
-    name: string
-    percent: number
-  }) => {
+  const renderLabel = (props: any) => {
     if (!showLabels) return null
+    const { name, percent } = props
     return `${name} ${(percent * 100).toFixed(0)}%`
   }
 
@@ -70,7 +66,7 @@ export function PieChartComponent({
           ))}
         </Pie>
         <Tooltip
-          formatter={formatter || ((value) => value)}
+          formatter={formatter ? (value: any) => formatter(value) : undefined}
           contentStyle={{
             backgroundColor: 'white',
             border: '1px solid #e5e7eb',

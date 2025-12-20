@@ -46,6 +46,7 @@ export async function validatePromoCodeAction(
  * @param promoCodeId - Promo code ID
  * @param orderId - Order ID
  * @param invoiceId - Invoice ID
+ * @param tenantOrgId - Tenant organization ID
  * @param customerId - Customer ID (optional)
  * @param discountAmount - Calculated discount amount
  * @param orderTotalBefore - Order total before discount
@@ -56,6 +57,7 @@ export async function applyPromoCodeAction(
   promoCodeId: string,
   orderId: string,
   invoiceId: string,
+  tenantOrgId: string,
   customerId: string | undefined,
   discountAmount: number,
   orderTotalBefore: number,
@@ -66,6 +68,7 @@ export async function applyPromoCodeAction(
       promoCodeId,
       orderId,
       invoiceId,
+      tenantOrgId,
       customerId,
       discountAmount,
       orderTotalBefore,

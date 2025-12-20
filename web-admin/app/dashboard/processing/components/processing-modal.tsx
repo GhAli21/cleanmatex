@@ -437,7 +437,7 @@ export function ProcessingModal({
 
                   {splitOrderEnabled && selectedForSplit.size > 0 && (
                     <Button
-                      variant="destructive"
+                      variant="danger"
                       onClick={() => setShowSplitDialog(true)}
                       disabled={splitMutation.isPending}
                     >

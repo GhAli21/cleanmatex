@@ -259,7 +259,7 @@ export async function resetToDefaults(tenantId: string): Promise<FeatureFlags> {
   const { error } = await supabase
     .from('org_tenants_mst')
     .update({
-      feature_flags: plan.feature_flags,
+      feature_flags: plan.feature_flags as any,
       updated_at: new Date().toISOString(),
     })
     .eq('id', tenantId);

@@ -68,24 +68,24 @@ export default function AddressCard({
 
       {/* Address Details */}
       <div className="text-sm text-gray-600 mb-4 space-y-1">
-        {address.street_address && <p>{address.street_address}</p>}
+        {address.street && <p>{address.street}</p>}
         {address.area && <p>{address.area}</p>}
         {address.city && <p>{address.city}</p>}
-        {address.postal_code && <p>{address.postal_code}</p>}
+        {address.postalCode && <p>{address.postalCode}</p>}
 
         {/* Additional Details */}
-        {address.delivery_instructions && (
+        {address.deliveryNotes && (
           <div className="mt-2 pt-2 border-t border-gray-100">
             <p className="text-xs text-gray-500">
               <span className="font-medium">Instructions:</span>{' '}
-              {address.delivery_instructions}
+              {address.deliveryNotes}
             </p>
           </div>
         )}
       </div>
 
       {/* GPS Coordinates (if available) */}
-      {address.gps_latitude && address.gps_longitude && (
+      {address.latitude && address.longitude && (
         <div className="mb-4 p-2 bg-gray-50 rounded text-xs text-gray-600">
           <div className="flex items-center space-x-2">
             <svg
@@ -102,10 +102,10 @@ export default function AddressCard({
               />
             </svg>
             <span>
-              {address.gps_latitude.toFixed(6)}, {address.gps_longitude.toFixed(6)}
+              {address.latitude.toFixed(6)}, {address.longitude.toFixed(6)}
             </span>
             <a
-              href={`https://www.google.com/maps?q=${address.gps_latitude},${address.gps_longitude}`}
+              href={`https://www.google.com/maps?q=${address.latitude},${address.longitude}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 hover:text-blue-700 ml-auto"

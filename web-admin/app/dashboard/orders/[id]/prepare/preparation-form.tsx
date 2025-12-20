@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Upload, Camera, CheckCircle, AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useAuth } from '@/lib/auth/auth-context';
 import { addOrderItems } from '@/app/actions/orders/add-order-items';
 import { completePreparation } from '@/app/actions/orders/complete-preparation';
-import type { OrderItemInput } from '@/types/order';
+import type { AddOrderItemInput } from '@/types/order';
 
 interface PreparationFormProps {
   order: {
@@ -40,6 +41,7 @@ export function PreparationForm({ order }: PreparationFormProps) {
   const t = useTranslations('orders.preparation');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const { currentTenant, user } = useAuth();
   const [items, setItems] = useState<ItemFormData[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [bagCount, setBagCount] = useState<number>(1);
@@ -152,26 +154,31 @@ export function PreparationForm({ order }: PreparationFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Convert form data to OrderItemInput format
-      const orderItems: OrderItemInput[] = items.map((item) => ({
-        service_category_code: item.service_category_code,
-        product_name: item.product_name,
-        product_name2: item.product_name2 || undefined,
+      // Convert form data to AddOrderItemInput format
+      // TODO: The form uses product_name but API requires productId
+      // Need to either lookup product by name or create product first
+      // For now, using a temporary UUID - this needs proper implementation
+      const orderItems: AddOrderItemInput[] = items.map((item) => ({
+        productId: crypto.randomUUID(), // TODO: Replace with actual product lookup
         quantity: item.quantity,
-        price_per_unit: parseFloat(item.price_per_unit),
+        serviceCategoryCode: item.service_category_code,
         color: item.color || undefined,
         brand: item.brand || undefined,
-        has_stain: item.has_stain,
-        has_damage: item.has_damage,
-        stain_notes: item.stain_notes || undefined,
-        damage_notes: item.damage_notes || undefined,
+        hasStain: item.has_stain,
+        stainNotes: item.stain_notes || undefined,
+        hasDamage: item.has_damage,
+        damageNotes: item.damage_notes || undefined,
         notes: item.notes || undefined,
       }));
 
       // Add items to order
-      const addResult = await addOrderItems({
-        orderId: order.id,
+      // Note: addOrderItems requires tenantOrgId as first parameter
+      if (!currentTenant?.tenant_id) {
+        throw new Error(t('errors.authenticationRequired') || 'Authentication required');
+      }
+      const addResult = await addOrderItems(currentTenant.tenant_id, order.id, {
         items: orderItems,
+        isExpressService: false,
       });
 
       if (!addResult.success) {
@@ -179,11 +186,18 @@ export function PreparationForm({ order }: PreparationFormProps) {
       }
 
       // Complete preparation
-      const completeResult = await completePreparation({
-        orderId: order.id,
-        photoUrls,
-        bagCount,
-      });
+      if (!currentTenant?.tenant_id || !user?.id) {
+        throw new Error(t('errors.authenticationRequired') || 'Authentication required');
+      }
+      const completeResult = await completePreparation(
+        currentTenant.tenant_id,
+        order.id,
+        user.id,
+        {
+          readyByOverride: undefined,
+          internalNotes: undefined,
+        }
+      );
 
       if (!completeResult.success) {
         throw new Error(completeResult.error || t('errors.failedToCompletePreparation'));

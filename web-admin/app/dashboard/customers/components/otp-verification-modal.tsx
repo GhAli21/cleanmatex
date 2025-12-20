@@ -91,7 +91,7 @@ export default function OTPVerificationModal({
 
     try {
       const fullPhone = `+968${phone.replace(/\D/g, '')}`
-      const result = await sendOTP({ phone: fullPhone })
+      const result = await sendOTP({ phone: fullPhone, purpose: 'verification' })
 
       setExpiresAt(result.expiresAt)
       setCountdown(60) // 60 seconds cooldown
@@ -337,7 +337,7 @@ export default function OTPVerificationModal({
                     {code.map((digit, index) => (
                       <input
                         key={index}
-                        ref={(el) => (inputRefs.current[index] = el)}
+                        ref={(el) => { inputRefs.current[index] = el }}
                         type="text"
                         inputMode="numeric"
                         maxLength={1}

@@ -1,6 +1,4 @@
-> Combined from `@.claude/docs/common_issues.md` and `@.claude/docs/11-debugging.md` on 2025-10-17
-
-# Common Issues & Debugging
+# Common Issues & Debugging & Compiling and Build
 
 - **RLS blocking:** check `pg_tables`, `pg_policies`, ensure JWT claims and service role where needed
 - **Cross-tenant leak:** enforce `tenant_org_id` filter; verify queries
@@ -438,6 +436,67 @@ Sentry.init({
   }
 });
 ```
+
+---
+
+### Issue 9: Build Error - Cannot Find Module
+
+**Symptom**: Build fails with "Cannot find module" error even though the package is in package.json
+
+**Error Example**:
+```
+Type error: Cannot find module '@tanstack/react-query' or its corresponding type declarations.
+```
+
+**Diagnosis**:
+```bash
+# Check if package is in package.json
+cat package.json | grep "@tanstack/react-query"
+
+# Check if node_modules exists
+ls node_modules/@tanstack/react-query
+```
+
+**Solutions**:
+
+1. **Reinstall dependencies**:
+```bash
+# Remove node_modules and package-lock.json
+rm -rf node_modules package-lock.json
+
+# Reinstall all dependencies
+npm install
+
+# Then rebuild
+npm run build
+```
+
+2. **Clear Next.js cache**:
+```bash
+# Remove .next directory
+rm -rf .next
+
+# Rebuild
+npm run build
+```
+
+3. **Verify package.json**:
+```bash
+# Ensure the package is in dependencies (not devDependencies if needed at runtime)
+# Check package.json for correct version
+```
+
+4. **PowerShell-specific issues**:
+```powershell
+# Use semicolon instead of && for command chaining
+cd admin-web; npm install
+cd admin-web; npm run build
+```
+
+**Prevention**:
+- Always run `npm install` after pulling changes that modify package.json
+- Commit package-lock.json to ensure consistent dependency versions
+- Run `npm run build` locally before pushing changes
 
 ---
 

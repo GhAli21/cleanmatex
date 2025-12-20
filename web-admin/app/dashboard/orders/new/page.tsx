@@ -22,10 +22,22 @@ import { PaymentModalEnhanced } from './components/payment-modal-enhanced';
 import { CategoryTabsSkeleton, ProductGridSkeleton } from './components/loading-skeletons';
 import type { Customer } from '@/lib/types/customer';
 
+// Minimal Customer type for order page (matches CustomerPickerModal interface)
+interface MinimalCustomer {
+  id: string;
+  name?: string;
+  name2?: string;
+  displayName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email?: string;
+}
+
 interface ServiceCategory {
   service_category_code: string;
-  category_name: string;
-  category_name2: string;
+  ctg_name: string;
+  ctg_name2: string;
   icon?: string;
   color?: string;
 }
@@ -615,7 +627,7 @@ export default function NewOrderPage() {
     setPaymentModalOpen(false);
   }, []);
 
-  const handleSelectCustomer = useCallback((customer: Customer) => {
+  const handleSelectCustomer = useCallback((customer: MinimalCustomer) => {
     console.log('Selected customer:', customer);
     if (!customer.id) {
       console.error('Customer missing ID:', customer);
@@ -729,7 +741,7 @@ export default function NewOrderPage() {
           onClose={handlePaymentModalClose}
           onSubmit={handlePaymentSubmit}
           total={total}
-          tenantOrgId={currentTenant.id}
+          tenantOrgId={currentTenant.tenant_id}
           customerId={selectedCustomerId}
           serviceCategories={serviceCategories}
           loading={loading}

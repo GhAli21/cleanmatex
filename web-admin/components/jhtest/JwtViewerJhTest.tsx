@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Database } from '@/types/supabase';
+import type { Database } from '@/types/database';
 import { Clock, Copy, CheckCircle, AlertCircle, User, Building2, Key, RefreshCw } from 'lucide-react';
 
 interface DecodedJWT {

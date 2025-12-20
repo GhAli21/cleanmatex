@@ -141,10 +141,11 @@ export async function addOrderItems(
   });
 
   // Create items in database
-  const createdItems = await prisma.$transaction(
-    itemsWithPricing.map(async (item) => {
+  const createdItems = await prisma.$transaction(async (tx) => {
+    const items = [];
+    for (const item of itemsWithPricing) {
       // Create first to get generated order_item_srno via trigger; then update barcode
-      const created = await prisma.org_order_items_dtl.create({
+      const created = await tx.org_order_items_dtl.create({
         data: {
           order_id: orderId,
           tenant_org_id: tenantOrgId,
@@ -172,13 +173,14 @@ export async function addOrderItems(
       const barcodeValue = srno ? `${orderNo}-${srno}` : orderNo;
       const itemBarcode = await generateBarcode(barcodeValue);
 
-      const updated = await prisma.org_order_items_dtl.update({
+      const updated = await tx.org_order_items_dtl.update({
         where: { id: (created as any).id, tenant_org_id: tenantOrgId } as any,
         data: { barcode: itemBarcode },
       });
-      return updated;
-    })
-  );
+      items.push(updated);
+    }
+    return items;
+  });
 
   // Calculate order totals
   const allItems = itemsWithPricing.map((item) => item.pricing);
@@ -236,8 +238,11 @@ export async function completePreparation(
 
     const turnaroundHours = Number(serviceCategory?.turnaround_hh || 48);
 
+    // Use current date if received_at is null (shouldn't happen but handle gracefully)
+    const receivedAt = order.received_at || new Date();
+
     const readyByCalc = calculateReadyBy({
-      receivedAt: order.received_at,
+      receivedAt,
       turnaroundHours,
       priority: order.priority as 'normal' | 'urgent' | 'express',
       businessHours: DEFAULT_BUSINESS_HOURS,
@@ -463,11 +468,11 @@ export async function listOrders(
       status: order.status as any,
       preparation_status: order.preparation_status as any,
       priority: order.priority as any,
-      total_items: order.total_items,
+      total_items: order.total_items ?? 0,
       total: Number(order.total),
-      received_at: order.received_at,
+      received_at: order.received_at || new Date(),
       ready_by: order.ready_by,
-      branch: order.org_branches_mst?.branch_name || null,
+      branch_name: order.org_branches_mst?.branch_name ?? undefined,
     };
   });
 
@@ -587,7 +592,7 @@ async function recalculateOrderTotals(
   const subtotal = items.reduce((sum, item) => sum + Number(item.total_price), 0);
   const tax = subtotal * 0.05; // Should come from tenant settings
   const total = subtotal + tax;
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalItems = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
 
   await prisma.org_orders_mst.update({
     where: {
