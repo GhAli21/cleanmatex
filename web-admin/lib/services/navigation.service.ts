@@ -58,7 +58,7 @@ export async function getNavigationFromDatabase(
     // The function expects p_feature_flags as JSONB array
     // Pass empty array if no permissions to avoid NULL issues
     console.log('Jh In getNavigationFromDatabase() [ 6 ] : get_navigation_with_parents()');
-    const { data, error } = await supabase.rpc('get_navigation_with_parents', {
+    const { data, error } = await supabase.rpc('get_navigation_with_parents_jh', {
       p_user_permissions: userPermissions.length > 0 ? userPermissions : [],
       p_user_role: userRole || null,
       p_feature_flags: featureFlagArray.length > 0 ? featureFlagArray : [],
