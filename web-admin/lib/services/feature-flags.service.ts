@@ -86,22 +86,71 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
     return cached.flags;
   }
 
-  // Fetch from database
-  const tenant = await getTenant(tenantId);
+  try {
+    // Fetch from database
+    const tenant = await getTenant(tenantId);
 
-  if (!tenant.feature_flags) {
+    if (tenant.feature_flags) {
+      // Cache and return custom feature flags
+      featureFlagCache.set(tenantId, {
+        flags: tenant.feature_flags,
+        timestamp: Date.now(),
+      });
+      return tenant.feature_flags;
+    }
+
     // If no custom feature flags, get from plan
-    const plan = await getPlan(tenant.s_cureent_plan);
-    return plan.feature_flags;
+    // Handle both s_current_plan (correct) and s_cureent_plan (typo) for backward compatibility
+    const planCode = (tenant as any).s_current_plan || tenant.s_cureent_plan || 'FREE_TRIAL'
+    
+    try {
+      const plan = await getPlan(planCode);
+      const flags = plan.feature_flags;
+      
+      // Cache and return plan feature flags
+      featureFlagCache.set(tenantId, {
+        flags,
+        timestamp: Date.now(),
+      });
+      return flags;
+    } catch (planError) {
+      console.error(`Error fetching plan ${planCode} for tenant ${tenantId}:`, planError);
+      // Return default feature flags (all false) if plan lookup fails
+      const defaultFlags: FeatureFlags = {
+        pdf_invoices: false,
+        whatsapp_receipts: false,
+        in_app_receipts: false,
+        printing: false,
+        b2b_contracts: false,
+        white_label: false,
+        marketplace_listings: false,
+        loyalty_programs: false,
+        driver_app: false,
+        multi_branch: false,
+        advanced_analytics: false,
+        api_access: false,
+      };
+      return defaultFlags;
+    }
+  } catch (error) {
+    console.error(`Error fetching feature flags for tenant ${tenantId}:`, error);
+    // Return default feature flags (all false) on error
+    const defaultFlags: FeatureFlags = {
+      pdf_invoices: false,
+      whatsapp_receipts: false,
+      in_app_receipts: false,
+      printing: false,
+      b2b_contracts: false,
+      white_label: false,
+      marketplace_listings: false,
+      loyalty_programs: false,
+      driver_app: false,
+      multi_branch: false,
+      advanced_analytics: false,
+      api_access: false,
+    };
+    return defaultFlags;
   }
-
-  // Cache and return
-  featureFlagCache.set(tenantId, {
-    flags: tenant.feature_flags,
-    timestamp: Date.now(),
-  });
-
-  return tenant.feature_flags;
 }
 
 /**
@@ -253,7 +302,9 @@ export async function resetToDefaults(tenantId: string): Promise<FeatureFlags> {
   const supabase = await createClient();
 
   const tenant = await getTenant(tenantId);
-  const plan = await getPlan(tenant.s_cureent_plan);
+  // Note: Using s_current_plan (correct spelling) from database schema
+  const planCode = (tenant as any).s_current_plan || tenant.s_cureent_plan || 'FREE_TRIAL'
+  const plan = await getPlan(planCode);
 
   // Set feature flags to plan defaults
   const { error } = await supabase

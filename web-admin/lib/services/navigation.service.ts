@@ -73,9 +73,9 @@ export async function getNavigationFromDatabase(
     }
 
     if (!data || data.length === 0) {
-      console.warn('No navigation items found in database for user')
-      // Return empty array if no data (user has no permissions)
-      return []
+      console.warn('No navigation items found in database for user, using fallback')
+      // Use fallback navigation when database returns empty
+      return getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
     }
 
     // Transform database records to NavigationSection format
