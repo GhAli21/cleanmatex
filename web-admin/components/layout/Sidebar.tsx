@@ -137,28 +137,35 @@ export default function Sidebar() {
 
   // Navigation is already filtered by API, but we can apply additional client-side filtering if needed
   // For now, use navigation directly from API (it's already filtered by permissions)
-  console.log('Jh In Sidebar() [ 1 ] navigation', navigation);
-  console.log('Jh In Sidebar() [ 2 ] featureFlags', featureFlags);
   const filteredNavigation = useMemo(() => {
     // Additional client-side filtering by feature flags if needed
-    return navigation.filter((section) => {
-      // Check feature flag if required
-      if (section.featureFlag && !featureFlags[section.featureFlag]) {
-        return false
-      }
-
-      // Filter children by feature flags
-      if (section.children) {
-        section.children = section.children.filter((child) => {
-          if (child.featureFlag && !featureFlags[child.featureFlag]) {
-            return false
+    // IMPORTANT: Create new objects instead of mutating existing ones to prevent infinite loops
+    return navigation
+      .filter((section) => {
+        // Check feature flag if required
+        if (section.featureFlag && !featureFlags[section.featureFlag]) {
+          return false
+        }
+        return true
+      })
+      .map((section) => {
+        // Filter children by feature flags without mutating the original
+        if (section.children) {
+          const filteredChildren = section.children.filter((child) => {
+            if (child.featureFlag && !featureFlags[child.featureFlag]) {
+              return false
+            }
+            return true
+          })
+          // Return new section object with filtered children
+          return {
+            ...section,
+            children: filteredChildren,
           }
-          return true
-        })
-      }
-
-      return true
-    })
+        }
+        // Return section as-is if no children
+        return section
+      })
   }, [navigation, featureFlags])
 
   // Toggle section expansion
@@ -193,6 +200,9 @@ export default function Sidebar() {
     if (isDifferent) {
       setExpandedSections(keysToExpand)
     }
+    // Note: expandedSections is intentionally omitted from dependencies to prevent infinite loop
+    // We only read it for comparison, not to trigger re-runs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, filteredNavigation])
 
   // Close mobile menu on navigation
