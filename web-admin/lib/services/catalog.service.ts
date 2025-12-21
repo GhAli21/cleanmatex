@@ -76,6 +76,7 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
 
 /**
  * Get enabled categories for current tenant
+ * Falls back to all global categories if no categories are enabled for the tenant
  */ 
 export async function getEnabledCategories(): Promise<EnabledCategory[]> {
   const supabase = await createClient();
@@ -96,6 +97,17 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
   if (error) {
     console.error('Error fetching enabled categories:', error);
     throw new Error('Failed to fetch enabled categories');
+  }
+
+  // If no categories are enabled for this tenant, fall back to all global categories
+  if (!data || data.length === 0) {
+    console.warn('No enabled categories found for tenant, falling back to all global categories');
+    const globalCategories = await getServiceCategories();
+    // Transform to EnabledCategory format
+    return globalCategories.map((cat) => ({
+      ...cat,
+      tenant_org_id: tenantId,
+    })) as EnabledCategory[];
   }
 
   // Transform the data to flatten the nested structure
