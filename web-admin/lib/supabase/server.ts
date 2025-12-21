@@ -13,6 +13,29 @@ import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
 /**
+ * Get Supabase environment variables with validation
+ * Provides placeholder values during build time to prevent build failures
+ * @returns Object with url and anonKey
+ */
+function getSupabaseEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // During build time (when env vars might not be available), use placeholders
+  // At runtime, actual values will be used
+  if (!url || !anonKey) {
+    // Return placeholder values during build
+    // These will be replaced with actual values at runtime when env vars are available
+    return {
+      url: url || 'https://placeholder.supabase.co',
+      anonKey: anonKey || 'placeholder-key',
+    }
+  }
+
+  return { url, anonKey }
+}
+
+/**
  * Create a Supabase client for server-side operations
  *
  * This client:
@@ -30,10 +53,11 @@ import type { Database } from '@/types/database'
  */
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
+  const { url, anonKey } = getSupabaseEnv()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         get(name: string) {
@@ -72,9 +96,12 @@ export async function createServerSupabaseClient() {
  * @returns SupabaseClient with admin privileges
  */
 export function createAdminSupabaseClient() {
+  const { url } = getSupabaseEnv()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-service-key'
+  
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url,
+    serviceRoleKey,
     {
       cookies: {
         get() {

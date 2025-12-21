@@ -9,6 +9,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { assignPermissionsToRole, removePermissionsFromRole, getRolePermissions } from '@/lib/services/role-service';
 import { createClient } from '@/lib/supabase/server';
 
+// Force dynamic rendering - this route should not be statically generated
+export const dynamic = 'force-dynamic';
+
 /**
  * PUT /api/roles/[id]/permissions
  * Update permissions for a role

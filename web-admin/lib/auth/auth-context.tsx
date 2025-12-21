@@ -50,6 +50,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   // Track if we're in the middle of a login to prevent duplicate fetching
   const isLoggingInRef = useRef(false)
+  // Track if we're currently fetching tenants to prevent concurrent requests
+  const isFetchingTenantsRef = useRef(false)
+  // Track if tenant fetch failed to prevent infinite retries
+  const tenantFetchFailedRef = useRef(false)
+  // Track previous user ID to detect user changes
+  const previousUserIdRef = useRef<string | null>(null)
 
   /**
    * Fetch available tenants for current user
@@ -58,8 +64,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setAvailableTenants([])
       setCurrentTenant(null)
+      tenantFetchFailedRef.current = false
       return
     }
+
+    // Prevent concurrent requests
+    if (isFetchingTenantsRef.current) {
+      return
+    }
+
+    isFetchingTenantsRef.current = true
 
     try {
       const { data, error } = await supabase.rpc('get_user_tenants')
@@ -83,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }))
 
       setAvailableTenants(tenants)
+      tenantFetchFailedRef.current = false
 
       // Set current tenant if not already set (using functional update to avoid dependency)
       setCurrentTenant((prevTenant) => {
@@ -94,9 +109,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
     } catch (error) {
       console.error('Error fetching tenants:', error)
-      setAvailableTenants([])
+      // Mark as failed to prevent infinite retries
+      // Don't clear availableTenants - this would trigger the useEffect to retry again
+      tenantFetchFailedRef.current = true
+    } finally {
+      isFetchingTenantsRef.current = false
     }
-  }, [user]) // Removed currentTenant from dependencies to prevent infinite loop
+  }, [user]) // Removed currentTenant and availableTenants.length from dependencies to prevent infinite loop
 
   /**
    * Initialize auth state from session
@@ -525,9 +544,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Fetch tenants when user changes
    * Skip if we're in the middle of a login (signIn already fetches this data)
+   * Skip if we've already failed to prevent infinite retries
    */
   useEffect(() => {
-    if (user && !isLoading && !isLoggingInRef.current && availableTenants.length === 0) {
+    const currentUserId = user?.id ?? null
+    
+    // Reset failed flag only when user actually changes (not on every render)
+    if (currentUserId !== previousUserIdRef.current) {
+      tenantFetchFailedRef.current = false
+      previousUserIdRef.current = currentUserId
+    }
+
+    if (
+      user && 
+      !isLoading && 
+      !isLoggingInRef.current && 
+      availableTenants.length === 0 && 
+      !tenantFetchFailedRef.current &&
+      !isFetchingTenantsRef.current
+    ) {
       refreshTenants()
     }
   }, [user, isLoading, availableTenants.length, refreshTenants])

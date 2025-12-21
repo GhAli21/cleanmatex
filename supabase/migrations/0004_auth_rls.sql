@@ -184,14 +184,14 @@ CREATE POLICY service_role_tenants_access ON org_tenants_mst
 -- FUNCTION: GET USER TENANTS
 -- =========================
 
--- Returns all tenants accessible by current user
+-- Returns all tenants accessible by current user 
 CREATE OR REPLACE FUNCTION get_user_tenants()
 RETURNS TABLE (
   tenant_id UUID,
   tenant_name VARCHAR,
   tenant_slug VARCHAR,
-  user_id VARCHAR,
-  org_user_id VARCHAR,
+  user_id UUID,
+  org_user_id UUID,
   user_role VARCHAR,
   is_active BOOLEAN,
   last_login_at TIMESTAMP
@@ -225,8 +225,8 @@ RETURNS TABLE (
   tenant_id UUID,
   tenant_name VARCHAR,
   tenant_slug VARCHAR,
-  user_id VARCHAR,
-  org_user_id VARCHAR,
+  user_id UUID,
+  org_user_id UUID,
   user_role VARCHAR,
   is_active BOOLEAN,
   last_login_at TIMESTAMP
