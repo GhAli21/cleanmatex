@@ -1168,7 +1168,8 @@
       "confirmLinkOtherTenant": "This customer belongs to another tenant. Copy and link them to your tenant?",
       "linking": "Linking...",
       "linkCustomer": "Link Customer",
-      "copyCustomer": "Copy Customer"
+      "copyCustomer": "Copy Customer",
+      "error": "Error"
     },
     "serviceCategory": {
       "title": "Service categories",

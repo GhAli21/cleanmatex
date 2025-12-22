@@ -1126,6 +1126,12 @@
   },
   "newOrder": {
     "title": "طلب جديد",
+    "selectCustomer": "اختر العميل",
+    "quickDrop": "إسقاط سريع",
+    "notes": "ملاحظات",
+    "readyBy": "جاهز بحلول",
+    "estimatedTotal": "إجمالي مقدر",
+    "submitOrder": "إرسال الطلب",
     "tabs": {
       "dryCleaning": "تنظيف جاف",
       "laundry": "غسيل",
@@ -1160,7 +1166,8 @@
       "confirmLinkOtherTenant": "هذا العميل ينتمي إلى مستأجر آخر. هل تريد نسخه وربطه بمستأجرك؟",
       "linking": "جاري الربط...",
       "linkCustomer": "ربط العميل",
-      "copyCustomer": "نسخ العميل"
+      "copyCustomer": "نسخ العميل",
+      "error": "خطأ"
     },
     "express": {
       "label": "مستعجل",

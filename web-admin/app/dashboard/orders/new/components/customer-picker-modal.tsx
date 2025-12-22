@@ -172,18 +172,33 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
     if (!linkingCustomer) return;
 
     setLinkLoading(true);
+    setError(null); // Clear any previous errors
     try {
+      const isSysGlobal = linkingCustomer.source === 'sys_global';
+      const isOtherTenant = linkingCustomer.source === 'other_tenant';
+      
       const body: {
         customerId: string;
         sourceType: 'sys' | 'org_other_tenant';
         originalTenantId?: string;
       } = {
-        customerId: linkingCustomer.source === 'sys_global' ? (linkingCustomer.customerId || linkingCustomer.id) : (linkingCustomer.orgCustomerId || linkingCustomer.id),
-        sourceType: linkingCustomer.source === 'sys_global' ? 'sys' : 'org_other_tenant',
+        customerId: isSysGlobal 
+          ? (linkingCustomer.customerId || linkingCustomer.id) 
+          : (linkingCustomer.orgCustomerId || linkingCustomer.id),
+        sourceType: isSysGlobal ? 'sys' : 'org_other_tenant',
       };
 
-      if (linkingCustomer.source === 'other_tenant' && linkingCustomer.originalTenantId) {
+      // For other_tenant source, originalTenantId is required
+      if (isOtherTenant) {
+        if (!linkingCustomer.originalTenantId) {
+          throw new Error('Missing tenant information for customer linking');
+        }
         body.originalTenantId = linkingCustomer.originalTenantId;
+      }
+      
+      // Validate customerId is present
+      if (!body.customerId) {
+        throw new Error('Invalid customer ID');
       }
 
       const res = await fetch('/api/v1/customers/link', {
