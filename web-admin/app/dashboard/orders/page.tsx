@@ -16,7 +16,7 @@ import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from './components/order-stats-cards';
 import { OrderFiltersBar } from './components/order-filters-bar';
-import { OrderTable } from './components/order-table';
+import { OrdersSimpleTable } from './components/orders-simple-table';
 
 type OrdersSearchParams = {
   page?: string;
@@ -108,10 +108,10 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       {/* Stats cards */}
       {statsData && <OrderStatsCards stats={statsData} />}
 
-      {/* Orders table with graceful error state */}
+      {/* Orders table with graceful error state (simplified table component) */}
       <Suspense fallback={<div>{t('loadingOrders')}</div>}>
         {ordersData ? (
-          <OrderTable
+          <OrdersSimpleTable
             orders={ordersData.orders}
             pagination={ordersData.pagination}
           />
