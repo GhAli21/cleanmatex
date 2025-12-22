@@ -8,16 +8,18 @@
  * - Passes plain data to client components for interactivity
  */
 
-import { Suspense } from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
 
-import { OrderTable } from './components/order-table';
-import { OrderFiltersBar } from './components/order-filters-bar';
-import { OrderStatsCards } from './components/order-stats-cards';
+// NOTE: These richer client components are temporarily disabled while
+// we track down a production-only React error on Vercel. Once we confirm
+// the minimal page works in production, we will re‑enable them one by one.
+// import { OrderTable } from './components/order-table';
+// import { OrderFiltersBar } from './components/order-filters-bar';
+// import { OrderStatsCards } from './components/order-stats-cards';
 
 type OrdersSearchParams = {
   page?: string;
@@ -65,13 +67,20 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     toDate: parseDate(params.toDate),
   };
 
-  const [ordersResult, statsResult] = await Promise.all([
+  const [ordersResult, statsResult] = await Promise.allSettled([
     listOrders(tenantOrgId, filters),
     getStats(tenantOrgId),
   ]);
 
-  const hasOrders =
-    ordersResult.success && ordersResult.data && ordersResult.data.orders.length > 0;
+  const ordersOk =
+    ordersResult.status === 'fulfilled' &&
+    ordersResult.value.success &&
+    ordersResult.value.data;
+
+  const statsOk =
+    statsResult.status === 'fulfilled' &&
+    statsResult.value.success &&
+    statsResult.value.data;
 
   return (
     <div className="space-y-6 p-6">
@@ -90,33 +99,26 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
-      {/* Statistics Cards */}
-      {statsResult.success && statsResult.data ? (
-        <OrderStatsCards stats={statsResult.data} />
-      ) : (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
-          {statsResult.error || t('failedToLoadOrders')}
-        </div>
-      )}
-
-      {/* Filters */}
-      <OrderFiltersBar currentFilters={params} />
-
-      {/* Orders Table */}
-      <Suspense fallback={<div>{t('loadingOrders')}</div>}>
-        {hasOrders && ordersResult.data ? (
-          <OrderTable
-            orders={ordersResult.data.orders}
-            pagination={ordersResult.data.pagination}
-          />
-        ) : (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-red-800">
-              {ordersResult.error || t('failedToLoadOrders')}
-            </p>
-          </div>
-        )}
-      </Suspense>
+      {/* Temporary minimal diagnostics block to keep page stable in production.
+          Once we confirm this renders without React error #130 on Vercel,
+          we will restore the rich client UI (filters, stats cards, table). */}
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
+        <p className="font-semibold">{t('loadingOrders')}</p>
+        <p className="text-xs text-blue-800">
+          Minimal version of the Orders page is active to diagnose a production
+          error. Data fetch status:
+        </p>
+        <ul className="list-disc pl-5 text-xs">
+          <li>
+            Orders:&nbsp;
+            {ordersOk ? 'ok' : 'error'}
+          </li>
+          <li>
+            Stats:&nbsp;
+            {statsOk ? 'ok' : 'error'}
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }
