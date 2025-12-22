@@ -1,5 +1,5 @@
 import { getRequestConfig } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 
 // Our supported locales
 export const locales = ['en', 'ar'] as const;
@@ -8,14 +8,13 @@ export type Locale = (typeof locales)[number];
 // Default locale
 export const defaultLocale: Locale = 'en';
 
-export default getRequestConfig(async ({ locale }) => {
-  // Validate that the incoming `locale` parameter is valid
-  if (!locales.includes(locale as Locale)) notFound();
-
-  const validLocale = locale as Locale;
+export default getRequestConfig(async () => {
+  // Get locale from headers set by middleware
+  const headersList = await headers();
+  const locale = (headersList.get('x-next-intl-locale') as Locale) || defaultLocale;
 
   return {
-    locale: validLocale,
-    messages: (await import(`./messages/${validLocale}.json`)).default,
+    locale,
+    messages: (await import(`./messages/${locale}.json`)).default,
   };
 });

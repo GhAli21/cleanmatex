@@ -13,8 +13,7 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import createMiddleware from 'next-intl/middleware'
-import { locales, defaultLocale } from './i18n'
+import { defaultLocale } from './i18n'
 
 /**
  * Routes that don't require authentication
@@ -56,35 +55,10 @@ const DEFAULT_REDIRECT = '/dashboard'
 const LOGIN_PATH = '/login'
 
 /**
- * Create next-intl middleware
- */
-const intlMiddleware = createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: 'never', // Don't add locale prefix to URLs
-})
-
-/**
  * Middleware function
  */
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-
-  // Skip i18n for API routes, static files, and public assets
-  const shouldSkipIntl =
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/favicon.ico') ||
-    /\.(svg|png|jpg|jpeg|gif|webp)$/.test(pathname)
-
-  // Handle i18n only for regular pages
-  if (!shouldSkipIntl) {
-    const intlResponse = intlMiddleware(request)
-    // If intl middleware returns a redirect response, return it
-    if (intlResponse && intlResponse.status !== 200) {
-      return intlResponse
-    }
-  }
 
   let response = NextResponse.next({
     request: {
@@ -225,6 +199,11 @@ export async function middleware(request: NextRequest) {
     response.headers.set('X-User-ID', user.id)
     response.headers.set('X-User-Email', user.email || '')
   }
+
+  // 6. Set locale for next-intl (defaults to 'en')
+  // You can get user's preferred locale from user metadata or database
+  const locale = defaultLocale // TODO: Get from user preferences
+  response.headers.set('x-next-intl-locale', locale)
 
   return response
 }
