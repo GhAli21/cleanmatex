@@ -23,7 +23,11 @@
       "Bash(findstr:*)",
       "Bash(\"f:\\jhapp\\cleanmatex\\docs\\features\\SAAS_Platform_Management\\PROGRESS_SUMMARY.md\")",
       "Bash(npm run build:*)",
-      "Bash(timeout 90 npm run dev:*)"
+      "Bash(timeout 90 npm run dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(curl:*)"
     ]
   },
   "outputStyle": "default"
