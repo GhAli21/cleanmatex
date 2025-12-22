@@ -68,14 +68,23 @@ const intlMiddleware = createMiddleware({
  * Middleware function
  */
 export async function middleware(request: NextRequest) {
-  // First, handle i18n
-  const intlResponse = intlMiddleware(request)
-
-  // If intl middleware returns a response (redirect), use it
-  if (intlResponse) {
-    request = new NextRequest(intlResponse.url, request)
-  }
   const { pathname } = request.nextUrl
+
+  // Skip i18n for API routes, static files, and public assets
+  const shouldSkipIntl =
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon.ico') ||
+    /\.(svg|png|jpg|jpeg|gif|webp)$/.test(pathname)
+
+  // Handle i18n only for regular pages
+  if (!shouldSkipIntl) {
+    const intlResponse = intlMiddleware(request)
+    // If intl middleware returns a redirect response, return it
+    if (intlResponse && intlResponse.status !== 200) {
+      return intlResponse
+    }
+  }
 
   let response = NextResponse.next({
     request: {
