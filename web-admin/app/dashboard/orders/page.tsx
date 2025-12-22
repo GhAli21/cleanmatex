@@ -13,13 +13,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
-
-// NOTE: These richer client components are temporarily disabled while
-// we track down a production-only React error on Vercel. Once we confirm
-// the minimal page works in production, we will re‑enable them one by one.
-// import { OrderTable } from './components/order-table';
-// import { OrderFiltersBar } from './components/order-filters-bar';
-// import { OrderStatsCards } from './components/order-stats-cards';
+import { OrderStatsCards } from './components/order-stats-cards';
 
 type OrdersSearchParams = {
   page?: string;
@@ -99,14 +93,18 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
-      {/* Temporary minimal diagnostics block to keep page stable in production.
-          Once we confirm this renders without React error #130 on Vercel,
-          we will restore the rich client UI (filters, stats cards, table). */}
+      {/* Stats cards (pure client component, safe to render) */}
+      {statsOk && statsResult.status === 'fulfilled' && statsResult.value.data && (
+        <OrderStatsCards stats={statsResult.value.data} />
+      )}
+
+      {/* Temporary diagnostics block to keep visibility while we re‑enable UI */}
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
         <p className="font-semibold">{t('loadingOrders')}</p>
         <p className="text-xs text-blue-800">
-          Minimal version of the Orders page is active to diagnose a production
-          error. Data fetch status:
+          Diagnostics: orders and stats server calls are working. If this page
+          renders without errors, the crash is likely in filters or table
+          components, which we will re‑enable next.
         </p>
         <ul className="list-disc pl-5 text-xs">
           <li>
