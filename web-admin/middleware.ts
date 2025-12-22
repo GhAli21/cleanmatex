@@ -2,6 +2,7 @@
  * Next.js Middleware for Route Protection
  *
  * Handles:
+ * - Internationalization (i18n) with next-intl
  * - Authentication checks
  * - Route protection (public vs protected)
  * - Automatic redirects (login ↔ dashboard)
@@ -12,6 +13,8 @@
 
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import createMiddleware from 'next-intl/middleware'
+import { locales, defaultLocale } from './i18n'
 
 /**
  * Routes that don't require authentication
@@ -53,9 +56,25 @@ const DEFAULT_REDIRECT = '/dashboard'
 const LOGIN_PATH = '/login'
 
 /**
+ * Create next-intl middleware
+ */
+const intlMiddleware = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'never', // Don't add locale prefix to URLs
+})
+
+/**
  * Middleware function
  */
 export async function middleware(request: NextRequest) {
+  // First, handle i18n
+  const intlResponse = intlMiddleware(request)
+
+  // If intl middleware returns a response (redirect), use it
+  if (intlResponse) {
+    request = new NextRequest(intlResponse.url, request)
+  }
   const { pathname } = request.nextUrl
 
   let response = NextResponse.next({
