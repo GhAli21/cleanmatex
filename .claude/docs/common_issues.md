@@ -5,6 +5,7 @@
 - **Migration fails:** fix SQL order, FKs, types; use `supabase db reset --debug`
 - **N+1 queries:** use relation selects
 - **TS type drift:** regenerate Supabase types
+- **next-intl config missing:** add `createNextIntlPlugin('./i18n.ts')` to `next.config.ts`
 
 
 ---
@@ -497,6 +498,82 @@ cd admin-web; npm run build
 - Always run `npm install` after pulling changes that modify package.json
 - Commit package-lock.json to ensure consistent dependency versions
 - Run `npm run build` locally before pushing changes
+
+---
+
+### Issue 10: next-intl Configuration Missing (Production)
+
+**Symptom**: Production build fails with "Couldn't find next-intl config file" error
+
+**Error Example**:
+```
+Error: Couldn't find next-intl config file. Please follow the instructions at https://next-intl.dev/docs/getting-started/app-router
+```
+
+**Diagnosis**:
+```bash
+# Check if i18n.ts exists
+ls i18n.ts
+
+# Check next.config.ts for next-intl plugin
+cat next.config.ts | grep -i "next-intl"
+```
+
+**Solution**:
+
+1. **Add next-intl plugin to next.config.ts**:
+```typescript
+// next.config.ts
+import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+// Specify the path to your i18n config file
+const withNextIntl = createNextIntlPlugin('./i18n.ts');
+
+const nextConfig: NextConfig = {
+  // Your existing config...
+};
+
+// Wrap your config with the next-intl plugin
+export default withNextIntl(nextConfig);
+```
+
+2. **Verify i18n.ts exists in the correct location**:
+```typescript
+// i18n.ts (at project root)
+import { getRequestConfig } from 'next-intl/server';
+import { notFound } from 'next/navigation';
+
+export const locales = ['en', 'ar'] as const;
+export type Locale = (typeof locales)[number];
+
+export const defaultLocale: Locale = 'en';
+
+export default getRequestConfig(async ({ locale }) => {
+  if (!locales.includes(locale as Locale)) notFound();
+
+  const validLocale = locale as Locale;
+
+  return {
+    locale: validLocale,
+    messages: (await import(`./messages/${validLocale}.json`)).default,
+  };
+});
+```
+
+3. **Rebuild and redeploy**:
+```bash
+cd web-admin
+npm run build
+git add next.config.ts
+git commit -m "fix: Add next-intl plugin configuration"
+git push
+```
+
+**Prevention**:
+- Always configure plugins in `next.config.ts` when using next-intl
+- The plugin wraps your Next.js config to inject necessary configuration
+- Test builds locally before deploying to production
 
 ---
 
