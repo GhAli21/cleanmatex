@@ -14,6 +14,7 @@ import { getTranslations } from 'next-intl/server';
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from './components/order-stats-cards';
+import { OrderFiltersBar } from './components/order-filters-bar';
 
 type OrdersSearchParams = {
   page?: string;
@@ -92,6 +93,9 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           + {t('newOrder')}
         </Link>
       </div>
+
+      {/* Filters */}
+      <OrderFiltersBar currentFilters={params} />
 
       {/* Stats cards (pure client component, safe to render) */}
       {statsOk && statsResult.status === 'fulfilled' && statsResult.value.data && (
