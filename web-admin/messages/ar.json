@@ -253,6 +253,7 @@
     "prepStatuses": {
       "pending": "قيد الانتظار",
       "in_progress": "قيد التنفيذ",
+      "inProgress": "قيد التنفيذ",
       "completed": "مكتمل"
     },
     "allStatuses": "جميع الحالات",
