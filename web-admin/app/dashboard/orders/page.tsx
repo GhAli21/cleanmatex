@@ -8,6 +8,7 @@
  * - Passes plain data to client components for interactivity
  */
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
@@ -15,6 +16,7 @@ import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from './components/order-stats-cards';
 import { OrderFiltersBar } from './components/order-filters-bar';
+import { OrderTable } from './components/order-table';
 
 type OrdersSearchParams = {
   page?: string;
@@ -70,12 +72,18 @@ export default async function OrdersPage({ searchParams }: PageProps) {
   const ordersOk =
     ordersResult.status === 'fulfilled' &&
     ordersResult.value.success &&
-    ordersResult.value.data;
+    !!ordersResult.value.data;
 
   const statsOk =
     statsResult.status === 'fulfilled' &&
     statsResult.value.success &&
-    statsResult.value.data;
+    !!statsResult.value.data;
+
+  const ordersData =
+    ordersOk && ordersResult.status === 'fulfilled' ? ordersResult.value.data : null;
+
+  const statsData =
+    statsOk && statsResult.status === 'fulfilled' ? statsResult.value.data : null;
 
   return (
     <div className="space-y-6 p-6">
@@ -97,30 +105,24 @@ export default async function OrdersPage({ searchParams }: PageProps) {
       {/* Filters */}
       <OrderFiltersBar currentFilters={params} />
 
-      {/* Stats cards (pure client component, safe to render) */}
-      {statsOk && statsResult.status === 'fulfilled' && statsResult.value.data && (
-        <OrderStatsCards stats={statsResult.value.data} />
-      )}
+      {/* Stats cards */}
+      {statsData && <OrderStatsCards stats={statsData} />}
 
-      {/* Temporary diagnostics block to keep visibility while we re‑enable UI */}
-      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 space-y-2">
-        <p className="font-semibold">{t('loadingOrders')}</p>
-        <p className="text-xs text-blue-800">
-          Diagnostics: orders and stats server calls are working. If this page
-          renders without errors, the crash is likely in filters or table
-          components, which we will re‑enable next.
-        </p>
-        <ul className="list-disc pl-5 text-xs">
-          <li>
-            Orders:&nbsp;
-            {ordersOk ? 'ok' : 'error'}
-          </li>
-          <li>
-            Stats:&nbsp;
-            {statsOk ? 'ok' : 'error'}
-          </li>
-        </ul>
-      </div>
+      {/* Orders table with graceful error state */}
+      <Suspense fallback={<div>{t('loadingOrders')}</div>}>
+        {ordersData ? (
+          <OrderTable
+            orders={ordersData.orders}
+            pagination={ordersData.pagination}
+          />
+        ) : (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            {ordersResult.status === 'fulfilled' && ordersResult.value.error
+              ? ordersResult.value.error
+              : t('failedToLoadOrders')}
+          </div>
+        )}
+      </Suspense>
     </div>
   );
 }
