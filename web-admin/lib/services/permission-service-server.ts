@@ -92,6 +92,16 @@ export async function hasPermissionServer(
   try {
     console.log('[Jh] hasPermissionServer ( 1 ): Permission:', permission)
     console.log('[Jh] hasPermissionServer ( 2 ): Options:', options)
+    console.log('[Jh] hasPermissionServer ( 3 ): Test check_jwt_claims_jh() ')
+    const { data, error } = await client.rpc('check_jwt_claims_jh');
+    console.log('[Jh] hasPermissionServer check_jwt_claims_jh()( 3 ): Data:', data)
+    if (error) {
+      console.log('[Jh] hasPermissionServer ( 3.1 ): Error:', error)
+      console.error('Error checking permission check_jwt_claims_jh():', error);
+      return false;
+    }
+    console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 4 ): Data:', data)
+    
     if (options?.resourceType && options?.resourceId) {
       const { data, error } = await client.rpc('has_resource_permission', {
         p_permission: permission,

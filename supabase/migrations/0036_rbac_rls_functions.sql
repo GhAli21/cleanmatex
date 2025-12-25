@@ -284,7 +284,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 AS $$
-  SELECT cmx_can(p_permission, NULL, NULL);
+  SELECT cmx_can(p_permission);
 $$;
 
 COMMENT ON FUNCTION has_permission IS 'Check if current user has specific permission (tenant-wide)';
