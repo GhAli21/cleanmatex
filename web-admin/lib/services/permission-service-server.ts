@@ -90,6 +90,8 @@ export async function hasPermissionServer(
   const client = await createClient();
 
   try {
+    console.log('[Jh] hasPermissionServer ( 1 ): Permission:', permission)
+    console.log('[Jh] hasPermissionServer ( 2 ): Options:', options)
     if (options?.resourceType && options?.resourceId) {
       const { data, error } = await client.rpc('has_resource_permission', {
         p_permission: permission,
@@ -98,24 +100,29 @@ export async function hasPermissionServer(
       });
 
       if (error) {
+        console.log('[Jh] hasPermissionServer ( 3 ): Error:', error)
         console.error('Error checking resource permission:', error);
         return false;
       }
-
+      console.log('[Jh] hasPermissionServer ( 4 ): Data:', data)
       return data === true;
     } else {
+      console.log('[Jh] hasPermissionServer ( 5 ): Permission:', permission)
+      console.log('[Jh] hasPermissionServer ( 6 ): Before call rpc has_permission')
       const { data, error } = await client.rpc('has_permission', {
         p_permission: permission,
       });
 
       if (error) {
+        console.log('[Jh] hasPermissionServer ( 7 ): Error:', error)
         console.error('Error checking permission:', error);
         return false;
       }
-
+      console.log('[Jh] hasPermissionServer ( 8 ): Data:', data)
       return data === true;
     }
   } catch (error) {
+    console.log('[Jh] hasPermissionServer ( 9 ): Error:', error)
     console.error('Error in hasPermissionServer:', error);
     return false;
   }
