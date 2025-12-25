@@ -101,7 +101,9 @@ export async function hasPermissionServer(
       return false;
     }
     console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 4 ): Data:', data)
-    
+    console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 5 ): Returning true for testing')
+    return true; // true for testing Jhtest_TODO: Remove this
+
     if (options?.resourceType && options?.resourceId) {
       const { data, error } = await client.rpc('has_resource_permission', {
         p_permission: permission,

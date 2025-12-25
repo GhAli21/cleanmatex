@@ -10,6 +10,29 @@ BEGIN;
 -- =========================
 
 -- Get current tenant ID from JWT claims
+-- Enhanced current_tenant_id to read from user_metadata
+CREATE OR REPLACE FUNCTION current_tenant_id()
+RETURNS UUID AS $$
+  SELECT COALESCE(
+    -- Try to get from JWT claims (user_metadata)
+    NULLIF(
+      (auth.jwt() -> 'user_metadata' ->> 'tenant_org_id'),
+      ''
+    )::UUID,
+    -- Fallback: Query org_users_mst
+    (
+      SELECT tenant_org_id
+      FROM org_users_mst
+      WHERE user_id = auth.uid()
+        AND is_active = true
+      ORDER BY last_login_at DESC NULLS LAST
+      LIMIT 1
+    )
+  );
+$$ LANGUAGE SQL STABLE SECURITY DEFINER;
+
+COMMENT ON FUNCTION current_tenant_id IS 'Extract tenant_org_id from JWT user_metadata, with fallback to org_users_mst';
+/*
 CREATE OR REPLACE FUNCTION current_tenant_id()
 RETURNS UUID AS $$
   SELECT NULLIF(
@@ -19,6 +42,7 @@ RETURNS UUID AS $$
 $$ LANGUAGE SQL STABLE;
 
 COMMENT ON FUNCTION current_tenant_id IS 'Extract tenant_org_id from JWT claims';
+*/
 
 -- Get current user ID from JWT
 CREATE OR REPLACE FUNCTION current_user_id()
