@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     console.log('[Jh] POST (1) /api/v1/orders: Checking permission orders:create')
     const authCheck = await requirePermission('orders:create')(request);
     console.log('[Jh] POST (2) /api/v1/orders: Returned Auth check:', authCheck)
-    if (authCheck instanceof NextResponse) {
+    if (authCheck instanceof NextResponse) { 
       console.log('[Jh] POST (3) /api/v1/orders: Permission denied')
       return authCheck; // Permission denied 
     }

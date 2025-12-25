@@ -159,6 +159,7 @@ COMMENT ON FUNCTION cmx_rebuild_user_permissions IS 'Rebuild effective permissio
 
 -- Fast permission check for RLS (reads from effective_permissions table)
 -- Uses indexed lookup for O(1) performance
+/*
 CREATE OR REPLACE FUNCTION cmx_can(
   p_perm TEXT,
   p_resource_type TEXT DEFAULT NULL,
@@ -186,6 +187,96 @@ AS $$
         (ep.resource_type IS NULL AND p_resource_type IS NOT NULL)
       )
       AND ep.allow = true
+  );
+$$;
+*/
+CREATE OR REPLACE FUNCTION cmx_can(
+  p_perm TEXT,
+  p_tenant_org_id UUID DEFAULT NULL,
+  p_role_code TEXT DEFAULT NULL,
+  p_is_user_id_org_or_auth INTEGER DEFAULT 2, -- 1=use p_org_user_id and org_users_mst.id, 2=use p_auth_user_id and org_users_mst.user_id
+  p_auth_user_id UUID DEFAULT NULL,
+  p_org_user_id UUID DEFAULT NULL,
+  p_resource_type TEXT DEFAULT NULL,
+  p_resource_id UUID DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT COALESCE(
+    -- Check cmx_effective_permissions first (most common case, fastest lookup)
+    (SELECT true
+     FROM cmx_effective_permissions ep
+     WHERE (
+         ep.user_id = CASE 
+           WHEN p_is_user_id_org_or_auth = 1 THEN (
+             SELECT oum.user_id 
+             FROM org_users_mst oum 
+             WHERE oum.id = p_org_user_id 
+               AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+               AND oum.is_active = true
+             LIMIT 1
+           )
+           ELSE COALESCE(p_auth_user_id, auth.uid())
+         END
+       )
+       AND ep.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+       AND ep.permission_code = p_perm
+       AND (
+         (ep.resource_type IS NULL AND p_resource_type IS NULL)
+         OR
+         (ep.resource_type = p_resource_type AND ep.resource_id = p_resource_id)
+         OR
+         (ep.resource_type IS NULL AND p_resource_type IS NOT NULL)
+       )
+       AND ep.allow = true
+     LIMIT 1),
+    -- Check sys_auth_role_default_permissions from org_users_mst.role (second check)
+    (SELECT true
+     FROM sys_auth_role_default_permissions rdp
+     INNER JOIN org_users_mst oum
+       ON oum.role = rdp.role_code
+       AND (
+         CASE 
+           WHEN p_is_user_id_org_or_auth = 1 THEN oum.id = p_org_user_id
+           ELSE oum.user_id = COALESCE(p_auth_user_id, auth.uid())
+         END
+       )
+       AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+       AND oum.is_active = true
+     WHERE rdp.permission_code = p_perm
+       AND rdp.is_active = true
+       AND rdp.is_enabled = true
+       AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
+     LIMIT 1),
+    -- Check sys_auth_role_default_permissions from org_auth_user_roles (last check)
+    (SELECT true
+     FROM sys_auth_role_default_permissions rdp
+     INNER JOIN org_auth_user_roles uar 
+       ON uar.role_code = rdp.role_code
+       AND (
+         uar.user_id = CASE 
+           WHEN p_is_user_id_org_or_auth = 1 THEN (
+             SELECT oum.user_id 
+             FROM org_users_mst oum 
+             WHERE oum.id = p_org_user_id 
+               AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+               AND oum.is_active = true
+             LIMIT 1
+           )
+           ELSE COALESCE(p_auth_user_id, auth.uid())
+         END
+       )
+       AND uar.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+       AND uar.is_active = true
+     WHERE rdp.permission_code = p_perm
+       AND rdp.is_active = true
+       AND rdp.is_enabled = true
+       AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
+     LIMIT 1),
+    false  -- Default to false if none found
   );
 $$;
 
