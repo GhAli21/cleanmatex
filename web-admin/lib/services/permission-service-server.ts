@@ -102,7 +102,7 @@ export async function hasPermissionServer(
     }
     console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 4 ): Data:', data)
     console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 5 ): Returning true for testing')
-    return true; // true for testing Jhtest_TODO: Remove this
+    //return true; // true for testing Jhtest_TODO: Remove this
 
     if (options?.resourceType && options?.resourceId) {
       const { data, error } = await client.rpc('has_resource_permission', {
@@ -131,7 +131,17 @@ export async function hasPermissionServer(
         return false;
       }
       console.log('[Jh] hasPermissionServer ( 8 ): Data:', data)
-      return data === true;
+      
+      if (data === true) {
+        console.log('[Jh] hasPermissionServer True Case ( 9 ): Data is true, returning true')
+        return true;
+      } else {
+        console.log('[Jh] hasPermissionServer False Case ( 10 ): Data is false, BUT for testing returning true')
+        //return true; // true for testing Jhtest_TODO: Change to False
+        return false; 
+      }
+      //return true; // true for testing Jhtest_TODO: Remove this
+      //return data === true;
     }
   } catch (error) {
     console.log('[Jh] hasPermissionServer ( 9 ): Error:', error)

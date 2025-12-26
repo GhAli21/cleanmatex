@@ -12,6 +12,10 @@ ALTER TABLE org_service_category_cf ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policy if it exists
 DROP POLICY IF EXISTS tenant_isolation_org_service_category ON org_service_category_cf;
+DROP POLICY IF EXISTS tenant_isolation_org_service_category_insert ON org_service_category_cf;
+DROP POLICY IF EXISTS tenant_isolation_org_service_category_update ON org_service_category_cf;
+DROP POLICY IF EXISTS tenant_isolation_org_service_category_delete ON org_service_category_cf;
+DROP POLICY IF EXISTS service_role_org_service_category_access ON org_service_category_cf;
 
 -- Recreate the policy with proper tenant isolation
 -- This policy allows users to see categories for their tenant(s)
@@ -19,51 +23,31 @@ DROP POLICY IF EXISTS tenant_isolation_org_service_category ON org_service_categ
 CREATE POLICY tenant_isolation_org_service_category ON org_service_category_cf
   FOR SELECT
   USING (
-    EXISTS (
-      SELECT 1 
-      FROM get_user_tenants() 
-      WHERE tenant_id = org_service_category_cf.tenant_org_id
-    )
+    tenant_org_id = current_tenant_id()
   );
 
 -- Allow INSERT for authenticated users with tenant access (for enabling categories)
 CREATE POLICY tenant_isolation_org_service_category_insert ON org_service_category_cf
   FOR INSERT
   WITH CHECK (
-    EXISTS (
-      SELECT 1 
-      FROM get_user_tenants() 
-      WHERE tenant_id = org_service_category_cf.tenant_org_id
-    )
+    tenant_org_id = current_tenant_id()
   );
 
 -- Allow UPDATE for authenticated users with tenant access
 CREATE POLICY tenant_isolation_org_service_category_update ON org_service_category_cf
   FOR UPDATE
   USING (
-    EXISTS (
-      SELECT 1 
-      FROM get_user_tenants() 
-      WHERE tenant_id = org_service_category_cf.tenant_org_id
-    )
+    tenant_org_id = current_tenant_id()
   )
   WITH CHECK (
-    EXISTS (
-      SELECT 1 
-      FROM get_user_tenants() 
-      WHERE tenant_id = org_service_category_cf.tenant_org_id
-    )
+    tenant_org_id = current_tenant_id()
   );
 
 -- Allow DELETE for authenticated users with tenant access
 CREATE POLICY tenant_isolation_org_service_category_delete ON org_service_category_cf
   FOR DELETE
   USING (
-    EXISTS (
-      SELECT 1 
-      FROM get_user_tenants() 
-      WHERE tenant_id = org_service_category_cf.tenant_org_id
-    )
+    tenant_org_id = current_tenant_id()
   );
 
 -- Service role bypass (for system operations)
@@ -85,4 +69,3 @@ COMMENT ON POLICY tenant_isolation_org_service_category_delete ON org_service_ca
   'Allow users to disable service categories for their accessible tenants';
 
 COMMIT;
-

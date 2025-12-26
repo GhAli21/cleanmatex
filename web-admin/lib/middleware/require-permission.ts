@@ -90,8 +90,8 @@ export function requirePermission(
       
       //const hasAccess = true;// true for testing
       let hasAccess = await hasPermissionServer(permission, options) 
-      hasAccess = false; // false for testing
-
+      //hasAccess = false; // false for testing
+      
       console.log('[Jh] requirePermission ( 4 ): The access For Testing:', hasAccess)
 
       if (!hasAccess) {
