@@ -88,10 +88,11 @@ export function requirePermission(
       console.log('[Jh] requirePermission ( 2 ): Permission:', permission)
       console.log('[Jh] requirePermission ( 3 ): Options:', options)
       
-      const hasAccess = true;// true for testing
-      //const hasAccess = await hasPermissionServer(permission, options) 
+      //const hasAccess = true;// true for testing
+      let hasAccess = await hasPermissionServer(permission, options) 
+      hasAccess = false; // false for testing
 
-      console.log('[Jh] requirePermission ( 4 ): Has access For Testing:', hasAccess)
+      console.log('[Jh] requirePermission ( 4 ): The access For Testing:', hasAccess)
 
       if (!hasAccess) {
         console.log('[Jh] requirePermission ( 5 ): Permission denied')
