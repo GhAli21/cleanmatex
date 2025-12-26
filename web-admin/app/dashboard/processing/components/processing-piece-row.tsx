@@ -119,6 +119,9 @@ export function ProcessingPieceRow({
       <div className="grid grid-cols-12 gap-3 items-start">
         {/* Processing Step Dropdown */}
         <div className="col-span-3">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            {t('modal.step')}
+          </label>
           <Select
             value={piece.currentStep || ''}
             onValueChange={handleStepChange}
@@ -140,7 +143,7 @@ export function ProcessingPieceRow({
         </div>
 
         {/* Ready Checkbox */}
-        <div className="col-span-2 flex items-center">
+        <div className="col-span-2 flex items-end pb-1">
           <Checkbox
             checked={piece.isReady}
             onCheckedChange={handleReadyChange}
@@ -150,7 +153,7 @@ export function ProcessingPieceRow({
 
         {/* Split Checkbox - Conditional */}
         {splitOrderEnabled && (
-          <div className="col-span-2 flex items-center">
+          <div className="col-span-2 flex items-end pb-1">
             <Checkbox
               checked={isSelectedForSplit}
               onCheckedChange={handleSplitChange}
@@ -161,8 +164,11 @@ export function ProcessingPieceRow({
 
         {/* Notes */}
         <div className={splitOrderEnabled ? 'col-span-3' : 'col-span-5'}>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            {t('modal.notes')}
+          </label>
           <Textarea
-            value={piece.notes}
+            value={piece.notes || ''}
             onChange={handleNotesChange}
             placeholder={t('modal.notes')}
             className="h-9 resize-none text-sm"
@@ -172,8 +178,11 @@ export function ProcessingPieceRow({
 
         {/* Rack Location */}
         <div className="col-span-2">
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            {t('modal.rackLocation')}
+          </label>
           <Input
-            value={piece.rackLocation}
+            value={piece.rackLocation || ''}
             onChange={handleRackChange}
             placeholder={t('modal.rackLocation')}
             className="h-9 text-sm"

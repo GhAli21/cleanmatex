@@ -145,6 +145,7 @@ interface OrderRowProps {
 function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
   const isPaid = order.payment_status === 'paid';
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
 
@@ -239,7 +240,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
             </div>
           )}
           <Link
-            href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(t('backToProcessing') || 'Back to Processing')}`}
+            href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
             className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
           >
             {t('details')} →
@@ -264,7 +265,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
               <>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-gray-700">
-                    {progressPercent}%
+                    {tProcessing('progress')}: {progressPercent}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
@@ -586,7 +587,7 @@ function ProcessingOrderCard({
       {/* Progress */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-xs font-medium text-gray-700">{t('progress')}</span>
+          <span className="text-xs font-medium text-gray-700">{tProcessing('progress')}</span>
           <span className="text-xs font-medium text-gray-700">{progressPercent}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -614,7 +615,7 @@ function ProcessingOrderCard({
       {/* Actions */}
       <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
         <Link
-          href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(t('backToProcessing') || 'Back to Processing')}`}
+          href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
           className="text-xs text-blue-600 hover:text-blue-700 text-center py-1"
         >
           {t('details')} →
@@ -658,6 +659,7 @@ function ProcessingTableDesktop({
   formatDate: (date: string) => string;
 }) {
   const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing'); // ✅ For progress
 
   const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
     <th
@@ -690,7 +692,7 @@ function ProcessingTableDesktop({
                 </th>
                 <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
-                  {t('progress')}
+                  {tProcessing('progress')}
                 </th>
                 <SortableHeader field="notes">{t('notes')}</SortableHeader>
                 <SortableHeader field="total">{t('total')}</SortableHeader>

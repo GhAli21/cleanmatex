@@ -504,20 +504,23 @@ export function ProcessingModal({
               )}
 
               {/* Footer */}
-              <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-4">
+              <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row gap-6 pt-4">
                 {/* Rack Location Input */}
-                <div className="flex-1">
-                  <Label htmlFor="rack-location">{t('rackLocationOrder')}</Label>
+                <div className="flex-1 space-y-2">
+                  <Label htmlFor="rack-location" className="block text-sm font-medium text-gray-700">
+                    {t('rackLocationOrder')}
+                  </Label>
                   <Input
                     id="rack-location"
                     value={rackLocation}
                     onChange={(e) => setRackLocation(e.target.value)}
-                    placeholder={t('rackLocation')}
+                    placeholder={t('rackLocationPlaceholder') || t('rackLocation')}
+                    label="" // Clear label since we're using Label component above
                   />
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-col sm:flex-row gap-2">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button
                     onClick={handleUpdate}
                     disabled={!hasChanges || updateMutation.isPending}
