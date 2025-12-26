@@ -46,6 +46,7 @@ export default function ReadyPage() {
       if (!currentTenant) return;
       
       setLoading(true);
+      setError('');
       try {
         const params = new URLSearchParams({
           current_status: 'ready',
@@ -53,13 +54,79 @@ export default function ReadyPage() {
           limit: '20',
         });
         const res = await fetch(`/api/v1/orders?${params.toString()}`);
+        
+        // Check if response is OK before parsing
+        if (!res.ok) {
+          let errorMessage = 'Failed to load orders';
+          try {
+            const errorJson = await res.json();
+            errorMessage = errorJson.error || errorJson.message || errorMessage;
+          } catch {
+            errorMessage = `Server returned ${res.status} ${res.statusText}`;
+          }
+          setError(errorMessage);
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
         const json = await res.json();
+        
+        // Handle error response format
+        if (!json.success) {
+          setError(json.error || json.message || 'Failed to load orders');
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+
         if (json.success && json.data?.orders) {
-          setOrders(json.data.orders);
-          setPagination(json.data.pagination || { page: pagination.page, limit: 20, total: 0, totalPages: 0 });
+          // Transform API response to match ReadyOrder interface
+          const transformedOrders: ReadyOrder[] = json.data.orders.map((order: any) => {
+            // Extract customer data (same pattern as processing page)
+            const customer = order.org_customers_mst || order.customer;
+            const sysCustomer = customer?.sys_customers_mst;
+            const customerData = sysCustomer || customer || {};
+
+            const customerName =
+              customerData.name ||
+              customerData.display_name ||
+              (customerData.first_name 
+                ? `${customerData.first_name} ${customerData.last_name || ''}`.trim() 
+                : '') ||
+              'Unknown Customer';
+
+            const customerPhone = customerData.phone || '';
+
+            return {
+              id: order.id,
+              order_no: order.order_no || '',
+              customer: {
+                name: customerName,
+                phone: customerPhone,
+              },
+              total_items: order.total_items || 0,
+              total: order.total || 0,
+              current_status: order.current_status || order.status || 'ready',
+              rack_location: order.rack_location || '',
+              ready_by: order.ready_by || order.ready_by_at_new || '',
+            };
+          });
+
+          setOrders(transformedOrders);
+          setPagination(json.data.pagination || { 
+            page: pagination.page, 
+            limit: 20, 
+            total: 0, 
+            totalPages: 0 
+          });
+        } else {
+          setOrders([]);
         }
       } catch (err: any) {
+        console.error('Error loading ready orders:', err);
         setError(err.message || 'Failed to load orders');
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -113,14 +180,18 @@ export default function ReadyPage() {
                   <span className="font-medium">Customer:</span>
                   <span>{order.customer.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Phone:</span>
-                  <span>{order.customer.phone}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Rack:</span>
-                  <span className="font-bold text-blue-600">{order.rack_location}</span>
-                </div>
+                {order.customer.phone && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Phone:</span>
+                    <span>{order.customer.phone}</span>
+                  </div>
+                )}
+                {order.rack_location && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Rack:</span>
+                    <span className="font-bold text-blue-600">{order.rack_location}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Total:</span>
                   <span className="font-bold text-green-600">{order.total?.toFixed(2)} OMR</span>

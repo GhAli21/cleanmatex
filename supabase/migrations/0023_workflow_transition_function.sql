@@ -116,12 +116,12 @@ BEGIN
 	
   END IF;
   
-  Return v_items_updated;
+  Return v_items_updated::TEXT;
 EXCEPTION
   WHEN OTHERS THEN
     -- Log error and return failure
     --v_error_message := SQLERRM;
-	Return('ERROR:'+SQLERRM);
+	Return('ERROR:'||SQLERRM);
   
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -325,6 +325,8 @@ BEGIN
   
   IF SUBSTR(v_item_update_result, 1, 5) = 'ERROR' THEN
     v_items_updated:=0;
+  ELSE
+  v_items_updated := v_item_update_result;
   END IF;
   
   -- Step 7: Insert into org_order_history
@@ -611,6 +613,8 @@ BEGIN
 END $$;
 
 COMMIT;
+
+
 
 -- ==================================================================
 -- POST-MIGRATION NOTES
