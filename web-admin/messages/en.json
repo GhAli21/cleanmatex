@@ -1005,13 +1005,16 @@
       "notes": "Notes",
       "rackLocation": "Rack Location",
       "rackLocationOrder": "Rack Location (Order)",
+      "rackLocationPlaceholder": "e.g., Rack A-12",
       "update": "Update",
       "splitOrder": "Split Order",
       "close": "Close",
       "showRejectedOnTop": "Show Rejected On Top",
       "rejected": "Rejected",
       "unReject": "Un-reject",
-      "quantityReady": "{ready} / {total} Ready"
+      "quantityReady": "{ready} / {total} Ready",
+      "noItems": "No Items Found",
+      "noItemsDesc": "This order has no items to process. Please check the order details or contact support."
     },
     "splitConfirm": {
       "title": "Confirm Split Order",

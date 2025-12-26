@@ -1008,13 +1008,16 @@
       "notes": "ملاحظات",
       "rackLocation": "موقع الرف",
       "rackLocationOrder": "موقع الرف (الطلب)",
+      "rackLocationPlaceholder": "مثال: رف أ-12",
       "update": "تحديث",
       "splitOrder": "تقسيم الطلب",
       "close": "إغلاق",
       "showRejectedOnTop": "إظهار المرفوض في الأعلى",
       "rejected": "مرفوض",
       "unReject": "إلغاء الرفض",
-      "quantityReady": "{ready} / {total} جاهز"
+      "quantityReady": "{ready} / {total} جاهز",
+      "noItems": "لم يتم العثور على عناصر",
+      "noItemsDesc": "هذا الطلب لا يحتوي على عناصر للمعالجة. يرجى التحقق من تفاصيل الطلب أو الاتصال بالدعم."
     },
     "splitConfirm": {
       "title": "تأكيد تقسيم الطلب",
