@@ -35,13 +35,13 @@ todos:
     status: completed
   - id: mobile-responsiveness
     content: Add mobile card view for all status page tables and make modals mobile-friendly
-    status: pending
+    status: completed
   - id: visual-hierarchy
     content: Improve visual hierarchy in all status page tables - alternating row colors, better hover states, enhanced separation
-    status: pending
+    status: completed
   - id: add-translations
     content: Add all required translation keys to en.json and ar.json for new components and features
-    status: pending
+    status: completed
 ---
 
 # Processing Page Enhancement - Complete Implementation Plan

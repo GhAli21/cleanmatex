@@ -40,6 +40,17 @@ export function ProcessingTable({
   onEditClick,
 }: ProcessingTableProps) {
   const t = useTranslations('processing.table');
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -82,53 +93,44 @@ export function ProcessingTable({
     );
   }
 
-  return (
-    <>
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <SortableHeader field="id">{t('id')}</SortableHeader>
-                <SortableHeader field="ready_by_at">{t('readyBy')}</SortableHeader>
-                <SortableHeader field="customer_name">{t('customer')}</SortableHeader>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
-                  {t('order')}
-                </th>
-                <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
-                {/* ✅ NEW PROGRESS COLUMN */}
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
-                  {t('progress')}
-                </th>
-                <SortableHeader field="notes">{t('notes')}</SortableHeader>
-                <SortableHeader field="total">{t('total')}</SortableHeader>
-                <SortableHeader field="status">{t('status')}</SortableHeader>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {orders.map((order) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  formatDate={formatDate}
-                  onRefresh={onRefresh}
-                  onEditClick={onEditClick}
-                />
-              ))}
-            </tbody>
-          </table>
+  // ✅ Mobile card view
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-4">
+          {orders.map((order, index) => (
+            <ProcessingOrderCard
+              key={order.id}
+              order={order}
+              formatDate={formatDate}
+              onRefresh={onRefresh}
+              onEditClick={onEditClick}
+              index={index}
+            />
+          ))}
         </div>
-      </div>
-      
-      {/* Render dialogs outside the table */}
-      {orders.map((order) => (
-        <OrderRowDialog
-          key={`dialog-${order.id}`}
-          order={order}
-          onRefresh={onRefresh}
-        />
-      ))}
-    </>
+        {/* Render dialogs */}
+        {orders.map((order) => (
+          <OrderRowDialog
+            key={`dialog-${order.id}`}
+            order={order}
+            onRefresh={onRefresh}
+          />
+        ))}
+      </>
+    );
+  }
+
+  // Desktop table view
+  return (
+    <ProcessingTableDesktop
+      orders={orders}
+      sortField={sortField}
+      onSort={onSort}
+      onRefresh={onRefresh}
+      onEditClick={onEditClick}
+      formatDate={formatDate}
+    />
   );
 }
 
@@ -137,9 +139,10 @@ interface OrderRowProps {
   formatDate: (date: string) => string;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
+  index: number; // ✅ NEW: For alternating row colors
 }
 
-function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) {
+function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
   const isPaid = order.payment_status === 'paid';
@@ -152,6 +155,10 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
 
   // Determine row highlight color
   const rowHighlight = isUrgent ? 'border-l-4 border-l-pink-500' : 'border-l-4 border-l-blue-200';
+  
+  // ✅ Visual hierarchy: Alternating row colors
+  const rowBgColor = index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50';
+  const hoverColor = 'hover:bg-blue-50/50';
 
   const handleStatusToggleClick = () => {
     // Dispatch custom event to open dialog
@@ -199,7 +206,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
 
   return (
     <React.Fragment>
-      <tr className={`hover:bg-gray-50 ${rowHighlight}`}>
+      <tr className={`${rowBgColor} ${hoverColor} transition-colors duration-150 ${rowHighlight}`}>
       {/* ID */}
       <td className="px-4 py-4">
         <div className="font-medium text-blue-600">{order.order_no}</div>
@@ -502,5 +509,218 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ✅ Mobile Card View Component
+function ProcessingOrderCard({
+  order,
+  formatDate,
+  onRefresh,
+  onEditClick,
+  index,
+}: {
+  order: ProcessingOrder;
+  formatDate: (date: string) => string;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void;
+  index: number;
+}) {
+  const router = useRouter();
+  const t = useTranslations('processing.table');
+  const isPaid = order.payment_status === 'paid';
+  const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+
+  const handleEdit = () => {
+    setIsLoadingEdit(true);
+    if (onEditClick) {
+      onEditClick(order.id);
+      setTimeout(() => setIsLoadingEdit(false), 500);
+    } else {
+      router.push(`/dashboard/processing/${order.id}`);
+    }
+  };
+
+  const progressPercent = order.total_items > 0
+    ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
+    : 0;
+
+  return (
+    <div className={`bg-white rounded-lg border-2 p-4 ${
+      isUrgent ? 'border-l-4 border-l-pink-500' : 'border-gray-200'
+    }`}>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-bold text-blue-600 text-lg">{order.order_no}</h3>
+            {!isPaid && (
+              <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                1st
+              </span>
+            )}
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+              {order.current_status}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">{order.customer_name}</p>
+          <p className="text-xs text-gray-500">{formatDate(order.ready_by_at)}</p>
+        </div>
+      </div>
+
+      {/* Items */}
+      <div className="mb-3 space-y-1">
+        {order.items.slice(0, 2).map((item, idx) => (
+          <div key={idx} className="text-sm text-gray-700">
+            {item.product_name} x {item.quantity}
+          </div>
+        ))}
+        {order.items.length > 2 && (
+          <div className="text-xs text-gray-500">
+            +{order.items.length - 2} {t('moreItems')}
+          </div>
+        )}
+      </div>
+
+      {/* Progress */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-gray-700">{t('progress')}</span>
+          <span className="text-xs font-medium text-gray-700">{progressPercent}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-300 ${
+              progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+            }`}
+            style={{ width: `${Math.min(100, progressPercent)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+        <div>
+          <span className="text-gray-600">{t('pcs')}: </span>
+          <span className="font-medium">{order.total_items}</span>
+        </div>
+        <div className="text-right">
+          <span className="text-gray-600">{t('total')}: </span>
+          <span className="font-semibold">OMR {order.total.toFixed(3)}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
+        <Link
+          href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(t('backToProcessing') || 'Back to Processing')}`}
+          className="text-xs text-blue-600 hover:text-blue-700 text-center py-1"
+        >
+          {t('details')} →
+        </Link>
+        <button
+          onClick={handleEdit}
+          disabled={isLoadingEdit}
+          className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {isLoadingEdit ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('opening') || 'Opening...'}
+            </>
+          ) : (
+            <>
+              <SquarePen className="h-4 w-4" />
+              {t('edit') || 'Edit'}
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ✅ Desktop Table Component (extracted for clarity)
+function ProcessingTableDesktop({
+  orders,
+  sortField,
+  onSort,
+  onRefresh,
+  onEditClick,
+  formatDate,
+}: {
+  orders: ProcessingOrder[];
+  sortField: SortField;
+  onSort: (field: SortField) => void;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void;
+  formatDate: (date: string) => string;
+}) {
+  const t = useTranslations('processing.table');
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-2">
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 ${
+            sortField === field ? 'text-blue-600' : 'text-gray-400'
+          }`}
+        />
+      </div>
+    </th>
+  );
+
+  return (
+    <>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <SortableHeader field="id">{t('id')}</SortableHeader>
+                <SortableHeader field="ready_by_at">{t('readyBy')}</SortableHeader>
+                <SortableHeader field="customer_name">{t('customer')}</SortableHeader>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                  {t('order')}
+                </th>
+                <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                  {t('progress')}
+                </th>
+                <SortableHeader field="notes">{t('notes')}</SortableHeader>
+                <SortableHeader field="total">{t('total')}</SortableHeader>
+                <SortableHeader field="status">{t('status')}</SortableHeader>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {orders.map((order, index) => (
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  formatDate={formatDate}
+                  onRefresh={onRefresh}
+                  onEditClick={onEditClick}
+                  index={index}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      
+      {/* Render dialogs outside the table */}
+      {orders.map((order) => (
+        <OrderRowDialog
+          key={`dialog-${order.id}`}
+          order={order}
+          onRefresh={onRefresh}
+        />
+      ))}
+    </>
   );
 }

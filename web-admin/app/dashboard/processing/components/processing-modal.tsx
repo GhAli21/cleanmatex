@@ -390,7 +390,7 @@ export function ProcessingModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="max-w-3xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-3xl w-full mx-4 h-[90vh] sm:h-[90vh] flex flex-col">
           {/* Header */}
           <DialogHeader className="flex-shrink-0">
             <DialogTitle>
@@ -425,8 +425,8 @@ export function ProcessingModal({
                     Order ID: {orderId || 'Unknown'}
                   </p>
                 </div>
-                <div className="flex gap-3 justify-center flex-wrap">
-                  <Button variant="secondary" onClick={onClose}>
+                <div className="flex flex-col sm:flex-row gap-3 justify-center flex-wrap">
+                  <Button variant="secondary" onClick={onClose} className="w-full sm:w-auto">
                     {t('close') || 'Close'}
                   </Button>
                   <Button
@@ -437,6 +437,7 @@ export function ProcessingModal({
                         queryKey: ['order-processing', orderId]
                       });
                     }}
+                    className="w-full sm:w-auto"
                   >
                     <RefreshCw className="mr-2 h-4 w-4" />
                     {t('retry') || 'Retry'}
@@ -516,10 +517,11 @@ export function ProcessingModal({
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     onClick={handleUpdate}
                     disabled={!hasChanges || updateMutation.isPending}
+                    className="w-full sm:w-auto"
                   >
                     {updateMutation.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -532,13 +534,14 @@ export function ProcessingModal({
                       variant="danger"
                       onClick={() => setShowSplitDialog(true)}
                       disabled={splitMutation.isPending}
+                      className="w-full sm:w-auto"
                     >
                       {t('splitOrder')} ({selectedForSplit.size})
                     </Button>
                   )}
 
                   <DialogClose asChild>
-                    <Button variant="outline">{t('close')}</Button>
+                    <Button variant="outline" className="w-full sm:w-auto">{t('close')}</Button>
                   </DialogClose>
                 </div>
               </DialogFooter>
