@@ -10,6 +10,7 @@ import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle } from 'lucid
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { cmxMessage } from '@ui/feedback/cmx-message';
 import {
   Dialog,
   DialogContent,
@@ -95,6 +96,10 @@ export function ProcessingTable({
                   {t('order')}
                 </th>
                 <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
+                {/* ✅ NEW PROGRESS COLUMN */}
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                  {t('progress')}
+                </th>
                 <SortableHeader field="notes">{t('notes')}</SortableHeader>
                 <SortableHeader field="total">{t('total')}</SortableHeader>
                 <SortableHeader field="status">{t('status')}</SortableHeader>
@@ -142,6 +147,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
 
   // State for loading and success message
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);  // ✅ NEW
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Determine row highlight color
@@ -179,10 +185,13 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
 
 
   const handleEdit = () => {
-    // If onEditClick callback is provided, use it (modal mode)
-    // Otherwise, navigate to detail page (fallback)
+    console.log('[OrderRow] Edit clicked for order:', order.id);
+    setIsLoadingEdit(true);
+
     if (onEditClick) {
       onEditClick(order.id);
+      // Reset loading after modal should open
+      setTimeout(() => setIsLoadingEdit(false), 500);
     } else {
       router.push(`/dashboard/processing/${order.id}`);
     }
@@ -223,7 +232,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
             </div>
           )}
           <Link
-            href={`/dashboard/orders/${order.id}`}
+            href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(t('backToProcessing') || 'Back to Processing')}`}
             className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
           >
             {t('details')} →
@@ -234,6 +243,35 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
       {/* PCS */}
       <td className="px-4 py-4 text-right">
         <div className="font-medium">{order.total_items}</div>
+      </td>
+
+      {/* ✅ PROGRESS - NEW */}
+      <td className="px-4 py-4">
+        <div className="w-24">
+          {(() => {
+            const progressPercent = order.total_items > 0
+              ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
+              : 0;
+            
+            return (
+              <>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-gray-700">
+                    {progressPercent}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+                    }`}
+                    style={{ width: `${Math.min(100, progressPercent)}%` }}
+                  />
+                </div>
+              </>
+            );
+          })()}
+        </div>
       </td>
 
       {/* NOTES */}
@@ -258,14 +296,19 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
             </span>
           )}
 
-          {/* Edit Icon */}
+          {/* ✅ Edit Icon with Loading State */}
           <button
             onClick={handleEdit}
-            className="p-2 hover:bg-gray-100 rounded transition-colors"
-            title={t('edit')}
-            aria-label={t('edit')}
+            disabled={isLoadingEdit}
+            className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
+            title={isLoadingEdit ? (t('opening') || 'Opening...') : (t('edit') || 'Edit')}
+            aria-label={t('edit') || 'Edit'}
           >
-            <SquarePen className="h-4 w-4 text-gray-600" />
+            {isLoadingEdit ? (
+              <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+            ) : (
+              <SquarePen className="h-4 w-4 text-gray-600" />
+            )}
           </button>
 
           {/* Status Toggle Icon */}
@@ -295,7 +338,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick }: OrderRowProps) 
       {/* Success Message Row */}
       {successMessage && (
         <tr>
-          <td colSpan={8} className="px-4 py-3 bg-green-50 border-t border-green-200">
+          <td colSpan={9} className="px-4 py-3 bg-green-50 border-t border-green-200">
             <div className="flex items-center gap-2 text-green-800">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <span className="text-sm font-medium">{successMessage}</span>
@@ -364,18 +407,27 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
           window.dispatchEvent(new CustomEvent(`mark-ready-success-${order.id}`));
         } else {
           window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
-          alert(json.error || t('markReadyError') || 'Failed to update order status');
+          cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+            description: json.error,
+            duration: 5000,
+          });
         }
       } else {
         window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
         const error = await res.json().catch(() => ({ error: t('markReadyError') || 'Failed to update order status' }));
-        alert(error.error || t('markReadyError') || 'Failed to update order status');
+        cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+          description: error.error,
+          duration: 5000,
+        });
       }
     } catch (error) {
       setIsLoading(false);
       window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
       console.error('Error updating order:', error);
-      alert(t('markReadyError') || 'Error updating order status');
+      cmxMessage.error(t('markReadyError') || 'Error updating order status', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+        duration: 5000,
+      });
     }
   };
 

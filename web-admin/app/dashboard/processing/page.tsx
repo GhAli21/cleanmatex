@@ -9,6 +9,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useRTL } from '@/lib/hooks/useRTL';
 import { RefreshCw, ArrowUpDown } from 'lucide-react';
 import type {
   ProcessingOrder,
@@ -27,6 +28,8 @@ export default function ProcessingPage() {
   console.log('[JH] Start ProcessingPage()');
 
   const t = useTranslations('processing');
+  const tOrders = useTranslations('orders');
+  const isRTL = useRTL();
   const { currentTenant, isLoading: authLoading } = useAuth();
   console.log('[JH] 🟣 ProcessingPage: 1 - authLoading:', authLoading);
   console.log('[JH] 🟣 ProcessingPage: 2 - currentTenant:', currentTenant);
@@ -39,6 +42,12 @@ export default function ProcessingPage() {
   const [sortField, setSortField] = useState<SortField>('ready_by_at');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
 
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -86,20 +95,25 @@ export default function ProcessingPage() {
     }
 
     console.log('[JH] 🟢 ProcessingPage 10 - Calling loadOrders from useEffect');
-    loadOrders();
-  }, [currentTenant, filters, authLoading]);
+    loadOrders(pagination.page);
+  }, [currentTenant, filters, authLoading, pagination.page]);
 
-  const loadOrders = async () => {
+  const loadOrders = async (pageNum: number = 1) => {
     console.log('[JH] 🔵 ProcessingPage 11 - STEP 1: loadOrders called');
     setLoading(true);
     setError('');
     try {
-      // Fetch ALL orders first, then filter client-side for processing status
-      // This ensures we get the data regardless of API parameter naming
-      const params = new URLSearchParams(filters as Record<string, string>);
+      // ✅ Server-side pagination with status filter
+      const params = new URLSearchParams({
+        current_status: 'processing',
+        page: String(pageNum),
+        limit: '20',
+        ...filters as Record<string, string>
+      });
       console.log('[JH] 🔵 ProcessingPage 12 - STEP 2: Preparing to fetch orders', {
         apiUrl: `/api/v1/orders?${params.toString()}`,
         filters,
+        pageNum,
       });
 
       const res = await fetch(`/api/v1/orders?${params.toString()}`);
@@ -168,6 +182,7 @@ export default function ProcessingPage() {
               customer_name2: customerData.name2,
               items,
               total_items: order.total_items || items.length,
+              quantity_ready: order.quantity_ready || 0,  // ✅ Add quantity_ready for progress indicator
               notes: order.customer_notes || order.internal_notes,
               total: order.total || 0,
               status: order.current_status || order.status || 'processing',
@@ -182,24 +197,6 @@ export default function ProcessingPage() {
 
             console.log(`[JH] 🔵 ProcessingPage 19 - STEP 6.${index + 1}d: Transformation complete`, transformed);
             return transformed;
-          })
-
-          // Client-side filter for processing status
-          .filter((order: ProcessingOrder, index: number) => {
-            const isProcessing = 
-              order.current_status?.toLowerCase() === 'processing' ||
-              order.status?.toLowerCase() === 'processing'; 
-
-              console.log(`[JH] 🔵 ProcessingPage 20 - STEP 7.${index + 1}: Filtering ${order.order_no}`+
-                'status: '+order.status+
-                'currentStatus: '+order.current_status+
-                'statusLower: '+order.status?.toLowerCase()+
-                'currentStatusLower: '+order.current_status?.toLowerCase()+
-                'isProcessing: '+isProcessing+
-                'passes: '+isProcessing
-              );
-
-            return isProcessing;
           });
 
         console.log('[JH] 🔵 ProcessingPage 21 - STEP 8: Final results summary'+
@@ -219,8 +216,10 @@ export default function ProcessingPage() {
         console.log('[JH] 🔵 ProcessingPage 25 - STEP 9: Setting orders state ( '+transformedOrders.length+' ) orders');
         console.log('[JH] 🔵 ProcessingPage 26 - STEP 9: Setting orders state', {
           ordersCount: transformedOrders.length,
+          pagination: json.data.pagination,
         });
         setOrders(transformedOrders);
+        setPagination(json.data.pagination || { page: pageNum, limit: 20, total: 0, totalPages: 0 });  // ✅ Store pagination info
         console.log('[JH] 🔵 ProcessingPage 27 - STEP 10: Orders state set successfully');
       } else {
         console.log('[JH] 🟢 ProcessingPage 28 - ❌ STEP 5-ALT: Condition failed', {
@@ -340,7 +339,14 @@ export default function ProcessingPage() {
   // Handle refresh
   const handleRefresh = () => {
     console.log('[JH] 🔵 ProcessingPage 47 - Handling refresh');
-    loadOrders();
+    loadOrders(pagination.page);
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    console.log('[JH] 🔵 ProcessingPage - Handling page change:', newPage);
+    setPagination(prev => ({ ...prev, page: newPage }));
+    // loadOrders will be called via useEffect when pagination.page changes
   };
 
   // Handle filter change
@@ -366,7 +372,7 @@ export default function ProcessingPage() {
   // Handle modal refresh - Reload orders after modal actions
   const handleModalRefresh = () => {
     console.log('[JH] 🔵 ProcessingPage 51 - Handling modal refresh');
-    loadOrders();
+    loadOrders(pagination.page);
   };
 
   if (loading) {
@@ -411,6 +417,42 @@ export default function ProcessingPage() {
         onRefresh={handleRefresh}
         onEditClick={handleEditClick}
       />
+
+      {/* Pagination Controls */}
+      {pagination.totalPages > 1 && (
+        <div
+          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${
+            isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
+          }`}
+        >
+          <div>
+            {tOrders('showing')}{' '}
+            {(pagination.page - 1) * pagination.limit + 1}{' '}
+            {tOrders('to')}{' '}
+            {Math.min(pagination.page * pagination.limit, pagination.total)}{' '}
+            {tOrders('of')}{' '}
+            {pagination.total} {tOrders('orders')?.toLowerCase() || 'orders'}
+          </div>
+          <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <button
+              type="button"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              {tOrders('previous')}
+            </button>
+            <button
+              type="button"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.totalPages}
+              className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              {tOrders('next')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Processing Modal */}
       {currentTenant && (

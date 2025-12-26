@@ -23,7 +23,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { SummaryMessage } from '@/components/ui/summary-message';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle, Package, RefreshCw } from 'lucide-react';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import type {
   Order,
@@ -110,20 +110,84 @@ export function ProcessingModal({
   const { data: orderData, isLoading: orderLoading, error: orderError } = useQuery({
     queryKey: ['order-processing', orderId],
     queryFn: async () => {
+      console.log('[ProcessingModal] Fetching order:', orderId);
+
       const response = await fetch(`/api/v1/orders/${orderId}/state`);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch order: ${response.statusText}`);
+        console.error('[ProcessingModal] API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
       }
+
       const json = await response.json();
-      // Handle both response formats for compatibility
-      return json.data || json;
+      console.log('[ProcessingModal] Raw API Response:', json);
+
+      // ✅ CORRECTED: Check actual format first (Format 3)
+      let normalizedData;
+      if (json.success && json.order && json.items) {
+        // Format 3: { success: true, order: {}, items: [] } - ACTUAL FORMAT
+        normalizedData = { order: json.order, items: json.items };
+        console.log('[ProcessingModal] Format: success.order wrapper (actual format)');
+      } else if (json.success && json.data) {
+        // Format 1: { success: true, data: { order: {}, items: [] } }
+        normalizedData = json.data;
+        console.log('[ProcessingModal] Format: success.data wrapper');
+      } else if (json.order && json.items) {
+        // Format 2: { order: {}, items: [] }
+        normalizedData = { order: json.order, items: json.items };
+        console.log('[ProcessingModal] Format: direct order.items');
+      } else {
+        // ❌ Unexpected format
+        console.error('[ProcessingModal] Unexpected response format:', json);
+        normalizedData = { order: null, items: [] };
+      }
+
+      console.log('[ProcessingModal] Normalized Data:', {
+        hasOrder: !!normalizedData.order,
+        orderId: normalizedData.order?.id,
+        itemsCount: normalizedData.items?.length || 0,
+        items: normalizedData.items?.map((i: any) => ({ id: i.id, description: i.description }))
+      });
+
+      return normalizedData;
     },
     enabled: isOpen && !!orderId,
+    retry: 1,
+    staleTime: 0,  // Always fetch fresh
+    gcTime: 0,     // Don't cache
   });
 
   const order: Order | null = orderData?.order || null;
   const items: OrderItem[] = orderData?.items || [];
+
+  // ✅ Comprehensive debug logging
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    console.log('[ProcessingModal] State Update:', {
+      isOpen,
+      orderId,
+      orderLoading,
+      hasError: !!orderError,
+      errorMessage: orderError instanceof Error ? orderError.message : 'none',
+      hasOrderData: !!orderData,
+      hasOrder: !!order,
+      itemsCount: items.length,
+    });
+
+    if (orderError) {
+      console.error('[ProcessingModal] Error Details:', orderError);
+    }
+
+    if (!orderLoading && !orderError && !order) {
+      console.warn('[ProcessingModal] No order data but no error - possible format mismatch');
+    }
+  }, [isOpen, orderId, orderLoading, orderError, orderData, order, items]);
 
   // Initialize piece states when items load
   React.useEffect(() => {
@@ -345,17 +409,39 @@ export function ProcessingModal({
 
           {/* Error State */}
           {!isLoading && orderError && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <p className="text-red-600 font-medium">
-                  {t('error.loadingFailed') || 'Failed to load order'}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {orderError instanceof Error ? orderError.message : 'Unknown error'}
-                </p>
-                <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] })}>
-                  {t('retry') || 'Retry'}
-                </Button>
+            <div className="flex-1 flex items-center justify-center p-6">
+              <div className="text-center space-y-4 max-w-md">
+                <AlertCircle className="h-16 w-16 text-red-500 mx-auto" />
+                <div>
+                  <h3 className="text-lg font-semibold text-red-900 mb-2">
+                    {t('error.loadingFailed') || 'Failed to Load Order'}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-1">
+                    {orderError instanceof Error
+                      ? orderError.message
+                      : 'An unknown error occurred'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Order ID: {orderId || 'Unknown'}
+                  </p>
+                </div>
+                <div className="flex gap-3 justify-center flex-wrap">
+                  <Button variant="secondary" onClick={onClose}>
+                    {t('close') || 'Close'}
+                  </Button>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      console.log('[ProcessingModal] Retrying fetch for order:', orderId);
+                      queryClient.invalidateQueries({
+                        queryKey: ['order-processing', orderId]
+                      });
+                    }}
+                  >
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    {t('retry') || 'Retry'}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
@@ -376,8 +462,14 @@ export function ProcessingModal({
                 {/* Items List */}
                 <div className="space-y-3">
                   {sortedItems.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      {t('noItems') || 'No items found in this order'}
+                    <div className="text-center py-12 px-4">
+                      <Package className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                        {t('noItems') || 'No Items Found'}
+                      </h3>
+                      <p className="text-sm text-gray-500 max-w-sm mx-auto">
+                        {t('noItemsDesc') || 'This order has no items to process. Please check the order details or contact support.'}
+                      </p>
                     </div>
                   ) : (
                     sortedItems.map(item => (

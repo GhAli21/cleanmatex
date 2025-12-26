@@ -100,6 +100,11 @@ export async function GET(request: NextRequest) {
     
     console.log('[Jh] GET /api/v1/orders: Supabase client created');
     
+    // Get filters
+    const currentStatus = searchParams.get('current_status');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '20');
+    
     // org_customers_mst!inner(
     let query = null;
     const is_show_null_org_customers = 'true';//searchParams.get('is_show_null_org_customers');
@@ -117,7 +122,7 @@ export async function GET(request: NextRequest) {
           *,
           org_product_data_mst(*)
         )
-      `)
+      `, { count: 'exact' })  // ✅ Get total count
       .eq('tenant_org_id', tenantId);
       }
     else {
@@ -133,48 +138,24 @@ export async function GET(request: NextRequest) {
           *,
           org_product_data_mst(*)
         )
-      `)
+      `, { count: 'exact' })  // ✅ Get total count
       .eq('tenant_org_id', tenantId);
     }
-    /* 
-    // Apply filters
-    const status = searchParams.get('status');
-    const currentStatus = searchParams.get('current_status');
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
+    // Apply status filter
     if (currentStatus) {
       query = query.eq('current_status', currentStatus);
     }
 
-    const isQuickDrop = searchParams.get('isQuickDrop');
-    if (isQuickDrop === 'true') {
-      query = query.eq('is_order_quick_drop', true);
-    }
-
-    const hasIssue = searchParams.get('hasIssue');
-    if (hasIssue === 'true') {
-      query = query.eq('has_issue', true);
-    }
-
-    const hasSplit = searchParams.get('hasSplit');
-    if (hasSplit === 'true') {
-      query = query.eq('has_split', true);
-    }
-    */
-
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-
-    // Pagination
-    query = query.range((page - 1) * limit, page * limit - 1);
+    // Apply pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
 
     // Sorting
     query = query.order('created_at', { ascending: false });
     
-    const { data: orders, error } = await query;
+    const { data: orders, error, count } = await query;
 
     if (error) {
       console.error('[Jh] GET /api/v1/orders: Error:', error);
@@ -210,7 +191,8 @@ export async function GET(request: NextRequest) {
         pagination: {
           page,
           limit,
-          total: orders?.length || 0,
+          total: count || 0,
+          totalPages: Math.ceil((count || 0) / limit),
         },
       },
     });

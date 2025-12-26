@@ -984,7 +984,8 @@
       "confirm": "Confirm",
       "confirmReady": "Confirm Ready",
       "processing": "Processing...",
-      "rackLocation": "Rack Location"
+      "rackLocation": "Rack Location",
+      "opening": "Opening..."
     },
     "detail": {
       "rackLocation": "Rack Location",
@@ -1070,6 +1071,18 @@
     "status": {
       "processing": "Processing"
     }
+  },
+  "preparation": {
+    "backToPreparation": "Back to Preparation"
+  },
+  "assembly": {
+    "backToAssembly": "Back to Assembly"
+  },
+  "qa": {
+    "backToQA": "Back to Quality Check"
+  },
+  "ready": {
+    "backToReady": "Back to Ready"
   },
   "workflow": {
     "screens": {

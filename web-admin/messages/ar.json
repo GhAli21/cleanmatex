@@ -987,7 +987,8 @@
       "confirm": "تأكيد",
       "confirmReady": "تأكيد الجاهزية",
       "processing": "جاري المعالجة...",
-      "rackLocation": "موقع الرف"
+      "rackLocation": "موقع الرف",
+      "opening": "جاري الفتح..."
     },
     "detail": {
       "rackLocation": "موقع الرف",
@@ -1073,6 +1074,18 @@
     "status": {
       "processing": "قيد المعالجة"
     }
+  },
+  "preparation": {
+    "backToPreparation": "العودة إلى التحضير"
+  },
+  "assembly": {
+    "backToAssembly": "العودة إلى التجميع"
+  },
+  "qa": {
+    "backToQA": "العودة إلى فحص الجودة"
+  },
+  "ready": {
+    "backToReady": "العودة إلى الجاهز"
   },
   "workflow": {
     "screens": {

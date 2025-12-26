@@ -1,10 +1,14 @@
-# CleanMateX Frontend Standards (Aligned with Architecture)
+---
+alwaysApply: true
+---
+
+# Next.js Frontend Standards (Aligned with Architecture)
 
 This document defines the **frontend standards** for CleanMateX and is fully aligned with the architecture described in `AI_Coder_Frontend_Instructions.md`.
 
 **Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on**
+
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
-- **Pagination Always should be Server-Side Pagination (API-Driven)**
 
 Authoritative folder structure:
 
@@ -79,10 +83,10 @@ Example:
 
 ```tsx
 // app/dashboard/orders/page.tsx
-import { OrderListScreen } from '@features/orders/ui/order-list-screen'
+import { OrderListScreen } from "@features/orders/ui/order-list-screen";
 
 export default async function OrdersPage() {
-  return <OrderListScreen />
+  return <OrderListScreen />;
 }
 ```
 
@@ -155,18 +159,18 @@ Example:
 
 ```tsx
 // src/features/orders/ui/order-list-screen.tsx
-import { CmxDataTable } from '@ui/data-display/cmx-datatable'
-import { useOrders } from '../hooks/use-orders'
+import { CmxDataTable } from "@ui/data-display/cmx-datatable";
+import { useOrders } from "../hooks/use-orders";
 
 export function OrderListScreen() {
-  const { data, isLoading } = useOrders()
+  const { data, isLoading } = useOrders();
   return (
     <CmxDataTable
       data={data ?? []}
       loading={isLoading}
       /* ... */
     />
-  )
+  );
 }
 ```
 
@@ -207,7 +211,7 @@ Usage rules:
 Example import:
 
 ```ts
-import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxButton } from "@ui/primitives/cmx-button";
 ```
 
 ### 3.2 Styling & Tailwind
@@ -246,29 +250,29 @@ import { CmxButton } from '@ui/primitives/cmx-button'
 Pattern:
 
 ```tsx
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
 // Define schema
 const FormSchema = z.object({
   name: z.string().min(1),
-})
+});
 
 // Infer TypeScript type
-type FormValues = z.infer<typeof FormSchema>
+type FormValues = z.infer<typeof FormSchema>;
 
 export function SomeForm() {
   const form = useForm<FormValues>({
     resolver: zodResolver(FormSchema),
-    defaultValues: { name: '' },
-  })
+    defaultValues: { name: "" },
+  });
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
       {/* use CmxForm + CmxInput here */}
     </form>
-  )
+  );
 }
 ```
 
@@ -286,7 +290,10 @@ export function SomeForm() {
 
 ```ts
 // lib/api/client.ts
-export async function apiRequest<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
+export async function apiRequest<T>(
+  input: RequestInfo,
+  init?: RequestInit
+): Promise<T> {
   // handle base URL, auth headers, error handling, etc.
 }
 ```
@@ -297,10 +304,12 @@ Example:
 
 ```ts
 // src/features/orders/api/orders-api.ts
-import { apiRequest } from '@lib/api/client'
+import { apiRequest } from "@lib/api/client";
 
 export async function fetchOrders(params: { page: number }) {
-  return apiRequest<{ data: Order[]; total: number }>(`/api/orders?page=${params.page}`)
+  return apiRequest<{ data: Order[]; total: number }>(
+    `/api/orders?page=${params.page}`
+  );
 }
 ```
 
@@ -311,14 +320,14 @@ export async function fetchOrders(params: { page: number }) {
 
 ```ts
 // src/features/orders/hooks/use-orders.ts
-import { useQuery } from '@tanstack/react-query'
-import { fetchOrders } from '../api/orders-api'
+import { useQuery } from "@tanstack/react-query";
+import { fetchOrders } from "../api/orders-api";
 
 export function useOrders(params: { page: number }) {
   return useQuery({
-    queryKey: ['orders', params],
+    queryKey: ["orders", params],
     queryFn: () => fetchOrders(params),
-  })
+  });
 }
 ```
 
@@ -335,21 +344,23 @@ Example pattern:
 
 ```ts
 // lib/types/supabase.ts
-export type DbOrder = {/* generated */}
+export type DbOrder = {
+  /* generated */
+};
 
 // src/features/orders/model/order-types.ts
 export type Order = {
-  id: string
-  customerName: string
+  id: string;
+  customerName: string;
   // ...
-}
+};
 
 export function mapDbOrderToOrder(db: DbOrder): Order {
   return {
     id: db.id,
-    customerName: db.customer_name ?? '',
+    customerName: db.customer_name ?? "",
     // ...
-  }
+  };
 }
 ```
 
@@ -382,8 +393,8 @@ Screens in `src/features` should use these Cmx chart components.
 ## 8. Error Handling & UX
 
 - **Always** use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on
-Global Message Utility (`cmxMessage`) README and usage guide is: /src/ui/feedback/cmxMessage_developer_guide.md
-Global Message Utility (`cmxMessage`) MIGRATION guide is: /src/ui/feedback/cmxMessage_MIGRATION.md
+  Global Message Utility (`cmxMessage`) README and usage guide is: /src/ui/feedback/cmxMessage_developer_guide.md
+  Global Message Utility (`cmxMessage`) MIGRATION guide is: /src/ui/feedback/cmxMessage_MIGRATION.md
 
 - Handle errors at three levels:
   1. API error handling in `apiRequest` (HTTP status, network errors).
@@ -420,5 +431,6 @@ Patterns:
   - `@features/*` → `src/features/*`
   - `@lib/*` → `lib/*`
 - **Do not use:** `components/ui`, `shared/`, `common/` as roots.
+- **Pagination Always should be Server-Side Pagination (API-Driven)**
 
 This document is the single source of truth for frontend implementation standards and must always remain consistent with the architecture defined in `AI_Coder_Frontend_Instructions.md`.

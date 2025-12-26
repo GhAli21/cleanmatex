@@ -1,0 +1,522 @@
+> Combined from `@.claude/docs/dev_commands.md` and `@.claude/docs/09-commands.md` on 2025-10-17
+
+# Dev Commands & Tooling
+
+## Supabase Local
+- `supabase start|stop|status|db reset|db push`
+- Generate TS types → `web-admin/types/database.ts`
+
+## Prisma Commands
+
+### Schema Management
+```bash
+cd web-admin
+
+# Introspect database and generate schema.prisma
+npx prisma db pull
+
+# Generate TypeScript client from schema
+npx prisma generate
+
+# Open Prisma Studio (visual database browser)
+npx prisma studio
+
+# Format schema.prisma file
+npx prisma format
+
+# Validate schema
+npx prisma validate
+```
+
+### Development
+```bash
+# Test Prisma connection
+npx tsx scripts/test-prisma-connection.ts
+
+# View current schema
+cat prisma/schema.prisma
+```
+
+### Migrations (Optional - We use Supabase migrations)
+```bash
+# Create migration from schema changes
+npx prisma migrate dev --name migration_name
+
+# Apply migrations in production
+npx prisma migrate deploy
+
+# Reset database and apply all migrations
+npx prisma migrate reset
+```
+
+**Note:** We primarily use Supabase migrations (`supabase/migrations/*.sql`). Use `npx prisma db pull` to sync Prisma schema after running Supabase migrations.
+
+## Web Admin
+- `npm install`, `npm run dev|build|start|lint|type-check|format`
+
+## Docker
+- `docker-compose up -d|down|logs -f|restart <service>`
+- Services: Redis, MinIO, Redis Commander (NO Postgres - using Supabase's Postgres on port 54322)
+
+## PowerShell Scripts (Windows)
+- `.\scripts\dev\start-services.ps1` - Start all services (Supabase + Docker)
+- `.\scripts\dev\stop-services.ps1` - Stop all services gracefully
+- `.\scripts\dev\status-services.ps1` - Check service health
+
+## Typical Development Workflow
+
+### 1. Start Services (Automated)
+```powershell
+# From project root - starts Supabase + Docker services
+.\scripts\dev\start-services.ps1
+```
+
+Or manually:
+```bash
+# Start Supabase local (includes Postgres on port 54322)
+supabase start
+
+# Start Docker services (Redis, MinIO only)
+docker-compose up -d redis redis-commander minio
+```
+
+### 2. Update Database Schema
+```bash
+# Create new migration in supabase/migrations/
+# Example: supabase/migrations/0004_add_new_table.sql
+
+# Apply migration
+supabase db push
+
+# Sync Prisma schema
+cd web-admin
+npx prisma db pull
+npx prisma generate
+```
+
+### 3. Run Web Admin
+```bash
+cd web-admin
+npm run dev
+```
+
+### 4. Test Changes
+```bash
+# Test Prisma connection
+npx tsx scripts/test-prisma-connection.ts
+
+# Run linter
+npm run lint
+
+# Run type check
+npm run type-check
+```
+
+
+---
+
+## 💻 ESSENTIAL COMMANDS
+
+### Supabase Local Development
+
+#### Starting Supabase
+```bash
+# Navigate to project root
+cd F:/jhapp/cleanmatex
+
+# Initialize Supabase (first time only)
+supabase init
+
+# Start Supabase services
+supabase start
+
+# Expected output:
+# API URL: http://127.0.0.1:54321
+# GraphQL URL: http://127.0.0.1:54321/graphql/v1
+# DB URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+# Studio URL: http://127.0.0.1:54323
+# Inbucket URL: http://127.0.0.1:54324
+# JWT secret: your-jwt-secret
+# anon key: eyJhbGc...
+# service_role key: eyJhbGc...
+```
+
+#### Managing Supabase
+```bash
+# Stop Supabase
+supabase stop
+
+# Reset database (runs all migrations fresh)
+supabase db reset
+
+# Check status
+supabase status
+
+# View logs
+supabase logs
+```
+
+---
+
+## Database Migrations
+
+### Creating Migrations
+```bash
+# Create new migration
+supabase migration new descriptive_name
+
+# Example migrations
+supabase migration new add_delivery_routes
+supabase migration new add_loyalty_points
+supabase migration new create_inventory_tables
+
+# Migration file created at:
+# supabase/migrations/YYYYMMDDHHMMSS_descriptive_name.sql
+```
+
+### Migration Template
+```sql
+-- Migration: Add feature name
+-- Created: YYYY-MM-DD
+-- Author: Your name
+
+BEGIN;
+
+-- Create table
+CREATE TABLE IF NOT EXISTS org_example_mst (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id) ON DELETE CASCADE,
+  
+  -- Business fields
+  name VARCHAR(250) NOT NULL,
+  name2 VARCHAR(250),
+  
+  -- Audit fields
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  created_by VARCHAR(120),
+  updated_at TIMESTAMP,
+  updated_by VARCHAR(120),
+  is_active BOOLEAN DEFAULT true
+);
+
+-- Add indexes
+CREATE INDEX idx_example_tenant ON org_example_mst(tenant_org_id);
+CREATE INDEX idx_example_active ON org_example_mst(tenant_org_id, is_active);
+
+-- Enable RLS
+ALTER TABLE org_example_mst ENABLE ROW LEVEL SECURITY;
+
+-- Create RLS policy
+CREATE POLICY tenant_isolation ON org_example_mst
+  FOR ALL USING (tenant_org_id = auth.jwt() ->> 'tenant_org_id'::text);
+
+-- Add comments
+COMMENT ON TABLE org_example_mst IS 'Description of table purpose';
+
+COMMIT;
+```
+
+### Applying Migrations
+```bash
+# Apply migrations to local database
+supabase db reset
+
+# Push to remote (production)
+supabase db push
+
+# Generate TypeScript types from database
+supabase gen types typescript --local > web-admin/types/database.ts
+```
+
+---
+
+## Web Admin (Next.js)
+
+### Development
+```bash
+cd web-admin
+
+# Install dependencies
+npm install
+# or with pnpm (faster)
+pnpm install
+
+# Development server
+npm run dev
+# Opens http://localhost:3000
+
+# With debug logging
+DEBUG=* npm run dev
+```
+
+### Building & Production
+```bash
+# Type checking
+npm run type-check
+
+# Linting
+npm run lint
+
+# Format code
+npm run format
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Analyze bundle size
+npm run analyze
+```
+
+---
+
+## Docker Services
+
+### Docker Compose Commands
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific services
+docker-compose up -d redis minio
+
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+
+# View logs
+docker-compose logs -f
+
+# View specific service logs
+docker-compose logs -f redis
+
+# Restart a service
+docker-compose restart redis
+```
+
+### Service URLs
+
+**Supabase (Primary):**
+- **Supabase API**: `http://localhost:54321`
+- **Supabase Studio**: `http://localhost:54323`
+- **PostgreSQL**: `postgresql://postgres:postgres@localhost:54322/postgres`
+- **Mailpit**: `http://localhost:54324`
+
+**Docker Services (Supporting):**
+- **Redis**: `localhost:6379`
+- **MinIO API**: `localhost:9000`
+- **MinIO Console**: `localhost:9001`
+- **Redis Commander**: `http://localhost:8081`
+
+**Note:** PostgreSQL runs inside Supabase (port 54322), NOT as a Docker container.
+
+---
+
+## Git Workflow
+
+### Branch Strategy
+```bash
+# Create feature branch
+git checkout -b feature/order-management
+
+# Create bugfix branch
+git checkout -b fix/tenant-isolation-issue
+
+# Create hotfix branch
+git checkout -b hotfix/critical-security-patch
+```
+
+### Commit Convention
+```bash
+# Format: type(scope): description
+
+git commit -m "feat(orders): add order status timeline"
+git commit -m "fix(auth): resolve tenant context issue"
+git commit -m "docs(readme): update setup instructions"
+git commit -m "test(orders): add multi-tenant isolation tests"
+git commit -m "refactor(database): optimize query performance"
+```
+
+Types:
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation
+- `style`: Formatting
+- `refactor`: Code restructuring
+- `test`: Adding tests
+- `chore`: Maintenance
+
+---
+
+## Testing Commands
+
+### Unit Tests
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm test:watch
+
+# Run tests with coverage
+npm test:coverage
+
+# Run specific test file
+npm test orders.test.ts
+```
+
+### E2E Tests
+```bash
+# Install Playwright
+npx playwright install
+
+# Run E2E tests
+npm run test:e2e
+
+# Run in headed mode (see browser)
+npm run test:e2e:headed
+
+# Run specific test
+npm run test:e2e orders-flow.spec.ts
+
+# Open Playwright UI
+npx playwright test --ui
+```
+
+---
+
+## Database Commands
+
+### Direct Database Access
+```bash
+# Connect to Supabase PostgreSQL (the ONLY postgres in development)
+psql postgresql://postgres:postgres@localhost:54322/postgres
+```
+
+### Useful SQL Commands
+```sql
+-- List all tables
+\dt
+
+-- Describe table structure
+\d org_orders_mst
+
+-- View RLS policies
+SELECT * FROM pg_policies WHERE tablename = 'org_orders_mst';
+
+-- Check table sizes
+SELECT
+  schemaname AS schema,
+  tablename AS table,
+  pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+
+-- View active connections
+SELECT * FROM pg_stat_activity;
+```
+
+---
+
+## Deployment Commands
+
+### Vercel Deployment
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to Vercel
+vercel
+
+# Deploy to production
+vercel --prod
+
+# Set environment variables
+vercel env add NEXT_PUBLIC_SUPABASE_URL
+vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
+```
+
+### Build for Self-Hosting
+```bash
+# Build Docker image
+docker build -t cleanmatex-web .
+
+# Run Docker container
+docker run -p 3000:3000 cleanmatex-web
+```
+
+---
+
+## Monitoring & Debugging
+
+### View Logs
+```bash
+# Supabase logs
+supabase logs --tail 100
+
+# Next.js logs (with debug)
+DEBUG=* npm run dev
+
+# Docker logs
+docker-compose logs -f --tail=100
+```
+
+### Performance Monitoring
+```bash
+# Bundle analyzer
+npm run analyze
+
+# Lighthouse CI
+npx lighthouse http://localhost:3000
+
+# Check build size
+npm run build
+# Look at .next/size-report.json
+```
+
+---
+
+## Utility Scripts
+
+### Reset Everything
+```bash
+#!/bin/bash
+# reset-all.sh
+
+echo "Stopping all services..."
+docker-compose down -v
+supabase stop
+
+echo "Cleaning node_modules..."
+rm -rf web-admin/node_modules
+rm -rf backend/node_modules
+
+echo "Reinstalling dependencies..."
+cd web-admin && npm install
+cd ../backend && npm install
+
+echo "Starting services..."
+cd ..
+docker-compose up -d
+supabase start
+
+echo "Running migrations..."
+supabase db reset
+
+echo "Reset complete!"
+```
+
+Make it executable:
+```bash
+chmod +x reset-all.sh
+./reset-all.sh
+```
+
+---
+
+## Return to [Main Documentation](../CLAUDE.md)

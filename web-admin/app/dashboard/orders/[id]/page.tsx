@@ -10,9 +10,19 @@ interface OrderDetailPageProps {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    returnUrl?: string;
+    returnLabel?: string;
+  }>;
 }
 
-async function OrderDetailContent({ orderId }: { orderId: string }) {
+async function OrderDetailContent({
+  orderId,
+  searchParams
+}: {
+  orderId: string;
+  searchParams: { returnUrl?: string; returnLabel?: string };
+}) {
   // Get authenticated user and tenant context
   const { tenantId } = await getAuthContext();
   const t = await getTranslations('orders.detail');
@@ -30,6 +40,8 @@ async function OrderDetailContent({ orderId }: { orderId: string }) {
   return (
     <OrderDetailClient 
       order={order} 
+      returnUrl={searchParams?.returnUrl}           // ✅ Pass returnUrl
+      returnLabel={searchParams?.returnLabel}       // ✅ Pass returnLabel
       translations={{
         backToOrders: t('backToOrders'),
         edit: t('edit'),
@@ -72,8 +84,9 @@ async function OrderDetailContent({ orderId }: { orderId: string }) {
   );
 }
 
-export default async function OrderDetailPage({ params }: OrderDetailPageProps) {
+export default async function OrderDetailPage({ params, searchParams }: OrderDetailPageProps) {
   const { id } = await params;
+  const search = await searchParams;
   return (
     <Suspense
       fallback={
@@ -82,7 +95,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         </div>
       }
     >
-      <OrderDetailContent orderId={id} />
+      <OrderDetailContent orderId={id} searchParams={search} />
     </Suspense>
   );
 }

@@ -455,7 +455,6 @@ When generating backend code for this Project:
 2. PREFER:
    - Extending existing repositories/services over creating ad-hoc data access.
    - Reusing common utilities for pagination, filtering, and logging.
-   - Pagination Always should be Server-Side Pagination (API-Driven)
 3. ONLY DEVIATE if:
    - The user explicitly asks for a simplified example or POC-style snippet,
    - You clearly localize the deviation and do not treat it as a new standard.

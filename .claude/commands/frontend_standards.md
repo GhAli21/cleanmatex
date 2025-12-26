@@ -4,7 +4,6 @@ This document defines the **frontend standards** for CleanMateX and is fully ali
 
 **Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on**
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md
-- **Pagination Always should be Server-Side Pagination (API-Driven)**
 
 Authoritative folder structure:
 

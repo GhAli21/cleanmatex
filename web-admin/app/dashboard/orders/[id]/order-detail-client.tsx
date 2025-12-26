@@ -49,9 +49,17 @@ interface OrderDetailClientProps {
     readyBy: string;
   };
   locale: 'en' | 'ar';
+  returnUrl?: string;      // NEW
+  returnLabel?: string;    // NEW
 }
 
-export function OrderDetailClient({ order, translations: t, locale }: OrderDetailClientProps) {
+export function OrderDetailClient({ 
+  order, 
+  translations: t, 
+  locale,
+  returnUrl = '/dashboard/orders',        // Default fallback
+  returnLabel                              // Use provided or default
+}: OrderDetailClientProps) {
   const isRTL = useRTL();
 
   // Status badge colors
@@ -82,11 +90,11 @@ export function OrderDetailClient({ order, translations: t, locale }: OrderDetai
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
         <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
-            href="/dashboard/orders"
+            href={returnUrl}                      // ✅ Use dynamic returnUrl
             className={`inline-flex items-center text-sm text-gray-600 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             <ChevronLeft className={`w-4 h-4 ${isRTL ? 'ml-1 rotate-180' : 'mr-1'}`} />
-            {t.backToOrders}
+            {returnLabel || t.backToOrders}       // ✅ Use dynamic label
           </Link>
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

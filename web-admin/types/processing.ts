@@ -18,6 +18,7 @@ export interface ProcessingOrder {
   customer_name2?: string;
   items: ProcessingOrderItem[];
   total_items: number;
+  quantity_ready?: number;  // ✅ NEW: For progress indicator
   notes?: string;
   total: number;
   status: string;

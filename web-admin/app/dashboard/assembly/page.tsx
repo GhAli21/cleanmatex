@@ -31,16 +31,29 @@ export default function AssemblyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  });
+
   useEffect(() => {
     const loadOrders = async () => {
       if (!currentTenant) return;
       
       setLoading(true);
       try {
-        const res = await fetch('/api/v1/orders?status=assembly');
+        const params = new URLSearchParams({
+          current_status: 'assembly',
+          page: String(pagination.page),
+          limit: '20',
+        });
+        const res = await fetch(`/api/v1/orders?${params.toString()}`);
         const json = await res.json();
         if (json.success && json.data?.orders) {
           setOrders(json.data.orders);
+          setPagination(json.data.pagination || { page: pagination.page, limit: 20, total: 0, totalPages: 0 });
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load orders');
@@ -50,7 +63,7 @@ export default function AssemblyPage() {
     };
 
     loadOrders();
-  }, [currentTenant]);
+  }, [currentTenant, pagination.page]);
 
   if (loading) {
     return (
@@ -82,7 +95,7 @@ export default function AssemblyPage() {
           {orders.map((order) => (
             <Link
               key={order.id}
-              href={`/dashboard/assembly/${order.id}`}
+              href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}&returnLabel=${encodeURIComponent('Back to Assembly')}`}
               className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
             >
               <div className="flex justify-between items-start mb-4">
