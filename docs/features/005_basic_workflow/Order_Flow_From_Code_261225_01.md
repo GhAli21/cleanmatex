@@ -100,11 +100,19 @@ Should be refactor to use API and pagination from API also
 
 
 ---
+===============
+
+- Workflow Service Implementation:
+File: web-admin/lib/services/workflow-service.ts:28-113
+static async changeStatus(
+
+
 
 ===============
 
 Important Notes Or TODO:
-- F:\jhapp\cleanmatex\web-admin\lib\utils\ready-by-calculator.ts
+- ready-by-calculator:
+F:\jhapp\cleanmatex\web-admin\lib\utils\ready-by-calculator.ts
 This Should be from Tenant/Branch settings :
 const PRIORITY_MULTIPLIERS: Record<Priority, number> = {
   normal: 1.0,
@@ -119,3 +127,7 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
   workingDays: [1, 2, 3, 4, 5, 6], // Mon-Sat
 };
 
+- Workflow & Status Management Types:
+F:\jhapp\cleanmatex\web-admin\lib\types\workflow.ts
+Utility Functions
+Should Be from database from workflow configurations;

@@ -8,7 +8,7 @@
 
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageOptions, MessageResult, PromiseMessageConfig } from './types';
+import { MessageOptions, MessageResult, PromiseMessageConfig, PromiseMessages, ErrorExtractionOptions } from './types';
 import { cmxMessage } from './cmx-message';
 
 /**
@@ -24,6 +24,11 @@ export interface UseMessageReturn {
    * Show error message
    */
   showError: (message: string, options?: MessageOptions) => MessageResult;
+
+  /**
+   * Show error message extracted from error object
+   */
+  showErrorFrom: (error: unknown, options?: ErrorExtractionOptions) => MessageResult;
 
   /**
    * Show warning message
@@ -91,6 +96,18 @@ export function useMessage(): UseMessageReturn {
     [t]
   );
 
+  const showErrorFrom = useCallback(
+    (error: unknown, options?: ErrorExtractionOptions) => {
+      // Extract error message first
+      const extractedMessage = cmxMessage.errorFrom(error, options);
+      
+      // Try to translate the extracted message if it looks like a translation key
+      // Note: This is a best-effort translation since we don't know the original message
+      return extractedMessage;
+    },
+    []
+  );
+
   const showWarning = useCallback(
     (message: string, options?: MessageOptions) => {
       const translatedMessage = message.includes('.') && !message.includes(' ')
@@ -148,6 +165,7 @@ export function useMessage(): UseMessageReturn {
   return {
     showSuccess,
     showError,
+    showErrorFrom,
     showWarning,
     showInfo,
     showLoading,

@@ -10,6 +10,38 @@ let inlineMessageStore: InlineMessage | null = null;
 const inlineMessageListeners: Set<(message: InlineMessage | null) => void> = new Set();
 
 /**
+ * Get ARIA role based on message type
+ */
+function getAriaRole(type: MessageType): 'alert' | 'status' {
+  switch (type) {
+    case 'error':
+    case 'warning':
+      return 'alert';
+    case 'success':
+    case 'info':
+    case 'loading':
+    default:
+      return 'status';
+  }
+}
+
+/**
+ * Get ARIA live region politeness based on message type
+ */
+function getAriaLive(type: MessageType): 'polite' | 'assertive' {
+  switch (type) {
+    case 'error':
+    case 'warning':
+      return 'assertive';
+    case 'success':
+    case 'info':
+    case 'loading':
+    default:
+      return 'polite';
+  }
+}
+
+/**
  * Display a message as an inline message object
  */
 export function showInlineMessage(
@@ -24,6 +56,8 @@ export function showInlineMessage(
     items: options?.description ? [options.description] : undefined,
     onDismiss: options?.onDismiss,
     data: options?.data,
+    role: getAriaRole(type),
+    ariaLive: getAriaLive(type),
   };
 
   // Store message

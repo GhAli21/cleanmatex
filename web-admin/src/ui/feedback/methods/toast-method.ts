@@ -5,6 +5,7 @@
 
 import { toast as sonnerToast } from 'sonner';
 import type { MessageType, MessageOptions, MessageResult } from '../types';
+import { sanitizeHtml, containsHtml } from '../utils/html-sanitizer';
 
 /**
  * Display a message using Sonner toast notifications
@@ -15,19 +16,45 @@ export function showToastMessage(
   options?: MessageOptions
 ): MessageResult {
   const duration = options?.duration ?? getDefaultDuration(type);
-  const description = options?.description;
+  let description = options?.description;
+
+  // Handle HTML content
+  if (options?.html && containsHtml(message)) {
+    message = sanitizeHtml(message);
+  }
+  if (options?.html && description && containsHtml(description)) {
+    description = sanitizeHtml(description);
+  }
+
+  // Determine ARIA role based on message type
+  // Sonner handles ARIA attributes internally, but we can add className for styling
+  const ariaRole = type === 'error' || type === 'warning' ? 'alert' : 'status';
 
   // Build Sonner options
+  // Note: Sonner supports JSX/React nodes, but we'll use string for now
+  // For React node support, we'd need to use sonnerToast.custom() or pass JSX directly
   const sonnerOptions: Parameters<typeof sonnerToast>[1] = {
     duration,
-    description,
+    description: description || (options?.content ? String(options.content) : undefined),
     action: options?.action
       ? {
           label: options.action.label,
           onClick: options.action.onClick,
         }
       : undefined,
+    // Sonner automatically adds proper ARIA attributes, but we can ensure className
+    className: `cmx-toast cmx-toast-${type} [role="${ariaRole}"]`,
   };
+
+  // If content is provided and it's a React node, use custom toast
+  if (options?.content && typeof options.content !== 'string') {
+    return {
+      id: sonnerToast.custom(options.content as any, sonnerOptions),
+      dismiss: () => {
+        // Dismiss will be handled by Sonner
+      },
+    };
+  }
 
   let toastId: string | number | undefined;
 

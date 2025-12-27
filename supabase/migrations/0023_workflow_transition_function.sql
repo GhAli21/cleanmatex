@@ -16,7 +16,7 @@
 BEGIN;
 
 -- ==================================================================
--- FUNCTION: cmx_order_transition()
+-- FUNCTION: cmx_order_items_transition()
 -- Purpose: Core workflow transition validation and execution
 -- ==================================================================
 
@@ -25,6 +25,7 @@ CREATE OR REPLACE FUNCTION cmx_order_items_transition(
   p_order UUID,
   p_from TEXT,
   p_to TEXT,
+  p_item_id UUID DEFAULT NULL,
   p_user UUID DEFAULT NULL,
   p_payload JSONB DEFAULT '{}'::jsonb
 )
@@ -55,6 +56,7 @@ BEGIN
       item_stage = 'ready'
     WHERE order_id = p_order
       AND tenant_org_id = p_tenant
+	  AND id = COALESCE(p_item_id, id)
       /*
 	  AND ( lower(item_status) IS NULL 
 	        OR 
@@ -73,6 +75,7 @@ BEGIN
       item_stage = 'processing'
     WHERE order_id = p_order
       AND tenant_org_id = p_tenant
+	  AND id = COALESCE(p_item_id, id)
       /*
 	  AND ( lower(item_status) IS NULL 
 	        OR 
@@ -91,6 +94,7 @@ BEGIN
       item_stage = v_to
     WHERE order_id = p_order
       AND tenant_org_id = p_tenant
+	  AND id = COALESCE(p_item_id, id)
       /*
 	  AND ( lower(item_status) IS NULL 
 	        OR 
@@ -109,6 +113,7 @@ BEGIN
       item_stage = v_to
     WHERE order_id = p_order
       AND tenant_org_id = p_tenant
+	  AND id = COALESCE(p_item_id, id)
       
 	  ;
     
@@ -129,8 +134,14 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 COMMENT ON FUNCTION cmx_order_items_transition IS 'Update Order Items Status ';
 
 -- Grant execute permission to authenticated users
-GRANT EXECUTE ON FUNCTION cmx_order_items_transition(UUID, UUID, TEXT, TEXT, UUID, JSONB) TO authenticated;
-GRANT EXECUTE ON FUNCTION cmx_order_items_transition(UUID, UUID, TEXT, TEXT, UUID, JSONB) TO service_role;
+GRANT EXECUTE ON FUNCTION cmx_order_items_transition(UUID, UUID, TEXT, TEXT, UUID, UUID, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION cmx_order_items_transition(UUID, UUID, TEXT, TEXT, UUID, UUID, JSONB) TO service_role;
+
+
+-- ==================================================================
+-- FUNCTION: cmx_order_transition()
+-- Purpose: Core workflow transition validation and execution
+-- ==================================================================
 
 CREATE OR REPLACE FUNCTION cmx_order_transition(
   p_tenant UUID,

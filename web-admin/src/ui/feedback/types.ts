@@ -39,6 +39,17 @@ export interface MessageOptions {
   description?: string;
 
   /**
+   * Rich content (React node) - supported by toast and inline methods
+   */
+  content?: React.ReactNode;
+
+  /**
+   * Enable HTML rendering (use with caution, content will be sanitized)
+   * @default false
+   */
+  html?: boolean;
+
+  /**
    * Duration in milliseconds (for toast notifications)
    * @default Based on message type from config
    */
@@ -82,6 +93,43 @@ export interface MessageOptions {
    * For alert method: cancel button label
    */
   cancelLabel?: string;
+
+  /**
+   * Retry configuration for promise method
+   */
+  retry?: {
+    /**
+     * Maximum number of retry attempts
+     * @default 0 (no retry)
+     */
+    maxAttempts?: number;
+
+    /**
+     * Delay between retries in milliseconds
+     * @default 1000
+     */
+    delay?: number;
+
+    /**
+     * Use exponential backoff (delay doubles with each retry)
+     * @default false
+     */
+    exponentialBackoff?: boolean;
+
+    /**
+     * Callback to generate retry message
+     * @param attempt Current attempt number (1-indexed)
+     * @returns Message to show during retry
+     */
+    onRetry?: (attempt: number) => string;
+
+    /**
+     * Condition function to determine if error should be retried
+     * @param error The error that occurred
+     * @returns true if should retry, false otherwise
+     */
+    shouldRetry?: (error: unknown) => boolean;
+  };
 }
 
 /**
@@ -119,6 +167,16 @@ export interface InlineMessage {
   items?: string[];
   onDismiss?: () => void;
   data?: Record<string, unknown>;
+  /**
+   * ARIA role for accessibility
+   * @default Based on message type (alert for error/warning, status for success/info)
+   */
+  role?: 'alert' | 'status' | 'log';
+  /**
+   * ARIA live region politeness
+   * @default 'polite' for success/info, 'assertive' for error/warning
+   */
+  ariaLive?: 'polite' | 'assertive' | 'off';
 }
 
 /**
@@ -136,6 +194,72 @@ export interface PromiseMessageConfig {
 export type PromiseMessages = PromiseMessageConfig;
 
 /**
+ * Confirm dialog options for custom alert dialogs
+ */
+export interface ConfirmDialogOptions {
+  /**
+   * Dialog title
+   */
+  title: string;
+
+  /**
+   * Main message content
+   */
+  message?: string;
+
+  /**
+   * Additional description/details
+   */
+  description?: string;
+
+  /**
+   * Dialog variant determines styling and default icon
+   */
+  variant?: 'default' | 'destructive' | 'success' | 'warning';
+
+  /**
+   * Confirm button label
+   */
+  confirmLabel?: string;
+
+  /**
+   * Cancel button label
+   */
+  cancelLabel?: string;
+
+  /**
+   * Custom icon name (Lucide icon)
+   */
+  icon?: string;
+
+  /**
+   * Custom icon component (overrides icon prop)
+   */
+  iconComponent?: React.ReactNode;
+
+  /**
+   * Whether to show cancel button
+   * @default true
+   */
+  showCancel?: boolean;
+}
+
+/**
+ * Error extraction options
+ */
+export interface ErrorExtractionOptions extends Omit<MessageOptions, 'confirm' | 'confirmLabel' | 'cancelLabel'> {
+  /**
+   * Fallback message if error extraction fails
+   */
+  fallback?: string;
+
+  /**
+   * Custom extraction paths to try (e.g., ['message', 'error', 'detail', 'error.message'])
+   */
+  extractFrom?: string[];
+}
+
+/**
  * Message configuration interface
  */
 export interface MessageConfig {
@@ -150,4 +274,14 @@ export interface MessageConfig {
   };
   enableConsoleInProduction: boolean;
   rtlAware: boolean;
+  /**
+   * Enable message queuing
+   * @default false
+   */
+  queueMessages?: boolean;
+  /**
+   * Maximum queue size
+   * @default 5
+   */
+  maxQueueSize?: number;
 }

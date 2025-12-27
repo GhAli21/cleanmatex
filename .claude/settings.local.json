@@ -30,6 +30,14 @@
       "Bash(curl:*)",
       "Bash(ls:*)"
     ]
+	"deny": [
+      "Read(node_modules)",
+	  "Read(node_modules/*)",
+	  "Read(./node_modules/**)",
+      "Read(.next)",
+	  "Read(.next/*)",
+	  "Read(./.next/*)"
+    ]
   },
   "outputStyle": "default"
 }

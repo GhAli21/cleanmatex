@@ -26,6 +26,12 @@ showSuccess(t("messages.saveSuccess"));
 - **RTL Support**: Right-to-left layout awareness
 - **Promise Support**: Built-in promise handling with loading/success/error states
 - **Configurable**: Customizable defaults and per-call overrides
+- **Custom Alert Dialogs**: Styled, accessible confirmation dialogs
+- **Error Extraction**: Automatic error message extraction from various error types
+- **Message Queuing**: Queue management for multiple simultaneous messages
+- **Rich Content**: Support for React nodes and HTML content
+- **Retry Logic**: Built-in retry mechanism for failed operations
+- **Accessibility**: Full ARIA support and keyboard navigation
 
 ## API Reference
 
@@ -41,11 +47,44 @@ cmxMessage.info(message: string, options?: MessageOptions): MessageResult
 cmxMessage.loading(message: string, options?: MessageOptions): MessageResult
 ```
 
+#### Error Extraction Method
+
+```typescript
+cmxMessage.errorFrom(
+  error: unknown,
+  options?: ErrorExtractionOptions
+): MessageResult
+```
+
+Automatically extracts error messages from Error, AxiosError, Supabase errors, fetch responses, and plain objects.
+
+#### Confirm Dialog Method
+
+```typescript
+cmxMessage.confirm(options: ConfirmDialogOptions): Promise<boolean>
+```
+
+Shows a custom styled confirmation dialog. Returns `true` if confirmed, `false` if cancelled.
+
+#### Batch Method
+
+```typescript
+cmxMessage.batch(
+  messages: Array<{
+    type: MessageType;
+    message: string;
+    options?: MessageOptions;
+  }>
+): Promise<MessageResult[]>
+```
+
+Shows multiple messages sequentially with a delay between them.
+
 #### Promise Method
 
 ```typescript
 cmxMessage.promise<T>(
-  promise: Promise<T>,
+  promise: Promise<T> | (() => Promise<T>),
   messages: {
     loading: string;
     success: string | ((result: T) => string);
@@ -55,12 +94,15 @@ cmxMessage.promise<T>(
 ): Promise<T>
 ```
 
+Supports retry logic when `options.retry` is configured. Use a function `() => Promise<T>` for retry to work properly.
+
 ### React Hook (`useMessage`)
 
 ```typescript
 const {
   showSuccess,
   showError,
+  showErrorFrom,
   showWarning,
   showInfo,
   showLoading,
@@ -87,14 +129,32 @@ cmxMessage.error("Error!", {
 
 ### 2. Alert
 
-Browser alert/confirm dialogs. Use for critical errors or confirmations.
+Custom styled alert/confirm dialogs with full accessibility support. Use for critical errors or confirmations.
 
 ```typescript
+// Simple alert
 cmxMessage.error("Critical error!", { method: "alert" });
+
+// Confirm dialog (legacy API)
 cmxMessage.warning("Are you sure?", {
   method: "alert",
   confirm: true,
+  confirmLabel: "Delete",
+  cancelLabel: "Cancel",
 });
+
+// New confirm API (recommended)
+const confirmed = await cmxMessage.confirm({
+  title: "Delete Order?",
+  message: "This action cannot be undone.",
+  variant: "destructive",
+  confirmLabel: "Delete",
+  cancelLabel: "Cancel",
+});
+
+if (confirmed) {
+  // Handle deletion
+}
 ```
 
 ### 3. Console
@@ -148,6 +208,15 @@ interface MessageOptions {
   confirm?: boolean; // Show as confirm dialog (alert)
   confirmLabel?: string; // Confirm button label
   cancelLabel?: string; // Cancel button label
+  content?: React.ReactNode; // Rich content (React node)
+  html?: boolean; // Enable HTML rendering (sanitized)
+  retry?: {
+    maxAttempts?: number; // Maximum retry attempts
+    delay?: number; // Delay between retries (ms)
+    exponentialBackoff?: boolean; // Use exponential backoff
+    onRetry?: (attempt: number) => string; // Retry message callback
+    shouldRetry?: (error: unknown) => boolean; // Retry condition
+  };
 }
 ```
 
@@ -206,6 +275,127 @@ await cmxMessage.promise(saveOrder(orderData), {
   loading: "Saving order...",
   success: (result) => `Order ${result.orderNo} saved!`,
   error: (error) => `Failed to save: ${error.message}`,
+});
+
+// With retry logic (use function for retry to work)
+await cmxMessage.promise(
+  () => saveOrder(orderData),
+  {
+    loading: "Saving order...",
+    success: "Order saved!",
+    error: "Failed to save",
+  },
+  {
+    retry: {
+      maxAttempts: 3,
+      delay: 1000,
+      exponentialBackoff: true,
+      onRetry: (attempt) => `Retrying... (${attempt}/3)`,
+      shouldRetry: (error) => {
+        // Only retry on network errors
+        return error instanceof TypeError && error.message.includes('fetch');
+      },
+    },
+  }
+);
+```
+
+### Error Extraction
+
+```typescript
+import { cmxMessage } from "@ui/feedback";
+
+try {
+  await fetchData();
+} catch (error) {
+  // Automatically extracts message from various error types
+  cmxMessage.errorFrom(error, {
+    fallback: "An unexpected error occurred",
+    extractFrom: ["message", "error", "detail"], // Custom extraction paths
+  });
+}
+
+// With React hook
+const { showErrorFrom } = useMessage();
+showErrorFrom(error);
+```
+
+### Custom Confirm Dialogs
+
+```typescript
+import { cmxMessage } from "@ui/feedback";
+
+// Delete confirmation
+const confirmed = await cmxMessage.confirm({
+  title: "Delete Order?",
+  message: "This action cannot be undone.",
+  variant: "destructive",
+  confirmLabel: "Delete",
+  cancelLabel: "Cancel",
+});
+
+if (confirmed) {
+  await deleteOrder(orderId);
+}
+
+// Success confirmation
+const proceed = await cmxMessage.confirm({
+  title: "Order Created",
+  message: "Would you like to view the order?",
+  variant: "success",
+  confirmLabel: "View Order",
+  cancelLabel: "Close",
+});
+```
+
+### Message Queuing
+
+```typescript
+import { cmxMessage } from "@ui/feedback";
+
+// Enable queuing
+cmxMessage.setConfig({
+  queueMessages: true,
+  maxQueueSize: 3,
+});
+
+// Messages will be queued and shown sequentially
+cmxMessage.success("First message");
+cmxMessage.info("Second message");
+cmxMessage.warning("Third message");
+
+// Clear queue
+cmxMessage.clearQueue();
+```
+
+### Batch Messages
+
+```typescript
+import { cmxMessage } from "@ui/feedback";
+
+// Show multiple messages sequentially
+await cmxMessage.batch([
+  { type: "success", message: "Order saved" },
+  { type: "info", message: "Email sent" },
+  { type: "success", message: "Notification sent" },
+]);
+```
+
+### Rich Content
+
+```typescript
+import { cmxMessage } from "@ui/feedback";
+import Link from "next/link";
+
+// React node content
+cmxMessage.success("Order created", {
+  content: <Link href="/orders/123">View Order</Link>,
+});
+
+// HTML content (sanitized)
+cmxMessage.info("Order status", {
+  html: true,
+  description: "<strong>Status:</strong> Processing",
 });
 ```
 
@@ -345,6 +535,34 @@ import type {
 5. **Always use i18n** - Use `useMessage` hook or translate manually
 6. **Handle promises** - Use `promise()` method for async operations
 7. **Provide descriptions** - Add context with `description` option
+8. **Use errorFrom()** - Automatically extract error messages instead of manual extraction
+9. **Enable queuing** - Use message queuing when showing multiple messages rapidly
+10. **Use confirm()** - Use custom confirm dialogs instead of native alerts for better UX
+11. **Add retry logic** - Use retry configuration for network operations
+12. **Ensure accessibility** - All dialogs include proper ARIA attributes and keyboard navigation
+
+## Setup
+
+### Alert Dialog Provider
+
+To use custom alert dialogs, add the `AlertDialogProvider` to your app root:
+
+```typescript
+// app/layout.tsx or app/providers.tsx
+import { AlertDialogProvider } from "@ui/feedback";
+
+export default function RootLayout({ children }) {
+  return (
+    <html>
+      <body>
+        <AlertDialogProvider>
+          {children}
+        </AlertDialogProvider>
+      </body>
+    </html>
+  );
+}
+```
 
 ## Related Documentation
 

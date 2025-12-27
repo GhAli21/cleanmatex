@@ -21,6 +21,8 @@ const defaultConfig: MessageConfig = {
   },
   enableConsoleInProduction: false,
   rtlAware: true,
+  queueMessages: false,
+  maxQueueSize: 5,
 };
 
 let currentConfig: MessageConfig = { ...defaultConfig };

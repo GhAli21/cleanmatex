@@ -4,15 +4,18 @@
  */
 
 import type { MessageType, MessageOptions, MessageResult } from '../types';
+import { alertDialogManager } from '../utils/alert-dialog-manager';
 
 /**
  * Display a message using browser alert/confirm dialogs
+ * Note: For confirm dialogs, this returns a promise-based result
+ * For regular alerts, returns synchronously
  */
 export function showAlertMessage(
   type: MessageType,
   message: string,
   options?: MessageOptions
-): MessageResult {
+): MessageResult | Promise<MessageResult> {
   if (typeof window === 'undefined') {
     // Server-side: return without showing
     return { confirmed: false };
@@ -21,10 +24,20 @@ export function showAlertMessage(
   const description = options?.description;
   const fullMessage = description ? `${message}\n\n${description}` : message;
 
-  // For confirm dialogs
+  // For confirm dialogs - try custom dialog first, fallback to native
   if (options?.confirm) {
-    const confirmed = window.confirm(fullMessage);
-    return { confirmed };
+    // Use custom dialog (will fallback to native if provider not available)
+    return alertDialogManager.showConfirm({
+      title: message,
+      message: description,
+      variant: type === 'error' ? 'destructive' : type === 'warning' ? 'warning' : 'default',
+      confirmLabel: options.confirmLabel,
+      cancelLabel: options.cancelLabel,
+    }).then((confirmed) => ({ confirmed })).catch(() => {
+      // Fallback to native confirm
+      const confirmed = window.confirm(fullMessage);
+      return { confirmed };
+    });
   }
 
   // For regular alerts
