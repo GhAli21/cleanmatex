@@ -12,7 +12,9 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 
+/* 
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
+ */
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from './components/order-stats-cards';
 import { OrderFiltersBar } from './components/order-filters-bar';
