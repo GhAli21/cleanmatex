@@ -397,7 +397,7 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          toStatus: 'ready',
+          toStatus: 'ready', //JhTodo: Change to 'ready' when ready status is implemented
           notes: 'Processing completed via quick action',
           metadata: {
             rack_location: rackLocation.trim()

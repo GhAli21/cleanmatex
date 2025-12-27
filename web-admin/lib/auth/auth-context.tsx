@@ -56,6 +56,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const tenantFetchFailedRef = useRef(false)
   // Track previous user ID to detect user changes
   const previousUserIdRef = useRef<string | null>(null)
+  // Refs to access latest values without causing dependency loops
+  const currentTenantRef = useRef<UserTenant | null>(null)
+  const refreshPermissionsRef = useRef<(() => Promise<void>) | null>(null)
+  const refreshTenantsRef = useRef<(() => Promise<void>) | null>(null)
 
   /**
    * Fetch available tenants for current user
@@ -102,8 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set current tenant if not already set (using functional update to avoid dependency)
       setCurrentTenant((prevTenant) => {
         if (!prevTenant && tenants.length > 0) {
-          return tenants[0]
+          const newTenant = tenants[0]
+          currentTenantRef.current = newTenant
+          return newTenant
         }
+        currentTenantRef.current = prevTenant
         return prevTenant
       })
       
@@ -114,6 +121,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       tenantFetchFailedRef.current = true
     } finally {
       isFetchingTenantsRef.current = false
+      // Update ref after function completes
+      refreshTenantsRef.current = refreshTenants
     }
   }, [user]) // Removed currentTenant and availableTenants.length from dependencies to prevent infinite loop
 
@@ -133,10 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         setUser(null)
         setSession(null)
-        setCurrentTenant(null)
-        setAvailableTenants([])
-        return
-      }
+      setCurrentTenant(null)
+      currentTenantRef.current = null
+      setAvailableTenants([])
+      return
+    }
 
       if (currentUser) {
         setUser(currentUser as AuthUser)
@@ -157,6 +167,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null)
         setSession(null)
         setCurrentTenant(null)
+        currentTenantRef.current = null
         setAvailableTenants([])
       }
     } catch (error) {
@@ -239,11 +250,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Set all state at once to minimize re-renders
       setAvailableTenants(authData.tenants)
-      if (authData.tenants.length > 0) {
-        setCurrentTenant(authData.tenants[0])
+        if (authData.tenants.length > 0) {
+        const firstTenant = authData.tenants[0]
+        setCurrentTenant(firstTenant)
+        currentTenantRef.current = firstTenant
         // Cache everything
-        setCachedPermissions(authData.tenants[0].tenant_id, authData.permissions)
-        setCachedFeatureFlags(authData.tenants[0].tenant_id, authData.featureFlags)
+        setCachedPermissions(firstTenant.tenant_id, authData.permissions)
+        setCachedFeatureFlags(firstTenant.tenant_id, authData.featureFlags)
       }
       setPermissions(authData.permissions)
       setWorkflowRoles(authData.workflowRoles)
@@ -324,6 +337,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       setSession(null)
       setCurrentTenant(null)
+      currentTenantRef.current = null
       setAvailableTenants([])
       setPermissions([])
       setWorkflowRoles([])
@@ -417,6 +431,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setPermissions([])
       }
       setWorkflowRoles([])
+    } finally {
+      // Update ref after function completes
+      refreshPermissionsRef.current = refreshPermissions
     }
   }, [user, currentTenant])
 
@@ -443,6 +460,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           last_login_at: new Date().toISOString(),
         }
         setCurrentTenant(newTenant)
+      currentTenantRef.current = newTenant
 
         // Refresh the session to update JWT claims
         await supabase.auth.refreshSession()
@@ -514,6 +532,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null)
           setSession(null)
           setCurrentTenant(null)
+          currentTenantRef.current = null
           setAvailableTenants([])
           setPermissions([])
           setWorkflowRoles([])
@@ -528,10 +547,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             expires_at: currentSession.expires_at ?? null,
             expires_in: currentSession.expires_in ?? null,
           })
-          // Refresh permissions on token refresh if tenant is set
-          if (currentTenant) {
-            refreshPermissions()
-          }
+          // Don't refresh permissions on every token refresh - it's too frequent
+          // Permissions are cached and only need refresh on tenant switch or explicit refresh
         }
       }
     )
@@ -539,7 +556,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [initializeAuth, currentTenant, refreshPermissions])
+  }, [initializeAuth]) // Removed currentTenant and refreshPermissions to prevent re-subscription loops
 
   /**
    * Fetch tenants when user changes
@@ -565,7 +582,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ) {
       refreshTenants()
     }
-  }, [user, isLoading, availableTenants.length, refreshTenants])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, isLoading, availableTenants.length]) // refreshTenants intentionally omitted to prevent loops
 
   /**
    * Fetch permissions when tenant changes or user logs in
@@ -582,7 +600,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions([])
       setWorkflowRoles([])
     }
-  }, [user, currentTenant, isLoading, permissions.length, workflowRoles.length, refreshPermissions])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, currentTenant, isLoading, permissions.length, workflowRoles.length]) // refreshPermissions intentionally omitted to prevent loops
 
   const value: AuthContextType = {
     // State

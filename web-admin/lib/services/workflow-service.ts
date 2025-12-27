@@ -63,11 +63,11 @@ export class WorkflowService {
       );
       
       console.log('[Jh] 3. WorkflowService.changeStatus: data:' + JSON.stringify(data, null, 2));
-      console.log('[Jh] 3. WorkflowService.changeStatus: functionError:' + JSON.stringify(functionError, null, 2));
+      console.log('[Jh] 3.1 WorkflowService.changeStatus: functionError:' + JSON.stringify(functionError, null, 2));
 
       if (functionError || !data) {
-        console.log('[Jh] 3.1 WorkflowService.changeStatus: functionError or !data:' + JSON.stringify(functionError || !data, null, 2));
-        console.log('[Jh] 3.1 WorkflowService.changeStatus: functionError?.message:' + JSON.stringify(functionError?.message, null, 2));
+        console.log('[Jh] 3.2 WorkflowService.changeStatus: functionError or !data:' + JSON.stringify(functionError || !data, null, 2));
+        console.log('[Jh] 3.3 WorkflowService.changeStatus: functionError?.message:' + JSON.stringify(functionError?.message, null, 2));
         return {
           success: false,
           error: functionError?.message || 'Transition failed',
