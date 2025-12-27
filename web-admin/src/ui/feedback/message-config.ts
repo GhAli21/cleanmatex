@@ -23,6 +23,7 @@ const defaultConfig: MessageConfig = {
   rtlAware: true,
   queueMessages: false,
   maxQueueSize: 5,
+  throttleMs: 100,
 };
 
 let currentConfig: MessageConfig = { ...defaultConfig };

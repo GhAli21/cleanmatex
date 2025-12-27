@@ -117,6 +117,14 @@ class AlertDialogManager {
 
   async showConfirm(options: ConfirmOptions): Promise<boolean> {
     if (!this.providerRef) {
+      // Developer warning in development mode
+      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.warn(
+          '⚠️ AlertDialogProvider not found. Add <AlertDialogProvider> to your AppProviders.tsx\n' +
+          'This is required for custom alert dialogs. Falling back to native confirm dialog.'
+        );
+      }
+      
       // Fallback to native confirm if provider not available
       if (typeof window !== 'undefined') {
         return window.confirm(options.title + (options.message ? `\n\n${options.message}` : ''));

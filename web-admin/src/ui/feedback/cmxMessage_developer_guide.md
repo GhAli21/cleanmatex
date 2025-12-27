@@ -478,6 +478,60 @@ function MyComponent() {
 }
 ```
 
+### Hybrid Approach: React State + cmxMessage
+
+**Important**: `cmxMessage` is designed for **global notifications** (toast, alert, console). For **component-level state** (form errors, loading states), use a **hybrid approach**:
+
+- **Keep React state** (`useState`, `setError`, `setIsSubmitting`) for component-level concerns that need re-renders
+- **Add cmxMessage** for global notifications alongside local state
+- **Result**: Better UX with both inline errors AND global notifications
+
+```typescript
+import { useMessage } from "@ui/feedback";
+import { useState } from "react";
+
+function MyForm() {
+  const { showErrorFrom } = useMessage();
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      await saveData();
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "An error occurred";
+      setError(errorMsg); // ✅ Keep for inline display
+      showErrorFrom(err, { fallback: "Failed to save" }); // ✅ Add global notification
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Inline error display (unchanged) */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
+      <button disabled={isSubmitting}>Save</button>
+    </form>
+  );
+}
+```
+
+**Decision Matrix:**
+
+| Scenario | Solution | Reason |
+|----------|----------|--------|
+| Form validation errors | Keep React state + cmxMessage | Need immediate re-render, also show global notification |
+| API error after submit | cmxMessage only | Global notification sufficient |
+| Loading state | Keep React state + cmxMessage.promise | State controls UI, promise shows notification |
+| Success after submit | cmxMessage only | Global notification sufficient |
+| Field-level errors | Keep React state | Component-specific, needs re-render |
+
 ## Configuration
 
 ### Default Configuration

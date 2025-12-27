@@ -1,8 +1,10 @@
 /**
  * HTML Sanitizer Utility
- * Basic HTML sanitization for safe rendering
+ * Production-grade HTML sanitization using DOMPurify for safe rendering
  * @module ui/feedback/utils
  */
+
+import DOMPurify from 'isomorphic-dompurify';
 
 /**
  * Allowed HTML tags for sanitization
@@ -15,16 +17,14 @@ const ALLOWED_TAGS = [
 /**
  * Allowed HTML attributes
  */
-const ALLOWED_ATTRIBUTES: Record<string, string[]> = {
-  a: ['href', 'target', 'rel'],
-  span: ['class'],
-  div: ['class'],
-  p: ['class'],
-};
+const ALLOWED_ATTR = ['href', 'target', 'rel', 'class'];
 
 /**
- * Sanitize HTML string by removing dangerous content
- * This is a basic sanitizer - for production use, consider using DOMPurify
+ * Sanitize HTML string by removing dangerous content using DOMPurify
+ * Provides production-grade XSS protection
+ * 
+ * @param html - HTML string to sanitize
+ * @returns Sanitized HTML string safe for rendering
  */
 export function sanitizeHtml(html: string): string {
   if (typeof window === 'undefined') {
@@ -32,40 +32,15 @@ export function sanitizeHtml(html: string): string {
     return html;
   }
 
-  // Create a temporary DOM element
-  const temp = document.createElement('div');
-  temp.innerHTML = html;
-
-  // Remove script tags and event handlers
-  const scripts = temp.querySelectorAll('script, style, iframe, object, embed, form');
-  scripts.forEach((el) => el.remove());
-
-  // Remove all elements not in allowed list
-  const allElements = temp.querySelectorAll('*');
-  allElements.forEach((el) => {
-    const tagName = el.tagName.toLowerCase();
-    if (!ALLOWED_TAGS.includes(tagName)) {
-      el.replaceWith(...Array.from(el.childNodes));
-      return;
-    }
-
-    // Remove disallowed attributes
-    const allowedAttrs = ALLOWED_ATTRIBUTES[tagName] || [];
-    Array.from(el.attributes).forEach((attr) => {
-      if (!allowedAttrs.includes(attr.name.toLowerCase())) {
-        el.removeAttribute(attr.name);
-      }
-    });
-
-    // Remove event handlers (onclick, onerror, etc.)
-    Array.from(el.attributes).forEach((attr) => {
-      if (attr.name.startsWith('on')) {
-        el.removeAttribute(attr.name);
-      }
-    });
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS,
+    ALLOWED_ATTR,
+    ALLOW_DATA_ATTR: false,
+    KEEP_CONTENT: true,
+    RETURN_DOM: false,
+    RETURN_DOM_FRAGMENT: false,
+    RETURN_TRUSTED_TYPE: false,
   });
-
-  return temp.innerHTML;
 }
 
 /**

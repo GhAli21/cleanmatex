@@ -6,6 +6,7 @@ import { Plus, Trash2, Upload, Camera, CheckCircle, AlertCircle } from 'lucide-r
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useMessage } from '@ui/feedback';
 import { addOrderItems } from '@/app/actions/orders/add-order-items';
 import { completePreparation } from '@/app/actions/orders/complete-preparation';
 import type { AddOrderItemInput } from '@/types/order';
@@ -42,6 +43,7 @@ export function PreparationForm({ order }: PreparationFormProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const { currentTenant, user } = useAuth();
+  const { showErrorFrom } = useMessage();
   const [items, setItems] = useState<ItemFormData[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
   const [bagCount, setBagCount] = useState<number>(1);
@@ -208,7 +210,9 @@ export function PreparationForm({ order }: PreparationFormProps) {
       router.refresh();
     } catch (err: any) {
       console.error('Preparation error:', err);
-      setError(err.message || t('errors.failedToSavePreparation'));
+      const errorMsg = err.message || t('errors.failedToSavePreparation');
+      setError(errorMsg); // ✅ Keep for inline display
+      showErrorFrom(err, { fallback: t('errors.failedToSavePreparation') }); // ✅ Add global notification
       setIsSubmitting(false);
     }
   };

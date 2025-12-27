@@ -292,14 +292,61 @@ The old implementations are still available but deprecated:
 
 **Recommendation:** Migrate as soon as possible to avoid future breaking changes.
 
+## Hybrid Approach for Forms
+
+**Important**: For form components with error handling, use a **hybrid approach**:
+
+- **Keep React state** for inline error display (needs re-render)
+- **Add cmxMessage** for global notifications (toast/alert)
+
+### Example: Form Error Handling
+
+**Before:**
+```typescript
+const [error, setError] = useState<string | null>(null);
+
+catch (error) {
+  console.error('Error:', error);
+  setError(error.message);
+}
+```
+
+**After (Hybrid Approach):**
+```typescript
+import { useMessage } from '@ui/feedback';
+const { showErrorFrom } = useMessage();
+const [error, setError] = useState<string | null>(null);
+
+catch (error) {
+  const errorMsg = error instanceof Error ? error.message : t('errors.operationFailed');
+  setError(errorMsg); // ✅ Keep for inline display
+  showErrorFrom(error); // ✅ Add global notification
+}
+
+// Render inline error (unchanged)
+{error && (
+  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+    <p className="text-red-700">{error}</p>
+  </div>
+)}
+```
+
+**Why Hybrid?**
+- React state controls component re-renders for inline errors
+- cmxMessage provides global feedback (toast notifications)
+- Best UX: Users see both inline errors AND global notifications
+
 ## Migration Checklist
 
 - [ ] Update imports from `cmxToast` to `cmxMessage`
 - [ ] Update imports from `@/lib/utils/toast` to `@ui/feedback`
 - [ ] Replace `cmxToast.*` calls with `cmxMessage.*`
 - [ ] Replace `toast.*` calls with `cmxMessage.*`
+- [ ] Replace direct `sonner` imports with `useMessage` hook
 - [ ] Update React components to use `useMessage` hook (optional but recommended)
+- [ ] For forms: Implement hybrid approach (React state + cmxMessage)
 - [ ] Test all message displays
+- [ ] Test dark mode styling
 - [ ] Remove old imports
 - [ ] Update any custom message handling
 

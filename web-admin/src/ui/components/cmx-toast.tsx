@@ -1,3 +1,11 @@
+/**
+ * @deprecated This component is deprecated. Use the new global message utility instead:
+ * - For React components: `import { useMessage } from '@ui/feedback'`
+ * - For utility functions: `import { cmxMessage } from '@ui/feedback'`
+ * 
+ * See `src/ui/feedback/cmxMessage_MIGRATION.md` for migration guide.
+ */
+
 'use client'
 
 import { toast } from 'sonner'

@@ -75,6 +75,12 @@ export interface MessageOptions {
   data?: Record<string, unknown>;
 
   /**
+   * Force display even if rate limiting would normally prevent it
+   * @default false
+   */
+  force?: boolean;
+
+  /**
    * For inline method: callback when message is dismissed
    */
   onDismiss?: () => void;
@@ -284,4 +290,10 @@ export interface MessageConfig {
    * @default 5
    */
   maxQueueSize?: number;
+  /**
+   * Throttle delay in milliseconds to prevent message spam
+   * Messages within this time window will be queued instead of shown immediately
+   * @default 100
+   */
+  throttleMs?: number;
 }

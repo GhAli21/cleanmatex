@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { useMessage } from '@ui/feedback'
 import { createCustomer } from '@/lib/api/customers'
 import type { CustomerType } from '@/lib/types/customer'
 
@@ -23,6 +24,7 @@ export default function CustomerCreateModal({
   const t = useTranslations('customers')
   const tCommon = useTranslations('common')
   const isRTL = useRTL()
+  const { showErrorFrom } = useMessage()
   const [customerType, setCustomerType] = useState<CustomerType>('stub')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
@@ -75,7 +77,9 @@ export default function CustomerCreateModal({
 
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('failedToCreateCustomer'))
+      const errorMsg = err instanceof Error ? err.message : t('failedToCreateCustomer')
+      setError(errorMsg) // ✅ Keep for inline display
+      showErrorFrom(err, { fallback: t('failedToCreateCustomer') }) // ✅ Add global notification
       setLoading(false)
     }
   }

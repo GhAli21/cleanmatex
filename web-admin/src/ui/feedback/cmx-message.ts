@@ -19,6 +19,39 @@ import { messageQueue } from './utils/message-queue';
  */
 class CmxMessage {
   /**
+   * Track last message time for rate limiting
+   */
+  private lastMessageTime = 0;
+
+  /**
+   * Check if message should be throttled
+   */
+  private shouldThrottle(options?: MessageOptions): boolean {
+    // Skip throttling if force option is set
+    if (options?.force) {
+      return false;
+    }
+
+    const config = getMessageConfig();
+    const throttleMs = config.throttleMs ?? 100;
+
+    if (throttleMs <= 0) {
+      return false; // Throttling disabled
+    }
+
+    const now = Date.now();
+    const timeSinceLastMessage = now - this.lastMessageTime;
+
+    if (timeSinceLastMessage < throttleMs) {
+      return true; // Should throttle
+    }
+
+    // Update last message time
+    this.lastMessageTime = now;
+    return false;
+  }
+
+  /**
    * Display a success message
    */
   success(message: string, options?: MessageOptions): MessageResult {
@@ -37,14 +70,20 @@ class CmxMessage {
    * Automatically extracts messages from Error, AxiosError, Supabase errors, fetch responses, etc.
    */
   errorFrom(error: unknown, options?: ErrorExtractionOptions): MessageResult {
-    const extractedMessage = extractErrorMessage(error, {
-      fallback: options?.fallback,
-      extractFrom: options?.extractFrom,
-    });
+    try {
+      const extractedMessage = extractErrorMessage(error, {
+        fallback: options?.fallback,
+        extractFrom: options?.extractFrom,
+      });
 
-    // Use the extracted message with the provided options (excluding extraction-specific options)
-    const { fallback, extractFrom, ...messageOptions } = options || {};
-    return this.show(MessageType.ERROR, extractedMessage, messageOptions);
+      // Use the extracted message with the provided options (excluding extraction-specific options)
+      const { fallback, extractFrom, ...messageOptions } = options || {};
+      return this.show(MessageType.ERROR, extractedMessage, messageOptions);
+    } catch (err) {
+      console.error('cmxMessage errorFrom error:', err);
+      const fallbackMessage = options?.fallback || 'An error occurred';
+      return this.show(MessageType.ERROR, fallbackMessage, options);
+    }
   }
 
   /**
@@ -78,6 +117,7 @@ class CmxMessage {
       return false;
     }
 
+    // Developer warning if AlertDialogProvider is missing (handled in alertDialogManager)
     return alertDialogManager.showConfirm(options);
   }
 
@@ -215,48 +255,115 @@ class CmxMessage {
   }
 
   /**
+   * Validate message length and content
+   */
+  private validateMessage(message: string): string {
+    if (!message || typeof message !== 'string') {
+      console.warn('cmxMessage: Invalid message provided, using fallback');
+      return 'An error occurred';
+    }
+
+    if (message.length > 1000) {
+      console.warn('cmxMessage: Message too long, truncating');
+      return message.substring(0, 1000) + '...';
+    }
+
+    return message;
+  }
+
+  /**
    * Internal method to show a message using the specified or default method
+   * Wrapped in error boundary to prevent crashes
    */
   private show(
     type: MessageType,
     message: string,
     options?: MessageOptions
   ): MessageResult | Promise<MessageResult> {
-    const config = getMessageConfig();
-    const method = options?.method ?? config.defaultMethod;
+    try {
+      // Validate message
+      const validatedMessage = this.validateMessage(message);
+      const config = getMessageConfig();
+      const method = options?.method ?? config.defaultMethod;
 
-    // If queuing is enabled, use queue
-    if (config.queueMessages && method !== DisplayMethod.CONSOLE) {
-      return messageQueue.enqueue(type, message, options, (t, m, o) => {
-        return this.showDirect(t, m, o);
-      });
+      // Check rate limiting (throttling)
+      if (this.shouldThrottle(options) && method !== DisplayMethod.CONSOLE) {
+        // If queuing is enabled, queue the message
+        if (config.queueMessages) {
+          return messageQueue.enqueue(type, validatedMessage, options, (t, m, o) => {
+            return this.showDirect(t, m, o);
+          });
+        }
+        // Otherwise, skip the message silently (rate limited)
+        return { id: '', dismiss: () => {} };
+      }
+
+      // If queuing is enabled, use queue
+      if (config.queueMessages && method !== DisplayMethod.CONSOLE) {
+        return messageQueue.enqueue(type, validatedMessage, options, (t, m, o) => {
+          return this.showDirect(t, m, o);
+        });
+      }
+
+      // Otherwise show directly
+      return this.showDirect(type, validatedMessage, { ...options, method });
+    } catch (error) {
+      console.error('cmxMessage error:', error);
+      
+      // Fallback to console or native alert
+      if (typeof window !== 'undefined') {
+        try {
+          const fallbackMessage = this.validateMessage(message) || 'An error occurred';
+          window.alert(fallbackMessage);
+        } catch (fallbackError) {
+          console.error('cmxMessage: Failed to show fallback message:', fallbackError);
+        }
+      }
+      
+      // Return a no-op result
+      return { id: '', dismiss: () => {} };
     }
-
-    // Otherwise show directly
-    return this.showDirect(type, message, { ...options, method });
   }
 
   /**
    * Direct show method (bypasses queue)
+   * Wrapped in error boundary to prevent crashes
    */
   private showDirect(
     type: MessageType,
     message: string,
     options?: MessageOptions
   ): MessageResult {
-    const method = options?.method ?? getMessageConfig().defaultMethod;
+    try {
+      const method = options?.method ?? getMessageConfig().defaultMethod;
 
-    switch (method) {
-      case DisplayMethod.TOAST:
-        return showToastMessage(type, message, options);
-      case DisplayMethod.ALERT:
-        return showAlertMessage(type, message, options);
-      case DisplayMethod.CONSOLE:
-        return showConsoleMessage(type, message, options);
-      case DisplayMethod.INLINE:
-        return showInlineMessage(type, message, options);
-      default:
-        return showToastMessage(type, message, options);
+      switch (method) {
+        case DisplayMethod.TOAST:
+          return showToastMessage(type, message, options);
+        case DisplayMethod.ALERT:
+          return showAlertMessage(type, message, options);
+        case DisplayMethod.CONSOLE:
+          return showConsoleMessage(type, message, options);
+        case DisplayMethod.INLINE:
+          return showInlineMessage(type, message, options);
+        default:
+          return showToastMessage(type, message, options);
+      }
+    } catch (error) {
+      console.error('cmxMessage showDirect error:', error);
+      
+      // Fallback to console
+      if (typeof window !== 'undefined') {
+        try {
+          const fallbackMessage = this.validateMessage(message) || 'An error occurred';
+          console.error(`[${type}] ${fallbackMessage}`);
+        } catch {
+          // Ignore fallback errors
+        }
+      }
+      
+      // Return a no-op result
+      return { id: '', dismiss: () => {} };
     }
   }
 }

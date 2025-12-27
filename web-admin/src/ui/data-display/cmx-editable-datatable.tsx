@@ -16,7 +16,7 @@ import {
 import { CmxSpinner } from '../primitives/cmx-spinner'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxConfirmDialog } from '../feedback/cmx-confirm-dialog'
-import { showErrorToast, showSuccessToast } from '../components/cmx-toast'
+import { useMessage } from '../feedback/useMessage'
 import { Edit2, Save, X, Trash2, Plus, RotateCcw } from 'lucide-react'
 import type {
   CmxEditableDataTableProps,
@@ -268,7 +268,7 @@ export function CmxEditableDataTable<
         })
 
         setEditingRowId(null)
-        showSuccessToast('Row saved successfully')
+        showSuccess('Row saved successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'save',
@@ -294,7 +294,7 @@ export function CmxEditableDataTable<
           operation: state.isNew ? 'create' : 'update',
           row: state.current,
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [rowsState, onSave, validate, onError]
@@ -312,7 +312,7 @@ export function CmxEditableDataTable<
           updated.delete(rowId)
           return updated
         })
-        showSuccessToast('Row deleted successfully')
+        showSuccess('Row deleted successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'delete',
@@ -324,7 +324,7 @@ export function CmxEditableDataTable<
         onError?.(tableError, {
           operation: 'delete',
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [onDelete, onError]
@@ -348,7 +348,7 @@ export function CmxEditableDataTable<
           }
           return updated
         })
-        showSuccessToast('Row removed successfully')
+        showSuccess('Row removed successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'delete',
@@ -360,7 +360,7 @@ export function CmxEditableDataTable<
         onError?.(tableError, {
           operation: 'delete',
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [onSoftRemove, onError]
@@ -428,7 +428,7 @@ export function CmxEditableDataTable<
       })
 
       setEditingRowId(null)
-      showSuccessToast(
+      showSuccess(
         `Saved ${result.success.length} row(s)${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}`
       )
     } catch (error) {
@@ -442,9 +442,9 @@ export function CmxEditableDataTable<
         operation: 'bulk_save',
         changes,
       })
-      showErrorToast(tableError.message)
+      showError(tableError.message)
     }
-  }, [rowsState, onBulkSave, getRowId, onError])
+  }, [rowsState, onBulkSave, getRowId, onError, showError])
 
   // Build columns with editable cells and actions
   const tableColumns = useMemo(() => {
@@ -757,7 +757,7 @@ import {
 import { CmxSpinner } from '../primitives/cmx-spinner'
 import { CmxButton } from '../primitives/cmx-button'
 import { CmxConfirmDialog } from '../feedback/cmx-confirm-dialog'
-import { showErrorToast, showSuccessToast } from '../components/cmx-toast'
+import { useMessage } from '../feedback/useMessage'
 import { Edit2, Save, X, Trash2, Plus, RotateCcw } from 'lucide-react'
 import type {
   CmxEditableDataTableProps,
@@ -1009,7 +1009,7 @@ export function CmxEditableDataTable<
         })
 
         setEditingRowId(null)
-        showSuccessToast('Row saved successfully')
+        showSuccess('Row saved successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'save',
@@ -1035,7 +1035,7 @@ export function CmxEditableDataTable<
           operation: state.isNew ? 'create' : 'update',
           row: state.current,
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [rowsState, onSave, validate, onError]
@@ -1053,7 +1053,7 @@ export function CmxEditableDataTable<
           updated.delete(rowId)
           return updated
         })
-        showSuccessToast('Row deleted successfully')
+        showSuccess('Row deleted successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'delete',
@@ -1065,7 +1065,7 @@ export function CmxEditableDataTable<
         onError?.(tableError, {
           operation: 'delete',
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [onDelete, onError]
@@ -1089,7 +1089,7 @@ export function CmxEditableDataTable<
           }
           return updated
         })
-        showSuccessToast('Row removed successfully')
+        showSuccess('Row removed successfully')
       } catch (error) {
         const tableError: TableError = {
           type: 'delete',
@@ -1101,7 +1101,7 @@ export function CmxEditableDataTable<
         onError?.(tableError, {
           operation: 'delete',
         })
-        showErrorToast(tableError.message)
+        showError(tableError.message)
       }
     },
     [onSoftRemove, onError]
@@ -1169,7 +1169,7 @@ export function CmxEditableDataTable<
       })
 
       setEditingRowId(null)
-      showSuccessToast(
+      showSuccess(
         `Saved ${result.success.length} row(s)${result.failed.length > 0 ? `, ${result.failed.length} failed` : ''}`
       )
     } catch (error) {
@@ -1183,9 +1183,9 @@ export function CmxEditableDataTable<
         operation: 'bulk_save',
         changes,
       })
-      showErrorToast(tableError.message)
+      showError(tableError.message)
     }
-  }, [rowsState, onBulkSave, getRowId, onError])
+  }, [rowsState, onBulkSave, getRowId, onError, showError])
 
   // Build columns with editable cells and actions
   const tableColumns = useMemo(() => {

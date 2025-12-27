@@ -14,6 +14,7 @@ import { NextIntlClientProvider } from 'next-intl'
 import { AuthProvider } from '@/lib/auth/auth-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
+import { AlertDialogProvider } from '@ui/feedback'
 import { type Locale, getLocaleFromLocalStorage } from '@/lib/utils/locale.client'
 import enMessages from '@/messages/en.json'
 import arMessages from '@/messages/ar.json'
@@ -81,8 +82,10 @@ export function AppProviders({
       <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">
         <AuthProvider>
           <RoleProvider>
-            {children}
-            <Toaster position={toastPosition} richColors />
+            <AlertDialogProvider>
+              {children}
+              <Toaster position={toastPosition} richColors />
+            </AlertDialogProvider>
           </RoleProvider>
         </AuthProvider>
       </NextIntlClientProvider>

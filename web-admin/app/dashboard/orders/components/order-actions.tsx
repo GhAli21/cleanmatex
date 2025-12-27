@@ -20,7 +20,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
-import { toast } from 'sonner';
+import { useMessage } from '@ui/feedback';
 import { Button } from '@/components/ui/Button';
 import {
   Dialog,
@@ -50,6 +50,7 @@ export function OrderActions({ order }: OrderActionsProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { showSuccess, showErrorFrom, showError } = useMessage();
   const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
@@ -107,7 +108,7 @@ export function OrderActions({ order }: OrderActionsProps) {
         const statusLabel = locale === 'ar' 
           ? STATUS_META[selectedStatus].labelAr 
           : STATUS_META[selectedStatus].label;
-        toast.success(t('success.statusUpdated', { status: statusLabel }));
+        showSuccess(t('success.statusUpdated', { status: statusLabel }));
         setShowDialog(false);
         router.refresh();
       } else {
@@ -115,12 +116,12 @@ export function OrderActions({ order }: OrderActionsProps) {
         if (data.blockers && data.blockers.length > 0) {
           setBlockers(data.blockers);
         } else {
-          toast.error(data.error || t('errors.updateFailed'));
+          showError(data.error || t('errors.updateFailed'));
         }
       }
     } catch (error) {
       console.error('Failed to change status:', error);
-      toast.error(t('errors.updateFailed'));
+      showErrorFrom(error, { fallback: t('errors.updateFailed') });
     } finally {
       setLoading(false);
     }
