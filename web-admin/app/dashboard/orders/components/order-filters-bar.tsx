@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -17,6 +17,7 @@ interface OrderFiltersBarProps {
 
 export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const t = useTranslations('orders');
   const isRTL = useRTL();
@@ -30,7 +31,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
       params.delete(key);
     }
     params.set('page', '1'); // Reset to first page
-    router.push(`?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   const handleSearch = (e: React.FormEvent) => {

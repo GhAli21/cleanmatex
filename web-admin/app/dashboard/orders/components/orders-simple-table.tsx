@@ -12,7 +12,7 @@
  */
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -32,6 +32,7 @@ interface OrdersSimpleTableProps {
 
 export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations('orders');
   const isRTL = useRTL();
 
@@ -55,7 +56,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const goToPage = (nextPage: number) => {
     const params = new URLSearchParams(window.location.search);
     params.set('page', String(nextPage));
-    router.push(`?${params.toString()}`);
+    router.push(`${pathname}?${params.toString()}`);
   };
 
   return (

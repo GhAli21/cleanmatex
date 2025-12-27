@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { Edit } from 'lucide-react';
@@ -31,6 +31,7 @@ interface OrderTableProps {
 
 export function OrderTable({ orders, pagination }: OrderTableProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const t = useTranslations('orders');
   const isRTL = useRTL();
   const locale = useLocale();
@@ -235,7 +236,7 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
               onClick={() => {
                 const params = new URLSearchParams(window.location.search);
                 params.set('page', String(pagination.page - 1));
-                router.push(`?${params.toString()}`);
+                router.push(`${pathname}?${params.toString()}`);
               }}
               disabled={pagination.page === 1}
               className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50"
@@ -246,7 +247,7 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
               onClick={() => {
                 const params = new URLSearchParams(window.location.search);
                 params.set('page', String(pagination.page + 1));
-                router.push(`?${params.toString()}`);
+                router.push(`${pathname}?${params.toString()}`);
               }}
               disabled={pagination.page === pagination.totalPages}
               className="px-3 py-1 border border-gray-300 rounded disabled:opacity-50"
