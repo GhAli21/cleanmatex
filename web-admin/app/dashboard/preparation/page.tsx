@@ -54,7 +54,7 @@ export default function PreparationPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          current_status: 'intake or processing' , //'preparation',
+          current_status: 'intake,processing', // Multiple statuses: intake OR processing
           page: String(pagination.page),
           limit: '20',
         });

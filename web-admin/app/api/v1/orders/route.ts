@@ -142,9 +142,16 @@ export async function GET(request: NextRequest) {
       .eq('tenant_org_id', tenantId);
     }
 
-    // Apply status filter
+    // Apply status filter - support multiple statuses (comma-separated)
     if (currentStatus) {
-      query = query.eq('current_status', currentStatus);
+      const statuses = currentStatus.split(',').map(s => s.trim()).filter(Boolean);
+      if (statuses.length === 1) {
+        // Single status - use .eq() for better performance
+        query = query.eq('current_status', statuses[0]);
+      } else if (statuses.length > 1) {
+        // Multiple statuses - use .in()
+        query = query.in('current_status', statuses);
+      }
     }
 
     // Apply pagination
