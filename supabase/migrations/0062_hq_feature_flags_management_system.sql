@@ -3,9 +3,9 @@
 -- PRD: Feature Flag Management for CleanMateX Platform HQ
 -- Date: 2025-12-27
 -- Description: Complete feature flag management system including:
---              - Global feature flag definitions (hq_feature_flags_mst)
+--              - Global feature flag definitions (hq_ff_feature_flags_mst)
 --              - Tenant-specific overrides (org_ff_overrides_cf)
---              - Plan-flag relationships (sys_pln_flag_mappings_dtl)
+--              - Plan-flag relationships (sys_ff_pln_flag_mappings_dtl)
 --              - Audit trail (hq_ff_audit_history_tr)
 --              - Evaluation and validation functions
 -- =====================================================
@@ -13,8 +13,10 @@
 -- =====================================================
 -- 1. GLOBAL FEATURE FLAG DEFINITIONS
 -- =====================================================
+--ALTER TABLE hq_feature_flags_mst RENAME TO hq_ff_feature_flags_mst;
+--ALTER TABLE sys_pln_flag_mappings_dtl RENAME TO sys_ff_pln_flag_mappings_dtl;
 
-CREATE TABLE hq_feature_flags_mst (
+CREATE TABLE hq_ff_feature_flags_mst (
   -- Identification
   flag_key VARCHAR(100) PRIMARY KEY,
   flag_name TEXT NOT NULL,
@@ -40,7 +42,7 @@ CREATE TABLE hq_feature_flags_mst (
   data_type VARCHAR(20) NOT NULL,
   CHECK (data_type IN ('boolean', 'integer', 'float', 'string', 'date', 'datetime', 'object', 'array', 'number')),
   default_value JSONB NOT NULL,
-  validation_rules JSONB,
+  validation_rules JSONB DEFAULT '[]'::jsonb,
 
   -- Plan integration
   plan_binding_type VARCHAR(20) NOT NULL DEFAULT 'independent',
@@ -53,7 +55,7 @@ CREATE TABLE hq_feature_flags_mst (
 
   -- UI organization
   ui_group VARCHAR(100),
-  comp_code TEXT,
+  comp_code TEXT, 
   ui_display_order INTEGER DEFAULT 0,
   ui_icon VARCHAR(120),
   ui_color VARCHAR(60),
@@ -74,18 +76,19 @@ CREATE TABLE hq_feature_flags_mst (
 );
 
 -- Indexes
-CREATE INDEX idx_hq_ff_flags_active ON hq_feature_flags_mst(is_active, ui_display_order);
-CREATE INDEX idx_hq_ff_flags_category ON hq_feature_flags_mst(governance_category);
-CREATE INDEX idx_hq_ff_flags_plan_binding ON hq_feature_flags_mst(plan_binding_type);
-CREATE INDEX idx_hq_ff_flags_group ON hq_feature_flags_mst(ui_group, ui_display_order);
+CREATE INDEX idx_hq_ff_flags_active ON hq_ff_feature_flags_mst(is_active, ui_display_order);
+CREATE INDEX idx_hq_ff_flags_category ON hq_ff_feature_flags_mst(governance_category);
+CREATE INDEX idx_hq_ff_flags_plan_binding ON hq_ff_feature_flags_mst(plan_binding_type);
+CREATE INDEX idx_hq_ff_flags_group ON hq_ff_feature_flags_mst(ui_group, ui_display_order);
 
 -- Comments
-COMMENT ON TABLE hq_feature_flags_mst IS 'Platform HQ - Global feature flag definitions';
-COMMENT ON COLUMN hq_feature_flags_mst.validation_rules IS 'JSONB with type-specific constraints: {min, max, minLength, maxLength, pattern, schema}';
-COMMENT ON COLUMN hq_feature_flags_mst.enabled_plan_codes IS 'For plan_bound flags: array of plan codes where flag is enabled';
-COMMENT ON COLUMN hq_feature_flags_mst.is_billable IS 'Ties to plan/add-ons for billing';
-COMMENT ON COLUMN hq_feature_flags_mst.is_kill_switch IS 'HQ platform override semantics';
-COMMENT ON COLUMN hq_feature_flags_mst.is_sensitive IS 'Hide in tenant UI, HQ-only display';
+COMMENT ON TABLE hq_ff_feature_flags_mst IS 'Platform HQ - Global feature flag definitions';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.validation_rules IS 'JSONB with type-specific constraints: {min, max, minLength, maxLength, pattern, schema}';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.enabled_plan_codes IS 'For plan_bound flags: array of plan codes where flag is enabled';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.is_billable IS 'Ties to plan/add-ons for billing';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.is_kill_switch IS 'HQ platform override semantics';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.is_sensitive IS 'Hide in tenant UI, HQ-only display';
+COMMENT ON COLUMN hq_ff_feature_flags_mst.comp_code IS 'from sys_components_cd which contains all ui navigation tree';
 
 -- =====================================================
 -- 2. TENANT OVERRIDE CONFIGURATION
@@ -155,7 +158,7 @@ COMMENT ON COLUMN org_ff_overrides_cf.data_type IS 'Cached from flag for fast ac
 -- 3. PLAN-FLAG RELATIONSHIPS
 -- =====================================================
 
-CREATE TABLE sys_pln_flag_mappings_dtl (
+CREATE TABLE sys_ff_pln_flag_mappings_dtl (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- Plan reference
@@ -188,14 +191,14 @@ CREATE TABLE sys_pln_flag_mappings_dtl (
 );
 
 -- Indexes
-CREATE INDEX idx_sys_pln_flag_mappings_plan ON sys_pln_flag_mappings_dtl(plan_code, is_enabled);
-CREATE INDEX idx_sys_pln_flag_mappings_flag ON sys_pln_flag_mappings_dtl(flag_key, is_enabled);
-CREATE INDEX idx_sys_pln_flag_mappings_active ON sys_pln_flag_mappings_dtl(is_active, is_enabled);
+CREATE INDEX idx_sys_pln_flag_mappings_plan ON sys_ff_pln_flag_mappings_dtl(plan_code, is_enabled);
+CREATE INDEX idx_sys_pln_flag_mappings_flag ON sys_ff_pln_flag_mappings_dtl(flag_key, is_enabled);
+CREATE INDEX idx_sys_pln_flag_mappings_active ON sys_ff_pln_flag_mappings_dtl(is_active, is_enabled);
 
 -- Comments
-COMMENT ON TABLE sys_pln_flag_mappings_dtl IS 'Explicit plan-flag relationships with plan-specific values';
-COMMENT ON COLUMN sys_pln_flag_mappings_dtl.plan_specific_value IS 'Optional override of flag default_value for this specific plan';
-COMMENT ON COLUMN sys_pln_flag_mappings_dtl.is_enabled IS 'Quick toggle to enable/disable flag for plan without deleting mapping';
+COMMENT ON TABLE sys_ff_pln_flag_mappings_dtl IS 'Explicit plan-flag relationships with plan-specific values';
+COMMENT ON COLUMN sys_ff_pln_flag_mappings_dtl.plan_specific_value IS 'Optional override of flag default_value for this specific plan';
+COMMENT ON COLUMN sys_ff_pln_flag_mappings_dtl.is_enabled IS 'Quick toggle to enable/disable flag for plan without deleting mapping';
 
 -- =====================================================
 -- 4. AUDIT HISTORY
@@ -264,7 +267,7 @@ DECLARE
   v_rules JSONB;
 BEGIN
   SELECT data_type, validation_rules INTO v_flag
-  FROM hq_feature_flags_mst
+  FROM hq_ff_feature_flags_mst
   WHERE flag_key = p_flag_key;
 
   IF NOT FOUND THEN
@@ -350,7 +353,7 @@ DECLARE
 BEGIN
   -- Get flag definition
   SELECT * INTO v_flag
-  FROM hq_feature_flags_mst
+  FROM hq_ff_feature_flags_mst
   WHERE flag_key = p_flag_key AND is_active = true;
 
   IF NOT FOUND THEN
@@ -387,7 +390,7 @@ BEGIN
     IF FOUND THEN
       -- 2a. Check for plan-specific value in mapping table
       SELECT * INTO v_plan_mapping
-      FROM sys_pln_flag_mappings_dtl
+      FROM sys_ff_pln_flag_mappings_dtl
       WHERE plan_code = v_subscription.plan_code
         AND flag_key = p_flag_key
         AND is_enabled = true
@@ -433,7 +436,7 @@ $$ LANGUAGE plpgsql;
 
 -- Apply to tables
 CREATE TRIGGER update_hq_ff_flags_timestamp
-  BEFORE UPDATE ON hq_feature_flags_mst
+  BEFORE UPDATE ON hq_ff_feature_flags_mst
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -443,7 +446,7 @@ CREATE TRIGGER update_org_ff_overrides_timestamp
   EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_sys_pln_flag_mappings_timestamp
-  BEFORE UPDATE ON sys_pln_flag_mappings_dtl
+  BEFORE UPDATE ON sys_ff_pln_flag_mappings_dtl
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -455,13 +458,13 @@ DECLARE
 BEGIN
   -- Rebuild enabled_plan_codes from mapping table
   SELECT COALESCE(jsonb_agg(plan_code), '[]'::jsonb) INTO v_plan_codes
-  FROM sys_pln_flag_mappings_dtl
+  FROM sys_ff_pln_flag_mappings_dtl
   WHERE flag_key = COALESCE(NEW.flag_key, OLD.flag_key)
     AND is_enabled = true
     AND is_active = true;
 
   -- Update flag table
-  UPDATE hq_feature_flags_mst
+  UPDATE hq_ff_feature_flags_mst
   SET enabled_plan_codes = v_plan_codes,
       updated_at = CURRENT_TIMESTAMP
   WHERE flag_key = COALESCE(NEW.flag_key, OLD.flag_key);
@@ -472,18 +475,18 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger on mapping table
 CREATE TRIGGER sync_enabled_plan_codes_on_insert
-  AFTER INSERT ON sys_pln_flag_mappings_dtl
+  AFTER INSERT ON sys_ff_pln_flag_mappings_dtl
   FOR EACH ROW
   EXECUTE FUNCTION sync_flag_enabled_plan_codes();
 
 CREATE TRIGGER sync_enabled_plan_codes_on_update
-  AFTER UPDATE ON sys_pln_flag_mappings_dtl
+  AFTER UPDATE ON sys_ff_pln_flag_mappings_dtl
   FOR EACH ROW
   WHEN (OLD.is_enabled IS DISTINCT FROM NEW.is_enabled OR OLD.is_active IS DISTINCT FROM NEW.is_active)
   EXECUTE FUNCTION sync_flag_enabled_plan_codes();
 
 CREATE TRIGGER sync_enabled_plan_codes_on_delete
-  AFTER DELETE ON sys_pln_flag_mappings_dtl
+  AFTER DELETE ON sys_ff_pln_flag_mappings_dtl
   FOR EACH ROW
   EXECUTE FUNCTION sync_flag_enabled_plan_codes();
 
@@ -491,7 +494,7 @@ CREATE TRIGGER sync_enabled_plan_codes_on_delete
 -- 7. SEED DATA
 -- =====================================================
 
-INSERT INTO hq_feature_flags_mst (
+INSERT INTO hq_ff_feature_flags_mst (
   flag_key, flag_name, flag_name2, governance_category, data_type, default_value,
   plan_binding_type, enabled_plan_codes, allows_tenant_override, ui_group, ui_display_order, validation_rules
 ) VALUES
@@ -536,15 +539,15 @@ ON CONFLICT (flag_key) DO NOTHING;
 -- =====================================================
 
 -- Grant to service_role (platform-api uses this)
-GRANT ALL ON hq_feature_flags_mst TO service_role;
+GRANT ALL ON hq_ff_feature_flags_mst TO service_role;
 GRANT ALL ON org_ff_overrides_cf TO service_role;
-GRANT ALL ON sys_pln_flag_mappings_dtl TO service_role;
+GRANT ALL ON sys_ff_pln_flag_mappings_dtl TO service_role;
 GRANT ALL ON hq_ff_audit_history_tr TO service_role;
 
 -- Grant to authenticated (for service role key)
-GRANT ALL ON hq_feature_flags_mst TO authenticated;
+GRANT ALL ON hq_ff_feature_flags_mst TO authenticated;
 GRANT ALL ON org_ff_overrides_cf TO authenticated;
-GRANT ALL ON sys_pln_flag_mappings_dtl TO authenticated;
+GRANT ALL ON sys_ff_pln_flag_mappings_dtl TO authenticated;
 GRANT ALL ON hq_ff_audit_history_tr TO authenticated;
 
 -- =====================================================
@@ -554,8 +557,8 @@ GRANT ALL ON hq_ff_audit_history_tr TO authenticated;
 DO $$
 BEGIN
     RAISE NOTICE '✅ Feature Flag Management System migration completed successfully';
-    RAISE NOTICE '✅ Created tables: hq_feature_flags_mst, org_ff_overrides_cf, sys_pln_flag_mappings_dtl, hq_ff_audit_history_tr';
-    RAISE NOTICE '✅ Seeded % feature flags', (SELECT COUNT(*) FROM hq_feature_flags_mst);
+    RAISE NOTICE '✅ Created tables: hq_ff_feature_flags_mst, org_ff_overrides_cf, sys_ff_pln_flag_mappings_dtl, hq_ff_audit_history_tr';
+    RAISE NOTICE '✅ Seeded % feature flags', (SELECT COUNT(*) FROM hq_ff_feature_flags_mst);
     RAISE NOTICE '✅ RLS policies applied';
     RAISE NOTICE '✅ Helper functions created: hq_ff_validate_value, hq_ff_get_effective_value';
 END $$;

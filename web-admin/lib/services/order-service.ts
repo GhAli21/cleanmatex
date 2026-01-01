@@ -89,8 +89,8 @@ export class OrderService {
       } = params;
 
       // Determine initial status based on Quick Drop vs Normal
-      let initialStatus: string;
-      let transitionFrom: string;
+      let v_initialStatus: string;
+      let v_transitionFrom: string;
       let v_orderStatus: string;
       
       //v_orderStatus = 'intake';
@@ -109,18 +109,18 @@ export class OrderService {
       //v_orderStatus = 'cancelled';
 
       v_orderStatus = 'processing';
-      transitionFrom = 'intake';
+      v_transitionFrom = 'intake';
 
       if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
         // Quick Drop: insufficient items → preparing stage
-        initialStatus = 'preparing';
-        transitionFrom = 'intake';
+        v_initialStatus = 'preparing';
+        v_transitionFrom = 'intake';
         v_orderStatus = 'intake';
 
       } else {
         // Normal order: has items → processing stage
-        initialStatus = 'processing';
-        transitionFrom = 'intake';
+        v_initialStatus = 'processing';
+        v_transitionFrom = 'intake';
         v_orderStatus = 'processing';
       }
 
@@ -157,7 +157,7 @@ export class OrderService {
         .eq('is_active', true)
         .single();
 
-      const workflowTemplateId = templateData?.template_id || null;
+      const v_workflowTemplateId = templateData?.template_id || null;
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -168,9 +168,10 @@ export class OrderService {
           customer_id: customerId,
           order_type_id: orderTypeId,
           order_no: orderNo,
-          status: v_orderStatus, // 'intake', 
-          current_status: initialStatus,
-          current_stage: transitionFrom, //initialStatus
+          status: v_orderStatus, // 'processing' // 'intake', 
+          workflow_template_id: v_workflowTemplateId,
+          current_status: v_initialStatus,
+          current_stage: v_transitionFrom, //initialStatus
           priority: priority || 'normal',
           priority_multiplier: express ? 0.5 : 1.0,
           total_items: items.length > 0 ? items.length : quickDropQuantity || 0,
@@ -186,7 +187,7 @@ export class OrderService {
           quick_drop_quantity: quickDropQuantity,
           customer_notes: customerNotes,
           internal_notes: internalNotes,
-          workflow_template_id: workflowTemplateId,
+          
         })
         .select()
         .single();
@@ -210,8 +211,8 @@ export class OrderService {
           price_per_unit: item.pricePerUnit,
           total_price: item.totalPrice,
           status: 'pending',
-          item_status: initialStatus,
-          item_stage: initialStatus,
+          item_status: v_initialStatus,
+          item_stage: v_transitionFrom,
           notes: item.notes,
           has_stain: item.hasStain,
           has_damage: item.hasDamage,

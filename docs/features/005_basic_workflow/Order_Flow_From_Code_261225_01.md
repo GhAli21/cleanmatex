@@ -4,9 +4,16 @@ Utility Functions
 Should Be from database from workflow configurations;
 
 
+
 ===================
 
 Page-by-Page Transition Code:
+0. Create New Order:
+File: F:\jhapp\cleanmatex\web-admin\lib\services\order-service.ts 
+static async createOrder: 71
+
+
+---
 
 1. Ready Page → Delivered
 File: web-admin/app/dashboard/ready/[id]/page.tsx:59-82
