@@ -9,6 +9,10 @@ Should Be from database from workflow configurations;
 
 Page-by-Page Transition Code:
 0. Create New Order:
+toStatus='processing' or 'intake'
+current_status='processing'
+current_stage='intake'
+
 File: F:\jhapp\cleanmatex\web-admin\lib\services\order-service.ts 
 static async createOrder: 71
 
@@ -22,6 +26,7 @@ const handleDeliver = async () => {
 ---
 
 2. Processing Page → Ready 
+pre status=''
 toStatus: 'ready',
 File: web-admin/app/dashboard/processing/[id]/page.tsx:113-145
 const handleMarkReady = async () => {

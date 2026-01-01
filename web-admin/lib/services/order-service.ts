@@ -92,6 +92,8 @@ export class OrderService {
       let v_initialStatus: string;
       let v_transitionFrom: string;
       let v_orderStatus: string;
+      let v_current_status: string;
+      let v_current_stage: string;
       
       //v_orderStatus = 'intake';
       //v_orderStatus = 'preparation';
@@ -110,18 +112,26 @@ export class OrderService {
 
       v_orderStatus = 'processing';
       v_transitionFrom = 'intake';
+      v_current_status = 'intake';
+      v_current_stage = 'intake';
 
       if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
         // Quick Drop: insufficient items → preparing stage
         v_initialStatus = 'preparing';
         v_transitionFrom = 'intake';
-        v_orderStatus = 'intake';
-
+        //v_orderStatus = 'intake';
+        v_orderStatus = 'preparing';
+        v_current_status = 'preparing';
+        v_current_stage = 'intake';
+        
       } else {
         // Normal order: has items → processing stage
         v_initialStatus = 'processing';
         v_transitionFrom = 'intake';
         v_orderStatus = 'processing';
+        v_current_status = 'processing';
+        v_current_stage = 'intake';
+        
       }
 
       // Generate order number
@@ -170,8 +180,8 @@ export class OrderService {
           order_no: orderNo,
           status: v_orderStatus, // 'processing' // 'intake', 
           workflow_template_id: v_workflowTemplateId,
-          current_status: v_initialStatus,
-          current_stage: v_transitionFrom, //initialStatus
+          current_status: v_current_status, // v_initialStatus,
+          current_stage: v_current_stage, // v_transitionFrom, //initialStatus
           priority: priority || 'normal',
           priority_multiplier: express ? 0.5 : 1.0,
           total_items: items.length > 0 ? items.length : quickDropQuantity || 0,

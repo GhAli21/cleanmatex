@@ -45,7 +45,7 @@ export default function AssemblyPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          current_status: 'assembly',
+          current_status: 'ready,assembly',
           page: String(pagination.page),
           limit: '20',
         });

@@ -54,7 +54,9 @@ export default function PreparationPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          current_status: 'intake,processing', // Multiple statuses: intake OR processing
+          current_status: 'intake,preparing',// 'intake,processing', // Multiple statuses: intake OR processing
+          current_stage: 'intake,preparing',// 'intake,processing', // Multiple statuses: intake OR processing
+          status_filter: 'intake,preparing', // Only show orders with status 'preparation'
           page: String(pagination.page),
           limit: '20',
         });
