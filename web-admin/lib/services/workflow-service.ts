@@ -118,7 +118,7 @@ export class WorkflowService {
    */
   static async isTransitionAllowed(
     params: TransitionCheckParams
-  ): Promise<TransitionCheckResult> {
+  ): Promise<TransitionCheckResult> { 
     try {
       const supabase = await createClient();
       const { tenantId, fromStatus, toStatus, orderId } = params;
