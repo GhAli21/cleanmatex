@@ -85,14 +85,25 @@ export function useNavigation() {
         const data = await response.json()
         const sections = data.sections as any[]
 
+        console.log('Navigation API response:', {
+          sectionsCount: sections?.length || 0,
+          source: data.source,
+          sections: sections,
+        })
+
         if (sections && sections.length > 0) {
           // Transform icon strings to components
           const transformedSections = transformNavigationIcons(sections)
+          console.log('Transformed navigation sections:', transformedSections.length)
           setNavigation(transformedSections)
           // Cache the result (with icon strings, not components)
           setCachedNavigation(permissionsHash, sections)
         } else {
           // No navigation items found - user has no permissions
+          console.warn('No navigation sections returned from API', {
+            source: data.source,
+            error: data.error,
+          })
           setNavigation([])
         }
       } catch (err) {

@@ -10,6 +10,44 @@ import { getIcon, ICON_REGISTRY } from '@/lib/utils/icon-registry'
 import type { NavigationSection, NavigationItem, UserRole } from '@/config/navigation'
 import { NAVIGATION_SECTIONS, getNavigationForRole } from '@/config/navigation'
 
+/**
+ * Get basic navigation for super_admin as last resort
+ * This ensures super_admin always has navigation even if everything else fails
+ */
+function getBasicNavigationForSuperAdmin(): NavigationSection[] {
+  console.warn('Using basic navigation fallback for super_admin')
+  return [
+    {
+      key: 'home',
+      label: 'Dashboard',
+      icon: 'Home',
+      path: '/dashboard',
+      roles: ['super_admin'],
+    },
+    {
+      key: 'orders',
+      label: 'Orders',
+      icon: 'PackageSearch',
+      path: '/dashboard/orders',
+      roles: ['super_admin'],
+    },
+    {
+      key: 'customers',
+      label: 'Customers',
+      icon: 'Users',
+      path: '/dashboard/customers',
+      roles: ['super_admin'],
+    },
+    {
+      key: 'settings',
+      label: 'Settings',
+      icon: 'Settings',
+      path: '/dashboard/settings',
+      roles: ['super_admin'],
+    },
+  ] as any
+}
+
 export interface NavigationItemDB {
   comp_id: string
   parent_comp_id: string | null
@@ -57,29 +95,67 @@ export async function getNavigationFromDatabase(
     // Call the database function
     // The function expects p_feature_flags as JSONB array
     // Pass empty array if no permissions to avoid NULL issues
-    console.log('Jh In getNavigationFromDatabase() [ 6 ] : get_navigation_with_parents()');
+    console.log('Jh In getNavigationFromDatabase() [ 6 ] : Calling get_navigation_with_parents_jh with:', {
+      p_user_permissions: userPermissions.length > 0 ? userPermissions : [],
+      p_user_role: userRole || null,
+      p_feature_flags: featureFlagArray.length > 0 ? featureFlagArray : [],
+    });
+    
     const { data, error } = await supabase.rpc('get_navigation_with_parents_jh', {
       p_user_permissions: userPermissions.length > 0 ? userPermissions : [],
       p_user_role: userRole || null,
       p_feature_flags: featureFlagArray.length > 0 ? featureFlagArray : [],
     })
-    console.log('Jh In getNavigationFromDatabase() [ 1 ] : data', data);
-    console.log('Jh In getNavigationFromDatabase() [ 2 ] : error', error);
+    
+    console.log('Jh In getNavigationFromDatabase() [ 1 ] : data received:', {
+      dataLength: data?.length || 0,
+      data: data,
+      error: error,
+    });
+    
+    if (error) {
+      console.error('Database function error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code,
+      });
+    }
     
     if (error) {
       console.error('Error fetching navigation from database:', error)
       // Return empty array if error (no default fallback)
-      return getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
+      const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
+      // Ensure super_admin always gets navigation items
+      if (fallback.length === 0 && userRole === 'super_admin') {
+        return getBasicNavigationForSuperAdmin()
+      }
+      return fallback
     }
 
     if (!data || data.length === 0) {
-      console.warn('No navigation items found in database for user, using fallback')
+      console.warn('No navigation items found in database for user, using fallback', {
+        userRole,
+        permissionsCount: userPermissions.length,
+      })
       // Use fallback navigation when database returns empty
-      return getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
+      const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
+      console.log('Fallback navigation returned:', fallback.length, 'sections')
+      
+      // Ensure super_admin always gets navigation items
+      if (fallback.length === 0 && userRole === 'super_admin') {
+        console.error('CRITICAL: Fallback returned empty for super_admin! This should never happen.')
+        // Return basic navigation as last resort
+        return getBasicNavigationForSuperAdmin()
+      }
+      
+      return fallback
     }
 
     // Transform database records to NavigationSection format
-    return transformToNavigationSections(data as NavigationItemDB[])
+    const transformed = transformToNavigationSections(data as NavigationItemDB[])
+    console.log('Transformed navigation from database:', transformed.length, 'sections')
+    return transformed
   } catch (error) {
     console.error('Error in getNavigationFromDatabase:', error)
     // Return empty array on error (no default fallback)
@@ -233,17 +309,48 @@ export function getSystemNavigationFallback(
 ): NavigationSection[] {
   // If no role provided, return empty array (no default access)
   if (!userRole) {
+    console.warn('getSystemNavigationFallback: No user role provided')
     return []
   }
 
-  // Get filtered navigation by role/permissions
-  const filtered = getNavigationForRole(userRole, featureFlags, userPermissions)
-  
-  // Convert icon components to strings for JSON serialization
-  return filtered.map((section) => ({
-    ...section,
-    icon: getIconName(section.icon), // Convert component to string name
-  })) as any // Type assertion needed because icon is string, not LucideIcon
+  console.log('getSystemNavigationFallback called with:', {
+    userRole,
+    permissionsCount: userPermissions.length,
+    featureFlagsCount: Object.keys(featureFlags).length,
+  })
+
+  try {
+    // Get filtered navigation by role/permissions
+    const filtered = getNavigationForRole(userRole, featureFlags, userPermissions)
+    
+    console.log('getNavigationForRole returned:', filtered.length, 'sections')
+    
+    // Convert icon components to strings for JSON serialization
+    const result = filtered.map((section) => {
+      try {
+        return {
+          ...section,
+          icon: getIconName(section.icon), // Convert component to string name
+        }
+      } catch (iconError) {
+        console.error('Error converting icon for section:', section.key, iconError)
+        return {
+          ...section,
+          icon: 'Home', // Fallback icon name
+        }
+      }
+    }) as any // Type assertion needed because icon is string, not LucideIcon
+    
+    console.log('getSystemNavigationFallback returning:', result.length, 'sections')
+    return result
+  } catch (error) {
+    console.error('Error in getSystemNavigationFallback:', error)
+    // Return basic navigation as fallback for super_admin
+    if (userRole === 'super_admin') {
+      return getBasicNavigationForSuperAdmin()
+    }
+    return []
+  }
 }
 
 /**

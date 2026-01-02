@@ -94,6 +94,13 @@ export async function GET() {
       featureFlags
     )
 
+    console.log('Navigation API returning:', {
+      sectionsCount: navigation.length,
+      userRole,
+      permissionsCount: userPermissions.length,
+      navigation: navigation.map(s => ({ key: s.key, label: s.label, childrenCount: s.children?.length || 0 })),
+    })
+
     return NextResponse.json({
       sections: navigation,
       cached: false,
