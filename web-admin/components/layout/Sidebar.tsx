@@ -41,11 +41,12 @@ export default function Sidebar() {
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
 
   // Fetch navigation from API (with caching and fallback)
+  console.log('Jh in Sidebar() [ 1 ] : fetching navigation')
   const { navigation, isLoading: navigationLoading } = useNavigation()
-
+  console.log('Jh in Sidebar() [ 2 ] : navigation', navigation)
   // Debug: Log navigation state changes
   useEffect(() => {
-    console.log('Sidebar - Navigation state:', {
+    console.log('Jh in Sidebar() [ 3 ] : Navigation state:', {
       isLoading: navigationLoading,
       navigationLength: navigation.length,
       navigation: navigation,
