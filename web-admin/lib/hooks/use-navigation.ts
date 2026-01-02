@@ -15,6 +15,7 @@ import {
   getCachedNavigation,
   setCachedNavigation,
   hashPermissions,
+  invalidateNavigationCache,
 } from '@/lib/cache/permission-cache-client'
 import { getIcon } from '@/lib/utils/icon-registry'
 
@@ -47,14 +48,19 @@ export function useNavigation() {
       setError(null)
 
       try {
-        // Check cache first
+        // Check cache first - but only use it if it has items
         const cached = getCachedNavigation(permissionsHash)
-        if (cached) {
+        if (cached && Array.isArray(cached) && cached.length > 0) {
+          console.log('Using cached navigation:', cached.length, 'sections')
           // Transform icon strings to components
           const transformedCached = transformNavigationIcons(cached)
           setNavigation(transformedCached)
           setIsLoading(false)
           return
+        } else if (cached && cached.length === 0) {
+          // Cache has empty array - clear it and fetch fresh
+          console.warn('Cache has empty navigation array, clearing cache and fetching fresh')
+          invalidateNavigationCache()
         }
 
         // Fetch from API
@@ -96,7 +102,7 @@ export function useNavigation() {
           const transformedSections = transformNavigationIcons(sections)
           console.log('Transformed navigation sections:', transformedSections.length)
           setNavigation(transformedSections)
-          // Cache the result (with icon strings, not components)
+          // Cache the result (with icon strings, not components) - only cache non-empty arrays
           setCachedNavigation(permissionsHash, sections)
         } else {
           // No navigation items found - user has no permissions
@@ -105,6 +111,8 @@ export function useNavigation() {
             error: data.error,
           })
           setNavigation([])
+          // Don't cache empty arrays - clear any existing cache
+          invalidateNavigationCache()
         }
       } catch (err) {
         // Handle JSON parsing errors specifically
