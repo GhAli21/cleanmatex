@@ -81,10 +81,30 @@ export function useNavigation() {
           console.log('Jh in useNavigation() [ 17 ] : cache cleared, fetching fresh')
         }
 
-        // Fetch from API
-        console.log('Jh in useNavigation() [ 18 ] : fetching from API')
-        const response = await fetch('/api/navigation')
-        console.log('Jh in useNavigation() [ 19 ] : response', response)
+          // Fetch from API with timeout
+         console.log('Jh in useNavigation() [ 18 ] : fetching from API')
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => {
+            console.log('Jh in useNavigation() [ 18.5 ] : fetch timeout, aborting')
+            controller.abort()
+          }, 10000) // 10 second timeout
+          
+          let response: Response
+          try {
+            response = await fetch('/api/navigation', {
+              signal: controller.signal,
+            })
+            clearTimeout(timeoutId)
+          } catch (fetchError: any) {
+            clearTimeout(timeoutId)
+            if (fetchError.name === 'AbortError') {
+              console.log('Jh in useNavigation() [ 18.6 ] : fetch aborted due to timeout')
+              throw new Error('Navigation API request timed out')
+            }
+            throw fetchError
+          }
+          
+         console.log('Jh in useNavigation() [ 19 ] : response', response)
         
         // Check if response is OK
         if (!response.ok) {

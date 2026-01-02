@@ -19,9 +19,23 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<
   ])
 }
 
-export async function GET() {
+export const runtime = 'nodejs' // Ensure Node.js runtime
+export const maxDuration = 10 // Vercel timeout limit
+
+export async function GET(request: Request) {
+  const startTime = Date.now()
+  console.log('[API] GET /api/navigation - Request started at', new Date().toISOString())
+  
+  // Immediately return a test response to verify route is working
+  // Remove this after confirming route works
+  if (request.headers.get('x-test') === 'true') {
+    return NextResponse.json({ test: 'route-works', timestamp: Date.now() })
+  }
+  
   try {
+    console.log('[API] Creating Supabase client...')
     const supabase = await createClient()
+    console.log('[API] Supabase client created')
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -110,13 +124,17 @@ export async function GET() {
       navigation: navigation.map(s => ({ key: s.key, label: s.label, childrenCount: s.children?.length || 0 })),
     })
 
+    const duration = Date.now() - startTime
+    console.log(`[API] GET /api/navigation - Success (${duration}ms)`)
+    
     return NextResponse.json({
       sections: navigation,
       cached: false,
       source: 'database',
     })
   } catch (error) {
-    console.error('Error in GET /api/navigation:', error)
+    const duration = Date.now() - startTime
+    console.error(`[API] GET /api/navigation - Error after ${duration}ms:`, error)
     
     // Try to get fallback navigation even on error
     try {
