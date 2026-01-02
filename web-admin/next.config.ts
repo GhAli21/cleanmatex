@@ -15,8 +15,21 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Optimize font loading to reduce preload warnings
+  // Fonts will be loaded on-demand instead of preloaded
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+
   // Disable Turbopack - use webpack instead (we have custom webpack config)
-  turbopack: {},
+  
+  turbopack: {
+    // monorepo root (parent of /web-admin)
+    
+    root: path.join(__dirname), 
+    //path.resolve(__dirname, ".."),
+
+  },
 
   // Use webpack instead of Turbopack for more stable builds
   webpack: (config, { isServer }) => {

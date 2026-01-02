@@ -74,17 +74,18 @@ export async function GET() {
       
       // Get feature flags
     let featureFlags: Record<string, boolean> = {}
-    try {
-      const { getFeatureFlags } = await import('@/lib/services/feature-flags.service')
-      console.log('Jh In GET() [ 5 ] : getFeatureFlags');
-      const tenantId = tenants[0].tenant_id as string
-      console.log('Jh In GET() [ 6 ] : tenantId', tenantId);
-      const flags = await getFeatureFlags(tenantId)
-      // Convert FeatureFlags type to Record<string, boolean>
-      featureFlags = flags as unknown as Record<string, boolean>
-    } catch (error) {
-      console.warn('Failed to fetch feature flags for navigation:', error)
-    }
+    // TEMPORARILY DISABLED to prevent timeout - feature flags will use defaults
+    // try {
+    //   const { getFeatureFlags } = await import('@/lib/services/feature-flags.service')
+    //   console.log('Jh In GET() [ 5 ] : getFeatureFlags');
+    //   const tenantId = tenants[0].tenant_id as string
+    //   console.log('Jh In GET() [ 6 ] : tenantId', tenantId);
+    //   const flags = await getFeatureFlags(tenantId)
+    //   // Convert FeatureFlags type to Record<string, boolean>
+    //   featureFlags = flags as unknown as Record<string, boolean>
+    // } catch (error) {
+    //   console.warn('Failed to fetch feature flags for navigation:', error)
+    // }
 
     // Fetch navigation from database
     const navigation = await getNavigationFromDatabase(
