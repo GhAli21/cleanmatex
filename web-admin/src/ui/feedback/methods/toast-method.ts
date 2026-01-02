@@ -5,7 +5,7 @@
 
 import { toast as sonnerToast } from 'sonner';
 import type { MessageType, MessageOptions, MessageResult } from '../types';
-import { sanitizeHtml, containsHtml } from '../utils/html-sanitizer';
+import { sanitizeHtmlSync, containsHtml } from '../utils/html-sanitizer';
 
 /**
  * Display a message using Sonner toast notifications
@@ -20,10 +20,10 @@ export function showToastMessage(
 
   // Handle HTML content
   if (options?.html && containsHtml(message)) {
-    message = sanitizeHtml(message);
+    message = sanitizeHtmlSync(message);
   }
   if (options?.html && description && containsHtml(description)) {
-    description = sanitizeHtml(description);
+    description = sanitizeHtmlSync(description);
   }
 
   // Determine ARIA role based on message type

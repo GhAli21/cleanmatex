@@ -44,6 +44,24 @@ const nextConfig: NextConfig = {
       config.externals = config.externals || [];
       config.externals.push('ioredis');
     }
+
+    // Fix ES module compatibility issues with html-encoding-sniffer
+    // This handles the require() of ES modules issue in serverless environments
+    // Exclude problematic packages from server bundles
+    if (isServer) {
+      config.externals = config.externals || [];
+      
+      // Handle html-encoding-sniffer ES module issue by externalizing it
+      // This prevents webpack from bundling it on the server side
+      // These packages are only needed client-side for DOMPurify
+      config.externals.push({
+        'isomorphic-dompurify': 'commonjs isomorphic-dompurify',
+        'html-encoding-sniffer': 'commonjs html-encoding-sniffer',
+        '@exodus/bytes': 'commonjs @exodus/bytes',
+        'jsdom': 'commonjs jsdom',
+      });
+    }
+
     return config;
   },
 };
