@@ -73,19 +73,20 @@ export async function fetchAuthData(): Promise<AuthData> {
 
     // Fetch feature flags for first tenant (if available)
     let featureFlags: Record<string, boolean> = {}
-    if (tenants.length > 0) {
-      try {
-        const response = await fetch('/api/feature-flags')
-        if (response.ok) {
-          featureFlags = await response.json()
-        } else {
-          console.warn('Failed to fetch feature flags:', response.statusText)
-        }
-      } catch (error) {
-        console.warn('Error fetching feature flags:', error)
-        // Continue with empty feature flags
-      }
-    }
+    // TEMPORARILY DISABLED
+    // if (tenants.length > 0) {
+    //   try {
+    //     const response = await fetch('/api/feature-flags')
+    //     if (response.ok) {
+    //       featureFlags = await response.json()
+    //     } else {
+    //       console.warn('Failed to fetch feature flags:', response.statusText)
+    //     }
+    //   } catch (error) {
+    //     console.warn('Error fetching feature flags:', error)
+    //     // Continue with empty feature flags
+    //   }
+    // }
 
     return {
       tenants,

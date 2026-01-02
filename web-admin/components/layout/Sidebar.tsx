@@ -62,17 +62,18 @@ export default function Sidebar() {
         }
 
         // Fetch fresh data from API
-        const response = await fetch('/api/feature-flags')
-        if (response.ok) {
-          const flags = await response.json()
-          setFeatureFlags(flags)
-          // Cache the result
-          setCachedFeatureFlags(currentTenant.tenant_id, flags)
-        } else if (!cached) {
-          // If API fails and no cache, use safe defaults
-          console.warn('Failed to fetch feature flags, using defaults')
-          setFeatureFlags({})
-        }
+        // TEMPORARILY DISABLED
+        // const response = await fetch('/api/feature-flags')
+        // if (response.ok) {
+        //   const flags = await response.json()
+        //   setFeatureFlags(flags)
+        //   // Cache the result
+        //   setCachedFeatureFlags(currentTenant.tenant_id, flags)
+        // } else if (!cached) {
+        //   // If API fails and no cache, use safe defaults
+        //   console.warn('Failed to fetch feature flags, using defaults')
+        //   setFeatureFlags({})
+        // }
       } catch (error) {
         console.error('Error loading feature flags:', error)
         // If error and no cache, use empty object (all features disabled)
