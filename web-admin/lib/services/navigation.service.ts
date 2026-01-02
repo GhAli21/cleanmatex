@@ -87,6 +87,20 @@ export async function getNavigationFromDatabase(
     console.log('Jh In getNavigationFromDatabase() [ 5 ] : featureFlags length', Object.keys(featureFlags).length);
     const supabase = await createClient()
 
+    // Test: Try to read directly from the table to verify RLS and data access
+    const { data: directData, error: directError } = await supabase
+      .from('sys_components_cd')
+      .select('comp_code, label, is_active, is_navigable')
+      .eq('is_active', true)
+      .eq('is_navigable', true)
+      .limit(5);
+    
+    console.log('Direct table query test:', {
+      directDataLength: directData?.length || 0,
+      directData: directData,
+      directError: directError,
+    });
+
     // Convert feature flags object to JSONB array format
     const featureFlagArray = Object.keys(featureFlags).filter(
       (key) => featureFlags[key] === true
@@ -95,17 +109,15 @@ export async function getNavigationFromDatabase(
     // Call the database function
     // The function expects p_feature_flags as JSONB array
     // Pass empty array if no permissions to avoid NULL issues
-    console.log('Jh In getNavigationFromDatabase() [ 6 ] : Calling get_navigation_with_parents_jh with:', {
+    const functionParams = {
       p_user_permissions: userPermissions.length > 0 ? userPermissions : [],
       p_user_role: userRole || null,
       p_feature_flags: featureFlagArray.length > 0 ? featureFlagArray : [],
-    });
+    };
     
-    const { data, error } = await supabase.rpc('get_navigation_with_parents_jh', {
-      p_user_permissions: userPermissions.length > 0 ? userPermissions : [],
-      p_user_role: userRole || null,
-      p_feature_flags: featureFlagArray.length > 0 ? featureFlagArray : [],
-    })
+    console.log('Jh In getNavigationFromDatabase() [ 6 ] : Calling get_navigation_with_parents_jh with:', functionParams);
+    
+    const { data, error } = await supabase.rpc('get_navigation_with_parents_jh', functionParams)
     
     console.log('Jh In getNavigationFromDatabase() [ 1 ] : data received:', {
       dataLength: data?.length || 0,
@@ -320,17 +332,17 @@ export function getSystemNavigationFallback(
   })
 
   try {
-    // Get filtered navigation by role/permissions
-    const filtered = getNavigationForRole(userRole, featureFlags, userPermissions)
+  // Get filtered navigation by role/permissions
+  const filtered = getNavigationForRole(userRole, featureFlags, userPermissions)
     
     console.log('getNavigationForRole returned:', filtered.length, 'sections')
-    
-    // Convert icon components to strings for JSON serialization
+  
+  // Convert icon components to strings for JSON serialization
     const result = filtered.map((section) => {
       try {
         return {
-          ...section,
-          icon: getIconName(section.icon), // Convert component to string name
+    ...section,
+    icon: getIconName(section.icon), // Convert component to string name
         }
       } catch (iconError) {
         console.error('Error converting icon for section:', section.key, iconError)
