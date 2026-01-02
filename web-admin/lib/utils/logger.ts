@@ -142,10 +142,12 @@ class Logger {
     };
 
     // Initialize Sentry if enabled
+    // Note: Sentry is optional and loaded dynamically to avoid build-time errors
+    // Install @sentry/nextjs if you want error tracking
     if (this.config.enableSentry && typeof window === 'undefined') {
       // Server-side Sentry initialization
       try {
-        // Dynamic import to avoid breaking if Sentry is not installed
+        // Use require with try-catch - webpack will ignore this if package is not installed
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const Sentry = require('@sentry/nextjs');
         this.sentryClient = Sentry;

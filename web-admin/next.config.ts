@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import webpack from "webpack";
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./i18n.ts');
@@ -15,21 +16,8 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Optimize font loading to reduce preload warnings
-  // Fonts will be loaded on-demand instead of preloaded
-  experimental: {
-    optimizePackageImports: ['lucide-react'],
-  },
-
   // Disable Turbopack - use webpack instead (we have custom webpack config)
-  
-  turbopack: {
-    // monorepo root (parent of /web-admin)
-    
-    root: path.join(__dirname), 
-    //path.resolve(__dirname, ".."),
-
-  },
+  turbopack: {},
 
   // Use webpack instead of Turbopack for more stable builds
   webpack: (config, { isServer }) => {
@@ -57,24 +45,35 @@ const nextConfig: NextConfig = {
       config.externals = config.externals || [];
       config.externals.push('ioredis');
     }
-
-    // Fix ES module compatibility issues with html-encoding-sniffer
-    // This handles the require() of ES modules issue in serverless environments
-    // Exclude problematic packages from server bundles
-    if (isServer) {
-      config.externals = config.externals || [];
-      
-      // Handle html-encoding-sniffer ES module issue by externalizing it
-      // This prevents webpack from bundling it on the server side
-      // These packages are only needed client-side for DOMPurify
-      config.externals.push({
-        'isomorphic-dompurify': 'commonjs isomorphic-dompurify',
-        'html-encoding-sniffer': 'commonjs html-encoding-sniffer',
-        '@exodus/bytes': 'commonjs @exodus/bytes',
-        'jsdom': 'commonjs jsdom',
-      });
+    
+    // Ignore ESM-only packages that cause build issues
+    // These are only used client-side via dynamic imports
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^@exodus\/bytes\/encoding-lite\.js$/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^@exodus\/bytes\/encoding\.js$/,
+      }),
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^parse5$/,
+      })
+    );
+    
+    // Handle optional Sentry package - replace with empty module if not installed
+    try {
+      require.resolve('@sentry/nextjs');
+    } catch {
+      // Package not installed, replace with empty module
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /^@sentry\/nextjs$/,
+          require.resolve('./lib/utils/sentry-stub.ts')
+        )
+      );
     }
-
+    
     return config;
   },
 };
