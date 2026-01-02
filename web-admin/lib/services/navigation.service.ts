@@ -90,15 +90,21 @@ export async function getNavigationFromDatabase(
     // Test: Try to read directly from the table to verify RLS and data access
     const { data: directData, error: directError } = await supabase
       .from('sys_components_cd')
-      .select('comp_code, label, is_active, is_navigable')
+      .select('comp_code, label, is_active, is_navigable, comp_level, parent_comp_code')
       .eq('is_active', true)
       .eq('is_navigable', true)
-      .limit(5);
+      .limit(10);
     
     console.log('Direct table query test:', {
       directDataLength: directData?.length || 0,
       directData: directData,
       directError: directError,
+      sampleItems: directData?.slice(0, 3).map((item: any) => ({
+        comp_code: item.comp_code,
+        label: item.label,
+        comp_level: item.comp_level,
+        has_parent: !!item.parent_comp_code,
+      })),
     });
 
     // Convert feature flags object to JSONB array format

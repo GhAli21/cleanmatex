@@ -43,6 +43,16 @@ export default function Sidebar() {
   // Fetch navigation from API (with caching and fallback)
   const { navigation, isLoading: navigationLoading } = useNavigation()
 
+  // Debug: Log navigation state changes
+  useEffect(() => {
+    console.log('Sidebar - Navigation state:', {
+      isLoading: navigationLoading,
+      navigationLength: navigation.length,
+      navigation: navigation,
+      filteredNavigationLength: filteredNavigation.length,
+    })
+  }, [navigation, navigationLoading])
+
   // Get user role from current tenant (no default role)
   const userRole = currentTenant?.user_role?.toLowerCase() as UserRole | undefined
 
