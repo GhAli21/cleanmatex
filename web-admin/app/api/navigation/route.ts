@@ -9,6 +9,16 @@ import type { UserRole } from '@/config/navigation'
  * Returns navigation items filtered by user permissions
  * Uses database function to build parent chain automatically
  */
+// Add timeout wrapper for Vercel (10s timeout on Hobby plan)
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number = 8000): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+    ),
+  ])
+}
+
 export async function GET() {
   try {
     const supabase = await createClient()
@@ -87,11 +97,10 @@ export async function GET() {
     //   console.warn('Failed to fetch feature flags for navigation:', error)
     // }
 
-    // Fetch navigation from database
-    const navigation = await getNavigationFromDatabase(
-      userPermissions,
-      userRole,
-      featureFlags
+    // Fetch navigation from database with timeout
+    const navigation = await withTimeout(
+      getNavigationFromDatabase(userPermissions, userRole, featureFlags),
+      7000 // 7 second timeout (leave 3s buffer for Vercel's 10s limit)
     )
 
     console.log('Navigation API returning:', {
@@ -108,12 +117,41 @@ export async function GET() {
     })
   } catch (error) {
     console.error('Error in GET /api/navigation:', error)
-    // Return empty navigation on error (no default access)
+    
+    // Try to get fallback navigation even on error
+    try {
+      // If we have userRole, try to get fallback
+      const supabase = await createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: tenants } = await supabase.rpc('get_user_tenants')
+        if (tenants && tenants.length > 0) {
+          const userRole = tenants[0].user_role?.toLowerCase() as UserRole | null
+          if (userRole) {
+            const navService = await import('@/lib/services/navigation.service')
+            const fallback = navService.getSystemNavigationFallback(userRole, [], {})
+            // Use fallback directly - it already handles super_admin case internally
+            const navigation = fallback
+            
+            return NextResponse.json({
+              sections: navigation,
+              cached: false,
+              source: 'fallback-error',
+              error: error instanceof Error ? error.message : 'Unknown error',
+            })
+          }
+        }
+      }
+    } catch (fallbackError) {
+      console.error('Error getting fallback navigation:', fallbackError)
+    }
+    
+    // Return empty navigation as last resort
     return NextResponse.json({
       sections: [],
       cached: false,
       source: 'fallback',
       error: error instanceof Error ? error.message : 'Unknown error',
-    })
+    }, { status: 200 }) // Always return 200 to prevent connection errors
   }
 }
