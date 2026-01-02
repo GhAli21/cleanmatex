@@ -1,9 +1,4 @@
----
-alwaysApply: true
----
-
-# CleanMateX/CleanMateXSAAS – AI Frontend Instructions AI_Coder_Frontend_Instructions
-
+# CleanMateX/CleanMateXSAAS – AI Frontend Instructions  
 ## Architecture & UI Generation Rules (Final Structure)
 
 You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS platform built with **Next.js App Router, TypeScript, TailwindCSS, shadcn/ui, Supabase**, and a custom **Cmx UI Design System**.
@@ -39,7 +34,6 @@ These rules are **mandatory** for all generated code.
 
 - The **Cmx Design System** lives here.
 - Contains:
-
   - `src/ui/foundations/` – tokens, theme, CSS vars
   - `src/ui/primitives/` – `CmxButton`, `CmxInput`, `CmxCard`, etc.
   - `src/ui/forms/` – `CmxForm`, `CmxFormField`, `CmxFormSection`
@@ -112,20 +106,18 @@ Assume `tsconfig.json` has:
 You MUST use these aliases:
 
 - Global UI (design system):
-
   ```ts
-  import { CmxButton } from "@ui/primitives/cmx-button";
+  import { CmxButton } from '@ui/primitives/cmx-button'
   ```
 
 - Feature UI:
-
   ```ts
-  import { OrderListScreen } from "@features/orders/ui/order-list-screen";
+  import { OrderListScreen } from '@features/orders/ui/order-list-screen'
   ```
 
 - Infrastructure:
   ```ts
-  import { apiClient } from "@lib/api/client";
+  import { apiClient } from '@lib/api/client'
   ```
 
 Do not invent other top-level paths like `@/components` or `@/core` unless they map to the above.
@@ -140,10 +132,9 @@ Do not invent other top-level paths like `@/components` or `@/core` unless they 
 - Any component that is:
   - Reused across multiple features
   - Generic in nature (button, input, table, layout, etc.)
-    belongs in `src/ui/` and uses `Cmx` prefix.
+  belongs in `src/ui/` and uses `Cmx` prefix.
 
 Examples:
-
 - `CmxButton`
 - `CmxInput`
 - `CmxForm`
@@ -172,10 +163,10 @@ Example:
 
 ```tsx
 // app/dashboard/orders/page.tsx
-import { OrderListScreen } from "@features/orders/ui/order-list-screen";
+import { OrderListScreen } from '@features/orders/ui/order-list-screen'
 
 export default async function OrdersPage() {
-  return <OrderListScreen />;
+  return <OrderListScreen />
 }
 ```
 
@@ -217,23 +208,23 @@ DO NOT:
 ### From `src/ui` (global design system):
 
 ```ts
-import { CmxButton } from "@ui/primitives/cmx-button";
-import { CmxDataTable } from "@ui/data-display/cmx-datatable";
-import { CmxPageHeader } from "@ui/navigation/cmx-page-header";
+import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxDataTable } from '@ui/data-display/cmx-datatable'
+import { CmxPageHeader } from '@ui/navigation/cmx-page-header'
 ```
 
 ### From `src/features` (domain UI):
 
 ```ts
-import { OrderListScreen } from "@features/orders/ui/order-list-screen";
-import { CustomerForm } from "@features/customers/ui/customer-form";
+import { OrderListScreen } from '@features/orders/ui/order-list-screen'
+import { CustomerForm } from '@features/customers/ui/customer-form'
 ```
 
 ### From `lib` (infra):
 
 ```ts
-import { supabaseClient } from "@lib/supabase/client";
-import { apiClient } from "@lib/api/client";
+import { supabaseClient } from '@lib/supabase/client'
+import { apiClient } from '@lib/api/client'
 ```
 
 ### NEVER:
@@ -282,8 +273,8 @@ export function CmxButton() {
 
 ```tsx
 // src/features/orders/ui/order-list-screen.tsx
-import { CmxListWithFilters } from "@ui/patterns/cmx-list-with-filters";
-import { CmxDataTable } from "@ui/data-display/cmx-datatable";
+import { CmxListWithFilters } from '@ui/patterns/cmx-list-with-filters'
+import { CmxDataTable } from '@ui/data-display/cmx-datatable'
 
 export function OrderListScreen() {
   // compose filters + datatable
@@ -294,10 +285,10 @@ export function OrderListScreen() {
 
 ```tsx
 // app/dashboard/orders/page.tsx
-import { OrderListScreen } from "@features/orders/ui/order-list-screen";
+import { OrderListScreen } from '@features/orders/ui/order-list-screen'
 
 export default function OrdersPage() {
-  return <OrderListScreen />;
+  return <OrderListScreen />
 }
 ```
 

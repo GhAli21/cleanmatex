@@ -12,6 +12,7 @@ NestJS is a **Node.js framework** for building efficient, scalable server-side a
 
 ## Project Structure
 ```
+backend/
 /src
   /common
     /decorators     # Custom decorators

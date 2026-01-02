@@ -282,30 +282,48 @@ export class WorkflowService {
       const rules =
         (settings?.quality_gate_rules as any)?.READY || {};
 
-      // Check 1: All items assembled (if required)
+      // Check 1: Assembly task exists and is complete (if required)
       if (rules.requireAllItemsAssembled !== false) {
-        const unassembled = order.items?.filter(
-          (item: any) =>
-            item.status !== 'ASSEMBLED' &&
-            item.status !== 'QA_PASSED' &&
-            item.status !== 'READY'
-        );
-        if (unassembled && unassembled.length > 0) {
-          blockers.push(`${unassembled.length} items not assembled`);
-          details.unassembledItems = unassembled.length;
+        const { data: assemblyTask } = await supabase
+          .from('org_asm_tasks_mst')
+          .select('*')
+          .eq('order_id', orderId)
+          .eq('tenant_org_id', tenantId)
+          .single();
+
+        if (!assemblyTask) {
+          blockers.push('Assembly task not created');
+          details.assemblyTaskMissing = true;
+        } else {
+          // Check if all items are scanned
+          if (assemblyTask.scanned_items < assemblyTask.total_items) {
+            const unassembled = assemblyTask.total_items - assemblyTask.scanned_items;
+            blockers.push(`${unassembled} items not scanned`);
+            details.unassembledItems = unassembled;
+          }
+
+          // Check if task is complete
+          if (assemblyTask.task_status !== 'READY' && assemblyTask.task_status !== 'QA_PASSED') {
+            blockers.push(`Assembly task status: ${assemblyTask.task_status}`);
+            details.assemblyTaskStatus = assemblyTask.task_status;
+          }
         }
       }
 
-      // Check 2: QA completed (if required)
+      // Check 2: QA passed (if required)
       if (rules.requireQAPassed !== false) {
-        const failedQA = order.items?.filter(
-          (item: any) =>
-            item.qa_status === 'FAILED' ||
-            (!item.qa_status && item.status !== 'READY')
-        );
-        if (failedQA && failedQA.length > 0) {
-          blockers.push(`${failedQA.length} items failed or missing QA`);
-          details.failedQAItems = failedQA.length;
+        const { data: assemblyTask } = await supabase
+          .from('org_asm_tasks_mst')
+          .select('qa_status')
+          .eq('order_id', orderId)
+          .eq('tenant_org_id', tenantId)
+          .single();
+
+        if (!assemblyTask) {
+          blockers.push('Assembly task not found for QA check');
+        } else if (assemblyTask.qa_status !== 'QA_PASSED') {
+          blockers.push(`QA status: ${assemblyTask.qa_status || 'PENDING'}`);
+          details.qaStatus = assemblyTask.qa_status || 'PENDING';
         }
       }
 
@@ -748,8 +766,30 @@ export class WorkflowService {
     fromStatus: OrderStatus;
     toStatus: OrderStatus;
   }): Promise<void> {
+    const { orderId, tenantId, toStatus } = args;
+
+    // Auto-create assembly task when order enters ASSEMBLY status
+    if (toStatus === 'ASSEMBLY') {
+      try {
+        const { AssemblyService } = await import('./assembly-service');
+        // Get user from context (best effort)
+        const supabase = await createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        const userId = user?.id || 'system';
+
+        await AssemblyService.createAssemblyTask({
+          orderId,
+          tenantId,
+          userId,
+        });
+      } catch (error) {
+        console.warn('Failed to create assembly task on ASSEMBLY transition:', error);
+        // Non-blocking, log and continue
+      }
+    }
+
     // TODO: integrate with notifications/webhooks/analytics subsystems
-    // For now, this is a placeholder to keep the contract.
-    void args;
   }
 }

@@ -2,18 +2,52 @@
 
 **Scope:** Primary entry-point for Claude Code and AI assistants. Treat linked modules as first-class content of this file.
 
-**Last Updated:** 2025-10-16  
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform
 
 ---
 
-## 🎯 CRITICAL: Quick Reference
+## CRITICAL Rules:
+
+### Modular Imports (Authoritative)
+
+- **Overview & Differentiators** → @.claude/docs/overview.md
+- **System Architecture** → @.claude/docs/architecture.md
+- **Documentation Rules and implementation Rules** → @.claude/docs/documentation_rules.md
+- **Features implementation Rules** → @.claude/docs/prd-implementation_rules.md
+- **Database Conventions** → @.claude/docs/database_conventions.md
+- **Frontend Rules** → @.claude/docs/frontend_standards.md
+- **Frontend Instructions** → @.claude/docs/AI_Coder_Frontend_Instructions.md
+- **Internationalization (i18n + RTL)** → @.claude/docs/i18n.md
+- **Backend Rules** → @.claude/docs/backend_standards.md
+- **Error Handling Patterns** → @.claude/docs/error-handling-rules.md
+- **Logging Standards** → @.claude/docs/logging-rules.md
+- **Project Next.js UI Layer Blueprint** → @.claude/docs/ui_blueprint.md
+- **Node.js Development Rules** → @.claude/docs/nodejs-rules.md
+- **Supabase Usage Guidelines** → @.claude/docs/supabase-rules.md
+- **Flutter Development Rules** → @.claude/docs/flutter-rules.md
+- **UI/UX Design** → @.claude/docs/uiux-rules.md
+- **Business Logic & Workflows** → @.claude/docs/business_logic.md
+- **Multi-Tenancy Enforcement** → @.claude/docs/multitenancy.md
+- **Testing Strategy** → @.claude/docs/testing.md
+- **Dev Commands & Tooling** → @.claude/docs/dev_commands.md
+- **Environment Configuration** → @.claude/docs/env_config.md
+- **Code Review Checklist** → @.claude/docs/code_review_checklist.md
+- **Documentation Map** → @.claude/docs/documentation_map.md
+- **Project Structure** → @.claude/docs/project_structure.md
+- **Common Issues & Debugging** → @.claude/docs/common_issues.md
+- **Working With Claude Code** → @.claude/docs/working_with_claude_code.md
+- **Status & Roadmap** → @.claude/docs/roadmap.md
+- **Support & External Resources** → @.claude/docs/support_resources.md
+
+> Use: `claude "@.claude/docs/architecture.md - summarize RLS patterns"`
+
+### Quick Reference
 
 **IMPORTANT**: This is the main reference file. Detailed documentation is split into modules below.
 
 **Always Follow Documentation and implementation Rules**: `.claude/docs/documentation_rules.md`
 
-## Documentation And Progress Rules
+### Documentation And Progress Rules
 
 **Always Follow Documentation and implementation Rules**: `.claude/docs/documentation_rules.md`
 
@@ -37,7 +71,7 @@
 7. **Always after finish Implement or modify any frontend component Do run build (npm run build) and fix the issues to make sure the project always ready for deploy**
 8. **When you run build and you find issues fix it and keep run build until it success and keep updating the issue info to common issues file**: .claude/docs/common_issues.md
 
-## 🔑 Operating Model
+### Operating Model
 
 **Always Follow implementation Rules**: `.claude/docs/prd-implementation_rules.md`
 
@@ -60,43 +94,7 @@
 
 ---
 
-## 📦 Modular Imports (Authoritative)
-
-- **Overview & Differentiators** → @.claude/docs/overview.md
-- **System Architecture** → @.claude/docs/architecture.md
-- **Documentation Rules and implementation Rules** → @.claude/docs/documentation_rules.md
-- **Features implementation Rules** → @.claude/docs/prd-implementation_rules.md
-- **Frontend Rules** → @.claude/docs/frontend_standards.md
-- **Frontend Instructions** → @.claude/docs/AI_Coder_Frontend_Instructions.md
-- **Backend Rules** → @.claude/docs/backend_standards.md
-- **Project Next.js UI Layer Blueprint** → @.claude/docs/ui_blueprint.md
-- **Error Handling Patterns** → @.claude/docs/error-handling-rules.md
-- **Logging Standards** → @.claude/docs/logging-rules.md
-- **Database Conventions** → @.claude/docs/database_conventions.md
-- **Node.js Development Rules** → @.claude/docs/nodejs-rules.md
-- **Supabase Usage Guidelines** → @.claude/docs/supabase-rules.md
-- **Flutter Development Rules** → @.claude/docs/flutter-rules.md
-- **UI/UX Design** → @.claude/docs/uiux-rules.md
-- **Business Logic & Workflows** → @.claude/docs/business_logic.md
-- **Multi-Tenancy Enforcement** → @.claude/docs/multitenancy.md
-- **Plans, Subscriptions, Limits** → @.claude/docs/subscription_limits.md
-- **Internationalization (i18n + RTL)** → @.claude/docs/i18n.md
-- **Testing Strategy** → @.claude/docs/testing.md
-- **Dev Commands & Tooling** → @.claude/docs/dev_commands.md
-- **Environment Configuration** → @.claude/docs/env_config.md
-- **Code Review Checklist** → @.claude/docs/code_review_checklist.md 
-- **Documentation Map** → @.claude/docs/documentation_map.md
-- **Project Structure** → @.claude/docs/project_structure.md
-- **Common Issues & Debugging** → @.claude/docs/common_issues.md
-- **Working With Claude Code** → @.claude/docs/working_with_claude_code.md
-- **Status & Roadmap** → @.claude/docs/roadmap.md
-- **Support & External Resources** → @.claude/docs/support_resources.md
-
-> Use: `claude "@.claude/docs/architecture.md - summarize RLS patterns"`
-
----
-
-## 🚨 Critical Guardrails (Keep in Root)
+### Critical Guardrails (Keep in Root)
 
 1. **Multi-Tenant Filtering:** Always filter by `tenant_org_id`.
 2. **RLS Policies:** Create, enable, and test RLS on every org\_\* table.
@@ -111,9 +109,9 @@
 
 ---
 
-## 🚀 QUICK START
+## QUICK START
 
-### ⚡ Quick Start Prompts
+### Quick Start Prompts
 
 - `@docs/plan/master_plan_cc_01.md - What is the next execution item?`
 - `@.claude/docs/project_structure.md - scaffold orders module folders in web-admin`
@@ -136,9 +134,11 @@
 3. Run tests per **[Testing Strategy](.claude/docs/testing.md)**
 
 ### For Development
+
 - **Dev Commands & Tooling** → @.claude/docs/dev_commands.md
 - **Environment Configuration** → @.claude/docs/env_config.md
-- **Code Review Checklist** → @.claude/docs/code_review_checklist.md 
+- **Code Review Checklist** → @.claude/docs/code_review_checklist.md
+
 1. Setup environment per **[Commands Guide](@.claude/docs/dev_commands.md)**
 2. Configure per **[Environment Setup](@.claude/docs/env_config.md)**
 3. Follow **[Claude Code Tips](@.claude/docs/working_with_claude_code.md)** for efficient AI collaboration
@@ -146,17 +146,20 @@
 ### Daily Startup
 
 **Quick Start (Automated):**
+
 ```powershell
 # From project root - starts all services
 .\scripts\dev\start-services.ps1
 ```
 
 **Service Management:**
+
 - **Start:** `.\scripts\dev\start-services.ps1`
 - **Status:** `.\scripts\dev\status-services.ps1`
 - **Stop:** `.\scripts\dev\stop-services.ps1`
 
 **Then start web admin:**
+
 ```bash
 cd web-admin
 npm run dev

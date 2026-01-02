@@ -425,7 +425,8 @@ CREATE TABLE IF NOT EXISTS org_orders_mst (
   internal_notes     TEXT,
   created_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(tenant_org_id, order_no)
+  UNIQUE(tenant_org_id, order_no),
+  UNIQUE(id, tenant_org_id)
 );
 
 COMMENT ON TABLE org_orders_mst IS 'Tenant orders (master)';
@@ -449,7 +450,10 @@ CREATE TABLE IF NOT EXISTS org_order_items_dtl (
   has_stain             BOOLEAN,
   has_damage            BOOLEAN,
   metadata              JSONB DEFAULT '{}'::jsonb,
-  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  
+  UNIQUE(id, order_id, tenant_org_id),
+  UNIQUE(id, tenant_org_id)
 );
 
 COMMENT ON TABLE org_order_items_dtl IS 'Order line items (detail)';

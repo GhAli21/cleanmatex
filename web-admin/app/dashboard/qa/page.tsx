@@ -11,6 +11,10 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
+import { QADecision } from '@/src/features/qa/ui/qa-decision';
+import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives/cmx-button';
+import { CheckCircle2, XCircle } from 'lucide-react';
 
 interface QAOrder {
   id: string;
@@ -30,6 +34,8 @@ export default function QAPage() {
   const [orders, setOrders] = useState<QAOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   const [pagination, setPagination] = useState({
     page: 1,
@@ -45,7 +51,7 @@ export default function QAPage() {
       setLoading(true);
       try {
         const params = new URLSearchParams({
-          current_status: 'qa',
+          current_status: 'ready,qa',
           page: String(pagination.page),
           limit: '20',
         });
@@ -87,42 +93,80 @@ export default function QAPage() {
       )}
 
       {orders.length === 0 ? (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-600 text-lg">No orders pending QA</p>
-        </div>
+        <CmxCard>
+          <CmxCardContent className="py-12 text-center">
+            <p className="text-gray-600 text-lg">No orders pending QA</p>
+          </CmxCardContent>
+        </CmxCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {orders.map((order) => (
-            <Link
+            <CmxCard
               key={order.id}
-              href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/qa')}&returnLabel=${encodeURIComponent('Back to Quality Check')}`}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
+              className="hover:shadow-lg transition-all cursor-pointer"
             >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-blue-600">{order.order_no}</h3>
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
-                  {order.total_items} items
-                </span>
-              </div>
-              
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Customer:</span>
-                  <span>{order.customer.name}</span>
+              <CmxCardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <Link
+                    href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/qa')}&returnLabel=${encodeURIComponent('Back to Quality Check')}`}
+                    className="text-xl font-bold text-blue-600 hover:underline"
+                  >
+                    {order.order_no}
+                  </Link>
+                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                    {order.total_items} items
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">Phone:</span>
-                  <span>{order.customer.phone}</span>
+                
+                <div className="space-y-2 text-sm text-gray-600 mb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Customer:</span>
+                    <span>{order.customer.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Phone:</span>
+                    <span>{order.customer.phone}</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <button className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700">
-                  Quality Check
-                </button>
-              </div>
-            </Link>
+                <div className="pt-4 border-t border-gray-200">
+                  <CmxButton
+                    className="w-full"
+                    variant="secondary"
+                    onClick={() => {
+                      // TODO: Fetch task ID for this order
+                      setSelectedOrderId(order.id);
+                      setSelectedTaskId(''); // Will need to fetch from API
+                    }}
+                  >
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Quality Check
+                  </CmxButton>
+                </div>
+              </CmxCardContent>
+            </CmxCard>
           ))}
+        </div>
+      )}
+
+      {/* QA Decision Modal */}
+      {selectedOrderId && selectedTaskId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="w-full max-w-2xl">
+            <CmxCard>
+              <CmxCardContent className="p-6">
+                <QADecision
+                  taskId={selectedTaskId}
+                  onDecisionComplete={() => {
+                    setSelectedOrderId(null);
+                    setSelectedTaskId(null);
+                    // Refresh orders list
+                    window.location.reload();
+                  }}
+                />
+              </CmxCardContent>
+            </CmxCard>
+          </div>
         </div>
       )}
     </div>
