@@ -84,7 +84,7 @@ BEGIN
     VALUES (
       gen_random_uuid(),
       p_tenant_id,
-      'free',                          -- Free plan
+      'FREE_TRIAL',                          -- Free plan
       'trial',                         -- Trial status
       10,                              -- 50 orders per month
       0,                               -- No orders used yet

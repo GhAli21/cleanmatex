@@ -149,7 +149,7 @@ INSERT INTO sys_plan_limits (
 ) VALUES
 -- Free Trial Plan
 (
-  'free',
+  'FREE_TRIAL',
   'Free Trial',
   'تجربة مجانية',
   'Perfect for getting started and trying out CleanMateX',

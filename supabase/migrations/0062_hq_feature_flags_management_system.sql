@@ -229,6 +229,7 @@ CREATE TABLE hq_ff_audit_history_tr (
   -- Actor information
   performed_by UUID,
   performed_by_email VARCHAR(255),
+  performed_info TEXT,
   ip_address INET,
   user_agent TEXT,
 

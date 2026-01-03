@@ -66,7 +66,7 @@ insert into org_subscriptions_mst (id, tenant_org_id, plan, status, orders_limit
 values (
   gen_random_uuid(),
   '11111111-1111-1111-1111-111111111111',
-  'free','trial', 100, 0, 2, 5, now(), now() + interval '30 days'
+  'FREE_TRIAL','trial', 100, 0, 2, 5, now(), now() + interval '30 days'
 )
 on conflict do nothing;
 

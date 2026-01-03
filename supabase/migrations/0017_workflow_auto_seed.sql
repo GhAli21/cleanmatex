@@ -73,7 +73,7 @@ BEGIN
     VALUES (
       gen_random_uuid(),
       p_tenant_id,
-      'free',
+      'FREE_TRIAL',
       'trial',
       50,
       0,

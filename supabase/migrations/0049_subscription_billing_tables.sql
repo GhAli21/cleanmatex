@@ -261,7 +261,7 @@ INSERT INTO sys_plans_mst (
   metadata
 ) VALUES
   (
-    'FREE',
+    'FREE_TRIAL',
     'Free Plan',
     'الخطة المجانية',
     'Free plan with basic features for small businesses',

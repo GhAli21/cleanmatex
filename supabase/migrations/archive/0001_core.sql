@@ -98,7 +98,7 @@ create table if not exists org_tenants_mst (
 create table if not exists org_subscriptions_mst (
   id                   uuid primary key default gen_random_uuid(),
   tenant_org_id            uuid not null,
-  plan                 varchar(20)  default 'free',
+  plan                 varchar(20)  default 'FREE_TRIAL',
   status               varchar(20)  default 'trial',
   orders_limit         integer      default 20,
   orders_used          integer      default 0,

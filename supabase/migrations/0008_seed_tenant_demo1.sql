@@ -88,7 +88,7 @@ INSERT INTO org_subscriptions_mst (
 VALUES (
   '11111111-1111-1111-1111-111111111112', -- Subscription ID
   '11111111-1111-1111-1111-111111111111', -- Tenant ID
-  'free',
+  'FREE_TRIAL',
   'trial',
   100,
   0,
