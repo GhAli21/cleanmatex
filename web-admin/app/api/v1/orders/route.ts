@@ -86,7 +86,11 @@ export async function POST(request: NextRequest) {
  * List orders with filters
  * Requires: orders:read permission
  */
+export const maxDuration = 10; // Vercel timeout limit
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     // Check permission
     const authCheck = await requirePermission('orders:read')(request);
@@ -98,53 +102,95 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient();
     
-    console.log('[Jh] GET /api/v1/orders: Supabase client created');
-    
     // Get filters
     const currentStatus = searchParams.get('current_status');
+    const currentStage = searchParams.get('current_stage');
+    const statusFilter = searchParams.get('status_filter');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     
-    // org_customers_mst!inner(
-    let query = null;
-    const is_show_null_org_customers = 'true';//searchParams.get('is_show_null_org_customers');
-    console.log('[Jh] GET /api/v1/orders: is_show_null_org_customers:', is_show_null_org_customers);
-    if (is_show_null_org_customers === 'true'){
-    query = supabase
+    // Optimize query - only select essential fields for list view
+    // For list view, we don't need all nested data - just customer info
+    const is_show_null_org_customers = searchParams.get('is_show_null_org_customers') !== 'false';
+    
+    let query = supabase
       .from('org_orders_mst')  
       .select(`
-        *,
+        id,
+        order_no,
+        current_status,
+        current_stage,
+        status,
+        bag_count,
+        received_at,
+        created_at,
+        updated_at,
+        total_items,
+        subtotal,
+        tax,
+        total,
+        payment_status,
+        priority,
+        has_issue,
+        is_rejected,
         org_customers_mst(
-          *,
-          sys_customers_mst(*)
-        ),
-        org_order_items_dtl(
-          *,
-          org_product_data_mst(*)
+          id,
+          name,
+          phone,
+          email,
+          sys_customers_mst(
+            id,
+            name,
+            phone,
+            email
+          )
         )
-      `, { count: 'exact' })  // ✅ Get total count
+      `, { count: 'exact' })
       .eq('tenant_org_id', tenantId);
-      }
-    else {
-    query = supabase
-      .from('org_orders_mst')  
-      .select(`
-        *,
-        org_customers_mst!inner(
-          *,
-          sys_customers_mst(*)
-        ),
-        org_order_items_dtl(
-          *,
-          org_product_data_mst(*)
-        )
-      `, { count: 'exact' })  // ✅ Get total count
-      .eq('tenant_org_id', tenantId);
+
+    // If we need to exclude null customers, use inner join
+    if (!is_show_null_org_customers) {
+      query = supabase
+        .from('org_orders_mst')  
+        .select(`
+          id,
+          order_no,
+          current_status,
+          current_stage,
+          status,
+          bag_count,
+          received_at,
+          created_at,
+          updated_at,
+          total_items,
+          subtotal,
+          tax,
+          total,
+          payment_status,
+          priority,
+          has_issue,
+          is_rejected,
+          org_customers_mst!inner(
+            id,
+            name,
+            phone,
+            email,
+            sys_customers_mst(
+              id,
+              name,
+              phone,
+              email
+            )
+          )
+        `, { count: 'exact' })
+        .eq('tenant_org_id', tenantId);
     }
 
     // Apply status filter - support multiple statuses (comma-separated)
-    if (currentStatus) {
-      const statuses = currentStatus.split(',').map(s => s.trim()).filter(Boolean);
+    // Priority: status_filter > current_status > current_stage
+    const statusToFilter = statusFilter || currentStatus || currentStage;
+    if (statusToFilter) {
+      const statuses = statusToFilter.split(',').map(s => s.trim()).filter(Boolean);
       if (statuses.length === 1) {
         // Single status - use .eq() for better performance
         query = query.eq('current_status', statuses[0]);
@@ -162,7 +208,19 @@ export async function GET(request: NextRequest) {
     // Sorting
     query = query.order('created_at', { ascending: false });
     
-    const { data: orders, error, count } = await query;
+    // Add timeout wrapper to prevent hanging requests
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 8000);
+    });
+
+    // Execute query with timeout protection
+    const queryPromise = query.then((result: any) => result);
+    const result = await Promise.race([
+      queryPromise,
+      timeoutPromise
+    ]);
+    
+    const { data: orders, error, count } = result;
 
     if (error) {
       console.error('[Jh] GET /api/v1/orders: Error:', error);
@@ -171,25 +229,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-    console.log('[Jh] GET /api/v1/orders: Orders Count:', orders?.length);
-    //console.log('[Jh] GET /api/v1/orders: Orders:', JSON.stringify(orders, null, 2));
-    
-    //
-    /*console.log('[Jh] GET /api/v1/orders: Response:', JSON.stringify({
-      success: true,
-      data: {
-        orders: orders || [],
-        pagination: {
-          page,
-          limit,
-          total: orders?.length || 0,
-        },
-      },
-    }, null, 2));
-    */
-    //
-    console.log('[Jh] GET /api/v1/orders: Returning response');
-    console.log('[Jh] GET /api/v1/orders: Orders Count:', orders?.length);
+
+    const duration = Date.now() - startTime;
+    console.log(`[API] GET /api/v1/orders - Success (${duration}ms, ${orders?.length || 0} orders)`);
     
     return NextResponse.json({
       success: true,
@@ -204,11 +246,24 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (e) {
+    const duration = Date.now() - startTime;
     const message = e instanceof Error ? e.message : 'Unknown error';
-    const status = message.includes('Unauthorized') ? 401 : 400;
-    console.error('[Jh] GET /api/v1/orders: Error:', message);
-    console.log('[Jh] GET /api/v1/orders: Returning error response', { status, message });
-    return NextResponse.json({ error: message }, { status });
+    
+    // Handle timeout specifically
+    if (message === 'Request timeout' || message.includes('timeout')) {
+      console.error(`[API] GET /api/v1/orders - Timeout after ${duration}ms`);
+      return NextResponse.json(
+        { success: false, error: 'Request timeout - please try again' },
+        { status: 504 }
+      );
+    }
+    
+    const status = message.includes('Unauthorized') ? 401 : 500;
+    console.error(`[API] GET /api/v1/orders - Error after ${duration}ms:`, message);
+    return NextResponse.json(
+      { success: false, error: message },
+      { status }
+    );
   }
 }
 

@@ -139,7 +139,7 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
         const categoriesQuery = (supabase
           .from('sys_service_category_cd') as any)
           .select('*')
-          .in('category_code', enabledCodes)
+          .in('service_category_code', enabledCodes)
           .eq('is_active', true)
           .order('rec_order');
 

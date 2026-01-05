@@ -60,8 +60,10 @@ export function useCreateAssemblyTask() {
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/v1/assembly/tasks/${orderId}`, {
+      const response = await fetch('/api/v1/assembly/tasks', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
       });
       const result = await response.json();
 

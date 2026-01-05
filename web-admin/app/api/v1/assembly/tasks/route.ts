@@ -1,17 +1,15 @@
 /**
  * Assembly API - Create Task
- * POST /api/v1/assembly/tasks/:orderId
+ * POST /api/v1/assembly/tasks
  * Creates an assembly task for an order
+ * Body: { orderId: string }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { AssemblyService } from '@/lib/services/assembly-service';
 import { getAuthContext } from '@/lib/middleware/require-permission';
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { orderId: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const authContext = await getAuthContext(request);
     if (!authContext) {
@@ -22,7 +20,15 @@ export async function POST(
     }
 
     const { tenantId, userId } = authContext;
-    const { orderId } = params;
+    const body = await request.json();
+    const { orderId } = body;
+
+    if (!orderId) {
+      return NextResponse.json(
+        { success: false, error: 'orderId is required' },
+        { status: 400 }
+      );
+    }
 
     const result = await AssemblyService.createAssemblyTask({
       orderId,
