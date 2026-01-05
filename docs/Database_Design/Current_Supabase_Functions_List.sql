@@ -787,10 +787,24 @@ CREATE OR REPLACE FUNCTION public.current_tenant_id()
  LANGUAGE sql
  STABLE
 AS $function$
-  SELECT NULLIF(
-    current_setting('request.jwt.claims', true)::json->>'tenant_org_id',
-    ''
-  )::UUID;
+  
+  SELECT COALESCE(
+    -- Try to get from JWT claims (user_metadata)
+    NULLIF(
+      (auth.jwt() -> 'user_metadata' ->> 'tenant_org_id'),
+      ''
+    )::UUID,
+    -- Fallback: Query org_users_mst
+    (
+      SELECT tenant_org_id
+      FROM org_users_mst
+      WHERE user_id = auth.uid()
+        AND is_active = true
+      ORDER BY last_login_at DESC NULLS LAST
+      LIMIT 1
+    )
+  );
+  
 $function$
 
 --===================================================

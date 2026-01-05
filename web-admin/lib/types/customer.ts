@@ -7,7 +7,7 @@
 // ENUMS & CONSTANTS
 // ==================================================================
 
-export type CustomerType = 'guest' | 'stub' | 'full';
+export type CustomerType = 'guest' | 'stub' | 'walk_in' | 'full';
 export type ProfileStatus = 0 | 1 | 2 | 3;
 export type isActive = true | false;
 export type AddressType = 'home' | 'work' | 'other';

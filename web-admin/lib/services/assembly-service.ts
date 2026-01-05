@@ -201,6 +201,10 @@ export class AssemblyService {
           userId,
           orderId,
         });
+        console.log('taskError', taskError?.message);
+        console.log('taskError', taskError?.details);
+        console.log('taskError', taskError?.hint);
+        console.log('taskError', taskError?.code);
         throw new Error('Failed (2) to create assembly task'+taskError?.message);
       }
 

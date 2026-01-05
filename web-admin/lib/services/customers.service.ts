@@ -400,12 +400,41 @@ export async function findCustomerByPhone(
 /**
  * Get all customers for a specific tenant (by tenant_org_id)
  */
+export async function getAllCurrentTenantCustomers(
+  tenantOrgId?: string | null
+): Promise<{ customers: Customer[]; total: number }> { 
+  const supabase = await createClient();
+  const tenantId = tenantOrgId ?? (await getTenantIdFromSession());
+  console.log('Jh In getAllTenantCustomers(): tenantId=', tenantId);
+  const { data, error, count } = await supabase
+  .from('org_customers_mst')
+  .select('id, first_name, last_name, display_name, phone, email, type, loyalty_points, created_at', { count: 'exact' })
+  //.eq('tenant_org_id', tenantId)
+  .eq('is_active', true)
+  //.limit(100)
+  ;
+  console.log('Jh In getAllCurrentTenantCustomers(): data.length =', data?.length);
+  console.log('Jh In getAllCurrentTenantCustomers(): count=', count);
+  if (error) {
+    console.error('Error fetching tenant customers:', error);
+    throw new Error('Failed to fetch tenant customers');
+  }
+
+  return {
+    customers: (data || []).map((row) => mapToCustomer({...row, sys_customers_mst: row})),
+    total: count || 0,
+  };
+}
+
+/**
+ * Get all customers for a specific tenant (by tenant_org_id)
+ */
 export async function getAllTenantCustomers(
   tenantOrgId?: string | null
 ): Promise<Customer[]> { 
   const supabase = await createClient();
   const tenantId = tenantOrgId ?? (await getTenantIdFromSession());
-
+  console.log('Jh In getAllTenantCustomers(): tenantId=', tenantId);
   const { data, error } = await supabase
     .from('sys_customers_mst')
     .select(

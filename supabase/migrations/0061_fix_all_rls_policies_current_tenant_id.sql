@@ -24,6 +24,22 @@ ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
 ALTER TABLE org_order_items_dtl ENABLE ROW LEVEL SECURITY;
 ALTER TABLE org_invoice_mst ENABLE ROW LEVEL SECURITY;
 ALTER TABLE org_payments_dtl_tr ENABLE ROW LEVEL SECURITY;
+ALTER TABLE org_users_mst ENABLE ROW LEVEL SECURITY;
+
+-- Fix org_users_mst
+DROP POLICY IF EXISTS tenant_isolation_user_tenant ON org_users_mst;
+CREATE POLICY tenant_isolation_user_tenant ON org_users_mst
+  FOR ALL
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid())
+  ;
+
+  --USING (tenant_org_id = current_tenant_id())
+  --WITH CHECK (tenant_org_id = current_tenant_id());
+
+COMMENT ON POLICY tenant_isolation_user_tenants ON org_users_mst IS 
+  'Allow users to access only their current user record';
+
 
 -- Fix org_tenants_mst
 DROP POLICY IF EXISTS tenant_isolation_org_tenants ON org_tenants_mst;

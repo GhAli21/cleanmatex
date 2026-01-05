@@ -192,9 +192,12 @@ export async function GET(request: NextRequest) {
     const searchAllOptions = searchParams.get('searchAllOptions') === 'true';
 
     // If all=true, return all customers for the provided tenant_org_id or current session tenant
+    console.log('[Jh] GET /api/v1/customers: all=', all);
     if (all) {
       //const tenantOrgId = searchParams.get('tenant_org_id');
+      console.log('[Jh] GET /api/v1/customers: start getAllTenantCustomers()');
       const customers = await getAllTenantCustomers();//tenantOrgId);
+      console.log('[Jh] GET /api/v1/customers: success getAllTenantCustomers()', customers?.length || 0);
       return NextResponse.json({ success: true, data: { customers } }, { status: 200 });
     }
 
@@ -203,7 +206,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '100', 100);
     const page = parseInt(searchParams.get('page') || '1', 10);
 
-    console.log('[Jh] GET /api/v1/customers: start', { search, limit, page, searchAllOptions });
+    console.log('[Jh] GET /api/v1/customers: start searchCustomersProgressive()', { search, limit, page, searchAllOptions });
 
     // Use progressive search
     const result = await searchCustomersProgressive({
@@ -217,7 +220,7 @@ export async function GET(request: NextRequest) {
       sortOrder: 'desc'
     });
 
-    console.log('[Jh] GET /api/v1/customers: success', result.customers?.length || 0);
+    console.log('[Jh] GET /api/v1/customers: success searchCustomersProgressive()', result.customers?.length || 0);
 
     return NextResponse.json({ 
       success: true, 
