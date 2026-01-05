@@ -101,7 +101,6 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
 
   // If no categories are enabled for this tenant, fall back to all global categories
   if (!data || data.length === 0) {
-    // /*
     console.warn('No enabled categories found for tenant, falling back to all global categories');
     const globalCategories = await getServiceCategories();
     // Transform to EnabledCategory format
@@ -109,8 +108,6 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
       ...cat,
       tenant_org_id: tenantId,
     })) as EnabledCategory[];
-    //  */
-    return [];
   }
 
   // Transform the data to flatten the nested structure

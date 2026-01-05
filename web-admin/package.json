@@ -41,6 +41,7 @@
     "minio": "^8.0.6",
     "next": "16.1.0",
     "next-intl": "^4.4.0",
+    "next-swagger-doc": "^0.4.1",
     "pg": "^8.16.3",
     "qrcode": "^1.5.4",
     "react": "^19.2.3",
@@ -49,6 +50,8 @@
     "recharts": "^3.3.0",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-react": "^5.31.0",
     "zod": "^4.1.12"
   },
   "devDependencies": {
@@ -62,6 +65,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/swagger-jsdoc": "^6.0.4",
     "eslint": "^9",
     "eslint-config-next": "^16.1.0",
     "jest": "^29.7.0",

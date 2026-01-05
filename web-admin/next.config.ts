@@ -17,7 +17,9 @@ const nextConfig: NextConfig = {
   },
 
   // Disable Turbopack - use webpack instead (we have custom webpack config)
-  turbopack: {},
+  turbopack: {
+    root: path.resolve(__dirname, ".."), // => F:\jhapp\cleanmatex
+  },
 
   // Use webpack instead of Turbopack for more stable builds
   webpack: (config, { isServer }) => {

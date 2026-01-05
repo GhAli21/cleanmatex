@@ -47,12 +47,54 @@ async function getAuthContext() {
 // ==================================================================
 
 /**
- * List all available service categories (global) or enabled for tenant
- *
- * Query Parameters:
- * - enabled: boolean - If true, return only enabled categories for tenant
- *
- * Response: { success: true, data: ServiceCategory[] }
+ * @swagger
+ * /api/v1/categories:
+ *   get:
+ *     summary: List service categories
+ *     description: List all available service categories (global) or enabled for tenant
+ *     tags: [Categories]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: enabled
+ *         schema:
+ *           type: boolean
+ *         description: If true, return only enabled categories for tenant
+ *         example: true
+ *     responses:
+ *       200:
+ *         description: List of categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/ServiceCategory'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       400:
+ *         description: Bad request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 export async function GET(request: NextRequest) {
   try {
@@ -88,16 +130,58 @@ export async function GET(request: NextRequest) {
 }
 
 // ==================================================================
-// POST /api/v1/categories/enable - Enable Categories
+// POST /api/v1/categories - Enable Categories
 // ==================================================================
 
 /**
- * Enable/disable service categories for tenant
- *
- * Request Body:
- * - categoryCodes: string[] - Array of category codes to enable
- *
- * Response: { success: true, message: string }
+ * @swagger
+ * /api/v1/categories:
+ *   post:
+ *     summary: Enable categories for tenant
+ *     description: Enable/disable service categories for the current tenant
+ *     tags: [Categories]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - categoryCodes
+ *             properties:
+ *               categoryCodes:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of category codes to enable
+ *                 example: ["WASH", "DRY_CLEAN", "PRESS"]
+ *     responses:
+ *       200:
+ *         description: Categories enabled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/SuccessResponse'
+ *       400:
+ *         description: Invalid request - categoryCodes must be a non-empty array
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Authentication required
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 export async function POST(request: NextRequest) {
   try {
