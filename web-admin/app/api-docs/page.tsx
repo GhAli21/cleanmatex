@@ -5,7 +5,10 @@ import dynamic from 'next/dynamic';
 import 'swagger-ui-react/swagger-ui.css';
 
 // Dynamically import SwaggerUI to avoid SSR issues
-const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
+const SwaggerUI = dynamic<{ spec: any }>(
+  () => import('swagger-ui-react'),
+  { ssr: false }
+);
 
 export default function ApiDocsPage() {
   const [spec, setSpec] = useState<any>(null);

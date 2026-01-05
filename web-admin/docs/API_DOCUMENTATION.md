@@ -7,11 +7,13 @@ The CleanMateX API documentation is available via Swagger UI, providing an inter
 ## Accessing the Documentation
 
 1. Start your development server:
+
    ```bash
    npm run dev
    ```
 
 2. Open the API documentation in your browser:
+
    ```
    http://localhost:3000/api-docs
    ```
@@ -146,4 +148,3 @@ Endpoints are organized by tags. Current tags include:
 - Include example values where helpful
 - Document error responses (400, 401, 500, etc.)
 - Use tags to group related endpoints
-
