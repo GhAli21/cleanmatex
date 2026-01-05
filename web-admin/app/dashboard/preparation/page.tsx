@@ -48,22 +48,39 @@ export default function PreparationPage() {
   });
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadOrders = async () => {
-      if (!currentTenant) return;
+      if (!currentTenant) {
+        if (isMounted) {
+          setLoading(false);
+        }
+        return;
+      }
       
-      setLoading(true);
+      if (isMounted) {
+        setLoading(true);
+      }
+
       try {
         const params = new URLSearchParams({
-          current_status: 'intake,preparing',// 'intake,processing', // Multiple statuses: intake OR processing
-          current_stage: 'intake,preparing',// 'intake,processing', // Multiple statuses: intake OR processing
-          status_filter: 'intake,preparing', // Only show orders with status 'preparation'
+          current_status: 'intake,preparing',
+          current_stage: 'intake,preparing',
+          status_filter: 'intake,preparing',
           page: String(pagination.page),
           limit: '20',
         });
-        console.log('[Jh] 🔵 PreparationPage loadOrders (1) /api/v1/orders: Parameters:', params.toString());
+
         const res = await fetch(`/api/v1/orders?${params.toString()}`);
-        console.log('[Jh] 🔵 PreparationPage loadOrders (2) /api/v1/orders: Response status:', res.status, res.statusText, 'ok:', res.ok);
+        
+        if (!res.ok) {
+          throw new Error(`Failed to fetch orders: ${res.statusText}`);
+        }
+
         const json = await res.json();
+        
+        if (!isMounted) return;
+
         if (json.success && json.data?.orders) {
           // Transform orders to ensure customer data is properly structured
           const transformedOrders = json.data.orders.map((order: any) => {
@@ -101,16 +118,46 @@ export default function PreparationPage() {
           });
           
           setOrders(transformedOrders);
-          setPagination(json.data.pagination || { page: pagination.page, limit: 20, total: 0, totalPages: 0 });
+          
+          // Only update pagination if it actually changed to prevent infinite loops
+          const newPagination = json.data.pagination || { 
+            page: pagination.page, 
+            limit: 20, 
+            total: 0, 
+            totalPages: 0 
+          };
+          
+          setPagination(prev => {
+            // Only update if values actually changed
+            if (
+              prev.page !== newPagination.page ||
+              prev.limit !== newPagination.limit ||
+              prev.total !== newPagination.total ||
+              prev.totalPages !== newPagination.totalPages
+            ) {
+              return newPagination;
+            }
+            return prev;
+          });
+        } else {
+          setOrders([]);
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load orders');
+        if (isMounted) {
+          setError(err.message || 'Failed to load orders');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadOrders();
+
+    return () => {
+      isMounted = false;
+    };
   }, [currentTenant, pagination.page]);
 
   if (loading) {

@@ -10,21 +10,48 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+export const maxDuration = 10; // Vercel timeout limit
+
 export async function GET() {
+  const startTime = Date.now();
+  
   try {
-    const spec = await getApiDocs();
+    // Add timeout wrapper
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('API docs generation timeout')), 8000);
+    });
+
+    const specPromise = getApiDocs();
+    const spec = await Promise.race([specPromise, timeoutPromise]) as any;
+    
+    const duration = Date.now() - startTime;
+    console.log(`[API Docs] Generated in ${duration}ms`);
+    
     return NextResponse.json(spec);
   } catch (error) {
-    console.error('Error generating API docs:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[API Docs] Error after ${duration}ms:`, error);
+    
     // Return a minimal spec instead of failing
     return NextResponse.json({
       openapi: '3.0.0',
       info: {
         title: 'CleanMateX API Documentation',
         version: '1.0.0',
-        description: 'API documentation is being generated. Please try again in a moment.',
+        description: error instanceof Error 
+          ? `API documentation generation failed: ${error.message}. This is likely due to file scanning issues on Vercel.`
+          : 'API documentation is being generated. Please try again in a moment.',
       },
       paths: {},
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
+      },
     });
   }
 }

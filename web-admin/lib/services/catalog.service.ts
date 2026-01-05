@@ -33,21 +33,44 @@ import type {
  * Get tenant ID from current session
  */
 async function getTenantIdFromSession(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const supabase = await createClient();
+    
+    // Add timeout for auth calls
+    const getUserPromise = supabase.auth.getUser();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Auth timeout')), 5000);
+    });
+    
+    const { data: { user }, error: authError } = await Promise.race([
+      getUserPromise,
+      timeoutPromise,
+    ]) as any;
 
-  if (!user) {
-    throw new Error('Unauthorized: No user');
+    if (authError || !user) {
+      throw new Error('Unauthorized: No user');
+    }
+
+    // Add timeout for RPC call
+    const rpcPromise = supabase.rpc('get_user_tenants');
+    const rpcTimeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('RPC timeout')), 5000);
+    });
+    
+    const { data: tenants, error } = await Promise.race([
+      rpcPromise,
+      rpcTimeoutPromise,
+    ]) as any;
+    
+    if (error || !tenants || tenants.length === 0) {
+      throw new Error('Unauthorized: No tenant access found' + (error?.message || ''));
+    }
+
+    return tenants[0].tenant_id;
+  } catch (error) {
+    console.error('[Catalog Service] Error getting tenant ID:', error);
+    throw error;
   }
-
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('Unauthorized: No tenant access found' + error?.message);
-  }
-
-  return tenants[0].tenant_id;
 }
 
 // ==================================================================
@@ -79,42 +102,89 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
  * Falls back to all global categories if no categories are enabled for the tenant
  */ 
 export async function getEnabledCategories(): Promise<EnabledCategory[]> {
+  const startTime = Date.now();
   const supabase = await createClient();
-  const tenantId = await getTenantIdFromSession(); 
+  
+  try {
+    const tenantId = await getTenantIdFromSession(); 
 
-  const { data, error } = await supabase
-    .from('org_service_category_cf')
-    .select(`
-      tenant_org_id,  
-      service_category_code,
-      sys_service_category_cd(*)
-    `)
-    .eq('tenant_org_id', tenantId)
-    .eq('is_active', true) 
-    .order('rec_order')
-    ;
+    // Try simpler query first - just get enabled category codes
+    const simpleQueryPromise = supabase
+      .from('org_service_category_cf')
+      .select('service_category_code')
+      .eq('tenant_org_id', tenantId)
+      .eq('is_active', true);
 
-  if (error) {
-    console.error('Error fetching enabled categories:', error);
-    throw new Error('Failed to fetch enabled categories');
-  }
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Query timeout')), 3000);
+    });
 
-  // If no categories are enabled for this tenant, fall back to all global categories
-  if (!data || data.length === 0) {
-    console.warn('No enabled categories found for tenant, falling back to all global categories');
+    let enabledCodes: string[] = [];
+    try {
+      const queryResult = await simpleQueryPromise;
+      const { data: enabledData, error: simpleError } = queryResult;
+
+      if (!simpleError && enabledData && enabledData.length > 0) {
+        enabledCodes = enabledData.map((item: any) => item.service_category_code);
+      }
+    } catch (simpleQueryError: any) {
+      console.warn('Simple query failed, trying fallback:', simpleQueryError);
+      // If timeout, continue to fallback
+    }
+
+    // If we have enabled codes, fetch the full category data
+    if (enabledCodes.length > 0) {
+      try {
+        // Use type assertion to avoid TypeScript deep type instantiation issue
+        const categoriesQuery = (supabase
+          .from('sys_service_category_cd') as any)
+          .select('*')
+          .in('category_code', enabledCodes)
+          .eq('is_active', true)
+          .order('rec_order');
+
+        const categoriesResult = await categoriesQuery;
+        const { data: categoriesData, error: categoriesError } = categoriesResult;
+
+        if (!categoriesError && categoriesData) {
+          const transformed = categoriesData.map((cat: any) => ({
+            ...cat,
+            tenant_org_id: tenantId,
+          })) as EnabledCategory[];
+
+          const duration = Date.now() - startTime;
+          console.log(`[Catalog Service] getEnabledCategories completed in ${duration}ms (${transformed.length} categories)`);
+          return transformed;
+        }
+      } catch (categoriesError: any) {
+        console.warn('Categories query failed, falling back to global:', categoriesError);
+      }
+    }
+
+    // Fall through to global categories if enabled categories query fails or returns empty
+    console.warn('No enabled categories found or query failed, falling back to global categories');
     const globalCategories = await getServiceCategories();
-    // Transform to EnabledCategory format
     return globalCategories.map((cat) => ({
       ...cat,
       tenant_org_id: tenantId,
     })) as EnabledCategory[];
+  } catch (error) {
+    const duration = Date.now() - startTime;
+    console.error(`[Catalog Service] getEnabledCategories failed after ${duration}ms:`, error);
+    
+    // On timeout or any error, fall back to global categories
+    try {
+      const tenantId = await getTenantIdFromSession();
+      const globalCategories = await getServiceCategories();
+      return globalCategories.map((cat) => ({
+        ...cat,
+        tenant_org_id: tenantId,
+      })) as EnabledCategory[];
+    } catch (fallbackError) {
+      console.error('Fallback to global categories also failed:', fallbackError);
+      throw new Error('Failed to fetch categories');
+    }
   }
-
-  // Transform the data to flatten the nested structure
-  return data.map((item: any) => ({
-    ...item.sys_service_category_cd,
-    tenant_org_id: item.tenant_org_id,
-  })) as EnabledCategory[];
 }
 
 /**

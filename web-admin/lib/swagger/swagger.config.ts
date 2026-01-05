@@ -2,13 +2,18 @@
 let createSwaggerSpec: any = null;
 
 export const getApiDocs = async () => {
+  const startTime = Date.now();
+  
   try {
     // Lazy load to prevent build-time execution
     if (!createSwaggerSpec) {
+      console.log('[Swagger] Loading next-swagger-doc module...');
       const swaggerDoc = await import('next-swagger-doc');
       createSwaggerSpec = swaggerDoc.createSwaggerSpec;
+      console.log('[Swagger] Module loaded');
     }
     
+    console.log('[Swagger] Starting spec generation...');
     const spec = createSwaggerSpec({
       apiFolder: 'app/api', // API route folder
       definition: {
@@ -110,10 +115,16 @@ export const getApiDocs = async () => {
       ],
     },
   });
+    
+    const duration = Date.now() - startTime;
+    console.log(`[Swagger] Spec generated successfully in ${duration}ms`);
+    console.log(`[Swagger] Found ${Object.keys(spec.paths || {}).length} API paths`);
+    
     return spec;
   } catch (error) {
+    const duration = Date.now() - startTime;
     // If file scanning fails (e.g., during build), return a minimal spec
-    console.warn('Failed to scan API routes for Swagger docs:', error);
+    console.warn(`[Swagger] Failed to scan API routes after ${duration}ms:`, error);
     return {
       openapi: '3.0.0',
       info: {

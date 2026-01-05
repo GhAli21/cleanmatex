@@ -41,18 +41,7 @@ export default function Sidebar() {
   const [featureFlags, setFeatureFlags] = useState<Record<string, boolean>>({})
 
   // Fetch navigation from API (with caching and fallback)
-  console.log('Jh in Sidebar() [ 1 ] : fetching navigation')
   const { navigation, isLoading: navigationLoading } = useNavigation()
-  console.log('Jh in Sidebar() [ 2 ] : navigation', navigation)
-  // Debug: Log navigation state changes
-  useEffect(() => {
-    console.log('Jh in Sidebar() [ 3 ] : Navigation state:', {
-      isLoading: navigationLoading,
-      navigationLength: navigation.length,
-      navigation: navigation,
-      filteredNavigationLength: filteredNavigation.length,
-    })
-  }, [navigation, navigationLoading])
 
   // Get user role from current tenant (no default role)
   const userRole = currentTenant?.user_role?.toLowerCase() as UserRole | undefined

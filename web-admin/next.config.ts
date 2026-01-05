@@ -16,9 +16,10 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Disable Turbopack - use webpack instead (we have custom webpack config)
+  // Turbopack root must match outputFileTracingRoot
+  // Both point to web-admin directory to avoid workspace detection issues
   turbopack: {
-    root: path.resolve(__dirname, ".."), // => F:\jhapp\cleanmatex
+    root: path.join(__dirname), // => F:\jhapp\cleanmatex\web-admin (same as outputFileTracingRoot)
   },
 
   // Use webpack instead of Turbopack for more stable builds

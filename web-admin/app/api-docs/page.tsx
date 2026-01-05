@@ -16,20 +16,31 @@ export default function ApiDocsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/docs')
+    // Add timeout to fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    fetch('/api/docs', { signal: controller.signal })
       .then((res) => {
+        clearTimeout(timeoutId);
         if (!res.ok) {
-          throw new Error(`Failed to load API docs: ${res.statusText}`);
+          throw new Error(`Failed to load API docs: ${res.statusText} (${res.status})`);
         }
         return res.json();
       })
       .then((data) => {
+        console.log('API docs loaded successfully:', data);
         setSpec(data);
         setLoading(false);
       })
       .catch((err) => {
+        clearTimeout(timeoutId);
         console.error('Failed to load API docs:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        if (err.name === 'AbortError') {
+          setError('Request timeout - The API documentation is taking too long to generate. This might be due to file scanning. Please try again.');
+        } else {
+          setError(err instanceof Error ? err.message : 'Unknown error');
+        }
         setLoading(false);
       });
   }, []);
@@ -65,13 +76,31 @@ export default function ApiDocsPage() {
   if (!spec) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-lg text-red-500">No API documentation available</div>
+        <div className="text-center">
+          <div className="text-lg text-red-500 mb-2">No API documentation available</div>
+          <div className="text-sm text-gray-600">The API spec could not be loaded</div>
+        </div>
       </div>
     );
   }
 
+  // Check if spec has paths (if not, file scanning likely failed)
+  const hasPaths = spec.paths && Object.keys(spec.paths).length > 0;
+
   return (
     <div className="min-h-screen bg-white">
+      {!hasPaths && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <strong>Note:</strong> API route scanning may have failed. This is common on Vercel due to file system limitations. 
+                The documentation structure is available, but individual endpoint details may be missing.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <SwaggerUI spec={spec} />
     </div>
   );

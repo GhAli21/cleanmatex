@@ -96,28 +96,52 @@ async function getAuthContext() {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 10; // Vercel timeout limit
+
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
-    await getAuthContext();
+    // Add timeout wrapper for Supabase calls
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 8000);
+    });
+
+    const authPromise = getAuthContext();
+    await Promise.race([authPromise, timeoutPromise]);
 
     const { searchParams } = new URL(request.url);
     const enabled = searchParams.get('enabled') === 'true';
 
-    // Get categories based on enabled  flag
-    const categories = enabled
-      ? await getEnabledCategories()
-      : await getServiceCategories();
+    // Get categories based on enabled flag with timeout
+    const categoriesPromise = enabled
+      ? getEnabledCategories()
+      : getServiceCategories();
+    
+    const categories = await Promise.race([categoriesPromise, timeoutPromise]) as any;
+
+    const duration = Date.now() - startTime;
+    console.log(`[API] GET /api/v1/categories - Success (${duration}ms)`);
 
     return NextResponse.json({
       success: true,
       data: categories,
     });
   } catch (error) {
-    console.error('Error fetching categories:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[API] GET /api/v1/categories - Error after ${duration}ms:`, error);
 
     if (error instanceof Error) {
-      if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
+      if (error.message === 'Unauthorized' || error.message.includes('No tenant') || error.message.includes('Unauthorized')) {
         return NextResponse.json({ error: error.message }, { status: 401 });
+      }
+      if (error.message === 'Request timeout') {
+        return NextResponse.json(
+          { error: 'Request timeout - please try again' },
+          { status: 504 }
+        );
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
