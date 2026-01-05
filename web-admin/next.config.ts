@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
       // Exclude ioredis from client bundles
       config.externals = config.externals || [];
       config.externals.push('ioredis');
+      
+      // Exclude swagger packages from client bundles (server-only)
+      config.externals.push('next-swagger-doc');
+      config.externals.push('swagger-jsdoc');
     }
     
     // Ignore ESM-only packages that cause build issues

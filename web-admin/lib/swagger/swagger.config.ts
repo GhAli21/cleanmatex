@@ -1,10 +1,18 @@
-import { createSwaggerSpec } from 'next-swagger-doc';
+// Lazy import to avoid build-time file scanning issues
+let createSwaggerSpec: any = null;
 
 export const getApiDocs = async () => {
-  const spec = createSwaggerSpec({
-    apiFolder: 'app/api', // API route folder
-    definition: {
-      openapi: '3.0.0',
+  try {
+    // Lazy load to prevent build-time execution
+    if (!createSwaggerSpec) {
+      const swaggerDoc = await import('next-swagger-doc');
+      createSwaggerSpec = swaggerDoc.createSwaggerSpec;
+    }
+    
+    const spec = createSwaggerSpec({
+      apiFolder: 'app/api', // API route folder
+      definition: {
+        openapi: '3.0.0',
       info: {
         title: 'CleanMateX API Documentation',
         version: '1.0.0',
@@ -102,6 +110,34 @@ export const getApiDocs = async () => {
       ],
     },
   });
-  return spec;
+    return spec;
+  } catch (error) {
+    // If file scanning fails (e.g., during build), return a minimal spec
+    console.warn('Failed to scan API routes for Swagger docs:', error);
+    return {
+      openapi: '3.0.0',
+      info: {
+        title: 'CleanMateX API Documentation',
+        version: '1.0.0',
+        description: 'API documentation for CleanMateX Laundry Management System',
+      },
+      servers: [
+        {
+          url: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+          description: 'Development server',
+        },
+      ],
+      paths: {},
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT',
+          },
+        },
+      },
+    };
+  }
 };
 
