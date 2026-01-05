@@ -34,6 +34,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('orders');
+  const tCommon = useTranslations('common');
   const isRTL = useRTL();
 
   if (!orders || orders.length === 0) {
@@ -87,7 +88,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 {t('readyBy')}
               </th>
               <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
-                {t('actions')}
+                {tCommon('actions')}
               </th>
             </tr>
           </thead>
