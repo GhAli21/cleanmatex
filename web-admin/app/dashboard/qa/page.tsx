@@ -58,7 +58,42 @@ export default function QAPage() {
         const res = await fetch(`/api/v1/orders?${params.toString()}`);
         const json = await res.json();
         if (json.success && json.data?.orders) {
-          setOrders(json.data.orders);
+          // Transform orders to ensure customer data is properly structured
+          const transformedOrders = json.data.orders.map((order: any) => {
+            // Handle different customer data structures from API
+            let customer = order.customer;
+            
+            // If customer is not directly available, try to get it from org_customers_mst
+            if (!customer && order.org_customers_mst) {
+              const orgCustomer = Array.isArray(order.org_customers_mst) 
+                ? order.org_customers_mst[0] 
+                : order.org_customers_mst;
+              
+              if (orgCustomer) {
+                // Prefer sys_customers_mst data if available, otherwise use org_customers_mst
+                const sysCustomer = orgCustomer.sys_customers_mst;
+                customer = {
+                  name: sysCustomer?.name || orgCustomer.name || 'Unknown Customer',
+                  phone: sysCustomer?.phone || orgCustomer.phone || 'N/A',
+                };
+              }
+            }
+            
+            // Ensure customer object exists with defaults
+            if (!customer) {
+              customer = {
+                name: 'Unknown Customer',
+                phone: 'N/A',
+              };
+            }
+            
+            return {
+              ...order,
+              customer,
+            };
+          });
+          
+          setOrders(transformedOrders);
           setPagination(json.data.pagination || { page: pagination.page, limit: 20, total: 0, totalPages: 0 });
         }
       } catch (err: any) {

@@ -83,10 +83,22 @@ export default function ReadyPage() {
         if (json.success && json.data?.orders) {
           // Transform API response to match ReadyOrder interface
           const transformedOrders: ReadyOrder[] = json.data.orders.map((order: any) => {
-            // Extract customer data (same pattern as processing page)
-            const customer = order.org_customers_mst || order.customer;
-            const sysCustomer = customer?.sys_customers_mst;
-            const customerData = sysCustomer || customer || {};
+            // Extract customer data - handle org_customers_mst (array or object)
+            let customer = order.customer;
+            
+            if (!customer && order.org_customers_mst) {
+              const orgCustomer = Array.isArray(order.org_customers_mst) 
+                ? order.org_customers_mst[0] 
+                : order.org_customers_mst;
+              
+              if (orgCustomer) {
+                // Prefer sys_customers_mst data if available, otherwise use org_customers_mst
+                const sysCustomer = orgCustomer.sys_customers_mst;
+                customer = sysCustomer || orgCustomer;
+              }
+            }
+            
+            const customerData = customer || {};
 
             const customerName =
               customerData.name ||

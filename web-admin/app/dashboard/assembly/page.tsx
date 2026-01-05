@@ -41,7 +41,7 @@ export default function AssemblyPage() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   
   const { data: dashboardData, isLoading: dashboardLoading } = useAssemblyDashboard();
-  const { mutate: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
+  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
   const { showSuccess, showError: showErrorMsg } = useMessage();
 
   const [pagination, setPagination] = useState({
@@ -125,18 +125,16 @@ export default function AssemblyPage() {
     e.preventDefault();
     e.stopPropagation();
 
-    createTask(orderId, {
-      onSuccess: (result) => {
-        if (result.success && result.taskId) {
-          setSelectedOrderId(orderId);
-          setSelectedTaskId(result.taskId);
-          showSuccess('Assembly task created');
-        }
-      },
-      onError: (error) => {
-        showErrorMsg(error.message || 'Failed to create assembly task');
-      },
-    });
+    try {
+      const result = await createTask(orderId);
+      if (result.success && result.taskId) {
+        setSelectedOrderId(orderId);
+        setSelectedTaskId(result.taskId);
+        showSuccess('Assembly task created');
+      }
+    } catch (error: any) {
+      showErrorMsg(error.message || 'Failed to create assembly task');
+    }
   };
 
   return (
