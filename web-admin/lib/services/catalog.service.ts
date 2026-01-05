@@ -90,7 +90,7 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
       sys_service_category_cd(*)
     `)
     .eq('tenant_org_id', tenantId)
-    .eq('is_enabled', true) 
+    .eq('is_active', true) 
     .order('rec_order')
     ;
 
