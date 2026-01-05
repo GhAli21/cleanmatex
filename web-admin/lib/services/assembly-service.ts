@@ -201,7 +201,7 @@ export class AssemblyService {
           userId,
           orderId,
         });
-        throw new Error('Failed (2) to create assembly task');
+        throw new Error('Failed (2) to create assembly task'+taskError?.message);
       }
 
       // Create assembly items for each order item

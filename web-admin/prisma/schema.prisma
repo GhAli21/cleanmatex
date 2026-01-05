@@ -107,7 +107,7 @@ model users {
   mfa_factors                                                   mfa_factors[]
   one_time_tokens                                               one_time_tokens[]
   sessions                                                      sessions[]
-  cmx_effective_permissions                                     cmx_effective_permissions[] @ignore
+  cmx_effective_permissions                                     cmx_effective_permissions[]       @ignore
   org_order_history                                             org_order_history[]
   org_order_item_issues_org_order_item_issues_created_byTousers org_order_item_issues[]           @relation("org_order_item_issues_created_byTousers")
   org_order_item_issues_org_order_item_issues_solved_byTousers  org_order_item_issues[]           @relation("org_order_item_issues_solved_byTousers")
@@ -357,37 +357,40 @@ model sso_providers {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_branches_mst {
-  id              String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id   String           @db.Uuid
-  branch_name     String?
-  s_date          DateTime?        @default(now()) @db.Timestamp(6)
-  phone           String?          @db.VarChar(50)
-  email           String?          @db.VarChar(255)
-  type            String?          @default("walk_in") @db.VarChar(20)
-  address         String?
-  country         String?
-  city            String?
-  area            String?
-  street          String?
-  building        String?
-  floor           String?
-  latitude        Float?
-  longitude       Float?
-  rec_order       Int?
-  rec_status      Int?             @default(1) @db.SmallInt
-  is_active       Boolean          @default(true)
-  rec_notes       String?          @db.VarChar(200)
-  created_at      DateTime?        @default(now()) @db.Timestamp(6)
-  created_by      String?          @db.VarChar(120)
-  created_info    String?
-  updated_at      DateTime?        @db.Timestamp(6)
-  updated_by      String?          @db.VarChar(120)
-  updated_info    String?
-  name            String?
-  name2           String?
-  is_main         Boolean?         @default(false)
-  org_tenants_mst org_tenants_mst  @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
-  org_orders_mst  org_orders_mst[]
+  id                    String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                  @db.Uuid
+  branch_name           String?
+  s_date                DateTime?               @default(now()) @db.Timestamp(6)
+  phone                 String?                 @db.VarChar(50)
+  email                 String?                 @db.VarChar(255)
+  type                  String?                 @default("walk_in") @db.VarChar(20)
+  address               String?
+  country               String?
+  city                  String?
+  area                  String?
+  street                String?
+  building              String?
+  floor                 String?
+  latitude              Float?
+  longitude             Float?
+  rec_order             Int?
+  rec_status            Int?                    @default(1) @db.SmallInt
+  is_active             Boolean                 @default(true)
+  rec_notes             String?                 @db.VarChar(200)
+  created_at            DateTime?               @default(now()) @db.Timestamp(6)
+  created_by            String?                 @db.VarChar(120)
+  created_info          String?
+  updated_at            DateTime?               @db.Timestamp(6)
+  updated_by            String?                 @db.VarChar(120)
+  updated_info          String?
+  name                  String?
+  name2                 String?
+  is_main               Boolean?                @default(false)
+  org_asm_locations_mst org_asm_locations_mst[]
+  org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
+  org_dlv_routes_mst    org_dlv_routes_mst[]
+  org_dlv_slots_mst     org_dlv_slots_mst[]
+  org_orders_mst        org_orders_mst[]
 
   @@id([id, tenant_org_id])
   @@schema("public")
@@ -557,12 +560,15 @@ model org_order_items_dtl {
   item_last_step_at               DateTime?                         @db.Timestamptz(6)
   item_last_step_by               String?                           @db.Uuid
   quantity_ready                  Int?                              @default(0)
+  org_asm_items_dtl               org_asm_items_dtl[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
   org_product_data_mst            org_product_data_mst?             @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_prod")
 
+  @@unique([id, tenant_org_id], map: "org_order_items_tenant_org_id_id_key")
+  @@unique([id, order_id, tenant_org_id], map: "org_order_items_tenant_org_id_order_id_key")
   @@index([tenant_org_id], map: "idx_order_items_tenant")
   @@index([order_id], map: "idx_org_items_order")
   @@index([tenant_org_id], map: "idx_org_items_tenant")
@@ -657,6 +663,8 @@ model org_orders_mst {
   is_order_quick_drop             Boolean?                          @default(false)
   quick_drop_quantity             Int?
   rack_location                   String?                           @db.VarChar(100)
+  org_asm_tasks_mst               org_asm_tasks_mst[]
+  org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_invoice_mst                 org_invoice_mst[]
   org_order_history               org_order_history[]
   org_order_item_issues           org_order_item_issues[]
@@ -670,8 +678,12 @@ model org_orders_mst {
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
   sys_order_type_cd               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
   sys_workflow_template_cd        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
+  org_pck_packing_lists_mst       org_pck_packing_lists_mst[]
+  org_qa_decisions_tr             org_qa_decisions_tr[]
+  org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
 
   @@unique([tenant_org_id, order_no])
+  @@unique([id, tenant_org_id], map: "org_orders_mst_tenant_org_id_order_id_key")
   @@index([tenant_org_id, preparation_status], map: "idx_orders_preparation_status")
   @@index([tenant_org_id, ready_by], map: "idx_orders_ready_by")
   @@index([tenant_org_id, received_at(sort: Desc)], map: "idx_orders_received_at")
@@ -882,13 +894,18 @@ model org_tenants_mst {
   time_format                      String?                            @default("24h") @db.VarChar(5)
   first_day_of_week                Int?                               @default(6)
   business_type_code               String?                            @db.VarChar(60)
-  cmx_effective_permissions        cmx_effective_permissions[] @ignore
+  cmx_effective_permissions        cmx_effective_permissions[]        @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
+  org_asm_locations_mst            org_asm_locations_mst[]
+  org_asm_tasks_mst                org_asm_tasks_mst[]
   org_branches_mst                 org_branches_mst[]
   org_customer_addresses           org_customer_addresses[]
   org_customer_merge_log           org_customer_merge_log[]
   org_customers_mst                org_customers_mst[]
   org_discount_rules_cf            org_discount_rules_cf[]
+  org_dlv_routes_mst               org_dlv_routes_mst[]
+  org_dlv_slots_mst                org_dlv_slots_mst[]
+  org_ff_overrides_cf              org_ff_overrides_cf[]
   org_gift_card_transactions       org_gift_card_transactions[]
   org_gift_cards_mst               org_gift_cards_mst[]
   org_invoice_mst                  org_invoice_mst[]
@@ -898,6 +915,7 @@ model org_tenants_mst {
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
   org_payments_dtl_tr              org_payments_dtl_tr[]
+  org_pck_packing_lists_mst        org_pck_packing_lists_mst[]
   org_pln_change_history_tr        org_pln_change_history_tr[]
   org_pln_subscriptions_mst        org_pln_subscriptions_mst[]
   org_price_list_items_dtl         org_price_list_items_dtl[]
@@ -905,6 +923,8 @@ model org_tenants_mst {
   org_product_data_mst             org_product_data_mst[]
   org_promo_codes_mst              org_promo_codes_mst[]
   org_promo_usage_log              org_promo_usage_log[]
+  org_rcpt_receipts_mst            org_rcpt_receipts_mst[]
+  org_rcpt_templates_cf            org_rcpt_templates_cf[]
   org_service_category_cf          org_service_category_cf[]
   org_subscriptions_mst            org_subscriptions_mst[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
@@ -2512,37 +2532,38 @@ model sys_bill_usage_metrics_daily {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_pln_subscription_plans_mst {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  plan_code       String    @unique @db.VarChar(50)
-  plan_name       String    @db.VarChar(250)
-  plan_name_ar    String?   @db.VarChar(250)
-  description     String?
-  description_ar  String?
-  base_price      Decimal   @default(0) @db.Decimal(10, 3)
-  annual_price    Decimal?  @db.Decimal(10, 3)
-  setup_fee       Decimal?  @db.Decimal(10, 3)
-  currency        String?   @default("OMR") @db.VarChar(3)
-  billing_cycle   String    @default("monthly") @db.VarChar(20)
-  trial_days      Int?      @default(0)
-  features        Json      @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": false, \"advanced_analytics\": false, \"marketplace_listings\": false}")
-  limits          Json      @default("{\"max_users\": 1, \"max_branches\": 1, \"max_storage_mb\": 1000, \"max_orders_per_month\": -1, \"max_api_calls_per_month\": 0}")
-  overage_pricing Json?     @default("{\"per_user\": null, \"per_order\": null, \"per_gb_storage\": null}")
-  is_public       Boolean?  @default(true)
-  is_active       Boolean?  @default(true)
-  is_default      Boolean?  @default(false)
-  display_order   Int?      @default(0)
-  recommended     Boolean?  @default(false)
-  plan_color      String?   @db.VarChar(60)
-  plan_icon       String?   @db.VarChar(120)
-  created_at      DateTime? @default(now()) @db.Timestamp(6)
-  created_by      String?   @db.VarChar(120)
-  created_info    String?
-  updated_at      DateTime? @db.Timestamp(6)
-  updated_by      String?   @db.VarChar(120)
-  updated_info    String?
-  rec_status      Int?      @default(1) @db.SmallInt
-  rec_order       Int?
-  rec_notes       String?   @db.VarChar(200)
+  id                           String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_code                    String                         @unique @db.VarChar(50)
+  plan_name                    String                         @db.VarChar(250)
+  plan_name_ar                 String?                        @db.VarChar(250)
+  description                  String?
+  description_ar               String?
+  base_price                   Decimal                        @default(0) @db.Decimal(10, 3)
+  annual_price                 Decimal?                       @db.Decimal(10, 3)
+  setup_fee                    Decimal?                       @db.Decimal(10, 3)
+  currency                     String?                        @default("OMR") @db.VarChar(3)
+  billing_cycle                String                         @default("monthly") @db.VarChar(20)
+  trial_days                   Int?                           @default(0)
+  features                     Json                           @default("{\"printing\": false, \"api_access\": false, \"driver_app\": false, \"white_label\": false, \"multi_branch\": false, \"pdf_invoices\": false, \"b2b_contracts\": false, \"in_app_receipts\": false, \"loyalty_programs\": false, \"whatsapp_receipts\": false, \"advanced_analytics\": false, \"marketplace_listings\": false}")
+  limits                       Json                           @default("{\"max_users\": 1, \"max_branches\": 1, \"max_storage_mb\": 1000, \"max_orders_per_month\": -1, \"max_api_calls_per_month\": 0}")
+  overage_pricing              Json?                          @default("{\"per_user\": null, \"per_order\": null, \"per_gb_storage\": null}")
+  is_public                    Boolean?                       @default(true)
+  is_active                    Boolean?                       @default(true)
+  is_default                   Boolean?                       @default(false)
+  display_order                Int?                           @default(0)
+  recommended                  Boolean?                       @default(false)
+  plan_color                   String?                        @db.VarChar(60)
+  plan_icon                    String?                        @db.VarChar(120)
+  created_at                   DateTime?                      @default(now()) @db.Timestamp(6)
+  created_by                   String?                        @db.VarChar(120)
+  created_info                 String?
+  updated_at                   DateTime?                      @db.Timestamp(6)
+  updated_by                   String?                        @db.VarChar(120)
+  updated_info                 String?
+  rec_status                   Int?                           @default(1) @db.SmallInt
+  rec_order                    Int?
+  rec_notes                    String?                        @db.VarChar(200)
+  sys_ff_pln_flag_mappings_dtl sys_ff_pln_flag_mappings_dtl[]
 
   @@index([is_active, display_order], map: "idx_sys_pln_plans_active")
   @@index([plan_code], map: "idx_sys_pln_plans_code")
@@ -3521,6 +3542,786 @@ model sys_components_cd {
   @@index([comp_code], map: "idx_comp_code")
   @@index([comp_level, display_order], map: "idx_comp_level")
   @@index([parent_comp_id], map: "idx_comp_parent")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model hq_ff_audit_history_tr {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entity_type        String    @db.VarChar(30)
+  entity_id          String?   @db.Uuid
+  tenant_org_id      String?   @db.Uuid
+  flag_key           String    @db.VarChar(100)
+  action             String    @db.VarChar(50)
+  before_value       Json?
+  after_value        Json?
+  changed_fields     Json?
+  change_type        String?   @default("manual") @db.VarChar(30)
+  bulk_operation_id  String?   @db.Uuid
+  performed_by       String?   @db.Uuid
+  performed_by_email String?   @db.VarChar(255)
+  ip_address         String?   @db.Inet
+  user_agent         String?
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  performed_info     String?
+
+  @@index([performed_by, created_at(sort: Desc)], map: "idx_hq_ff_audit_actor")
+  @@index([created_at(sort: Desc)], map: "idx_hq_ff_audit_created")
+  @@index([flag_key, created_at(sort: Desc)], map: "idx_hq_ff_audit_flag")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model hq_ff_feature_flags_mst {
+  flag_key                   String    @id(map: "hq_feature_flags_mst_pkey") @db.VarChar(100)
+  flag_name                  String
+  flag_name2                 String?
+  flag_description           String?
+  flag_description2          String?
+  governance_category        String    @db.VarChar(50)
+  is_billable                Boolean   @default(false)
+  is_kill_switch             Boolean   @default(false)
+  is_sensitive               Boolean   @default(false)
+  allowed_values             Json?
+  min_value                  Decimal?  @db.Decimal
+  max_value                  Decimal?  @db.Decimal
+  json_schema                Json?
+  data_type                  String    @db.VarChar(20)
+  default_value              Json
+  validation_rules           Json?
+  plan_binding_type          String    @default("independent") @db.VarChar(20)
+  enabled_plan_codes         Json?     @default("[]")
+  allows_tenant_override     Boolean?  @default(true)
+  override_requires_approval Boolean?  @default(false)
+  ui_group                   String?   @db.VarChar(100)
+  comp_code                  String?
+  ui_display_order           Int?      @default(0)
+  ui_icon                    String?   @db.VarChar(120)
+  ui_color                   String?   @db.VarChar(60)
+  is_active                  Boolean?  @default(true)
+  created_at                 DateTime? @default(now()) @db.Timestamp(6)
+  created_by                 String?
+  created_info               String?
+  updated_at                 DateTime? @db.Timestamp(6)
+  updated_by                 String?
+  updated_info               String?
+  rec_status                 Int?      @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?
+
+  @@index([is_active, ui_display_order], map: "idx_hq_ff_flags_active")
+  @@index([governance_category], map: "idx_hq_ff_flags_category")
+  @@index([ui_group, ui_display_order], map: "idx_hq_ff_flags_group")
+  @@index([plan_binding_type], map: "idx_hq_ff_flags_plan_binding")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_asm_exceptions_tr {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id             String            @db.Uuid
+  tenant_org_id       String            @db.Uuid
+  exception_type_code String            @db.VarChar(50)
+  severity            String?           @default("MEDIUM") @db.VarChar(20)
+  description         String
+  description2        String?
+  photo_urls          Json?             @default("[]")
+  notes               String?
+  exception_status    String?           @default("OPEN") @db.VarChar(50)
+  resolved_at         DateTime?         @db.Timestamp(6)
+  resolved_by         String?           @db.Uuid
+  resolution          String?
+  refund_amount       Decimal?          @db.Decimal(19, 4)
+  is_active           Boolean           @default(true)
+  rec_status          Int?              @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?           @db.VarChar(200)
+  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+  created_by          String?           @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime?         @db.Timestamp(6)
+  updated_by          String?           @db.VarChar(120)
+  updated_info        String?
+  org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_exception_task")
+
+  @@index([task_id, exception_status], map: "idx_asm_exceptions_status")
+  @@index([task_id], map: "idx_asm_exceptions_task")
+  @@index([tenant_org_id, exception_type_code], map: "idx_asm_exceptions_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_asm_items_dtl {
+  id                  String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id             String              @db.Uuid
+  order_item_id       String              @db.Uuid
+  tenant_org_id       String              @db.Uuid
+  item_name           String?             @db.VarChar(250)
+  item_name2          String?             @db.VarChar(250)
+  barcode             String?
+  item_status         String?             @default("PENDING") @db.VarChar(50)
+  scanned_at          DateTime?           @db.Timestamp(6)
+  scanned_by          String?             @db.Uuid
+  has_exception       Boolean?            @default(false)
+  exception_id        String?             @db.Uuid
+  is_active           Boolean             @default(true)
+  rec_status          Int?                @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?             @db.VarChar(200)
+  created_at          DateTime?           @default(now()) @db.Timestamp(6)
+  created_by          String?             @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime?           @db.Timestamp(6)
+  updated_by          String?             @db.VarChar(120)
+  updated_info        String?
+  org_order_items_dtl org_order_items_dtl @relation(fields: [order_item_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_item_order_item")
+  org_asm_tasks_mst   org_asm_tasks_mst   @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_item_task")
+
+  @@unique([task_id, order_item_id])
+  @@index([order_item_id], map: "idx_asm_items_order_item")
+  @@index([task_id, item_status], map: "idx_asm_items_status")
+  @@index([task_id], map: "idx_asm_items_task")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_asm_locations_mst {
+  id                 String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String              @db.Uuid
+  branch_id          String?             @db.Uuid
+  location_code      String              @db.VarChar(100)
+  location_name      String              @db.VarChar(250)
+  location_name2     String?             @db.VarChar(250)
+  location_type_code String              @db.VarChar(50)
+  capacity           Int?                @default(50)
+  current_load       Int?                @default(0)
+  is_active          Boolean             @default(true)
+  rec_status         Int?                @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?             @db.VarChar(200)
+  created_at         DateTime?           @default(now()) @db.Timestamp(6)
+  created_by         String?             @db.VarChar(120)
+  created_info       String?
+  updated_at         DateTime?           @db.Timestamp(6)
+  updated_by         String?             @db.VarChar(120)
+  updated_info       String?
+  org_branches_mst   org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_asm_location_branch")
+  org_tenants_mst    org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_location_tenant")
+  org_asm_tasks_mst  org_asm_tasks_mst[]
+
+  @@id([id, tenant_org_id], map: "pk_org_asm_locations_mst")
+  @@unique([tenant_org_id, location_code])
+  @@index([tenant_org_id, branch_id], map: "idx_asm_locations_branch")
+  @@index([tenant_org_id], map: "idx_asm_locations_tenant")
+  @@index([tenant_org_id, is_active], map: "idx_asm_locations_tenant_active")
+  @@index([tenant_org_id, rec_status], map: "idx_asm_locations_tenant_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_asm_tasks_mst {
+  id                        String                      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id             String                      @db.Uuid
+  order_id                  String                      @db.Uuid
+  branch_id                 String?                     @db.Uuid
+  assigned_to               String?                     @db.Uuid
+  location_id               String?                     @db.Uuid
+  task_status               String?                     @default("PENDING") @db.VarChar(50)
+  total_items               Int?                        @default(0)
+  scanned_items             Int?                        @default(0)
+  exception_items           Int?                        @default(0)
+  started_at                DateTime?                   @db.Timestamp(6)
+  completed_at              DateTime?                   @db.Timestamp(6)
+  qa_status                 String?                     @db.VarChar(50)
+  qa_by                     String?                     @db.Uuid
+  qa_at                     DateTime?                   @db.Timestamp(6)
+  qa_note                   String?
+  qa_photo_url              String?
+  packaging_type_code       String?                     @db.VarChar(50)
+  packing_note              String?
+  packed_at                 DateTime?                   @db.Timestamp(6)
+  packed_by                 String?                     @db.Uuid
+  is_active                 Boolean                     @default(true)
+  rec_status                Int?                        @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?                     @db.VarChar(200)
+  created_at                DateTime?                   @default(now()) @db.Timestamp(6)
+  created_by                String?                     @db.VarChar(120)
+  created_info              String?
+  updated_at                DateTime?                   @db.Timestamp(6)
+  updated_by                String?                     @db.VarChar(120)
+  updated_info              String?
+  org_asm_exceptions_tr     org_asm_exceptions_tr[]
+  org_asm_items_dtl         org_asm_items_dtl[]
+  org_asm_locations_mst     org_asm_locations_mst?      @relation(fields: [location_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_asm_task_location")
+  org_orders_mst            org_orders_mst              @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_task_order")
+  org_tenants_mst           org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_task_tenant")
+  org_pck_packing_lists_mst org_pck_packing_lists_mst[]
+  org_qa_decisions_tr       org_qa_decisions_tr[]
+
+  @@id([id, tenant_org_id], map: "pk_org_asm_tasks_mst")
+  @@unique([tenant_org_id, order_id])
+  @@index([tenant_org_id, assigned_to], map: "idx_asm_tasks_assigned")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_asm_tasks_created")
+  @@index([tenant_org_id, location_id], map: "idx_asm_tasks_location")
+  @@index([order_id], map: "idx_asm_tasks_order")
+  @@index([tenant_org_id, task_status], map: "idx_asm_tasks_status")
+  @@index([tenant_org_id], map: "idx_asm_tasks_tenant")
+  @@index([tenant_org_id, rec_status], map: "idx_asm_tasks_tenant_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_dlv_pod_tr {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stop_id           String            @db.Uuid
+  tenant_org_id     String            @db.Uuid
+  pod_method_code   String            @db.VarChar(50)
+  otp_code          String?           @db.VarChar(10)
+  otp_verified      Boolean?          @default(false)
+  signature_url     String?
+  photo_urls        Json?             @default("[]")
+  verified_at       DateTime?         @db.Timestamp(6)
+  verified_by       String?           @db.Uuid
+  metadata          Json?             @default("{}")
+  is_active         Boolean           @default(true)
+  rec_status        Int?              @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?           @db.VarChar(200)
+  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_by        String?           @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime?         @db.Timestamp(6)
+  updated_by        String?           @db.VarChar(120)
+  updated_info      String?
+  org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
+
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_dlv_pod_created")
+  @@index([stop_id], map: "idx_dlv_pod_stop")
+  @@index([tenant_org_id], map: "idx_dlv_pod_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_dlv_routes_mst {
+  id                         String              @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String              @db.Uuid
+  branch_id                  String?             @db.Uuid
+  route_number               String              @db.VarChar(100)
+  driver_id                  String?             @db.Uuid
+  route_status_code          String?             @default("planned") @db.VarChar(50)
+  total_stops                Int?                @default(0)
+  completed_stops            Int?                @default(0)
+  started_at                 DateTime?           @db.Timestamp(6)
+  completed_at               DateTime?           @db.Timestamp(6)
+  estimated_duration_minutes Int?
+  total_distance_km          Decimal?            @db.Decimal(10, 2)
+  is_active                  Boolean             @default(true)
+  rec_status                 Int?                @default(1) @db.SmallInt
+  rec_order                  Int?
+  rec_notes                  String?             @db.VarChar(200)
+  created_at                 DateTime?           @default(now()) @db.Timestamp(6)
+  created_by                 String?             @db.VarChar(120)
+  created_info               String?
+  updated_at                 DateTime?           @db.Timestamp(6)
+  updated_by                 String?             @db.VarChar(120)
+  updated_info               String?
+  org_branches_mst           org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_route_branch")
+  org_tenants_mst            org_tenants_mst     @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_route_tenant")
+  org_dlv_stops_dtl          org_dlv_stops_dtl[]
+
+  @@id([id, tenant_org_id], map: "pk_org_dlv_routes_mst")
+  @@unique([tenant_org_id, route_number])
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_dlv_routes_created")
+  @@index([tenant_org_id, driver_id], map: "idx_dlv_routes_driver")
+  @@index([tenant_org_id, route_status_code], map: "idx_dlv_routes_status")
+  @@index([tenant_org_id], map: "idx_dlv_routes_tenant")
+  @@index([tenant_org_id, rec_status], map: "idx_dlv_routes_tenant_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_dlv_slots_mst {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String            @db.Uuid
+  branch_id        String?           @db.Uuid
+  slot_date        DateTime          @db.Date
+  time_range_start DateTime          @db.Time(6)
+  time_range_end   DateTime          @db.Time(6)
+  slot_type        String            @db.VarChar(20)
+  capacity         Int?              @default(10)
+  booked_count     Int?              @default(0)
+  is_active        Boolean           @default(true)
+  rec_status       Int?              @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?           @db.VarChar(200)
+  created_at       DateTime?         @default(now()) @db.Timestamp(6)
+  created_by       String?           @db.VarChar(120)
+  created_info     String?
+  updated_at       DateTime?         @db.Timestamp(6)
+  updated_by       String?           @db.VarChar(120)
+  updated_info     String?
+  org_branches_mst org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_slot_branch")
+  org_tenants_mst  org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_slot_tenant")
+
+  @@unique([tenant_org_id, slot_date, time_range_start, time_range_end, slot_type])
+  @@index([tenant_org_id, slot_date], map: "idx_dlv_slots_date")
+  @@index([tenant_org_id], map: "idx_dlv_slots_tenant")
+  @@index([tenant_org_id, slot_type], map: "idx_dlv_slots_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_dlv_stops_dtl {
+  id                 String             @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  route_id           String             @db.Uuid
+  order_id           String             @db.Uuid
+  tenant_org_id      String             @db.Uuid
+  sequence           Int
+  address            String
+  address_lat        Decimal?           @db.Decimal(10, 8)
+  address_lng        Decimal?           @db.Decimal(11, 8)
+  stop_status_code   String?            @default("pending") @db.VarChar(50)
+  scheduled_time     DateTime?          @db.Timestamp(6)
+  estimated_arrival  DateTime?          @db.Timestamp(6)
+  actual_time        DateTime?          @db.Timestamp(6)
+  contact_name       String?            @db.VarChar(255)
+  contact_phone      String?            @db.VarChar(50)
+  notes              String?
+  is_active          Boolean            @default(true)
+  rec_status         Int?               @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?            @db.VarChar(200)
+  created_at         DateTime?          @default(now()) @db.Timestamp(6)
+  created_by         String?            @db.VarChar(120)
+  created_info       String?
+  updated_at         DateTime?          @db.Timestamp(6)
+  updated_by         String?            @db.VarChar(120)
+  updated_info       String?
+  org_dlv_pod_tr     org_dlv_pod_tr[]
+  org_orders_mst     org_orders_mst     @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
+  org_dlv_routes_mst org_dlv_routes_mst @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
+
+  @@id([id, tenant_org_id], map: "pk_org_dlv_stops_dtl")
+  @@unique([tenant_org_id, route_id, order_id])
+  @@index([order_id], map: "idx_dlv_stops_order")
+  @@index([route_id], map: "idx_dlv_stops_route")
+  @@index([tenant_org_id, scheduled_time], map: "idx_dlv_stops_scheduled")
+  @@index([route_id, stop_status_code], map: "idx_dlv_stops_status")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ff_overrides_cf {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String          @db.Uuid
+  flag_key         String          @db.VarChar(100)
+  data_type        String          @db.VarChar(20)
+  override_value   Json
+  override_reason  String?
+  override_type    String?         @default("manual") @db.VarChar(30)
+  approval_status  String?         @default("approved") @db.VarChar(20)
+  approved_by      String?         @db.VarChar(120)
+  approved_at      DateTime?       @db.Timestamp(6)
+  rejection_reason String?
+  effective_from   DateTime?       @db.Timestamp(6)
+  effective_until  DateTime?       @db.Timestamp(6)
+  is_active        Boolean?        @default(true)
+  created_at       DateTime?       @default(now()) @db.Timestamp(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?       @db.Timestamp(6)
+  updated_by       String?
+  updated_info     String?
+  rec_status       Int?            @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?         @db.VarChar(200)
+  org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, flag_key, is_active])
+  @@index([effective_from, effective_until], map: "idx_org_ff_overrides_effective")
+  @@index([flag_key, is_active], map: "idx_org_ff_overrides_flag")
+  @@index([tenant_org_id, is_active], map: "idx_org_ff_overrides_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_pck_packing_lists_mst {
+  id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String            @db.Uuid
+  order_id            String            @db.Uuid
+  task_id             String            @db.Uuid
+  list_number         String            @db.VarChar(100)
+  items_summary       Json              @default("[]")
+  packaging_type_code String            @db.VarChar(50)
+  item_count          Int?              @default(0)
+  qr_code             String?
+  generated_at        DateTime?         @default(now()) @db.Timestamp(6)
+  generated_by        String            @db.Uuid
+  printed_at          DateTime?         @db.Timestamp(6)
+  print_count         Int?              @default(0)
+  is_active           Boolean           @default(true)
+  rec_status          Int?              @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?           @db.VarChar(200)
+  created_at          DateTime?         @default(now()) @db.Timestamp(6)
+  created_by          String?           @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime?         @db.Timestamp(6)
+  updated_by          String?           @db.VarChar(120)
+  updated_info        String?
+  org_orders_mst      org_orders_mst    @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_order")
+  org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_task")
+  org_tenants_mst     org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_tenant")
+
+  @@unique([tenant_org_id, order_id])
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_pck_lists_created")
+  @@index([order_id], map: "idx_pck_lists_order")
+  @@index([task_id], map: "idx_pck_lists_task")
+  @@index([tenant_org_id], map: "idx_pck_lists_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_qa_decisions_tr {
+  id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  task_id            String            @db.Uuid
+  tenant_org_id      String            @db.Uuid
+  order_id           String            @db.Uuid
+  decision_type_code String            @db.VarChar(50)
+  qa_by              String            @db.Uuid
+  qa_at              DateTime?         @default(now()) @db.Timestamp(6)
+  qa_note            String?
+  qa_photo_url       String?
+  is_active          Boolean           @default(true)
+  rec_status         Int?              @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?           @db.VarChar(200)
+  created_at         DateTime?         @default(now()) @db.Timestamp(6)
+  created_by         String?           @db.VarChar(120)
+  created_info       String?
+  updated_at         DateTime?         @db.Timestamp(6)
+  updated_by         String?           @db.VarChar(120)
+  updated_info       String?
+  org_orders_mst     org_orders_mst    @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_qa_decision_order")
+  org_asm_tasks_mst  org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_qa_decision_task")
+
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_qa_decisions_created")
+  @@index([order_id], map: "idx_qa_decisions_order")
+  @@index([task_id], map: "idx_qa_decisions_task")
+  @@index([tenant_org_id], map: "idx_qa_decisions_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_rcpt_receipts_mst {
+  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String          @db.Uuid
+  order_id              String          @db.Uuid
+  receipt_type_code     String          @db.VarChar(50)
+  delivery_channel_code String          @db.VarChar(50)
+  delivery_status_code  String?         @default("pending") @db.VarChar(50)
+  content_text          String?
+  content_html          String?
+  qr_code               String?
+  recipient_phone       String?         @db.VarChar(50)
+  recipient_email       String?         @db.VarChar(255)
+  sent_at               DateTime?       @db.Timestamp(6)
+  delivered_at          DateTime?       @db.Timestamp(6)
+  retry_count           Int?            @default(0)
+  max_retries           Int?            @default(3)
+  metadata              Json?           @default("{}")
+  is_active             Boolean         @default(true)
+  rec_status            Int?            @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?         @db.VarChar(200)
+  created_at            DateTime?       @default(now()) @db.Timestamp(6)
+  created_by            String?         @db.VarChar(120)
+  created_info          String?
+  updated_at            DateTime?       @db.Timestamp(6)
+  updated_by            String?         @db.VarChar(120)
+  updated_info          String?
+  org_orders_mst        org_orders_mst  @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_order")
+  org_tenants_mst       org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_tenant")
+
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_rcpt_receipts_created")
+  @@index([tenant_org_id, delivery_status_code, created_at], map: "idx_rcpt_receipts_delivery_status")
+  @@index([order_id], map: "idx_rcpt_receipts_order")
+  @@index([tenant_org_id], map: "idx_rcpt_receipts_tenant")
+  @@index([tenant_org_id, rec_status], map: "idx_rcpt_receipts_tenant_status")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_rcpt_templates_cf {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String          @db.Uuid
+  template_type    String          @db.VarChar(50)
+  language         String          @db.VarChar(10)
+  template_content String
+  is_active        Boolean         @default(true)
+  rec_status       Int?            @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?         @db.VarChar(200)
+  created_at       DateTime?       @default(now()) @db.Timestamp(6)
+  created_by       String?         @db.VarChar(120)
+  created_info     String?
+  updated_at       DateTime?       @db.Timestamp(6)
+  updated_by       String?         @db.VarChar(120)
+  updated_info     String?
+  org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_template_tenant")
+
+  @@unique([tenant_org_id, template_type, language])
+  @@index([tenant_org_id], map: "idx_rcpt_templates_tenant")
+  @@index([tenant_org_id, template_type, language], map: "idx_rcpt_templates_type_lang")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_asm_exception_type_cd {
+  code            String    @id @db.VarChar(50)
+  name            String    @db.VarChar(250)
+  name2           String?   @db.VarChar(250)
+  description     String?
+  description2    String?
+  severity_level  String?   @default("MEDIUM") @db.VarChar(20)
+  requires_action Boolean?  @default(true)
+  is_active       Boolean   @default(true)
+  rec_status      Int?      @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?   @db.VarChar(200)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  created_by      String?   @db.VarChar(120)
+  updated_at      DateTime? @db.Timestamp(6)
+  updated_by      String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_asm_location_type_cd {
+  code             String    @id @db.VarChar(50)
+  name             String    @db.VarChar(250)
+  name2            String?   @db.VarChar(250)
+  description      String?
+  description2     String?
+  default_capacity Int?      @default(50)
+  is_active        Boolean   @default(true)
+  rec_status       Int?      @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?   @db.VarChar(200)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  created_by       String?   @db.VarChar(120)
+  updated_at       DateTime? @db.Timestamp(6)
+  updated_by       String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_dlv_pod_method_cd {
+  code                  String    @id @db.VarChar(50)
+  name                  String    @db.VarChar(250)
+  name2                 String?   @db.VarChar(250)
+  description           String?
+  description2          String?
+  requires_verification Boolean?  @default(true)
+  is_active             Boolean   @default(true)
+  rec_status            Int?      @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?   @db.VarChar(200)
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  created_by            String?   @db.VarChar(120)
+  updated_at            DateTime? @db.Timestamp(6)
+  updated_by            String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_dlv_route_status_cd {
+  code                String    @id @db.VarChar(50)
+  name                String    @db.VarChar(250)
+  name2               String?   @db.VarChar(250)
+  description         String?
+  description2        String?
+  allows_modification Boolean?  @default(true)
+  is_active           Boolean   @default(true)
+  rec_status          Int?      @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?   @db.VarChar(200)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  created_by          String?   @db.VarChar(120)
+  updated_at          DateTime? @db.Timestamp(6)
+  updated_by          String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_dlv_stop_status_cd {
+  code         String    @id @db.VarChar(50)
+  name         String    @db.VarChar(250)
+  name2        String?   @db.VarChar(250)
+  description  String?
+  description2 String?
+  is_final     Boolean?  @default(false)
+  is_active    Boolean   @default(true)
+  rec_status   Int?      @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?   @db.VarChar(200)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  created_by   String?   @db.VarChar(120)
+  updated_at   DateTime? @db.Timestamp(6)
+  updated_by   String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_ff_pln_flag_mappings_dtl {
+  id                             String                         @id(map: "sys_pln_flag_mappings_dtl_pkey") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_code                      String                         @db.VarChar(50)
+  flag_key                       String                         @db.VarChar(100)
+  plan_specific_value            Json?
+  is_enabled                     Boolean?                       @default(true)
+  notes                          String?
+  created_at                     DateTime?                      @default(now()) @db.Timestamp(6)
+  created_by                     String?
+  created_info                   String?
+  updated_at                     DateTime?                      @db.Timestamp(6)
+  updated_by                     String?
+  updated_info                   String?
+  rec_status                     Int?                           @default(1) @db.SmallInt
+  rec_order                      Int?
+  rec_notes                      String?                        @db.VarChar(200)
+  is_active                      Boolean?                       @default(true)
+  sys_pln_subscription_plans_mst sys_pln_subscription_plans_mst @relation(fields: [plan_code], references: [plan_code], onDelete: Cascade, onUpdate: NoAction, map: "sys_pln_flag_mappings_dtl_plan_code_fkey")
+
+  @@unique([plan_code, flag_key], map: "sys_pln_flag_mappings_dtl_plan_code_flag_key_key")
+  @@index([is_active, is_enabled], map: "idx_sys_pln_flag_mappings_active")
+  @@index([flag_key, is_enabled], map: "idx_sys_pln_flag_mappings_flag")
+  @@index([plan_code, is_enabled], map: "idx_sys_pln_flag_mappings_plan")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_pck_packaging_type_cd {
+  code         String    @id @db.VarChar(50)
+  name         String    @db.VarChar(250)
+  name2        String?   @db.VarChar(250)
+  description  String?
+  description2 String?
+  is_active    Boolean   @default(true)
+  rec_status   Int?      @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?   @db.VarChar(200)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  created_by   String?   @db.VarChar(120)
+  updated_at   DateTime? @db.Timestamp(6)
+  updated_by   String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_qa_decision_type_cd {
+  code            String    @id @db.VarChar(50)
+  name            String    @db.VarChar(250)
+  name2           String?   @db.VarChar(250)
+  description     String?
+  description2    String?
+  allows_proceed  Boolean?  @default(false)
+  requires_rework Boolean?  @default(false)
+  is_active       Boolean   @default(true)
+  rec_status      Int?      @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?   @db.VarChar(200)
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+  created_by      String?   @db.VarChar(120)
+  updated_at      DateTime? @db.Timestamp(6)
+  updated_by      String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_rcpt_delivery_channel_cd {
+  code             String    @id @db.VarChar(50)
+  name             String    @db.VarChar(250)
+  name2            String?   @db.VarChar(250)
+  description      String?
+  description2     String?
+  requires_api_key Boolean?  @default(false)
+  is_active        Boolean   @default(true)
+  rec_status       Int?      @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?   @db.VarChar(200)
+  created_at       DateTime? @default(now()) @db.Timestamp(6)
+  created_by       String?   @db.VarChar(120)
+  updated_at       DateTime? @db.Timestamp(6)
+  updated_by       String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_rcpt_delivery_status_cd {
+  code         String    @id @db.VarChar(50)
+  name         String    @db.VarChar(250)
+  name2        String?   @db.VarChar(250)
+  description  String?
+  description2 String?
+  is_final     Boolean?  @default(false)
+  allows_retry Boolean?  @default(true)
+  is_active    Boolean   @default(true)
+  rec_status   Int?      @default(1) @db.SmallInt
+  rec_order    Int?
+  rec_notes    String?   @db.VarChar(200)
+  created_at   DateTime? @default(now()) @db.Timestamp(6)
+  created_by   String?   @db.VarChar(120)
+  updated_at   DateTime? @db.Timestamp(6)
+  updated_by   String?   @db.VarChar(120)
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_rcpt_receipt_type_cd {
+  code               String    @id @db.VarChar(50)
+  name               String    @db.VarChar(250)
+  name2              String?   @db.VarChar(250)
+  description        String?
+  description2       String?
+  supports_bilingual Boolean?  @default(true)
+  supports_qr_code   Boolean?  @default(true)
+  is_active          Boolean   @default(true)
+  rec_status         Int?      @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?   @db.VarChar(200)
+  created_at         DateTime? @default(now()) @db.Timestamp(6)
+  created_by         String?   @db.VarChar(120)
+  updated_at         DateTime? @db.Timestamp(6)
+  updated_by         String?   @db.VarChar(120)
+
   @@schema("public")
 }
 
