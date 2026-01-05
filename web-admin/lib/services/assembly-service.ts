@@ -196,12 +196,12 @@ export class AssemblyService {
         .single();
 
       if (taskError || !task) {
-        logger.error('Failed to create assembly task', taskError as Error, {
+        logger.error('Failed (1) to create assembly task', taskError as Error, {
           tenantId,
           userId,
           orderId,
         });
-        throw new Error('Failed to create assembly task');
+        throw new Error('Failed (2) to create assembly task');
       }
 
       // Create assembly items for each order item
@@ -219,7 +219,7 @@ export class AssemblyService {
           .insert(assemblyItems);
 
         if (itemsInsertError) {
-          logger.error('Failed to create assembly items', itemsInsertError as Error, {
+          logger.error('Failed (3) to create assembly items', itemsInsertError as Error, {
             tenantId,
             userId,
             taskId: task.id,
