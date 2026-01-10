@@ -259,6 +259,7 @@ export default function Sidebar() {
         className={`
           fixed top-0 bottom-0 z-40 w-64 bg-white border-gray-200
           transition-transform duration-300 ease-in-out
+          flex flex-col
           ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}
           lg:translate-x-0
           ${isMobileOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}
@@ -293,7 +294,7 @@ export default function Sidebar() {
         )}
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto min-h-0 px-3 py-4">
           {navigationLoading ? (
             <div className="px-3 py-4">
               <div className="space-y-2">

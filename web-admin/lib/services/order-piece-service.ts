@@ -231,13 +231,23 @@ export class OrderPieceService {
         .order('piece_seq', { ascending: true });
 
       if (error) {
-        console.error('[OrderPieceService] Error fetching pieces:', error);
+        log.error('[OrderPieceService] Error fetching pieces', new Error(error.message), {
+          feature: 'order_pieces',
+          action: 'get_pieces_by_order',
+          tenantId,
+          orderId,
+        });
         return { success: false, error: error.message };
       }
 
       return { success: true, pieces: pieces as OrderItemPiece[] };
     } catch (error) {
-      console.error('[OrderPieceService] Exception fetching pieces:', error);
+      log.error('[OrderPieceService] Exception fetching pieces', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'get_pieces_by_order',
+        tenantId,
+        orderId,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -263,13 +273,23 @@ export class OrderPieceService {
         .single();
 
       if (error) {
-        console.error('[OrderPieceService] Error fetching piece:', error);
+        log.error('[OrderPieceService] Error fetching piece', new Error(error.message), {
+          feature: 'order_pieces',
+          action: 'get_piece_by_id',
+          tenantId,
+          pieceId,
+        });
         return { success: false, error: error.message };
       }
 
       return { success: true, piece: piece as OrderItemPiece };
     } catch (error) {
-      console.error('[OrderPieceService] Exception fetching piece:', error);
+      log.error('[OrderPieceService] Exception fetching piece', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'get_piece_by_id',
+        tenantId,
+        pieceId,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -305,7 +325,12 @@ export class OrderPieceService {
         .single();
 
       if (error) {
-        console.error('[OrderPieceService] Error updating piece:', error);
+        log.error('[OrderPieceService] Error updating piece', new Error(error.message), {
+          feature: 'order_pieces',
+          action: 'update_piece',
+          tenantId: params.tenantId,
+          pieceId: params.pieceId,
+        });
         return { success: false, error: error.message };
       }
 
@@ -317,7 +342,12 @@ export class OrderPieceService {
 
       return { success: true, piece: piece as OrderItemPiece };
     } catch (error) {
-      console.error('[OrderPieceService] Exception updating piece:', error);
+      log.error('[OrderPieceService] Exception updating piece', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'update_piece',
+        tenantId: params.tenantId,
+        pieceId: params.pieceId,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -361,7 +391,12 @@ export class OrderPieceService {
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error) {
-      console.error('[OrderPieceService] Exception batch updating pieces:', error);
+      log.error('[OrderPieceService] Exception batch updating pieces', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'batch_update_pieces',
+        tenantId: params.tenantId,
+        updateCount: params.updates.length,
+      });
       return {
         success: false,
         updated: 0,
@@ -459,7 +494,12 @@ export class OrderPieceService {
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error) {
-      console.error('[OrderPieceService] Exception syncing order items:', error);
+      log.error('[OrderPieceService] Exception syncing order items', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'sync_order_items',
+        tenantId,
+        orderId,
+      });
       return {
         success: false,
         synced: 0,
@@ -493,7 +533,12 @@ export class OrderPieceService {
         .eq('is_rejected', false);
 
       if (countError) {
-        console.error('[OrderPieceService] Error counting ready pieces:', countError);
+        log.error('[OrderPieceService] Error counting ready pieces', new Error(countError.message), {
+          feature: 'order_pieces',
+          action: 'sync_quantity_ready',
+          tenantId,
+          orderItemId,
+        });
         return { success: false, error: countError.message };
       }
 
@@ -507,13 +552,23 @@ export class OrderPieceService {
         .eq('tenant_org_id', tenantId);
 
       if (updateError) {
-        console.error('[OrderPieceService] Error updating quantity_ready:', updateError);
+        log.error('[OrderPieceService] Error updating quantity_ready', new Error(updateError.message), {
+          feature: 'order_pieces',
+          action: 'sync_quantity_ready',
+          tenantId,
+          orderItemId,
+        });
         return { success: false, error: updateError.message };
       }
 
       return { success: true, quantityReady };
     } catch (error) {
-      console.error('[OrderPieceService] Exception syncing quantity_ready:', error);
+      log.error('[OrderPieceService] Exception syncing quantity_ready', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'sync_quantity_ready',
+        tenantId,
+        orderItemId,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
