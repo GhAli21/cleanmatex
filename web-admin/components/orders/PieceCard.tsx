@@ -40,7 +40,7 @@ const PROCESSING_STEPS = [
   { value: 'finishing', labelKey: 'steps.finishing' },
 ];
 
-export function PieceCard({
+const PieceCardComponent = function PieceCard({
   piece,
   onUpdate,
   readOnly = false,
@@ -199,5 +199,18 @@ export function PieceCard({
       )}
     </Card>
   );
-}
+};
+
+export const PieceCard = React.memo(PieceCardComponent, (prevProps, nextProps) => {
+  // Custom comparison function for performance
+  return (
+    prevProps.piece.id === nextProps.piece.id &&
+    prevProps.piece.piece_status === nextProps.piece.piece_status &&
+    prevProps.piece.is_rejected === nextProps.piece.is_rejected &&
+    prevProps.piece.rack_location === nextProps.piece.rack_location &&
+    prevProps.piece.last_step === nextProps.piece.last_step &&
+    prevProps.isSelectedForSplit === nextProps.isSelectedForSplit &&
+    prevProps.readOnly === nextProps.readOnly
+  );
+});
 

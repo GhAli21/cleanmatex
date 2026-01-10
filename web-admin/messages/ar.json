@@ -315,12 +315,14 @@
         "createFailed": "فشل إنشاء القطع",
         "deleteFailed": "فشل حذف القطعة",
         "errorLoadingPieces": "خطأ في تحميل القطع",
-        "retry": "إعادة المحاولة"
+        "retry": "إعادة المحاولة",
+        "barcodeRequired": "الباركود مطلوب"
       },
       "success": {
         "updated": "تم تحديث القطعة بنجاح",
         "created": "تم إنشاء القطع بنجاح",
-        "deleted": "تم حذف القطعة بنجاح"
+        "deleted": "تم حذف القطعة بنجاح",
+        "scanned": "تم مسح القطعة {pieceSeq} بنجاح"
       },
       "summary": {
         "updateSuccess": "تم التحديث بنجاح",
@@ -337,7 +339,23 @@
       "pieceTrackingDisabled": "تتبع القطع معطل لهذا المستأجر",
       "loadingPieces": "جاري تحميل القطع...",
       "updatePieces": "تحديث القطع",
-      "splitSelectedPieces": "تقسيم {count} قطع"
+      "splitSelectedPieces": "تقسيم {count} قطع",
+      "barcodeScanner": "قارئ الباركود",
+      "scanBarcodePlaceholder": "امسح أو أدخل الباركود...",
+      "scan": "مسح",
+      "scanning": "جاري المسح...",
+      "showing": "عرض {start} إلى {end} من {total}",
+      "page": "الصفحة {current} من {total}",
+      "selectAll": "تحديد الكل",
+      "selectedCount": "تم تحديد {count} قطعة",
+      "clearSelection": "مسح التحديد",
+      "bulkStatus": "الحالة بالجملة",
+      "bulkRackLocation": "موقع الرف بالجملة",
+      "apply": "تطبيق",
+      "exportSelected": "تصدير المحدد",
+      "noHistory": "لا يوجد سجل متاح",
+      "previous": "السابق",
+      "next": "التالي"
     },
     "bulkStatusUpdate": {
       "title": "تحديث الحالة بالجملة",

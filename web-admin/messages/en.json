@@ -315,12 +315,14 @@
         "createFailed": "Failed to create pieces",
         "deleteFailed": "Failed to delete piece",
         "errorLoadingPieces": "Error loading pieces",
-        "retry": "Retry"
+        "retry": "Retry",
+        "barcodeRequired": "Barcode is required"
       },
       "success": {
         "updated": "Piece updated successfully",
         "created": "Pieces created successfully",
-        "deleted": "Piece deleted successfully"
+        "deleted": "Piece deleted successfully",
+        "scanned": "Piece {pieceSeq} scanned successfully"
       },
       "summary": {
         "updateSuccess": "Update Successful",
@@ -337,7 +339,23 @@
       "pieceTrackingDisabled": "Piece tracking is disabled for this tenant",
       "loadingPieces": "Loading pieces...",
       "updatePieces": "Update Pieces",
-      "splitSelectedPieces": "Split {count} pieces"
+      "splitSelectedPieces": "Split {count} pieces",
+      "barcodeScanner": "Barcode Scanner",
+      "scanBarcodePlaceholder": "Scan or enter barcode...",
+      "scan": "Scan",
+      "scanning": "Scanning...",
+      "showing": "Showing {start} to {end} of {total}",
+      "page": "Page {current} of {total}",
+      "selectAll": "Select All",
+      "selectedCount": "{count} pieces selected",
+      "clearSelection": "Clear Selection",
+      "bulkStatus": "Bulk Status",
+      "bulkRackLocation": "Bulk Rack Location",
+      "apply": "Apply",
+      "exportSelected": "Export Selected",
+      "noHistory": "No history available",
+      "previous": "Previous",
+      "next": "Next"
     },
     "bulkStatusUpdate": {
       "title": "Bulk Status Update",

@@ -10,10 +10,13 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceList } from './PieceList';
+import { PieceBarcodeScanner } from './PieceBarcodeScanner';
+import { PieceBulkOperations } from './PieceBulkOperations';
 import { Button } from '@/components/ui/Button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
 import { log } from '@/lib/utils/logger';
+import { downloadPiecesCSV } from '@/lib/utils/piece-export';
 
 export interface OrderPiecesManagerProps {
   orderId: string;
@@ -26,6 +29,8 @@ export interface OrderPiecesManagerProps {
   onSplitToggle?: (pieceId: string, selected: boolean) => void;
   rejectColor?: string;
   autoLoad?: boolean;
+  enableBarcodeScanner?: boolean;
+  enableBulkOperations?: boolean;
 }
 
 export function OrderPiecesManager({
@@ -39,6 +44,8 @@ export function OrderPiecesManager({
   onSplitToggle,
   rejectColor = '#10B981',
   autoLoad = true,
+  enableBarcodeScanner = false,
+  enableBulkOperations = false,
 }: OrderPiecesManagerProps) {
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
@@ -46,6 +53,7 @@ export function OrderPiecesManager({
   const [pieces, setPieces] = React.useState<OrderItemPiece[]>([]);
   const [loading, setLoading] = React.useState(autoLoad);
   const [error, setError] = React.useState<string | null>(null);
+  const [selectedPieces, setSelectedPieces] = React.useState<Set<string>>(new Set());
 
   const loadPieces = React.useCallback(async () => {
     try {
@@ -246,6 +254,36 @@ export function OrderPiecesManager({
           </Button>
         )}
       </div>
+
+      {/* Barcode Scanner */}
+      {enableBarcodeScanner && !readOnly && (
+        <PieceBarcodeScanner
+          orderId={orderId}
+          itemId={itemId}
+          tenantId={tenantId}
+          onScanSuccess={(pieceId) => {
+            // Highlight scanned piece
+            setSelectedPieces(new Set([pieceId]));
+            // Reload pieces to get updated state
+            loadPieces();
+            onUpdate?.();
+          }}
+        />
+      )}
+
+      {/* Bulk Operations */}
+      {enableBulkOperations && !readOnly && (
+        <PieceBulkOperations
+          pieces={pieces}
+          selectedPieces={selectedPieces}
+          onSelectionChange={setSelectedPieces}
+          onBulkUpdate={handleBatchUpdate}
+          onExport={(pieceIds) => {
+            const selectedPiecesData = pieces.filter(p => pieceIds.includes(p.id));
+            downloadPiecesCSV(selectedPiecesData, `pieces-export-${Date.now()}.csv`);
+          }}
+        />
+      )}
 
       {/* Pieces List */}
       <PieceList

@@ -193,6 +193,7 @@ export async function POST(
       readyCount += itemReadyCount;
       stepsRecorded += stepsSet.size;
       rackLocationsSet += rackLocationsForItem.length;
+      }
     }
 
     // Update order-level rack location if provided
