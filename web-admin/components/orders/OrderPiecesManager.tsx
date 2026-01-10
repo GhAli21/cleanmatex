@@ -13,6 +13,7 @@ import { PieceList } from './PieceList';
 import { Button } from '@/components/ui/Button';
 import { Loader2, RefreshCw } from 'lucide-react';
 import type { OrderItemPiece } from '@/types/order';
+import { log } from '@/lib/utils/logger';
 
 export interface OrderPiecesManagerProps {
   orderId: string;
@@ -69,7 +70,12 @@ export function OrderPiecesManager({
       const data = await response.json();
       setPieces(data.data || []);
     } catch (err) {
-      console.error('[OrderPiecesManager] Error loading pieces:', err);
+      log.error('[OrderPiecesManager] Error loading pieces', err instanceof Error ? err : new Error(String(err)), {
+        feature: 'order_pieces',
+        action: 'load_pieces',
+        orderId,
+        itemId,
+      });
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
@@ -85,6 +91,12 @@ export function OrderPiecesManager({
   const handlePieceUpdate = React.useCallback(
     async (pieceId: string, updates: Partial<OrderItemPiece>) => {
       if (readOnly) return;
+
+      // Optimistic update: update local state immediately
+      const previousPieces = [...pieces];
+      setPieces((prev) =>
+        prev.map((p) => (p.id === pieceId ? { ...p, ...updates } : p))
+      );
 
       try {
         const response = await fetch(
@@ -105,7 +117,7 @@ export function OrderPiecesManager({
 
         const data = await response.json();
         
-        // Update local state
+        // Update with server response (may have additional fields)
         setPieces((prev) =>
           prev.map((p) => (p.id === pieceId ? { ...p, ...data.data } : p))
         );
@@ -115,16 +127,37 @@ export function OrderPiecesManager({
           onUpdate();
         }
       } catch (err) {
-        console.error('[OrderPiecesManager] Error updating piece:', err);
+        // Rollback on error
+        setPieces(previousPieces);
+        log.error('[OrderPiecesManager] Error updating piece', err instanceof Error ? err : new Error(String(err)), {
+          feature: 'order_pieces',
+          action: 'update_piece',
+          orderId,
+          itemId,
+          pieceId,
+        });
         setError(err instanceof Error ? err.message : 'Failed to update piece');
       }
     },
-    [orderId, itemId, readOnly, onUpdate]
+    [orderId, itemId, readOnly, onUpdate, pieces]
   );
 
   const handleBatchUpdate = React.useCallback(
     async (updates: Array<{ pieceId: string; updates: Partial<OrderItemPiece> }>) => {
       if (readOnly) return;
+
+      // Optimistic update: update local state immediately
+      const previousPieces = [...pieces];
+      setPieces((prev) => {
+        const updated = [...prev];
+        updates.forEach(({ pieceId, updates: pieceUpdates }) => {
+          const index = updated.findIndex((p) => p.id === pieceId);
+          if (index !== -1) {
+            updated[index] = { ...updated[index], ...pieceUpdates };
+          }
+        });
+        return updated;
+      });
 
       try {
         const response = await fetch(
@@ -143,7 +176,7 @@ export function OrderPiecesManager({
           throw new Error(data.error || 'Failed to update pieces');
         }
 
-        // Reload pieces
+        // Reload pieces to get server state
         await loadPieces();
 
         // Notify parent
@@ -151,11 +184,19 @@ export function OrderPiecesManager({
           onUpdate();
         }
       } catch (err) {
-        console.error('[OrderPiecesManager] Error batch updating pieces:', err);
+        // Rollback on error
+        setPieces(previousPieces);
+        log.error('[OrderPiecesManager] Error batch updating pieces', err instanceof Error ? err : new Error(String(err)), {
+          feature: 'order_pieces',
+          action: 'batch_update_pieces',
+          orderId,
+          itemId,
+          updateCount: updates.length,
+        });
         setError(err instanceof Error ? err.message : 'Failed to update pieces');
       }
     },
-    [orderId, itemId, readOnly, loadPieces, onUpdate]
+    [orderId, itemId, readOnly, loadPieces, onUpdate, pieces]
   );
 
   if (loading) {

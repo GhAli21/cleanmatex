@@ -602,7 +602,12 @@ export class OrderPieceService {
         .eq('tenant_org_id', tenantId);
 
       if (error) {
-        console.error('[OrderPieceService] Error deleting piece:', error);
+        log.error('[OrderPieceService] Error deleting piece', new Error(error.message), {
+          feature: 'order_pieces',
+          action: 'delete_piece',
+          tenantId,
+          pieceId,
+        });
         return { success: false, error: error.message };
       }
 
@@ -613,7 +618,12 @@ export class OrderPieceService {
 
       return { success: true };
     } catch (error) {
-      console.error('[OrderPieceService] Exception deleting piece:', error);
+      log.error('[OrderPieceService] Exception deleting piece', error instanceof Error ? error : new Error(String(error)), {
+        feature: 'order_pieces',
+        action: 'delete_piece',
+        tenantId,
+        pieceId,
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

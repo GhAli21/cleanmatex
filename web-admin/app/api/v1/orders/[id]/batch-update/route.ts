@@ -11,6 +11,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { BatchUpdateRequest, PieceUpdate } from '@/types/order';
+import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { log } from '@/lib/utils/logger';
 
 export async function POST(
   request: NextRequest,
@@ -64,6 +67,12 @@ export async function POST(
       );
     }
 
+    // Check if piece tracking is enabled
+    const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(
+      tenantId,
+      'USE_TRACK_BY_PIECE'
+    );
+
     // Group updates by itemId
     const itemUpdatesMap = new Map<string, PieceUpdate[]>();
     updates.forEach(update => {
@@ -78,8 +87,52 @@ export async function POST(
     let stepsRecorded = 0;
     let rackLocationsSet = 0;
 
-    // Update each item's quantity_ready and metadata
-    for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
+    // Update pieces if tracking is enabled, otherwise update items
+    if (trackByPiece) {
+      // Use OrderPieceService to update pieces in database
+      for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
+        const pieceUpdatesForService = pieceUpdates.map(update => ({
+          pieceId: update.pieceId,
+          updates: {
+            piece_status: update.isReady ? 'ready' : (update.currentStep ? 'processing' : undefined),
+            last_step: update.currentStep || undefined,
+            rack_location: update.rackLocation || undefined,
+            notes: update.notes || undefined,
+            is_rejected: update.isRejected || undefined,
+            updated_by: user.id,
+            updated_info: user.user_metadata?.name || user.email || undefined,
+          },
+        }));
+
+        const batchResult = await OrderPieceService.batchUpdatePieces({
+          tenantId,
+          updates: pieceUpdatesForService,
+        });
+
+        if (batchResult.success) {
+          piecesUpdated += batchResult.updated || 0;
+          
+          // Sync quantity_ready for this item
+          await OrderPieceService.syncItemQuantityReady(tenantId, itemId);
+          
+          // Count ready pieces
+          const readyPieces = pieceUpdates.filter(p => p.isReady).length;
+          readyCount += readyPieces;
+          
+          // Count steps
+          const stepsSet = new Set(pieceUpdates.filter(p => p.currentStep).map(p => p.currentStep));
+          stepsRecorded += stepsSet.size;
+          
+          // Count rack locations
+          const rackLocations = pieceUpdates.filter(p => p.rackLocation).length;
+          rackLocationsSet += rackLocations;
+          
+          itemsUpdated++;
+        }
+      }
+    } else {
+      // Legacy: Update items metadata (backward compatibility)
+      for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
       // Calculate ready count for this item
       const itemReadyCount = itemQuantityReady?.[itemId] ||
         pieceUpdates.filter(p => p.isReady).length;
@@ -125,7 +178,13 @@ export async function POST(
         .eq('tenant_org_id', tenantId);
 
       if (updateError) {
-        console.error('Error updating item:', updateError);
+        log.error('[Batch Update] Error updating item', new Error(updateError.message), {
+          feature: 'order_pieces',
+          action: 'batch_update_item',
+          tenantId,
+          orderId,
+          itemId,
+        });
         continue;
       }
 
@@ -204,7 +263,12 @@ export async function POST(
     });
 
   } catch (error) {
-    console.error('Batch update error:', error);
+    log.error('[Batch Update] Error', error instanceof Error ? error : new Error(String(error)), {
+      feature: 'order_pieces',
+      action: 'batch_update',
+      tenantId,
+      orderId,
+    });
     return NextResponse.json(
       {
         error: 'Failed to update order',
