@@ -11,6 +11,49 @@ BEGIN;
 -- =========================
 
 -- Orders Management (16 permissions)
+INSERT INTO public.sys_auth_permissions (
+    code,
+    name,
+    name2,
+    category,
+    description,
+    description2,
+    category_main,
+    for_feature_only,
+    for_screen_only,
+    feature_code,
+    screen_code,
+    is_internal_use_only,
+    is_enabled,
+    is_active,
+    rec_status,
+    rec_notes,
+    created_at,
+    created_by,
+    created_info
+)
+VALUES (
+    'orders:processing',
+    'Processing Orders',
+    'معالجة الطلب',
+    'actions',
+    'Processing The Orders',
+    'معالجة الطلبات',
+    'Orders',
+    0,
+    0,
+    'Orders',
+    NULL,
+    FALSE,
+    TRUE,
+    TRUE,
+    1,
+    NULL,
+    CURRENT_TIMESTAMP,
+    NULL,
+    NULL
+);
+
 INSERT INTO sys_auth_permissions (code, name, name2, category, description) VALUES
 ('orders:create', 'Create Orders', 'إنشاء الطلبات', 'crud', 'Create new orders'),
 ('orders:read', 'View Orders', 'عرض الطلبات', 'crud', 'View orders'),

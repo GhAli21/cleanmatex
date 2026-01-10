@@ -21,6 +21,8 @@ import { generateOrderNumber } from '@/lib/utils/order-number-generator';
 import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
+import { OrderPieceService } from '@/lib/services/order-piece-service';
+import { TenantSettingsService } from '@/lib/services/tenant-settings.service';
 
 // ==================================================================
 // CREATE OPERATIONS
@@ -181,6 +183,42 @@ export async function addOrderItems(
     }
     return items;
   });
+
+  // Check if USE_TRACK_BY_PIECE is enabled and auto-create pieces
+  const tenantSettingsService = new TenantSettingsService();
+  const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(
+    tenantOrgId,
+    'USE_TRACK_BY_PIECE'
+  );
+
+  if (trackByPiece && createdItems.length > 0) {
+    // Create pieces for each item
+    for (let i = 0; i < createdItems.length; i++) {
+      const createdItem = createdItems[i];
+      const itemData = itemsWithPricing[i];
+
+      if (createdItem && itemData.quantity > 0) {
+        await OrderPieceService.createPiecesForItem(
+          tenantOrgId,
+          orderId,
+          (createdItem as any).id,
+          itemData.quantity,
+          {
+            serviceCategoryCode: itemData.serviceCategoryCode,
+            productId: itemData.productId,
+            pricePerUnit: itemData.pricing.unitPrice,
+            totalPrice: itemData.pricing.total,
+            color: itemData.color,
+            brand: itemData.brand,
+            hasStain: itemData.hasStain,
+            hasDamage: itemData.hasDamage,
+            notes: itemData.notes,
+            metadata: {},
+          }
+        );
+      }
+    }
+  }
 
   // Calculate order totals
   const allItems = itemsWithPricing.map((item) => item.pricing);

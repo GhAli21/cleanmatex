@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS sys_tenant_settings_cd (
   setting_desc          text,
 
   -- typed values
-  setting_value_type    text CHECK (setting_value_type IN ('BOOLEAN','TEXT','NUMBER','DATE')),
+  setting_value_type    text CHECK (setting_value_type IN ('BOOLEAN','TEXT','NUMBER', 'INTEGER', 'DECIMAL', 'DATE', 'JSON', 'ARRAY', 'ENUM')),
   setting_value         text,
 
   -- control flags

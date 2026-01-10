@@ -107,7 +107,7 @@ model users {
   mfa_factors                                                   mfa_factors[]
   one_time_tokens                                               one_time_tokens[]
   sessions                                                      sessions[]
-  cmx_effective_permissions                                     cmx_effective_permissions[]       @ignore
+  cmx_effective_permissions                                     cmx_effective_permissions[]
   org_order_history                                             org_order_history[]
   org_order_item_issues_org_order_item_issues_created_byTousers org_order_item_issues[]           @relation("org_order_item_issues_created_byTousers")
   org_order_item_issues_org_order_item_issues_solved_byTousers  org_order_item_issues[]           @relation("org_order_item_issues_solved_byTousers")
@@ -357,40 +357,42 @@ model sso_providers {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_branches_mst {
-  id                    String                  @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id         String                  @db.Uuid
-  branch_name           String?
-  s_date                DateTime?               @default(now()) @db.Timestamp(6)
-  phone                 String?                 @db.VarChar(50)
-  email                 String?                 @db.VarChar(255)
-  type                  String?                 @default("walk_in") @db.VarChar(20)
-  address               String?
-  country               String?
-  city                  String?
-  area                  String?
-  street                String?
-  building              String?
-  floor                 String?
-  latitude              Float?
-  longitude             Float?
-  rec_order             Int?
-  rec_status            Int?                    @default(1) @db.SmallInt
-  is_active             Boolean                 @default(true)
-  rec_notes             String?                 @db.VarChar(200)
-  created_at            DateTime?               @default(now()) @db.Timestamp(6)
-  created_by            String?                 @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?               @db.Timestamp(6)
-  updated_by            String?                 @db.VarChar(120)
-  updated_info          String?
-  name                  String?
-  name2                 String?
-  is_main               Boolean?                @default(false)
-  org_asm_locations_mst org_asm_locations_mst[]
-  org_tenants_mst       org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
-  org_dlv_routes_mst    org_dlv_routes_mst[]
-  org_dlv_slots_mst     org_dlv_slots_mst[]
-  org_orders_mst        org_orders_mst[]
+  id                          String                        @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id               String                        @db.Uuid
+  branch_name                 String?
+  s_date                      DateTime?                     @default(now()) @db.Timestamp(6)
+  phone                       String?                       @db.VarChar(50)
+  email                       String?                       @db.VarChar(255)
+  type                        String?                       @default("walk_in") @db.VarChar(20)
+  address                     String?
+  country                     String?
+  city                        String?
+  area                        String?
+  street                      String?
+  building                    String?
+  floor                       String?
+  latitude                    Float?
+  longitude                   Float?
+  rec_order                   Int?
+  rec_status                  Int?                          @default(1) @db.SmallInt
+  is_active                   Boolean                       @default(true)
+  rec_notes                   String?                       @db.VarChar(200)
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  created_by                  String?                       @db.VarChar(120)
+  created_info                String?
+  updated_at                  DateTime?                     @db.Timestamp(6)
+  updated_by                  String?                       @db.VarChar(120)
+  updated_info                String?
+  name                        String?
+  name2                       String?
+  is_main                     Boolean?                      @default(false)
+  org_asm_locations_mst       org_asm_locations_mst[]
+  org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
+  org_dlv_routes_mst          org_dlv_routes_mst[]
+  org_dlv_slots_mst           org_dlv_slots_mst[]
+  org_orders_mst              org_orders_mst[]
+  org_stng_audit_log_tr       org_stng_audit_log_tr[]
+  org_stng_effective_cache_cf org_stng_effective_cache_cf[]
 
   @@id([id, tenant_org_id])
   @@schema("public")
@@ -562,6 +564,7 @@ model org_order_items_dtl {
   quantity_ready                  Int?                              @default(0)
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_item_issues           org_order_item_issues[]
+  org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
@@ -663,11 +666,12 @@ model org_orders_mst {
   is_order_quick_drop             Boolean?                          @default(false)
   quick_drop_quantity             Int?
   rack_location                   String?                           @db.VarChar(100)
-  org_asm_tasks_mst               org_asm_tasks_mst[]
+  org_asm_tasks_mst               org_asm_tasks_mst?
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_invoice_mst                 org_invoice_mst[]
   org_order_history               org_order_history[]
   org_order_item_issues           org_order_item_issues[]
+  org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_order_items_dtl             org_order_items_dtl[]
   org_order_status_history        org_order_status_history[]
@@ -678,7 +682,7 @@ model org_orders_mst {
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
   sys_order_type_cd               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
   sys_workflow_template_cd        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
-  org_pck_packing_lists_mst       org_pck_packing_lists_mst[]
+  org_pck_packing_lists_mst       org_pck_packing_lists_mst?
   org_qa_decisions_tr             org_qa_decisions_tr[]
   org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
 
@@ -734,35 +738,35 @@ model org_payments_dtl_tr {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_product_data_mst {
-  id                         String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id              String                     @db.Uuid
+  id                         String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String                      @db.Uuid
   service_category_code      String?
   product_code               String
   product_name               String?
   product_name2              String?
   hint_text                  String?
-  is_retail_item             Boolean?                   @default(false)
+  is_retail_item             Boolean?                    @default(false)
   product_group1             String?
   product_group2             String?
   product_group3             String?
   product_type               Int?
   price_type                 String?
-  product_unit               String?                    @db.VarChar(60)
-  default_sell_price         Decimal?                   @db.Decimal(10, 3)
-  default_express_sell_price Decimal?                   @db.Decimal(10, 3)
-  product_cost               Decimal?                   @db.Decimal(10, 3)
-  min_sell_price             Decimal?                   @db.Decimal(10, 3)
+  product_unit               String?                     @db.VarChar(60)
+  default_sell_price         Decimal?                    @db.Decimal(10, 3)
+  default_express_sell_price Decimal?                    @db.Decimal(10, 3)
+  product_cost               Decimal?                    @db.Decimal(10, 3)
+  min_sell_price             Decimal?                    @db.Decimal(10, 3)
   min_quantity               Int?
   pieces_per_product         Int?
   extra_days                 Int?
-  turnaround_hh              Decimal?                   @db.Decimal(4, 2)
-  turnaround_hh_express      Decimal?                   @db.Decimal(4, 2)
-  multiplier_express         Decimal?                   @db.Decimal(4, 2)
+  turnaround_hh              Decimal?                    @db.Decimal(4, 2)
+  turnaround_hh_express      Decimal?                    @db.Decimal(4, 2)
+  multiplier_express         Decimal?                    @db.Decimal(4, 2)
   product_order              Int?
   is_tax_exempt              Int?
-  tags                       Json?                      @db.Json
+  tags                       Json?                       @db.Json
   id_sku                     String?
-  is_active                  Boolean                    @default(true)
+  is_active                  Boolean                     @default(true)
   product_color1             String?
   product_color2             String?
   product_color3             String?
@@ -770,19 +774,20 @@ model org_product_data_mst {
   product_image              String?
   rec_order                  Int?
   rec_notes                  String?
-  rec_status                 Int?                       @default(1) @db.SmallInt
-  created_at                 DateTime?                  @default(now()) @db.Timestamp(6)
+  rec_status                 Int?                        @default(1) @db.SmallInt
+  created_at                 DateTime?                   @default(now()) @db.Timestamp(6)
   created_by                 String?
   created_info               String?
-  updated_at                 DateTime?                  @db.Timestamp(6)
+  updated_at                 DateTime?                   @db.Timestamp(6)
   updated_by                 String?
   updated_info               String?
-  item_type_code             String?                    @db.VarChar(50)
+  item_type_code             String?                     @db.VarChar(50)
+  org_order_item_pieces_dtl  org_order_item_pieces_dtl[]
   org_order_items_dtl        org_order_items_dtl[]
   org_price_list_items_dtl   org_price_list_items_dtl[]
-  org_service_category_cf    org_service_category_cf?   @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
-  org_tenants_mst            org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
-  sys_item_type_cd           sys_item_type_cd?          @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_product_item_type")
+  org_service_category_cf    org_service_category_cf?    @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
+  org_tenants_mst            org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
+  sys_item_type_cd           sys_item_type_cd?           @relation(fields: [item_type_code], references: [item_type_code], onUpdate: NoAction, map: "fk_product_item_type")
 
   @@unique([tenant_org_id, product_code])
   @@unique([tenant_org_id, id], map: "uk_org_products_tenant_id")
@@ -811,6 +816,7 @@ model org_service_category_cf {
   name                                    String?
   name2                                   String?
   display_name                            String?
+  org_order_item_pieces_dtl               org_order_item_pieces_dtl[]
   org_order_items_dtl                     org_order_items_dtl[]
   org_product_data_mst                    org_product_data_mst[]
   sys_service_category_cd                 sys_service_category_cd                  @relation(fields: [service_category_code], references: [service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_ctg_sys")
@@ -894,7 +900,10 @@ model org_tenants_mst {
   time_format                      String?                            @default("24h") @db.VarChar(5)
   first_day_of_week                Int?                               @default(6)
   business_type_code               String?                            @db.VarChar(60)
-  cmx_effective_permissions        cmx_effective_permissions[]        @ignore
+  stng_profile_code                String?
+  stng_profile_version_applied     Int?
+  stng_profile_locked              Boolean?                           @default(false)
+  cmx_effective_permissions        cmx_effective_permissions[]
   hq_tenant_status_history         hq_tenant_status_history[]
   org_asm_locations_mst            org_asm_locations_mst[]
   org_asm_tasks_mst                org_asm_tasks_mst[]
@@ -911,6 +920,7 @@ model org_tenants_mst {
   org_invoice_mst                  org_invoice_mst[]
   org_order_history                org_order_history[]
   org_order_item_issues            org_order_item_issues[]
+  org_order_item_pieces_dtl        org_order_item_pieces_dtl[]
   org_order_item_processing_steps  org_order_item_processing_steps[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
@@ -926,11 +936,14 @@ model org_tenants_mst {
   org_rcpt_receipts_mst            org_rcpt_receipts_mst[]
   org_rcpt_templates_cf            org_rcpt_templates_cf[]
   org_service_category_cf          org_service_category_cf[]
+  org_stng_audit_log_tr            org_stng_audit_log_tr[]
+  org_stng_effective_cache_cf      org_stng_effective_cache_cf[]
   org_subscriptions_mst            org_subscriptions_mst[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
   org_tenant_workflow_settings_cf  org_tenant_workflow_settings_cf?
   org_tenant_workflow_templates_cf org_tenant_workflow_templates_cf[]
   sys_main_business_type_cd        sys_main_business_type_cd?         @relation(fields: [business_type_code], references: [business_type_code], onUpdate: NoAction, map: "fk_tenant_business_type")
+  sys_stng_profiles_mst            sys_stng_profiles_mst?             @relation(fields: [stng_profile_code], references: [stng_profile_code], onDelete: NoAction, onUpdate: NoAction)
   org_usage_tracking               org_usage_tracking[]
   org_users_mst                    org_users_mst[]
   org_workflow_rules               org_workflow_rules[]
@@ -946,6 +959,7 @@ model org_tenants_mst {
   sys_tenant_metrics_daily         sys_tenant_metrics_daily[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
+  @@index([stng_profile_code], map: "idx_org_tenants_profile")
   @@schema("public")
 }
 
@@ -973,43 +987,45 @@ model org_usage_tracking {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_users_mst {
-  id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id               String          @db.Uuid
-  tenant_org_id         String          @db.Uuid
-  display_name          String?         @db.VarChar(255)
-  role                  String          @default("viewer") @db.VarChar(50)
-  is_active             Boolean         @default(true)
-  last_login_at         DateTime?       @db.Timestamp(6)
-  login_count           Int?            @default(0)
-  preferences           Json?           @default("{}")
-  created_at            DateTime?       @default(now()) @db.Timestamp(6)
-  created_by            String?         @db.VarChar(120)
-  created_info          String?
-  updated_at            DateTime?       @db.Timestamp(6)
-  updated_by            String?         @db.VarChar(120)
-  updated_info          String?
-  rec_status            Int?            @default(1) @db.SmallInt
-  rec_notes             String?         @db.VarChar(200)
-  failed_login_attempts Int?            @default(0)
-  last_failed_login_at  DateTime?       @db.Timestamp(6)
-  locked_until          DateTime?       @db.Timestamp(6)
-  lock_reason           String?         @db.VarChar(200)
-  main_branch_id        String?         @db.Uuid
-  name                  String?
-  name2                 String?
-  first_name            String?
-  last_name             String?
-  password_hash         String?
-  phone                 String?         @db.VarChar(50)
-  email                 String?         @db.VarChar(255)
-  type                  String?         @default("employee") @db.VarChar(120)
-  address               String?
-  area                  String?
-  building              String?
-  floor                 String?
-  is_user               Boolean         @default(true)
-  org_tenants_mst       org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users                 users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                          String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                     String                        @db.Uuid
+  tenant_org_id               String                        @db.Uuid
+  display_name                String?                       @db.VarChar(255)
+  role                        String                        @default("viewer") @db.VarChar(50)
+  is_active                   Boolean                       @default(true)
+  last_login_at               DateTime?                     @db.Timestamp(6)
+  login_count                 Int?                          @default(0)
+  preferences                 Json?                         @default("{}")
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  created_by                  String?                       @db.VarChar(120)
+  created_info                String?
+  updated_at                  DateTime?                     @db.Timestamp(6)
+  updated_by                  String?                       @db.VarChar(120)
+  updated_info                String?
+  rec_status                  Int?                          @default(1) @db.SmallInt
+  rec_notes                   String?                       @db.VarChar(200)
+  failed_login_attempts       Int?                          @default(0)
+  last_failed_login_at        DateTime?                     @db.Timestamp(6)
+  locked_until                DateTime?                     @db.Timestamp(6)
+  lock_reason                 String?                       @db.VarChar(200)
+  main_branch_id              String?                       @db.Uuid
+  name                        String?
+  name2                       String?
+  first_name                  String?
+  last_name                   String?
+  password_hash               String?
+  phone                       String?                       @db.VarChar(50)
+  email                       String?                       @db.VarChar(255)
+  type                        String?                       @default("employee") @db.VarChar(120)
+  address                     String?
+  area                        String?
+  building                    String?
+  floor                       String?
+  is_user                     Boolean                       @default(true)
+  org_stng_audit_log_tr       org_stng_audit_log_tr[]
+  org_stng_effective_cache_cf org_stng_effective_cache_cf[]
+  org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users                       users                         @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, tenant_org_id])
   @@index([last_login_at(sort: Desc)], map: "idx_org_users_last_login")
@@ -1834,28 +1850,34 @@ model org_auth_user_workflow_roles {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model org_tenant_settings_cf {
-  id                 String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id      String          @db.Uuid
-  setting_code       String
-  setting_name       String?
-  setting_name2      String?
-  setting_desc       String?
-  setting_value_type String?
-  setting_value      String?
-  is_active          Boolean         @default(true)
-  branch_id          String?         @db.Uuid
-  user_id            String?         @db.Uuid
-  rec_order          Int?
-  rec_notes          String?
-  rec_status         Int?            @default(1) @db.SmallInt
-  created_at         DateTime        @default(now()) @db.Timestamptz(6)
-  created_by         String?
-  created_info       String?
-  updated_at         DateTime?       @db.Timestamptz(6)
-  updated_by         String?
-  updated_info       String?
-  org_tenants_mst    org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: Restrict, map: "fk_ots_tenant")
+  id                     String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String          @db.Uuid
+  setting_code           String
+  setting_name           String?
+  setting_name2          String?
+  setting_desc           String?
+  setting_value_type     String?
+  setting_value          String?
+  is_active              Boolean         @default(true)
+  branch_id              String?         @db.Uuid
+  user_id                String?         @db.Uuid
+  rec_order              Int?
+  rec_notes              String?
+  rec_status             Int?            @default(1) @db.SmallInt
+  created_at             DateTime        @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?       @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  stng_override_source   String?
+  stng_locked_by_profile Boolean?        @default(false)
+  stng_override_reason   String?
+  value_jsonb            Json?
+  org_tenants_mst        org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onUpdate: Restrict, map: "fk_ots_tenant")
 
+  @@index([stng_locked_by_profile], map: "idx_org_tenant_settings_locked")
+  @@index([stng_override_source], map: "idx_org_tenant_settings_source")
   @@schema("public")
 }
 
@@ -1942,27 +1964,41 @@ model sys_auth_roles {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model sys_tenant_settings_cd {
-  setting_code         String    @id
-  setting_name         String?
-  setting_name2        String?
-  setting_desc         String?
-  setting_value_type   String?
-  setting_value        String?
-  is_for_tenants_org   Boolean   @default(true)
-  is_active            Boolean   @default(true)
-  is_per_tenant_org_id Boolean   @default(true)
-  is_per_branch_id     Boolean   @default(false)
-  is_per_user_id       Boolean   @default(false)
-  rec_order            Int?
-  rec_notes            String?
-  rec_status           Int?      @default(1) @db.SmallInt
-  created_at           DateTime  @default(now()) @db.Timestamptz(6)
-  created_by           String?
-  created_info         String?
-  updated_at           DateTime? @db.Timestamptz(6)
-  updated_by           String?
-  updated_info         String?
+  setting_code                String                        @id
+  setting_name                String?
+  setting_name2               String?
+  setting_desc                String?
+  setting_value_type          String?
+  setting_value               String?
+  is_for_tenants_org          Boolean                       @default(true)
+  is_active                   Boolean                       @default(true)
+  is_per_tenant_org_id        Boolean                       @default(true)
+  is_per_branch_id            Boolean                       @default(false)
+  is_per_user_id              Boolean                       @default(false)
+  rec_order                   Int?
+  rec_notes                   String?
+  rec_status                  Int?                          @default(1) @db.SmallInt
+  created_at                  DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                  String?
+  created_info                String?
+  updated_at                  DateTime?                     @db.Timestamptz(6)
+  updated_by                  String?
+  updated_info                String?
+  stng_category_code          String?
+  stng_scope                  String?                       @default("TENANT")
+  stng_data_type              String?                       @default("TEXT")
+  stng_default_value_jsonb    Json?
+  stng_validation_jsonb       Json?
+  stng_is_overridable         Boolean?                      @default(true)
+  stng_is_sensitive           Boolean?                      @default(false)
+  stng_requires_restart       Boolean?                      @default(false)
+  stng_depends_on_flags       Json?
+  sys_stng_profile_values_dtl sys_stng_profile_values_dtl[]
+  sys_stng_categories_cd      sys_stng_categories_cd?       @relation(fields: [stng_category_code], references: [stng_category_code], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([stng_category_code], map: "idx_sys_settings_category")
+  @@index([stng_is_overridable], map: "idx_sys_settings_overridable")
+  @@index([stng_scope], map: "idx_sys_settings_scope")
   @@schema("public")
 }
 
@@ -4322,6 +4358,212 @@ model sys_rcpt_receipt_type_cd {
   updated_at         DateTime? @db.Timestamp(6)
   updated_by         String?   @db.VarChar(120)
 
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_stng_audit_log_tr {
+  id                      String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String            @db.Uuid
+  stng_code               String
+  stng_audit_scope        String
+  stng_audit_action       String
+  branch_id               String?           @db.Uuid
+  user_id                 String?           @db.Uuid
+  stng_before_value_jsonb Json?
+  stng_after_value_jsonb  Json?
+  stng_change_reason      String?
+  stng_request_id         String?
+  stng_ip_address         String?
+  changed_at              DateTime?         @default(now()) @db.Timestamptz(6)
+  changed_by              String?           @db.Uuid
+  changed_by_name         String?           @db.VarChar(120)
+  created_at              DateTime?         @default(now()) @db.Timestamp(6)
+  created_info            String?
+  rec_status              Int?              @default(1) @db.SmallInt
+  is_active               Boolean           @default(true)
+  org_branches_mst        org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_stng_audit_log_tr_branches")
+  org_tenants_mst         org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_users_mst           org_users_mst?    @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([changed_at(sort: Desc)], map: "idx_org_stng_audit_changed")
+  @@index([changed_by], map: "idx_org_stng_audit_changed_by")
+  @@index([stng_code], map: "idx_org_stng_audit_code")
+  @@index([stng_audit_scope], map: "idx_org_stng_audit_scope")
+  @@index([tenant_org_id], map: "idx_org_stng_audit_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_stng_effective_cache_cf {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String            @db.Uuid
+  branch_id         String?           @db.Uuid
+  user_id           String?           @db.Uuid
+  stng_cache_jsonb  Json
+  stng_computed_at  DateTime?         @default(now()) @db.Timestamptz(6)
+  stng_compute_hash String
+  created_at        DateTime?         @default(now()) @db.Timestamp(6)
+  created_by        String?           @db.VarChar(120)
+  updated_at        DateTime?         @db.Timestamp(6)
+  updated_by        String?           @db.VarChar(120)
+  rec_status        Int?              @default(1) @db.SmallInt
+  is_active         Boolean           @default(true)
+  org_branches_mst  org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_stng_effective_cache_cf_branches")
+  org_tenants_mst   org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_users_mst     org_users_mst?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, branch_id, user_id])
+  @@index([stng_computed_at], map: "idx_org_stng_cache_computed")
+  @@index([stng_compute_hash], map: "idx_org_stng_cache_hash")
+  @@index([tenant_org_id], map: "idx_org_stng_cache_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_stng_categories_cd {
+  stng_category_code     String                   @id
+  stng_category_name     String                   @db.VarChar(250)
+  stng_category_name2    String?                  @db.VarChar(250)
+  stng_category_desc     String?
+  stng_category_desc2    String?
+  stng_category_order    Int?
+  stng_category_icon     String?                  @db.VarChar(120)
+  created_at             DateTime?                @default(now()) @db.Timestamp(6)
+  created_by             String?                  @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?                @db.Timestamp(6)
+  updated_by             String?                  @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int?                     @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                  @db.VarChar(200)
+  is_active              Boolean                  @default(true)
+  sys_tenant_settings_cd sys_tenant_settings_cd[]
+
+  @@index([is_active], map: "idx_sys_stng_categories_active")
+  @@index([stng_category_order], map: "idx_sys_stng_categories_order")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_stng_profile_values_dtl {
+  id                     String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stng_profile_code      String
+  stng_code              String
+  stng_value_jsonb       Json
+  created_at             DateTime?              @default(now()) @db.Timestamp(6)
+  created_by             String?                @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?              @db.Timestamp(6)
+  updated_by             String?                @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int?                   @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                @db.VarChar(200)
+  is_active              Boolean                @default(true)
+  sys_tenant_settings_cd sys_tenant_settings_cd @relation(fields: [stng_code], references: [setting_code], onDelete: NoAction, onUpdate: NoAction)
+  sys_stng_profiles_mst  sys_stng_profiles_mst  @relation(fields: [stng_profile_code], references: [stng_profile_code], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([stng_profile_code, stng_code])
+  @@index([stng_profile_code, is_active], map: "idx_sys_stng_profile_values_active")
+  @@index([stng_code], map: "idx_sys_stng_profile_values_code")
+  @@index([stng_profile_code], map: "idx_sys_stng_profile_values_profile")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_stng_profiles_mst {
+  stng_profile_code           String                        @id
+  stng_profile_id             String?                       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  stng_profile_name           String                        @db.VarChar(250)
+  stng_profile_name2          String?                       @db.VarChar(250)
+  stng_profile_desc           String?
+  stng_profile_desc2          String?
+  country_code                String?                       @db.VarChar(5)
+  segment_code                String?                       @db.VarChar(50)
+  parent_profile_code         String?
+  stng_profile_version        Int?                          @default(1)
+  created_at                  DateTime?                     @default(now()) @db.Timestamp(6)
+  created_by                  String?                       @db.VarChar(120)
+  created_info                String?
+  updated_at                  DateTime?                     @db.Timestamp(6)
+  updated_by                  String?                       @db.VarChar(120)
+  updated_info                String?
+  rec_status                  Int?                          @default(1) @db.SmallInt
+  rec_order                   Int?
+  rec_notes                   String?                       @db.VarChar(200)
+  is_active                   Boolean                       @default(true)
+  org_tenants_mst             org_tenants_mst[]
+  sys_stng_profile_values_dtl sys_stng_profile_values_dtl[]
+  sys_stng_profiles_mst       sys_stng_profiles_mst?        @relation("sys_stng_profiles_mstTosys_stng_profiles_mst", fields: [parent_profile_code], references: [stng_profile_code], onDelete: NoAction, onUpdate: NoAction)
+  other_sys_stng_profiles_mst sys_stng_profiles_mst[]       @relation("sys_stng_profiles_mstTosys_stng_profiles_mst")
+
+  @@index([is_active], map: "idx_sys_stng_profiles_active")
+  @@index([country_code], map: "idx_sys_stng_profiles_country")
+  @@index([parent_profile_code], map: "idx_sys_stng_profiles_parent")
+  @@index([segment_code], map: "idx_sys_stng_profiles_segment")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_order_item_pieces_dtl {
+  id                      String                   @id(map: "pk_org_order_item_pieces_dtl") @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                   @db.Uuid
+  order_id                String                   @db.Uuid
+  order_item_id           String                   @db.Uuid
+  piece_seq               Int
+  piece_code              String?                  @default(dbgenerated("(((((order_id)::text || '-'::text) || (order_item_id)::text) || '-'::text) || piece_seq)"))
+  service_category_code   String?                  @db.VarChar(120)
+  product_id              String?                  @db.Uuid
+  scan_state              String?
+  barcode                 String?
+  quantity                Int?                     @default(1)
+  price_per_unit          Decimal                  @db.Decimal(19, 4)
+  total_price             Decimal                  @db.Decimal(19, 4)
+  piece_status            String?                  @default("processing")
+  price_stage             String?
+  is_rejected             Boolean?                 @default(false)
+  issue_id                String?                  @db.Uuid
+  rack_location           String?
+  last_step_at            DateTime?                @db.Timestamp(6)
+  last_step_by            String?
+  last_step               String?
+  notes                   String?
+  color                   String?                  @db.VarChar(50)
+  brand                   String?                  @db.VarChar(100)
+  has_stain               Boolean?
+  has_damage              Boolean?
+  metadata                Json?                    @default("{}")
+  created_at              DateTime?                @default(now()) @db.Timestamp(6)
+  rec_order               Int?
+  rec_notes               String?
+  rec_status              Int?                     @default(1) @db.SmallInt
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?                @db.Timestamp(6)
+  updated_by              String?
+  updated_info            String?
+  org_order_items_dtl     org_order_items_dtl      @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")
+  org_orders_mst          org_orders_mst           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_order")
+  org_product_data_mst    org_product_data_mst?    @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_org_pieces_product")
+  org_service_category_cf org_service_category_cf? @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_pieces_service_category")
+  org_tenants_mst         org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_tenant")
+
+  @@unique([tenant_org_id, order_id, order_item_id, piece_seq], map: "ak_piece_seq_unique_ord_item")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_order_pieces_created")
+  @@index([order_id, order_item_id], map: "idx_order_pieces_order_item")
+  @@index([order_id, order_item_id, piece_status], map: "idx_order_pieces_order_item_status")
+  @@index([tenant_org_id, scan_state], map: "idx_order_pieces_scan_state")
+  @@index([tenant_org_id, piece_status], map: "idx_order_pieces_status")
+  @@index([tenant_org_id], map: "idx_order_pieces_tenant")
   @@schema("public")
 }
 

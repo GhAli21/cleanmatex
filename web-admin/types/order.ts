@@ -202,6 +202,82 @@ export interface OrderItem {
 }
 
 /**
+ * Order Item Piece (org_order_item_pieces_dtl)
+ * Database entity for piece-level tracking when USE_TRACK_BY_PIECE is enabled
+ */
+export interface OrderItemPiece {
+  // Primary key
+  id: string;
+  
+  // Tenant and order references
+  tenant_org_id: string;
+  order_id: string;
+  order_item_id: string;
+  
+  // Piece identification
+  piece_seq: number;
+  piece_code: string; // Generated: order_id-order_item_id-piece_seq
+  
+  // Product and service category
+  service_category_code: string | null;
+  product_id: string | null;
+  
+  // Scanning and tracking
+  scan_state: 'expected' | 'scanned' | 'missing' | 'wrong' | null;
+  barcode: string | null;
+  
+  // Pricing
+  quantity: number | null;
+  price_per_unit: number;
+  total_price: number;
+  
+  // Status and workflow
+  piece_status: 'intake' | 'processing' | 'qa' | 'ready' | null;
+  price_stage: string | null;
+  is_rejected: boolean | null;
+  issue_id: string | null;
+  
+  // Location tracking
+  rack_location: string | null;
+  
+  // Step tracking
+  last_step_at: Date | null;
+  last_step_by: string | null;
+  last_step: string | null;
+  
+  // Notes
+  notes: string | null;
+  
+  // Item details
+  color: string | null;
+  brand: string | null;
+  has_stain: boolean | null;
+  has_damage: boolean | null;
+  
+  // Metadata
+  metadata: Record<string, any>;
+  
+  // Audit fields
+  created_at: Date | null;
+  rec_order: number | null;
+  rec_notes: string | null;
+  rec_status: number | null;
+  created_by: string | null;
+  created_info: string | null;
+  updated_at: Date | null;
+  updated_by: string | null;
+  updated_info: string | null;
+}
+
+/**
+ * Order Item with Database Pieces
+ * Extended OrderItem with database-backed pieces array
+ */
+export interface OrderItemWithDbPieces extends OrderItem {
+  pieces: OrderItemPiece[];
+}
+
+/**
  * Customer (sys_customers_mst)
  */
 export interface Customer {

@@ -487,6 +487,9 @@ export function ProcessingModal({
                         rejectEnabled={rejectEnabled}
                         trackByPiece={trackByPiece}
                         rejectColor={rejectColor}
+                        orderId={orderId || undefined}
+                        tenantId={tenantId}
+                        useDbPieces={trackByPiece} // Use DB pieces when trackByPiece is enabled
                       />
                     ))
                   )}

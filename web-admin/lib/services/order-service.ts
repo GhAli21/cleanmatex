@@ -6,6 +6,8 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from './workflow-service';
+import { OrderPieceService } from './order-piece-service';
+import { TenantSettingsService } from './tenant-settings.service';
 import type { OrderStatus } from '@/lib/types/workflow';
 
 export interface CreateOrderParams {
@@ -230,13 +232,50 @@ export class OrderService {
           damage_notes: item.damageNotes,
         }));
 
-        const { error: itemsError } = await supabase
+        const { error: itemsError, data: createdItems } = await supabase
           .from('org_order_items_dtl')
-          .insert(itemsToInsert);
+          .insert(itemsToInsert)
+          .select();
 
         if (itemsError) {
           console.error('Failed to create order items:', itemsError);
           // Continue anyway - items can be added later in preparation
+        } else if (createdItems && createdItems.length > 0) {
+          // Check if USE_TRACK_BY_PIECE is enabled
+          const tenantSettingsService = new TenantSettingsService();
+          const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(
+            tenantId,
+            'USE_TRACK_BY_PIECE'
+          );
+
+          // Auto-create pieces for each item if tracking by piece is enabled
+          if (trackByPiece) {
+            for (let i = 0; i < createdItems.length; i++) {
+              const createdItem = createdItems[i];
+              const itemData = items[i];
+
+              if (createdItem && itemData.quantity > 0) {
+                await OrderPieceService.createPiecesForItem(
+                  tenantId,
+                  order.id,
+                  createdItem.id,
+                  itemData.quantity,
+                  {
+                    serviceCategoryCode: itemData.serviceCategoryCode,
+                    productId: itemData.productId,
+                    pricePerUnit: itemData.pricePerUnit,
+                    totalPrice: itemData.totalPrice,
+                    color: undefined, // Not available at order creation
+                    brand: undefined,
+                    hasStain: itemData.hasStain,
+                    hasDamage: itemData.hasDamage,
+                    notes: itemData.notes,
+                    metadata: {},
+                  }
+                );
+              }
+            }
+          }
         }
       }
 
