@@ -18,6 +18,7 @@ export default function UserPreferencesPage() {
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -25,6 +26,7 @@ export default function UserPreferencesPage() {
 
   const fetchSettings = async () => {
     setIsLoading(true);
+    setError(null);
     try {
       // Fetch effective settings for current user
       const settings = await settingsClient.getEffectiveSettings({
@@ -33,6 +35,9 @@ export default function UserPreferencesPage() {
       setEffectiveSettings(settings);
     } catch (err) {
       console.error('Failed to load preferences:', err);
+      setError(
+        err instanceof Error ? err.message : 'Failed to load preferences'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -62,6 +67,26 @@ export default function UserPreferencesPage() {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
           <p className="mt-4 text-gray-600">Loading preferences...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <Card className="p-6 border-red-200 bg-red-50">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <h2 className="text-lg font-semibold text-red-900 mb-2">
+                Error Loading Preferences
+              </h2>
+              <p className="text-red-800 mb-4">{error}</p>
+              <Button onClick={fetchSettings} variant="outline">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </Card>
       </div>
     );
   }
