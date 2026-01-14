@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "supabase_remote": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+    },
+	"supabase_remote_with_token": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "<sbp_266a2fde84f49a466df4d6f8c05f9d388791f3c8>"
+      ]
+    },
+    "supabase_local": {
+       "url": "http://127.0.0.1:54321/mcp"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 /**
- * GET /api/settings/tenants/[tenantId]/effective
- * Get effective settings with 7-layer resolution
+ * GET /api/settings/tenants/[tenantId]/explain/[settingCode]
+ * Explain setting resolution (full trace)
  * 
  * Query params:
  * - branchId: Optional branch ID for branch-scoped settings
@@ -9,7 +9,7 @@
  * Protected endpoint (requires authentication)
  * 
  * This endpoint proxies requests to Platform HQ API (cleanmatexsaas/platform-api)
- * to centralize settings resolution logic.
+ * to get detailed resolution trace for a setting.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,12 +19,12 @@ import { hqApiClient } from '@/lib/api/hq-api-client';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ tenantId: string }> }
+  { params }: { params: Promise<{ tenantId: string; settingCode: string }> }
 ) {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const { tenantId: paramTenantId } = await params;
+    const { tenantId: paramTenantId, settingCode } = await params;
     
     // Resolve tenantId ('me' -> actual tenant ID)
     let tenantId: string;
@@ -56,16 +56,20 @@ export async function GET(
     // Forward Authorization header from client request (if available)
     const authHeader = request.headers.get('authorization');
 
-    // Call Platform HQ API to resolve settings
-    const resolvedSettings = await hqApiClient.getEffectiveSettings(tenantId, {
-      branchId,
-      userId,
-      authHeader,
-    });
+    // Call Platform HQ API to explain setting resolution
+    const explainTrace = await hqApiClient.explainSetting(
+      tenantId,
+      settingCode,
+      {
+        branchId,
+        userId,
+        authHeader,
+      }
+    );
 
-    return NextResponse.json({ data: resolvedSettings });
+    return NextResponse.json(explainTrace);
   } catch (error) {
-    console.error('Error in effective settings endpoint:', error);
+    console.error('Error in explain settings endpoint:', error);
 
     // Handle authentication errors
     if (error instanceof Error && error.message.includes('No authentication token')) {
@@ -80,34 +84,18 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Handle forbidden errors
-    if (error instanceof Error && (error.message.includes('Forbidden') || error.message.includes('403'))) {
-      return NextResponse.json(
-        { error: 'Access denied' },
-        { status: 403 }
-      );
-    }
-
     // Handle not found errors
     if (error instanceof Error && (error.message.includes('Not found') || error.message.includes('404'))) {
       return NextResponse.json(
-        { error: 'Tenant or settings not found' },
+        { error: 'Setting or tenant not found' },
         { status: 404 }
-      );
-    }
-
-    // Handle tenant access errors
-    if (error instanceof Error && error.message.includes('No tenant access')) {
-      return NextResponse.json(
-        { error: 'No tenant access found' },
-        { status: 403 }
       );
     }
 
     // Generic error handling
     return NextResponse.json(
       {
-        error: 'Failed to fetch effective settings',
+        error: 'Failed to explain setting resolution',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

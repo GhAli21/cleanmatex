@@ -7,6 +7,11 @@
 ---
 
 ## CRITICAL Rules:
+** Never do Supabase db reset, I will do migration when needed just tell me**
+
+### Supabase MCPs:
+- **for local database Supabase is supabase_local MCP**
+- **for remote database Supabase is supabase_remote MCP**
 
 ### Modular Imports (Authoritative)
 
