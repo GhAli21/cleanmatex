@@ -8,6 +8,7 @@
 import 'server-only';
 import { createClient } from '@/lib/supabase/server';
 import { getCachedPermissions, setCachedPermissions, invalidatePermissionCache, invalidateTenantPermissionCache } from '@/lib/services/permission-cache';
+import { logger } from '@/lib/utils/logger';
 
 // Re-export types from client version
 export type { Permission, PermissionCheckOptions } from './permission-service-client';
@@ -44,7 +45,12 @@ export async function getUserPermissionsServer(
       }
     } catch (cacheError) {
       // Cache not available, continue to database lookup
-      console.warn('Cache not available, falling back to database:', cacheError);
+      logger.warn('Permission cache unavailable (read), falling back to DB', {
+        feature: 'permissions',
+        action: 'get_user_permissions',
+        tenantId,
+        userId,
+      });
     }
   }
 
@@ -54,7 +60,12 @@ export async function getUserPermissionsServer(
     const { data, error } = await client.rpc('get_user_permissions');
 
     if (error) {
-      console.error('Error fetching user permissions:', error);
+      logger.error('Error fetching user permissions', new Error(error.message), {
+        feature: 'permissions',
+        action: 'get_user_permissions',
+        tenantId,
+        userId,
+      });
       return [];
     }
 
@@ -66,13 +77,27 @@ export async function getUserPermissionsServer(
         await setCachedPermissions(userId, tenantId, permissions, 900);
       } catch (cacheError) {
         // Cache not available, continue without caching
-        console.warn('Cache not available for write:', cacheError);
+        logger.warn('Permission cache unavailable (write)', {
+          feature: 'permissions',
+          action: 'get_user_permissions',
+          tenantId,
+          userId,
+        });
       }
     }
 
     return permissions;
   } catch (error) {
-    console.error('Error in getUserPermissionsServer:', error);
+    logger.error(
+      'Error in getUserPermissionsServer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      {
+        feature: 'permissions',
+        action: 'get_user_permissions',
+        tenantId,
+        userId,
+      }
+    );
     return [];
   }
 }
@@ -90,20 +115,6 @@ export async function hasPermissionServer(
   const client = await createClient();
 
   try {
-    console.log('[Jh] hasPermissionServer ( 1 ): Permission:', permission)
-    console.log('[Jh] hasPermissionServer ( 2 ): Options:', options)
-    console.log('[Jh] hasPermissionServer ( 3 ): Test check_jwt_claims_jh() ')
-    const { data, error } = await client.rpc('check_jwt_claims_jh');
-    console.log('[Jh] hasPermissionServer check_jwt_claims_jh()( 3 ): Data:', data)
-    if (error) {
-      console.log('[Jh] hasPermissionServer ( 3.1 ): Error:', error)
-      console.error('Error checking permission check_jwt_claims_jh():', error);
-      return false;
-    }
-    console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 4 ): Data:', data)
-    console.log('[Jh] hasPermissionServer check_jwt_claims_jh() ( 5 ): Returning true for testing')
-    //return true; // true for testing Jhtest_TODO: Remove this
-
     if (options?.resourceType && options?.resourceId) {
       const { data, error } = await client.rpc('has_resource_permission', {
         p_permission: permission,
@@ -112,40 +123,43 @@ export async function hasPermissionServer(
       });
 
       if (error) {
-        console.log('[Jh] hasPermissionServer ( 3 ): Error:', error)
-        console.error('Error checking resource permission:', error);
+        logger.error('Error checking resource permission', new Error(error.message), {
+          feature: 'permissions',
+          action: 'has_resource_permission',
+          permission,
+          resourceType: options.resourceType,
+          resourceId: options.resourceId,
+        });
         return false;
       }
-      console.log('[Jh] hasPermissionServer ( 4 ): Data:', data)
       return data === true;
     } else {
-      console.log('[Jh] hasPermissionServer ( 5 ): Permission:', permission)
-      console.log('[Jh] hasPermissionServer ( 6 ): Before call rpc has_permission')
       const { data, error } = await client.rpc('has_permission', {
         p_permission: permission,
       });
 
       if (error) {
-        console.log('[Jh] hasPermissionServer ( 7 ): Error:', error)
-        console.error('Error checking permission:', error);
+        logger.error('Error checking permission', new Error(error.message), {
+          feature: 'permissions',
+          action: 'has_permission',
+          permission,
+        });
         return false;
       }
-      console.log('[Jh] hasPermissionServer ( 8 ): Data:', data)
       
-      if (data === true) {
-        console.log('[Jh] hasPermissionServer True Case ( 9 ): Data is true, returning true')
-        return true;
-      } else {
-        console.log('[Jh] hasPermissionServer False Case ( 10 ): Data is false, BUT for testing returning true')
-        //return true; // true for testing Jhtest_TODO: Change to False
-        return false; 
-      }
-      //return true; // true for testing Jhtest_TODO: Remove this
-      //return data === true;
+      return data === true;
     }
   } catch (error) {
-    console.log('[Jh] hasPermissionServer ( 9 ): Error:', error)
-    console.error('Error in hasPermissionServer:', error);
+    logger.error(
+      'Error in hasPermissionServer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      {
+        feature: 'permissions',
+        action: 'has_permission',
+        permission,
+        hasResource: !!(options?.resourceType && options?.resourceId),
+      }
+    );
     return false;
   }
 }

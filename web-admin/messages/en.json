@@ -1019,8 +1019,12 @@
   "processing": {
     "title": "Processing",
     "subtitle": "Manage orders in the cleaning queue",
+    "unknownCustomer": "Unknown Customer",
     "updateOrder": "Update Order",
     "refresh": "Refresh data",
+    "success": {
+      "transitioned": "Order transitioned successfully"
+    },
     "stats": {
       "orders": "Orders",
       "pieces": "Pieces",
@@ -1169,6 +1173,15 @@
   "assembly": {
     "backToAssembly": "Back to Assembly"
   },
+  "assemblyDetail": {
+    "verifyItems": "Verify Items",
+    "quantity": "Quantity",
+    "ready": "Ready",
+    "hint": "Scan each item to verify all pieces are present before proceeding.",
+    "actionsTitle": "Assembly Actions",
+    "processing": "Processing...",
+    "complete": "Complete Assembly"
+  },
   "qa": {
     "backToQA": "Back to Quality Check"
   },
@@ -1181,7 +1194,159 @@
       "processing": "Processing",
       "assembly": "Assembly",
       "qa": "Quality Check",
-      "ready": "Ready"
+      "ready": "Ready",
+      "packing": "Packing",
+      "delivery": "Delivery"
+    },
+    "labels": {
+      "customer": "Customer",
+      "phone": "Phone",
+      "received": "Received",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {totalPages}"
+    },
+    "preparation": {
+      "description": "Quick Drop orders requiring itemization",
+      "empty": "No orders in preparation",
+      "bags": "{count} bags",
+      "workflowContextTitle": "Workflow context",
+      "workflowFlags": {
+        "assemblyEnabled": "Assembly enabled",
+        "qaEnabled": "QA enabled",
+        "packingEnabled": "Packing enabled"
+      },
+      "workflowMetrics": {
+        "itemsCount": "Items"
+      },
+      "yes": "Yes",
+      "no": "No",
+      "stats": {
+        "inPreparation": "In preparation",
+        "totalBags": "Total bags"
+      },
+      "actions": {
+        "continueItemization": "Continue Itemization",
+        "saveDraft": "Save Draft",
+        "completeAndContinue": "Complete & Continue",
+        "preparationCompleteNote": "Preparation complete",
+        "preparationCompleteSuccess": "Preparation completed"
+      }
+    },
+    "assembly": {
+      "description": "Orders ready for assembly",
+      "empty": "No orders in assembly",
+      "items": "items",
+      "actions": {
+        "assembleOrder": "Assemble Order"
+      },
+      "messages": {
+        "taskCreated": "Assembly task created",
+        "taskCreateFailed": "Failed to create assembly task"
+      },
+      "stats": {
+        "pending": "Pending",
+        "inProgress": "In Progress",
+        "qaPending": "QA Pending",
+        "completedToday": "Completed Today",
+        "openExceptions": "Open Exceptions"
+      }
+    },
+    "qa": {
+      "description": "Orders pending quality check",
+      "empty": "No orders pending QA",
+      "items": "items",
+      "actions": {
+        "open": "Quality Check",
+        "accept": "Accept",
+        "reject": "Reject",
+        "acceptAll": "Accept All Items",
+        "processing": "Processing...",
+        "backToQa": "Back to Quality Check"
+      },
+      "messages": {
+        "acceptSuccess": "QA approved",
+        "acceptFailed": "Failed to approve order",
+        "rejectSuccess": "Order returned to processing",
+        "rejectFailed": "Failed to reject order"
+      }
+    },
+    "ready": {
+      "description": "Orders ready for pickup or delivery",
+      "empty": "No orders ready",
+      "statusBadge": "Ready",
+      "rack": "Rack",
+      "total": "Total",
+      "itemsTitle": "Order Items",
+      "quantity": "Quantity",
+      "totalAmount": "Total Amount",
+      "actions": {
+        "title": "Delivery Actions",
+        "open": "Open",
+        "backToReady": "Back to Ready",
+        "markDelivered": "Mark as Delivered",
+        "printReceipt": "Print Receipt",
+        "processing": "Processing..."
+      },
+      "messages": {
+        "loadFailed": "Failed to load order",
+        "notFound": "Order not found",
+        "deliveredSuccess": "Order marked as delivered",
+        "deliveredFailed": "Failed to deliver order",
+        "blockersTitle": "Cannot complete action"
+      }
+    },
+    "packing": {
+      "description": "Orders pending packing",
+      "empty": "No orders in packing",
+      "items": "items",
+      "rack": "Rack",
+      "rackPlaceholder": "e.g., Rack A-12",
+      "itemsTitle": "Items to pack",
+      "quantity": "Quantity",
+      "readyQty": "Ready",
+      "totalQty": "Total quantity",
+      "workflowContextTitle": "Workflow context",
+      "metrics": {
+        "itemsCount": "Items",
+        "piecesTotal": "Pieces total"
+      },
+      "actions": {
+        "open": "Open Packing",
+        "back": "Back to Packing",
+        "title": "Packing Actions",
+        "saveRack": "Save Rack Location",
+        "complete": "Complete Packing",
+        "processing": "Processing..."
+      },
+      "messages": {
+        "loadFailed": "Failed to load order",
+        "notFound": "Order not found",
+        "rackRequired": "Rack location is required",
+        "rackSaved": "Rack location saved",
+        "rackSaveFailed": "Failed to save rack location",
+        "completeSuccess": "Packing completed",
+        "completeFailed": "Failed to complete packing",
+        "blockersTitle": "Cannot complete action"
+      }
+    },
+    "delivery": {
+      "description": "Orders out for delivery",
+      "empty": "No orders out for delivery",
+      "items": "Items",
+      "stats": {
+        "outForDelivery": "Out for delivery",
+        "completedToday": "Completed today"
+      },
+      "actions": {
+        "view": "View",
+        "markDelivered": "Mark delivered",
+        "backToDelivery": "Back to Delivery"
+      },
+      "messages": {
+        "deliveredSuccess": "Order marked as delivered",
+        "deliveredFailed": "Failed to mark order as delivered"
+      }
     },
     "actions": {
       "splitOrder": "Split Order",

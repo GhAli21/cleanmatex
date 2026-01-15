@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/server';
 import { OrderService } from '@/lib/services/order-service';
 import { CreateOrderRequestSchema } from '@/lib/validations/workflow-schema';
 import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * POST /api/v1/orders
@@ -17,21 +18,13 @@ import { getAuthContext, requirePermission } from '@/lib/middleware/require-perm
 export async function POST(request: NextRequest) {
   try {
     // Check permission 
-    console.log('[Jh] POST (1) /api/v1/orders: Checking permission orders:create')
     const authCheck = await requirePermission('orders:create')(request);
-    console.log('[Jh] POST (2) /api/v1/orders: Returned Auth check:', authCheck)
     if (authCheck instanceof NextResponse) { 
-      console.log('[Jh] POST (3) /api/v1/orders: Permission denied')
       return authCheck; // Permission denied 
     }
-    console.log('[Jh] POST (4) /api/v1/orders: Permission granted') 
     const { tenantId, userId, userName } = authCheck;
-    console.log('[Jh] POST (5) /api/v1/orders: Tenant ID:', tenantId)
-    console.log('[Jh] POST (6) /api/v1/orders: User ID:', userId)
-    console.log('[Jh] POST (7) /api/v1/orders: User Name:', userName)
 
     const body = await request.json();
-    console.log('[Jh] POST (8) /api/v1/orders: Request body:', JSON.stringify(body, null, 2));
     
     const parsed = CreateOrderRequestSchema.safeParse(body);
     
@@ -42,7 +35,13 @@ export async function POST(request: NextRequest) {
         code: e.code,
       })) || [];
       
-      console.error('[Jh] POST (9) /api/v1/orders: Validation failed:', JSON.stringify(errorDetails, null, 2));
+      logger.warn('Create order validation failed', {
+        feature: 'orders',
+        action: 'create',
+        tenantId,
+        userId,
+        errorDetails,
+      });
       
       return NextResponse.json(
         { 
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Jh] POST (10) /api/v1/orders: Creating order')
     const result = await OrderService.createOrder({
       tenantId,
       userId,
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
     });
 
-    console.log('[Jh] POST (11) /api/v1/orders: Order created:', result.order)
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error },
@@ -70,13 +67,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[Jh] POST (12) /api/v1/orders: Returning response')
     return NextResponse.json({ success: true, data: result.order });
   } catch (e) {
-    console.log('[Jh] POST (13) /api/v1/orders: Error:', e)
     const message = e instanceof Error ? e.message : 'Unknown error';
     const status = message.includes('Unauthorized') ? 401 : 400;
-    console.log('[Jh] POST (14) /api/v1/orders: Returning error response', { status, message })
+    logger.error('Create order failed', e as Error, {
+      feature: 'orders',
+      action: 'create',
+      status,
+      message,
+    });
     return NextResponse.json({ error: message }, { status });
   }
 }
@@ -108,14 +108,13 @@ export async function GET(request: NextRequest) {
     const statusFilter = searchParams.get('status_filter');
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
+    const includeItems = searchParams.get('include_items') === 'true';
     
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
     const is_show_null_org_customers = searchParams.get('is_show_null_org_customers') !== 'false';
     
-    let query = supabase
-      .from('org_orders_mst')  
-      .select(`
+    const baseSelect = `
         id,
         order_no,
         current_status,
@@ -130,59 +129,59 @@ export async function GET(request: NextRequest) {
         tax,
         total,
         payment_status,
+        paid_amount,
         priority,
         has_issue,
         is_rejected,
+        customer_notes,
+        internal_notes,
+        rack_location,
+        ready_by_at_new,
+        ready_by,
         org_customers_mst(
           id,
           name,
+          name2,
           phone,
           email,
           sys_customers_mst(
             id,
             name,
+            name2,
             phone,
             email
           )
         )
-      `, { count: 'exact' })
+        ${
+          includeItems
+            ? `,
+        org_order_items_dtl(
+          id,
+          product_name,
+          product_name2,
+          quantity,
+          quantity_ready,
+          service_category_code,
+          item_last_step,
+          item_status
+        )`
+            : ''
+        }
+      `;
+
+    let query = supabase
+      .from('org_orders_mst')  
+      .select(baseSelect, { count: 'exact' })
       .eq('tenant_org_id', tenantId);
 
     // If we need to exclude null customers, use inner join
     if (!is_show_null_org_customers) {
       query = supabase
         .from('org_orders_mst')  
-        .select(`
-          id,
-          order_no,
-          current_status,
-          current_stage,
-          status,
-          bag_count,
-          received_at,
-          created_at,
-          updated_at,
-          total_items,
-          subtotal,
-          tax,
-          total,
-          payment_status,
-          priority,
-          has_issue,
-          is_rejected,
-          org_customers_mst!inner(
-            id,
-            name,
-            phone,
-            email,
-            sys_customers_mst(
-              id,
-              name,
-              phone,
-              email
-            )
-          )
-        `, { count: 'exact' })
+        .select(
+          baseSelect.replace('org_customers_mst(', 'org_customers_mst!inner('),
+          { count: 'exact' }
+        )
         .eq('tenant_org_id', tenantId);
     }
 
@@ -223,7 +222,11 @@ export async function GET(request: NextRequest) {
     const { data: orders, error, count } = result;
 
     if (error) {
-      console.error('[Jh] GET /api/v1/orders: Error:', error);
+      logger.error('List orders failed', new Error(error.message), {
+        feature: 'orders',
+        action: 'list',
+        tenantId,
+      });
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 400 }
@@ -231,7 +234,13 @@ export async function GET(request: NextRequest) {
     }
 
     const duration = Date.now() - startTime;
-    console.log(`[API] GET /api/v1/orders - Success (${duration}ms, ${orders?.length || 0} orders)`);
+    logger.info('List orders success', {
+      feature: 'orders',
+      action: 'list',
+      tenantId,
+      durationMs: duration,
+      count: orders?.length || 0,
+    });
     
     return NextResponse.json({
       success: true,
@@ -251,7 +260,11 @@ export async function GET(request: NextRequest) {
     
     // Handle timeout specifically
     if (message === 'Request timeout' || message.includes('timeout')) {
-      console.error(`[API] GET /api/v1/orders - Timeout after ${duration}ms`);
+      logger.warn('List orders timeout', {
+        feature: 'orders',
+        action: 'list',
+        durationMs: duration,
+      });
       return NextResponse.json(
         { success: false, error: 'Request timeout - please try again' },
         { status: 504 }
@@ -259,7 +272,13 @@ export async function GET(request: NextRequest) {
     }
     
     const status = message.includes('Unauthorized') ? 401 : 500;
-    console.error(`[API] GET /api/v1/orders - Error after ${duration}ms:`, message);
+    logger.error('List orders error', e as Error, {
+      feature: 'orders',
+      action: 'list',
+      durationMs: duration,
+      status,
+      message,
+    });
     return NextResponse.json(
       { success: false, error: message },
       { status }

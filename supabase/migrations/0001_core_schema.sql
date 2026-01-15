@@ -185,7 +185,14 @@ CREATE TABLE IF NOT EXISTS org_tenants_mst (
   is_active      BOOLEAN       DEFAULT true,
   status         VARCHAR(20)   DEFAULT 'trial',
   created_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
-  updated_at     TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP,
+  rec_status     SMALLINT DEFAULT 1,
+  rec_notes      TEXT,
+  created_by     TEXT,
+  created_info   TEXT,
+  updated_by     TEXT,
+  updated_info   TEXT,
+  
   UNIQUE(slug),
   UNIQUE(email)
 );

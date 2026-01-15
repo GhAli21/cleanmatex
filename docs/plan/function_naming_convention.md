@@ -22,12 +22,15 @@ All order workflow configuration tables must follow this pattern:
 
 **Note:** Configuration tables can have `tenant_org_id` for tenant-specific customization, but they use `sys_ord_` prefix to indicate they're system-level order workflow configuration.
 
-### Data Tables (org*ord*_ or org\__)
+### Tenant-Specific Data Tables (org_ord_*)
 
-Data/logs tables use `org_` prefix:
+Tenant-specific data tables use `org_ord_` prefix:
 
-- `org_ord_transition_events` - Event logs
-- `org_order_history` - Status transition history
+- `org_ord_transition_events` - Event logs (tenant-specific)
+- `org_order_history` - Status transition history (tenant-specific)
+- `org_ord_workflow_settings_cf` - Tenant-specific workflow settings/overrides (if needed)
+
+**Note:** If a table is tenant-specific data (not configuration), use `org_ord_*` prefix.
 
 ### Versioning Tables (sys*ord*\*)
 
@@ -126,7 +129,7 @@ Examples:
 ### Tables
 
 - [ ] All configuration tables use `sys_ord_*_cf` naming
-- [ ] Data tables use appropriate `org_*` or `org_ord_*` naming
+- [ ] Tenant-specific data tables use `org_ord_*` naming
 - [ ] Versioning tables use `sys_ord_*` naming
 - [ ] All table references updated in functions
 

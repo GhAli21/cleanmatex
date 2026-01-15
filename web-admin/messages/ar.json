@@ -1022,8 +1022,12 @@
   "processing": {
     "title": "المعالجة",
     "subtitle": "إدارة الطلبات في قائمة انتظار التنظيف",
+    "unknownCustomer": "عميل غير معروف",
     "updateOrder": "تحديث الطلب",
     "refresh": "تحديث البيانات",
+    "success": {
+      "transitioned": "تم نقل الطلب بنجاح"
+    },
     "stats": {
       "orders": "الطلبات",
       "pieces": "القطع",
@@ -1172,6 +1176,15 @@
   "assembly": {
     "backToAssembly": "العودة إلى التجميع"
   },
+  "assemblyDetail": {
+    "verifyItems": "التحقق من الأصناف",
+    "quantity": "الكمية",
+    "ready": "جاهز",
+    "hint": "قم بمسح كل صنف للتحقق من وجود جميع القطع قبل المتابعة.",
+    "actionsTitle": "إجراءات التجميع",
+    "processing": "جارٍ المعالجة...",
+    "complete": "إكمال التجميع"
+  },
   "qa": {
     "backToQA": "العودة إلى فحص الجودة"
   },
@@ -1184,7 +1197,159 @@
       "processing": "المعالجة",
       "assembly": "التجميع",
       "qa": "فحص الجودة",
-      "ready": "جاهز"
+      "ready": "جاهز",
+      "packing": "التغليف",
+      "delivery": "التوصيل"
+    },
+    "labels": {
+      "customer": "العميل",
+      "phone": "الهاتف",
+      "received": "تاريخ الاستلام",
+      "previous": "السابق",
+      "next": "التالي",
+      "pageOf": "صفحة {page} من {totalPages}"
+    },
+    "preparation": {
+      "description": "طلبات الإسقاط السريع التي تتطلب إضافة الأصناف",
+      "empty": "لا توجد طلبات في التحضير",
+      "bags": "{count} أكياس",
+      "workflowContextTitle": "سياق سير العمل",
+      "workflowFlags": {
+        "assemblyEnabled": "التجميع مفعّل",
+        "qaEnabled": "فحص الجودة مفعّل",
+        "packingEnabled": "التغليف مفعّل"
+      },
+      "workflowMetrics": {
+        "itemsCount": "الأصناف"
+      },
+      "yes": "نعم",
+      "no": "لا",
+      "stats": {
+        "inPreparation": "قيد التحضير",
+        "totalBags": "إجمالي الأكياس"
+      },
+      "actions": {
+        "continueItemization": "متابعة إضافة الأصناف",
+        "saveDraft": "حفظ كمسودة",
+        "completeAndContinue": "إكمال ومتابعة",
+        "preparationCompleteNote": "اكتمل التحضير",
+        "preparationCompleteSuccess": "تم إكمال التحضير"
+      }
+    },
+    "assembly": {
+      "description": "طلبات جاهزة للتجميع",
+      "empty": "لا توجد طلبات في التجميع",
+      "items": "أصناف",
+      "actions": {
+        "assembleOrder": "تجميع الطلب"
+      },
+      "messages": {
+        "taskCreated": "تم إنشاء مهمة التجميع",
+        "taskCreateFailed": "فشل إنشاء مهمة التجميع"
+      },
+      "stats": {
+        "pending": "قيد الانتظار",
+        "inProgress": "قيد التنفيذ",
+        "qaPending": "بانتظار فحص الجودة",
+        "completedToday": "مكتمل اليوم",
+        "openExceptions": "استثناءات مفتوحة"
+      }
+    },
+    "qa": {
+      "description": "طلبات بانتظار فحص الجودة",
+      "empty": "لا توجد طلبات بانتظار فحص الجودة",
+      "items": "أصناف",
+      "actions": {
+        "open": "فحص الجودة",
+        "accept": "قبول",
+        "reject": "رفض",
+        "acceptAll": "قبول جميع الأصناف",
+        "processing": "جارٍ المعالجة...",
+        "backToQa": "العودة إلى فحص الجودة"
+      },
+      "messages": {
+        "acceptSuccess": "تم اعتماد فحص الجودة",
+        "acceptFailed": "فشل اعتماد الطلب",
+        "rejectSuccess": "تم إرجاع الطلب إلى المعالجة",
+        "rejectFailed": "فشل رفض الطلب"
+      }
+    },
+    "ready": {
+      "description": "طلبات جاهزة للاستلام أو التوصيل",
+      "empty": "لا توجد طلبات جاهزة",
+      "statusBadge": "جاهز",
+      "rack": "الرف",
+      "total": "الإجمالي",
+      "itemsTitle": "أصناف الطلب",
+      "quantity": "الكمية",
+      "totalAmount": "إجمالي المبلغ",
+      "actions": {
+        "title": "إجراءات التسليم",
+        "open": "فتح",
+        "backToReady": "العودة إلى الجاهز",
+        "markDelivered": "تمييز كتم التسليم",
+        "printReceipt": "طباعة الإيصال",
+        "processing": "جارٍ المعالجة..."
+      },
+      "messages": {
+        "loadFailed": "فشل تحميل الطلب",
+        "notFound": "الطلب غير موجود",
+        "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
+        "deliveredFailed": "فشل تسليم الطلب",
+        "blockersTitle": "لا يمكن إكمال الإجراء"
+      }
+    },
+    "packing": {
+      "description": "طلبات بانتظار التغليف",
+      "empty": "لا توجد طلبات في التغليف",
+      "items": "أصناف",
+      "rack": "الرف",
+      "rackPlaceholder": "مثال: رف A-12",
+      "itemsTitle": "الأصناف للتغليف",
+      "quantity": "الكمية",
+      "readyQty": "جاهز",
+      "totalQty": "إجمالي الكمية",
+      "workflowContextTitle": "سياق سير العمل",
+      "metrics": {
+        "itemsCount": "الأصناف",
+        "piecesTotal": "إجمالي القطع"
+      },
+      "actions": {
+        "open": "فتح التغليف",
+        "back": "العودة إلى التغليف",
+        "title": "إجراءات التغليف",
+        "saveRack": "حفظ موقع الرف",
+        "complete": "إكمال التغليف",
+        "processing": "جارٍ المعالجة..."
+      },
+      "messages": {
+        "loadFailed": "فشل تحميل الطلب",
+        "notFound": "الطلب غير موجود",
+        "rackRequired": "موقع الرف مطلوب",
+        "rackSaved": "تم حفظ موقع الرف",
+        "rackSaveFailed": "فشل حفظ موقع الرف",
+        "completeSuccess": "تم إكمال التغليف",
+        "completeFailed": "فشل إكمال التغليف",
+        "blockersTitle": "لا يمكن إكمال الإجراء"
+      }
+    },
+    "delivery": {
+      "description": "طلبات قيد التوصيل",
+      "empty": "لا توجد طلبات قيد التوصيل",
+      "items": "الأصناف",
+      "stats": {
+        "outForDelivery": "قيد التوصيل",
+        "completedToday": "مكتمل اليوم"
+      },
+      "actions": {
+        "view": "عرض",
+        "markDelivered": "تمييز كتم التسليم",
+        "backToDelivery": "العودة إلى التوصيل"
+      },
+      "messages": {
+        "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
+        "deliveredFailed": "فشل تمييز الطلب كتم التسليم"
+      }
     },
     "actions": {
       "splitOrder": "تقسيم الطلب",

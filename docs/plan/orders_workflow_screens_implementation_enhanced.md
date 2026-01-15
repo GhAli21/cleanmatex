@@ -31,23 +31,24 @@ This plan implements a complete configuration-driven Orders workflow system wher
 
 **RULE: ALL configuration tables for order workflow MUST use `sys_ord_*_cf` naming**
 
-#### Configuration Tables (sys_ord_*_cf):
+#### Configuration Tables (sys*ord*\*\_cf):
 
 - `sys_ord_screen_contracts_cf` - Screen contract customization (system-level config, can have tenant_org_id)
 - `sys_ord_custom_validations_cf` - Custom validation functions (system-level config, can have tenant_org_id)
 - `sys_ord_webhook_subscriptions_cf` - Webhook subscription configuration (system-level config, can have tenant_org_id)
 
-#### Tenant-Specific Data Tables (org_ord_*):
+#### Tenant-Specific Data Tables (org*ord*\*):
 
 - `org_ord_transition_events` - Event logs (tenant-specific data)
 - `org_order_history` - Status transition history (tenant-specific data)
 - `org_ord_workflow_settings_cf` - Tenant-specific workflow settings/overrides (if needed)
 
-#### Versioning Tables (sys_ord_*):
+#### Versioning Tables (sys*ord*\*):
 
 - `sys_ord_workflow_template_versions` - Workflow template version history
 
 **Naming Rules:**
+
 - **Configuration tables:** `sys_ord_*_cf` (system-level order workflow configuration)
 - **Tenant-specific data tables:** `org_ord_*` (tenant-specific order workflow data)
 - **Tenant-specific config overrides:** Can use `org_ord_*_cf` if needed for tenant-specific configuration
@@ -168,13 +169,13 @@ Similar pattern for: `processing`, `assembly`, `qa`, `packing`, `ready_release`,
    ```typescript
    // Enforce in API/service layer - NO database triggers
    // All status updates must go through transition service
-   
+
    // In WorkflowService:
    async changeStatus(orderId: string, newStatus: string) {
      // REJECT direct status updates
      throw new Error('Direct status updates not allowed. Use executeScreenTransition()');
    }
-   
+
    // Only allow via:
    async executeScreenTransition(screen: string, orderId: string, input: object) {
      // Calls cmx_ord_execute_screen_transition() database function
@@ -269,47 +270,47 @@ async executeScreenTransition(
   options?: { useOldCodeOrNew?: boolean }
 ) {
   // Use feature flag to choose old or new code
-  const USE_OLD_CODE_OR_NEW = options?.useOldCodeOrNew ?? 
+  const USE_OLD_CODE_OR_NEW = options?.useOldCodeOrNew ??
     await getFeatureFlag('USE_NEW_WORKFLOW_SYSTEM', tenantId);
-  
+
   if (!USE_OLD_CODE_OR_NEW) {
     // Use existing old code path
     return this.changeStatusOld(orderId, ...);
   }
-  
+
   // NEW CODE PATH:
-  
+
   // 1. Screen-level validation
   const contract = await this.getScreenContract(screen);
   const preConditions = contract.preConditions;
-  
+
   // Validate order matches pre-conditions
   const order = await this.getOrder(orderId);
   if (!preConditions.statuses.includes(order.current_status)) {
     throw new ValidationError('Order status does not match screen requirements');
   }
-  
+
   // 2. Permission check
   const requiredPermissions = contract.requiredPermissions;
   if (!await this.hasPermissions(requiredPermissions)) {
     throw new PermissionError('Missing required permissions');
   }
-  
+
   // 3. Feature flag check
   if (!await this.checkFeatureFlags(screen, order)) {
     throw new FeatureFlagError('Feature not enabled for this tenant');
   }
-  
+
   // 4. Plan limits check
   if (!await this.checkPlanLimits(order)) {
     throw new LimitExceededError('Plan limit exceeded');
   }
-  
+
   // 5. Settings check
   if (!await this.checkSettings(screen, order)) {
     throw new SettingsError('Setting prevents this action');
   }
-  
+
   // 6. Call database function (which does its own validation)
   return await this.callDatabaseTransition(screen, orderId, input);
 }
@@ -338,7 +339,7 @@ DECLARE
 BEGIN
   -- 1. Basic validation (existing logic)
   -- ... existing validation code ...
-  
+
   -- 2. Feature flags check
   IF p_tenant_org_id IS NOT NULL THEN
     v_feature_flags := cmx_ord_check_feature_flags(p_tenant_org_id, p_screen);
@@ -350,7 +351,7 @@ BEGIN
       );
     END IF;
   END IF;
-  
+
   -- 3. Plan limits check
   IF p_tenant_org_id IS NOT NULL THEN
     v_plan_limits := cmx_ord_check_plan_limits(p_tenant_org_id, p_screen, p_input);
@@ -365,7 +366,7 @@ BEGIN
       );
     END IF;
   END IF;
-  
+
   -- 4. Settings check
   IF p_tenant_org_id IS NOT NULL THEN
     v_settings := cmx_ord_check_settings(p_tenant_org_id, p_screen, p_input);
@@ -378,7 +379,7 @@ BEGIN
       );
     END IF;
   END IF;
-  
+
   RETURN jsonb_build_object(
     'ok', jsonb_array_length(v_errors) = 0,
     'errors', v_errors
@@ -412,13 +413,13 @@ BEGIN
     WHEN 'driver_delivery' THEN 'driver_app'
     ELSE 'basic_workflow'
   END;
-  
+
   -- Check feature flag using HQ feature flags system
   SELECT hq_ff_get_effective_flag_value(p_tenant_org_id, v_flag_key)
   INTO v_flag_value;
-  
+
   v_enabled := COALESCE((v_flag_value->>'value')::boolean, false);
-  
+
   RETURN jsonb_build_object(
     'enabled', v_enabled,
     'flag_key', v_flag_key,
@@ -449,29 +450,29 @@ BEGIN
   SELECT s_current_plan INTO v_plan_code
   FROM org_tenants_mst
   WHERE id = p_tenant_org_id;
-  
+
   -- Check order count limits (if creating new order)
   IF p_screen = 'new_order' THEN
     SELECT orders_used, orders_limit
     INTO v_current_value, v_limit_value
     FROM org_subscriptions_mst
     WHERE tenant_org_id = p_tenant_org_id;
-    
+
     IF v_current_value >= v_limit_value THEN
       v_allowed := false;
-      v_message := format('Order limit reached (%s/%s). Please upgrade your plan.', 
+      v_message := format('Order limit reached (%s/%s). Please upgrade your plan.',
         v_current_value, v_limit_value);
       v_limit_type := 'orders_limit';
     END IF;
   END IF;
-  
+
   -- Check plan setting constraints
   -- Example: Check if workflow template is allowed for this plan
   IF p_input ? 'workflow_template_id' THEN
     -- Check sys_plan_setting_constraints for workflow_template setting
     -- ... constraint check logic ...
   END IF;
-  
+
   RETURN jsonb_build_object(
     'allowed', v_allowed,
     'message', v_message,
@@ -500,18 +501,18 @@ DECLARE
 BEGIN
   -- Check screen-specific settings
   v_setting_key := 'workflow.' || p_screen || '.enabled';
-  
+
   -- Get effective setting value (from org_tenant_settings_cf or sys_tenant_settings_cd)
   SELECT stng_get_effective_value(p_tenant_org_id, v_setting_key)
   INTO v_setting_value;
-  
+
   -- If setting exists and is false, block action
   IF v_setting_value IS NOT NULL AND (v_setting_value->>'value')::boolean = false THEN
     v_allowed := false;
     v_message := 'This workflow screen is disabled in your settings';
     v_setting_key := v_setting_key;
   END IF;
-  
+
   RETURN jsonb_build_object(
     'allowed', v_allowed,
     'message', v_message,
@@ -1030,14 +1031,28 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
    SELECT assert_column_exists('org_orders_mst', 'current_status');
    ```
 
-3. **Status Field Protection**
+3. **Two-Layer Validation**
 
-   ```sql
-   -- Test that direct updates are blocked
-   BEGIN;
-   UPDATE org_orders_mst SET current_status = 'ready' WHERE id = test_order_id;
-   -- Should raise exception
-   ROLLBACK;
+   ```typescript
+   // Test screen/API validation
+   test("API rejects direct status updates", async () => {
+     await expect(
+       workflowService.changeStatus(orderId, "ready")
+     ).rejects.toThrow("Direct status updates not allowed");
+   });
+
+   // Test database validation
+   test("Database validates feature flags", async () => {
+     // Disable feature flag
+     await disableFeatureFlag("assembly_workflow", tenantId);
+
+     // Attempt transition should fail
+     const result = await executeTransition("assembly", orderId, {});
+     expect(result.ok).toBe(false);
+     expect(result.errors).toContainEqual(
+       expect.objectContaining({ code: "FEATURE_DISABLED" })
+     );
+   });
    ```
 
 4. **Workflow Template Resolution**
@@ -1075,12 +1090,84 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 ## Migration Strategy
 
-### Phase 7.1: Gradual Migration
+### Phase 7.1: Gradual Migration with Feature Flag
 
-1. **Phase 1:** Deploy database functions alongside existing code
-2. **Phase 2:** Add feature flag to use new functions
-3. **Phase 3:** Migrate one screen at a time
-4. **Phase 4:** Remove old code once all screens migrated
+**Strategy:** Implement alongside existing code using `USE_OLD_CODE_OR_NEW` boolean parameter
+
+#### Implementation Pattern
+
+```typescript
+// In WorkflowService
+const USE_OLD_CODE_OR_NEW = await getFeatureFlag(
+  "USE_NEW_WORKFLOW_SYSTEM",
+  tenantId
+);
+
+if (!USE_OLD_CODE_OR_NEW) {
+  // Use existing old code
+  return this.changeStatusOld(orderId, newStatus);
+} else {
+  // Use new database-driven code
+  return this.executeScreenTransition(screen, orderId, input);
+}
+```
+
+#### Migration Phases
+
+1. **Phase 1: Deploy Database Functions**
+
+   - Deploy all database functions alongside existing code
+   - Functions are available but not used yet
+   - No breaking changes
+
+2. **Phase 2: Add Feature Flag**
+
+   - Create feature flag: `USE_NEW_WORKFLOW_SYSTEM`
+   - Default: `false` (use old code)
+   - Add `USE_OLD_CODE_OR_NEW` parameter to all transition functions
+
+3. **Phase 3: Per-Screen Migration**
+
+   - Migrate one screen at a time
+   - Enable feature flag per tenant or globally
+   - Test thoroughly before enabling next screen
+   - Can rollback by setting flag to `false`
+
+4. **Phase 4: Complete Migration**
+   - All screens migrated
+   - Remove old code paths
+   - Remove feature flag (or keep for emergency rollback)
+
+#### Feature Flag Configuration
+
+```sql
+-- Add feature flag to hq_ff_feature_flags_mst
+INSERT INTO hq_ff_feature_flags_mst (
+  flag_key,
+  flag_name,
+  flag_description,
+  governance_category,
+  data_type,
+  default_value,
+  plan_binding_type,
+  enabled_plan_codes
+) VALUES (
+  'USE_NEW_WORKFLOW_SYSTEM',
+  'Use New Workflow System',
+  'Enable new database-driven workflow system with screen contracts',
+  'tenant_feature',
+  'boolean',
+  'false'::jsonb,
+  'plan_bound',
+  '["STARTER", "BUSINESS", "ENTERPRISE"]'::jsonb
+);
+```
+
+#### Rollback Strategy
+
+- Set `USE_NEW_WORKFLOW_SYSTEM` to `false` for affected tenants
+- Old code path remains available
+- No data migration needed (both systems use same tables)
 
 ### Phase 7.2: Data Migration
 
@@ -1140,7 +1227,7 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 1. ✅ All screens query database functions for PRE conditions (no hardcoded status filters)
 2. ✅ All transitions go through `cmx_ord_execute_screen_transition()` (no direct status updates)
-3. ✅ **Database triggers prevent direct status field updates**
+3. ✅ **Application-level enforcement prevents direct status field updates** (NO database triggers)
 4. ✅ Quality gates are enforced before Ready status
 5. ✅ Permission checks prevent unauthorized transitions
 6. ✅ Every transition writes to `org_order_history`
@@ -1154,6 +1241,11 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 14. ✅ **Schema fields match actual database structure**
 15. ✅ **Per-screen wrapper functions use `cmx_ord_*` prefix (e.g., `cmx_ord_preparation_*`, not `cmx_preparation_*`)**
 16. ✅ **Configuration tables use `sys_ord_*_cf` naming convention** (`sys_ord_screen_contracts_cf`, `sys_ord_custom_validations_cf`, `sys_ord_webhook_subscriptions_cf`)
+17. ✅ **Tenant-specific data tables use `org_ord_*` naming** (`org_ord_transition_events`)
+18. ✅ **Two-layer validation implemented** (screen/API validation + database validation)
+19. ✅ **Feature flags, plan limits, and settings integrated** into validation flow
+20. ✅ **Gradual migration strategy** using `USE_OLD_CODE_OR_NEW` feature flag
+21. ✅ **No database triggers** - status protection enforced at application level
 
 ---
 
@@ -1206,8 +1298,12 @@ $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 - [ ] Create enhanced screen contract functions SQL
 - [ ] **CRITICAL: Ensure ALL NEW functions use `cmx_ord_*` prefix** (core + wrappers)
 - [ ] **CRITICAL: Ensure ALL configuration tables use `sys_ord_*_cf` naming** (screen contracts, custom validations, webhook subscriptions)
+- [ ] **Tenant-specific data tables use `org_ord_*` naming** (transition events, workflow settings)
+- [ ] Implement two-layer validation (screen/API + database)
+- [ ] Integrate feature flags, plan limits, and settings checks
+- [ ] Add `USE_OLD_CODE_OR_NEW` feature flag for gradual migration
 - [ ] **Consider renaming legacy functions:** `cmx_order_transition()` → `cmx_ord_order_transition()`, `cmx_get_allowed_transitions()` → `cmx_ord_get_allowed_transitions()`
-- [ ] Create status field protection triggers
+- [ ] Implement application-level status field protection (NO triggers)
 - [ ] Create configurable screen contracts table: `sys_ord_screen_contracts_cf` (config)
 - [ ] Create custom validations table: `sys_ord_custom_validations_cf` (config)
 - [ ] Create transition events table: `org_ord_transition_events` (data/logs, NOT config)

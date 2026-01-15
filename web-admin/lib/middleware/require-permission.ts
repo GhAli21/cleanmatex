@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { hasPermissionServer } from '@/lib/services/permission-service-server'
+import { logger } from '@/lib/utils/logger'
 
 // ========================
 // Types
@@ -38,26 +39,14 @@ export async function getAuthContext(): Promise<AuthContext> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  console.log('[Jh] getAuthContext ( 1 ): User:', user)
 
   if (!user) {
     throw new Error('Unauthorized')
   }
-  console.log('[Jh] getAuthContext ( 2 ): Test get_user_tenants')
   const { data: tenants, error } = await supabase.rpc('get_user_tenants')
-  console.log('[Jh] getAuthContext ( 3 ): get_user_tenants(): tenants:', tenants)
-  console.log('[Jh] getAuthContext ( 4 ): error:', error)
   if (error || !tenants || tenants.length === 0) {
-    console.log('[Jh] getAuthContext ( 5 ): No tenant access found')
     throw new Error('No tenant access found')
   }
-  console.log('[Jh] getAuthContext ( 6 ): tenants[0].tenant_id:', tenants[0].tenant_id)
-  console.log('[Jh] getAuthContext ( 7 ): tenants[0].user_role:', tenants[0].user_role)
-  console.log('[Jh] getAuthContext ( 8 ): user.id:', user.id)
-  console.log('[Jh] getAuthContext ( 9 ): user.user_metadata?.full_name:', user.user_metadata?.full_name)
-  console.log('[Jh] getAuthContext ( 10 ): user.email:', user.email)
-  console.log('[Jh] getAuthContext ( 11 ): user.user_metadata?.tenant_id:', user.user_metadata?.tenant_id)
-  console.log('[Jh] getAuthContext ( 12 ): user.user_metadata?.role:', user.user_metadata?.role)
 
   return {
     user,
@@ -84,19 +73,19 @@ export function requirePermission(
   return async (request: NextRequest): Promise<AuthContext | NextResponse> => {
     try {
       const authContext = await getAuthContext()
-      console.log('[Jh] requirePermission ( 1 ): Auth context:', authContext)
-      console.log('[Jh] requirePermission ( 2 ): Permission:', permission)
-      console.log('[Jh] requirePermission ( 3 ): Options:', options)
       
       //const hasAccess = true;// true for testing
       let hasAccess = await hasPermissionServer(permission, options) 
       //hasAccess = false; // false for testing
       
-      console.log('[Jh] requirePermission ( 4 ): The access For Testing:', hasAccess)
-
       if (!hasAccess) {
-        console.log('[Jh] requirePermission ( 5 ): Permission denied')
-        console.log('[Jh] requirePermission ( 6 ): Error:', `Permission denied: ${permission}`)
+        logger.warn('Permission denied', {
+          feature: 'auth',
+          action: 'require_permission',
+          tenantId: authContext.tenantId,
+          userId: authContext.userId,
+          permission,
+        })
         return NextResponse.json(
           { error: `Permission denied: ${permission}` },
           { status: 403 }
@@ -105,10 +94,12 @@ export function requirePermission(
 
       return authContext
     } catch (error) {
-      console.log('[Jh] requirePermission ( 7 ): Error:', error)
       const message = error instanceof Error ? error.message : 'Unauthorized'
-      console.log('[Jh] requirePermission ( 8 ): Message:', message)
-      console.log('[Jh] requirePermission ( 9 ): Returning unauthorized response')
+      logger.warn('Unauthorized request', {
+        feature: 'auth',
+        action: 'require_permission',
+        message,
+      })
       return NextResponse.json({ error: message }, { status: 401 })
     }
   }

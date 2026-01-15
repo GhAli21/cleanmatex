@@ -11,6 +11,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
+import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useMessage } from '@ui/feedback';
 
 interface AssemblyItem {
   id: string;
@@ -34,18 +38,24 @@ export default function AssemblyDetailPage() {
   const params = useParams();
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
+  const { showSuccess, showErrorFrom } = useMessage();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  const transition = useOrderTransition();
   const [order, setOrder] = useState<AssemblyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const orderId = (params as any)?.id as string | undefined;
+  const { data: wfContext } = useWorkflowContext(orderId ?? null);
+
   useEffect(() => {
     const loadOrder = async () => {
-      if (!currentTenant || !params.id) return;
+      if (!currentTenant || !orderId) return;
       
       setLoading(true);
       try {
-        const res = await fetch(`/api/v1/orders/${params.id}/state`);
+        const res = await fetch(`/api/v1/orders/${orderId}/state`);
         const json = await res.json();
         if (json.success && json.data?.order) {
           setOrder(json.data.order);
@@ -58,29 +68,38 @@ export default function AssemblyDetailPage() {
     };
 
     loadOrder();
-  }, [params.id, currentTenant]);
+  }, [orderId, currentTenant]);
 
   const handleAssemble = async () => {
-    if (!params.id) return;
+    if (!orderId) return;
     setSubmitting(true);
     try {
-      // Transition to next stage (QA or READY depending on workflow)
-      const res = await fetch(`/api/v1/orders/${params.id}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toStatus: 'qa',
+      // Resolve next status using workflow context
+      const nextStatus =
+        wfContext?.flags?.qa_enabled
+          ? 'qa'
+          : wfContext?.flags?.packing_enabled
+          ? 'packing'
+          : 'ready';
+
+      const result = await transition.mutateAsync({
+        orderId,
+        input: {
+          screen: 'assembly',
+          to_status: nextStatus,
           notes: 'Assembly complete',
-        }),
+          useOldWfCodeOrNew: useNewWorkflowSystem,
+        },
       });
-      const json = await res.json();
-      if (json.success && params.id) {
-        router.push(`/dashboard/orders/${params.id}`);
+
+      if (result.success) {
+        showSuccess(t('assembly.messages.taskCreated'));
+        router.push(nextStatus === 'qa' ? '/dashboard/qa' : nextStatus === 'packing' ? '/dashboard/packing' : '/dashboard/ready');
       } else {
-        setError(json.error || 'Failed to complete assembly');
+        setError(result.error || t('assembly.messages.taskCreateFailed'));
       }
     } catch (err: any) {
-      setError(err.message);
+      showErrorFrom(err, { fallback: t('assembly.messages.taskCreateFailed') });
     } finally {
       setSubmitting(false);
     }
@@ -106,9 +125,9 @@ export default function AssemblyDetailPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <Link href="/dashboard/assembly" className="text-blue-600 hover:underline mb-2 inline-block">
-          ← Back to Assembly
+          ← {t('assembly.backToAssembly')}
         </Link>
-        <h1 className="text-3xl font-bold">Assembly - {order.order_no}</h1>
+        <h1 className="text-3xl font-bold">{t('screens.assembly')} - {order.order_no}</h1>
         <p className="text-gray-600 mt-1">{order.customer.name} • {order.customer.phone}</p>
       </div>
 
@@ -122,16 +141,16 @@ export default function AssemblyDetailPage() {
         {/* Items List */}
         <div className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="font-semibold mb-4">Verify Items</h3>
+            <h3 className="font-semibold mb-4">{t('assemblyDetail.verifyItems')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium">{item.product_name}</p>
-                    <p className="text-sm text-gray-600">Quantity: {item.quantity}</p>
+                    <p className="text-sm text-gray-600">{t('assemblyDetail.quantity')}: {item.quantity}</p>
                   </div>
                   <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
-                    Ready
+                    {t('assemblyDetail.ready')}
                   </span>
                 </div>
               ))}
@@ -140,7 +159,7 @@ export default function AssemblyDetailPage() {
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
             <p className="text-sm text-yellow-800">
-              Scan each item to verify all pieces are present before proceeding to QA.
+              {t('assemblyDetail.hint')}
             </p>
           </div>
         </div>
@@ -148,14 +167,14 @@ export default function AssemblyDetailPage() {
         {/* Actions Panel */}
         <div className="space-y-4">
           <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="font-semibold mb-4">Assembly Actions</h3>
+            <h3 className="font-semibold mb-4">{t('assemblyDetail.actionsTitle')}</h3>
             
             <button
               onClick={handleAssemble}
               disabled={submitting}
               className="w-full px-4 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
             >
-              {submitting ? 'Processing...' : 'Complete Assembly'}
+              {submitting ? t('assemblyDetail.processing') : t('assemblyDetail.complete')}
             </button>
           </div>
         </div>

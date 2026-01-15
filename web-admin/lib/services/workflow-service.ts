@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 import type {
   OrderStatus,
   ChangeStatusParams,
@@ -40,15 +41,11 @@ export class WorkflowService {
         notes,
         metadata,
       } = params;
-      console.log('[Jh] 1. WorkflowService.changeStatus: params:'
-        , JSON.stringify(params, null, 2));
       // Build payload for DB function
       const payload = {
         notes,
         ...metadata,
       };
-      console.log('[Jh] 2. WorkflowService.changeStatus: payload:'
-        , JSON.stringify(payload, null, 2));
       // Call DB function to perform transition
       const { data, error: functionError } = await supabase.rpc(
         'cmx_order_transition',
@@ -62,12 +59,17 @@ export class WorkflowService {
         }
       );
       
-      console.log('[Jh] 3. WorkflowService.changeStatus: data:' + JSON.stringify(data, null, 2));
-      console.log('[Jh] 3.1 WorkflowService.changeStatus: functionError:' + JSON.stringify(functionError, null, 2));
-
       if (functionError || !data) {
-        console.log('[Jh] 3.2 WorkflowService.changeStatus: functionError or !data:' + JSON.stringify(functionError || !data, null, 2));
-        console.log('[Jh] 3.3 WorkflowService.changeStatus: functionError?.message:' + JSON.stringify(functionError?.message, null, 2));
+        logger.warn('Order transition failed (db function)', {
+          feature: 'workflow',
+          action: 'change_status',
+          tenantId,
+          orderId,
+          fromStatus,
+          toStatus,
+          userId,
+          message: functionError?.message ?? 'No data returned',
+        });
         return {
           success: false,
           error: functionError?.message || 'Transition failed',
@@ -92,7 +94,14 @@ export class WorkflowService {
           toStatus,
         });
       } catch (hookErr) {
-        console.warn('Workflow hooks failed:', hookErr);
+        logger.warn('Workflow hooks failed (non-blocking)', {
+          feature: 'workflow',
+          action: 'hooks',
+          tenantId,
+          orderId,
+          fromStatus,
+          toStatus,
+        });
       }
 
       return {
@@ -104,7 +113,11 @@ export class WorkflowService {
         },
       };
     } catch (error) {
-      console.error('WorkflowService.changeStatus error:', error);
+      logger.error(
+        'WorkflowService.changeStatus error',
+        error instanceof Error ? error : new Error('Unknown error'),
+        { feature: 'workflow', action: 'change_status' }
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -170,7 +183,11 @@ export class WorkflowService {
 
       return { isAllowed: true };
     } catch (error) {
-      console.error('WorkflowService.isTransitionAllowed error:', error);
+      logger.error(
+        'WorkflowService.isTransitionAllowed error',
+        error instanceof Error ? error : new Error('Unknown error'),
+        { feature: 'workflow', action: 'is_transition_allowed' }
+      );
       // Fail safe: allow transition if check fails
       return { isAllowed: true };
     }
@@ -216,7 +233,11 @@ export class WorkflowService {
         'CLOSED',
       ];
     } catch (error) {
-      console.error('WorkflowService.getWorkflowForTenant error:', error);
+      logger.error(
+        'WorkflowService.getWorkflowForTenant error',
+        error instanceof Error ? error : new Error('Unknown error'),
+        { feature: 'workflow', action: 'get_workflow_for_tenant', tenantId }
+      );
       // Return default workflow on error
       return [
         'DRAFT',

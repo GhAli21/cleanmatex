@@ -16,6 +16,10 @@ import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
+import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useMessage } from '@ui/feedback';
 
 interface ProcessingItem {
   id: string;
@@ -51,6 +55,9 @@ export default function ProcessingDetailPage() {
   const t = useTranslations('processing');
   const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
+  const { showSuccess, showErrorFrom } = useMessage();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  const transition = useOrderTransition();
   const [order, setOrder] = useState<ProcessingOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -58,13 +65,16 @@ export default function ProcessingDetailPage() {
   const [rackLocation, setRackLocation] = useState('');
   const [rackLocationError, setRackLocationError] = useState('');
 
+  const orderId = (params as any)?.id as string | undefined;
+  const { data: wfContext } = useWorkflowContext(orderId ?? null);
+
   const loadOrder = async () => {
-    if (!currentTenant || !params.id) return;
+    if (!currentTenant || !orderId) return;
     
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/v1/orders/${params.id}/state`);
+      const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
       if (json.success && json.data?.order) {
         setOrder(json.data.order);
@@ -81,14 +91,14 @@ export default function ProcessingDetailPage() {
 
   useEffect(() => {
     loadOrder();
-  }, [params.id, currentTenant]);
+  }, [orderId, currentTenant]);
 
   const handleRecordStep = async (itemId: string, stepCode: string, stepSeq: number) => {
-    if (!params.id) return;
+    if (!orderId) return;
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch(`/api/v1/orders/${params.id}/items/${itemId}/step`, {
+      const res = await fetch(`/api/v1/orders/${orderId}/items/${itemId}/step`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,8 +122,20 @@ export default function ProcessingDetailPage() {
 
   const handleMarkReady = async () => {
     setRackLocationError('');
-    
-    if (!rackLocation.trim()) {
+
+    if (!orderId) return;
+
+    // Resolve next status based on workflow flags
+    const nextStatus =
+      wfContext?.flags?.assembly_enabled
+        ? 'assembly'
+        : wfContext?.flags?.qa_enabled
+        ? 'qa'
+        : wfContext?.flags?.packing_enabled
+        ? 'packing'
+        : 'ready';
+
+    if (nextStatus === 'ready' && !rackLocation.trim()) {
       setRackLocationError(t('validation.rackLocationRequired') || 'Rack location is required');
       return;
     }
@@ -121,24 +143,33 @@ export default function ProcessingDetailPage() {
     setSubmitting(true);
     setError('');
     try {
-      if (!params.id) return;
-      const res = await fetch(`/api/v1/orders/${params.id}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toStatus: 'ready',
-          rackLocation,
+      const result = await transition.mutateAsync({
+        orderId,
+        input: {
+          screen: 'processing',
+          to_status: nextStatus,
           notes: 'Processing complete',
-        }),
+          useOldWfCodeOrNew: useNewWorkflowSystem,
+          rackLocation: rackLocation.trim() || undefined,
+        },
       });
-      const json = await res.json();
-      if (json.success && params.id) {
-        router.push(`/dashboard/orders/${params.id}`);
+
+      if (result.success) {
+        showSuccess(t('success.transitioned') || 'Transitioned');
+        const nextRoute =
+          nextStatus === 'assembly'
+            ? '/dashboard/assembly'
+            : nextStatus === 'qa'
+            ? '/dashboard/qa'
+            : nextStatus === 'packing'
+            ? '/dashboard/packing'
+            : '/dashboard/ready';
+        router.push(nextRoute);
       } else {
-        setError(json.error || t('error.transitionFailed') || 'Failed to transition to ready');
+        setError(result.error || t('error.transitionFailed') || 'Transition failed');
       }
-    } catch (err: any) {
-      setError(err.message || t('error.transitionFailed') || 'Failed to transition to ready');
+    } catch (err) {
+      showErrorFrom(err, { fallback: t('error.transitionFailed') || 'Transition failed' });
     } finally {
       setSubmitting(false);
     }

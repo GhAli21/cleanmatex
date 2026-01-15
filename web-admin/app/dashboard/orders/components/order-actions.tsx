@@ -21,6 +21,9 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import { useMessage } from '@ui/feedback';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useScreenContract } from '@/lib/hooks/use-screen-contract';
 import { Button } from '@/components/ui/Button';
 import {
   Dialog,
@@ -42,15 +45,23 @@ interface OrderActionsProps {
     status: string;
     tenant_org_id: string;
   };
+  /**
+   * Optional screen identifier for workflow validation/transition routing.
+   * Defaults to "orders".
+   */
+  screen?: string;
 }
 
-export function OrderActions({ order }: OrderActionsProps) {
+export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
   const router = useRouter();
   const t = useTranslations('orders.actions');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
   const { showSuccess, showErrorFrom, showError } = useMessage();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  const { data: screenContract, isLoading: screenContractLoading } = useScreenContract(screen);
+  const transition = useOrderTransition();
   const [loading, setLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | null>(null);
@@ -70,7 +81,7 @@ export function OrderActions({ order }: OrderActionsProps) {
           }
         }
       } catch (error) {
-        console.error('Failed to fetch allowed transitions:', error);
+        // Non-blocking: leave buttons hidden if transitions cannot be fetched
       }
     }
 
@@ -91,18 +102,18 @@ export function OrderActions({ order }: OrderActionsProps) {
     setBlockers([]);
 
     try {
-      const response = await fetch(`/api/v1/orders/${order.id}/transition`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          toStatus: selectedStatus,
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const canUseEnhancedWorkflow = useNewWorkflowSystem && !!screenContract && !screenContractLoading;
 
-      const data = await response.json();
+      const data = await transition.mutateAsync({
+        orderId: order.id,
+        input: {
+          screen,
+          to_status: selectedStatus,
+          notes: notes.trim() || undefined,
+          // If enhanced isn't available for this screen (missing contract), force OLD path safely.
+          useOldWfCodeOrNew: canUseEnhancedWorkflow,
+        },
+      });
 
       if (data.success) {
         const statusLabel = locale === 'ar' 
@@ -120,7 +131,6 @@ export function OrderActions({ order }: OrderActionsProps) {
         }
       }
     } catch (error) {
-      console.error('Failed to change status:', error);
       showErrorFrom(error, { fallback: t('errors.updateFailed') });
     } finally {
       setLoading(false);
@@ -135,7 +145,7 @@ export function OrderActions({ order }: OrderActionsProps) {
   };
 
   // Quick action buttons for common transitions
-  const currentStatus = order.status.toUpperCase() as OrderStatus;
+  const currentStatus = (order.status || '').toLowerCase() as OrderStatus;
   const canMoveTo = (status: OrderStatus) => allowedTransitions.includes(status);
 
   // Generate action buttons based on current status

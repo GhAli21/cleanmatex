@@ -1,16 +1,15 @@
 /**
  * Assembly Screen - List Page
- * Shows orders in ASSEMBLY status (conditional on tenant settings)
- * PRD-010: Workflow-based assembly
+ * Shows orders based on screen contract for "assembly"
  */
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import Link from 'next/link';
+import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useAssemblyDashboard, useCreateAssemblyTask } from '@/src/features/assembly/hooks/use-assembly';
 import { AssemblyTaskModal } from '@/src/features/assembly/ui/assembly-task-modal';
 import { useMessage } from '@ui/feedback/useMessage';
@@ -22,104 +21,42 @@ import { Package, AlertTriangle, CheckCircle2 } from 'lucide-react';
 interface AssemblyOrder {
   id: string;
   order_no: string;
-  customer: {
-    name: string;
-    phone: string;
-  };
+  customer: { name: string; phone: string };
   total_items: number;
   current_status: string;
 }
 
 export default function AssemblyPage() {
-  const router = useRouter();
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
-  const [orders, setOrders] = useState<AssemblyOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  
-  const { data: dashboardData, isLoading: dashboardLoading } = useAssemblyDashboard();
-  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
   const { showSuccess, showError: showErrorMsg } = useMessage();
 
-  const [pagination, setPagination] = useState({
-    page: 1,
+  const [page, setPage] = useState(1);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const { data: dashboardData } = useAssemblyDashboard();
+  const { mutateAsync: createTask, isPending: isCreatingTask } = useCreateAssemblyTask();
+
+  const { orders: rawOrders, pagination, isLoading, error, refetch } = useScreenOrders<any>('assembly', {
+    page,
     limit: 20,
-    total: 0,
-    totalPages: 0,
+    enabled: !!currentTenant,
+    fallbackStatuses: ['ready', 'assembly'],
   });
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      if (!currentTenant) return;
-      
-      setLoading(true);
-      try {
-        const params = new URLSearchParams({
-          current_status: 'ready,assembly',
-          page: String(pagination.page),
-          limit: '20',
-        });
-        const res = await fetch(`/api/v1/orders?${params.toString()}`);
-        const json = await res.json();
-        if (json.success && json.data?.orders) {
-          // Transform orders to ensure customer data is properly structured
-          const transformedOrders = json.data.orders.map((order: any) => {
-            // Handle different customer data structures from API
-            let customer = order.customer;
-            
-            // If customer is not directly available, try to get it from org_customers_mst
-            if (!customer && order.org_customers_mst) {
-              const orgCustomer = Array.isArray(order.org_customers_mst) 
-                ? order.org_customers_mst[0] 
-                : order.org_customers_mst;
-              
-              if (orgCustomer) {
-                // Prefer sys_customers_mst data if available, otherwise use org_customers_mst
-                const sysCustomer = orgCustomer.sys_customers_mst;
-                customer = {
-                  name: sysCustomer?.name || orgCustomer.name || 'Unknown Customer',
-                  phone: sysCustomer?.phone || orgCustomer.phone || 'N/A',
-                };
-              }
-            }
-            
-            // Ensure customer object exists with defaults
-            if (!customer) {
-              customer = {
-                name: 'Unknown Customer',
-                phone: 'N/A',
-              };
-            }
-            
-            return {
-              ...order,
-              customer,
-            };
-          });
-          
-          setOrders(transformedOrders);
-          setPagination(json.data.pagination || { page: pagination.page, limit: 20, total: 0, totalPages: 0 });
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load orders');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadOrders();
-  }, [currentTenant, pagination.page]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
-      </div>
-    );
-  }
+  const orders: AssemblyOrder[] = useMemo(() => {
+    return (rawOrders ?? []).map((order: any) => ({
+      id: order.id,
+      order_no: order.order_no,
+      total_items: order.total_items || 0,
+      current_status: order.current_status || order.status || 'assembly',
+      customer: {
+        name: order.customer?.name || 'Unknown Customer',
+        phone: order.customer?.phone || 'N/A',
+      },
+    }));
+  }, [rawOrders]);
 
   const handleAssembleOrder = async (orderId: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -130,48 +67,35 @@ export default function AssemblyPage() {
       if (result.success && result.taskId) {
         setSelectedOrderId(orderId);
         setSelectedTaskId(result.taskId);
-        showSuccess('Assembly task created');
+        showSuccess(t('assembly.messages.taskCreated'));
       }
-    } catch (error: any) {
-      showErrorMsg(error.message || 'Failed to create assembly task');
+    } catch (err: any) {
+      showErrorMsg(err?.message || t('assembly.messages.taskCreateFailed'));
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <h1 className="text-3xl font-bold">{t('screens.assembly')}</h1>
-        <p className="text-gray-600 mt-1">Orders ready for assembly</p>
+        <p className="text-gray-600 mt-1">{t('assembly.description')}</p>
       </div>
 
-      {/* Dashboard Stats */}
       {dashboardData && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-          <CmxKpiStatCard
-            title="Pending"
-            value={dashboardData.pendingTasks}
-            icon={<Package className="h-5 w-5" />}
-          />
-          <CmxKpiStatCard
-            title="In Progress"
-            value={dashboardData.inProgressTasks}
-            icon={<Package className="h-5 w-5" />}
-          />
-          <CmxKpiStatCard
-            title="QA Pending"
-            value={dashboardData.qaPendingTasks}
-            icon={<CheckCircle2 className="h-5 w-5" />}
-          />
-          <CmxKpiStatCard
-            title="Completed Today"
-            value={dashboardData.completedToday}
-            icon={<CheckCircle2 className="h-5 w-5" />}
-          />
-          <CmxKpiStatCard
-            title="Open Exceptions"
-            value={dashboardData.exceptionsOpen}
-            icon={<AlertTriangle className="h-5 w-5" />}
-          />
+          <CmxKpiStatCard title={t('assembly.stats.pending')} value={dashboardData.pendingTasks} icon={<Package className="h-5 w-5" />} />
+          <CmxKpiStatCard title={t('assembly.stats.inProgress')} value={dashboardData.inProgressTasks} icon={<Package className="h-5 w-5" />} />
+          <CmxKpiStatCard title={t('assembly.stats.qaPending')} value={dashboardData.qaPendingTasks} icon={<CheckCircle2 className="h-5 w-5" />} />
+          <CmxKpiStatCard title={t('assembly.stats.completedToday')} value={dashboardData.completedToday} icon={<CheckCircle2 className="h-5 w-5" />} />
+          <CmxKpiStatCard title={t('assembly.stats.openExceptions')} value={dashboardData.exceptionsOpen} icon={<AlertTriangle className="h-5 w-5" />} />
         </div>
       )}
 
@@ -184,36 +108,33 @@ export default function AssemblyPage() {
       {orders.length === 0 ? (
         <CmxCard>
           <CmxCardContent className="py-12 text-center">
-            <p className="text-gray-600 text-lg">No orders in assembly</p>
+            <p className="text-gray-600 text-lg">{t('assembly.empty')}</p>
           </CmxCardContent>
         </CmxCard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {orders.map((order) => (
-            <CmxCard
-              key={order.id}
-              className="hover:shadow-lg transition-all cursor-pointer"
-            >
+            <CmxCard key={order.id} className="hover:shadow-lg transition-all cursor-pointer">
               <CmxCardContent className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <Link
-                    href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}&returnLabel=${encodeURIComponent('Back to Assembly')}`}
+                    href={`/dashboard/assembly/${order.id}?returnUrl=${encodeURIComponent('/dashboard/assembly')}`}
                     className="text-xl font-bold text-blue-600 hover:underline"
                   >
                     {order.order_no}
                   </Link>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                    {order.total_items} items
+                    {order.total_items} {t('assembly.items')}
                   </span>
                 </div>
-                
+
                 <div className="space-y-2 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">Customer:</span>
+                    <span className="font-medium">{t('labels.customer')}:</span>
                     <span>{order.customer.name}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">Phone:</span>
+                    <span className="font-medium">{t('labels.phone')}:</span>
                     <span>{order.customer.phone}</span>
                   </div>
                 </div>
@@ -225,8 +146,8 @@ export default function AssemblyPage() {
                     loading={isCreatingTask}
                     disabled={isCreatingTask}
                   >
-                    <Package className="h-4 w-4 mr-2" />
-                    Assemble Order
+                    <Package className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                    {t('assembly.actions.assembleOrder')}
                   </CmxButton>
                 </div>
               </CmxCardContent>
@@ -235,7 +156,30 @@ export default function AssemblyPage() {
         </div>
       )}
 
-      {/* Assembly Task Modal */}
+      {pagination.totalPages > 1 && (
+        <div className="mt-6 flex items-center justify-between">
+          <button
+            type="button"
+            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            disabled={page <= 1}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+          >
+            {t('labels.previous')}
+          </button>
+          <div className="text-sm text-gray-600">
+            {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
+          </div>
+          <button
+            type="button"
+            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            disabled={page >= pagination.totalPages}
+            onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+          >
+            {t('labels.next')}
+          </button>
+        </div>
+      )}
+
       {selectedOrderId && selectedTaskId && (
         <AssemblyTaskModal
           orderId={selectedOrderId}
@@ -245,12 +189,14 @@ export default function AssemblyPage() {
             setSelectedTaskId(null);
           }}
           onComplete={() => {
-            // Refresh orders list
-            window.location.reload();
+            setSelectedOrderId(null);
+            setSelectedTaskId(null);
+            refetch();
           }}
         />
       )}
     </div>
   );
 }
+
 

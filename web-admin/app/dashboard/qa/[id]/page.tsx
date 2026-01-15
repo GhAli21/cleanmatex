@@ -6,11 +6,15 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
+import { useOrderTransition } from '@/lib/hooks/use-order-transition';
+import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useMessage } from '@ui/feedback';
 
 interface QAItem {
   id: string;
@@ -34,18 +38,24 @@ export default function QADetailPage() {
   const params = useParams();
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
+  const { showSuccess, showErrorFrom } = useMessage();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  const transition = useOrderTransition();
   const [order, setOrder] = useState<QAOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const orderId = (params as any)?.id as string | undefined;
+  const { data: wfContext } = useWorkflowContext(orderId ?? null);
+
   useEffect(() => {
     const loadOrder = async () => {
-      if (!currentTenant || !params.id) return;
+      if (!currentTenant || !orderId) return;
       
       setLoading(true);
       try {
-        const res = await fetch(`/api/v1/orders/${params.id}/state`);
+        const res = await fetch(`/api/v1/orders/${orderId}/state`);
         const json = await res.json();
         if (json.success && json.data?.order) {
           setOrder(json.data.order);
@@ -58,39 +68,42 @@ export default function QADetailPage() {
     };
 
     loadOrder();
-  }, [params.id, currentTenant]);
+  }, [orderId, currentTenant]);
 
   const handleAccept = async () => {
-    if (!params.id) return;
+    if (!orderId) return;
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/v1/orders/${params.id}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toStatus: 'ready',
+      // next status depends on packing flag
+      const nextStatus = wfContext?.flags?.packing_enabled ? 'packing' : 'ready';
+      const result = await transition.mutateAsync({
+        orderId,
+        input: {
+          screen: 'qa',
+          to_status: nextStatus,
           notes: 'QA passed',
-        }),
+          useOldWfCodeOrNew: useNewWorkflowSystem,
+        },
       });
-      const json = await res.json();
-      if (json.success && params.id) {
-        router.push(`/dashboard/orders/${params.id}`);
+      if (result.success) {
+        showSuccess(t('qa.messages.acceptSuccess'));
+        router.push(nextStatus === 'packing' ? '/dashboard/packing' : '/dashboard/ready');
       } else {
-        setError(json.error || 'Failed to accept order');
+        setError(result.error || t('qa.messages.acceptFailed'));
       }
     } catch (err: any) {
-      setError(err.message);
+      showErrorFrom(err, { fallback: t('qa.messages.acceptFailed') });
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleReject = async (itemId: string, reason: string) => {
-    if (!params.id) return;
+    if (!orderId) return;
     setSubmitting(true);
     try {
       // Create issue and transition back to processing
-      await fetch(`/api/v1/orders/${params.id}/issue`, {
+      await fetch(`/api/v1/orders/${orderId}/issue`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,23 +115,24 @@ export default function QADetailPage() {
       });
 
       // Transition back to processing
-      const res = await fetch(`/api/v1/orders/${params.id}/transition`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          toStatus: 'processing',
+      const result = await transition.mutateAsync({
+        orderId,
+        input: {
+          screen: 'qa',
+          to_status: 'processing',
           notes: 'QA rejected - returning to processing',
-        }),
+          useOldWfCodeOrNew: useNewWorkflowSystem,
+        },
       });
-      
-      const json = await res.json();
-      if (json.success && params.id) {
-        router.push(`/dashboard/orders/${params.id}`);
+
+      if (result.success) {
+        showSuccess(t('qa.messages.rejectSuccess'));
+        router.push('/dashboard/processing');
       } else {
-        setError(json.error || 'Failed to reject order');
+        setError(result.error || t('qa.messages.rejectFailed'));
       }
     } catch (err: any) {
-      setError(err.message);
+      showErrorFrom(err, { fallback: t('qa.messages.rejectFailed') });
     } finally {
       setSubmitting(false);
     }
@@ -144,9 +158,9 @@ export default function QADetailPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <Link href="/dashboard/qa" className="text-blue-600 hover:underline mb-2 inline-block">
-          ← Back to QA
+          ← {t('qa.actions.backToQa')}
         </Link>
-        <h1 className="text-3xl font-bold">Quality Check - {order.order_no}</h1>
+        <h1 className="text-3xl font-bold">{t('screens.qa')} - {order.order_no}</h1>
         <p className="text-gray-600 mt-1">{order.customer.name} • {order.customer.phone}</p>
       </div>
 
@@ -176,14 +190,14 @@ export default function QADetailPage() {
                     disabled={submitting}
                     className="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    ✓ Accept
+                    ✓ {t('qa.actions.accept')}
                   </button>
                   <button
                     onClick={() => handleReject(item.id, 'Quality issue found')}
                     disabled={submitting}
                     className="flex-1 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
                   >
-                    ✗ Reject
+                    ✗ {t('qa.actions.reject')}
                   </button>
                 </div>
               </div>
@@ -201,7 +215,7 @@ export default function QADetailPage() {
               disabled={submitting}
               className="w-full px-4 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
             >
-              {submitting ? 'Processing...' : 'Accept All Items'}
+              {submitting ? t('qa.actions.processing') : t('qa.actions.acceptAll')}
             </button>
           </div>
         </div>

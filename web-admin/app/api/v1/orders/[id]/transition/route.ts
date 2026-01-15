@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
+import { WorkflowServiceEnhanced } from '@/lib/services/workflow-service-enhanced';
 import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import type { OrderStatus } from '@/lib/types/workflow';
@@ -8,6 +9,7 @@ import type { OrderStatus } from '@/lib/types/workflow';
 /**
  * POST /api/v1/orders/[id]/transition
  * PRD-010: Transition order with permission validation
+ * Supports USE_OLD_WF_CODE_OR_NEW parameter for gradual migration
  * Requires: orders:transition permission
  */
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -22,12 +24,84 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { tenantId, userId, userName } = authCheck;
 
     const body = await request.json();
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: Request body:'
-      , JSON.stringify(body, null, 2));
 
-    const parsed = TransitionRequestSchema.safeParse(body);
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: parsed:'
-      , JSON.stringify(parsed, null, 2));
+    // Support both old and new request formats
+    const useOldWfCodeOrNew = body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
+    const screen = body.screen;
+    const authHeader = request.headers.get('Authorization');
+
+    // If using new workflow system with screen parameter
+    if (screen && useOldWfCodeOrNew !== false) {
+      try {
+        const result = await WorkflowServiceEnhanced.executeScreenTransition(
+          screen,
+          id,
+          {
+            to_status: body.toStatus,
+            notes: body.notes,
+            ...body.input,
+            user_name: userName,
+            metadata: body.metadata,
+          },
+          {
+            useOldWfCodeOrNew: useOldWfCodeOrNew !== false,
+            authHeader,
+          }
+        );
+
+        return NextResponse.json({
+          success: result.ok,
+          ok: result.ok,
+          data: {
+            order: {
+              id: result.order_id,
+              status: result.to_status,
+            },
+          },
+          error: result.message,
+        });
+      } catch (error: any) {
+        // Handle enhanced workflow errors
+        const statusCode =
+          error instanceof WorkflowServiceEnhanced.ValidationError ||
+          error instanceof WorkflowServiceEnhanced.PermissionError ||
+          error instanceof WorkflowServiceEnhanced.FeatureFlagError ||
+          error instanceof WorkflowServiceEnhanced.SettingsError
+            ? 400
+            : error instanceof WorkflowServiceEnhanced.LimitExceededError
+            ? 402
+            : error instanceof WorkflowServiceEnhanced.QualityGateError
+            ? 400
+            : 500;
+
+        return NextResponse.json(
+          {
+            success: false,
+            ok: false,
+            error: error.message,
+            code: error.code || error.name,
+            blockers: error.blockers,
+            details: error.details,
+          },
+          { status: statusCode }
+        );
+      }
+    }
+
+    // Fallback to old workflow system
+    // IMPORTANT: allow clients to always send the "new format" body shape
+    // (screen/input/useOldWfCodeOrNew) even when explicitly using the OLD workflow system.
+    const normalizedLegacyBody = {
+      toStatus:
+        body.toStatus ??
+        body.to_status ??
+        body.input?.toStatus ??
+        body.input?.to_status,
+      notes: body.notes ?? body.input?.notes,
+      metadata: body.metadata ?? body.input?.metadata,
+    };
+
+    const parsed = TransitionRequestSchema.safeParse(normalizedLegacyBody);
 
     if (!parsed.success) {
       const errorDetails = parsed.error.issues?.map(e => ({
@@ -35,8 +109,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         message: e.message,
         code: e.code,
       })) || [];
-      
-      console.error('[Jh] POST /api/v1/orders/[id]/transition: Validation failed:' + JSON.stringify(errorDetails, null, 2));
       
       return NextResponse.json(
         { 
@@ -47,11 +119,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { status: 400 }
       );
     }
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: Parsed data:'
-      + JSON.stringify(parsed.data, null, 2));
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: toStatus:' + parsed.data.toStatus);
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: notes:' + parsed.data.notes);
-    console.log('[Jh] POST /api/v1/orders/[id]/transition: metadata:' + JSON.stringify(parsed.data.metadata, null, 2));
       
     const toStatus = parsed.data.toStatus;
     const notes = parsed.data.notes;

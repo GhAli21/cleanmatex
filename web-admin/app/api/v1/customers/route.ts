@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 import {
   createCustomer,
   searchCustomers,
@@ -40,8 +41,6 @@ async function getAuthContext() {
   if (error || !tenants || tenants.length === 0) {
     throw new Error('No tenant access found' + error?.message);
   }
-  console.log('Jh In getAuthContext(): tenants[0].tenant_id', tenants[0].tenant_id);
-  console.log('Jh In getAuthContext(): tenants[0].user_role', tenants[0].user_role);
   // Use the first tenant (current tenant)
   const tenantId = tenants[0].tenant_id;
   const userRole = tenants[0].user_role;
@@ -140,7 +139,11 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating customer:', error);
+    logger.error(
+      'Error creating customer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'create' }
+    );
 
     if (error instanceof Error) {
       // Handle specific error messages from service
@@ -192,12 +195,9 @@ export async function GET(request: NextRequest) {
     const searchAllOptions = searchParams.get('searchAllOptions') === 'true';
 
     // If all=true, return all customers for the provided tenant_org_id or current session tenant
-    console.log('[Jh] GET /api/v1/customers: all=', all);
     if (all) {
       //const tenantOrgId = searchParams.get('tenant_org_id');
-      console.log('[Jh] GET /api/v1/customers: start getAllTenantCustomers()');
       const customers = await getAllTenantCustomers();//tenantOrgId);
-      console.log('[Jh] GET /api/v1/customers: success getAllTenantCustomers()', customers?.length || 0);
       return NextResponse.json({ success: true, data: { customers } }, { status: 200 });
     }
 
@@ -205,8 +205,6 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const limit = parseInt(searchParams.get('limit') || '100', 100);
     const page = parseInt(searchParams.get('page') || '1', 10);
-
-    console.log('[Jh] GET /api/v1/customers: start searchCustomersProgressive()', { search, limit, page, searchAllOptions });
 
     // Use progressive search
     const result = await searchCustomersProgressive({
@@ -220,14 +218,16 @@ export async function GET(request: NextRequest) {
       sortOrder: 'desc'
     });
 
-    console.log('[Jh] GET /api/v1/customers: success searchCustomersProgressive()', result.customers?.length || 0);
-
     return NextResponse.json({ 
       success: true, 
       data: { customers: result.customers || [] } 
     }, { status: 200 });
   } catch (error) {
-    console.error('[Jh] GET /api/v1/customers: error', error);
+    logger.error(
+      'Failed to fetch customers',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'list' }
+    );
     return NextResponse.json(
       { success: false, error: 'Failed to fetch customers' },
       { status: 500 }
