@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 
 interface ReadyOrder {
   id: string;
@@ -25,12 +26,14 @@ interface ReadyOrder {
 export default function ReadyPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
   const [page, setPage] = useState(1);
 
   const { orders: rawOrders, pagination, isLoading, error } = useScreenOrders<any>('ready', {
     page,
     limit: 20,
     enabled: !!currentTenant,
+    useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['ready'],
   });
 

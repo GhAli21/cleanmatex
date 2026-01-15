@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { PackageCheck } from 'lucide-react';
@@ -25,12 +26,14 @@ interface PackingOrder {
 export default function PackingPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
 
   const [page, setPage] = useState(1);
   const { orders: rawOrders, pagination, isLoading, error } = useScreenOrders<any>('packing', {
     page,
     limit: 20,
     enabled: !!currentTenant,
+    useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['packing'],
   });
 

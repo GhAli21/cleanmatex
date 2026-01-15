@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { CmxKpiStatCard } from '@ui/data-display/cmx-kpi-stat-card';
 import { Package, ShoppingBag } from 'lucide-react';
 
@@ -37,12 +38,14 @@ interface PreparationOrder {
 export default function PreparationPage() {
   const t = useTranslations('workflow');
   const { currentTenant } = useAuth();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
   const [page, setPage] = useState(1);
 
   const { orders, pagination, isLoading, error } = useScreenOrders<PreparationOrder>('preparation', {
     page,
     limit: 20,
     enabled: !!currentTenant,
+    useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['intake', 'preparing'],
   });
 

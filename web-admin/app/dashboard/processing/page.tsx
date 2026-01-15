@@ -14,6 +14,7 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import type {
   ProcessingOrder,
   ProcessingStats,
@@ -32,6 +33,7 @@ export default function ProcessingPage() {
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
   const { currentTenant, isLoading: authLoading } = useAuth();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
 
   const [filters, setFilters] = useState<ProcessingFilters>({});
   const [sortField, setSortField] = useState<SortField>('ready_by_at');
@@ -47,6 +49,7 @@ export default function ProcessingPage() {
     page,
     limit: 20,
     enabled: !!currentTenant && !authLoading,
+    useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['processing'],
     additionalFilters: {
       include_items: true,

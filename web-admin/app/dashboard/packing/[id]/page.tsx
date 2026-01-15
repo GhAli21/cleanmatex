@@ -123,7 +123,7 @@ export default function PackingDetailPage() {
         input: {
           screen: 'packing',
           to_status: 'ready',
-          notes: 'Packing complete',
+          notes: undefined,
           useOldWfCodeOrNew: useNewWorkflowSystem,
         },
       });

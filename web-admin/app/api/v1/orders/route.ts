@@ -109,6 +109,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '20');
     const includeItems = searchParams.get('include_items') === 'true';
+    const createdAfter = searchParams.get('created_after');
+    const updatedAfter = searchParams.get('updated_after');
     
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -203,6 +205,14 @@ export async function GET(request: NextRequest) {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
     query = query.range(from, to);
+
+    // Optional time filters (ISO timestamps)
+    if (createdAfter) {
+      query = query.gte('created_at', createdAfter);
+    }
+    if (updatedAfter) {
+      query = query.gte('updated_at', updatedAfter);
+    }
 
     // Sorting
     query = query.order('created_at', { ascending: false });

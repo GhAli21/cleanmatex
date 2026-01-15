@@ -81,6 +81,35 @@ export interface CapturePODResult {
   error?: string;
 }
 
+export interface DeliveryRouteListItem {
+  id: string;
+  route_number: string;
+  route_status_code: string;
+  driver_id: string | null;
+  total_stops: number;
+  completed_stops: number;
+  created_at: string;
+}
+
+export interface ListRoutesParams {
+  tenantId: string;
+  page?: number;
+  limit?: number;
+  status?: string;
+}
+
+export interface ListRoutesResult {
+  success: boolean;
+  routes?: DeliveryRouteListItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  error?: string;
+}
+
 export class DeliveryService {
   /**
    * Create delivery route with orders
@@ -138,6 +167,8 @@ export class DeliveryService {
             `
             *,
             customer:org_customers_mst(
+              id,
+              customer_id,
               customer_name,
               phone
             )
@@ -155,15 +186,58 @@ export class DeliveryService {
           continue;
         }
 
-        // Get customer address (simplified - would need proper address lookup)
-        const address = 'Address from customer'; // TODO: Get from customer addresses table
+        // Resolve customer's default/most recent address (tenant-scoped)
+        const customerRow = order.customer as any;
+        const customerIdCandidates = [customerRow?.customer_id, customerRow?.id].filter(Boolean) as string[];
+
+        let address: string | null = null;
+        if (customerIdCandidates.length > 0) {
+          const { data: addr } = await supabase
+            .from('org_customer_addresses')
+            .select(
+              'label,building,floor,apartment,street,area,city,country,postal_code,delivery_notes,is_default,created_at'
+            )
+            .eq('tenant_org_id', tenantId)
+            .in('customer_id', customerIdCandidates)
+            .eq('is_active', true)
+            .order('is_default', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (addr) {
+            const parts = [
+              addr.label,
+              addr.building,
+              addr.floor ? `Floor ${addr.floor}` : null,
+              addr.apartment ? `Apt ${addr.apartment}` : null,
+              addr.street,
+              addr.area,
+              addr.city,
+              addr.country,
+              addr.postal_code,
+            ].filter(Boolean);
+
+            const base = parts.join(', ');
+            address = addr.delivery_notes ? `${base}${base ? ' — ' : ''}${addr.delivery_notes}` : base;
+          }
+        }
+
+        if (!address) {
+          logger.warn('No customer address found for delivery stop', {
+            tenantId,
+            orderId,
+            feature: 'delivery',
+            action: 'create_route',
+          });
+        }
 
         stops.push({
           route_id: route.id,
           order_id: orderId,
           tenant_org_id: tenantId,
           sequence: i + 1,
-          address,
+          address: address || null,
           stop_status_code: 'pending',
           contact_name: (order.customer as any)?.customer_name || null,
           contact_phone: (order.customer as any)?.phone || null,
@@ -573,6 +647,60 @@ export class DeliveryService {
         tenantId: params.tenantId,
         stopId: params.stopId,
       });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * List delivery routes (paginated)
+   */
+  static async listRoutes(params: ListRoutesParams): Promise<ListRoutesResult> {
+    try {
+      const supabase = await createClient();
+      const page = params.page ?? 1;
+      const limit = params.limit ?? 20;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
+      let query = supabase
+        .from('org_dlv_routes_mst')
+        .select(
+          'id,route_number,route_status_code,driver_id,total_stops,completed_stops,created_at',
+          { count: 'exact' }
+        )
+        .eq('tenant_org_id', params.tenantId)
+        .order('created_at', { ascending: false })
+        .range(from, to);
+
+      if (params.status) {
+        query = query.eq('route_status_code', params.status);
+      }
+
+      const { data, error, count } = await query;
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      const total = count || 0;
+      return {
+        success: true,
+        routes: (data || []) as DeliveryRouteListItem[],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
+    } catch (error) {
+      logger.error(
+        'Failed to list delivery routes',
+        error instanceof Error ? error : new Error('Unknown error'),
+        { feature: 'delivery', action: 'list_routes', tenantId: params.tenantId }
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

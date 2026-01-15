@@ -1343,6 +1343,31 @@
         "markDelivered": "Mark delivered",
         "backToDelivery": "Back to Delivery"
       },
+      "routes": {
+        "createTitle": "Create route",
+        "createHint": "Select orders below, optionally enter a driver ID, then create a route.",
+        "driverIdLabel": "Driver ID (optional)",
+        "driverIdPlaceholder": "Paste driver user ID",
+        "selectedCount": "{count} selected",
+        "selectOrder": "Select order for route",
+        "listTitle": "Routes",
+        "empty": "No routes yet",
+        "fields": {
+          "status": "Status",
+          "stops": "Stops",
+          "driverId": "Driver",
+          "unassigned": "Unassigned"
+        },
+        "actions": {
+          "create": "Create route",
+          "creating": "Creating...",
+          "refresh": "Refresh"
+        },
+        "messages": {
+          "created": "Route created: {routeId}",
+          "createFailed": "Failed to create route"
+        }
+      },
       "messages": {
         "deliveredSuccess": "Order marked as delivered",
         "deliveredFailed": "Failed to mark order as delivered"

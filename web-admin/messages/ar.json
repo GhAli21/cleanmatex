@@ -1346,6 +1346,31 @@
         "markDelivered": "تمييز كتم التسليم",
         "backToDelivery": "العودة إلى التوصيل"
       },
+      "routes": {
+        "createTitle": "إنشاء مسار",
+        "createHint": "حدد الطلبات أدناه، ويمكنك إدخال مُعرّف السائق (اختياريًا)، ثم أنشئ المسار.",
+        "driverIdLabel": "مُعرّف السائق (اختياري)",
+        "driverIdPlaceholder": "ألصق مُعرّف مستخدم السائق",
+        "selectedCount": "تم تحديد {count}",
+        "selectOrder": "تحديد الطلب للمسار",
+        "listTitle": "المسارات",
+        "empty": "لا توجد مسارات بعد",
+        "fields": {
+          "status": "الحالة",
+          "stops": "المحطات",
+          "driverId": "السائق",
+          "unassigned": "غير مُعيّن"
+        },
+        "actions": {
+          "create": "إنشاء مسار",
+          "creating": "جارٍ الإنشاء...",
+          "refresh": "تحديث"
+        },
+        "messages": {
+          "created": "تم إنشاء المسار: {routeId}",
+          "createFailed": "فشل إنشاء المسار"
+        }
+      },
       "messages": {
         "deliveredSuccess": "تم تمييز الطلب كتم التسليم",
         "deliveredFailed": "فشل تمييز الطلب كتم التسليم"

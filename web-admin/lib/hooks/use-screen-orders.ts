@@ -58,6 +58,13 @@ export interface UseScreenOrdersOptions {
   additionalFilters?: Record<string, string | number | boolean | undefined | null>;
   enabled?: boolean;
   /**
+   * Gradual migration flag.
+   * Semantics (per migration plan):
+   * - `false` => force OLD workflow behavior
+   * - `true` or `undefined` => use NEW workflow behavior (screen contract)
+   */
+  useOldWfCodeOrNew?: boolean;
+  /**
    * Fallback statuses used when the screen contract is missing/unavailable.
    * This keeps screens usable even before DB contract entries are added.
    */
@@ -88,6 +95,30 @@ export function useScreenOrders<TOrder = any>(
   } = useScreenContract(screen);
 
   const statusFilter = useMemo(() => {
+    const useNewWorkflow = options.useOldWfCodeOrNew !== false;
+
+    // Old workflow: ignore screen contracts and use legacy/hardcoded statuses.
+    if (!useNewWorkflow) {
+      const legacyByScreen: Record<string, string[]> = {
+        preparation: ['intake', 'preparing'],
+        processing: ['processing'],
+        assembly: ['ready', 'assembly'],
+        qa: ['ready', 'qa'],
+        packing: ['packing'],
+        ready: ['ready'],
+        delivery: ['out_for_delivery'],
+      };
+
+      const legacy = legacyByScreen[screen];
+      if (legacy && legacy.length > 0) return legacy.join(',');
+
+      const fallback = options.fallbackStatuses;
+      if (fallback && fallback.length > 0) return fallback.join(',');
+
+      return '';
+    }
+
+    // New workflow: use screen contract pre-conditions; fallback if missing.
     const statuses = contract?.preConditions?.statuses;
     if (statuses && statuses.length > 0) return statuses.join(',');
 
@@ -95,7 +126,7 @@ export function useScreenOrders<TOrder = any>(
     if (fallback && fallback.length > 0) return fallback.join(',');
 
     return '';
-  }, [contract, options.fallbackStatuses]);
+  }, [contract, options.fallbackStatuses, options.useOldWfCodeOrNew, screen]);
 
   const page = options.page ?? 1;
   const limit = options.limit ?? 20;

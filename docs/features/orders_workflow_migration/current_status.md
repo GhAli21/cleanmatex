@@ -1,6 +1,6 @@
 ---
 version: v0.1.0
-last_updated: 2026-01-15
+last_updated: 2026-01-16
 author: CleanMateX AI Assistant
 ---
 
@@ -38,9 +38,16 @@ author: CleanMateX AI Assistant
   - `web-admin/app/dashboard/packing/[id]/page.tsx`
 - Replaced Delivery dashboard placeholder with functional delivery queue:
   - `web-admin/app/dashboard/delivery/page.tsx`
+- Re-introduced required gradual-migration toggle on list pages:
+  - `web-admin/lib/hooks/use-screen-orders.ts` now supports `useOldWfCodeOrNew` (false=old, true/undefined=new)
+  - Wired into all workflow list pages (Preparation/Processing/Assembly/QA/Ready/Packing/Delivery)
+- Delivery routes are now usable from the Delivery screen (no placeholders):
+  - Added `GET /api/v1/delivery/routes` and `DeliveryService.listRoutes()`
+  - Removed the hardcoded address placeholder in `DeliveryService.createRoute()` by resolving default customer address
+- Delivery stats are now real (no hardcoded placeholders):
+  - Added optional `created_after` / `updated_after` filters to `GET /api/v1/orders`
+  - Delivery screen uses this to compute “Completed today” from delivered orders
 
 ## Pending
 
-- Navigation entry for Packing/Delivery added in `web-admin/config/navigation.ts`
-- Consider removing legacy `console.log` noise in some API/auth helpers (non-blocking)
-- Run `npm run build` and fix until green
+- No pending items for this migration. (`npm run build` is green)
