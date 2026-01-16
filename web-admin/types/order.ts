@@ -441,6 +441,7 @@ export interface OrderListItem {
   preparation_status: PreparationStatus;
   priority: Priority;
   total_items: number;
+  total_pieces?: number | null; // Total pieces count (when trackByPiece is enabled)
   total: number;
   received_at: Date;
   ready_by: Date | null;

@@ -14,6 +14,8 @@
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 
 import { useRTL } from '@/lib/hooks/useRTL';
 import type { OrderListItem } from '@/types/order';
@@ -34,8 +36,11 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const router = useRouter();
   const pathname = usePathname();
   const t = useTranslations('orders');
+  const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const { currentTenant } = useAuth();
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   if (!orders || orders.length === 0) {
     return (
@@ -80,6 +85,9 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
               </th>
               <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
                 {t('items')}
+                {trackByPiece && (
+                  <span className="ml-1 text-xs text-gray-500">/ {tPieces('totalPieces') || 'Pieces'}</span>
+                )}
               </th>
               <th className={`px-4 py-3 font-medium text-gray-700 ${isRTL ? 'text-left' : 'text-right'}`}>
                 {t('total')}
@@ -111,7 +119,14 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                   {order.preparation_status?.replace(/_/g, ' ') || '—'}
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
-                  {order.total_items}
+                  <div className={`flex flex-col ${isRTL ? 'items-start' : 'items-end'}`}>
+                    <span>{order.total_items}</span>
+                    {trackByPiece && order.total_pieces !== null && order.total_pieces !== undefined && (
+                      <span className="text-xs text-gray-500 mt-0.5">
+                        {order.total_pieces} {tPieces('totalPieces') || 'pieces'}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
                   {formatPrice(order.total)}

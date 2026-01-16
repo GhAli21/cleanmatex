@@ -485,11 +485,35 @@ export async function listOrders(
           branch_name: true,
         },
       },
+      org_order_items_dtl: {
+        select: {
+          id: true,
+        },
+      },
     },
     orderBy: { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
     take: limit,
   });
+
+  // Get piece counts for all orders in batch
+  const orderIds = orders.map(o => o.id);
+  const itemIds = orders.flatMap(o => o.org_order_items_dtl.map(item => item.id));
+  
+  const pieceCounts = itemIds.length > 0 ? await prisma.org_order_item_pieces_dtl.groupBy({
+    by: ['order_id'],
+    where: {
+      order_id: { in: orderIds },
+      tenant_org_id: tenantOrgId,
+    },
+    _count: {
+      id: true,
+    },
+  }) : [];
+
+  const pieceCountMap = new Map(
+    pieceCounts.map(pc => [pc.order_id, pc._count.id])
+  );
 
   const orderList: OrderListItem[] = orders.map((order) => {
     // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
@@ -507,6 +531,7 @@ export async function listOrders(
       preparation_status: order.preparation_status as any,
       priority: order.priority as any,
       total_items: order.total_items ?? 0,
+      total_pieces: pieceCountMap.get(order.id) ?? null,
       total: Number(order.total),
       received_at: order.received_at || new Date(),
       ready_by: order.ready_by,

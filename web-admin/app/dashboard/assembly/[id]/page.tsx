@@ -10,7 +10,10 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import Link from 'next/link';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
@@ -37,36 +40,51 @@ export default function AssemblyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations('workflow');
+  const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const [order, setOrder] = useState<AssemblyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
+
+  const loadOrder = async () => {
+    if (!currentTenant || !orderId) return;
+    
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/v1/orders/${orderId}/state`);
+      const json = await res.json();
+      if (json.success && json.data?.order) {
+        setOrder(json.data.order);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load order');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const orderId = (params as any)?.id as string | undefined;
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
 
   useEffect(() => {
-    const loadOrder = async () => {
-      if (!currentTenant || !orderId) return;
-      
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/v1/orders/${orderId}/state`);
-        const json = await res.json();
-        if (json.success && json.data?.order) {
-          setOrder(json.data.order);
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load order');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadOrder();
   }, [orderId, currentTenant]);
 
@@ -144,14 +162,47 @@ export default function AssemblyDetailPage() {
             <h3 className="font-semibold mb-4">{t('assemblyDetail.verifyItems')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{item.product_name}</p>
-                    <p className="text-sm text-gray-600">{t('assemblyDetail.quantity')}: {item.quantity}</p>
+                <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-medium">{item.product_name}</p>
+                      <p className="text-sm text-gray-600">{t('assemblyDetail.quantity')}: {item.quantity}</p>
+                    </div>
+                    <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
+                      {t('assemblyDetail.ready')}
+                    </span>
                   </div>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
-                    {t('assemblyDetail.ready')}
-                  </span>
+
+                  {/* Pieces Section - Expandable */}
+                  {trackByPiece && orderId && currentTenant?.tenant_id && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => toggleItemExpansion(item.id)}
+                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                      >
+                        <span>
+                          {tPieces('viewPieces') || 'View Pieces'}
+                        </span>
+                        {expandedItemIds.has(item.id) ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {expandedItemIds.has(item.id) && (
+                        <div className="mt-3">
+                          <OrderPiecesManager
+                            orderId={orderId}
+                            itemId={item.id}
+                            tenantId={currentTenant.tenant_id}
+                            readOnly={true}
+                            autoLoad={true}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

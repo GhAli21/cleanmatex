@@ -11,11 +11,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin } from 'lucide-react';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardHeader } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui';
 import { Input } from '@/components/ui/Input';
+import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
@@ -58,12 +60,14 @@ export default function ProcessingDetailPage() {
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const [order, setOrder] = useState<ProcessingOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [rackLocation, setRackLocation] = useState('');
   const [rackLocationError, setRackLocationError] = useState('');
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const orderId = (params as any)?.id as string | undefined;
   const { data: wfContext } = useWorkflowContext(orderId ?? null);
@@ -189,6 +193,18 @@ export default function ProcessingDetailPage() {
     } else {
       return 'pending';
     }
+  };
+
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
   };
 
   // Loading State
@@ -419,6 +435,38 @@ export default function ProcessingDetailPage() {
                       })}
                     </div>
                   </div>
+
+                  {/* Pieces Section - Expandable */}
+                  {trackByPiece && orderId && currentTenant?.tenant_id && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={() => toggleItemExpansion(item.id)}
+                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                      >
+                        <span>
+                          {t('viewPieces') || 'View Pieces'}
+                        </span>
+                        {expandedItemIds.has(item.id) ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {expandedItemIds.has(item.id) && (
+                        <div className="mt-3">
+                          <OrderPiecesManager
+                            orderId={orderId}
+                            itemId={item.id}
+                            tenantId={currentTenant.tenant_id}
+                            readOnly={false}
+                            autoLoad={true}
+                            onUpdate={loadOrder}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Card>
               );
             })

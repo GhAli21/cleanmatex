@@ -1,9 +1,11 @@
 'use client';
 
-import { AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/hooks/useBilingual';
+import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
 
 interface OrderItem {
   id: string;
@@ -25,12 +27,36 @@ interface OrderItem {
 
 interface OrderItemsListProps {
   items: OrderItem[];
+  orderId?: string;
+  tenantId?: string;
+  trackByPiece?: boolean;
+  readOnly?: boolean;
 }
 
-export function OrderItemsList({ items }: OrderItemsListProps) {
+export function OrderItemsList({ 
+  items, 
+  orderId,
+  tenantId,
+  trackByPiece = false,
+  readOnly = true 
+}: OrderItemsListProps) {
   const t = useTranslations('orders.itemsList');
+  const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   if (items.length === 0) {
     return (
@@ -125,6 +151,37 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
                 <div className={`bg-gray-50 border border-gray-100 rounded p-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <span className="font-medium text-gray-700">{t('notes')}:</span>{' '}
                   <span className="text-gray-600">{item.notes}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pieces Section - Expandable */}
+          {trackByPiece && orderId && tenantId && (
+            <div className="mt-3 pt-3 border-t border-gray-200">
+              <button
+                onClick={() => toggleItemExpansion(item.id)}
+                className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <span>
+                  {tPieces('viewPieces')}
+                </span>
+                {expandedItemIds.has(item.id) ? (
+                  <ChevronUp className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                ) : (
+                  <ChevronDown className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                )}
+              </button>
+              
+              {expandedItemIds.has(item.id) && (
+                <div className="mt-3">
+                  <OrderPiecesManager
+                    orderId={orderId}
+                    itemId={item.id}
+                    tenantId={tenantId}
+                    readOnly={readOnly}
+                    autoLoad={true}
+                  />
                 </div>
               )}
             </div>

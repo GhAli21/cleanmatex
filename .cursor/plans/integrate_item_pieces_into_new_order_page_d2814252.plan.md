@@ -114,12 +114,12 @@ interface PreSubmissionPiece {
 - Reordering pieces (if needed)
 - Props:
   ```typescript
-    interface PreSubmissionPiecesManagerProps {
-      pieces: PreSubmissionPiece[];
-      itemId: string;
-      onPiecesChange: (pieces: PreSubmissionPiece[]) => void;
-      readOnly?: boolean;
-    }
+      interface PreSubmissionPiecesManagerProps {
+        pieces: PreSubmissionPiece[];
+        itemId: string;
+        onPiecesChange: (pieces: PreSubmissionPiece[]) => void;
+        readOnly?: boolean;
+      }
   ```
 
 
@@ -250,4 +250,3 @@ Add translations for:
 ## Notes
 
 - Pieces are auto-created in DB by `OrderPieceService.createPiecesForItem()` when order is submitted (existing logic)
-- Pre-submission pieces use temporary IDs that don't conflict with DB IDs

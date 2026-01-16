@@ -10,6 +10,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
@@ -31,18 +34,33 @@ export default function ReadyDetailPage() {
   const router = useRouter();
   const params = useParams();
   const t = useTranslations('workflow');
+  const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [blockers, setBlockers] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const orderId = (params as any)?.id as string | undefined;
+
+  const toggleItemExpansion = (itemId: string) => {
+    setExpandedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     const loadOrder = async () => {
@@ -151,14 +169,47 @@ export default function ReadyDetailPage() {
             <h3 className="font-semibold mb-4">{t('ready.itemsTitle')}</h3>
             <div className="space-y-2">
               {order.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">{item.product_name}</p>
-                    <p className="text-sm text-gray-600">
-                      {t('ready.quantity')}: {item.quantity}
-                    </p>
+                <div key={item.id} className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-medium">{item.product_name}</p>
+                      <p className="text-sm text-gray-600">
+                        {t('ready.quantity')}: {item.quantity}
+                      </p>
+                    </div>
+                    <span className="font-bold text-blue-600">{item.total_price.toFixed(2)} OMR</span>
                   </div>
-                  <span className="font-bold text-blue-600">{item.total_price.toFixed(2)} OMR</span>
+
+                  {/* Pieces Section - Expandable */}
+                  {trackByPiece && orderId && currentTenant?.tenant_id && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <button
+                        onClick={() => toggleItemExpansion(item.id)}
+                        className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors`}
+                      >
+                        <span>
+                          {tPieces('viewPieces') || 'View Pieces'}
+                        </span>
+                        {expandedItemIds.has(item.id) ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                      </button>
+                      
+                      {expandedItemIds.has(item.id) && (
+                        <div className="mt-3">
+                          <OrderPiecesManager
+                            orderId={orderId}
+                            itemId={item.id}
+                            tenantId={currentTenant.tenant_id}
+                            readOnly={true}
+                            autoLoad={true}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

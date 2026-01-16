@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { ChevronLeft, Edit, Clock, Package } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { OrderTimeline } from '../components/order-timeline';
 import { OrderItemsList } from '../components/order-items-list';
 import { OrderActions } from '../components/order-actions';
@@ -61,6 +63,8 @@ export function OrderDetailClient({
   returnLabel                              // Use provided or default
 }: OrderDetailClientProps) {
   const isRTL = useRTL();
+  const { currentTenant } = useAuth();
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   // Status badge colors
   const statusColors = {
@@ -278,7 +282,13 @@ export function OrderDetailClient({
           {/* Order Items */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.orderItems}</h2>
-            <OrderItemsList items={order.org_order_items_dtl} />
+            <OrderItemsList 
+              items={order.org_order_items_dtl} 
+              orderId={order.id}
+              tenantId={currentTenant?.tenant_id}
+              trackByPiece={trackByPiece}
+              readOnly={true}
+            />
           </div>
 
           {/* Notes */}
