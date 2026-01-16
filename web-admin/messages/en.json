@@ -1413,6 +1413,12 @@
       "rackLocationRequired": "Rack location is required before moving to ready",
       "transitionNotAllowed": "This transition is not allowed",
       "qualityGateFailed": "Quality gates not passed"
+    },
+    "newOrder": {
+      "goToOrder": "Go to Order",
+      "goToPreparation": "Go to Preparation",
+      "goToProcessing": "Go to Processing",
+      "orderCreatedSuccess": "Order {{orderNo}} created successfully"
     }
   },
   "newOrder": {
@@ -1508,6 +1514,28 @@
       "add": "Add",
       "decreaseQuantity": "Decrease quantity",
       "increaseQuantity": "Increase quantity"
+    },
+    "pieces": {
+      "viewPieces": "View Pieces",
+      "hidePieces": "Hide Pieces",
+      "addPiece": "Add Piece",
+      "removePiece": "Remove Piece",
+      "pieceNumber": "Piece {number}",
+      "totalPieces": "total pieces",
+      "pieces": "Pieces",
+      "color": "Color",
+      "brand": "Brand",
+      "hasStain": "Has Stain",
+      "hasDamage": "Has Damage",
+      "notes": "Notes",
+      "rackLocation": "Rack Location",
+      "noPieces": "No pieces",
+      "notSet": "Not set",
+      "noNotes": "No notes",
+      "colorPlaceholder": "Enter color",
+      "brandPlaceholder": "Enter brand",
+      "notesPlaceholder": "Add notes...",
+      "rackLocationPlaceholder": "Enter rack location"
     },
     "notesPalette": {
       "title": "Notes & Stains",

@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ItemCartList } from './item-cart-list';
 import { UserPlus, Edit, Trash2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
   id: string;
@@ -24,6 +25,7 @@ interface CartItem {
   hasStain?: boolean;
   hasDamage?: boolean;
   notes?: string;
+  pieces?: PreSubmissionPiece[];
 }
 
 interface OrderSummaryPanelProps {
@@ -33,6 +35,7 @@ interface OrderSummaryPanelProps {
   items?: CartItem[];
   onEditItem?: (itemId: string) => void;
   onDeleteItem?: (itemId: string) => void;
+  onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   isQuickDrop: boolean;
   onQuickDropToggle: (value: boolean) => void;
   quickDropQuantity: number;
@@ -49,6 +52,7 @@ interface OrderSummaryPanelProps {
   onOpenReadyByModal?: () => void;
   onOpenPaymentModal?: () => void;
   loading: boolean;
+  trackByPiece?: boolean;
 }
 
 export function OrderSummaryPanel({
@@ -58,6 +62,7 @@ export function OrderSummaryPanel({
   items = [],
   onEditItem,
   onDeleteItem,
+  onPiecesChange,
   isQuickDrop,
   onQuickDropToggle,
   quickDropQuantity,
@@ -74,6 +79,7 @@ export function OrderSummaryPanel({
   onOpenReadyByModal,
   onOpenPaymentModal,
   loading,
+  trackByPiece = false,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -158,7 +164,13 @@ export function OrderSummaryPanel({
 
       {/* Item Cart List - Scrollable */}
       <div className="flex-1 overflow-y-auto p-6 border-b border-gray-200">
-        <ItemCartList items={items} onEditItem={onEditItem} onDeleteItem={handleDeleteItem} />
+        <ItemCartList 
+          items={items} 
+          onEditItem={onEditItem} 
+          onDeleteItem={handleDeleteItem}
+          onPiecesChange={onPiecesChange}
+          trackByPiece={trackByPiece}
+        />
       </div>
 
       {/* Notes Section - Collapsible */}

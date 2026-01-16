@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ItemCartItem } from './item-cart-item';
 import { ShoppingCart } from 'lucide-react';
+import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
   id: string;
@@ -23,17 +24,32 @@ interface CartItem {
   hasStain?: boolean;
   hasDamage?: boolean;
   notes?: string;
+  pieces?: PreSubmissionPiece[];
 }
 
 interface ItemCartListProps {
   items: CartItem[];
   onEditItem?: (itemId: string) => void;
   onDeleteItem: (itemId: string) => void;
+  onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
+  trackByPiece?: boolean;
 }
 
-export function ItemCartList({ items, onEditItem, onDeleteItem }: ItemCartListProps) {
+export function ItemCartList({ 
+  items, 
+  onEditItem, 
+  onDeleteItem, 
+  onPiecesChange,
+  trackByPiece = false 
+}: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
+  const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
+  
+  // Calculate total pieces count
+  const totalPieces = trackByPiece && items.length > 0
+    ? items.reduce((sum, item) => sum + (item.pieces?.length || item.quantity), 0)
+    : items.reduce((sum, item) => sum + item.quantity, 0);
   
   if (items.length === 0) {
     return (
@@ -52,7 +68,11 @@ export function ItemCartList({ items, onEditItem, onDeleteItem }: ItemCartListPr
           {t('orderItems')} ({items.length})
         </h3>
         <span className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
-          {items.reduce((sum, item) => sum + item.quantity, 0)} {t('pieces')}
+          {trackByPiece ? (
+            <span>{totalPieces} {tPieces('totalPieces')}</span>
+          ) : (
+            <span>{totalPieces} {t('pieces')}</span>
+          )}
         </span>
       </div>
 
@@ -61,6 +81,7 @@ export function ItemCartList({ items, onEditItem, onDeleteItem }: ItemCartListPr
           <ItemCartItem
             key={item.id}
             itemNumber={index + 1}
+            itemId={item.id}
             productName={item.productName}
             productName2={item.productName2}
             quantity={item.quantity}
@@ -70,6 +91,9 @@ export function ItemCartList({ items, onEditItem, onDeleteItem }: ItemCartListPr
             hasStain={item.hasStain}
             hasDamage={item.hasDamage}
             notes={item.notes}
+            pieces={item.pieces}
+            onPiecesChange={onPiecesChange ? (pieces) => onPiecesChange(item.id, pieces) : undefined}
+            trackByPiece={trackByPiece}
             onEdit={onEditItem ? () => onEditItem(item.id) : undefined}
             onDelete={() => onDeleteItem(item.id)}
           />

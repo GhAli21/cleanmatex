@@ -122,9 +122,9 @@ export default function PreparationPage() {
               </div>
 
               <div className="mt-4 pt-4 border-t border-gray-200">
-                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                <div className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center font-medium">
                   {t('preparation.actions.continueItemization')}
-                </button>
+                </div>
               </div>
             </Link>
           ))}

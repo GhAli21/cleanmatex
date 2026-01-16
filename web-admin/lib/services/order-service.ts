@@ -8,7 +8,19 @@ import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from './workflow-service';
 import { OrderPieceService } from './order-piece-service';
 import { TenantSettingsService } from './tenant-settings.service';
+import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
+
+export interface CreateOrderPieceData {
+  pieceSeq: number;
+  color?: string;
+  brand?: string;
+  hasStain?: boolean;
+  hasDamage?: boolean;
+  notes?: string;
+  rackLocation?: string;
+  metadata?: Record<string, any>;
+}
 
 export interface CreateOrderParams {
   tenantId: string;
@@ -26,6 +38,7 @@ export interface CreateOrderParams {
     hasDamage?: boolean;
     stainNotes?: string;
     damageNotes?: string;
+    pieces?: CreateOrderPieceData[]; // Piece-level data when USE_TRACK_BY_PIECE is enabled
   }>;
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
@@ -36,6 +49,7 @@ export interface CreateOrderParams {
   paymentMethod?: string;
   userId: string;
   userName: string;
+  useOldWfCodeOrNew?: boolean;
 }
 
 export interface CreateOrderResult {
@@ -67,6 +81,69 @@ export interface EstimateReadyByResult {
 
 export class OrderService {
   /**
+   * Get initial status from workflow contract
+   * Falls back to hardcoded values if contract unavailable
+   */
+  private static async getInitialStatusFromContract(
+    tenantId: string,
+    screen: string,
+    fallbackStatus: string
+  ): Promise<string> {
+    try {
+      const supabase = await createClient();
+      const { data: contract, error } = await supabase.rpc(
+        'cmx_ord_screen_pre_conditions' as any,
+        { p_screen: screen }
+      );
+
+      if (error || !contract) {
+        logger.debug('Screen contract not available, using fallback', {
+          tenantId,
+          screen,
+          fallbackStatus,
+          feature: 'orders',
+          action: 'get_initial_status',
+        });
+        return fallbackStatus;
+      }
+
+      // Type guard for contract structure
+      const contractData = contract as any;
+      if (!contractData.statuses || !Array.isArray(contractData.statuses) || contractData.statuses.length === 0) {
+        logger.debug('Screen contract has no statuses, using fallback', {
+          tenantId,
+          screen,
+          fallbackStatus,
+          feature: 'orders',
+          action: 'get_initial_status',
+        });
+        return fallbackStatus;
+      }
+
+      // Return first valid status from contract
+      const contractStatus = contractData.statuses[0] as string;
+      logger.debug('Using contract-based initial status', {
+        tenantId,
+        screen,
+        contractStatus,
+        fallbackStatus,
+        feature: 'orders',
+        action: 'get_initial_status',
+      });
+      return contractStatus;
+    } catch (error) {
+      logger.warn('Failed to fetch screen contract, using fallback', {
+        tenantId,
+        screen,
+        fallbackStatus,
+        feature: 'orders',
+        action: 'get_initial_status',
+      });
+      return fallbackStatus;
+    }
+  }
+
+  /**
    * Create new order with workflow logic
    * PRD-010: Quick Drop vs Normal order handling
    */
@@ -88,6 +165,7 @@ export class OrderService {
         paymentMethod,
         userId,
         userName,
+        useOldWfCodeOrNew,
       } = params;
 
       // Determine initial status based on Quick Drop vs Normal
@@ -97,21 +175,7 @@ export class OrderService {
       let v_current_status: string;
       let v_current_stage: string;
       
-      //v_orderStatus = 'intake';
-      //v_orderStatus = 'preparation';
-      //v_orderStatus = 'sorting';
-      //v_orderStatus = 'washing';
-      //v_orderStatus = 'drying';
-      //v_orderStatus = 'finishing';
-      //v_orderStatus = 'assembly';
-      //v_orderStatus = 'qa';
-      //v_orderStatus = 'packing';
-      //v_orderStatus = 'ready';
-      //v_orderStatus = 'out_for_delivery';
-      //v_orderStatus = 'delivered';
-      //v_orderStatus = 'closed';
-      //v_orderStatus = 'cancelled';
-
+      // Default hardcoded values (old workflow path)
       v_orderStatus = 'processing';
       v_transitionFrom = 'intake';
       v_current_status = 'intake';
@@ -121,7 +185,6 @@ export class OrderService {
         // Quick Drop: insufficient items → preparing stage
         v_initialStatus = 'preparing';
         v_transitionFrom = 'intake';
-        //v_orderStatus = 'intake';
         v_orderStatus = 'preparing';
         v_current_status = 'preparing';
         v_current_stage = 'intake';
@@ -134,6 +197,42 @@ export class OrderService {
         v_current_status = 'processing';
         v_current_stage = 'intake';
         
+      }
+
+      // If using new workflow system (useOldWfCodeOrNew === false), use contract-based status
+      if (useOldWfCodeOrNew === false) {
+        const screen = isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)
+          ? 'preparation'
+          : 'processing';
+        
+        const contractStatus = await this.getInitialStatusFromContract(
+          tenantId,
+          screen,
+          v_current_status
+        );
+        
+        v_current_status = contractStatus;
+        v_orderStatus = contractStatus;
+        v_initialStatus = contractStatus;
+        
+        logger.info('Using new workflow system for order creation', {
+          tenantId,
+          userId,
+          screen,
+          contractStatus,
+          isQuickDrop,
+          feature: 'orders',
+          action: 'create_order',
+        });
+      } else {
+        logger.debug('Using old workflow system for order creation', {
+          tenantId,
+          userId,
+          v_current_status,
+          isQuickDrop,
+          feature: 'orders',
+          action: 'create_order',
+        });
       }
 
       // Generate order number
@@ -249,12 +348,26 @@ export class OrderService {
           );
 
           // Auto-create pieces for each item if tracking by piece is enabled
-          if (trackByPiece) {
+          if (trackByPiece || true) { // TODO: Remove true after testing
             for (let i = 0; i < createdItems.length; i++) {
               const createdItem = createdItems[i];
               const itemData = items[i];
 
               if (createdItem && itemData.quantity > 0) {
+                // Use piece-level data if provided, otherwise use item-level data as fallback
+                const piecesData = itemData.pieces && itemData.pieces.length > 0
+                  ? itemData.pieces.map((piece, index) => ({
+                      pieceSeq: piece.pieceSeq || index + 1,
+                      color: piece.color,
+                      brand: piece.brand,
+                      hasStain: piece.hasStain ?? itemData.hasStain,
+                      hasDamage: piece.hasDamage ?? itemData.hasDamage,
+                      notes: piece.notes || itemData.notes,
+                      rackLocation: piece.rackLocation,
+                      metadata: piece.metadata || {},
+                    }))
+                  : undefined; // Will use baseData fallback
+
                 await OrderPieceService.createPiecesForItem(
                   tenantId,
                   order.id,
@@ -265,13 +378,14 @@ export class OrderService {
                     productId: itemData.productId,
                     pricePerUnit: itemData.pricePerUnit,
                     totalPrice: itemData.totalPrice,
-                    color: undefined, // Not available at order creation
-                    brand: undefined,
+                    color: undefined, // Fallback if no piece data
+                    brand: undefined, // Fallback if no piece data
                     hasStain: itemData.hasStain,
                     hasDamage: itemData.hasDamage,
                     notes: itemData.notes,
                     metadata: {},
-                  }
+                  },
+                  piecesData // Pass piece-level data array
                 );
               }
             }
@@ -310,7 +424,12 @@ export class OrderService {
         },
       };
     } catch (error) {
-      console.error('OrderService.createOrder error:', error);
+      logger.error('OrderService.createOrder error', error as Error, {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        feature: 'orders',
+        action: 'create_order',
+      });
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -533,9 +652,9 @@ export class OrderService {
     tenantId: string,
     issueCode: string,
     issueText: string,
+    userId: string,
     photoUrl?: string,
-    priority: string = 'normal',
-    userId: string
+    priority: string = 'normal'
   ): Promise<any> {
     try {
       const supabase = await createClient();

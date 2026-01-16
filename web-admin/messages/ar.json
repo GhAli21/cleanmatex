@@ -1416,6 +1416,12 @@
       "rackLocationRequired": "موقع الرف مطلوب قبل الانتقال إلى حالة جاهز",
       "transitionNotAllowed": "هذا الانتقال غير مسموح",
       "qualityGateFailed": "بوابات الجودة لم تمر"
+    },
+    "newOrder": {
+      "goToOrder": "الانتقال إلى الطلب",
+      "goToPreparation": "الانتقال إلى التحضير",
+      "goToProcessing": "الانتقال إلى المعالجة",
+      "orderCreatedSuccess": "تم إنشاء الطلب {{orderNo}} بنجاح"
     }
   },
   "newOrder": {
@@ -1511,6 +1517,28 @@
       "add": "إضافة",
       "decreaseQuantity": "تقليل الكمية",
       "increaseQuantity": "زيادة الكمية"
+    },
+    "pieces": {
+      "viewPieces": "عرض القطع",
+      "hidePieces": "إخفاء القطع",
+      "addPiece": "إضافة قطعة",
+      "removePiece": "إزالة قطعة",
+      "pieceNumber": "قطعة {number}",
+      "totalPieces": "إجمالي القطع",
+      "pieces": "القطع",
+      "color": "اللون",
+      "brand": "العلامة التجارية",
+      "hasStain": "يحتوي على بقع",
+      "hasDamage": "يحتوي على تلف",
+      "notes": "ملاحظات",
+      "rackLocation": "موقع الرف",
+      "noPieces": "لا توجد قطع",
+      "notSet": "غير محدد",
+      "noNotes": "لا توجد ملاحظات",
+      "colorPlaceholder": "أدخل اللون",
+      "brandPlaceholder": "أدخل العلامة التجارية",
+      "notesPlaceholder": "أضف ملاحظات...",
+      "rackLocationPlaceholder": "أدخل موقع الرف"
     },
     "notesPalette": {
       "title": "الملاحظات والبقع",

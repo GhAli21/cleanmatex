@@ -151,6 +151,17 @@ export const OrderHistoryEntrySchema = z.object({
 });
 
 // PRD-010: API Request Schemas
+export const CreateOrderPieceDataSchema = z.object({
+  pieceSeq: z.number().positive(),
+  color: z.string().optional(),
+  brand: z.string().optional(),
+  hasStain: z.boolean().optional(),
+  hasDamage: z.boolean().optional(),
+  notes: z.string().optional(),
+  rackLocation: z.string().optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
+});
+
 export const CreateOrderRequestSchema = z.object({
   customerId: z.string(),//.uuid(),
   branchId: z.string().uuid().optional(),
@@ -166,6 +177,7 @@ export const CreateOrderRequestSchema = z.object({
     hasDamage: z.boolean().optional(),
     stainNotes: z.string().optional(),
     damageNotes: z.string().optional(),
+    pieces: z.array(CreateOrderPieceDataSchema).optional(), // Piece-level data when USE_TRACK_BY_PIECE is enabled
   })),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().positive().optional(),

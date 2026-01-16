@@ -8,10 +8,14 @@
  
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
+import { useRouter } from 'next/navigation';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { cmxMessage } from '@ui/feedback';
+import { CmxButton } from '@ui/primitives/cmx-button';
 //import { OrderHeaderNav } from './components/order-header-nav';
 import { CategoryTabs } from './components/category-tabs';
 import { ProductGrid } from './components/product-grid';
@@ -52,6 +56,19 @@ interface Product {
   service_category_code: string | null;
 }
 
+interface PreSubmissionPiece {
+  id: string; // Temporary ID: `temp-${itemId}-${pieceSeq}`
+  itemId: string;
+  pieceSeq: number;
+  color?: string;
+  brand?: string;
+  hasStain?: boolean;
+  hasDamage?: boolean;
+  notes?: string;
+  rackLocation?: string;
+  metadata?: Record<string, any>;
+}
+
 interface OrderItem {
   productId: string;
   quantity: number;
@@ -59,12 +76,19 @@ interface OrderItem {
   totalPrice: number;
   serviceCategoryCode?: string;
   notes?: string;
+  pieces?: PreSubmissionPiece[];
 }
 
 export default function NewOrderPage() {
   const t = useTranslations('newOrder');
+  const tWorkflow = useTranslations('workflow');
+  const router = useRouter();
   const isRTL = useRTL();
   const { currentTenant } = useAuth();
+  const useNewWorkflowSystem = useWorkflowSystemMode();
+  
+  // Tenant settings for piece tracking
+  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
   // State
   const [loading, setLoading] = useState(false);
@@ -82,6 +106,8 @@ export default function NewOrderPage() {
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [customerEditModalOpen, setCustomerEditModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
+  const [createdOrderStatus, setCreatedOrderStatus] = useState<string | null>(null);
   
   // Loading states
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -257,6 +283,21 @@ export default function NewOrderPage() {
     return items.reduce((sum, item) => sum + item.totalPrice, 0);
   }, [items]);
 
+  // Helper function to generate pieces for an item
+  const generatePiecesForItem = useCallback((itemId: string, quantity: number): PreSubmissionPiece[] => {
+    if (!trackByPiece || quantity <= 0) return [];
+    
+    const pieces: PreSubmissionPiece[] = [];
+    for (let i = 1; i <= quantity; i++) {
+      pieces.push({
+        id: `temp-${itemId}-${i}`,
+        itemId,
+        pieceSeq: i,
+      });
+    }
+    return pieces;
+  }, [trackByPiece]);
+
   const handleAddItem = useCallback((product: Product) => {
     setItems(prevItems => {
       const existingItem = prevItems.find(item => item.productId === product.id);
@@ -265,29 +306,47 @@ export default function NewOrderPage() {
         : product.default_sell_price || 0;
 
       if (existingItem) {
+        const newQuantity = existingItem.quantity + 1;
+        // If trackByPiece is enabled, add a new piece instead of regenerating all
+        let updatedPieces = existingItem.pieces;
+        if (trackByPiece) {
+          if (existingItem.pieces && existingItem.pieces.length > 0) {
+            // Add a new piece to existing pieces
+            const maxSeq = Math.max(...existingItem.pieces.map(p => p.pieceSeq));
+            const newPiece: PreSubmissionPiece = {
+              id: `temp-${product.id}-${maxSeq + 1}`,
+              itemId: product.id,
+              pieceSeq: maxSeq + 1,
+            };
+            updatedPieces = [...existingItem.pieces, newPiece];
+          } else {
+            // Generate all pieces if none exist
+            updatedPieces = generatePiecesForItem(product.id, newQuantity);
+          }
+        }
         return prevItems.map(item =>
           item.productId === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1,
-                totalPrice: (item.quantity + 1) * pricePerUnit,
+                quantity: newQuantity,
+                totalPrice: newQuantity * pricePerUnit,
+                pieces: updatedPieces,
               }
             : item
         );
       } else {
-        return [
-          ...prevItems,
-          {
-            productId: product.id,
-            quantity: 1,
-            pricePerUnit,
-            totalPrice: pricePerUnit,
-            serviceCategoryCode: product.service_category_code || undefined,
-          },
-        ];
+        const newItem = {
+          productId: product.id,
+          quantity: 1,
+          pricePerUnit,
+          totalPrice: pricePerUnit,
+          serviceCategoryCode: product.service_category_code || undefined,
+          pieces: trackByPiece ? generatePiecesForItem(product.id, 1) : undefined,
+        };
+        return [...prevItems, newItem];
       }
     });
-  }, [express]);
+  }, [express, trackByPiece, generatePiecesForItem]);
 
   const handleRemoveItem = useCallback((productId: string) => {
     setItems(prevItems => prevItems.filter(item => item.productId !== productId));
@@ -300,17 +359,65 @@ export default function NewOrderPage() {
     }
 
     setItems(prevItems =>
-      prevItems.map(item =>
-        item.productId === productId
-          ? {
-              ...item,
-              quantity,
-              totalPrice: quantity * item.pricePerUnit,
+      prevItems.map(item => {
+        if (item.productId !== productId) return item;
+        
+        let updatedPieces = item.pieces;
+        if (trackByPiece) {
+          if (quantity > (item.pieces?.length || 0)) {
+            // Quantity increased - add new pieces
+            const existingPieces = item.pieces || [];
+            const maxSeq = existingPieces.length > 0 
+              ? Math.max(...existingPieces.map(p => p.pieceSeq))
+              : 0;
+            const newPieces: PreSubmissionPiece[] = [];
+            for (let i = existingPieces.length + 1; i <= quantity; i++) {
+              newPieces.push({
+                id: `temp-${productId}-${maxSeq + i - existingPieces.length}`,
+                itemId: productId,
+                pieceSeq: maxSeq + i - existingPieces.length,
+              });
             }
+            updatedPieces = [...existingPieces, ...newPieces];
+          } else if (quantity < (item.pieces?.length || 0)) {
+            // Quantity decreased - remove excess pieces (keep first N pieces)
+            updatedPieces = item.pieces?.slice(0, quantity) || [];
+            // Re-sequence pieces
+            updatedPieces = updatedPieces.map((piece, index) => ({
+              ...piece,
+              pieceSeq: index + 1,
+            }));
+          } else if (!item.pieces || item.pieces.length === 0) {
+            // No pieces exist - generate them
+            updatedPieces = generatePiecesForItem(productId, quantity);
+          }
+          // If quantity matches existing pieces count, keep existing pieces
+        }
+        
+        return {
+          ...item,
+          quantity,
+          totalPrice: quantity * item.pricePerUnit,
+          pieces: updatedPieces,
+        };
+      })
+    );
+  }, [handleRemoveItem, trackByPiece, generatePiecesForItem]);
+
+  // Helper functions for piece management
+  const updateItemPieces = useCallback((itemId: string, pieces: PreSubmissionPiece[]) => {
+    setItems(prevItems =>
+      prevItems.map(item =>
+        item.productId === itemId
+          ? { ...item, pieces }
           : item
       )
     );
-  }, [handleRemoveItem]);
+  }, []);
+
+  const handlePiecesChange = useCallback((itemId: string, pieces: PreSubmissionPiece[]) => {
+    updateItemPieces(itemId, pieces);
+  }, [updateItemPieces]);
 
   const handleSubmitOrderClick = useCallback(() => {
     // Validate before showing payment modal
@@ -391,12 +498,26 @@ export default function NewOrderPage() {
           totalPrice: item.totalPrice,
           serviceCategoryCode: item.serviceCategoryCode,
           notes: item.notes,
+          // Include piece-level data if trackByPiece is enabled and pieces exist
+          ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
+            pieces: item.pieces.map(piece => ({
+              pieceSeq: piece.pieceSeq,
+              color: piece.color,
+              brand: piece.brand,
+              hasStain: piece.hasStain,
+              hasDamage: piece.hasDamage,
+              notes: piece.notes,
+              rackLocation: piece.rackLocation,
+              metadata: piece.metadata,
+            })),
+          }),
         })),
         isQuickDrop: isQuickDrop || false,
         ...(isQuickDrop && quickDropQuantity > 0 && { quickDropQuantity }),
         express: express || false,
         priority: express ? 'express' : 'normal',
         ...(notes && { customerNotes: notes }),
+        useOldWfCodeOrNew: !useNewWorkflowSystem, // false = new workflow, true = old workflow
         // Payment data
         paymentMethod: paymentData.paymentMethod,
         ...(paymentData.checkNumber && { checkNumber: paymentData.checkNumber }),
@@ -552,8 +673,21 @@ export default function NewOrderPage() {
       // Close payment modal only on success
       setPaymentModalOpen(false);
 
-      // Show success message
-      cmxMessage.success(t('success.orderCreated', { orderNo: json.data.orderNo }));
+      // Store created order info for navigation
+      const orderId = json.data?.id || json.data?.orderId;
+      const orderStatus = json.data?.currentStatus || json.data?.status;
+      if (orderId) {
+        setCreatedOrderId(orderId);
+        setCreatedOrderStatus(orderStatus || null);
+      }
+
+      // Show success message with optional navigation button
+      const orderNo = json.data?.orderNo || json.data?.order_no || '';
+      cmxMessage.success(
+        tWorkflow('newOrder.orderCreatedSuccess', { orderNo }) || 
+        t('success.orderCreated', { orderNo }) || 
+        `Order ${orderNo} created successfully`
+      );
 
       // Clear only order-specific data (keep categories and products loaded)
       setItems([]);
@@ -639,6 +773,48 @@ export default function NewOrderPage() {
     setCustomerModalOpen(false);
   }, [t]);
 
+  // Get navigation route based on order status
+  const getNavigationRoute = useCallback((status: string | null, orderId: string | null): string | null => {
+    if (!orderId || !status) return null;
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'preparing' || statusLower === 'intake') {
+      return `/dashboard/preparation/${orderId}`;
+    }
+    if (statusLower === 'processing') {
+      return `/dashboard/processing/${orderId}`;
+    }
+    // Default: go to order detail page
+    return `/dashboard/orders/${orderId}`;
+  }, []);
+
+  // Get navigation button label based on status
+  const getNavigationLabel = useCallback((status: string | null): string => {
+    if (!status) return tWorkflow('newOrder.goToOrder') || 'Go to Order';
+    
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'preparing' || statusLower === 'intake') {
+      return tWorkflow('newOrder.goToPreparation') || 'Go to Preparation';
+    }
+    if (statusLower === 'processing') {
+      return tWorkflow('newOrder.goToProcessing') || 'Go to Processing';
+    }
+    return tWorkflow('newOrder.goToOrder') || 'Go to Order';
+  }, [tWorkflow]);
+
+  // Handle navigation to workflow screen
+  const handleNavigateToOrder = useCallback(() => {
+    if (!createdOrderId) return;
+    
+    const route = getNavigationRoute(createdOrderStatus, createdOrderId);
+    if (route) {
+      router.push(route);
+      // Clear created order state after navigation
+      setCreatedOrderId(null);
+      setCreatedOrderStatus(null);
+    }
+  }, [createdOrderId, createdOrderStatus, getNavigationRoute, router]);
+
   // Memoized order items for OrderSummaryPanel
   const memoizedOrderItems = useMemo(() => 
     items.map(item => {
@@ -652,6 +828,7 @@ export default function NewOrderPage() {
         pricePerUnit: item.pricePerUnit,
         totalPrice: item.totalPrice,
         notes: item.notes,
+        pieces: item.pieces,
       };
     }), [items, products]
   );
@@ -695,13 +872,14 @@ export default function NewOrderPage() {
           </div>
 
           {/* Right Sidebar - Fixed/Narrow (Order Summary) */}
-          <div className={`w-96 ${isRTL ? 'border-r' : 'border-l'} border-gray-200 bg-white overflow-y-auto`}>
+          <div className={`w-96 ${isRTL ? 'border-r' : 'border-l'} border-gray-200 bg-white overflow-y-auto flex flex-col`}>
             <OrderSummaryPanel
               customerName={customerName}
               onSelectCustomer={handleCustomerModalOpen}
               onEditCustomer={handleOpenEditModal}
               items={memoizedOrderItems}
               onDeleteItem={(itemId) => handleRemoveItem(itemId)}
+              onPiecesChange={handlePiecesChange}
               isQuickDrop={isQuickDrop}
               onQuickDropToggle={setIsQuickDrop}
               quickDropQuantity={quickDropQuantity}
@@ -714,7 +892,21 @@ export default function NewOrderPage() {
               total={total}
               onSubmit={handleSubmitOrderClick}
               loading={loading}
+              trackByPiece={trackByPiece}
             />
+            
+            {/* Post-creation navigation button */}
+            {createdOrderId && (
+              <div className="p-4 border-t border-gray-200 bg-blue-50">
+                <CmxButton
+                  onClick={handleNavigateToOrder}
+                  className="w-full"
+                  variant="default"
+                >
+                  {getNavigationLabel(createdOrderStatus)}
+                </CmxButton>
+              </div>
+            )}
           </div>
         </div>
       </div>

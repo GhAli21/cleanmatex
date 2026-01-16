@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
+    // Support both old and new request formats for useOldWfCodeOrNew
+    const useOldWfCodeOrNew = body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
+    
     const parsed = CreateOrderRequestSchema.safeParse(body);
     
     if (!parsed.success) {
@@ -58,6 +61,7 @@ export async function POST(request: NextRequest) {
       userId,
       userName,
       ...parsed.data,
+      useOldWfCodeOrNew,
     });
 
     if (!result.success) {

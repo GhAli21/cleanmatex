@@ -6,13 +6,16 @@
 
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
-import { Pencil, Trash2, AlertCircle } from 'lucide-react';
+import { Pencil, Trash2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { PreSubmissionPiecesManager, type PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface ItemCartItemProps {
   itemNumber: number;
+  itemId: string;
   productName: string;
   productName2?: string;
   quantity: number;
@@ -22,12 +25,16 @@ interface ItemCartItemProps {
   hasStain?: boolean;
   hasDamage?: boolean;
   notes?: string;
+  pieces?: PreSubmissionPiece[];
+  onPiecesChange?: (pieces: PreSubmissionPiece[]) => void;
+  trackByPiece?: boolean;
   onEdit?: () => void;
   onDelete: () => void;
 }
 
 export function ItemCartItem({
   itemNumber,
+  itemId,
   productName,
   productName2,
   quantity,
@@ -37,16 +44,22 @@ export function ItemCartItem({
   hasStain = false,
   hasDamage = false,
   notes,
+  pieces = [],
+  onPiecesChange,
+  trackByPiece = false,
   onEdit,
   onDelete,
 }: ItemCartItemProps) {
   const t = useTranslations('newOrder.itemsGrid');
+  const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const displayName = getBilingual(productName, productName2) || 'Unknown Product';
+  const [piecesExpanded, setPiecesExpanded] = useState(false);
 
   const hasIssues = hasStain || hasDamage || conditions.length > 0;
+  const showPieces = trackByPiece && pieces.length > 0;
 
   return (
     <div className={`flex items-start gap-3 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors group ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -119,6 +132,34 @@ export function ItemCartItem({
           <p className={`text-xs text-gray-500 mt-1 italic line-clamp-2 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('note')}: {notes}
           </p>
+        )}
+
+        {/* Pieces Section - Expandable */}
+        {showPieces && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <button
+              onClick={() => setPiecesExpanded(!piecesExpanded)}
+              className={`w-full flex items-center justify-between text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+            >
+              <span>
+                {tPieces('viewPieces')} ({pieces.length})
+              </span>
+              {piecesExpanded ? (
+                <ChevronUp className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+              ) : (
+                <ChevronDown className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+              )}
+            </button>
+            
+            {piecesExpanded && onPiecesChange && (
+              <PreSubmissionPiecesManager
+                pieces={pieces}
+                itemId={itemId}
+                onPiecesChange={onPiecesChange}
+                readOnly={false}
+              />
+            )}
+          </div>
         )}
       </div>
     </div>

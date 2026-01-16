@@ -51,9 +51,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       tenantId,
       parsed.data.issueCode,
       parsed.data.issueText,
+      userId,
       parsed.data.photoUrl,
-      parsed.data.priority || 'normal',
-      userId
+      parsed.data.priority || 'normal'
     );
 
     if (!result.success) {

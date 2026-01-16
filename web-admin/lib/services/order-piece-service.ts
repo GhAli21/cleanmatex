@@ -62,6 +62,8 @@ export class OrderPieceService {
   /**
    * Create pieces for an order item
    * Auto-creates pieces 1..quantity when USE_TRACK_BY_PIECE is enabled
+   * @param piecesData - Optional array of piece-level data. If provided, must match quantity.
+   *                     If not provided, uses baseData for all pieces uniformly.
    */
   static async createPiecesForItem(
     tenantId: string,
@@ -79,7 +81,17 @@ export class OrderPieceService {
       hasDamage?: boolean;
       notes?: string;
       metadata?: Record<string, any>;
-    }
+    },
+    piecesData?: Array<{
+      pieceSeq: number;
+      color?: string;
+      brand?: string;
+      hasStain?: boolean;
+      hasDamage?: boolean;
+      notes?: string;
+      rackLocation?: string;
+      metadata?: Record<string, any>;
+    }>
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
     try {
       const supabase = await createClient();
@@ -101,37 +113,42 @@ export class OrderPieceService {
       const pricePerPiece = baseData.pricePerUnit / quantity;
       const totalPricePerPiece = baseData.totalPrice / quantity;
 
-      // Create pieces array
-      const piecesToInsert = Array.from({ length: quantity }, (_, index) => ({
-        tenant_org_id: tenantId,
-        order_id: orderId,
-        order_item_id: orderItemId,
-        piece_seq: index + 1,
-        service_category_code: baseData.serviceCategoryCode || null,
-        product_id: baseData.productId || null,
-        scan_state: 'expected' as const,
-        barcode: null,
-        quantity: 1,
-        price_per_unit: pricePerPiece,
-        total_price: totalPricePerPiece,
-        piece_status: 'processing' as const,
-        price_stage: null,
-        is_rejected: false,
-        issue_id: null,
-        rack_location: null,
-        last_step_at: null,
-        last_step_by: null,
-        last_step: null,
-        notes: baseData.notes || null,
-        color: baseData.color || null,
-        brand: baseData.brand || null,
-        has_stain: baseData.hasStain || false,
-        has_damage: baseData.hasDamage || false,
-        metadata: baseData.metadata || {},
-        created_by: null,
-        created_info: null,
-        rec_status: 1,
-      }));
+      // Create pieces array - use piece-level data if provided, otherwise use baseData
+      const piecesToInsert = Array.from({ length: quantity }, (_, index) => {
+        const pieceSeq = index + 1;
+        const pieceData = piecesData?.find(p => p.pieceSeq === pieceSeq);
+        
+        return {
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          order_item_id: orderItemId,
+          piece_seq: pieceSeq,
+          service_category_code: baseData.serviceCategoryCode || null,
+          product_id: baseData.productId || null,
+          scan_state: 'expected' as const,
+          barcode: null,
+          quantity: 1,
+          price_per_unit: pricePerPiece,
+          total_price: totalPricePerPiece,
+          piece_status: 'processing' as const,
+          price_stage: null,
+          is_rejected: false,
+          issue_id: null,
+          rack_location: pieceData?.rackLocation || null,
+          last_step_at: null,
+          last_step_by: null,
+          last_step: null,
+          notes: pieceData?.notes || baseData.notes || null,
+          color: pieceData?.color || baseData.color || null,
+          brand: pieceData?.brand || baseData.brand || null,
+          has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
+          has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
+          metadata: pieceData?.metadata || baseData.metadata || {},
+          created_by: null,
+          created_info: null,
+          rec_status: 1,
+        };
+      });
 
       const { data: pieces, error: insertError } = await supabase
         .from('org_order_item_pieces_dtl')
