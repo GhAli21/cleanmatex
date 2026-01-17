@@ -161,7 +161,7 @@ export function PreparationForm({ order }: PreparationFormProps) {
       // Need to either lookup product by name or create product first
       // For now, using a temporary UUID - this needs proper implementation
       const orderItems: AddOrderItemInput[] = items.map((item) => ({
-        productId: crypto.randomUUID(), // TODO: Replace with actual product lookup
+        productId: '20000002-2222-2222-2222-222222222228', //crypto.randomUUID(), // TODO: Replace with actual product lookup
         quantity: item.quantity,
         serviceCategoryCode: item.service_category_code,
         color: item.color || undefined,

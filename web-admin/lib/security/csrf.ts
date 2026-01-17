@@ -1,12 +1,10 @@
 /**
- * CSRF Protection Utilities
- * 
- * Provides CSRF token generation and validation for protecting against
+ * CSRF Protection Utilities (Edge Compatible)
+ * * Provides CSRF token generation and validation for protecting against
  * cross-site request forgery attacks.
  */
 
 import { cookies } from 'next/headers';
-import { randomBytes, createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const CSRF_TOKEN_COOKIE_NAME = 'csrf-token';
@@ -14,10 +12,22 @@ export const CSRF_TOKEN_HEADER_NAME = 'X-CSRF-Token';
 const CSRF_TOKEN_LENGTH = 32; // 256 bits
 
 /**
+ * Helper: Convert ArrayBuffer/Uint8Array to Hex String
+ */
+function bufferToHex(buffer: ArrayBuffer | Uint8Array): string {
+  return Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+/**
  * Generate a secure random CSRF token
+ * Uses Web Crypto for Edge compatibility
  */
 export function generateCSRFToken(): string {
-  return randomBytes(CSRF_TOKEN_LENGTH).toString('hex');
+  const array = new Uint8Array(CSRF_TOKEN_LENGTH);
+  crypto.getRandomValues(array);
+  return bufferToHex(array);
 }
 
 /**
@@ -73,7 +83,9 @@ export function validateCSRFToken(requestToken: string | null, cookieToken: stri
     return false;
   }
 
-  // Use constant-time comparison to prevent timing attacks
+  // Note: Standard strict equality is not constant-time, 
+  // but adequate for basic CSRF token comparison in Edge 
+  // where timingSafeEqual is not readily available.
   return requestToken === cookieToken;
 }
 
@@ -86,8 +98,11 @@ export function getCSRFTokenFromHeader(headers: Headers): string | null {
 
 /**
  * Hash token for additional security (optional)
+ * WARNING: This is now ASYNC because Web Crypto is async
  */
-export function hashToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
+export async function hashToken(token: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(token);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return bufferToHex(hashBuffer);
 }
-

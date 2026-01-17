@@ -53,8 +53,8 @@ if (!(prismaClient as any).__tenantMiddlewareApplied) {
   try {
     // Check if $use method exists before applying middleware
     if (typeof (prismaClient as any).$use === 'function') {
-      applyTenantMiddleware(prismaClient);
-      (prismaClient as any).__tenantMiddlewareApplied = true;
+  applyTenantMiddleware(prismaClient);
+  (prismaClient as any).__tenantMiddlewareApplied = true;
     }
   } catch (error) {
     // Silently fail during build - middleware will be applied at runtime
@@ -69,8 +69,8 @@ if (!(prismaClient as any).__performanceMiddlewareApplied) {
   try {
     // Check if $use method exists before applying middleware
     if (typeof (prismaClient as any).$use === 'function') {
-      applyPerformanceMiddleware(prismaClient);
-      (prismaClient as any).__performanceMiddlewareApplied = true;
+  applyPerformanceMiddleware(prismaClient);
+  (prismaClient as any).__performanceMiddlewareApplied = true;
     }
   } catch (error) {
     // Silently fail during build - middleware will be applied at runtime
