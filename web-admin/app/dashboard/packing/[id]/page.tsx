@@ -13,6 +13,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
+import { PiecesErrorBoundary } from '@/components/orders/PiecesErrorBoundary';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
@@ -257,13 +258,15 @@ export default function PackingDetailPage() {
                       
                       {expandedItemIds.has(item.id) && (
                         <div className="mt-3">
-                          <OrderPiecesManager
-                            orderId={orderId}
-                            itemId={item.id}
-                            tenantId={currentTenant.tenant_id}
-                            readOnly={true}
-                            autoLoad={true}
-                          />
+                          <PiecesErrorBoundary>
+                            <OrderPiecesManager
+                              orderId={orderId}
+                              itemId={item.id}
+                              tenantId={currentTenant.tenant_id}
+                              readOnly={true}
+                              autoLoad={true}
+                            />
+                          </PiecesErrorBoundary>
                         </div>
                       )}
                     </div>

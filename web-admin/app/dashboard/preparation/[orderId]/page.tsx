@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getOrderForPrep } from '@/app/actions/orders/get-order';
+import { getAuthContext } from '@/lib/auth/server-auth';
 import { FastItemizer } from '../components/FastItemizer';
 
 interface PreparationPageProps {
@@ -18,11 +19,20 @@ async function PreparationContent({
   orderId: string;
   returnUrl?: string;
 }) {
-  // Note: tenant id is handled within server action
   const tWorkflow = await getTranslations('workflow');
   const tPrep = await getTranslations('preparation');
 
-  const result = await getOrderForPrep('', orderId);
+  // Get tenant ID from auth context
+  let tenantId: string;
+  try {
+    const authContext = await getAuthContext();
+    tenantId = authContext.tenantId;
+  } catch (error) {
+    console.error('[PreparationPage] Auth error:', error);
+    return notFound();
+  }
+
+  const result = await getOrderForPrep(tenantId, orderId);
   if (!result.success || !result.data) return notFound();
 
   const { order, productCatalog } = result.data;

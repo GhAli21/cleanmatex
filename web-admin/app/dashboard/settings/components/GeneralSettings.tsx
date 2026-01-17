@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardFooter, Input, Select, Button, Alert } from '@/components/ui';
 import type { Tenant, TenantUpdateRequest } from '@/lib/types/tenant';
+import type { ResolvedSetting } from '@/lib/api/settings-client';
 
 const COUNTRIES = [
   { value: 'OM', label: 'Oman (عمان)' },
@@ -39,9 +40,10 @@ const TIMEZONES = [
 interface GeneralSettingsProps {
   tenant: Tenant;
   onUpdate: () => void;
+  effectiveSettings?: ResolvedSetting[];
 }
 
-export function GeneralSettings({ tenant, onUpdate }: GeneralSettingsProps) {
+export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: GeneralSettingsProps) {
   const [formData, setFormData] = useState({
     name: tenant.name,
     name2: tenant.name2 || '',

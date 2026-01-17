@@ -1,36 +1,21 @@
 /**
- * Prisma Client Singleton for Next.js
+ * Prisma Client Export (Legacy)
  *
- * This file ensures we only instantiate one Prisma Client instance
- * during development (hot reload) and production.
- *
- * @see https://www.prisma.io/docs/guides/other/troubleshooting-orm/help-articles/nextjs-prisma-client-dev-practices
+ * @deprecated This file is deprecated and will be removed in a future version.
+ * 
+ * **Migration Required**: Update all imports to use '@/lib/db/prisma' instead.
+ * 
+ * **Why**: This file exists only for backward compatibility. The centralized
+ * Prisma client with middleware is located at '@/lib/db/prisma'.
+ * 
+ * **Migration Steps**:
+ * 1. Find: `import { prisma } from '../prisma'` or `import { prisma } from '@/lib/prisma'`
+ * 2. Replace with: `import { prisma } from '@/lib/db/prisma'`
+ * 
+ * **Removal Date**: TBD (after all imports are migrated)
+ * 
+ * @see lib/db/prisma.ts - Main Prisma client instance
+ * @see lib/db/PRISMA_SETUP.md - Setup and usage guide
  */
 
-import { PrismaClient } from '@prisma/client'
-
-// Prevent multiple Prisma Client instances in development
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development'
-      ? ['query', 'error', 'warn']
-      : ['error'],
-  })
-
-// Store in global to prevent multiple instances during hot reload
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
-}
-
-/**
- * Graceful shutdown helper
- * Call this when your application is shutting down
- */
-export async function disconnectPrisma() {
-  await prisma.$disconnect()
-}
+export { prisma } from './db/prisma';

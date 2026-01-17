@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type {
   Customer,
   CustomerWithTenantData,
@@ -98,34 +99,8 @@ async function getCurrentUserTenantSessionContext(): Promise<CurrentUserTenantSe
     userTenantOrgId: curUserTenantOrgId,
   };
 }
-/**
- * Get tenant ID from current session
- */
-async function getTenantIdFromSession(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized: No user');
-  }
-  console.log('Jh In getTenantIdFromSession(): user', user);
-  const curUserId = user.id;
-  const curUserRole = user.user_metadata?.role;
-  const curUserTenantId = user.user_metadata?.tenant_id;
-  console.log('Jh In getTenantIdFromSession(): curUserId', curUserId);
-  // Get user's tenants using the same function as frontend
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  console.log('Jh In getTenantIdFromSession(): tenants', tenants);
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('Unauthorized: No tenant access found' + error?.message);
-  }
-  console.log('Jh In getTenantIdFromSession(): tenants[0].tenant_id', tenants[0].tenant_id);
-  const curSessionAuth = tenants[0];
-  // Return the first tenant (current tenant)
-  return tenants[0].tenant_id;
-}
+// Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
+// The centralized version uses user.user_metadata?.tenant_org_id which is more reliable
 
 /**
  * Generate sequential customer number for tenant
@@ -158,14 +133,16 @@ export async function createCustomer(
   request: CustomerCreateRequest
 ): Promise<Customer> {
   const supabase = await createClient();
-  //const tenantId = await getTenantIdFromSession();
+  // Use centralized getTenantIdFromSession
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
+  
+  // Get user context for created_by
   const session = await getCurrentUserTenantSessionContext();
-  const tenantId = session.userTenantOrgId;
   const curUserId = session.userId;
   const curUserRole = session.userRole;
-  console.log('Jh In createCustomer(): tenantId', tenantId);
-  console.log('Jh In createCustomer(): curUserId', curUserId);
-  console.log('Jh In createCustomer(): curUserRole', curUserRole);
   // Normalize phone if provided
   let normalizedPhone: string | null = null;
   if ('phone' in request && request.phone) {

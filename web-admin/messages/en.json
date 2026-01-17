@@ -1418,7 +1418,7 @@
       "goToOrder": "Go to Order",
       "goToPreparation": "Go to Preparation",
       "goToProcessing": "Go to Processing",
-      "orderCreatedSuccess": "Order {{orderNo}} created successfully"
+      "orderCreatedSuccess": "Order {orderNo} created successfully"
     }
   },
   "newOrder": {

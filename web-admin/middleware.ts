@@ -14,6 +14,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale } from './i18n'
+import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } from './lib/security/csrf'
 
 /**
  * Routes that don't require authentication
@@ -173,7 +174,8 @@ export async function middleware(request: NextRequest) {
       }
 
       // Check if user is admin
-      if (userRole.role !== 'admin') {
+      if (!['admin', 'super_admin', 'tenant_admin'].includes(userRole.role)) {
+      //if (userRole.role !== 'admin') {
         // Redirect to dashboard with error message
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = DEFAULT_REDIRECT
@@ -194,8 +196,18 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // 5. Add user info to headers for server components
+  // 5. Generate and set CSRF token for authenticated users
   if (user) {
+    // Check if CSRF token already exists
+    let csrfToken = getCSRFTokenFromRequest(request);
+    
+    // Generate new token if it doesn't exist
+    if (!csrfToken) {
+      csrfToken = generateCSRFToken();
+      setCSRFTokenInResponse(response, csrfToken);
+    }
+    
+    // Add user info to headers for server components
     response.headers.set('X-User-ID', user.id)
     response.headers.set('X-User-Email', user.email || '')
   }

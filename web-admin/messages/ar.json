@@ -1421,7 +1421,7 @@
       "goToOrder": "الانتقال إلى الطلب",
       "goToPreparation": "الانتقال إلى التحضير",
       "goToProcessing": "الانتقال إلى المعالجة",
-      "orderCreatedSuccess": "تم إنشاء الطلب {{orderNo}} بنجاح"
+      "orderCreatedSuccess": "تم إنشاء الطلب {orderNo} بنجاح"
     }
   },
   "newOrder": {

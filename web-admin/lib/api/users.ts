@@ -173,6 +173,7 @@ export async function createUser(
       password: userData.password,
       email_confirm: !userData.send_invite, // Auto-confirm if not sending invite
       user_metadata: {
+        //tenant_org_id: tenantId,
         display_name: userData.display_name,
       },
     })

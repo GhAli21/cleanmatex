@@ -188,6 +188,7 @@ export function SelectContent({ children, className }: SelectContentProps) {
   const portalContent = (
     <div
       ref={contentRef}
+      data-select-root
       style={{
         position: 'fixed',
         top: `${position.top}px`,
@@ -200,6 +201,8 @@ export function SelectContent({ children, className }: SelectContentProps) {
         'max-h-60 overflow-auto rounded-md border border-gray-200 bg-white p-1 shadow-lg',
         className
       )}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       {children}
     </div>
@@ -224,9 +227,20 @@ export function SelectItem({ value, children, className }: SelectItemProps) {
   const { value: selectedValue, onValueChange } = context;
   const isSelected = selectedValue === value;
 
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onValueChange(value);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+  };
+
   return (
     <div
-      onClick={() => onValueChange(value)}
+      onClick={handleClick}
+      onMouseDown={handleMouseDown}
       className={cn(
         'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none',
         'focus:bg-gray-100 hover:bg-gray-100',

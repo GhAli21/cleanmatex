@@ -24,6 +24,16 @@ const nextConfig: NextConfig = {
 
   // Use webpack instead of Turbopack for more stable builds
   webpack: (config, { isServer }) => {
+    // Configure server-side externals to prevent Prisma bundling issues
+    if (isServer) {
+      // Ensure Prisma and related packages are not incorrectly bundled
+      const originalExternal = config.externals;
+      config.externals = [
+        ...(Array.isArray(originalExternal) ? originalExternal : [originalExternal]),
+        // Don't externalize Prisma completely, but ensure it's handled correctly
+      ];
+    }
+    
     // Exclude Node.js built-in modules and server-only packages from client bundles
     if (!isServer) {
       config.resolve.fallback = {

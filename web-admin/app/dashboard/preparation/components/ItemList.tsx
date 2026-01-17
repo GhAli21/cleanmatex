@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
+import { PiecesErrorBoundary } from '@/components/orders/PiecesErrorBoundary';
 import type { OrderItem } from '@/types/order';
 
 interface ItemListProps {
@@ -86,16 +87,18 @@ export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListPr
               
               {expandedItemIds.has(item.id) && (
                 <div className="mt-3">
-                  <OrderPiecesManager
-                    orderId={orderId}
-                    itemId={item.id}
-                    tenantId={currentTenant.tenant_id}
-                    readOnly={false}
-                    autoLoad={true}
-                    onUpdate={() => {
-                      // Refresh items if needed
-                    }}
-                  />
+                  <PiecesErrorBoundary>
+                    <OrderPiecesManager
+                      orderId={orderId}
+                      itemId={item.id}
+                      tenantId={currentTenant.tenant_id}
+                      readOnly={false}
+                      autoLoad={true}
+                      onUpdate={() => {
+                        // Refresh items if needed
+                      }}
+                    />
+                  </PiecesErrorBoundary>
                 </div>
               )}
             </div>

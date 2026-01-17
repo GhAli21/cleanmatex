@@ -519,14 +519,22 @@ export async function listOrders(
     // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
     const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
     
+    // Ensure customer data is properly formatted (defensive check)
+    const customerId = customerData?.id || order.org_customers_mst?.id || '';
+    const customerName = customerData?.name || order.org_customers_mst?.name || '';
+    const customerPhone = customerData?.phone || order.org_customers_mst?.phone || '';
+    
+    // Ensure all values are strings, not objects
+    const safeCustomer = {
+      id: typeof customerId === 'string' ? customerId : String(customerId || ''),
+      name: typeof customerName === 'string' ? customerName : String(customerName || ''),
+      phone: typeof customerPhone === 'string' ? customerPhone : String(customerPhone || ''),
+    };
+    
     return {
       id: order.id,
       order_no: order.order_no,
-      customer: {
-        id: customerData?.id || order.org_customers_mst?.id || '',
-        name: customerData?.name || order.org_customers_mst?.name || '',
-        phone: customerData?.phone || order.org_customers_mst?.phone || '',
-      },
+      customer: safeCustomer,
       status: order.status as any,
       preparation_status: order.preparation_status as any,
       priority: order.priority as any,

@@ -47,6 +47,8 @@ interface ProcessingModalProps {
 
 /**
  * Generate pieces from an order item
+ * Only used when trackByPiece is disabled (legacy mode)
+ * When trackByPiece is enabled, pieces are loaded directly from DB
  */
 function generatePieces(item: OrderItem): ItemPiece[] {
   const pieces: ItemPiece[] = [];
@@ -65,6 +67,52 @@ function generatePieces(item: OrderItem): ItemPiece[] {
   }
 
   return pieces;
+}
+
+/**
+ * Load pieces from database for an item
+ * Returns full ItemPiece objects with DB IDs
+ */
+async function loadPiecesFromDb(
+  orderId: string,
+  itemId: string,
+  tenantId: string
+): Promise<Map<string, ItemPiece>> {
+  try {
+    const response = await fetch(
+      `/api/v1/orders/${orderId}/items/${itemId}/pieces`
+    );
+    
+    if (!response.ok) {
+      // If pieces don't exist yet, return empty map
+      return new Map();
+    }
+
+    const data = await response.json();
+    const dbPieces = data.data || data.pieces || [];
+    
+    const piecesMap = new Map<string, ItemPiece>();
+    
+    dbPieces.forEach((dbPiece: any) => {
+      // Use DB ID as the key and create full ItemPiece object
+      const pieceId = dbPiece.id; // Use actual DB UUID
+      piecesMap.set(pieceId, {
+        id: pieceId,
+        itemId: itemId,
+        pieceNumber: dbPiece.piece_seq,
+        isReady: dbPiece.piece_status === 'ready',
+        currentStep: dbPiece.last_step as ProcessingStep | undefined,
+        notes: dbPiece.notes || '',
+        rackLocation: dbPiece.rack_location || '',
+        isRejected: dbPiece.is_rejected || false,
+      });
+    });
+
+    return piecesMap;
+  } catch (error) {
+    console.error('[ProcessingModal] Error loading pieces from DB:', error);
+    return new Map();
+  }
 }
 
 export function ProcessingModal({
@@ -158,8 +206,10 @@ export function ProcessingModal({
     },
     enabled: isOpen && !!orderId,
     retry: 1,
-    staleTime: 0,  // Always fetch fresh
-    gcTime: 0,     // Don't cache
+    staleTime: 30000,  // Consider data fresh for 30 seconds
+    gcTime: 5 * 60 * 1000,  // Keep in cache for 5 minutes
+    refetchOnWindowFocus: false,  // Don't refetch when window regains focus
+    refetchOnMount: false,  // Don't refetch on mount if data exists
   });
 
   const order: Order | null = orderData?.order || null;
@@ -189,21 +239,73 @@ export function ProcessingModal({
     }
   }, [isOpen, orderId, orderLoading, orderError, orderData, order, items]);
 
-  // Initialize piece states when items load
+  // Track if piece states have been initialized for current order
+  const initializedOrderIdRef = React.useRef<string | null>(null);
+
+  // Initialize piece states when items load (only once per order)
+  // Loads from DB if trackByPiece is enabled, otherwise generates from items
   React.useEffect(() => {
-    if (items.length > 0 && pieceStates.size === 0) {
-      const initialStates = new Map<string, ItemPiece>();
+    if (!isOpen || !orderId || items.length === 0) return;
+    
+    // Only initialize if this is a new order (not already initialized)
+    if (initializedOrderIdRef.current !== orderId) {
+      const initializePieces = async () => {
+        const initialStates = new Map<string, ItemPiece>();
+        
+        for (const item of items) {
+          if (trackByPiece) {
+            // If trackByPiece is enabled, load pieces directly from DB only
+            const dbPiecesMap = await loadPiecesFromDb(orderId, item.id, tenantId);
+            
+            // Use DB pieces directly - they should already exist in the database
+            dbPiecesMap.forEach((dbPiece, pieceId) => {
+              initialStates.set(pieceId, dbPiece);
+            });
+            
+            // If no DB pieces found, generate them as fallback (shouldn't happen if pieces are auto-created)
+            if (dbPiecesMap.size === 0) {
+              console.warn('[ProcessingModal] No DB pieces found for item, generating fallback:', item.id);
+              const generatedPieces = generatePieces(item);
+              generatedPieces.forEach(piece => {
+                initialStates.set(piece.id, piece);
+              });
+            }
+          } else {
+            // Not tracking by piece, generate pieces from items
+            const generatedPieces = generatePieces(item);
+            generatedPieces.forEach(piece => {
+              initialStates.set(piece.id, piece);
+            });
+          }
+        }
 
-      items.forEach(item => {
-        const pieces = generatePieces(item);
-        pieces.forEach(piece => {
-          initialStates.set(piece.id, piece);
+        setPieceStates(initialStates);
+        initializedOrderIdRef.current = orderId;
+      };
+
+      initializePieces();
+    } else {
+      // If order is already initialized, merge new pieces without overwriting existing state
+      setPieceStates(prev => {
+        const newMap = new Map(prev);
+        let hasNewPieces = false;
+
+        items.forEach(item => {
+          const pieces = generatePieces(item);
+          pieces.forEach(piece => {
+            // Only add if piece doesn't exist, preserve existing state
+            if (!newMap.has(piece.id)) {
+              newMap.set(piece.id, piece);
+              hasNewPieces = true;
+            }
+          });
         });
-      });
 
-      setPieceStates(initialStates);
+        // Only update if there are new pieces
+        return hasNewPieces ? newMap : prev;
+      });
     }
-  }, [items, pieceStates.size]);
+  }, [isOpen, orderId, items.length, trackByPiece, tenantId]);
 
   // Set initial rack location from order
   React.useEffect(() => {
@@ -211,6 +313,21 @@ export function ProcessingModal({
       setRackLocation(order.rack_location);
     }
   }, [order, rackLocation]);
+
+  // Reset state when modal closes
+  React.useEffect(() => {
+    if (!isOpen) {
+      // Reset all state when modal closes
+      setExpandedItemIds(new Set());
+      setPieceStates(new Map());
+      setSelectedForSplit(new Set());
+      setRackLocation('');
+      setSummaryMessage(null);
+      setShowSplitDialog(false);
+      setShowRejectedOnTop(false);
+      initializedOrderIdRef.current = null;
+    }
+  }, [isOpen]);
 
   // Batch update mutation
   const updateMutation = useMutation({
@@ -227,28 +344,34 @@ export function ProcessingModal({
     onSuccess: (data) => {
       setSummaryMessage({
         type: 'success',
-        title: t('summary.updateSuccess'),
+        title: String(t('summary.updateSuccess')),
         items: [
-          t('summary.piecesUpdated', { count: data.summary.piecesUpdated }),
-          t('summary.readyCount', { count: data.summary.readyCount }),
+          String(t('summary.piecesUpdated', { count: data.summary.piecesUpdated })),
+          String(t('summary.readyCount', { count: data.summary.readyCount })),
           data.summary.stepsRecorded > 0
-            ? t('summary.stepsRecorded', { count: data.summary.stepsRecorded })
+            ? String(t('summary.stepsRecorded', { count: data.summary.stepsRecorded }))
             : null,
           data.summary.rackLocationsSet > 0
-            ? t('summary.rackLocationsSet', { count: data.summary.rackLocationsSet })
+            ? String(t('summary.rackLocationsSet', { count: data.summary.rackLocationsSet }))
             : null,
         ].filter(Boolean) as string[],
       });
 
       // Refresh parent list
       onRefresh?.();
-      queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+      // Only refetch if modal is still open, and use refetch instead of invalidate to avoid immediate refresh
+      if (isOpen && orderId) {
+        queryClient.refetchQueries({ 
+          queryKey: ['order-processing', orderId],
+          exact: true 
+        });
+      }
     },
     onError: (error) => {
       setSummaryMessage({
         type: 'error',
         title: 'Update Failed',
-        items: [error instanceof Error ? error.message : 'Unknown error'],
+        items: [String(error instanceof Error ? error.message : 'Unknown error')],
       });
     },
   });
@@ -268,10 +391,10 @@ export function ProcessingModal({
     onSuccess: (data) => {
       setSummaryMessage({
         type: 'success',
-        title: t('summary.splitSuccess'),
+        title: String(t('summary.splitSuccess')),
         items: [
-          t('summary.newOrder', { orderNumber: data.newOrderNumber }),
-          t('summary.movedPieces', { count: data.movedPieces }),
+          String(t('summary.newOrder', { orderNumber: data.newOrderNumber })),
+          String(t('summary.movedPieces', { count: data.movedPieces })),
         ],
       });
 
@@ -281,13 +404,19 @@ export function ProcessingModal({
 
       // Refresh
       onRefresh?.();
-      queryClient.invalidateQueries({ queryKey: ['order-processing', orderId] });
+      // Only refetch if modal is still open, and use refetch instead of invalidate to avoid immediate refresh
+      if (isOpen && orderId) {
+        queryClient.refetchQueries({ 
+          queryKey: ['order-processing', orderId],
+          exact: true 
+        });
+      }
     },
     onError: (error) => {
       setSummaryMessage({
         type: 'error',
         title: 'Split Failed',
-        items: [error instanceof Error ? error.message : 'Unknown error'],
+        items: [String(error instanceof Error ? error.message : 'Unknown error')],
       });
     },
   });
@@ -295,14 +424,17 @@ export function ProcessingModal({
   // Handle update button click
   const handleUpdate = () => {
     // Collect all piece updates
+    // piece.id could be either DB ID (UUID) or generated ID (itemId-piece-N)
+    // The batch-update endpoint will handle both cases
     const updates = Array.from(pieceStates.values()).map(piece => ({
-      pieceId: piece.id,
+      pieceId: piece.id, // Use the ID (could be DB ID or generated ID)
       itemId: piece.itemId,
       pieceNumber: piece.pieceNumber,
       isReady: piece.isReady,
       currentStep: piece.currentStep,
-      notes: piece.notes,
-      rackLocation: piece.rackLocation,
+      notes: piece.notes || '',
+      rackLocation: piece.rackLocation || '',
+      isRejected: piece.isRejected || false,
     }));
 
     // Calculate quantity_ready per item
@@ -311,6 +443,12 @@ export function ProcessingModal({
       const itemPieces = updates.filter(u => u.itemId === item.id);
       const readyCount = itemPieces.filter(u => u.isReady).length;
       itemQuantityReady[item.id] = readyCount;
+    });
+
+    console.log('[ProcessingModal] Saving updates:', {
+      updatesCount: updates.length,
+      itemQuantityReady,
+      orderRackLocation: rackLocation,
     });
 
     updateMutation.mutate({
@@ -328,11 +466,16 @@ export function ProcessingModal({
 
   // Handle piece state change
   const handlePieceChange = (pieceId: string, updates: Partial<ItemPiece>) => {
+    console.log('[ProcessingModal] Piece change:', { pieceId, updates });
     setPieceStates(prev => {
       const newMap = new Map(prev);
       const piece = newMap.get(pieceId);
       if (piece) {
-        newMap.set(pieceId, { ...piece, ...updates });
+        const updatedPiece = { ...piece, ...updates };
+        console.log('[ProcessingModal] Updating piece:', { pieceId, oldNotes: piece.notes, newNotes: updatedPiece.notes });
+        newMap.set(pieceId, updatedPiece);
+      } else {
+        console.warn('[ProcessingModal] Piece not found:', pieceId);
       }
       return newMap;
     });
@@ -489,7 +632,6 @@ export function ProcessingModal({
                         rejectColor={rejectColor}
                         orderId={orderId || undefined}
                         tenantId={tenantId}
-                        useDbPieces={trackByPiece} // Use DB pieces when trackByPiece is enabled
                       />
                     ))
                   )}

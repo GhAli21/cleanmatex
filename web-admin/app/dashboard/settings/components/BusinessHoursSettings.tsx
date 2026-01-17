@@ -8,6 +8,7 @@
 import React, { useState } from 'react';
 import { Card, CardHeader, CardFooter, Button, Alert } from '@/components/ui';
 import type { Tenant, BusinessHours, DayHours } from '@/lib/types/tenant';
+import type { ResolvedSetting } from '@/lib/api/settings-client';
 
 const DAYS = [
   { key: 'mon', label: 'Monday' },
@@ -22,9 +23,10 @@ const DAYS = [
 interface BusinessHoursSettingsProps {
   tenant: Tenant;
   onUpdate: () => void;
+  effectiveSettings?: ResolvedSetting[];
 }
 
-export function BusinessHoursSettings({ tenant, onUpdate }: BusinessHoursSettingsProps) {
+export function BusinessHoursSettings({ tenant, onUpdate, effectiveSettings }: BusinessHoursSettingsProps) {
   const [businessHours, setBusinessHours] = useState<BusinessHours>(
     tenant.business_hours || {}
   );

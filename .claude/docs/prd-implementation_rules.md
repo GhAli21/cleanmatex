@@ -20,6 +20,7 @@ author: CleanMateX Team
 - ❌ Don't hardcode secrets or API keys
 - ❌ Don't skip error handling
 - ❌ Don't commit code without tests for business logic
+- ❌ **NEVER create duplicate `getTenantIdFromSession()` implementations** - Always use centralized version from `@/lib/db/tenant-context`
 
 ---
 
@@ -411,6 +412,77 @@ import { debounce } from "lodash-es"; // Not import _ from 'lodash'
 
 ### Multi-Tenant Security
 
+**🚨 CRITICAL: Centralized Tenant Context Management**
+
+**MANDATORY RULE: Always use centralized tenant context functions**
+
+1. **NEVER create duplicate `getTenantIdFromSession()` implementations**
+
+   - ✅ **CORRECT**: Import from centralized location
+     ```typescript
+     import {
+       getTenantIdFromSession,
+       withTenantContext,
+     } from "@/lib/db/tenant-context";
+     ```
+   - ❌ **WRONG**: Creating duplicate implementations
+     ```typescript
+     async function getTenantIdFromSession(): Promise<string> {
+       // This violates the rule - use centralized version instead
+     }
+     ```
+
+2. **For Prisma Services (Next.js web-admin):**
+
+   - Wrap all Prisma queries on `org_*` tables with `withTenantContext()`
+   - Middleware automatically adds `tenant_org_id` to queries
+   - Example:
+
+     ```typescript
+     export async function createInvoice(input: CreateInvoiceInput) {
+       const tenantId = await getTenantIdFromSession();
+       if (!tenantId) throw new Error('Unauthorized');
+
+       return withTenantContext(tenantId, async () => {
+         // Middleware adds tenant_org_id automatically
+         return await prisma.org_invoice_mst.create({ ... });
+       });
+     }
+     ```
+
+3. **For Supabase Services:**
+
+   - Use centralized `getTenantIdFromSession()` to get tenant ID
+   - Explicitly add `.eq('tenant_org_id', tenantId)` to all queries
+   - Example:
+     ```typescript
+     export async function getCustomers() {
+       const tenantId = await getTenantIdFromSession();
+       const { data } = await supabase
+         .from("org_customers_mst")
+         .select("*")
+         .eq("tenant_org_id", tenantId); // Required
+     }
+     ```
+
+4. **For API Routes:**
+
+   - Use `withTenantContext()` wrapper for Prisma queries
+   - Use centralized `getTenantIdFromSession()` for Supabase queries
+
+5. **Code Review Checklist:**
+   - ✅ No duplicate `getTenantIdFromSession()` implementations
+   - ✅ All Prisma queries wrapped with `withTenantContext()` (for `org_*` tables)
+   - ✅ All Supabase queries include `.eq('tenant_org_id', tenantId)`
+   - ✅ All services import from `@/lib/db/tenant-context`
+
+**Location of centralized tenant context:**
+
+- File: `web-admin/lib/db/tenant-context.ts`
+- Exports: `getTenantIdFromSession()`, `withTenantContext()`, `getTenantId()`
+
+See also: [Multi-Tenancy Enforcement](./multitenancy.md#tenant-context-management-mandatory)
+
 - **Always filter by `tenant_org_id`** in every query
 - **Use composite foreign keys** for tenant-scoped joins
 - **Test tenant isolation** in unit tests
@@ -447,6 +519,9 @@ Before submitting code for review, ensure:
 - [ ] Error handling is implemented
 - [ ] Logging is added (using logger utility)
 - [ ] Tenant filtering is present in queries
+- [ ] **No duplicate `getTenantIdFromSession()` implementations** - Using centralized version from `@/lib/db/tenant-context`
+- [ ] **All Prisma queries wrapped with `withTenantContext()`** (for `org_*` tables)
+- [ ] **All Supabase queries include `.eq('tenant_org_id', tenantId)`**
 - [ ] Tests are written and passing
 - [ ] No sensitive data in logs or code
 - [ ] Performance considerations addressed

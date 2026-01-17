@@ -77,6 +77,11 @@ export function SummaryMessage({
   const Icon = iconMap[type];
   const colors = colorMap[type];
 
+  // Ensure title and items are strings (defensive check for React elements from translations)
+  // next-intl can return React elements when translations contain formatting, so we convert to string
+  const safeTitle = typeof title === 'string' ? title : String(title);
+  const safeItems = items.map(item => typeof item === 'string' ? item : String(item));
+
   // Auto-hide functionality
   React.useEffect(() => {
     if (autoHide && onDismiss) {
@@ -106,13 +111,13 @@ export function SummaryMessage({
         <div className="flex-1 space-y-2">
           {/* Title */}
           <h4 className={cn('font-semibold text-sm', colors.title)}>
-            {title}
+            {safeTitle}
           </h4>
 
           {/* Items List */}
-          {items.length > 0 && (
+          {safeItems.length > 0 && (
             <ul className={cn('text-sm space-y-1', colors.text)}>
-              {items.map((item, index) => (
+              {safeItems.map((item, index) => (
                 <li key={index} className="flex items-start gap-2">
                   <span className="text-xs mt-0.5">•</span>
                   <span>{item}</span>

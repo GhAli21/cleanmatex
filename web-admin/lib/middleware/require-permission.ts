@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { hasPermissionServer } from '@/lib/services/permission-service-server'
+import { validateJWTWithTenant } from './jwt-tenant-validator'
 import { logger } from '@/lib/utils/logger'
 
 // ========================
@@ -31,10 +32,12 @@ export interface AuthContext {
 
 /**
  * Get authentication context from request
+ * Enhanced to use JWT tenant validator for guaranteed tenant context
  * @returns Auth context with user and tenant info
  * @throws Error if unauthorized
  */
 export async function getAuthContext(): Promise<AuthContext> {
+  // Use JWT tenant validator to ensure tenant context exists
   const supabase = await createClient()
   const {
     data: { user },
@@ -43,14 +46,28 @@ export async function getAuthContext(): Promise<AuthContext> {
   if (!user) {
     throw new Error('Unauthorized')
   }
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants')
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found')
+
+  // Get tenant from JWT metadata (guaranteed by JWT validator)
+  const tenantId = user.user_metadata?.tenant_org_id
+  
+  if (!tenantId) {
+    // Fallback to RPC if JWT doesn't have tenant (shouldn't happen with JWT validator)
+    const { data: tenants, error } = await supabase.rpc('get_user_tenants')
+    if (error || !tenants || tenants.length === 0) {
+      throw new Error('No tenant access found')
+    }
+    
+    return {
+      user,
+      tenantId: tenants[0].tenant_id as string,
+      userId: user.id as string,
+      userName: user.user_metadata?.full_name || user.email || 'User',
+    }
   }
 
   return {
     user,
-    tenantId: tenants[0].tenant_id as string,
+    tenantId,
     userId: user.id as string,
     userName: user.user_metadata?.full_name || user.email || 'User',
   }
@@ -72,11 +89,17 @@ export function requirePermission(
 ) {
   return async (request: NextRequest): Promise<AuthContext | NextResponse> => {
     try {
+      // First validate JWT has tenant context
+      const jwtValidation = await validateJWTWithTenant(request)
+      if (jwtValidation instanceof NextResponse) {
+        return jwtValidation // JWT validation failed
+      }
+
+      // Get auth context (now guaranteed to have tenant)
       const authContext = await getAuthContext()
       
-      //const hasAccess = true;// true for testing
+      // Check permission
       let hasAccess = await hasPermissionServer(permission, options) 
-      //hasAccess = false; // false for testing
       
       if (!hasAccess) {
         logger.warn('Permission denied', {

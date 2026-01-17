@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type {
   ServiceCategory,
   EnabledCategory,
@@ -25,53 +26,7 @@ import type {
   ProductStatistics,
 } from '@/lib/types/catalog';
 
-// ==================================================================
-// TENANT CONTEXT
-// ==================================================================
-
-/**
- * Get tenant ID from current session
- */
-async function getTenantIdFromSession(): Promise<string> {
-  try {
-    const supabase = await createClient();
-    
-    // Add timeout for auth calls
-    const getUserPromise = supabase.auth.getUser();
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Auth timeout')), 5000);
-    });
-    
-    const { data: { user }, error: authError } = await Promise.race([
-      getUserPromise,
-      timeoutPromise,
-    ]) as any;
-
-    if (authError || !user) {
-      throw new Error('Unauthorized: No user');
-    }
-
-    // Add timeout for RPC call
-    const rpcPromise = supabase.rpc('get_user_tenants');
-    const rpcTimeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('RPC timeout')), 5000);
-    });
-    
-    const { data: tenants, error } = await Promise.race([
-      rpcPromise,
-      rpcTimeoutPromise,
-    ]) as any;
-    
-    if (error || !tenants || tenants.length === 0) {
-      throw new Error('Unauthorized: No tenant access found' + (error?.message || ''));
-    }
-
-    return tenants[0].tenant_id;
-  } catch (error) {
-    console.error('[Catalog Service] Error getting tenant ID:', error);
-    throw error;
-  }
-}
+// Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
 
 // ==================================================================
 // SERVICE CATEGORIES

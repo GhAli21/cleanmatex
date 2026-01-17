@@ -1,103 +1,72 @@
 /**
- * Pieces Error Boundary Component
- * Catches errors in order pieces components and displays user-friendly messages
+ * Error Boundary for Order Pieces Manager
+ * Catches and displays errors gracefully
  */
 
 'use client';
 
-import * as React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
+import React from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { log } from '@/lib/utils/logger';
-
-interface PiecesErrorFallbackProps {
-  error: Error;
-  resetErrorBoundary: () => void;
-}
-
-function PiecesErrorFallback({
-  error,
-  resetErrorBoundary,
-}: PiecesErrorFallbackProps) {
-  const t = useTranslations('orders.pieces.errors');
-  const isRTL = useRTL();
-
-  React.useEffect(() => {
-    // Log error with context
-    log.error('Pieces error boundary caught error', error, {
-      feature: 'order_pieces',
-      component: 'PiecesErrorBoundary',
-    });
-  }, [error]);
-
-  return (
-    <div
-      className={`flex flex-col items-center justify-center p-8 border border-red-200 rounded-lg bg-red-50 ${
-        isRTL ? 'text-right' : 'text-left'
-      }`}
-      role="alert"
-    >
-      <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-      <h3 className={`text-lg font-semibold text-red-800 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-        {t('loadFailed')}
-      </h3>
-      <p className={`text-sm text-red-600 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-        {error.message || t('loadFailed')}
-      </p>
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={resetErrorBoundary}
-        className={isRTL ? 'flex-row-reverse' : ''}
-      >
-        <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-        {t('retry')}
-      </Button>
-    </div>
-  );
-}
 
 interface PiecesErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<PiecesErrorFallbackProps>;
-  onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
+  fallback?: React.ReactNode;
 }
 
-export function PiecesErrorBoundary({
-  children,
-  fallback,
-  onError,
-}: PiecesErrorBoundaryProps) {
-  const handleError = React.useCallback(
-    (error: Error, errorInfo: React.ErrorInfo) => {
-      log.error('Pieces error boundary error handler', error, {
-        feature: 'order_pieces',
-        component: 'PiecesErrorBoundary',
-        errorInfo: {
-          componentStack: errorInfo.componentStack,
-        },
-      });
+interface PiecesErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+}
 
-      if (onError) {
-        onError(error, errorInfo);
+export class PiecesErrorBoundary extends React.Component<
+  PiecesErrorBoundaryProps,
+  PiecesErrorBoundaryState
+> {
+  constructor(props: PiecesErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error): PiecesErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('[PiecesErrorBoundary] Error caught:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
       }
-    },
-    [onError]
-  );
 
-  return (
-    <ErrorBoundary
-      FallbackComponent={fallback || PiecesErrorFallback}
-      onError={handleError}
-      onReset={() => {
-        // Reset any error state if needed
-      }}
-    >
-      {children}
-    </ErrorBoundary>
-  );
+      return (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-900 mb-1">
+                Failed to load pieces
+              </h3>
+              <p className="text-sm text-red-700 mb-3">
+                {this.state.error?.message || 'An unexpected error occurred'}
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => this.setState({ hasError: false, error: null })}
+                className="text-red-700 border-red-300 hover:bg-red-100"
+              >
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
-

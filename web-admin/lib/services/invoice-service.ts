@@ -8,7 +8,8 @@
  * - Invoice retrieval and updates
  */
 
-import { prisma } from '../prisma';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type {
   Invoice,
   InvoiceStatus,
@@ -28,53 +29,63 @@ import type {
 export async function createInvoice(
   input: CreateInvoiceInput
 ): Promise<Invoice> {
-  // Get order details
-  const order = await prisma.org_orders_mst.findUnique({
-    where: { id: input.order_id },
-    include: {
-      org_order_items_dtl: true,
-    },
-  });
-
-  if (!order) {
-    throw new Error('Order not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Generate invoice number
-  const invoiceNo = await generateInvoiceNumber(order.tenant_org_id);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id to all queries
+  return withTenantContext(tenantId, async () => {
+    // Get order details - middleware adds tenant_org_id automatically
+    const order = await prisma.org_orders_mst.findUnique({
+      where: { id: input.order_id },
+      include: {
+        org_order_items_dtl: true,
+      },
+    });
 
-  // Calculate total
-  const total = calculateInvoiceTotal({
-    subtotal: input.subtotal,
-    discount: input.discount || 0,
-    tax: input.tax || 0,
-  });
+    if (!order) {
+      throw new Error('Order not found');
+    }
 
-  // Create invoice
-  const invoice = await prisma.org_invoice_mst.create({
-    data: {
-      order_id: input.order_id,
-      tenant_org_id: order.tenant_org_id,
-      invoice_no: invoiceNo,
+    // Generate invoice number
+    const invoiceNo = await generateInvoiceNumber(order.tenant_org_id);
+
+    // Calculate total
+    const total = calculateInvoiceTotal({
       subtotal: input.subtotal,
       discount: input.discount || 0,
       tax: input.tax || 0,
-      total,
-      status: 'pending',
-      due_date: input.due_date ? new Date(input.due_date) : undefined,
-      payment_method: input.payment_method,
-      paid_amount: 0,
-      metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-      rec_notes: input.rec_notes,
-      created_at: new Date(),
-    },
-  });
+    });
 
-  return mapInvoiceToType(invoice);
+    // Create invoice - middleware automatically adds tenant_org_id
+    const invoice = await prisma.org_invoice_mst.create({
+      data: {
+        order_id: input.order_id,
+        tenant_org_id: order.tenant_org_id,
+        invoice_no: invoiceNo,
+        subtotal: input.subtotal,
+        discount: input.discount || 0,
+        tax: input.tax || 0,
+        total,
+        status: 'pending',
+        due_date: input.due_date ? new Date(input.due_date) : undefined,
+        payment_method: input.payment_method,
+        paid_amount: 0,
+        metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+        rec_notes: input.rec_notes,
+        created_at: new Date(),
+      },
+    });
+
+    return mapInvoiceToType(invoice);
+  });
 }
 
 /**
  * Generate unique invoice number for tenant
+ * Note: This function is called within tenant context, so middleware applies automatically
  */
 async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
   const now = new Date();
@@ -82,10 +93,10 @@ async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const prefix = `INV-${year}${month}`;
 
-  // Get count of invoices this month
+  // Get count of invoices this month - middleware adds tenant_org_id automatically
   const count = await prisma.org_invoice_mst.count({
     where: {
-      tenant_org_id: tenantOrgId,
+      tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
       invoice_no: {
         startsWith: prefix,
       },
@@ -104,15 +115,24 @@ async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
  * Get invoice by ID
  */
 export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    return null;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return mapInvoiceToType(invoice);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      return null;
+    }
+
+    return mapInvoiceToType(invoice);
+  });
 }
 
 /**
@@ -122,18 +142,21 @@ export async function getInvoiceByNumber(
   tenantOrgId: string,
   invoiceNo: string
 ): Promise<Invoice | null> {
-  const invoice = await prisma.org_invoice_mst.findFirst({
-    where: {
-      tenant_org_id: tenantOrgId,
-      invoice_no: invoiceNo,
-    },
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const invoice = await prisma.org_invoice_mst.findFirst({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        invoice_no: invoiceNo,
+      },
+    });
+
+    if (!invoice) {
+      return null;
+    }
+
+    return mapInvoiceToType(invoice);
   });
-
-  if (!invoice) {
-    return null;
-  }
-
-  return mapInvoiceToType(invoice);
 }
 
 /**
@@ -142,16 +165,25 @@ export async function getInvoiceByNumber(
 export async function getInvoicesForOrder(
   orderId: string
 ): Promise<Invoice[]> {
-  const invoices = await prisma.org_invoice_mst.findMany({
-    where: {
-      order_id: orderId,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return invoices.map(mapInvoiceToType);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoices = await prisma.org_invoice_mst.findMany({
+      where: {
+        order_id: orderId,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    return invoices.map(mapInvoiceToType);
+  });
 }
 
 /**
@@ -161,17 +193,20 @@ export async function getInvoicesByStatus(
   tenantOrgId: string,
   status: InvoiceStatus
 ): Promise<Invoice[]> {
-  const invoices = await prisma.org_invoice_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      status,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  });
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const invoices = await prisma.org_invoice_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        status,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
 
-  return invoices.map(mapInvoiceToType);
+    return invoices.map(mapInvoiceToType);
+  });
 }
 
 /**
@@ -185,42 +220,49 @@ export async function listInvoices(params: {
   limit?: number;
   offset?: number;
 }): Promise<{ invoices: Invoice[]; total: number }> {
-  const where: any = {};
-
-  if (params.tenantOrgId) {
-    where.tenant_org_id = params.tenantOrgId;
+  // Get tenant ID from params or session
+  const tenantId = params.tenantOrgId || (await getTenantIdFromSession());
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  if (params.status) {
-    where.status = params.status;
-  }
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const where: any = {
+      tenant_org_id: tenantId, // Explicit filter for clarity (middleware also adds it)
+    };
 
-  if (params.dateFrom || params.dateTo) {
-    where.created_at = {};
-    if (params.dateFrom) {
-      where.created_at.gte = new Date(params.dateFrom);
+    if (params.status) {
+      where.status = params.status;
     }
-    if (params.dateTo) {
-      where.created_at.lte = new Date(params.dateTo);
+
+    if (params.dateFrom || params.dateTo) {
+      where.created_at = {};
+      if (params.dateFrom) {
+        where.created_at.gte = new Date(params.dateFrom);
+      }
+      if (params.dateTo) {
+        where.created_at.lte = new Date(params.dateTo);
+      }
     }
-  }
 
-  const [invoices, total] = await Promise.all([
-    prisma.org_invoice_mst.findMany({
-      where,
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: params.limit || 50,
-      skip: params.offset || 0,
-    }),
-    prisma.org_invoice_mst.count({ where }),
-  ]);
+    const [invoices, total] = await Promise.all([
+      prisma.org_invoice_mst.findMany({
+        where,
+        orderBy: {
+          created_at: 'desc',
+        },
+        take: params.limit || 50,
+        skip: params.offset || 0,
+      }),
+      prisma.org_invoice_mst.count({ where }),
+    ]);
 
-  return {
-    invoices: invoices.map(mapInvoiceToType),
-    total,
-  };
+    return {
+      invoices: invoices.map(mapInvoiceToType),
+      total,
+    };
+  });
 }
 
 // ============================================================================
@@ -234,45 +276,54 @@ export async function updateInvoice(
   invoiceId: string,
   input: UpdateInvoiceInput
 ): Promise<Invoice> {
-  const updateData: any = {
-    updated_at: new Date(),
-    updated_by: input.paid_by,
-  };
-
-  if (input.status !== undefined) {
-    updateData.status = input.status;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  if (input.payment_method !== undefined) {
-    updateData.payment_method = input.payment_method;
-  }
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const updateData: any = {
+      updated_at: new Date(),
+      updated_by: input.paid_by,
+    };
 
-  if (input.paid_amount !== undefined) {
-    updateData.paid_amount = input.paid_amount;
-  }
+    if (input.status !== undefined) {
+      updateData.status = input.status;
+    }
 
-  if (input.paid_at !== undefined) {
-    updateData.paid_at = new Date(input.paid_at);
-  }
+    if (input.payment_method !== undefined) {
+      updateData.payment_method = input.payment_method;
+    }
 
-  if (input.paid_by !== undefined) {
-    updateData.paid_by = input.paid_by;
-  }
+    if (input.paid_amount !== undefined) {
+      updateData.paid_amount = input.paid_amount;
+    }
 
-  if (input.metadata !== undefined) {
-    updateData.metadata = JSON.stringify(input.metadata);
-  }
+    if (input.paid_at !== undefined) {
+      updateData.paid_at = new Date(input.paid_at);
+    }
 
-  if (input.rec_notes !== undefined) {
-    updateData.rec_notes = input.rec_notes;
-  }
+    if (input.paid_by !== undefined) {
+      updateData.paid_by = input.paid_by;
+    }
 
-  const invoice = await prisma.org_invoice_mst.update({
-    where: { id: invoiceId },
-    data: updateData,
+    if (input.metadata !== undefined) {
+      updateData.metadata = JSON.stringify(input.metadata);
+    }
+
+    if (input.rec_notes !== undefined) {
+      updateData.rec_notes = input.rec_notes;
+    }
+
+    const invoice = await prisma.org_invoice_mst.update({
+      where: { id: invoiceId },
+      data: updateData,
+    });
+
+    return mapInvoiceToType(invoice);
   });
-
-  return mapInvoiceToType(invoice);
 }
 
 /**
@@ -283,16 +334,25 @@ export async function updateInvoiceStatus(
   status: InvoiceStatus,
   updatedBy?: string
 ): Promise<Invoice> {
-  const invoice = await prisma.org_invoice_mst.update({
-    where: { id: invoiceId },
-    data: {
-      status,
-      updated_at: new Date(),
-      updated_by: updatedBy,
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return mapInvoiceToType(invoice);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.update({
+      where: { id: invoiceId },
+      data: {
+        status,
+        updated_at: new Date(),
+        updated_by: updatedBy,
+      },
+    });
+
+    return mapInvoiceToType(invoice);
+  });
 }
 
 /**
@@ -303,23 +363,32 @@ export async function markInvoiceAsPaid(
   paidAmount: number,
   paidBy?: string
 ): Promise<Invoice> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    throw new Error('Invoice not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const newPaidAmount = Number(invoice.paid_amount) + paidAmount;
-  const newStatus: InvoiceStatus =
-    newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
 
-  return updateInvoice(invoiceId, {
-    status: newStatus,
-    paid_amount: newPaidAmount,
-    paid_at: newStatus === 'paid' ? new Date().toISOString() : undefined,
-    paid_by: paidBy,
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    const newPaidAmount = Number(invoice.paid_amount) + paidAmount;
+    const newStatus: InvoiceStatus =
+      newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+
+    return updateInvoice(invoiceId, {
+      status: newStatus,
+      paid_amount: newPaidAmount,
+      paid_at: newStatus === 'paid' ? new Date().toISOString() : undefined,
+      paid_by: paidBy,
+    });
   });
 }
 
@@ -371,40 +440,49 @@ export async function applyDiscountToInvoice(
   discountAmount: number,
   reason?: string
 ): Promise<Invoice> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    throw new Error('Invoice not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const newTotal = calculateInvoiceTotal({
-    subtotal: Number(invoice.subtotal),
-    discount: Number(invoice.discount) + discountAmount,
-    tax: Number(invoice.tax),
-  });
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
 
-  // Update metadata to track discount reason
-  const metadata: InvoiceMetadata = invoice.metadata
-    ? JSON.parse(invoice.metadata as string)
-    : {};
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
 
-  if (reason) {
-    metadata.manual_discount_reason = reason;
-  }
-
-  const updated = await prisma.org_invoice_mst.update({
-    where: { id: invoiceId },
-    data: {
+    const newTotal = calculateInvoiceTotal({
+      subtotal: Number(invoice.subtotal),
       discount: Number(invoice.discount) + discountAmount,
-      total: newTotal,
-      metadata: JSON.stringify(metadata),
-      updated_at: new Date(),
-    },
-  });
+      tax: Number(invoice.tax),
+    });
 
-  return mapInvoiceToType(updated);
+    // Update metadata to track discount reason
+    const metadata: InvoiceMetadata = invoice.metadata
+      ? JSON.parse(invoice.metadata as string)
+      : {};
+
+    if (reason) {
+      metadata.manual_discount_reason = reason;
+    }
+
+    const updated = await prisma.org_invoice_mst.update({
+      where: { id: invoiceId },
+      data: {
+        discount: Number(invoice.discount) + discountAmount,
+        total: newTotal,
+        metadata: JSON.stringify(metadata),
+        updated_at: new Date(),
+      },
+    });
+
+    return mapInvoiceToType(updated);
+  });
 }
 
 /**
@@ -441,52 +519,79 @@ export function calculatePaymentSummary(
  * Check if invoice is fully paid
  */
 export async function isInvoicePaid(invoiceId: string): Promise<boolean> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    return false;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return Number(invoice.paid_amount) >= Number(invoice.total);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      return false;
+    }
+
+    return Number(invoice.paid_amount) >= Number(invoice.total);
+  });
 }
 
 /**
  * Check if invoice is overdue
  */
 export async function isInvoiceOverdue(invoiceId: string): Promise<boolean> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice || !invoice.due_date) {
-    return false;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const now = new Date();
-  const dueDate = new Date(invoice.due_date);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
 
-  return (
-    now > dueDate &&
-    invoice.status !== 'paid' &&
-    invoice.status !== 'cancelled'
-  );
+    if (!invoice || !invoice.due_date) {
+      return false;
+    }
+
+    const now = new Date();
+    const dueDate = new Date(invoice.due_date);
+
+    return (
+      now > dueDate &&
+      invoice.status !== 'paid' &&
+      invoice.status !== 'cancelled'
+    );
+  });
 }
 
 /**
  * Get remaining balance for invoice
  */
 export async function getInvoiceBalance(invoiceId: string): Promise<number> {
-  const invoice = await prisma.org_invoice_mst.findUnique({
-    where: { id: invoiceId },
-  });
-
-  if (!invoice) {
-    throw new Error('Invoice not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return Number(invoice.total) - Number(invoice.paid_amount);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const invoice = await prisma.org_invoice_mst.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      throw new Error('Invoice not found');
+    }
+
+    return Number(invoice.total) - Number(invoice.paid_amount);
+  });
 }
 
 // ============================================================================
@@ -504,45 +609,48 @@ export async function getInvoiceStats(tenantOrgId: string): Promise<{
   total_revenue: number;
   outstanding_amount: number;
 }> {
-  const invoices = await prisma.org_invoice_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-    },
-  });
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const invoices = await prisma.org_invoice_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+      },
+    });
 
-  const now = new Date();
+    const now = new Date();
 
-  const stats = invoices.reduce(
-    (acc, invoice) => {
-      acc.total_invoices++;
+    const stats = invoices.reduce(
+      (acc, invoice) => {
+        acc.total_invoices++;
 
-      if (invoice.status === 'paid') {
-        acc.paid_invoices++;
-        acc.total_revenue += Number(invoice.total);
-      } else if (invoice.status === 'pending' || invoice.status === 'partial') {
-        acc.pending_invoices++;
-        const remaining = Number(invoice.total) - Number(invoice.paid_amount);
-        acc.outstanding_amount += remaining;
+        if (invoice.status === 'paid') {
+          acc.paid_invoices++;
+          acc.total_revenue += Number(invoice.total);
+        } else if (invoice.status === 'pending' || invoice.status === 'partial') {
+          acc.pending_invoices++;
+          const remaining = Number(invoice.total) - Number(invoice.paid_amount);
+          acc.outstanding_amount += remaining;
 
-        // Check if overdue
-        if (invoice.due_date && new Date(invoice.due_date) < now) {
-          acc.overdue_invoices++;
+          // Check if overdue
+          if (invoice.due_date && new Date(invoice.due_date) < now) {
+            acc.overdue_invoices++;
+          }
         }
+
+        return acc;
+      },
+      {
+        total_invoices: 0,
+        paid_invoices: 0,
+        pending_invoices: 0,
+        overdue_invoices: 0,
+        total_revenue: 0,
+        outstanding_amount: 0,
       }
+    );
 
-      return acc;
-    },
-    {
-      total_invoices: 0,
-      paid_invoices: 0,
-      pending_invoices: 0,
-      overdue_invoices: 0,
-      total_revenue: 0,
-      outstanding_amount: 0,
-    }
-  );
-
-  return stats;
+    return stats;
+  });
 }
 
 // ============================================================================

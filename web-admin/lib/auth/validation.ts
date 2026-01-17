@@ -14,7 +14,7 @@ export const PASSWORD_REQUIREMENTS: PasswordRequirements = {
   requireUppercase: true,
   requireLowercase: true,
   requireNumbers: true,
-  requireSpecialChars: false, // Optional
+  requireSpecialChars: true, // Required for security
 }
 
 /**

@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import React from 'react';
 import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/hooks/useBilingual';
 import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
+import { PiecesErrorBoundary } from '@/components/orders/PiecesErrorBoundary';
 
 interface OrderItem {
   id: string;
@@ -173,15 +175,19 @@ export function OrderItemsList({
                 )}
               </button>
               
-              {expandedItemIds.has(item.id) && (
+              {expandedItemIds.has(item.id) && orderId && tenantId && item.id && (
                 <div className="mt-3">
-                  <OrderPiecesManager
-                    orderId={orderId}
-                    itemId={item.id}
-                    tenantId={tenantId}
-                    readOnly={readOnly}
-                    autoLoad={true}
-                  />
+                  <PiecesErrorBoundary>
+                    <React.Suspense fallback={<div className="text-sm text-gray-500 p-2">Loading pieces...</div>}>
+                      <OrderPiecesManager
+                        orderId={orderId}
+                        itemId={item.id}
+                        tenantId={tenantId}
+                        readOnly={readOnly}
+                        autoLoad={true}
+                      />
+                    </React.Suspense>
+                  </PiecesErrorBoundary>
                 </div>
               )}
             </div>

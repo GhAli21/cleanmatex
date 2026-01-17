@@ -9,7 +9,8 @@
  * - Gift card lifecycle management
  */
 
-import { prisma } from '../prisma';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import type {
   GiftCard,
   GiftCardStatus,
@@ -30,14 +31,26 @@ import type {
 export async function validateGiftCard(
   input: ValidateGiftCardInput
 ): Promise<ValidateGiftCardResult> {
-  try {
-    // Find gift card
-    const giftCard = await prisma.org_gift_cards_mst.findFirst({
-      where: {
-        card_number: input.card_number,
-        is_active: true,
-      },
-    });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      isValid: false,
+      error: 'Unauthorized: Tenant ID required',
+      errorCode: 'UNAUTHORIZED',
+    };
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      // Find gift card - middleware adds tenant_org_id automatically
+      const giftCard = await prisma.org_gift_cards_mst.findFirst({
+        where: {
+          card_number: input.card_number,
+          is_active: true,
+        },
+      });
 
     if (!giftCard) {
       return {
@@ -122,18 +135,19 @@ export async function validateGiftCard(
       };
     }
 
-    return {
-      isValid: true,
-      giftCard: mapGiftCardToType(giftCard),
-      availableBalance: currentBalance,
-    };
-  } catch (error) {
-    console.error('Error validating gift card:', error);
-    return {
-      isValid: false,
-      error: 'An error occurred while validating gift card',
-    };
-  }
+      return {
+        isValid: true,
+        giftCard: mapGiftCardToType(giftCard),
+        availableBalance: currentBalance,
+      };
+    } catch (error) {
+      console.error('Error validating gift card:', error);
+      return {
+        isValid: false,
+        error: 'An error occurred while validating gift card',
+      };
+    }
+  });
 }
 
 /**
@@ -142,21 +156,30 @@ export async function validateGiftCard(
 export async function getGiftCardBalance(
   cardNumber: string
 ): Promise<{ balance: number; status: GiftCardStatus } | null> {
-  const giftCard = await prisma.org_gift_cards_mst.findFirst({
-    where: {
-      card_number: cardNumber,
-      is_active: true,
-    },
-  });
-
-  if (!giftCard) {
-    return null;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return {
-    balance: Number(giftCard.current_balance),
-    status: giftCard.status as GiftCardStatus,
-  };
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const giftCard = await prisma.org_gift_cards_mst.findFirst({
+      where: {
+        card_number: cardNumber,
+        is_active: true,
+      },
+    });
+
+    if (!giftCard) {
+      return null;
+    }
+
+    return {
+      balance: Number(giftCard.current_balance),
+      status: giftCard.status as GiftCardStatus,
+    };
+  });
 }
 
 // ============================================================================
@@ -169,8 +192,20 @@ export async function getGiftCardBalance(
 export async function applyGiftCard(
   input: ApplyGiftCardInput
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-  try {
-    return await prisma.$transaction(async (tx) => {
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      success: false,
+      newBalance: 0,
+      error: 'Unauthorized: Tenant ID required',
+    };
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      return await prisma.$transaction(async (tx) => {
       // Get gift card
       const giftCard = await tx.org_gift_cards_mst.findFirst({
         where: {
@@ -229,19 +264,20 @@ export async function applyGiftCard(
         },
       });
 
+        return {
+          success: true,
+          newBalance: balanceAfter,
+        };
+      });
+    } catch (error) {
+      console.error('Error applying gift card:', error);
       return {
-        success: true,
-        newBalance: balanceAfter,
+        success: false,
+        newBalance: 0,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
-    });
-  } catch (error) {
-    console.error('Error applying gift card:', error);
-    return {
-      success: false,
-      newBalance: 0,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
-  }
+    }
+  });
 }
 
 /**
@@ -255,8 +291,20 @@ export async function refundToGiftCard(
   reason: string,
   processedBy?: string
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-  try {
-    return await prisma.$transaction(async (tx) => {
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      success: false,
+      newBalance: 0,
+      error: 'Unauthorized: Tenant ID required',
+    };
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      return await prisma.$transaction(async (tx) => {
       // Get gift card
       const giftCard = await tx.org_gift_cards_mst.findFirst({
         where: {
@@ -304,19 +352,20 @@ export async function refundToGiftCard(
         },
       });
 
+        return {
+          success: true,
+          newBalance,
+        };
+      });
+    } catch (error) {
+      console.error('Error refunding to gift card:', error);
       return {
-        success: true,
-        newBalance,
+        success: false,
+        newBalance: 0,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
-    });
-  } catch (error) {
-    console.error('Error refunding to gift card:', error);
-    return {
-      success: false,
-      newBalance: 0,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-    };
-  }
+    }
+  });
 }
 
 // ============================================================================
@@ -337,26 +386,29 @@ export async function createGiftCard(params: {
   issuedToCustomerId?: string;
   createdBy?: string;
 }): Promise<GiftCard> {
-  const giftCard = await prisma.org_gift_cards_mst.create({
-    data: {
-      tenant_org_id: params.tenantOrgId,
-      card_number: params.cardNumber,
-      card_pin: params.cardPin,
-      card_name: params.cardName,
-      card_name2: params.cardName2,
-      original_amount: params.amount,
-      current_balance: params.amount,
-      issued_date: new Date(),
-      expiry_date: params.expiryDate ? new Date(params.expiryDate) : undefined,
-      issued_to_customer_id: params.issuedToCustomerId,
-      status: 'active',
-      is_active: true,
-      created_at: new Date(),
-      created_by: params.createdBy,
-    },
-  });
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(params.tenantOrgId, async () => {
+    const giftCard = await prisma.org_gift_cards_mst.create({
+      data: {
+        tenant_org_id: params.tenantOrgId, // Explicit for clarity (middleware also adds it)
+        card_number: params.cardNumber,
+        card_pin: params.cardPin,
+        card_name: params.cardName,
+        card_name2: params.cardName2,
+        original_amount: params.amount,
+        current_balance: params.amount,
+        issued_date: new Date(),
+        expiry_date: params.expiryDate ? new Date(params.expiryDate) : undefined,
+        issued_to_customer_id: params.issuedToCustomerId,
+        status: 'active',
+        is_active: true,
+        created_at: new Date(),
+        created_by: params.createdBy,
+      },
+    });
 
-  return mapGiftCardToType(giftCard);
+    return mapGiftCardToType(giftCard);
+  });
 }
 
 /**
@@ -365,15 +417,24 @@ export async function createGiftCard(params: {
 export async function getGiftCard(
   giftCardId: string
 ): Promise<GiftCard | null> {
-  const giftCard = await prisma.org_gift_cards_mst.findUnique({
-    where: { id: giftCardId },
-  });
-
-  if (!giftCard) {
-    return null;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return mapGiftCardToType(giftCard);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const giftCard = await prisma.org_gift_cards_mst.findUnique({
+      where: { id: giftCardId },
+    });
+
+    if (!giftCard) {
+      return null;
+    }
+
+    return mapGiftCardToType(giftCard);
+  });
 }
 
 /**
@@ -382,18 +443,27 @@ export async function getGiftCard(
 export async function getGiftCardByNumber(
   cardNumber: string
 ): Promise<GiftCard | null> {
-  const giftCard = await prisma.org_gift_cards_mst.findFirst({
-    where: {
-      card_number: cardNumber,
-      is_active: true,
-    },
-  });
-
-  if (!giftCard) {
-    return null;
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  return mapGiftCardToType(giftCard);
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const giftCard = await prisma.org_gift_cards_mst.findFirst({
+      where: {
+        card_number: cardNumber,
+        is_active: true,
+      },
+    });
+
+    if (!giftCard) {
+      return null;
+    }
+
+    return mapGiftCardToType(giftCard);
+  });
 }
 
 /**
@@ -406,36 +476,43 @@ export async function listGiftCards(params: {
   limit?: number;
   offset?: number;
 }): Promise<{ giftCards: GiftCard[]; total: number }> {
-  const where: any = {};
-
-  if (params.tenantOrgId) {
-    where.tenant_org_id = params.tenantOrgId;
+  // Get tenant ID from params or session
+  const tenantId = params.tenantOrgId || (await getTenantIdFromSession());
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  if (params.status) {
-    where.status = params.status;
-  }
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const where: any = {
+      tenant_org_id: tenantId, // Explicit filter for clarity (middleware also adds it)
+    };
 
-  if (params.customerId) {
-    where.issued_to_customer_id = params.customerId;
-  }
+    if (params.status) {
+      where.status = params.status;
+    }
 
-  const [giftCards, total] = await Promise.all([
-    prisma.org_gift_cards_mst.findMany({
-      where,
-      orderBy: {
-        created_at: 'desc',
-      },
-      take: params.limit || 50,
-      skip: params.offset || 0,
-    }),
-    prisma.org_gift_cards_mst.count({ where }),
-  ]);
+    if (params.customerId) {
+      where.issued_to_customer_id = params.customerId;
+    }
 
-  return {
-    giftCards: giftCards.map(mapGiftCardToType),
-    total,
-  };
+    const [giftCards, total] = await Promise.all([
+      prisma.org_gift_cards_mst.findMany({
+        where,
+        orderBy: {
+          created_at: 'desc',
+        },
+        take: params.limit || 50,
+        skip: params.offset || 0,
+      }),
+      prisma.org_gift_cards_mst.count({ where }),
+    ]);
+
+    return {
+      giftCards: giftCards.map(mapGiftCardToType),
+      total,
+    };
+  });
 }
 
 /**
@@ -446,26 +523,38 @@ export async function deactivateGiftCard(
   reason: string,
   deactivatedBy?: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    await prisma.org_gift_cards_mst.update({
-      where: { id: giftCardId },
-      data: {
-        status: 'cancelled',
-        is_active: false,
-        rec_notes: `Deactivated: ${reason}`,
-        updated_at: new Date(),
-        updated_by: deactivatedBy,
-      },
-    });
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error deactivating gift card:', error);
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
+      error: 'Unauthorized: Tenant ID required',
     };
   }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      await prisma.org_gift_cards_mst.update({
+        where: { id: giftCardId },
+        data: {
+          status: 'cancelled',
+          is_active: false,
+          rec_notes: `Deactivated: ${reason}`,
+          updated_at: new Date(),
+          updated_by: deactivatedBy,
+        },
+      });
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error deactivating gift card:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+      };
+    }
+  });
 }
 
 // ============================================================================
@@ -478,32 +567,41 @@ export async function deactivateGiftCard(
 export async function getGiftCardTransactions(
   giftCardId: string
 ): Promise<GiftCardTransaction[]> {
-  const transactions = await prisma.org_gift_card_transactions.findMany({
-    where: {
-      gift_card_id: giftCardId,
-    },
-    orderBy: {
-      transaction_date: 'desc',
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return transactions.map((transaction) => ({
-    id: transaction.id,
-    tenant_org_id: transaction.tenant_org_id,
-    gift_card_id: transaction.gift_card_id,
-    transaction_type: transaction.transaction_type as GiftCardTransactionType,
-    amount: Number(transaction.amount),
-    balance_before: Number(transaction.balance_before),
-    balance_after: Number(transaction.balance_after),
-    order_id: transaction.order_id ?? undefined,
-    invoice_id: transaction.invoice_id ?? undefined,
-    notes: transaction.notes ?? undefined,
-    transaction_date: transaction.transaction_date.toISOString(),
-    processed_by: transaction.processed_by ?? undefined,
-    metadata: transaction.metadata
-      ? JSON.parse(transaction.metadata as string)
-      : undefined,
-  }));
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const transactions = await prisma.org_gift_card_transactions.findMany({
+      where: {
+        gift_card_id: giftCardId,
+      },
+      orderBy: {
+        transaction_date: 'desc',
+      },
+    });
+
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      tenant_org_id: transaction.tenant_org_id,
+      gift_card_id: transaction.gift_card_id,
+      transaction_type: transaction.transaction_type as GiftCardTransactionType,
+      amount: Number(transaction.amount),
+      balance_before: Number(transaction.balance_before),
+      balance_after: Number(transaction.balance_after),
+      order_id: transaction.order_id ?? undefined,
+      invoice_id: transaction.invoice_id ?? undefined,
+      notes: transaction.notes ?? undefined,
+      transaction_date: transaction.transaction_date.toISOString(),
+      processed_by: transaction.processed_by ?? undefined,
+      metadata: transaction.metadata
+        ? JSON.parse(transaction.metadata as string)
+        : undefined,
+    }));
+  });
 }
 
 /**
@@ -515,37 +613,46 @@ export async function getGiftCardUsageSummary(giftCardId: string): Promise<{
   total_refunded: number;
   orders_count: number;
 }> {
-  const transactions = await prisma.org_gift_card_transactions.findMany({
-    where: {
-      gift_card_id: giftCardId,
-    },
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const transactions = await prisma.org_gift_card_transactions.findMany({
+      where: {
+        gift_card_id: giftCardId,
+      },
+    });
+
+    const summary = transactions.reduce(
+      (acc, transaction) => {
+        acc.total_transactions++;
+
+        if (transaction.transaction_type === 'redemption') {
+          acc.total_redeemed += Number(transaction.amount);
+        } else if (transaction.transaction_type === 'refund') {
+          acc.total_refunded += Number(transaction.amount);
+        }
+
+        if (transaction.order_id) {
+          acc.orders_count++;
+        }
+
+        return acc;
+      },
+      {
+        total_transactions: 0,
+        total_redeemed: 0,
+        total_refunded: 0,
+        orders_count: 0,
+      }
+    );
+
+    return summary;
   });
-
-  const summary = transactions.reduce(
-    (acc, transaction) => {
-      acc.total_transactions++;
-
-      if (transaction.transaction_type === 'redemption') {
-        acc.total_redeemed += Number(transaction.amount);
-      } else if (transaction.transaction_type === 'refund') {
-        acc.total_refunded += Number(transaction.amount);
-      }
-
-      if (transaction.order_id) {
-        acc.orders_count++;
-      }
-
-      return acc;
-    },
-    {
-      total_transactions: 0,
-      total_redeemed: 0,
-      total_refunded: 0,
-      orders_count: 0,
-    }
-  );
-
-  return summary;
 }
 
 // ============================================================================
@@ -554,6 +661,7 @@ export async function getGiftCardUsageSummary(giftCardId: string): Promise<{
 
 /**
  * Generate unique gift card number
+ * Note: This function is called within tenant context, so middleware applies automatically
  */
 export async function generateGiftCardNumber(
   tenantOrgId: string
@@ -564,10 +672,10 @@ export async function generateGiftCardNumber(
 
   const cardNumber = `${prefix}${timestamp}${random}`;
 
-  // Ensure uniqueness
+  // Ensure uniqueness - middleware adds tenant_org_id automatically
   const existing = await prisma.org_gift_cards_mst.findFirst({
     where: {
-      tenant_org_id: tenantOrgId,
+      tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
       card_number: cardNumber,
     },
   });
@@ -588,51 +696,57 @@ export async function getTotalGiftCardValue(tenantOrgId: string): Promise<{
   total_active_balance: number;
   total_redeemed: number;
 }> {
-  const giftCards = await prisma.org_gift_cards_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      is_active: true,
-    },
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const giftCards = await prisma.org_gift_cards_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        is_active: true,
+      },
+    });
+
+    const summary = giftCards.reduce(
+      (acc, card) => {
+        acc.total_issued += Number(card.original_amount);
+        acc.total_active_balance += Number(card.current_balance);
+        acc.total_redeemed += Number(card.original_amount) - Number(card.current_balance);
+        return acc;
+      },
+      {
+        total_issued: 0,
+        total_active_balance: 0,
+        total_redeemed: 0,
+      }
+    );
+
+    return summary;
   });
-
-  const summary = giftCards.reduce(
-    (acc, card) => {
-      acc.total_issued += Number(card.original_amount);
-      acc.total_active_balance += Number(card.current_balance);
-      acc.total_redeemed += Number(card.original_amount) - Number(card.current_balance);
-      return acc;
-    },
-    {
-      total_issued: 0,
-      total_active_balance: 0,
-      total_redeemed: 0,
-    }
-  );
-
-  return summary;
 }
 
 /**
  * Check and expire gift cards
  */
 export async function expireGiftCards(tenantOrgId: string): Promise<number> {
-  const now = new Date();
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const now = new Date();
 
-  const result = await prisma.org_gift_cards_mst.updateMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      status: 'active',
-      expiry_date: {
-        lte: now,
+    const result = await prisma.org_gift_cards_mst.updateMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        status: 'active',
+        expiry_date: {
+          lte: now,
+        },
       },
-    },
-    data: {
-      status: 'expired',
-      updated_at: now,
-    },
-  });
+      data: {
+        status: 'expired',
+        updated_at: now,
+      },
+    });
 
-  return result.count;
+    return result.count;
+  });
 }
 
 // ============================================================================

@@ -223,9 +223,26 @@ export function CmxAlertDialog({
 
   if (!open && !isVisible) return null;
 
-  const IconComponent = iconComponent
-    ? () => <>{iconComponent}</>
-    : variantIcons[variant];
+  // Handle iconComponent - it can be a React element, component function, or null
+  // If it's already a React element, render it directly; if it's a function, use it as a component
+  const renderIcon = () => {
+    if (iconComponent) {
+      // If it's a valid React element, render it directly
+      if (React.isValidElement(iconComponent)) {
+        return iconComponent;
+      }
+      // If it's a function component, render it
+      if (typeof iconComponent === 'function') {
+        const IconComp = iconComponent as React.ComponentType<{ className?: string; 'aria-hidden'?: string }>;
+        return <IconComp className="h-6 w-6" aria-hidden="true" />;
+      }
+      // Otherwise, try to render it as-is (fallback)
+      return <>{iconComponent}</>;
+    }
+    // Default to variant icon
+    const VariantIcon = variantIcons[variant];
+    return <VariantIcon className="h-6 w-6" aria-hidden="true" />;
+  };
 
   const iconColorClass = variantStyles[variant].icon;
   const confirmButtonVariant = variantStyles[variant].confirmButton;
@@ -270,7 +287,7 @@ export function CmxAlertDialog({
           {/* Icon */}
           <div className="flex items-start gap-4">
             <div className={`flex-shrink-0 ${iconColorClass}`}>
-              <IconComponent className="h-6 w-6" aria-hidden="true" />
+              {renderIcon()}
             </div>
 
             {/* Content */}

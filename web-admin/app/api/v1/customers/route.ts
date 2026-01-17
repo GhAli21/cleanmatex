@@ -14,44 +14,13 @@ import {
   getAllTenantCustomers,
 } from '@/lib/services/customers.service';
 import { verifyOTP, hasRecentVerifiedOTP } from '@/lib/services/otp.service';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
+import { validateCSRF } from '@/lib/middleware/csrf';
 import type {
   CustomerCreateRequest,
   CustomerSearchParams,
 } from '@/lib/types/customer';
-
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  // Get user's tenants using the same function as frontend
-  const { data: tenants, error } = await supabase.rpc('get_user_tenants');
-  if (error || !tenants || tenants.length === 0) {
-    throw new Error('No tenant access found' + error?.message);
-  }
-  // Use the first tenant (current tenant)
-  const tenantId = tenants[0].tenant_id;
-  const userRole = tenants[0].user_role;
-
-  return {
-    user,
-    tenantId,
-    userId: user.id,
-    userRole,
-  };
-}
 
 // ==================================================================
 // POST /api/v1/customers - Create Customer
@@ -69,8 +38,24 @@ async function getAuthContext() {
  */
 export async function POST(request: NextRequest) {
   try {
-    // 1. Verify authentication
-    const { tenantId, userId } = await getAuthContext();
+    // 1. Validate CSRF token
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) {
+      return csrfResponse;
+    }
+
+    // 2. Verify authentication and permissions
+    const authCheck = await requirePermission('customers:create')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck; // Unauthorized or permission denied
+    }
+    const { tenantId, userId } = authCheck;
+
+    // 3. Apply rate limiting (per tenant)
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     // 2. Parse and validate request body
     const body: CustomerCreateRequest = await request.json();
@@ -190,6 +175,19 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    // Verify authentication and permissions
+    const authCheck = await requirePermission('customers:read')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck; // Unauthorized or permission denied
+    }
+    const { tenantId, userId } = authCheck;
+
+    // Apply rate limiting (per tenant)
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const { searchParams } = new URL(request.url);
     const all = searchParams.get('all') === 'true';
     const searchAllOptions = searchParams.get('searchAllOptions') === 'true';

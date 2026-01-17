@@ -189,58 +189,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoggingInRef.current = true
     setIsLoading(true)
     try {
-      // SECURITY: Check if account is locked BEFORE attempting login
-      // Wrap in try-catch in case migration hasn't been run yet
-      try {
-        const { data: lockStatus, error: lockError } = await supabase.rpc('is_account_locked', {
-          p_email: email,
-        })
+      // Use API route with rate limiting
+      const loginResponse = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-        if (!lockError && lockStatus && lockStatus.length > 0 && lockStatus[0].is_locked) {
-          const lockedUntil = new Date(lockStatus[0].locked_until)
-          const minutesRemaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
+      const loginData = await loginResponse.json()
 
-          throw new Error(
-            `Account is temporarily locked due to too many failed login attempts. ` +
-            `Please try again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}.`
-          )
+      if (!loginResponse.ok) {
+        // Handle rate limiting error
+        if (loginResponse.status === 429) {
+          throw new Error(loginData.message || 'Too many login attempts. Please try again later.')
         }
-      } catch (lockCheckError: unknown) {
-        // If function doesn't exist or other error, log it but continue with login
-        // This allows the system to work even if the security enhancement migration hasn't been run
-        const errorMessage = lockCheckError instanceof Error ? lockCheckError.message : String(lockCheckError)
-        if (!errorMessage.includes('locked')) {
-          console.warn('Account lock check skipped:', errorMessage)
-        } else {
-          // Re-throw if it's an actual lock error
-          throw lockCheckError
+        // Handle account locked error
+        if (loginResponse.status === 423) {
+          throw new Error(loginData.error || 'Account is temporarily locked.')
         }
+        // Handle other errors
+        throw new Error(loginData.error || 'Invalid email or password')
       }
 
-      // Attempt login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const { user: authUser, session: authSession } = loginData
+
+      if (!authUser || !authSession) {
+        throw new Error('Invalid response from login API')
+      }
+
+      // Update Supabase client session
+      await supabase.auth.setSession({
+        access_token: authSession.access_token,
+        refresh_token: authSession.refresh_token,
       })
 
-      if (error) throw error
-
-      // Record successful login attempt in audit log
-      await supabase.rpc('record_login_attempt', {
-        p_email: email,
-        p_success: true,
-        p_ip_address: undefined, // Browser doesn't have access to IP
-        p_user_agent: navigator.userAgent,
-        p_error_message: undefined,
-      })
-
-      setUser(data.user as AuthUser)
+      setUser(authUser as AuthUser)
       setSession({
-        user: data.user as AuthUser,
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-        expires_at: data.session.expires_at ?? null,
-        expires_in: data.session.expires_in ?? null,
+        user: authUser as AuthUser,
+        access_token: authSession.access_token,
+        refresh_token: authSession.refresh_token,
+        expires_at: authSession.expires_at ?? null,
+        expires_in: authSession.expires_in ?? null,
       })
 
       // Batch fetch all auth data after successful login
@@ -264,27 +255,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Redirect after state is set
       router.push('/dashboard')
     } catch (error: unknown) {
-      // Record failed login attempt
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      const { data: loginResult } = await supabase.rpc('record_login_attempt', {
-        p_email: email,
-        p_success: false,
-        p_ip_address: undefined,
-        p_user_agent: navigator.userAgent,
-        p_error_message: errorMessage,
-      })
-
-      // Check if account was just locked
-      if (loginResult && loginResult.length > 0 && loginResult[0].is_locked) {
-        const lockedUntil = new Date(loginResult[0].locked_until)
-        const minutesRemaining = Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
-
-        throw new Error(
-          `Too many failed login attempts. Your account has been locked for ${minutesRemaining} minutes. ` +
-          `Please try again later or contact support if you need assistance.`
-        )
-      }
-
+      // Error handling is done in API route, just re-throw
       throw error
     } finally {
       setIsLoading(false)
@@ -302,17 +273,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setIsLoading(true)
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            display_name: displayName,
-          },
+      // Use API route with rate limiting
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({ email, password, displayName }),
       })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Handle rate limiting error
+        if (response.status === 429) {
+          throw new Error(data.message || 'Too many registration attempts. Please try again later.')
+        }
+        throw new Error(data.error || 'Failed to create account')
+      }
 
       // Note: User won't be automatically logged in until email is verified
       // We'll show a message to check email
@@ -363,11 +341,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const resetPassword = useCallback(async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      // Use API route with rate limiting
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        // Handle rate limiting error
+        if (response.status === 429) {
+          throw new Error(data.message || 'Too many password reset requests. Please try again later.')
+        }
+        throw new Error(data.error || 'Failed to send password reset email')
+      }
+
+      // Success - message is in data.message
     } catch (error) {
       throw error
     }
@@ -439,40 +432,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Switch active tenant context
+   * Enhanced to ensure JWT is updated with tenant context
    */
   const switchTenant = useCallback(async (tenantId: string) => {
     setIsLoading(true)
     try {
+      // 1. Validate user has access to tenant via RPC
       const { data, error } = await supabase.rpc('switch_tenant_context', {
         p_tenant_id: tenantId,
       })
 
       if (error) throw error
 
-      if (data && data.length > 0 && data[0].success) {
-        const tenantData = data[0]
-        const newTenant: UserTenant = {
-          tenant_id: tenantData.tenant_id,
-          tenant_name: tenantData.tenant_name,
-          tenant_slug: tenantData.tenant_slug,
-          user_role: tenantData.user_role as UserRole,
-          is_active: true,
-          last_login_at: new Date().toISOString(),
-        }
-        setCurrentTenant(newTenant)
-      currentTenantRef.current = newTenant
-
-        // Refresh the session to update JWT claims
-        await supabase.auth.refreshSession()
-
-        // Fetch permissions for new tenant
-        await refreshPermissions()
-
-        // Reload the page to ensure all queries use new tenant context
-        window.location.reload()
-      } else {
+      if (!data || data.length === 0 || !data[0].success) {
         throw new Error('Failed to switch tenant')
       }
+
+      const tenantData = data[0]
+      const newTenant: UserTenant = {
+        tenant_id: tenantData.tenant_id,
+        tenant_name: tenantData.tenant_name,
+        tenant_slug: tenantData.tenant_slug,
+        user_role: tenantData.user_role as UserRole,
+        is_active: true,
+        last_login_at: new Date().toISOString(),
+      }
+
+      // 2. Update user_metadata with tenant_org_id BEFORE refresh
+      // This ensures the new JWT will contain the tenant context
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: {
+          tenant_org_id: tenantId,
+        },
+      })
+
+      if (updateError) {
+        console.error('Error updating user metadata:', updateError)
+        throw new Error('Failed to update tenant context in JWT')
+      }
+
+      // 3. Refresh session to get new JWT with tenant context
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError)
+        throw new Error('Failed to refresh session')
+      }
+
+      // 4. Verify new JWT contains correct tenant
+      if (refreshData.session?.user.user_metadata?.tenant_org_id !== tenantId) {
+        console.warn('JWT tenant mismatch after refresh, retrying...')
+        
+        // Retry once with exponential backoff
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        const { data: retryData, error: retryError } = await supabase.auth.refreshSession()
+        
+        if (retryError || retryData.session?.user.user_metadata?.tenant_org_id !== tenantId) {
+          console.error('JWT tenant verification failed after retry')
+          throw new Error('Tenant context not updated in JWT')
+        }
+      }
+
+      // 5. Update local state
+      setCurrentTenant(newTenant)
+      currentTenantRef.current = newTenant
+
+      // 6. Fetch permissions for new tenant
+      await refreshPermissions()
+
+      // 7. Reload the page to ensure all queries use new tenant context
+      window.location.reload()
     } catch (error) {
       console.error('Error switching tenant:', error)
       throw error

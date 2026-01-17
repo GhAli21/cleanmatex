@@ -47,6 +47,15 @@ export function OrderPiecesManager({
   enableBarcodeScanner = false,
   enableBulkOperations = false,
 }: OrderPiecesManagerProps) {
+  // Validate required props
+  if (!orderId || !itemId || !tenantId) {
+    return (
+      <div className="text-center py-4 text-sm text-red-600">
+        Missing required parameters: orderId, itemId, or tenantId
+      </div>
+    );
+  }
+
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
 
@@ -76,15 +85,37 @@ export function OrderPiecesManager({
       }
 
       const data = await response.json();
-      setPieces(data.data || []);
+      
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid response format from server');
+      }
+      
+      // Handle different response formats
+      const piecesData = data.data || data.pieces || data || [];
+      
+      // Ensure it's an array
+      if (!Array.isArray(piecesData)) {
+        throw new Error('Expected array of pieces but received: ' + typeof piecesData);
+      }
+      
+      setPieces(piecesData);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('[OrderPiecesManager] Error loading pieces:', {
+        error: errorMessage,
+        orderId,
+        itemId,
+        tenantId,
+      });
+      
       log.error('[OrderPiecesManager] Error loading pieces', err instanceof Error ? err : new Error(String(err)), {
         feature: 'order_pieces',
         action: 'load_pieces',
         orderId,
         itemId,
       });
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

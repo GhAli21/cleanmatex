@@ -11,9 +11,8 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import type { OrderItem, ItemPiece, OrderItemPiece } from '@/types/order';
+import type { OrderItem, ItemPiece } from '@/types/order';
 import { ProcessingPieceRow } from './processing-piece-row';
-import { OrderPiecesManager } from '@/components/orders/OrderPiecesManager';
 
 interface ProcessingItemRowProps {
   item: OrderItem;
@@ -29,7 +28,6 @@ interface ProcessingItemRowProps {
   rejectColor: string;
   orderId?: string;
   tenantId?: string;
-  useDbPieces?: boolean; // New prop to use DB pieces instead of client-side
 }
 
 export function ProcessingItemRow({
@@ -46,7 +44,6 @@ export function ProcessingItemRow({
   rejectColor,
   orderId,
   tenantId,
-  useDbPieces = false,
 }: ProcessingItemRowProps) {
   const t = useTranslations('processing.modal');
 
@@ -128,41 +125,21 @@ export function ProcessingItemRow({
       {/* Pieces Detail - Only show if trackByPiece is enabled AND expanded */}
       {trackByPiece && isExpanded && (
         <div className="p-4 bg-white">
-          {useDbPieces && orderId && tenantId ? (
-            // Use database-backed pieces manager
-            <OrderPiecesManager
-              orderId={orderId}
-              itemId={item.id}
-              tenantId={tenantId}
-              onUpdate={() => {
-                // Refresh parent when pieces are updated
-                onToggleExpand(item.id); // Collapse and re-expand to refresh
-                setTimeout(() => onToggleExpand(item.id), 100);
-              }}
-              readOnly={false}
-              showSplitCheckbox={splitOrderEnabled}
-              selectedForSplit={selectedForSplit}
-              onSplitToggle={onSplitToggle}
-              rejectColor={rejectColor}
-              autoLoad={true}
-            />
-          ) : (
-            // Fallback to client-side pieces (for backward compatibility)
-            <div className="space-y-2">
-              {pieces.map(piece => (
-                <ProcessingPieceRow
-                  key={piece.id}
-                  piece={piece}
-                  onChange={(updates) => onPieceChange(piece.id, updates)}
-                  onSplitToggle={(selected) => onSplitToggle(piece.id, selected)}
-                  isSelectedForSplit={selectedForSplit.has(piece.id)}
-                  splitOrderEnabled={splitOrderEnabled}
-                  rejectEnabled={rejectEnabled}
-                  rejectColor={rejectColor}
-                />
-              ))}
-            </div>
-          )}
+          {/* Always use client-side pieces for editing - saves only when Update button is pressed */}
+          <div className="space-y-2">
+            {pieces.map(piece => (
+              <ProcessingPieceRow
+                key={piece.id}
+                piece={piece}
+                onChange={(updates) => onPieceChange(piece.id, updates)}
+                onSplitToggle={(selected) => onSplitToggle(piece.id, selected)}
+                isSelectedForSplit={selectedForSplit.has(piece.id)}
+                splitOrderEnabled={splitOrderEnabled}
+                rejectEnabled={rejectEnabled}
+                rejectColor={rejectColor}
+              />
+            ))}
+          </div>
         </div>
       )}
 

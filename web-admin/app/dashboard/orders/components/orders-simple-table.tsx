@@ -111,10 +111,10 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                   <span className="font-medium text-blue-600">{order.order_no}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="font-medium">{order.customer.name}</div>
-                  <div className="text-xs text-gray-500">{order.customer.phone}</div>
+                  <div className="font-medium">{order.customer?.name || '—'}</div>
+                  <div className="text-xs text-gray-500">{order.customer?.phone || '—'}</div>
                 </td>
-                <td className="px-4 py-3 capitalize">{order.status.replace(/_/g, ' ')}</td>
+                <td className="px-4 py-3 capitalize">{order.status?.replace(/_/g, ' ') || '—'}</td>
                 <td className="px-4 py-3 capitalize">
                   {order.preparation_status?.replace(/_/g, ' ') || '—'}
                 </td>
@@ -134,7 +134,7 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 <td className="px-4 py-3">
                   {order.ready_by ? (
                     <span className="text-xs text-gray-700">
-                      {formatReadyByDate(order.ready_by)}
+                      {formatReadyByDate(order.ready_by instanceof Date ? order.ready_by : new Date(order.ready_by))}
                     </span>
                   ) : (
                     <span className="text-gray-400">—</span>

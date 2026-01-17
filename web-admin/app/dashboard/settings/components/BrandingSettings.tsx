@@ -8,13 +8,15 @@
 import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardFooter, Button, Alert } from '@/components/ui';
 import type { Tenant } from '@/lib/types/tenant';
+import type { ResolvedSetting } from '@/lib/api/settings-client';
 
 interface BrandingSettingsProps {
   tenant: Tenant;
   onUpdate: () => void;
+  effectiveSettings?: ResolvedSetting[];
 }
 
-export function BrandingSettings({ tenant, onUpdate }: BrandingSettingsProps) {
+export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: BrandingSettingsProps) {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState(tenant.logo_url || '');
   const [primaryColor, setPrimaryColor] = useState(tenant.brand_color_primary);

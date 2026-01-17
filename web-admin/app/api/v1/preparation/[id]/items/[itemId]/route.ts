@@ -5,43 +5,46 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { isPreparationEnabled } from '@/lib/config/features';
+import { requireTenantAuth } from '@/lib/middleware/tenant-guard';
+import { validateCSRF } from '@/lib/middleware/csrf';
+
+export const runtime = 'nodejs';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
+    // Validate CSRF token
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) {
+      return csrfResponse;
+    }
+
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
+    
+    // Use tenant guard to ensure JWT has tenant context
+    const auth = await requireTenantAuth('orders:update')(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Unauthorized or invalid tenant
+    }
+    
+    const { tenantId } = auth;
     const { id: orderId, itemId } = await params;
     const data = await request.json();
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
-
-    // Update item with tenant scoping
-    const updated = await prisma.org_order_items_dtl.update({
+    // Update item - wrap with tenant context so Prisma middleware can access tenant ID
+    const updated = await withTenantContext(tenantId, async () => {
+      return await prisma.org_order_items_dtl.update({
       where: {
         id: itemId,
         order_id: orderId,
-        tenant_org_id: tenantId,
-      } as any,
+      },
       data: {
         product_id: data.productId ?? undefined,
         service_category_code: data.serviceCategoryCode ?? undefined,
@@ -57,6 +60,7 @@ export async function PATCH(
         notes: data.notes ?? undefined,
       },
     });
+    });
 
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
@@ -69,36 +73,37 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string; itemId: string }> }
 ) {
   try {
+    // Validate CSRF token
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) {
+      return csrfResponse;
+    }
+
     if (!isPreparationEnabled()) {
       return NextResponse.json({ success: false, error: 'Feature disabled' }, { status: 403 });
     }
+    
+    // Use tenant guard to ensure JWT has tenant context
+    const auth = await requireTenantAuth('orders:update')(request);
+    if (auth instanceof NextResponse) {
+      return auth; // Unauthorized or invalid tenant
+    }
+    
     const { id: orderId, itemId } = await params;
+    const { tenantId } = auth;
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json({ success: false, error: 'Tenant ID not found' }, { status: 400 });
-    }
-
-    await prisma.org_order_items_dtl.delete({
+    // Delete item - wrap with tenant context so Prisma middleware can access tenant ID
+    await withTenantContext(tenantId, async () => {
+      await prisma.org_order_items_dtl.delete({
       where: {
         id: itemId,
         order_id: orderId,
-        tenant_org_id: tenantId,
-      } as any,
+      },
+    });
     });
 
     return NextResponse.json({ success: true });

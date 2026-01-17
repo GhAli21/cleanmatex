@@ -93,7 +93,12 @@ export default function PreparationPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {orders.map((order) => (
+          {orders.map((order) => {
+            if (!order.id) {
+              console.error('Order missing id:', order);
+              return null;
+            }
+            return (
             <Link
               key={order.id}
               href={`/dashboard/preparation/${order.id}?returnUrl=${encodeURIComponent('/dashboard/preparation')}`}
@@ -127,7 +132,8 @@ export default function PreparationPage() {
                 </div>
               </div>
             </Link>
-          ))}
+            );
+          })}
         </div>
       )}
 

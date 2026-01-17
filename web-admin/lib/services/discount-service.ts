@@ -8,7 +8,8 @@
  * - Discount calculations
  */
 
-import { prisma } from '../prisma';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import type {
   PromoCode,
   PromoCodeUsage,
@@ -30,15 +31,27 @@ import type {
 export async function validatePromoCode(
   input: ValidatePromoCodeInput
 ): Promise<ValidatePromoCodeResult> {
-  try {
-    // Find promo code
-    const promoCode = await prisma.org_promo_codes_mst.findFirst({
-      where: {
-        promo_code: input.promo_code.toUpperCase(),
-        is_active: true,
-        is_enabled: true,
-      },
-    });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      isValid: false,
+      error: 'Unauthorized: Tenant ID required',
+      errorCode: 'UNAUTHORIZED',
+    };
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      // Find promo code - middleware adds tenant_org_id automatically
+      const promoCode = await prisma.org_promo_codes_mst.findFirst({
+        where: {
+          promo_code: input.promo_code.toUpperCase(),
+          is_active: true,
+          is_enabled: true,
+        },
+      });
 
     if (!promoCode) {
       return {
@@ -155,18 +168,19 @@ export async function validatePromoCode(
         : undefined
     );
 
-    return {
-      isValid: true,
-      promoCode: mapPromoCodeToType(promoCode),
-      discountAmount,
-    };
-  } catch (error) {
-    console.error('Error validating promo code:', error);
-    return {
-      isValid: false,
-      error: 'An error occurred while validating promo code',
-    };
-  }
+      return {
+        isValid: true,
+        promoCode: mapPromoCodeToType(promoCode),
+        discountAmount,
+      };
+    } catch (error) {
+      console.error('Error validating promo code:', error);
+      return {
+        isValid: false,
+        error: 'An error occurred while validating promo code',
+      };
+    }
+  });
 }
 
 /**
@@ -210,9 +224,11 @@ export async function applyPromoCode(
   orderTotalBefore: number,
   appliedBy?: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    // Start transaction
-    await prisma.$transaction(async (tx) => {
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    try {
+      // Start transaction - tenant context is preserved
+      await prisma.$transaction(async (tx) => {
       // Record usage
       await tx.org_promo_usage_log.create({
         data: {
@@ -229,27 +245,28 @@ export async function applyPromoCode(
         },
       });
 
-      // Increment usage count
-      await tx.org_promo_codes_mst.update({
-        where: { id: promoCodeId },
-        data: {
-          current_uses: {
-            increment: 1,
+        // Increment usage count
+        await tx.org_promo_codes_mst.update({
+          where: { id: promoCodeId },
+          data: {
+            current_uses: {
+              increment: 1,
+            },
+            updated_at: new Date(),
+            updated_by: appliedBy,
           },
-          updated_at: new Date(),
-          updated_by: appliedBy,
-        },
+        });
       });
-    });
 
-    return { success: true };
-  } catch (error) {
-    console.error('Error applying promo code:', error);
-    return {
-      success: false,
-      error: 'Failed to apply promo code',
-    };
-  }
+      return { success: true };
+    } catch (error) {
+      console.error('Error applying promo code:', error);
+      return {
+        success: false,
+        error: 'Failed to apply promo code',
+      };
+    }
+  });
 }
 
 /**
@@ -258,29 +275,38 @@ export async function applyPromoCode(
 export async function getPromoCodeUsage(
   promoCodeId: string
 ): Promise<PromoCodeUsage[]> {
-  const usages = await prisma.org_promo_usage_log.findMany({
-    where: {
-      promo_code_id: promoCodeId,
-    },
-    orderBy: {
-      used_at: 'desc',
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return usages.map((usage) => ({
-    id: usage.id,
-    tenant_org_id: usage.tenant_org_id,
-    promo_code_id: usage.promo_code_id,
-    customer_id: usage.customer_id ?? undefined,
-    order_id: usage.order_id ?? undefined,
-    invoice_id: usage.invoice_id ?? undefined,
-    discount_amount: Number(usage.discount_amount),
-    order_total_before: Number(usage.order_total_before),
-    order_total_after: Number(usage.order_total_after),
-    used_at: usage.used_at.toISOString(),
-    used_by: usage.used_by ?? undefined,
-    metadata: usage.metadata ? JSON.parse(usage.metadata as string) : undefined,
-  }));
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const usages = await prisma.org_promo_usage_log.findMany({
+      where: {
+        promo_code_id: promoCodeId,
+      },
+      orderBy: {
+        used_at: 'desc',
+      },
+    });
+
+    return usages.map((usage) => ({
+      id: usage.id,
+      tenant_org_id: usage.tenant_org_id,
+      promo_code_id: usage.promo_code_id,
+      customer_id: usage.customer_id ?? undefined,
+      order_id: usage.order_id ?? undefined,
+      invoice_id: usage.invoice_id ?? undefined,
+      discount_amount: Number(usage.discount_amount),
+      order_total_before: Number(usage.order_total_before),
+      order_total_after: Number(usage.order_total_after),
+      used_at: usage.used_at.toISOString(),
+      used_by: usage.used_by ?? undefined,
+      metadata: usage.metadata ? JSON.parse(usage.metadata as string) : undefined,
+    }));
+  });
 }
 
 /**
@@ -290,11 +316,20 @@ export async function getCustomerPromoUsageCount(
   promoCodeId: string,
   customerId: string
 ): Promise<number> {
-  return prisma.org_promo_usage_log.count({
-    where: {
-      promo_code_id: promoCodeId,
-      customer_id: customerId,
-    },
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    return prisma.org_promo_usage_log.count({
+      where: {
+        promo_code_id: promoCodeId,
+        customer_id: customerId,
+      },
+    });
   });
 }
 
@@ -309,39 +344,42 @@ export async function evaluateDiscountRules(
   tenantOrgId: string,
   input: EvaluateDiscountRulesInput
 ): Promise<EvaluatedDiscount[]> {
-  // Get all active discount rules
-  const rules = await prisma.org_discount_rules_cf.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      is_active: true,
-      is_enabled: true,
-    },
-    orderBy: {
-      priority: 'desc', // Higher priority first
-    },
-  });
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    // Get all active discount rules - middleware adds tenant_org_id automatically
+    const rules = await prisma.org_discount_rules_cf.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        is_active: true,
+        is_enabled: true,
+      },
+      orderBy: {
+        priority: 'desc', // Higher priority first
+      },
+    });
 
-  const evaluatedDiscounts: EvaluatedDiscount[] = [];
+    const evaluatedDiscounts: EvaluatedDiscount[] = [];
 
-  for (const rule of rules) {
-    const isApplicable = checkRuleConditions(rule, input);
+    for (const rule of rules) {
+      const isApplicable = checkRuleConditions(rule, input);
 
-    if (isApplicable) {
-      const discountAmount = calculateRuleDiscount(
-        input.order_total,
-        rule.discount_type as PromoDiscountType,
-        Number(rule.discount_value)
-      );
+      if (isApplicable) {
+        const discountAmount = calculateRuleDiscount(
+          input.order_total,
+          rule.discount_type as PromoDiscountType,
+          Number(rule.discount_value)
+        );
 
-      evaluatedDiscounts.push({
-        rule: mapDiscountRuleToType(rule),
-        discount_amount: discountAmount,
-        applied: true,
-      });
+        evaluatedDiscounts.push({
+          rule: mapDiscountRuleToType(rule),
+          discount_amount: discountAmount,
+          applied: true,
+        });
+      }
     }
-  }
 
-  return evaluatedDiscounts;
+    return evaluatedDiscounts;
+  });
 }
 
 /**
@@ -453,25 +491,28 @@ export async function getBestDiscount(
 export async function getActivePromoCodes(
   tenantOrgId: string
 ): Promise<PromoCode[]> {
-  const promoCodes = await prisma.org_promo_codes_mst.findMany({
-    where: {
-      tenant_org_id: tenantOrgId,
-      is_active: true,
-      is_enabled: true,
-      valid_from: {
-        lte: new Date(),
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantOrgId, async () => {
+    const promoCodes = await prisma.org_promo_codes_mst.findMany({
+      where: {
+        tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
+        is_active: true,
+        is_enabled: true,
+        valid_from: {
+          lte: new Date(),
+        },
+        OR: [
+          { valid_to: null },
+          { valid_to: { gte: new Date() } },
+        ],
       },
-      OR: [
-        { valid_to: null },
-        { valid_to: { gte: new Date() } },
-      ],
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  });
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
 
-  return promoCodes.map(mapPromoCodeToType);
+    return promoCodes.map(mapPromoCodeToType);
+  });
 }
 
 /**
@@ -483,40 +524,49 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
   remaining_uses: number | null;
   unique_customers: number;
 }> {
-  const promoCode = await prisma.org_promo_codes_mst.findUnique({
-    where: { id: promoCodeId },
-  });
-
-  if (!promoCode) {
-    throw new Error('Promo code not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const usages = await prisma.org_promo_usage_log.findMany({
-    where: {
-      promo_code_id: promoCodeId,
-    },
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const promoCode = await prisma.org_promo_codes_mst.findUnique({
+      where: { id: promoCodeId },
+    });
+
+    if (!promoCode) {
+      throw new Error('Promo code not found');
+    }
+
+    const usages = await prisma.org_promo_usage_log.findMany({
+      where: {
+        promo_code_id: promoCodeId,
+      },
+    });
+
+    const totalDiscountGiven = usages.reduce(
+      (sum, usage) => sum + Number(usage.discount_amount),
+      0
+    );
+
+    const uniqueCustomers = new Set(
+      usages.filter((u) => u.customer_id).map((u) => u.customer_id)
+    ).size;
+
+    const remainingUses =
+      promoCode.max_uses !== null && promoCode.current_uses !== null
+        ? Math.max(0, promoCode.max_uses - promoCode.current_uses)
+        : null;
+
+    return {
+      total_uses: promoCode.current_uses || 0,
+      total_discount_given: totalDiscountGiven,
+      remaining_uses: remainingUses,
+      unique_customers: uniqueCustomers,
+    };
   });
-
-  const totalDiscountGiven = usages.reduce(
-    (sum, usage) => sum + Number(usage.discount_amount),
-    0
-  );
-
-  const uniqueCustomers = new Set(
-    usages.filter((u) => u.customer_id).map((u) => u.customer_id)
-  ).size;
-
-  const remainingUses =
-    promoCode.max_uses !== null && promoCode.current_uses !== null
-      ? Math.max(0, promoCode.max_uses - promoCode.current_uses)
-      : null;
-
-  return {
-    total_uses: promoCode.current_uses || 0,
-    total_discount_given: totalDiscountGiven,
-    remaining_uses: remainingUses,
-    unique_customers: uniqueCustomers,
-  };
 }
 
 // ============================================================================

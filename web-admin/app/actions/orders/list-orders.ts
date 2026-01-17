@@ -2,12 +2,14 @@
  * Server Action: List Orders
  *
  * Fetches paginated list of orders with filters and search.
+ * Automatically uses tenant context from session.
  */
 
 'use server';
 
 import { listOrders as listOrdersDb, getOrderStats } from '@/lib/db/orders';
 import { orderFiltersSchema } from '@/lib/validations/order-schema';
+import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { OrderListResponse, OrderStats } from '@/types/order';
 
 interface ListOrdersResult {
@@ -25,7 +27,7 @@ interface GetOrderStatsResult {
 /**
  * List orders with filters and pagination
  *
- * @param tenantOrgId - Tenant organization ID (from session)
+ * @param tenantOrgId - Tenant organization ID (from session) - kept for backward compatibility
  * @param filters - Filter criteria
  * @returns Paginated list of orders
  */
@@ -44,8 +46,10 @@ export async function listOrders(
       };
     }
 
-    // Fetch orders
-    const result = await listOrdersDb(tenantOrgId, validation.data);
+    // Use tenant context - all Prisma queries will automatically filter by tenant_org_id
+    const result = await withTenantContext(tenantOrgId, async () => {
+      return await listOrdersDb(tenantOrgId, validation.data);
+    });
 
     return {
       success: true,
@@ -64,14 +68,17 @@ export async function listOrders(
 /**
  * Get order statistics for dashboard
  *
- * @param tenantOrgId - Tenant organization ID (from session)
+ * @param tenantOrgId - Tenant organization ID (from session) - kept for backward compatibility
  * @returns Order statistics
  */
 export async function getStats(
   tenantOrgId: string
 ): Promise<GetOrderStatsResult> {
   try {
-    const stats = await getOrderStats(tenantOrgId);
+    // Use tenant context - all Prisma queries will automatically filter by tenant_org_id
+    const stats = await withTenantContext(tenantOrgId, async () => {
+      return await getOrderStats(tenantOrgId);
+    });
 
     return {
       success: true,

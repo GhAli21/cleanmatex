@@ -107,7 +107,7 @@ model users {
   mfa_factors                                                   mfa_factors[]
   one_time_tokens                                               one_time_tokens[]
   sessions                                                      sessions[]
-  cmx_effective_permissions                                     cmx_effective_permissions[]
+  cmx_effective_permissions                                     cmx_effective_permissions[] @ignore
   org_order_history                                             org_order_history[]
   org_order_item_issues_org_order_item_issues_created_byTousers org_order_item_issues[]           @relation("org_order_item_issues_created_byTousers")
   org_order_item_issues_org_order_item_issues_solved_byTousers  org_order_item_issues[]           @relation("org_order_item_issues_solved_byTousers")
@@ -666,9 +666,10 @@ model org_orders_mst {
   is_order_quick_drop             Boolean?                          @default(false)
   quick_drop_quantity             Int?
   rack_location                   String?                           @db.VarChar(100)
-  org_asm_tasks_mst               org_asm_tasks_mst?
+  org_asm_tasks_mst               org_asm_tasks_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_invoice_mst                 org_invoice_mst[]
+  org_ord_transition_events       org_ord_transition_events[]
   org_order_history               org_order_history[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
@@ -682,7 +683,7 @@ model org_orders_mst {
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
   sys_order_type_cd               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
   sys_workflow_template_cd        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
-  org_pck_packing_lists_mst       org_pck_packing_lists_mst?
+  org_pck_packing_lists_mst       org_pck_packing_lists_mst[]
   org_qa_decisions_tr             org_qa_decisions_tr[]
   org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
 
@@ -903,7 +904,14 @@ model org_tenants_mst {
   stng_profile_code                String?
   stng_profile_version_applied     Int?
   stng_profile_locked              Boolean?                           @default(false)
-  cmx_effective_permissions        cmx_effective_permissions[]
+  created_by                       String?
+  created_info                     String?
+  updated_by                       String?
+  updated_info                     String?
+  rec_status                       Int?                               @default(1) @db.SmallInt
+  rec_order                        Int?
+  rec_notes                        String?
+  cmx_effective_permissions        cmx_effective_permissions[] @ignore
   hq_tenant_status_history         hq_tenant_status_history[]
   org_asm_locations_mst            org_asm_locations_mst[]
   org_asm_tasks_mst                org_asm_tasks_mst[]
@@ -1462,6 +1470,7 @@ model sys_workflow_template_cd {
   org_orders_mst                          org_orders_mst[]
   org_tenant_service_category_workflow_cf org_tenant_service_category_workflow_cf[]
   org_tenant_workflow_templates_cf        org_tenant_workflow_templates_cf[]
+  sys_ord_workflow_template_versions      sys_ord_workflow_template_versions[]
   sys_workflow_template_stages            sys_workflow_template_stages[]
   sys_workflow_template_transitions       sys_workflow_template_transitions[]
 
@@ -1985,8 +1994,8 @@ model sys_tenant_settings_cd {
   updated_by                  String?
   updated_info                String?
   stng_category_code          String?
-  stng_scope                  String?                       @default("TENANT")
-  stng_data_type              String?                       @default("TEXT")
+  stng_scope                  String?
+  stng_data_type              String?
   stng_default_value_jsonb    Json?
   stng_validation_jsonb       Json?
   stng_is_overridable         Boolean?                      @default(true)
@@ -3803,7 +3812,7 @@ model org_asm_tasks_mst {
   org_qa_decisions_tr       org_qa_decisions_tr[]
 
   @@id([id, tenant_org_id], map: "pk_org_asm_tasks_mst")
-  @@unique([tenant_org_id, order_id])
+  @@unique([order_id, tenant_org_id])
   @@index([tenant_org_id, assigned_to], map: "idx_asm_tasks_assigned")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_asm_tasks_created")
   @@index([tenant_org_id, location_id], map: "idx_asm_tasks_location")
@@ -4024,7 +4033,7 @@ model org_pck_packing_lists_mst {
   org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_task")
   org_tenants_mst     org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_tenant")
 
-  @@unique([tenant_org_id, order_id])
+  @@unique([order_id, tenant_org_id])
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_pck_lists_created")
   @@index([order_id], map: "idx_pck_lists_order")
   @@index([task_id], map: "idx_pck_lists_task")
@@ -4442,6 +4451,7 @@ model sys_stng_categories_cd {
   rec_order              Int?
   rec_notes              String?                  @db.VarChar(200)
   is_active              Boolean                  @default(true)
+  sys_stng_settings_cd   sys_stng_settings_cd[]
   sys_tenant_settings_cd sys_tenant_settings_cd[]
 
   @@index([is_active], map: "idx_sys_stng_categories_active")
@@ -4564,6 +4574,196 @@ model org_order_item_pieces_dtl {
   @@index([tenant_org_id, scan_state], map: "idx_order_pieces_scan_state")
   @@index([tenant_org_id, piece_status], map: "idx_order_pieces_status")
   @@index([tenant_org_id], map: "idx_order_pieces_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ord_custom_validations_cf {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id       String?   @db.Uuid
+  screen_key          String
+  validation_key      String
+  validation_function String?
+  validation_config   Json?     @default("{}")
+  is_active           Boolean?  @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime? @default(now()) @db.Timestamptz(6)
+  created_by          String?   @db.Uuid
+  updated_by          String?   @db.Uuid
+
+  @@unique([tenant_org_id, screen_key, validation_key])
+  @@index([tenant_org_id, screen_key], map: "idx_org_ord_custom_validations_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ord_screen_contracts_cf {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String?   @db.Uuid
+  screen_key           String
+  pre_conditions       Json
+  required_permissions Json
+  is_active            Boolean?  @default(true)
+  created_at           DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime? @default(now()) @db.Timestamptz(6)
+  created_by           String?   @db.Uuid
+  updated_by           String?   @db.Uuid
+
+  @@unique([tenant_org_id, screen_key])
+  @@index([tenant_org_id, screen_key], map: "idx_org_ord_screen_contracts_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ord_transition_events {
+  id             String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id  String         @db.Uuid
+  order_id       String         @db.Uuid
+  screen         String
+  from_status    String?
+  to_status      String?
+  event_type     String
+  event_data     Json?          @default("{}")
+  created_at     DateTime?      @default(now()) @db.Timestamptz(6)
+  org_orders_mst org_orders_mst @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_transition_events_order")
+
+  @@index([order_id, created_at(sort: Desc)], map: "idx_org_ord_transition_events_order")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_org_ord_transition_events_tenant")
+  @@index([event_type, created_at(sort: Desc)], map: "idx_org_ord_transition_events_type")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_ord_webhook_subscriptions_cf {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id   String?   @db.Uuid
+  screen_key      String?
+  event_type      String
+  webhook_url     String
+  webhook_secret  String?
+  is_active       Boolean?  @default(true)
+  retry_count     Int?      @default(3)
+  timeout_seconds Int?      @default(30)
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime? @default(now()) @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  updated_by      String?   @db.Uuid
+
+  @@index([tenant_org_id, screen_key], map: "idx_org_ord_webhook_subscriptions_tenant")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model org_stng_settings_cf {
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String               @db.Uuid
+  branch_id            String?              @db.Uuid
+  user_id              String?              @db.Uuid
+  service_category_id  String?              @db.Uuid
+  setting_code         String
+  stng_scope           String
+  value_jsonb          Json
+  effective_from       DateTime?            @db.Timestamptz(6)
+  effective_to         DateTime?            @db.Timestamptz(6)
+  notes                String?
+  is_active            Boolean              @default(true)
+  rec_order            Int?
+  rec_notes            String?
+  rec_status           Int                  @default(1) @db.SmallInt
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  created_by           String?              @db.Uuid
+  created_info         String?
+  updated_at           DateTime?            @db.Timestamptz(6)
+  updated_by           String?              @db.Uuid
+  updated_info         String?
+  sys_stng_settings_cd sys_stng_settings_cd @relation(fields: [setting_code], references: [setting_code])
+
+  @@unique([tenant_org_id, branch_id, user_id, service_category_id, setting_code], map: "uq_org_stng_values")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model sys_ord_workflow_template_versions {
+  id                       String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  template_id              String                   @db.Uuid
+  version_number           Int
+  template_snapshot        Json
+  change_description       String?
+  created_by               String?                  @db.Uuid
+  created_at               DateTime?                @default(now()) @db.Timestamptz(6)
+  sys_workflow_template_cd sys_workflow_template_cd @relation(fields: [template_id], references: [template_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([template_id, version_number], map: "sys_ord_workflow_template_versio_template_id_version_number_key")
+  @@index([template_id, version_number(sort: Desc)], map: "idx_sys_ord_workflow_template_versions_template")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_plan_setting_constraints {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plan_code         String
+  stng_code         String
+  constraint_type   String
+  constraint_value  Json?
+  constraint_reason String?
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  created_by        String?   @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime? @db.Timestamp(6)
+  updated_by        String?   @db.VarChar(120)
+  updated_info      String?
+  rec_status        Int?      @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?   @db.VarChar(200)
+  is_active         Boolean   @default(true)
+
+  @@unique([plan_code, stng_code, constraint_type])
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model sys_stng_settings_cd {
+  setting_code                  String                 @id
+  stng_category_code            String
+  setting_name                  String
+  setting_name2                 String?
+  setting_desc                  String
+  setting_desc2                 String?
+  tech_explain_for_developers   String
+  is_allow_for_system           Boolean                @default(false)
+  is_allow_for_tenant_org       Boolean                @default(false)
+  is_allow_for_branch           Boolean                @default(false)
+  is_allow_for_user             Boolean                @default(false)
+  is_allow_for_service_category Boolean                @default(false)
+  is_for_system_only            Boolean                @default(false)
+  stng_scope                    String
+  stng_data_type                String
+  stng_default_value_jsonb      Json?
+  stng_allowed_values_json      Json?
+  stng_validation_jsonb         Json?
+  stng_is_overridable           Boolean?               @default(true)
+  stng_is_sensitive             Boolean?               @default(false)
+  stng_requires_restart         Boolean?               @default(false)
+  stng_is_feature_gated         Boolean                @default(false)
+  stng_depends_on_flags         Json?
+  is_active                     Boolean?               @default(true)
+  rec_order                     Int?
+  rec_notes                     String?
+  rec_status                    Int?                   @default(1) @db.SmallInt
+  created_at                    DateTime               @default(now()) @db.Timestamptz(6)
+  created_by                    String?
+  created_info                  String?
+  updated_at                    DateTime?              @db.Timestamptz(6)
+  updated_by                    String?
+  updated_info                  String?
+  org_stng_settings_cf          org_stng_settings_cf[]
+  sys_stng_categories_cd        sys_stng_categories_cd @relation(fields: [stng_category_code], references: [stng_category_code], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }
 

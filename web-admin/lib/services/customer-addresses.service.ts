@@ -4,31 +4,14 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type {
   CustomerAddress,
   CreateAddressRequest,
   UpdateAddressRequest,
 } from '@/lib/types/customer';
 
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get tenant ID from current session
- */
-async function getTenantIdFromSession(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user || !user.user_metadata?.tenant_org_id) {
-    throw new Error('Unauthorized: No tenant context');
-  }
-
-  return user.user_metadata.tenant_org_id;
-}
+// Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
 
 /**
  * Get user ID from current session

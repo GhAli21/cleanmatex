@@ -13,6 +13,9 @@ import { createClient } from '@/lib/supabase/server';
 import type { BatchUpdateRequest, PieceUpdate } from '@/types/order';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
+import { validateCSRF } from '@/lib/middleware/csrf';
 import { log } from '@/lib/utils/logger';
 
 export async function POST(
@@ -21,25 +24,27 @@ export async function POST(
 ) {
   try {
     const { id: orderId } = await params;
+
+    // Validate CSRF token
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) {
+      return csrfResponse;
+    }
+
+    // Verify authentication and permissions
+    const authCheck = await requirePermission('orders:update')(request);
+    if (authCheck instanceof NextResponse) {
+      return authCheck; // Unauthorized or permission denied
+    }
+    const { tenantId, userId } = authCheck;
+
+    // Apply rate limiting (per tenant)
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
+
     const supabase = await createClient();
-
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get tenant from user metadata
-    const tenantId = user.user_metadata?.tenant_org_id;
-    if (!tenantId) {
-      return NextResponse.json(
-        { error: 'No tenant found for user' },
-        { status: 400 }
-      );
-    }
 
     // Parse request body
     const body: BatchUpdateRequest = await request.json();
@@ -91,22 +96,65 @@ export async function POST(
     if (trackByPiece) {
       // Use OrderPieceService to update pieces in database
       for (const [itemId, pieceUpdates] of itemUpdatesMap.entries()) {
-        const pieceUpdatesForService = pieceUpdates.map(update => ({
-          pieceId: update.pieceId,
-          updates: {
-            piece_status: update.isReady ? 'ready' : (update.currentStep ? 'processing' : undefined),
-            last_step: update.currentStep || undefined,
-            rack_location: update.rackLocation || undefined,
-            notes: update.notes || undefined,
-            is_rejected: update.isRejected || undefined,
-            updated_by: user.id,
-            updated_info: user.user_metadata?.name || user.email || undefined,
-          },
-        }));
+        // Resolve piece IDs - if pieceId is not a UUID, find by itemId + pieceNumber
+        const pieceUpdatesForService = await Promise.all(
+          pieceUpdates.map(async (update) => {
+            let actualPieceId = update.pieceId;
+            
+            // Check if pieceId is a UUID (DB ID)
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(update.pieceId);
+            
+            if (!isUUID) {
+              // Generated ID format: itemId-piece-N
+              // Find piece by itemId + piece_seq
+              const { data: existingPiece } = await supabase
+                .from('org_order_item_pieces_dtl')
+                .select('id')
+                .eq('tenant_org_id', tenantId)
+                .eq('order_item_id', itemId)
+                .eq('piece_seq', update.pieceNumber)
+                .eq('order_id', orderId)
+                .single();
+              
+              if (existingPiece) {
+                actualPieceId = existingPiece.id;
+              } else {
+                // Piece doesn't exist yet - will need to create it
+                // For now, skip and log - pieces should be auto-created when item is created
+                log.warn('[BatchUpdate] Piece not found, skipping', {
+                  itemId,
+                  pieceNumber: update.pieceNumber,
+                  pieceId: update.pieceId,
+                });
+                return null;
+              }
+            }
+            
+            return {
+              pieceId: actualPieceId,
+              updates: {
+                piece_status: update.isReady ? 'ready' : (update.currentStep ? 'processing' : undefined),
+                last_step: update.currentStep || undefined,
+                rack_location: update.rackLocation || undefined,
+                notes: update.notes || undefined,
+                is_rejected: update.isRejected || undefined,
+                updated_by: userId,
+                updated_info: authCheck.userName || undefined,
+              },
+            };
+          })
+        );
+
+        // Filter out null entries (pieces that don't exist)
+        const validUpdates = pieceUpdatesForService.filter((u): u is NonNullable<typeof u> => u !== null);
+
+        if (validUpdates.length === 0) {
+          continue; // Skip if no valid updates
+        }
 
         const batchResult = await OrderPieceService.batchUpdatePieces({
           tenantId,
-          updates: pieceUpdatesForService,
+          updates: validUpdates,
         });
 
         if (batchResult.success) {
@@ -167,11 +215,11 @@ export async function POST(
           quantity_ready: itemReadyCount,
           item_last_step: pieceUpdates.find(p => p.currentStep)?.currentStep || null,
           item_last_step_at: new Date().toISOString(),
-          item_last_step_by: user.id,
+          item_last_step_by: userId,
           metadata: {
             ...pieceMetadata,
             updated_at: new Date().toISOString(),
-            updated_by: user.id,
+            updated_by: userId,
           },
         })
         .eq('id', itemId)
@@ -242,7 +290,7 @@ export async function POST(
             action_type: 'STATUS_CHANGE',
             from_value: 'processing',
             to_value: 'ready',
-            done_by: user.id,
+            done_by: userId,
             done_at: new Date().toISOString(),
             payload: {
               reason: 'All items ready',

@@ -65,7 +65,9 @@ export function ProcessingPieceRow({
   };
 
   const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange({ notes: e.target.value });
+    const value = e.target.value;
+    console.log('[ProcessingPieceRow] Notes change:', { pieceId: piece.id, value });
+    onChange({ notes: value });
   };
 
   const handleRackChange = (e: React.ChangeEvent<HTMLInputElement>) => {

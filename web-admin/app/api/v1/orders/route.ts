@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/server';
 import { OrderService } from '@/lib/services/order-service';
 import { CreateOrderRequestSchema } from '@/lib/validations/workflow-schema';
 import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
+import { checkAPIRateLimitTenant, checkAPIRateLimitUser } from '@/lib/middleware/rate-limit';
+import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
 
 /**
@@ -17,12 +19,24 @@ import { logger } from '@/lib/utils/logger';
  */
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF token
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) {
+      return csrfResponse;
+    }
+
     // Check permission 
     const authCheck = await requirePermission('orders:create')(request);
     if (authCheck instanceof NextResponse) { 
       return authCheck; // Permission denied 
     }
     const { tenantId, userId, userName } = authCheck;
+
+    // Apply rate limiting (per tenant)
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
 
     const body = await request.json();
     
@@ -101,7 +115,13 @@ export async function GET(request: NextRequest) {
     if (authCheck instanceof NextResponse) {
       return authCheck; // Permission denied
     }
-    const { tenantId } = authCheck;
+    const { tenantId, userId } = authCheck;
+
+    // Apply rate limiting (per tenant)
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) {
+      return rateLimitResponse;
+    }
     const { searchParams } = new URL(request.url);
 
     const supabase = await createClient();

@@ -9,7 +9,8 @@
  * - Payment method management
  */
 
-import { prisma } from '../prisma';
+import { prisma } from '@/lib/db/prisma';
+import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import type {
   PaymentMethod,
   PaymentMethodCode,
@@ -104,43 +105,59 @@ export async function validatePaymentMethod(
 export async function processPayment(
   input: ProcessPaymentInput
 ): Promise<ProcessPaymentResult> {
-  try {
-    // 1. Validate payment method
-    const methodValidation = await validatePaymentMethod(input.payment_method);
-    if (!methodValidation.isValid) {
-      return {
-        success: false,
-        invoice_id: input.invoice_id || '',
-        payment_status: 'failed',
-        amount_paid: 0,
-        remaining_balance: input.amount,
-        error: methodValidation.error,
-        errorCode: 'INVALID_PAYMENT_METHOD',
-      };
-    }
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      success: false,
+      invoice_id: input.invoice_id || '',
+      payment_status: 'failed',
+      amount_paid: 0,
+      remaining_balance: input.amount,
+      error: 'Unauthorized: Tenant ID required',
+      errorCode: 'UNAUTHORIZED',
+    };
+  }
 
-    // 2. Get or create invoice
-    let invoiceId = input.invoice_id;
-    if (!invoiceId) {
-      const invoice = await createInvoiceForOrder(input.order_id, input.amount);
-      if (!invoice) {
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      // 1. Validate payment method
+      const methodValidation = await validatePaymentMethod(input.payment_method);
+      if (!methodValidation.isValid) {
         return {
           success: false,
-          invoice_id: '',
+          invoice_id: input.invoice_id || '',
           payment_status: 'failed',
           amount_paid: 0,
           remaining_balance: input.amount,
-          error: 'Failed to create invoice',
-          errorCode: 'INVOICE_CREATION_FAILED',
+          error: methodValidation.error,
+          errorCode: 'INVALID_PAYMENT_METHOD',
         };
       }
-      invoiceId = invoice.id;
-    }
 
-    // 3. Validate payment amount
-    const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
-    });
+      // 2. Get or create invoice
+      let invoiceId = input.invoice_id;
+      if (!invoiceId) {
+        const invoice = await createInvoiceForOrder(input.order_id, input.amount);
+        if (!invoice) {
+          return {
+            success: false,
+            invoice_id: '',
+            payment_status: 'failed',
+            amount_paid: 0,
+            remaining_balance: input.amount,
+            error: 'Failed to create invoice',
+            errorCode: 'INVOICE_CREATION_FAILED',
+          };
+        }
+        invoiceId = invoice.id;
+      }
+
+      // 3. Validate payment amount - middleware adds tenant_org_id automatically
+      const invoice = await prisma.org_invoice_mst.findUnique({
+        where: { id: invoiceId },
+      });
 
     if (!invoice) {
       return {
@@ -189,51 +206,52 @@ export async function processPayment(
       rec_notes: input.notes,
     });
 
-    // 6. Update invoice
-    const updatedPaidAmount = Number(invoice.paid_amount) + input.amount;
-    const newStatus =
-      updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+      // 6. Update invoice - middleware adds tenant_org_id automatically
+      const updatedPaidAmount = Number(invoice.paid_amount) + input.amount;
+      const newStatus =
+        updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
 
-    await prisma.org_invoice_mst.update({
-      where: { id: invoiceId },
-      data: {
-        paid_amount: updatedPaidAmount,
-        status: newStatus,
-        paid_at: newStatus === 'paid' ? new Date() : undefined,
-        paid_by: input.processed_by,
-        payment_method: input.payment_method,
-        updated_at: new Date(),
-        updated_by: input.processed_by,
-      },
-    });
+      await prisma.org_invoice_mst.update({
+        where: { id: invoiceId },
+        data: {
+          paid_amount: updatedPaidAmount,
+          status: newStatus,
+          paid_at: newStatus === 'paid' ? new Date() : undefined,
+          paid_by: input.processed_by,
+          payment_method: input.payment_method,
+          updated_at: new Date(),
+          updated_by: input.processed_by,
+        },
+      });
 
-    // 7. Update order payment status
-    await updateOrderPaymentStatus(input.order_id, newStatus, updatedPaidAmount);
+      // 7. Update order payment status
+      await updateOrderPaymentStatus(input.order_id, newStatus, updatedPaidAmount);
 
-    return {
-      success: true,
-      invoice_id: invoiceId,
-      transaction_id: transaction.id,
-      payment_status: newStatus === 'paid' ? 'completed' : 'completed',
-      amount_paid: input.amount,
-      remaining_balance: Number(invoice.total) - updatedPaidAmount,
-      metadata: {
+      return {
+        success: true,
+        invoice_id: invoiceId,
         transaction_id: transaction.id,
-        payment_method: input.payment_method,
-      },
-    };
-  } catch (error) {
-    console.error('Error processing payment:', error);
-    return {
-      success: false,
-      invoice_id: input.invoice_id || '',
-      payment_status: 'failed',
-      amount_paid: 0,
-      remaining_balance: input.amount,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      errorCode: 'PROCESSING_ERROR',
-    };
-  }
+        payment_status: newStatus === 'paid' ? 'completed' : 'completed',
+        amount_paid: input.amount,
+        remaining_balance: Number(invoice.total) - updatedPaidAmount,
+        metadata: {
+          transaction_id: transaction.id,
+          payment_method: input.payment_method,
+        },
+      };
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      return {
+        success: false,
+        invoice_id: input.invoice_id || '',
+        payment_status: 'failed',
+        amount_paid: 0,
+        remaining_balance: input.amount,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        errorCode: 'PROCESSING_ERROR',
+      };
+    }
+  });
 }
 
 /**
@@ -293,42 +311,51 @@ async function processPaymentByMethod(
 export async function recordPaymentTransaction(
   input: CreatePaymentTransactionInput
 ): Promise<PaymentTransaction> {
-  const transaction = await prisma.org_payments_dtl_tr.create({
-    data: {
-      invoice_id: input.invoice_id,
-      paid_amount: input.paid_amount,
-      payment_method: input.payment_method,
-      paid_at: new Date(),
-      paid_by: input.paid_by,
-      status: 'completed',
-      gateway: input.gateway ?? undefined,
-      transaction_id: input.transaction_id ?? undefined,
-      metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-      rec_notes: input.rec_notes,
-      created_at: new Date(),
-      created_by: input.paid_by,
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return {
-    id: transaction.id,
-    invoice_id: transaction.invoice_id,
-    tenant_org_id: transaction.tenant_org_id,
-    paid_amount: Number(transaction.paid_amount),
-    status: transaction.status as PaymentStatus,
-    payment_method: transaction.payment_method as PaymentMethodCode | undefined,
-    paid_at: transaction.paid_at?.toISOString(),
-    paid_by: transaction.paid_by ?? undefined,
-    gateway: transaction.gateway ?? undefined,
-    transaction_id: transaction.transaction_id ?? undefined,
-    metadata: transaction.metadata
-      ? JSON.parse(transaction.metadata as string)
-      : undefined,
-    rec_notes: transaction.rec_notes ?? undefined,
-    created_at: transaction.created_at.toISOString(),
-    created_by: transaction.created_by ?? undefined,
-  };
-}
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+      const transaction = await prisma.org_payments_dtl_tr.create({
+        data: {
+          invoice_id: input.invoice_id,
+          paid_amount: input.paid_amount,
+          payment_method: input.payment_method,
+          paid_at: new Date(),
+          paid_by: input.paid_by,
+          status: 'completed',
+          gateway: input.gateway ?? undefined,
+          transaction_id: input.transaction_id ?? undefined,
+          metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+          rec_notes: input.rec_notes,
+          created_at: new Date(),
+          created_by: input.paid_by,
+        },
+      });
+
+      return {
+        id: transaction.id,
+        invoice_id: transaction.invoice_id,
+        tenant_org_id: transaction.tenant_org_id,
+        paid_amount: Number(transaction.paid_amount),
+        status: transaction.status as PaymentStatus,
+        payment_method: transaction.payment_method as PaymentMethodCode | undefined,
+        paid_at: transaction.paid_at?.toISOString(),
+        paid_by: transaction.paid_by ?? undefined,
+        gateway: transaction.gateway ?? undefined,
+        transaction_id: transaction.transaction_id ?? undefined,
+        metadata: transaction.metadata
+          ? JSON.parse(transaction.metadata as string)
+          : undefined,
+        rec_notes: transaction.rec_notes ?? undefined,
+        created_at: transaction.created_at.toISOString(),
+        created_by: transaction.created_by ?? undefined,
+      };
+    });
+  }
 
 /**
  * Get payment history for an invoice
@@ -336,35 +363,44 @@ export async function recordPaymentTransaction(
 export async function getPaymentHistory(
   invoiceId: string
 ): Promise<PaymentTransaction[]> {
-  const transactions = await prisma.org_payments_dtl_tr.findMany({
-    where: {
-      invoice_id: invoiceId,
-    },
-    orderBy: {
-      created_at: 'desc',
-    },
-  });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
 
-  return transactions.map((transaction) => ({
-    id: transaction.id,
-    invoice_id: transaction.invoice_id,
-    tenant_org_id: transaction.tenant_org_id,
-    paid_amount: Number(transaction.paid_amount),
-    status: transaction.status as PaymentStatus,
-    payment_method: transaction.payment_method as PaymentMethodCode | undefined,
-    paid_at: transaction.paid_at?.toISOString(),
-    paid_by: transaction.paid_by ?? undefined,
-    gateway: transaction.gateway ?? undefined,
-    transaction_id: transaction.transaction_id ?? undefined,
-    metadata: transaction.metadata
-      ? JSON.parse(transaction.metadata as string)
-      : undefined,
-    rec_notes: transaction.rec_notes ?? undefined,
-    created_at: transaction.created_at.toISOString(),
-    created_by: transaction.created_by ?? undefined,
-    updated_at: transaction.updated_at?.toISOString(),
-    updated_by: transaction.updated_by ?? undefined,
-  }));
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const transactions = await prisma.org_payments_dtl_tr.findMany({
+      where: {
+        invoice_id: invoiceId,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      invoice_id: transaction.invoice_id,
+      tenant_org_id: transaction.tenant_org_id,
+      paid_amount: Number(transaction.paid_amount),
+      status: transaction.status as PaymentStatus,
+      payment_method: transaction.payment_method as PaymentMethodCode | undefined,
+      paid_at: transaction.paid_at?.toISOString(),
+      paid_by: transaction.paid_by ?? undefined,
+      gateway: transaction.gateway ?? undefined,
+      transaction_id: transaction.transaction_id ?? undefined,
+      metadata: transaction.metadata
+        ? JSON.parse(transaction.metadata as string)
+        : undefined,
+      rec_notes: transaction.rec_notes ?? undefined,
+      created_at: transaction.created_at.toISOString(),
+      created_by: transaction.created_by ?? undefined,
+      updated_at: transaction.updated_at?.toISOString(),
+      updated_by: transaction.updated_by ?? undefined,
+    }));
+  });
 }
 
 // ============================================================================
@@ -377,53 +413,71 @@ export async function getPaymentHistory(
 export async function validatePaymentData(
   input: ProcessPaymentInput
 ): Promise<PaymentValidation> {
-  const errors: PaymentValidationError[] = [];
-
-  // Validate amount
-  if (input.amount <= 0) {
-    errors.push({
-      field: 'amount',
-      message: 'Payment amount must be greater than zero',
-      code: 'INVALID_AMOUNT',
-    });
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return {
+      isValid: false,
+      errors: [
+        {
+          field: 'tenant',
+          message: 'Unauthorized: Tenant ID required',
+          code: 'UNAUTHORIZED',
+        },
+      ],
+    };
   }
 
-  // Validate payment method
-  const methodValidation = await validatePaymentMethod(input.payment_method);
-  if (!methodValidation.isValid) {
-    errors.push({
-      field: 'payment_method',
-      message: methodValidation.error || 'Invalid payment method',
-      code: 'INVALID_METHOD',
-    });
-  }
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const errors: PaymentValidationError[] = [];
 
-  // Validate check number if payment method is CHECK
-  if (input.payment_method === 'CHECK' && !input.check_number) {
-    errors.push({
-      field: 'check_number',
-      message: 'Check number is required for check payments',
-      code: 'CHECK_NUMBER_REQUIRED',
-    });
-  }
+    // Validate amount
+    if (input.amount <= 0) {
+      errors.push({
+        field: 'amount',
+        message: 'Payment amount must be greater than zero',
+        code: 'INVALID_AMOUNT',
+      });
+    }
 
-  // Validate order exists
-  const order = await prisma.org_orders_mst.findUnique({
-    where: { id: input.order_id },
+    // Validate payment method
+    const methodValidation = await validatePaymentMethod(input.payment_method);
+    if (!methodValidation.isValid) {
+      errors.push({
+        field: 'payment_method',
+        message: methodValidation.error || 'Invalid payment method',
+        code: 'INVALID_METHOD',
+      });
+    }
+
+    // Validate check number if payment method is CHECK
+    if (input.payment_method === 'CHECK' && !input.check_number) {
+      errors.push({
+        field: 'check_number',
+        message: 'Check number is required for check payments',
+        code: 'CHECK_NUMBER_REQUIRED',
+      });
+    }
+
+    // Validate order exists - middleware adds tenant_org_id automatically
+    const order = await prisma.org_orders_mst.findUnique({
+      where: { id: input.order_id },
+    });
+
+    if (!order) {
+      errors.push({
+        field: 'order_id',
+        message: 'Order not found',
+        code: 'ORDER_NOT_FOUND',
+      });
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
   });
-
-  if (!order) {
-    errors.push({
-      field: 'order_id',
-      message: 'Order not found',
-      code: 'ORDER_NOT_FOUND',
-    });
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
 }
 
 // ============================================================================
@@ -432,12 +486,14 @@ export async function validatePaymentData(
 
 /**
  * Update order payment status
+ * Note: This function is called within tenant context, so middleware applies automatically
  */
 async function updateOrderPaymentStatus(
   orderId: string,
   status: string,
   paidAmount: number
 ): Promise<void> {
+  // Middleware adds tenant_org_id automatically since we're within tenant context
   await prisma.org_orders_mst.update({
     where: { id: orderId },
     data: {
@@ -458,27 +514,36 @@ export async function getPaymentStatus(orderId: string): Promise<{
   paid: number;
   remaining: number;
 }> {
-  const order = await prisma.org_orders_mst.findUnique({
-    where: { id: orderId },
-    include: {
-      invoices: true,
-    },
-  });
-
-  if (!order) {
-    throw new Error('Order not found');
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const total = Number(order.total_amount || 0);
-  const paid = Number(order.paid_amount || 0);
-  const remaining = total - paid;
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    const order = await prisma.org_orders_mst.findUnique({
+      where: { id: orderId },
+      include: {
+        invoices: true,
+      },
+    });
 
-  return {
-    status: order.payment_status || 'pending',
-    total,
-    paid,
-    remaining,
-  };
+    if (!order) {
+      throw new Error('Order not found');
+    }
+
+    const total = Number(order.total_amount || 0);
+    const paid = Number(order.paid_amount || 0);
+    const remaining = total - paid;
+
+    return {
+      status: order.payment_status || 'pending',
+      total,
+      paid,
+      remaining,
+    };
+  });
 }
 
 // ============================================================================
@@ -492,84 +557,98 @@ export async function getPaymentStatus(orderId: string): Promise<{
 export async function refundPayment(
   input: RefundPaymentInput
 ): Promise<RefundPaymentResult> {
-  try {
-    // Get original transaction
-    const transaction = await prisma.org_payments_dtl_tr.findUnique({
-      where: { id: input.transaction_id },
-    });
-
-    if (!transaction) {
-      return {
-        success: false,
-        refund_transaction_id: '',
-        refund_amount: 0,
-        error: 'Transaction not found',
-      };
-    }
-
-    // Validate refund amount
-    const originalAmount = Number(transaction.paid_amount);
-    if (input.amount > originalAmount) {
-      return {
-        success: false,
-        refund_transaction_id: '',
-        refund_amount: 0,
-        error: 'Refund amount exceeds original payment',
-      };
-    }
-
-    // Create refund transaction
-    const refundTransaction = await prisma.org_payments_dtl_tr.create({
-      data: {
-        invoice_id: transaction.invoice_id,
-        paid_amount: -input.amount, // Negative for refund
-        payment_method: transaction.payment_method,
-        paid_at: new Date(),
-        paid_by: input.processed_by,
-        status: 'refunded',
-        gateway: transaction.gateway,
-        metadata: JSON.stringify({
-          original_transaction_id: input.transaction_id,
-          refund_reason: input.reason,
-        }),
-        rec_notes: `Refund: ${input.reason}`,
-        created_at: new Date(),
-        created_by: input.processed_by,
-      },
-    });
-
-    // Update invoice
-    const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: transaction.invoice_id },
-    });
-
-    if (invoice) {
-      const newPaidAmount = Number(invoice.paid_amount) - input.amount;
-      await prisma.org_invoice_mst.update({
-        where: { id: invoice.id },
-        data: {
-          paid_amount: newPaidAmount,
-          status: newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial',
-          updated_at: new Date(),
-          updated_by: input.processed_by,
-        },
-      });
-    }
-
-    return {
-      success: true,
-      refund_transaction_id: refundTransaction.id,
-      refund_amount: input.amount,
-    };
-  } catch (error) {
-    console.error('Error processing refund:', error);
+  // Get tenant ID from session
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
     return {
       success: false,
       refund_transaction_id: '',
       refund_amount: 0,
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: 'Unauthorized: Tenant ID required',
     };
   }
+
+  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  return withTenantContext(tenantId, async () => {
+    try {
+      // Get original transaction - middleware adds tenant_org_id automatically
+      const transaction = await prisma.org_payments_dtl_tr.findUnique({
+        where: { id: input.transaction_id },
+      });
+
+      if (!transaction) {
+        return {
+          success: false,
+          refund_transaction_id: '',
+          refund_amount: 0,
+          error: 'Transaction not found',
+        };
+      }
+
+      // Validate refund amount
+      const originalAmount = Number(transaction.paid_amount);
+      if (input.amount > originalAmount) {
+        return {
+          success: false,
+          refund_transaction_id: '',
+          refund_amount: 0,
+          error: 'Refund amount exceeds original payment',
+        };
+      }
+
+      // Create refund transaction - middleware adds tenant_org_id automatically
+      const refundTransaction = await prisma.org_payments_dtl_tr.create({
+        data: {
+          invoice_id: transaction.invoice_id,
+          paid_amount: -input.amount, // Negative for refund
+          payment_method: transaction.payment_method,
+          paid_at: new Date(),
+          paid_by: input.processed_by,
+          status: 'refunded',
+          gateway: transaction.gateway,
+          metadata: JSON.stringify({
+            original_transaction_id: input.transaction_id,
+            refund_reason: input.reason,
+          }),
+          rec_notes: `Refund: ${input.reason}`,
+          created_at: new Date(),
+          created_by: input.processed_by,
+        },
+      });
+
+      // Update invoice - middleware adds tenant_org_id automatically
+      const invoice = await prisma.org_invoice_mst.findUnique({
+        where: { id: transaction.invoice_id },
+      });
+
+      if (invoice) {
+        const newPaidAmount = Number(invoice.paid_amount) - input.amount;
+        await prisma.org_invoice_mst.update({
+          where: { id: invoice.id },
+          data: {
+            paid_amount: newPaidAmount,
+            status: newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial',
+            updated_at: new Date(),
+            updated_by: input.processed_by,
+          },
+        });
+      }
+
+      return {
+        success: true,
+        refund_transaction_id: refundTransaction.id,
+        refund_amount: input.amount,
+      };
+    } catch (error) {
+      console.error('Error processing refund:', error);
+      return {
+        success: false,
+        refund_transaction_id: '',
+        refund_amount: 0,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 }
 
 // ============================================================================

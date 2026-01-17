@@ -28,17 +28,33 @@ type OrdersSearchParams = {
 };
 
 interface PageProps {
-  searchParams?: OrdersSearchParams;
+  searchParams?: Promise<OrdersSearchParams>;
 }
 
 export default async function OrdersPage({ searchParams }: PageProps) {
   const t = await getTranslations('orders');
 
+  // In Next.js 15+, searchParams is a Promise that must be awaited
+  const resolvedSearchParams = await searchParams;
+
   // Ensure we always have an object (Next.js passes {} when no params)
-  const params: OrdersSearchParams = searchParams ?? {};
+  const params: OrdersSearchParams = resolvedSearchParams ?? {};
 
   // Get tenant ID from auth context (enforces multi-tenancy)
-  const { tenantId: tenantOrgId } = await getAuthContext();
+  let tenantOrgId: string;
+  try {
+    const authContext = await getAuthContext();
+    tenantOrgId = authContext.tenantId;
+  } catch (error) {
+    console.error('[OrdersPage] Auth error:', error);
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
+        </div>
+      </div>
+    );
+  }
 
   // Safely parse page / dates from query string
   const page =
