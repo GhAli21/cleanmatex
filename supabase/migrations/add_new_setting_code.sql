@@ -10,7 +10,7 @@ INSERT INTO sys_tenant_settings_cd (
   created_by, created_info, updated_at, updated_by, updated_info
 )
 VALUES
-  -- USE_REJECT_TO_SOLVE feature flag
+  -- USE_REJECT_TO_SOLVE settings
   ('USE_REJECT_TO_SOLVE',
    'Using Reject of items or Pieces of orders',
    'إستحدام رفض وارجاع الصنف او القطع',

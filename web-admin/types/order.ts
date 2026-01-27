@@ -208,55 +208,55 @@ export interface OrderItem {
 export interface OrderItemPiece {
   // Primary key
   id: string;
-  
+
   // Tenant and order references
   tenant_org_id: string;
   order_id: string;
   order_item_id: string;
-  
+
   // Piece identification
   piece_seq: number;
   piece_code: string; // Generated: order_id-order_item_id-piece_seq
-  
+
   // Product and service category
   service_category_code: string | null;
   product_id: string | null;
-  
+
   // Scanning and tracking
   scan_state: 'expected' | 'scanned' | 'missing' | 'wrong' | null;
   barcode: string | null;
-  
+
   // Pricing
   quantity: number | null;
   price_per_unit: number;
   total_price: number;
-  
+
   // Status and workflow
   piece_status: 'intake' | 'processing' | 'qa' | 'ready' | null;
-  price_stage: string | null;
+  piece_stage: string | null;
   is_rejected: boolean | null;
   issue_id: string | null;
-  
+
   // Location tracking
   rack_location: string | null;
-  
+
   // Step tracking
   last_step_at: Date | null;
   last_step_by: string | null;
   last_step: string | null;
-  
+
   // Notes
   notes: string | null;
-  
+
   // Item details
   color: string | null;
   brand: string | null;
   has_stain: boolean | null;
   has_damage: boolean | null;
-  
+
   // Metadata
   metadata: Record<string, any>;
-  
+
   // Audit fields
   created_at: Date | null;
   rec_order: number | null;
@@ -650,15 +650,26 @@ export function isPreparationStatus(value: any): value is PreparationStatus {
 // ==================================================================
 
 /**
- * Processing Step
- * The 5 steps in the laundry/dry-cleaning process
+ * Processing Step Code
+ * Dynamic step codes based on service category configuration
+ * Common codes: sorting, pretreatment, washing, drying, finishing, dry_cleaning, deep_cleaning, leather_cleaning, conditioning
  */
-export type ProcessingStep =
-  | 'sorting'
-  | 'pretreatment'
-  | 'washing'
-  | 'drying'
-  | 'finishing';
+export type ProcessingStep = string;
+
+/**
+ * Processing Step Configuration
+ * Step configuration with display information
+ */
+export interface ProcessingStepConfig {
+  step_code: string;
+  step_seq: number;
+  step_name: string;
+  step_name2: string | null;
+  step_color: string | null;
+  step_icon: string | null;
+  is_active: boolean;
+  display_order: number;
+}
 
 /**
  * Item Piece
@@ -674,6 +685,17 @@ export interface ItemPiece {
   notes: string;
   rackLocation: string; // Piece-level rack location
   isRejected: boolean;
+  // Piece details from database
+  color?: string | null;
+  brand?: string | null;
+  has_stain?: boolean | null;
+  has_damage?: boolean | null;
+  barcode?: string | null;
+  piece_code?: string | null;
+  scan_state?: 'expected' | 'scanned' | 'missing' | 'wrong' | null;
+  // Status fields
+  piece_status?: 'intake' | 'processing' | 'qa' | 'ready' | null;
+  is_ready?: boolean | null;
 }
 
 /**
@@ -693,9 +715,16 @@ export interface PieceUpdate {
   itemId: string;
   pieceNumber: number;
   isReady?: boolean;
+  is_ready?: boolean | null;
   currentStep?: ProcessingStep;
   notes?: string;
   rackLocation?: string;
+  isRejected?: boolean;
+  color?: string | null;
+  brand?: string | null;
+  barcode?: string | null;
+  has_stain?: boolean | null;
+  has_damage?: boolean | null;
 }
 
 /**

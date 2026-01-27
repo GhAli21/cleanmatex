@@ -2,6 +2,7 @@
 
 ## Naming
 
+- table names should not exceed 30 characters
 - Suffixes: `_mst` master, `_dtl` detail, `_tr` transactions, `_cd` codes, `_cf` config
 - Prefixes: `sys_` global system and HQ SAAS Platform, `org_` tenant
 

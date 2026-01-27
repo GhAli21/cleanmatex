@@ -41,8 +41,9 @@ CREATE TABLE IF NOT EXISTS org_order_item_pieces_dtl (
   total_price          DECIMAL(19,4)        NOT NULL,
   
   -- Status and workflow
+  is_ready             BOOLEAN              not null default false,
   piece_status         TEXT                 NULL DEFAULT 'processing',
-  price_stage          TEXT                 NULL,
+  piece_stage          TEXT                 NULL,
   is_rejected          BOOLEAN              NULL DEFAULT false,
   issue_id             UUID                 NULL,
   

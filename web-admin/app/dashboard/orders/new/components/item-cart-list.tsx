@@ -6,6 +6,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ItemCartItem } from './item-cart-item';
@@ -35,7 +36,7 @@ interface ItemCartListProps {
   trackByPiece?: boolean;
 }
 
-export function ItemCartList({ 
+function ItemCartListComponent({ 
   items, 
   onEditItem, 
   onDeleteItem, 
@@ -102,3 +103,5 @@ export function ItemCartList({
     </div>
   );
 }
+
+export const ItemCartList = memo(ItemCartListComponent);

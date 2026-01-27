@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useMessage } from '@ui/feedback';
 import { addOrderItems } from '@/app/actions/orders/add-order-items';
 import { completePreparation } from '@/app/actions/orders/complete-preparation';
+import { findOrCreateProduct } from '@/app/actions/catalog/find-or-create-product';
 import type { AddOrderItemInput } from '@/types/order';
 
 interface PreparationFormProps {
@@ -156,12 +157,32 @@ export function PreparationForm({ order }: PreparationFormProps) {
     setIsSubmitting(true);
 
     try {
-      // Convert form data to AddOrderItemInput format
-      // TODO: The form uses product_name but API requires productId
-      // Need to either lookup product by name or create product first
-      // For now, using a temporary UUID - this needs proper implementation
-      const orderItems: AddOrderItemInput[] = items.map((item) => ({
-        productId: '20000002-2222-2222-2222-222222222228', //crypto.randomUUID(), // TODO: Replace with actual product lookup
+      // Look up or create products by name
+      const productLookups = await Promise.all(
+        items.map(async (item) => {
+          const result = await findOrCreateProduct({
+            productName: item.product_name,
+            productName2: item.product_name2 || undefined,
+            serviceCategoryCode: item.service_category_code,
+            defaultPrice: parseFloat(item.price_per_unit) || 0,
+          });
+
+          if (!result.success || !result.productId) {
+            throw new Error(
+              result.error || `Failed to find or create product: ${item.product_name}`
+            );
+          }
+
+          return {
+            item,
+            productId: result.productId,
+          };
+        })
+      );
+
+      // Convert form data to AddOrderItemInput format with resolved product IDs
+      const orderItems: AddOrderItemInput[] = productLookups.map(({ item, productId }) => ({
+        productId,
         quantity: item.quantity,
         serviceCategoryCode: item.service_category_code,
         color: item.color || undefined,

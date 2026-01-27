@@ -27,6 +27,7 @@ const PUBLIC_ROUTES = [
   '/verify-email',
   '/auth/callback',
   '/auth/confirm',
+  '/logout',
   '/terms',
   '/privacy',
 ]

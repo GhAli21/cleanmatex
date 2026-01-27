@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     // Check permission 
     const authCheck = await requirePermission('orders:create')(request);
-    if (authCheck instanceof NextResponse) { 
+    if (authCheck instanceof NextResponse) {
       return authCheck; // Permission denied 
     }
     const { tenantId, userId, userName } = authCheck;
@@ -39,19 +39,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    
+
     // Support both old and new request formats for useOldWfCodeOrNew
-    const useOldWfCodeOrNew = body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
-    
+    const useOldWfCodeOrNew = false; // body.useOldWfCodeOrNew ?? body.use_old_wf_code_or_new;
+
     const parsed = CreateOrderRequestSchema.safeParse(body);
-    
+
     if (!parsed.success) {
       const errorDetails = parsed.error.issues?.map(e => ({
         path: e.path.join('.'),
         message: e.message,
         code: e.code,
       })) || [];
-      
+
       logger.warn('Create order validation failed', {
         feature: 'orders',
         action: 'create',
@@ -59,11 +59,11 @@ export async function POST(request: NextRequest) {
         userId,
         errorDetails,
       });
-      
+
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Invalid request body', 
+        {
+          success: false,
+          error: 'Invalid request body',
           details: errorDetails
         },
         { status: 400 }
@@ -108,7 +108,7 @@ export const maxDuration = 10; // Vercel timeout limit
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  
+
   try {
     // Check permission
     const authCheck = await requirePermission('orders:read')(request);
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     const supabase = await createClient();
-    
+
     // Get filters
     const currentStatus = searchParams.get('current_status');
     const currentStage = searchParams.get('current_stage');
@@ -135,11 +135,11 @@ export async function GET(request: NextRequest) {
     const includeItems = searchParams.get('include_items') === 'true';
     const createdAfter = searchParams.get('created_after');
     const updatedAfter = searchParams.get('updated_after');
-    
+
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
     const is_show_null_org_customers = searchParams.get('is_show_null_org_customers') !== 'false';
-    
+
     const baseSelect = `
         id,
         order_no,
@@ -178,9 +178,8 @@ export async function GET(request: NextRequest) {
             email
           )
         )
-        ${
-          includeItems
-            ? `,
+        ${includeItems
+        ? `,
         org_order_items_dtl(
           id,
           product_name,
@@ -189,21 +188,31 @@ export async function GET(request: NextRequest) {
           quantity_ready,
           service_category_code,
           item_last_step,
-          item_status
+          item_status,
+          color,
+          brand,
+          has_stain,
+          has_damage,
+          org_product_data_mst(
+            id,
+            product_name,
+            product_name2,
+            product_code
+          )
         )`
-            : ''
-        }
+        : ''
+      }
       `;
 
     let query = supabase
-      .from('org_orders_mst')  
+      .from('org_orders_mst')
       .select(baseSelect, { count: 'exact' })
       .eq('tenant_org_id', tenantId);
 
     // If we need to exclude null customers, use inner join
     if (!is_show_null_org_customers) {
       query = supabase
-        .from('org_orders_mst')  
+        .from('org_orders_mst')
         .select(
           baseSelect.replace('org_customers_mst(', 'org_customers_mst!inner('),
           { count: 'exact' }
@@ -240,7 +249,7 @@ export async function GET(request: NextRequest) {
 
     // Sorting
     query = query.order('created_at', { ascending: false });
-    
+
     // Add timeout wrapper to prevent hanging requests
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Request timeout')), 8000);
@@ -252,7 +261,7 @@ export async function GET(request: NextRequest) {
       queryPromise,
       timeoutPromise
     ]);
-    
+
     const { data: orders, error, count } = result;
 
     if (error) {
@@ -275,7 +284,7 @@ export async function GET(request: NextRequest) {
       durationMs: duration,
       count: orders?.length || 0,
     });
-    
+
     return NextResponse.json({
       success: true,
       data: {
@@ -291,7 +300,7 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     const duration = Date.now() - startTime;
     const message = e instanceof Error ? e.message : 'Unknown error';
-    
+
     // Handle timeout specifically
     if (message === 'Request timeout' || message.includes('timeout')) {
       logger.warn('List orders timeout', {
@@ -304,7 +313,7 @@ export async function GET(request: NextRequest) {
         { status: 504 }
       );
     }
-    
+
     const status = message.includes('Unauthorized') ? 401 : 500;
     logger.error('List orders error', e as Error, {
       feature: 'orders',

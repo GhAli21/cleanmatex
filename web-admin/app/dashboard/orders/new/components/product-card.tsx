@@ -109,7 +109,7 @@ export function ProductCard({
               e.stopPropagation();
               onDecrement();
             }}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md"
+            className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             aria-label={t('decreaseQuantity')}
           >
             <Minus className="w-5 h-5" />
@@ -126,7 +126,7 @@ export function ProductCard({
               e.stopPropagation();
               onIncrement();
             }}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md"
+            className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label={t('increaseQuantity')}
           >
             <Plus className="w-5 h-5" />
@@ -138,7 +138,7 @@ export function ProductCard({
             e.stopPropagation();
             onAdd();
           }}
-          className={`w-full h-12 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`w-full h-12 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
         >
           <Plus className="w-5 h-5" />
           {t('add')}

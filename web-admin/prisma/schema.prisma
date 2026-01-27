@@ -4539,7 +4539,7 @@ model org_order_item_pieces_dtl {
   price_per_unit          Decimal                  @db.Decimal(19, 4)
   total_price             Decimal                  @db.Decimal(19, 4)
   piece_status            String?                  @default("processing")
-  price_stage             String?
+  piece_stage              String?
   is_rejected             Boolean?                 @default(false)
   issue_id                String?                  @db.Uuid
   rack_location           String?

@@ -8,14 +8,20 @@
 import { useTranslations } from 'next-intl';
 import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 interface ProcessingHeaderProps {
-  onRefresh: () => void;
+  onRefresh: () => void | Promise<void>;
+  isRefreshing?: boolean;
 }
 
-export function ProcessingHeader({ onRefresh }: ProcessingHeaderProps) {
+export function ProcessingHeader({ onRefresh, isRefreshing = false }: ProcessingHeaderProps) {
   const t = useTranslations('processing');
   const tOrders = useTranslations('orders');
+
+  const handleRefresh = async () => {
+    await onRefresh();
+  };
 
   return (
     <div className="flex items-center justify-between">
@@ -35,12 +41,23 @@ export function ProcessingHeader({ onRefresh }: ProcessingHeaderProps) {
         </Link>
 
         <button
-          onClick={onRefresh}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          className={cn(
+            "p-2 rounded-lg transition-colors",
+            isRefreshing 
+              ? "opacity-50 cursor-not-allowed" 
+              : "hover:bg-gray-100"
+          )}
           title={t('refresh')}
           aria-label={t('refresh')}
         >
-          <RefreshCw className="h-5 w-5 text-gray-600" />
+          <RefreshCw 
+            className={cn(
+              "h-5 w-5 text-gray-600 transition-transform",
+              isRefreshing && "animate-spin"
+            )} 
+          />
         </button>
       </div>
     </div>

@@ -134,10 +134,19 @@ export async function hasPermissionServer(
       }
       return data === true;
     } else {
+      logger.info('Jh65 hasPermissionServer(): has_permission', {
+        feature: 'permissions',
+        action: 'has_permission',
+        message: 'hasPermissionServer(permission: ' + permission + ')',
+      });
       const { data, error } = await client.rpc('has_permission', {
         p_permission: permission,
       });
-
+      logger.info('Jh66 hasPermissionServer(): has_permission', {
+        feature: 'permissions',
+        action: 'has_permission',
+        message: 'hasPermissionServer(permission: ' + permission + '): data: ' + data + ' error: ' + error,
+      });
       if (error) {
         logger.error('Error checking permission', new Error(error.message), {
           feature: 'permissions',
@@ -146,7 +155,7 @@ export async function hasPermissionServer(
         });
         return false;
       }
-      
+
       return data === true;
     }
   } catch (error) {

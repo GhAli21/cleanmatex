@@ -8,6 +8,10 @@ export interface ProcessingOrderItem {
   product_name2?: string;
   quantity: number;
   service_name?: string;
+  color?: string | null;
+  brand?: string | null;
+  has_stain?: boolean | null;
+  has_damage?: boolean | null;
 }
 
 export interface ProcessingOrder {

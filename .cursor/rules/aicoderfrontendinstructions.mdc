@@ -129,6 +129,12 @@ Do not invent other top-level paths like `@/components` or `@/core` unless they 
 ### 3.1 Reusable UI → `src/ui/`
 
 - Always use Global Message Utility (`cmxMessage`) for all and any messages, errors, alerts ... so on
+
+- Always for Common Translated Keys/Messages Use this:
+  ```ts
+  const tCommon = useTranslations('common');
+  ```
+  
 - Any component that is:
   - Reused across multiple features
   - Generic in nature (button, input, table, layout, etc.)

@@ -85,8 +85,9 @@ export function useScreenOrders<TOrder = any>(
   orders: (TOrder & { customer?: NormalizedCustomer })[];
   pagination: OrdersPagination;
   isLoading: boolean;
+  isFetching: boolean;
   error: string | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 } {
   const {
     data: contract,
@@ -132,7 +133,7 @@ export function useScreenOrders<TOrder = any>(
   const limit = options.limit ?? 20;
   const enabled = (options.enabled ?? true) && !contractLoading;
 
-  const { data, isLoading, error, refetch } = useQuery<OrdersListResponse<TOrder>>({
+  const { data, isLoading, error, refetch, isFetching } = useQuery<OrdersListResponse<TOrder>>({
     queryKey: ['orders', 'screen', screen, { statusFilter, page, limit, ...options.additionalFilters }],
     enabled: enabled && statusFilter.length > 0,
     queryFn: async () => {
@@ -182,10 +183,11 @@ export function useScreenOrders<TOrder = any>(
     statusFilter,
     orders,
     isLoading: contractLoading || isLoading,
+    isFetching,
     error: mergedError,
     pagination,
-    refetch: () => {
-      void refetch();
+    refetch: async () => {
+      await refetch();
     },
   };
 }

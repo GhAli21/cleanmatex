@@ -6,11 +6,11 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, memo, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ItemCartList } from './item-cart-list';
-import { UserPlus, Edit, Trash2, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { UserPlus, Edit, Trash2, Calendar, Calculator, AlertCircle, Clock } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
@@ -51,11 +51,12 @@ interface OrderSummaryPanelProps {
   onSubmit: () => void;
   onOpenReadyByModal?: () => void;
   onOpenPaymentModal?: () => void;
+  onCalculateReadyBy?: () => Promise<void>;
   loading: boolean;
   trackByPiece?: boolean;
 }
 
-export function OrderSummaryPanel({
+function OrderSummaryPanelComponent({
   customerName,
   onSelectCustomer,
   onEditCustomer,
@@ -78,16 +79,52 @@ export function OrderSummaryPanel({
   onSubmit,
   onOpenReadyByModal,
   onOpenPaymentModal,
+  onCalculateReadyBy,
   loading,
   trackByPiece = false,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
   const isRTL = useRTL();
-  const [notesExpanded, setNotesExpanded] = useState(false);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  // Validate ready_by date
+  const readyByValidation = useMemo(() => {
+    if (!readyByAt) {
+      return { isValid: false, isFuture: false, isTooFar: false, message: '' };
+    }
+
+    const readyByDate = new Date(readyByAt);
+    const now = new Date();
+    const daysDiff = Math.ceil((readyByDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+    const isFuture = readyByDate > now;
+    const isTooFar = daysDiff > 30;
+
+    return {
+      isValid: isFuture,
+      isFuture,
+      isTooFar,
+      message: !isFuture
+        ? tNewOrder('validation.readyByMustBeFuture') || 'Ready by date must be in the future'
+        : isTooFar
+          ? tNewOrder('validation.readyByTooFar') || 'Ready by date is more than 30 days away'
+          : '',
+    };
+  }, [readyByAt, tNewOrder]);
+
+  const handleCalculateReadyBy = useCallback(async () => {
+    if (!onCalculateReadyBy) return;
+    setIsCalculating(true);
+    try {
+      await onCalculateReadyBy();
+    } finally {
+      setIsCalculating(false);
+    }
+  }, [onCalculateReadyBy]);
 
   const formatDate = (dateString: string) => {
-    if (!dateString) return t('calculating');
+    if (!dateString) return t('notSet');
     const date = new Date(dateString);
     return date.toLocaleString(isRTL ? 'ar-OM' : 'en-US', {
       weekday: 'short',
@@ -96,162 +133,225 @@ export function OrderSummaryPanel({
     });
   };
 
-  const handleDeleteItem = (itemId: string) => {
+  const formatDateTime = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const dateStr = date.toLocaleDateString(isRTL ? 'ar-OM' : 'en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const timeStr = date.toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${dateStr} ${timeStr}`;
+  };
+
+  const formatDateInput = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
+  const formatTimeInput = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toTimeString().slice(0, 5);
+  };
+
+  const handleDeleteItem = useCallback((itemId: string) => {
     if (onDeleteItem) {
       onDeleteItem(itemId);
     }
-  };
+  }, [onDeleteItem]);
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header - Customer Section */}
-      <div className="p-6 border-b border-gray-200">
+    <div className="flex flex-col bg-white overflow-y-auto" style={{ height: '100%', maxHeight: '100vh' }}>
+      {/* Header - Customer Section - Compact */}
+      <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <label className="block text-sm font-semibold text-gray-900">{tNewOrder('customer.label')}</label>
+          <label className="block text-xs font-semibold text-gray-900">{tNewOrder('customer.label')}</label>
           <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {customerName && (
               <>
                 <button
                   onClick={onEditCustomer || onSelectCustomer}
-                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                  className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                   aria-label={t('editCustomer')}
                 >
-                  <Edit className="w-4 h-4" />
+                  <Edit className="w-3.5 h-3.5" />
                 </button>
-                {/*
-                <button
-                  onClick={() => {
-                    // TODO: Implement remove customer
-                  }}
-                  className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                  aria-label={t('removeCustomer')}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>*/}
               </>
             )}
             {!customerName && (
               <button
                 onClick={onSelectCustomer}
-                className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
                 aria-label={t('addCustomer')}
               >
-                <UserPlus className="w-4 h-4" />
+                <UserPlus className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
         <button
           onClick={onSelectCustomer}
-          className={`w-full px-3 py-2 border-2 border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'} hover:border-blue-500 hover:bg-blue-50 transition-all font-medium`}
+          className={`w-full px-2.5 py-1.5 text-sm border-2 border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'} hover:border-blue-500 hover:bg-blue-50 transition-all font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500`}
         >
           {customerName || tNewOrder('selectCustomer')}
         </button>
 
-        {/* Express Toggle */}
-        <div className="mt-4">
-          <label className={`flex items-center justify-between cursor-pointer p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="text-sm font-semibold text-gray-900">{t('expressService')}</span>
+        {/* Express Toggle - Compact */}
+        <div className="mt-2">
+          <label className={`flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="text-xs font-semibold text-gray-900">{t('expressService')}</span>
             <input
               type="checkbox"
               checked={express}
               onChange={(e) => onExpressToggle(e.target.checked)}
-              className="w-5 h-5 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+              className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
             />
           </label>
         </div>
       </div>
 
       {/* Item Cart List - Scrollable */}
-      <div className="flex-1 overflow-y-auto p-6 border-b border-gray-200">
-        <ItemCartList 
-          items={items} 
-          onEditItem={onEditItem} 
+      <div className="flex-1 p-4 border-b border-gray-200 min-h-0">
+        <ItemCartList
+          items={items}
+          onEditItem={onEditItem}
           onDeleteItem={handleDeleteItem}
           onPiecesChange={onPiecesChange}
           trackByPiece={trackByPiece}
         />
       </div>
 
-      {/* Notes Section - Collapsible */}
-      <div className="border-b border-gray-200">
-        <button
-          onClick={() => setNotesExpanded(!notesExpanded)}
-          className={`w-full px-6 py-3 flex items-center hover:bg-gray-50 transition-colors ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
-        >
-          <span className="text-sm font-semibold text-gray-900">{t('notes')}</span>
-          {notesExpanded ? (
-            <ChevronUp className={`w-4 h-4 text-gray-500 ${isRTL ? 'rotate-180' : ''}`} />
-          ) : (
-            <ChevronDown className={`w-4 h-4 text-gray-500 ${isRTL ? 'rotate-180' : ''}`} />
-          )}
-        </button>
-        {notesExpanded && (
-          <div className="px-6 pb-4">
-            <textarea
-              value={notes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              rows={3}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-              placeholder={t('addSpecialInstructions')}
-              dir={isRTL ? 'rtl' : 'ltr'}
-            />
-            <button className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
-              {t('saveNote')}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Footer Toggles */}
-      <div className="px-6 py-4 space-y-2 border-b border-gray-200 bg-gray-50">
-        {/* Quick Drop */}
-        <label className={`flex items-center cursor-pointer ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-          <span className="text-sm font-medium text-gray-700">{t('quickDrop')}</span>
-          <input
-            type="checkbox"
-            checked={isQuickDrop}
-            onChange={(e) => onQuickDropToggle(e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded border-gray-300"
-          />
-        </label>
-
-        {/* Retail */}
-        {onRetailToggle && (
+      {/* Footer Toggles - Compact */}
+      {/* NOTE: Quick Drop section is hidden for now. To re-enable, uncomment the Quick Drop label below and set SHOW_QUICK_DROP to true */}
+      {/* TODO: Add feature flag SHOW_QUICK_DROP when needed in the future */}
+      {false && (
+        <div className="px-4 py-2 space-y-1.5 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+          {/* Quick Drop - Hidden for now, can be re-enabled by changing the condition above */}
           <label className={`flex items-center cursor-pointer ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-            <span className="text-sm font-medium text-gray-700">{t('retail')}</span>
+            <span className="text-xs font-medium text-gray-700">{t('quickDrop')}</span>
             <input
               type="checkbox"
-              checked={retail}
-              onChange={(e) => onRetailToggle(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded border-gray-300"
+              checked={isQuickDrop}
+              onChange={(e) => onQuickDropToggle(e.target.checked)}
+              className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300"
             />
           </label>
-        )}
-      </div>
 
-      {/* Sticky Footer - Submit Bar */}
-      <div className="p-6 bg-white border-t-2 border-gray-200 space-y-3">
-        {/* Ready By Date - Clickable */}
-        <button
-          onClick={onOpenReadyByModal}
-          className={`w-full flex items-center p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
-        >
-          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Calendar className="w-4 h-4 text-blue-600" />
-            <div className={isRTL ? 'text-right' : 'text-left'}>
-              <p className="text-xs text-gray-600">{tNewOrder('readyBy')}</p>
-              <p className="font-bold text-sm text-blue-700">{formatDate(readyByAt)}</p>
-            </div>
+          {/* Retail */}
+          {onRetailToggle && (
+            <label className={`flex items-center cursor-pointer ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+              <span className="text-xs font-medium text-gray-700">{t('retail')}</span>
+              <input
+                type="checkbox"
+                checked={retail}
+                onChange={(e) => onRetailToggle(e.target.checked)}
+                className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300"
+              />
+            </label>
+          )}
+        </div>
+      )}
+
+      {/* Footer - Submit Bar */}
+      <div className="p-4 bg-white border-t-2 border-gray-200 space-y-2 flex-shrink-0">
+        {/* Notes Section - Simple Text Input - Moved to footer area */}
+        <div className="space-y-1.5">
+          <label className={`block text-xs font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t('notes')}
+          </label>
+          <input
+            type="text"
+            value={notes}
+            onChange={(e) => onNotesChange(e.target.value)}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+            placeholder={t('addSpecialInstructions') || 'Add special instructions...'}
+            dir={isRTL ? 'rtl' : 'ltr'}
+          />
+        </div>
+
+        {/* Ready By Date - Date/Time Input with Calendar Button */}
+        <div className="space-y-2">
+          <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <label className={`block text-xs font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {tNewOrder('readyBy')}
+            </label>
+            {onCalculateReadyBy && (
+              <button
+                onClick={handleCalculateReadyBy}
+                disabled={isCalculating || items.length === 0}
+                className={`px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 text-white text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}
+                title={tNewOrder('calculateReadyBy') || 'Calculate Ready By'}
+                type="button"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>{tNewOrder('calculateReadyBy') || 'Calculate'}</span>
+              </button>
+            )}
           </div>
-          <ChevronDown className={`w-4 h-4 text-blue-600 group-hover:translate-y-0.5 transition-transform ${isRTL ? 'rotate-180' : ''}`} />
-        </button>
+          <div className={`flex items-stretch gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div
+              className={`flex-1 flex items-center gap-2 px-3 py-2.5 border rounded-lg bg-white ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} cursor-pointer hover:border-blue-400 transition-colors min-w-0`}
+              onClick={onOpenReadyByModal}
+            >
+              <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              {readyByAt ? (
+                <>
+                  <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {new Date(readyByAt).toLocaleDateString(isRTL ? 'ar-OM' : 'en-US', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                    })}
+                  </span>
+                  <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: true,
+                    })}
+                  </span>
+                </>
+              ) : (
+                <span className={`flex-1 text-sm text-gray-400 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>{t('notSet')}</span>
+              )}
+            </div>
+            <button
+              onClick={onOpenReadyByModal}
+              className={`px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
+              title={tNewOrder('schedule.selectReadyDateTime') || 'Select Date & Time'}
+              type="button"
+            >
+              <Calendar className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Validation Messages */}
+          {readyByAt && !readyByValidation.isFuture && (
+            <div className={`flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{readyByValidation.message}</span>
+            </div>
+          )}
+          {readyByAt && readyByValidation.isTooFar && (
+            <div className={`flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{readyByValidation.message}</span>
+            </div>
+          )}
+        </div>
 
         {/* Submit Button with Total - Clickable for Payment */}
         <button
           onClick={onOpenPaymentModal || onSubmit}
-          disabled={loading || !customerName || items.length === 0}
-          className={`w-full h-16 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+          disabled={loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture}
+          className={`w-full h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
         >
           <span className="text-lg">
             {loading ? t('processing') : tNewOrder('submitOrder')}
@@ -262,10 +362,35 @@ export function OrderSummaryPanel({
           </div>
         </button>
 
-        {items.length === 0 && (
-          <p className="text-xs text-center text-gray-500">{t('addItemsToContinue')}</p>
+        {/* Validation Messages for Submit Button */}
+        {!customerName && (
+          <p className="text-xs text-center text-red-600 font-medium">
+            {tNewOrder('errors.selectCustomer') || 'Please select a customer'}
+          </p>
+        )}
+        {customerName && items.length === 0 && (
+          <p className="text-xs text-center text-red-600 font-medium">
+            {tNewOrder('errors.addItems') || 'Please add at least one item'}
+          </p>
+        )}
+        {customerName && items.length > 0 && !readyByAt && (
+          <p className="text-xs text-center text-red-600 font-medium">
+            {tNewOrder('validation.readyByRequired') || 'Please set a ready-by date'}
+          </p>
+        )}
+        {customerName && items.length > 0 && readyByAt && !readyByValidation.isFuture && (
+          <p className="text-xs text-center text-red-600 font-medium">
+            {readyByValidation.message || tNewOrder('validation.readyByMustBeFuture') || 'Ready-by date must be in the future'}
+          </p>
+        )}
+        {customerName && items.length > 0 && readyByAt && readyByValidation.isFuture && (
+          <p className="text-xs text-center text-green-600 font-medium">
+            ✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}
+          </p>
         )}
       </div>
     </div>
   );
 }
+
+export const OrderSummaryPanel = memo(OrderSummaryPanelComponent);

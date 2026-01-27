@@ -28,16 +28,65 @@
       "Bash(git commit:*)",
       "Bash(git push)",
       "Bash(curl:*)",
-      "Bash(ls:*)"
-    ]
-	"deny": [
+      "Bash(ls:*)",
+      "Read(//f/jhapp/cleanmatex_Bkp/old_CLAUDE/**)"
+    ],
+    "deny": [
       "Read(node_modules)",
-	  "Read(node_modules/*)",
-	  "Read(./node_modules/**)",
+      "Read(node_modules/*)",
+      "Read(./node_modules/**)",
+      "Read(**/node_modules/**)",
       "Read(.next)",
-	  "Read(.next/*)",
-	  "Read(./.next/*)"
+      "Read(.next/*)",
+      "Read(./.next/**)",
+      "Read(**/.next/**)",
+      "Read(*.lock)",
+      "Read(package-lock.json)",
+      "Read(**/package-lock.json)",
+      "Read(pnpm-lock.yaml)",
+      "Read(**/pnpm-lock.yaml)",
+      "Read(.git)",
+      "Read(.git/**)",
+      "Read(**/.git/**)",
+      "Read(*.map)",
+      "Read(**/*.map)",
+      "Read(*.min.js)",
+      "Read(**/*.min.js)",
+      "Read(*.min.css)",
+      "Read(**/*.min.css)",
+      "Read(dist)",
+      "Read(dist/**)",
+      "Read(**/dist/**)",
+      "Read(build)",
+      "Read(build/**)",
+      "Read(**/build/**)",
+      "Read(.turbo)",
+      "Read(.turbo/**)",
+      "Read(coverage)",
+      "Read(coverage/**)",
+      "Read(.cursor)",
+      "Read(.cursor/**)",
+      "Read(**/.cursor/**)",
+      "Read(docs/archive/**)",
+      "Read(**/old/**)",
+      "Read(**/*_old.*)",
+      "Read(**/*.backup.*)",
+      "Read(**/*.bak)",
+      "Read(**/SESSION_*.md)",
+      "Read(**/PROGRESS_*.md)",
+      "Read(**/*_SUMMARY.md)",
+      "Read(**/*SUMMARY.md)",
+      "Read(**/*STATUS.md)",
+      "Read(**/*CONTINUATION*.md)",
+      "Read(.vscode/**)",
+      "Read(.idea/**)",
+      "Read(**/.vscode/**)",
+      "Read(**/.idea/**)"
     ]
   },
-  "outputStyle": "default"
+  "statusLine": {
+    "type": "command",
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); style=$(echo \"$input\" | jq -r '.output_style.name'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); if [ -n \"$remaining\" ]; then echo \"$model | Context: $remaining% | Style: $style\"; else echo \"$model | Style: $style\"; fi"
+  },
+  "outputStyle": "concise"
 }

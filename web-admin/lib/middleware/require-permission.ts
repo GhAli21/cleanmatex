@@ -49,14 +49,14 @@ export async function getAuthContext(): Promise<AuthContext> {
 
   // Get tenant from JWT metadata (guaranteed by JWT validator)
   const tenantId = user.user_metadata?.tenant_org_id
-  
+
   if (!tenantId) {
     // Fallback to RPC if JWT doesn't have tenant (shouldn't happen with JWT validator)
     const { data: tenants, error } = await supabase.rpc('get_user_tenants')
     if (error || !tenants || tenants.length === 0) {
       throw new Error('No tenant access found')
     }
-    
+
     return {
       user,
       tenantId: tenants[0].tenant_id as string,
@@ -91,26 +91,43 @@ export function requirePermission(
     try {
       // First validate JWT has tenant context
       const jwtValidation = await validateJWTWithTenant(request)
+      logger.info('JWT validation', {
+        feature: 'auth',
+        action: 'require_permission',
+        message: 'requirePermission(permission: ' + permission + '): TenantId: ' + (jwtValidation as any).tenantId + ' UserId: ' + (jwtValidation as any).userId + ' UserName: ' + (jwtValidation as any).userName,
+        tenantId: (jwtValidation as any).tenantId,
+        userId: (jwtValidation as any).userId,
+        userName: (jwtValidation as any).userName,
+      })
       if (jwtValidation instanceof NextResponse) {
+        logger.warn('JWT validation failed', {
+          feature: 'auth',
+          action: 'require_permission',
+          message: 'requirePermission(permission: ' + permission + '): TenantId: ' + (jwtValidation as any).tenantId + ' UserId: ' + (jwtValidation as any).userId + ' UserName: ' + (jwtValidation as any).userName,
+          tenantId: jwtValidation.headers.get('X-Tenant-ID'),
+          userId: jwtValidation.headers.get('X-User-ID'),
+          userName: (jwtValidation as any).user.user_metadata?.full_name,
+        })
         return jwtValidation // JWT validation failed
       }
 
       // Get auth context (now guaranteed to have tenant)
       const authContext = await getAuthContext()
-      
+
       // Check permission
-      let hasAccess = await hasPermissionServer(permission, options) 
-      
+      let hasAccess = await hasPermissionServer(permission, options)
+
       if (!hasAccess) {
-        logger.warn('Permission denied', {
+        logger.warn('Jh2 Permission denied', {
           feature: 'auth',
           action: 'require_permission',
+          message: 'requirePermission(permission: ' + permission + '): TenantId: ' + authContext.tenantId + ' UserId: ' + authContext.userId + ' UserName: ' + authContext.userName,
           tenantId: authContext.tenantId,
           userId: authContext.userId,
           permission,
         })
         return NextResponse.json(
-          { error: `Permission denied: ${permission}` },
+          { error: `Jh133 Permission denied: ${permission}` },
           { status: 403 }
         )
       }
@@ -137,7 +154,7 @@ export function requireAnyPermission(permissions: string[]) {
   return async (request: NextRequest): Promise<AuthContext | NextResponse> => {
     try {
       const authContext = await getAuthContext()
-      
+
       // Check if user has any of the required permissions
       const checks = await Promise.all(
         permissions.map(perm => hasPermissionServer(perm))
@@ -168,7 +185,7 @@ export function requireAllPermissions(permissions: string[]) {
   return async (request: NextRequest): Promise<AuthContext | NextResponse> => {
     try {
       const authContext = await getAuthContext()
-      
+
       // Check if user has all required permissions
       const checks = await Promise.all(
         permissions.map(perm => hasPermissionServer(perm))
@@ -208,7 +225,7 @@ export function withPermission<T extends any[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<Response> => {
     const authCheck = await requirePermission(permission, options)(request)
-    
+
     if (authCheck instanceof NextResponse) {
       return authCheck // Permission denied or unauthorized
     }
@@ -230,7 +247,7 @@ export function withAnyPermission<T extends any[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<Response> => {
     const authCheck = await requireAnyPermission(permissions)(request)
-    
+
     if (authCheck instanceof NextResponse) {
       return authCheck // Permission denied or unauthorized
     }
@@ -251,7 +268,7 @@ export function withAllPermissions<T extends any[]>(
 ) {
   return async (request: NextRequest, ...args: T): Promise<Response> => {
     const authCheck = await requireAllPermissions(permissions)(request)
-    
+
     if (authCheck instanceof NextResponse) {
       return authCheck // Permission denied or unauthorized
     }

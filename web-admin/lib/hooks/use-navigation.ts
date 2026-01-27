@@ -74,8 +74,8 @@ export function useNavigation() {
         const controller = new AbortController()
         const timeoutId = setTimeout(() => {
           controller.abort()
-        }, 10000) // 10 second timeout
-        
+        }, 60000) // 60 second timeout
+
         let response: Response
         try {
           response = await fetch('/api/navigation', {
@@ -89,7 +89,7 @@ export function useNavigation() {
           }
           throw fetchError
         }
-        
+
         // Check if response is OK
         if (!response.ok) {
           // Handle authentication errors gracefully
@@ -193,7 +193,7 @@ function transformNavigationIcons(sections: any[]): NavigationSection[] {
 
     // Handle icon conversion - could be string, object (from JSON), or already a component
     let icon: any
-    
+
     // Check if icon is already a valid React component (from hardcoded NAVIGATION_SECTIONS)
     if (section.icon && typeof section.icon === 'function') {
       icon = section.icon
@@ -236,9 +236,9 @@ function transformNavigationIcons(sections: any[]): NavigationSection[] {
       icon,
       children: section.children && Array.isArray(section.children)
         ? section.children.map((child: any) => ({
-            ...child,
-            // Children don't have icons in NavigationItem interface
-          }))
+          ...child,
+          // Children don't have icons in NavigationItem interface
+        }))
         : undefined,
     }
   })

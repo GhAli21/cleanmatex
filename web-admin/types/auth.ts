@@ -5,6 +5,7 @@
  */
 
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+import type { LogoutReason } from '@/lib/auth/logout-tracker'
 
 /**
  * User roles within a tenant organization
@@ -62,7 +63,7 @@ export interface AuthContextType extends AuthState {
   // Authentication methods
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
-  signOut: () => Promise<void>
+  signOut: (reason?: LogoutReason) => Promise<void>
   resetPassword: (email: string) => Promise<void>
   updatePassword: (newPassword: string) => Promise<void>
 

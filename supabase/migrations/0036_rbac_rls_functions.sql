@@ -201,83 +201,118 @@ CREATE OR REPLACE FUNCTION cmx_can(
   p_resource_id UUID DEFAULT NULL
 )
 RETURNS BOOLEAN
-LANGUAGE SQL
+LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
 AS $$
-  SELECT COALESCE(
-    -- Check cmx_effective_permissions first (most common case, fastest lookup)
-    (SELECT true
-     FROM cmx_effective_permissions ep
-     WHERE (
-         ep.user_id = CASE 
-           WHEN p_is_user_id_org_or_auth = 1 THEN (
-             SELECT oum.user_id 
-             FROM org_users_mst oum 
-             WHERE oum.id = p_org_user_id 
-               AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
-               AND oum.is_active = true
-             LIMIT 1
-           )
-           ELSE COALESCE(p_auth_user_id, auth.uid())
-         END
-       )
-       AND ep.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
-       AND ep.permission_code = p_perm
-       AND (
-         (ep.resource_type IS NULL AND p_resource_type IS NULL)
-         OR
-         (ep.resource_type = p_resource_type AND ep.resource_id = p_resource_id)
-         OR
-         (ep.resource_type IS NULL AND p_resource_type IS NOT NULL)
-       )
-       AND ep.allow = true
-     LIMIT 1),
-    -- Check sys_auth_role_default_permissions from org_users_mst.role (second check)
-    (SELECT true
-     FROM sys_auth_role_default_permissions rdp
-     INNER JOIN org_users_mst oum
-       ON oum.role = rdp.role_code
-       AND (
-         CASE 
-           WHEN p_is_user_id_org_or_auth = 1 THEN oum.id = p_org_user_id
-           ELSE oum.user_id = COALESCE(p_auth_user_id, auth.uid())
-         END
-       )
-       AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
-       AND oum.is_active = true
-     WHERE rdp.permission_code = p_perm
-       AND rdp.is_active = true
-       AND rdp.is_enabled = true
-       AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
-     LIMIT 1),
-    -- Check sys_auth_role_default_permissions from org_auth_user_roles (last check)
-    (SELECT true
-     FROM sys_auth_role_default_permissions rdp
-     INNER JOIN org_auth_user_roles uar 
-       ON uar.role_code = rdp.role_code
-       AND (
-         uar.user_id = CASE 
-           WHEN p_is_user_id_org_or_auth = 1 THEN (
-             SELECT oum.user_id 
-             FROM org_users_mst oum 
-             WHERE oum.id = p_org_user_id 
-               AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
-               AND oum.is_active = true
-             LIMIT 1
-           )
-           ELSE COALESCE(p_auth_user_id, auth.uid())
-         END
-       )
-       AND uar.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
-       AND uar.is_active = true
-     WHERE rdp.permission_code = p_perm
-       AND rdp.is_active = true
-       AND rdp.is_enabled = true
-       AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
-     LIMIT 1),
-    false  -- Default to false if none found
-  );
+DECLARE
+  v_user_id UUID;
+  v_tenant_id UUID;
+BEGIN
+  -- Resolve user_id
+  IF p_is_user_id_org_or_auth = 1 THEN
+    SELECT oum.user_id INTO v_user_id
+    FROM org_users_mst oum 
+    WHERE oum.id = p_org_user_id 
+      AND oum.tenant_org_id = COALESCE(p_tenant_org_id, current_tenant_id())
+      AND oum.is_active = true
+    LIMIT 1;
+  ELSE
+    v_user_id := COALESCE(p_auth_user_id, auth.uid());
+  END IF;
+  
+  v_tenant_id := COALESCE(p_tenant_org_id, current_tenant_id());
+  
+  -- Check for super_admin role (bypass all permission checks)
+  IF EXISTS (
+    SELECT 1
+    FROM org_users_mst oum
+    WHERE oum.user_id = v_user_id
+      AND oum.tenant_org_id = v_tenant_id
+      AND oum.role IN ('super_admin', 'tenant_admin')
+      AND oum.is_active = true
+  ) OR EXISTS (
+    SELECT 1
+    FROM org_auth_user_roles uar
+    WHERE uar.user_id = v_user_id
+      AND uar.tenant_org_id = v_tenant_id
+      AND uar.role_code IN ('super_admin', 'tenant_admin')
+      AND uar.is_active = true
+  ) THEN
+    RETURN true;
+  END IF;
+  
+  -- Check for wildcard permission (*:*) in effective_permissions
+  IF EXISTS (
+    SELECT 1
+    FROM cmx_effective_permissions ep
+    WHERE ep.user_id = v_user_id
+      AND ep.tenant_org_id = v_tenant_id
+      AND ep.permission_code = '*:*'
+      AND ep.allow = true
+  ) THEN
+    RETURN true;
+  END IF;
+  
+  -- Check cmx_effective_permissions for exact permission (most common case, fastest lookup)
+  IF EXISTS (
+    SELECT 1
+    FROM cmx_effective_permissions ep
+    WHERE ep.user_id = v_user_id
+      AND ep.tenant_org_id = v_tenant_id
+      AND ep.permission_code = p_perm
+      AND (
+        (ep.resource_type IS NULL AND p_resource_type IS NULL)
+        OR
+        (ep.resource_type = p_resource_type AND ep.resource_id = p_resource_id)
+        OR
+        (ep.resource_type IS NULL AND p_resource_type IS NOT NULL)
+      )
+      AND ep.allow = true
+  ) THEN
+    RETURN true;
+  END IF;
+  -- Check sys_auth_role_default_permissions from org_users_mst.role (second check)
+  IF EXISTS (
+    SELECT 1
+    FROM sys_auth_role_default_permissions rdp
+    INNER JOIN org_users_mst oum
+      ON oum.role = rdp.role_code
+      AND oum.tenant_org_id = v_tenant_id
+      AND oum.is_active = true
+      AND (
+        (p_is_user_id_org_or_auth = 1 AND oum.id = p_org_user_id)
+        OR
+        (p_is_user_id_org_or_auth != 1 AND oum.user_id = v_user_id)
+      )
+    WHERE rdp.permission_code = p_perm
+      AND rdp.is_active = true
+      AND rdp.is_enabled = true
+      AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
+  ) THEN
+    RETURN true;
+  END IF;
+  
+  -- Check sys_auth_role_default_permissions from org_auth_user_roles (last check)
+  IF EXISTS (
+    SELECT 1
+    FROM sys_auth_role_default_permissions rdp
+    INNER JOIN org_auth_user_roles uar 
+      ON uar.role_code = rdp.role_code
+      AND uar.user_id = v_user_id
+      AND uar.tenant_org_id = v_tenant_id
+      AND uar.is_active = true
+    WHERE rdp.permission_code = p_perm
+      AND rdp.is_active = true
+      AND rdp.is_enabled = true
+      AND (p_role_code IS NULL OR rdp.role_code = p_role_code)
+  ) THEN
+    RETURN true;
+  END IF;
+  
+  -- Default to false if none found
+  RETURN false;
+END;
 $$;
 
 COMMENT ON FUNCTION cmx_can IS 'Fast permission check using effective_permissions table (O(1) lookup for RLS)';

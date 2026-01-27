@@ -2,6 +2,8 @@
 
 ** Always add new messages keys into en.json and ar.json**
 
+** when adding to translation files such as en.json, ar.json first search if already exist and reuse**
+
 ## Backend
 Store EN/AR fields and return both.
 

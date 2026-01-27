@@ -193,12 +193,14 @@ export async function addOrderItems(
 
   if (trackByPiece && createdItems.length > 0) {
     // Create pieces for each item
+    const piecesErrors: Array<{ itemId: string; error: string }> = [];
+    
     for (let i = 0; i < createdItems.length; i++) {
       const createdItem = createdItems[i];
       const itemData = itemsWithPricing[i];
 
       if (createdItem && itemData.quantity > 0) {
-        await OrderPieceService.createPiecesForItem(
+        const piecesResult = await OrderPieceService.createPiecesForItem(
           tenantOrgId,
           orderId,
           (createdItem as any).id,
@@ -216,7 +218,31 @@ export async function addOrderItems(
             metadata: {},
           }
         );
+
+        // If pieces creation failed, collect the error
+        if (!piecesResult.success) {
+          piecesErrors.push({
+            itemId: (createdItem as any).id,
+            error: piecesResult.error || 'Failed to create pieces',
+          });
+        }
       }
+    }
+
+    // If any pieces creation failed, throw error to prevent partial state
+    if (piecesErrors.length > 0) {
+      // Delete the items that were just created since pieces failed
+      const itemIds = createdItems.map(item => (item as any).id);
+      await prisma.org_order_items_dtl.deleteMany({
+        where: {
+          id: { in: itemIds },
+          tenant_org_id: tenantOrgId,
+        } as any,
+      });
+
+      throw new Error(
+        `Failed to create pieces for order items: ${piecesErrors.map(e => e.error).join('; ')}`
+      );
     }
   }
 

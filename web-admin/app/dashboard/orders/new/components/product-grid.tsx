@@ -43,6 +43,7 @@ interface ProductGridProps {
   selectedConditions?: string[];
   onConditionToggle?: (condition: string) => void;
   onOpenCustomItemModal?: () => void;
+  onOpenPhotoCapture?: () => void;
 }
 
 export const ProductGrid = memo(function ProductGrid({
@@ -55,6 +56,7 @@ export const ProductGrid = memo(function ProductGrid({
   selectedConditions = [],
   onConditionToggle = () => {},
   onOpenCustomItemModal,
+  onOpenPhotoCapture,
 }: ProductGridProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const isRTL = useRTL();
@@ -107,7 +109,7 @@ export const ProductGrid = memo(function ProductGrid({
             {/* Custom Item Button */}
             <button
               onClick={onOpenCustomItemModal}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
+              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500"
             >
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                 <Plus className="w-8 h-8" />
@@ -118,11 +120,9 @@ export const ProductGrid = memo(function ProductGrid({
 
             {/* Photo Button */}
             <button
-              onClick={() => {
-                // TODO: Implement photo capture
-                console.log('Photo capture not yet implemented');
-              }}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600"
+              onClick={onOpenPhotoCapture}
+              disabled={!onOpenPhotoCapture}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:border-green-500 disabled:focus:ring-0"
             >
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                 <Camera className="w-8 h-8" />

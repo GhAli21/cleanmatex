@@ -9,6 +9,8 @@ The **final, authoritative folder structure** is:
 - `src/ui/` – Global Cmx Design System (reusable UI)
 - `src/features/` – Feature modules (domain UI + logic)
 - `lib/` – Shared infrastructure (root-level: API, hooks, utils, config)
+- use for common message keys for common messages keys, const tCommon = useTranslations('common');
+- when new key message search for exist messages keys and reuse or add new messages keys into en.json and ar.json
 
 These rules are **mandatory** for all generated code.
 

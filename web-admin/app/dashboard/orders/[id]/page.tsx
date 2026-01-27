@@ -37,9 +37,27 @@ async function OrderDetailContent({
 
   const order = result.data;
 
+  // Serialize Decimal fields to numbers for Client Component
+  // Next.js cannot serialize Decimal objects from Prisma
+  const serializedOrder = {
+    ...order,
+    subtotal: order.subtotal ? Number(order.subtotal) : 0,
+    discount: order.discount ? Number(order.discount) : 0,
+    tax: order.tax ? Number(order.tax) : 0,
+    total: order.total ? Number(order.total) : 0,
+    paid_amount: order.paid_amount ? Number(order.paid_amount) : null,
+    // Serialize items if they exist
+    items: order.items?.map((item: any) => ({
+      ...item,
+      price_per_unit: item.price_per_unit ? Number(item.price_per_unit) : 0,
+      total_price: item.total_price ? Number(item.total_price) : 0,
+      quantity: item.quantity ? Number(item.quantity) : 0,
+    })) || [],
+  };
+
   return (
     <OrderDetailClient 
-      order={order} 
+      order={serializedOrder} 
       returnUrl={searchParams?.returnUrl}           // ✅ Pass returnUrl
       returnLabel={searchParams?.returnLabel}       // ✅ Pass returnLabel
       translations={{

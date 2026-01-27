@@ -7,6 +7,11 @@
 import { createClient } from '@/lib/supabase/server';
 import type { OrderItemPiece } from '@/types/order';
 import { log } from '@/lib/utils/logger';
+import {
+  mapOrderPieceFromDb,
+  mapOrderPiecesFromDb,
+  type OrderPieceDbModel,
+} from '@/lib/mappers/order-piece.mapper';
 
 export interface CreatePieceParams {
   tenantId: string;
@@ -32,7 +37,8 @@ export interface UpdatePieceParams {
     scan_state?: 'expected' | 'scanned' | 'missing' | 'wrong';
     barcode?: string;
     piece_status?: 'intake' | 'processing' | 'qa' | 'ready';
-    price_stage?: string;
+    is_ready?: boolean;
+    piece_stage?: string;
     is_rejected?: boolean;
     issue_id?: string;
     rack_location?: string;
@@ -45,6 +51,7 @@ export interface UpdatePieceParams {
     has_stain?: boolean;
     has_damage?: boolean;
     metadata?: Record<string, any>;
+    updated_at?: string;
     updated_by?: string;
     updated_info?: string;
   };
@@ -117,7 +124,7 @@ export class OrderPieceService {
       const piecesToInsert = Array.from({ length: quantity }, (_, index) => {
         const pieceSeq = index + 1;
         const pieceData = piecesData?.find(p => p.pieceSeq === pieceSeq);
-        
+
         return {
           tenant_org_id: tenantId,
           order_id: orderId,
@@ -131,7 +138,7 @@ export class OrderPieceService {
           price_per_unit: pricePerPiece,
           total_price: totalPricePerPiece,
           piece_status: 'processing' as const,
-          price_stage: null,
+          piece_stage: null,
           is_rejected: false,
           issue_id: null,
           rack_location: pieceData?.rackLocation || null,
@@ -170,7 +177,7 @@ export class OrderPieceService {
       // Sync quantity_ready on item (starts at 0)
       await this.syncItemQuantityReady(tenantId, orderItemId);
 
-      return { success: true, pieces: pieces as OrderItemPiece[] };
+      return { success: true, pieces: mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]) };
     } catch (error) {
       log.error('[OrderPieceService] Exception creating pieces', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',
@@ -214,7 +221,7 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, pieces: pieces as OrderItemPiece[] };
+      return { success: true, pieces: mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]) };
     } catch (error) {
       log.error('[OrderPieceService] Exception fetching pieces', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',
@@ -257,7 +264,7 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, pieces: pieces as OrderItemPiece[] };
+      return { success: true, pieces: mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]) };
     } catch (error) {
       log.error('[OrderPieceService] Exception fetching pieces', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',
@@ -299,7 +306,11 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, piece: piece as OrderItemPiece };
+      if (!piece) {
+        return { success: false, error: 'Piece not found' };
+      }
+
+      return { success: true, piece: mapOrderPieceFromDb(piece as OrderPieceDbModel) };
     } catch (error) {
       log.error('[OrderPieceService] Exception fetching piece', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',
@@ -332,15 +343,33 @@ export class OrderPieceService {
       if (updateData.last_step_at instanceof Date) {
         updateData.last_step_at = updateData.last_step_at.toISOString();
       }
+      log.info('[OrderPieceService] [001] updateData', {
+        feature: 'order_pieces',
+        action: 'update_piece',
+        message: 'update Piece Data= tenantId=' + params.tenantId + ', pieceId=' + params.pieceId,
+        tenantId: params.tenantId,
+        pieceId: params.pieceId,
+        updateData: updateData,
+      });
 
       const { data: piece, error } = await supabase
         .from('org_order_item_pieces_dtl')
         .update(updateData)
         .eq('id', params.pieceId)
         .eq('tenant_org_id', params.tenantId)
+        //.eq('order_id', params.updates.order_id)
+        //.eq('order_item_id', params.updates.order_item_id)
+        //.eq('piece_seq', params.updates.piece_seq)
         .select()
         .single();
-
+      log.info('[OrderPieceService] [002] Update Success piece', {
+        feature: 'order_pieces',
+        action: 'update_piece',
+        message: 'Update Success piece= tenantId=' + params.tenantId + ', pieceId=' + params.pieceId,
+        tenantId: params.tenantId,
+        pieceId: params.pieceId,
+        //piece: mapOrderPieceFromDb(piece as OrderPieceDbModel),
+      });
       if (error) {
         log.error('[OrderPieceService] Error updating piece', new Error(error.message), {
           feature: 'order_pieces',
@@ -353,11 +382,11 @@ export class OrderPieceService {
 
       // Sync quantity_ready on parent item if status changed
       if (params.updates.piece_status || params.updates.is_rejected) {
-        const pieceData = piece as OrderItemPiece;
+        const pieceData = mapOrderPieceFromDb(piece as OrderPieceDbModel);
         await this.syncItemQuantityReady(params.tenantId, pieceData.order_item_id);
       }
 
-      return { success: true, piece: piece as OrderItemPiece };
+      return { success: true, piece: mapOrderPieceFromDb(piece as OrderPieceDbModel) };
     } catch (error) {
       log.error('[OrderPieceService] Exception updating piece', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',

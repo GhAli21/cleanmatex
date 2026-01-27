@@ -12,16 +12,13 @@ import { useTranslations } from 'next-intl';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/Input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select-dropdown';
 import { Button } from '@/components/ui/Button';
-import { X } from 'lucide-react';
-import type { ItemPiece, ProcessingStep } from '@/types/order';
+import { X, Package, AlertTriangle } from 'lucide-react';
+import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
+import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
+import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
+import { Card } from '@/src/ui/primitives/card';
+import { cn } from '@/lib/utils';
 
 interface ProcessingPieceRowProps {
   piece: ItemPiece;
@@ -31,17 +28,10 @@ interface ProcessingPieceRowProps {
   splitOrderEnabled: boolean;
   rejectEnabled: boolean;
   rejectColor: string;
+  processingSteps?: ProcessingStepConfig[]; // Dynamic steps from service category
 }
 
-const PROCESSING_STEPS: ProcessingStep[] = [
-  'sorting',
-  'pretreatment',
-  'washing',
-  'drying',
-  'finishing',
-];
-
-export function ProcessingPieceRow({
+export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   piece,
   onChange,
   onSplitToggle,
@@ -49,8 +39,26 @@ export function ProcessingPieceRow({
   splitOrderEnabled,
   rejectEnabled,
   rejectColor,
+  processingSteps = [], // Default to empty array if not provided
 }: ProcessingPieceRowProps) {
   const t = useTranslations('processing');
+
+  // Get step codes from processingSteps config
+  const stepCodes = React.useMemo(() => {
+    return processingSteps
+      .filter(step => step.is_active)
+      .sort((a, b) => a.step_seq - b.step_seq)
+      .map(step => step.step_code);
+  }, [processingSteps]);
+
+  // Step labels map
+  const stepLabels = React.useMemo(() => {
+    const labels: Record<string, string> = {};
+    processingSteps.forEach(step => {
+      labels[step.step_code] = step.step_name;
+    });
+    return labels;
+  }, [processingSteps]);
 
   const handleStepChange = (value: string) => {
     onChange({ currentStep: value as ProcessingStep });
@@ -74,123 +82,306 @@ export function ProcessingPieceRow({
     onChange({ rackLocation: e.target.value });
   };
 
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ color: e.target.value });
+  };
+
+  const handleBrandChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ brand: e.target.value });
+  };
+
+  const handleBarcodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ barcode: e.target.value });
+  };
+
   const handleUnReject = () => {
     onChange({ isRejected: false });
   };
 
+  const handleIsReadyChange = (checked: boolean) => {
+    onChange({ is_ready: checked });
+  };
+
+  // Determine completed steps
+  const completedSteps = React.useMemo(() => {
+    const steps = new Set<ProcessingStep>();
+    if (!piece.currentStep || stepCodes.length === 0) return steps;
+
+    const currentIndex = stepCodes.indexOf(piece.currentStep);
+    if (currentIndex > 0) {
+      for (let i = 0; i < currentIndex; i++) {
+        steps.add(stepCodes[i]);
+      }
+    }
+    return steps;
+  }, [piece.currentStep, stepCodes]);
+
   return (
-    <div
-      className="p-3 rounded border"
+    <Card
+      className={cn(
+        'p-3 sm:p-4 transition-all hover:shadow-md',
+        piece.isRejected && 'border-l-4',
+        piece.isRejected && rejectEnabled && 'bg-red-50/50'
+      )}
       style={{
-        backgroundColor: piece.isRejected ? `${rejectColor}20` : 'transparent',
-        borderLeftWidth: piece.isRejected ? '4px' : '1px',
-        borderLeftColor: piece.isRejected ? rejectColor : undefined,
+        borderLeftColor: piece.isRejected && rejectEnabled ? rejectColor : undefined,
       }}
+      role="article"
+      aria-label={`Piece ${piece.pieceNumber} details`}
     >
       {/* Piece Header */}
-      <div className="flex items-center gap-2 mb-3">
-        <span className="font-medium text-sm text-gray-700">
-          {t('modal.piece')} {piece.pieceNumber}
-        </span>
-
-        {piece.isRejected && rejectEnabled && (
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2">
-            <span
-              className="px-2 py-0.5 rounded text-xs font-medium"
-              style={{
-                backgroundColor: rejectColor,
-                color: 'white',
-              }}
-            >
-              {t('modal.rejected')}
+            <Package className="h-5 w-5 text-gray-400" />
+            <span className="font-semibold text-base text-gray-900">
+              {t('modal.piece')} {piece.pieceNumber}
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleUnReject}
-              className="h-6 px-2 text-xs"
-            >
-              <X className="h-3 w-3 mr-1" />
-              {t('modal.unReject')}
-            </Button>
+            {piece.piece_code && (
+              <CmxStatusBadge
+                label={piece.piece_code}
+                variant="info"
+                size="sm"
+                className="font-mono"
+              />
+            )}
           </div>
-        )}
+
+          {/* Piece Details: Color, Brand, Barcode - Display only if set */}
+          {(piece.color || piece.brand || piece.barcode) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {piece.color && (
+                <CmxStatusBadge
+                  label={`${t('modal.color') || 'Color'}: ${piece.color}`}
+                  variant="outline"
+                  size="sm"
+                />
+              )}
+              {piece.brand && (
+                <CmxStatusBadge
+                  label={`${t('modal.brand') || 'Brand'}: ${piece.brand}`}
+                  variant="outline"
+                  size="sm"
+                />
+              )}
+              {piece.barcode && (
+                <CmxStatusBadge
+                  label={`${t('modal.barcode') || 'Barcode'}: ${piece.barcode}`}
+                  variant="outline"
+                  size="sm"
+                  className="font-mono"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Condition Flags: Stain, Damage */}
+          {(piece.has_stain || piece.has_damage) && (
+            <div className="flex items-center gap-2">
+              {piece.has_stain && (
+                <CmxStatusBadge
+                  label={t('modal.hasStain') || 'Stain'}
+                  variant="warning"
+                  size="sm"
+                  icon={AlertTriangle}
+                  showIcon
+                />
+              )}
+              {piece.has_damage && (
+                <CmxStatusBadge
+                  label={t('modal.hasDamage') || 'Damage'}
+                  variant="error"
+                  size="sm"
+                  icon={AlertTriangle}
+                  showIcon
+                />
+              )}
+            </div>
+          )}
+
+          {/* Scan State */}
+          {piece.scan_state && piece.scan_state !== 'expected' && (
+            <CmxStatusBadge
+              label={
+                piece.scan_state === 'scanned'
+                  ? t('modal.scanned') || 'Scanned'
+                  : piece.scan_state === 'missing'
+                    ? t('modal.missing') || 'Missing'
+                    : t('modal.wrong') || 'Wrong'
+              }
+              variant={
+                piece.scan_state === 'scanned'
+                  ? 'success'
+                  : piece.scan_state === 'missing'
+                    ? 'warning'
+                    : 'error'
+              }
+              size="sm"
+            />
+          )}
+
+          {piece.isRejected && rejectEnabled && (
+            <div className="flex items-center gap-2">
+              <CmxStatusBadge
+                label={t('modal.rejected')}
+                variant="error"
+                size="sm"
+                className="font-medium"
+                style={{
+                  backgroundColor: rejectColor,
+                  color: 'white',
+                  borderColor: rejectColor,
+                }}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleUnReject}
+                className="h-7 px-2 text-xs"
+                aria-label={t('modal.unReject')}
+              >
+                <X className="h-3 w-3 mr-1" />
+                {t('modal.unReject')}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Interactive Step Timeline */}
+      <div className="mb-4 pb-4 border-b">
+        <div className="mb-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            {t('modal.step')}
+          </label>
+          <p className="text-xs text-gray-500 mb-3">
+            {t('modal.clickStepToChange') || 'Click on a step to change the processing stage'}
+          </p>
+        </div>
+        <CmxProcessingStepTimeline
+          currentStep={piece.currentStep}
+          completedSteps={completedSteps}
+          processingSteps={processingSteps}
+          onStepClick={handleStepChange}
+          size="sm"
+          showLabels={true}
+          className="w-full"
+        />
+      </div>
+
+      {/* Piece Details Section - Color, Brand, Barcode */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        {/* Color */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.color') || 'Color'}
+          </label>
+          <Input
+            value={piece.color || ''}
+            onChange={handleColorChange}
+            placeholder={t('modal.color') || 'Color'}
+            className="h-10 text-sm"
+          />
+        </div>
+
+        {/* Brand */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.brand') || 'Brand'}
+          </label>
+          <Input
+            value={piece.brand || ''}
+            onChange={handleBrandChange}
+            placeholder={t('modal.brand') || 'Brand'}
+            className="h-10 text-sm"
+          />
+        </div>
+
+        {/* Barcode */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.barcode') || 'Barcode'}
+          </label>
+          <Input
+            value={piece.barcode || ''}
+            onChange={handleBarcodeChange}
+            placeholder={t('modal.barcode') || 'Barcode'}
+            className="h-10 text-sm font-mono"
+          />
+        </div>
       </div>
 
       {/* Controls Grid */}
-      <div className="grid grid-cols-12 gap-3 items-start">
-        {/* Processing Step Dropdown */}
-        <div className="col-span-3">
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            {t('modal.step')}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        {/* Piece Status Display */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.pieceStatus') || 'Status'}
           </label>
-          <Select
-            value={piece.currentStep || ''}
-            onValueChange={handleStepChange}
-          >
-            <SelectTrigger className="h-9">
-              <SelectValue 
-                placeholder={t('modal.step')}
-                displayValue={piece.currentStep ? t(`steps.${piece.currentStep}`) : undefined}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              {PROCESSING_STEPS.map(step => (
-                <SelectItem key={step} value={step}>
-                  {t(`steps.${step}`)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Ready Checkbox */}
-        <div className="col-span-2 flex items-end pb-1">
-          <Checkbox
-            checked={piece.isReady}
-            onCheckedChange={handleReadyChange}
-            label={t('modal.ready')}
-          />
-        </div>
-
-        {/* Split Checkbox - Conditional */}
-        {splitOrderEnabled && (
-          <div className="col-span-2 flex items-end pb-1">
-            <Checkbox
-              checked={isSelectedForSplit}
-              onCheckedChange={handleSplitChange}
-              label={t('modal.split')}
+          <div className="h-10 px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded flex items-center">
+            <CmxStatusBadge
+              label={piece.piece_status || 'processing'}
+              variant={
+                piece.piece_status === 'ready'
+                  ? 'success'
+                  : piece.piece_status === 'qa'
+                    ? 'info'
+                    : 'default'
+              }
+              size="sm"
+              className="capitalize"
             />
           </div>
-        )}
-
-        {/* Notes */}
-        <div className={splitOrderEnabled ? 'col-span-3' : 'col-span-5'}>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            {t('modal.notes')}
-          </label>
-          <Textarea
-            value={piece.notes || ''}
-            onChange={handleNotesChange}
-            placeholder={t('modal.notes')}
-            className="h-9 resize-none text-sm"
-            rows={1}
-          />
         </div>
 
         {/* Rack Location */}
-        <div className="col-span-2">
-          <label className="block text-xs font-medium text-gray-700 mb-1">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {t('modal.rackLocation')}
           </label>
           <Input
             value={piece.rackLocation || ''}
             onChange={handleRackChange}
             placeholder={t('modal.rackLocation')}
-            className="h-9 text-sm"
+            className="h-10 text-sm"
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.notes')}
+          </label>
+          <Textarea
+            value={piece.notes || ''}
+            onChange={handleNotesChange}
+            placeholder={t('modal.notes')}
+            className="h-10 resize-none text-sm min-h-[40px]"
+            rows={2}
           />
         </div>
       </div>
-    </div>
+
+      {/* Checkboxes Row */}
+      <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t">
+        <Checkbox
+          checked={piece.isReady}
+          onCheckedChange={handleReadyChange}
+          label={t('modal.ready')}
+        />
+        <Checkbox
+          checked={piece.is_ready ?? false}
+          onCheckedChange={handleIsReadyChange}
+          label={t('modal.isReady') || 'Is Ready'}
+        />
+        {splitOrderEnabled && (
+          <Checkbox
+            checked={isSelectedForSplit}
+            onCheckedChange={handleSplitChange}
+            label={t('modal.split')}
+          />
+        )}
+      </div>
+    </Card>
   );
-}
+});

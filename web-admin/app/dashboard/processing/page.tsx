@@ -11,6 +11,7 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
@@ -45,7 +46,7 @@ export default function ProcessingPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
-  const { orders: rawOrders, pagination, isLoading, error, refetch } = useScreenOrders<any>('processing', {
+  const { orders: rawOrders, pagination, isLoading, isFetching, error, refetch } = useScreenOrders<any>('processing', {
     page,
     limit: 20,
     enabled: !!currentTenant && !authLoading,
@@ -71,10 +72,14 @@ export default function ProcessingPage() {
 
       const orderItems = order.org_order_items_dtl || order.items || [];
       const items = orderItems.map((item: any) => ({
-        product_name: item.product_name || 'Item',
-        product_name2: item.product_name2,
+        product_name: item.org_product_data_mst?.product_name || item.product_name || 'Item',
+        product_name2: item.org_product_data_mst?.product_name2 || item.product_name2,
         quantity: item.quantity || 1,
         service_name: item.service_category_code,
+        color: item.color || null,
+        brand: item.brand || null,
+        has_stain: item.has_stain || null,
+        has_damage: item.has_damage || null,
       }));
 
       const totalItems =
@@ -189,7 +194,7 @@ export default function ProcessingPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
-      <ProcessingHeader onRefresh={refetch} />
+      <ProcessingHeader onRefresh={refetch} isRefreshing={isFetching} />
 
       <ProcessingStatsCards stats={stats} />
 
@@ -206,21 +211,30 @@ export default function ProcessingPage() {
         </div>
       )}
 
-      <ProcessingTable
-        orders={sortedOrders}
-        sortField={sortField}
-        sortDirection={sortDirection}
-        onSort={handleSort}
-        onRefresh={refetch}
-        onEditClick={openModal}
-      />
+      {isLoading || authLoading ? (
+        <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+          <div className="p-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+            <p className="text-sm text-gray-600">{tOrders('loadingOrders') || t('loading') || 'Loading orders...'}</p>
+          </div>
+        </div>
+      ) : (
+        <ProcessingTable
+          orders={sortedOrders}
+          sortField={sortField}
+          sortDirection={sortDirection}
+          onSort={handleSort}
+          onRefresh={refetch}
+          onEditClick={openModal}
+          selectedOrderId={selectedOrderId}
+        />
+      )}
 
       {/* Pagination Controls */}
       {pagination.totalPages > 1 && (
         <div
-          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${
-            isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
-          }`}
+          className={`flex items-center border-t border-gray-200 px-4 py-3 text-xs text-gray-600 bg-white rounded-lg ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'
+            }`}
         >
           <div>
             {tOrders('showing')}{' '}

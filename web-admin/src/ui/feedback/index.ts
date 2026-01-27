@@ -29,3 +29,5 @@ export * from './cmx-toast';
 
 // Other feedback components
 export * from './cmx-confirm-dialog';
+export * from './cmx-status-badge';
+export * from './cmx-progress-indicator';

@@ -1,12 +1,15 @@
 /**
  * Enhanced Payment Modal Component
  * Modal for payment options with full promo code and gift card validation
+ * Refactored to use React Hook Form with Zod validation
  * Matches UI screenshots from PRD-010 Advanced Orders
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
   Tag, Gift, Loader2, CheckCircle, AlertCircle
@@ -17,22 +20,12 @@ import { PAYMENT_OPTIONS } from '@/lib/types/order-creation';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import type { ValidatePromoCodeResult, ValidateGiftCardResult } from '@/lib/types/payment';
+import { paymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (paymentData: {
-    paymentMethod: string;
-    checkNumber?: string;
-    percentDiscount: number;
-    amountDiscount: number;
-    promoCode?: string;
-    promoCodeId?: string;
-    promoDiscount?: number;
-    giftCardNumber?: string;
-    giftCardAmount?: number;
-    payAllOrders: boolean;
-  }) => void;
+  onSubmit: (paymentData: PaymentFormData) => void;
   total: number;
   tenantOrgId: string;
   customerId?: string;
@@ -54,16 +47,42 @@ export function PaymentModalEnhanced({
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   
-  // Payment method state
-  const [selectedPayment, setSelectedPayment] = useState('pay_on_collection');
-  const [checkNumber, setCheckNumber] = useState('');
+  // React Hook Form setup
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, isValid },
+  } = useForm<PaymentFormData>({
+    resolver: zodResolver(paymentFormSchema),
+    defaultValues: {
+      paymentMethod: 'pay_on_collection',
+      checkNumber: '',
+      percentDiscount: 0,
+      amountDiscount: 0,
+      promoCode: '',
+      promoCodeId: '',
+      promoDiscount: 0,
+      giftCardNumber: '',
+      giftCardAmount: 0,
+      payAllOrders: false,
+    },
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    criteriaMode: 'all', // Show all validation errors
+  });
 
-  // Discount state
-  const [percentDiscount, setPercentDiscount] = useState(0);
-  const [amountDiscount, setAmountDiscount] = useState(0);
+  // Watch form values
+  const paymentMethod = watch('paymentMethod');
+  const percentDiscount = watch('percentDiscount');
+  const amountDiscount = watch('amountDiscount');
+  const promoCode = watch('promoCode');
+  const giftCardNumber = watch('giftCardNumber');
+  const payAllOrders = watch('payAllOrders');
 
   // Promo code state
-  const [promoCode, setPromoCode] = useState('');
   const [promoCodeValidating, setPromoCodeValidating] = useState(false);
   const [promoCodeResult, setPromoCodeResult] = useState<ValidatePromoCodeResult | null>(null);
   const [appliedPromoCode, setAppliedPromoCode] = useState<{
@@ -73,7 +92,6 @@ export function PaymentModalEnhanced({
   } | null>(null);
 
   // Gift card state
-  const [giftCardNumber, setGiftCardNumber] = useState('');
   const [giftCardValidating, setGiftCardValidating] = useState(false);
   const [giftCardResult, setGiftCardResult] = useState<ValidateGiftCardResult | null>(null);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{
@@ -82,28 +100,30 @@ export function PaymentModalEnhanced({
     balance: number;
   } | null>(null);
 
-  // Pay all orders toggle
-  const [payAllOrders, setPayAllOrders] = useState(false);
-
-  // Reset state when modal opens
+  // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setSelectedPayment('pay_on_collection');
-      setCheckNumber('');
-      setPercentDiscount(0);
-      setAmountDiscount(0);
-      setPromoCode('');
+      reset({
+        paymentMethod: 'pay_on_collection',
+        checkNumber: '',
+        percentDiscount: 0,
+        amountDiscount: 0,
+        promoCode: '',
+        promoCodeId: '',
+        promoDiscount: 0,
+        giftCardNumber: '',
+        giftCardAmount: 0,
+        payAllOrders: false,
+      });
       setPromoCodeResult(null);
       setAppliedPromoCode(null);
-      setGiftCardNumber('');
       setGiftCardResult(null);
       setAppliedGiftCard(null);
-      setPayAllOrders(false);
     }
-  }, [open]);
+  }, [open, reset]);
 
   // Calculate totals
-  const calculateTotals = () => {
+  const totals = useMemo(() => {
     const subtotal = total;
 
     // Manual discount
@@ -136,13 +156,11 @@ export function PaymentModalEnhanced({
       finalTotal,
       totalSavings: subtotal - finalTotal,
     };
-  };
-
-  const totals = calculateTotals();
+  }, [total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard]);
 
   // Validate promo code
   const handleValidatePromoCode = async () => {
-    if (!promoCode.trim()) return;
+    if (!promoCode?.trim()) return;
 
     setPromoCodeValidating(true);
     setPromoCodeResult(null);
@@ -158,11 +176,15 @@ export function PaymentModalEnhanced({
       setPromoCodeResult(result);
 
       if (result.isValid && result.promoCode && result.discountAmount) {
-        setAppliedPromoCode({
+        const applied = {
           code: promoCode,
           id: result.promoCode.id,
           discount: result.discountAmount,
-        });
+        };
+        setAppliedPromoCode(applied);
+        setValue('promoCode', promoCode);
+        setValue('promoCodeId', result.promoCode.id);
+        setValue('promoDiscount', result.discountAmount);
       }
     } catch (error) {
       setPromoCodeResult({
@@ -176,14 +198,16 @@ export function PaymentModalEnhanced({
 
   // Clear promo code
   const handleClearPromoCode = () => {
-    setPromoCode('');
+    setValue('promoCode', '');
+    setValue('promoCodeId', '');
+    setValue('promoDiscount', 0);
     setPromoCodeResult(null);
     setAppliedPromoCode(null);
   };
 
   // Validate gift card
   const handleValidateGiftCard = async () => {
-    if (!giftCardNumber.trim()) return;
+    if (!giftCardNumber?.trim()) return;
 
     setGiftCardValidating(true);
     setGiftCardResult(null);
@@ -198,11 +222,14 @@ export function PaymentModalEnhanced({
       if (result.isValid && result.giftCard && result.availableBalance) {
         // Calculate how much to apply (min of balance and remaining total)
         const amountToApply = Math.min(result.availableBalance, totals.afterDiscounts);
-        setAppliedGiftCard({
+        const applied = {
           number: giftCardNumber,
           amount: amountToApply,
           balance: result.availableBalance,
-        });
+        };
+        setAppliedGiftCard(applied);
+        setValue('giftCardNumber', giftCardNumber);
+        setValue('giftCardAmount', amountToApply);
       }
     } catch (error) {
       setGiftCardResult({
@@ -216,31 +243,15 @@ export function PaymentModalEnhanced({
 
   // Clear gift card
   const handleClearGiftCard = () => {
-    setGiftCardNumber('');
+    setValue('giftCardNumber', '');
+    setValue('giftCardAmount', 0);
     setGiftCardResult(null);
     setAppliedGiftCard(null);
   };
 
-  // Handle submit
-  const handleSubmit = () => {
-    // Validate check number if check payment
-    if (selectedPayment === 'check' && !checkNumber.trim()) {
-      alert(t('messages.checkNumberRequired'));
-      return;
-    }
-
-    onSubmit({
-      paymentMethod: selectedPayment,
-      checkNumber: selectedPayment === 'check' ? checkNumber : undefined,
-      percentDiscount,
-      amountDiscount,
-      promoCode: appliedPromoCode?.code,
-      promoCodeId: appliedPromoCode?.id,
-      promoDiscount: appliedPromoCode?.discount,
-      giftCardNumber: appliedGiftCard?.number,
-      giftCardAmount: appliedGiftCard?.amount,
-      payAllOrders,
-    });
+  // Handle form submit
+  const onSubmitForm = (data: PaymentFormData) => {
+    onSubmit(data);
   };
 
   const getPaymentIcon = (id: string) => {
@@ -294,306 +305,480 @@ export function PaymentModalEnhanced({
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Total Display */}
-          <div className={`text-center p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-xl ${isRTL ? 'text-right' : 'text-left'}`}>
-            <p className="text-sm text-gray-600 mb-1">{t('totalAmount')}</p>
-            <p className="text-5xl font-bold text-gray-900">OMR {totals.finalTotal.toFixed(3)}</p>
-            {totals.totalSavings > 0 && (
-              <div className={`mt-2 flex items-center ${isRTL ? 'flex-row-reverse justify-center' : 'justify-center'} gap-2`}>
-                <span className="text-sm text-gray-500 line-through">
-                  OMR {total.toFixed(3)}
-                </span>
-                <span className="text-sm font-semibold text-green-600">
-                  {t('savings')} OMR {totals.totalSavings.toFixed(3)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Payment Methods - Matching Screenshots */}
-          <div>
-            <h3 className={`font-semibold text-gray-900 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>{t('methods.title')}</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {/* Cash */}
-              <button
-                onClick={() => setSelectedPayment('cash')}
-                className={`
-                  p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
-                  ${selectedPayment === 'cash' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
-                `}
-              >
-                <Banknote className={`w-12 h-12 ${selectedPayment === 'cash' ? 'text-blue-600' : 'text-gray-600'}`} />
-                <span className="font-semibold">{t('methods.cash')}</span>
-              </button>
-
-              {/* Card */}
-              <button
-                onClick={() => setSelectedPayment('card')}
-                className={`
-                  p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
-                  ${selectedPayment === 'card' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
-                `}
-              >
-                <CreditCard className={`w-12 h-12 ${selectedPayment === 'card' ? 'text-blue-600' : 'text-gray-600'}`} />
-                <span className="font-semibold">{t('methods.card')}</span>
-              </button>
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmitForm)}>
+          {/* Content */}
+          <div className="p-6 space-y-6">
+            {/* Total Display */}
+            <div className={`text-center p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-xl ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-sm text-gray-600 mb-1">{t('totalAmount')}</p>
+              <p className="text-5xl font-bold text-gray-900">OMR {totals.finalTotal.toFixed(3)}</p>
+              {totals.totalSavings > 0 && (
+                <div className={`mt-2 flex items-center ${isRTL ? 'flex-row-reverse justify-center' : 'justify-center'} gap-2`}>
+                  <span className="text-sm text-gray-500 line-through">
+                    OMR {total.toFixed(3)}
+                  </span>
+                  <span className="text-sm font-semibold text-green-600">
+                    {t('savings')} OMR {totals.totalSavings.toFixed(3)}
+                  </span>
+                </div>
+              )}
             </div>
 
-            {/* Secondary Payment Methods */}
-            <div className="grid grid-cols-3 gap-3 mt-3">
-              <button
-                onClick={() => setSelectedPayment('pay_on_collection')}
-                className={`
-                  p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                  ${selectedPayment === 'pay_on_collection' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
-                `}
-              >
-                <span className="text-sm font-medium">{t('methods.payOnCollection')}</span>
-              </button>
+            {/* Payment Methods */}
+            <div>
+              <h3 className={`font-semibold text-gray-900 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>{t('methods.title')}</h3>
+              <Controller
+                name="paymentMethod"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Cash */}
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('cash')}
+                        className={`
+                          p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
+                          ${field.value === 'cash' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
+                        `}
+                      >
+                        <Banknote className={`w-12 h-12 ${field.value === 'cash' ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <span className="font-semibold">{t('methods.cash')}</span>
+                      </button>
 
-              <button
-                onClick={() => setSelectedPayment('check')}
-                className={`
-                  p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                  ${selectedPayment === 'check' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
-                `}
-              >
-                <span className="text-sm font-medium">{t('methods.check')}</span>
-              </button>
+                      {/* Card */}
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('card')}
+                        className={`
+                          p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
+                          ${field.value === 'card' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
+                        `}
+                      >
+                        <CreditCard className={`w-12 h-12 ${field.value === 'card' ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <span className="font-semibold">{t('methods.card')}</span>
+                      </button>
+                    </div>
 
-              <button
-                onClick={() => setSelectedPayment('invoice')}
-                className={`
-                  p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                  ${selectedPayment === 'invoice' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
-                `}
-              >
-                <span className="text-sm font-medium">{t('methods.invoice')}</span>
-              </button>
-            </div>
-          </div>
+                    {/* Secondary Payment Methods */}
+                    <div className="grid grid-cols-3 gap-3 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('pay_on_collection')}
+                        className={`
+                          p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
+                          ${field.value === 'pay_on_collection' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                        `}
+                      >
+                        <span className="text-sm font-medium">{t('methods.payOnCollection')}</span>
+                      </button>
 
-          {/* Check Number Field - Conditional */}
-          {selectedPayment === 'check' && (
-            <div className={`bg-purple-50 p-4 rounded-xl border border-purple-200 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <label className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t('checkNumber.label')} *
-              </label>
-              <input
-                type="text"
-                value={checkNumber}
-                onChange={(e) => setCheckNumber(e.target.value)}
-                dir="ltr"
-                className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
-                placeholder={t('checkNumber.placeholder')}
-                required
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('check')}
+                        className={`
+                          p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
+                          ${field.value === 'check' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                        `}
+                      >
+                        <span className="text-sm font-medium">{t('methods.check')}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => field.onChange('invoice')}
+                        className={`
+                          p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
+                          ${field.value === 'invoice' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                        `}
+                      >
+                        <span className="text-sm font-medium">{t('methods.invoice')}</span>
+                      </button>
+                    </div>
+                  </>
+                )}
               />
             </div>
-          )}
 
-          {/* Discount Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className={`font-semibold text-gray-900 mb-4 flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <Tag className="w-5 h-5" />
-              {t('discount')}
-            </h3>
-
-            <div className="space-y-4">
-              {/* Manual Discount Row */}
-              <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <button
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-                  onClick={() => {/* Toggle between % and amount */}}
-                >
-                  <span className="text-gray-700">%</span>
-                </button>
-                <input
-                  type="number"
-                  value={percentDiscount || ''}
-                  onChange={(e) => setPercentDiscount(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
-                  dir="ltr"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-center"
-                  placeholder={t('manualDiscount.percentPlaceholder')}
-                />
-                <span className="text-gray-600 text-sm font-medium w-16">OMR</span>
-                <input
-                  type="number"
-                  value={amountDiscount || ''}
-                  onChange={(e) => setAmountDiscount(Math.max(0, parseFloat(e.target.value) || 0))}
-                  dir="ltr"
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-center"
-                  placeholder={t('manualDiscount.amountPlaceholder')}
-                  step="0.001"
+            {/* Check Number Field - Conditional */}
+            {paymentMethod === 'check' && (
+              <div className={`bg-purple-50 p-4 rounded-xl border border-purple-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <Controller
+                  name="checkNumber"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <label className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('checkNumber.label')} *
+                      </label>
+                      <input
+                        {...field}
+                        type="text"
+                        dir="ltr"
+                        className={`w-full px-4 py-3 border ${
+                          errors.checkNumber ? 'border-red-500' : 'border-gray-300'
+                        } rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                        placeholder={t('checkNumber.placeholder')}
+                      />
+                      {errors.checkNumber && (
+                        <p className="mt-1 text-sm text-red-600">{errors.checkNumber.message}</p>
+                      )}
+                    </>
+                  )}
                 />
               </div>
+            )}
 
-              {/* Promo Code Section */}
-              <div className="border-t pt-4">
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-2`}>
-                  <button className={`text-sm text-blue-600 font-medium hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('promoCode.addPromo')}
+            {/* Discount Section */}
+            <div className="border-t border-gray-200 pt-6">
+              <h3 className={`font-semibold text-gray-900 mb-4 flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <Tag className="w-5 h-5" />
+                {t('discount')}
+              </h3>
+
+              <div className="space-y-4">
+                {/* Manual Discount Row */}
+                <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
+                    onClick={() => {/* Toggle between % and amount */}}
+                  >
+                    <span className="text-gray-700">%</span>
                   </button>
-                  <button className={`text-sm text-blue-600 font-medium hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('giftCard.label')}
-                  </button>
+                  <Controller
+                    name="percentDiscount"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="number"
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = Math.max(0, Math.min(100, parseFloat(e.target.value) || 0));
+                          field.onChange(value);
+                          // Clear amount discount when percent is set
+                          if (value > 0) {
+                            setValue('amountDiscount', 0);
+                          }
+                        }}
+                        dir="ltr"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-center"
+                        placeholder={t('manualDiscount.percentPlaceholder')}
+                      />
+                    )}
+                  />
+                  <span className="text-gray-600 text-sm font-medium w-16">OMR</span>
+                  <Controller
+                    name="amountDiscount"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        type="number"
+                        value={field.value || ''}
+                        onChange={(e) => {
+                          const value = Math.max(0, parseFloat(e.target.value) || 0);
+                          field.onChange(value);
+                          // Clear percent discount when amount is set
+                          if (value > 0) {
+                            setValue('percentDiscount', 0);
+                          }
+                        }}
+                        dir="ltr"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-center"
+                        placeholder={t('manualDiscount.amountPlaceholder')}
+                        step="0.001"
+                      />
+                    )}
+                  />
+                </div>
+                {(errors.percentDiscount || errors.amountDiscount) && (
+                  <p className="text-sm text-red-600">
+                    {errors.percentDiscount?.message || errors.amountDiscount?.message}
+                  </p>
+                )}
+
+                {/* Promo Code Section */}
+                <div className="border-t pt-4">
+                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-2`}>
+                    <button type="button" className={`text-sm text-blue-600 font-medium hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('promoCode.addPromo')}
+                    </button>
+                    <button type="button" className={`text-sm text-blue-600 font-medium hover:underline ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('giftCard.label')}
+                    </button>
+                  </div>
+
+                  {/* Promo Code Input */}
+                  {!appliedPromoCode ? (
+                    <div className="space-y-2">
+                      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Controller
+                          name="promoCode"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleValidatePromoCode())}
+                              dir="ltr"
+                              className={`flex-1 px-4 py-2 border ${
+                                errors.promoCode ? 'border-red-500' : 'border-gray-300'
+                              } rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              placeholder={t('promoCode.placeholder')}
+                              disabled={promoCodeValidating}
+                            />
+                          )}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleValidatePromoCode}
+                          disabled={!promoCode?.trim() || promoCodeValidating}
+                          className={`px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2`}
+                        >
+                          {promoCodeValidating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              {t('promoCode.validating')}
+                            </>
+                          ) : (
+                            t('promoCode.apply')
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Promo Code Error */}
+                      {(promoCodeResult && !promoCodeResult.isValid) && (
+                        <div className={`flex items-center gap-2 text-red-600 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <AlertCircle className="w-4 h-4" />
+                          <span className={isRTL ? 'text-right' : 'text-left'}>{promoCodeResult.error}</span>
+                        </div>
+                      )}
+                      {errors.promoCode && (
+                        <p className="text-sm text-red-600">{errors.promoCode.message}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-green-50 border border-green-200 rounded-lg`}>
+                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <div className={isRTL ? 'text-right' : 'text-left'}>
+                          <p className="font-medium text-green-900">{appliedPromoCode.code}</p>
+                          <p className="text-sm text-green-700">
+                            -OMR {appliedPromoCode.discount.toFixed(3)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearPromoCode}
+                        className={`text-sm text-red-600 hover:text-red-700 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
+                      >
+                        {t('promoCode.remove')}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Gift Card Input */}
+                  {!appliedGiftCard ? (
+                    <div className="space-y-2 mt-3">
+                      <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Controller
+                          name="giftCardNumber"
+                          control={control}
+                          render={({ field }) => (
+                            <input
+                              {...field}
+                              type="text"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleValidateGiftCard())}
+                              dir="ltr"
+                              className={`flex-1 px-4 py-2 border ${
+                                errors.giftCardNumber ? 'border-red-500' : 'border-gray-300'
+                              } rounded-lg focus:ring-2 focus:ring-purple-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              placeholder={t('giftCard.placeholder')}
+                              disabled={giftCardValidating}
+                            />
+                          )}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleValidateGiftCard}
+                          disabled={!giftCardNumber?.trim() || giftCardValidating}
+                          className={`px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2`}
+                        >
+                          {giftCardValidating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              {t('giftCard.checking')}
+                            </>
+                          ) : (
+                            t('giftCard.apply')
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Gift Card Error */}
+                      {(giftCardResult && !giftCardResult.isValid) && (
+                        <div className={`flex items-center gap-2 text-red-600 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <AlertCircle className="w-4 h-4" />
+                          <span className={isRTL ? 'text-right' : 'text-left'}>{giftCardResult.error}</span>
+                        </div>
+                      )}
+                      {errors.giftCardNumber && (
+                        <p className="text-sm text-red-600">{errors.giftCardNumber.message}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-purple-50 border border-purple-200 rounded-lg mt-3`}>
+                      <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Gift className="w-5 h-5 text-purple-600" />
+                        <div className={isRTL ? 'text-right' : 'text-left'}>
+                          <p className="font-medium text-purple-900">{appliedGiftCard.number}</p>
+                          <p className="text-sm text-purple-700">
+                            {t('giftCard.appliedAmount')}: -OMR {appliedGiftCard.amount.toFixed(3)} | {t('giftCard.balance')}: OMR {appliedGiftCard.balance.toFixed(3)}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearGiftCard}
+                        className={`text-sm text-red-600 hover:text-red-700 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
+                      >
+                        {t('giftCard.remove')}
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                {/* Promo Code Input */}
-                {!appliedPromoCode ? (
-                  <div className="space-y-2">
-                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <input
-                        type="text"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => e.key === 'Enter' && handleValidatePromoCode()}
-                        dir="ltr"
-                        className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
-                        placeholder={t('promoCode.placeholder')}
-                        disabled={promoCodeValidating}
-                      />
-                      <button
-                        onClick={handleValidatePromoCode}
-                        disabled={!promoCode.trim() || promoCodeValidating}
-                        className={`px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2`}
-                      >
-                        {promoCodeValidating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            {t('promoCode.validating')}
-                          </>
-                        ) : (
-                          t('promoCode.apply')
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Promo Code Error */}
-                    {promoCodeResult && !promoCodeResult.isValid && (
-                      <div className={`flex items-center gap-2 text-red-600 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <AlertCircle className="w-4 h-4" />
-                        <span className={isRTL ? 'text-right' : 'text-left'}>{promoCodeResult.error}</span>
-                      </div>
+                {/* Pay All Orders Toggle */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-gray-50 rounded-lg border border-gray-200`}>
+                  <span className={`text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{t('payAllOrders.label')}</span>
+                  <Controller
+                    name="payAllOrders"
+                    control={control}
+                    render={({ field }) => (
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          {...field}
+                          type="checkbox"
+                          checked={field.value}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer ${isRTL ? 'peer-checked:after:-translate-x-full' : 'peer-checked:after:translate-x-full'} peer-checked:after:border-white after:content-[''] after:absolute ${isRTL ? 'after:top-[2px] after:right-[2px]' : 'after:top-[2px] after:left-[2px]'} after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600`}></div>
+                      </label>
                     )}
-                  </div>
-                ) : (
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-green-50 border border-green-200 rounded-lg`}>
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <div className={isRTL ? 'text-right' : 'text-left'}>
-                        <p className="font-medium text-green-900">{appliedPromoCode.code}</p>
-                        <p className="text-sm text-green-700">
-                          -OMR {appliedPromoCode.discount.toFixed(3)}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleClearPromoCode}
-                      className={`text-sm text-red-600 hover:text-red-700 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
-                    >
-                      {t('promoCode.remove')}
-                    </button>
-                  </div>
-                )}
-
-                {/* Gift Card Input */}
-                {!appliedGiftCard ? (
-                  <div className="space-y-2 mt-3">
-                    <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <input
-                        type="text"
-                        value={giftCardNumber}
-                        onChange={(e) => setGiftCardNumber(e.target.value.toUpperCase())}
-                        onKeyDown={(e) => e.key === 'Enter' && handleValidateGiftCard()}
-                        dir="ltr"
-                        className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 ${isRTL ? 'text-right' : 'text-left'}`}
-                        placeholder={t('giftCard.placeholder')}
-                        disabled={giftCardValidating}
-                      />
-                      <button
-                        onClick={handleValidateGiftCard}
-                        disabled={!giftCardNumber.trim() || giftCardValidating}
-                        className={`px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg font-medium transition-colors flex items-center ${isRTL ? 'flex-row-reverse' : ''} gap-2`}
-                      >
-                        {giftCardValidating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            {t('giftCard.checking')}
-                          </>
-                        ) : (
-                          t('giftCard.apply')
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Gift Card Error */}
-                    {giftCardResult && !giftCardResult.isValid && (
-                      <div className={`flex items-center gap-2 text-red-600 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        <AlertCircle className="w-4 h-4" />
-                        <span className={isRTL ? 'text-right' : 'text-left'}>{giftCardResult.error}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-purple-50 border border-purple-200 rounded-lg mt-3`}>
-                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Gift className="w-5 h-5 text-purple-600" />
-                      <div className={isRTL ? 'text-right' : 'text-left'}>
-                        <p className="font-medium text-purple-900">{appliedGiftCard.number}</p>
-                        <p className="text-sm text-purple-700">
-                          {t('giftCard.appliedAmount')}: -OMR {appliedGiftCard.amount.toFixed(3)} | {t('giftCard.balance')}: OMR {appliedGiftCard.balance.toFixed(3)}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={handleClearGiftCard}
-                      className={`text-sm text-red-600 hover:text-red-700 font-medium ${isRTL ? 'text-right' : 'text-left'}`}
-                    >
-                      {t('giftCard.remove')}
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Pay All Orders Toggle */}
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-3 bg-gray-50 rounded-lg border border-gray-200`}>
-                <span className={`text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{t('payAllOrders.label')}</span>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={payAllOrders}
-                    onChange={(e) => setPayAllOrders(e.target.checked)}
-                    className="sr-only peer"
                   />
-                  <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer ${isRTL ? 'peer-checked:after:-translate-x-full' : 'peer-checked:after:translate-x-full'} peer-checked:after:border-white after:content-[''] after:absolute ${isRTL ? 'after:top-[2px] after:right-[2px]' : 'after:top-[2px] after:left-[2px]'} after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600`}></div>
-                </label>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer - Submit Button */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className={`w-full h-16 px-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all shadow-lg hover:shadow-xl flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-6 h-6 animate-spin" />
-                {t('actions.processing')}
-              </>
-            ) : (
-              `${t('actions.submit')} - OMR ${totals.finalTotal.toFixed(3)}`
+          {/* Footer - Submit Button */}
+          <div className="p-6 border-t border-gray-200 bg-gray-50">
+            <button
+              type="submit"
+              disabled={loading || (paymentMethod === 'check' && !watch('checkNumber')?.trim())}
+              className={`w-full h-16 px-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-xl transition-all shadow-lg hover:shadow-xl flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  {t('actions.processing')}
+                </>
+              ) : (
+                `${t('actions.submit')} - OMR ${totals.finalTotal.toFixed(3)}`
+              )}
+            </button>
+            {/* Show validation errors - only if there are actual errors */}
+            {(() => {
+              // Check for any actual errors
+              const errorEntries = Object.entries(errors).filter(([_, error]) => error);
+              
+              if (errorEntries.length === 0) return null;
+              
+              return (
+                <div className={`space-y-1 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <p className="text-xs font-semibold text-red-600 text-center">
+                    {t('messages.validationErrors') || 'Please fix the following errors:'}
+                  </p>
+                  {errors.checkNumber && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.checkNumber.message || t('checkNumber.required') || 'Check number is required'}
+                    </p>
+                  )}
+                  {errors.percentDiscount && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.percentDiscount.message}
+                    </p>
+                  )}
+                  {errors.amountDiscount && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.amountDiscount.message}
+                    </p>
+                  )}
+                  {errors.promoCode && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.promoCode.message}
+                    </p>
+                  )}
+                  {errors.promoCodeId && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.promoCodeId.message || 'Promo code must be validated before submitting'}
+                    </p>
+                  )}
+                  {errors.giftCardNumber && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.giftCardNumber.message}
+                    </p>
+                  )}
+                  {errors.giftCardAmount && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.giftCardAmount.message || 'Gift card must be validated before submitting'}
+                    </p>
+                  )}
+                  {errors.paymentMethod && (
+                    <p className="text-xs text-red-600 text-center">
+                      {errors.paymentMethod.message}
+                    </p>
+                  )}
+                  {/* Fallback: Show any other errors that might exist */}
+                  {errorEntries.map(([field, error]: [string, any]) => {
+                    // Skip if we already displayed this error above
+                    if (['checkNumber', 'percentDiscount', 'amountDiscount', 'promoCode', 'promoCodeId', 'giftCardNumber', 'giftCardAmount', 'paymentMethod'].includes(field)) {
+                      return null;
+                    }
+                    const message = error?.message || (Array.isArray(error) ? error[0]?.message : String(error));
+                    if (!message) return null;
+                    return (
+                      <p key={field} className="text-xs text-red-600 text-center">
+                        {message}
+                      </p>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+            {paymentMethod === 'check' && !watch('checkNumber')?.trim() && (
+              <p className={`text-xs text-center text-red-600 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('checkNumber.required') || 'Please enter a check number to continue'}
+              </p>
             )}
-          </button>
-          <p className={`text-xs text-center text-gray-500 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {t('messages.paymentMethodNote', { method: getPaymentLabel(selectedPayment) })}
-          </p>
-        </div>
+            {!isValid && Object.keys(errors).length === 0 && paymentMethod !== 'check' && (
+              <p className={`text-xs text-center text-gray-500 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('messages.readyToSubmit') || 'Ready to submit'}
+              </p>
+            )}
+            <p className={`text-xs text-center text-gray-500 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('messages.paymentMethodNote', { method: getPaymentLabel(paymentMethod || 'pay_on_collection') })}
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   );

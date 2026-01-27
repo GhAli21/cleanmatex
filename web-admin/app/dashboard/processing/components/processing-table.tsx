@@ -30,6 +30,7 @@ interface ProcessingTableProps {
   onSort: (field: SortField) => void;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
+  selectedOrderId?: string | null; // Current/selected order ID for highlighting
 }
 
 export function ProcessingTable({
@@ -38,6 +39,7 @@ export function ProcessingTable({
   onSort,
   onRefresh,
   onEditClick,
+  selectedOrderId,
 }: ProcessingTableProps) {
   const t = useTranslations('processing.table');
   const [isMobile, setIsMobile] = React.useState(false);
@@ -71,9 +73,8 @@ export function ProcessingTable({
       <div className="flex items-center gap-2">
         {children}
         <ArrowUpDown
-          className={`h-4 w-4 ${
-            sortField === field ? 'text-blue-600' : 'text-gray-400'
-          }`}
+          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
+            }`}
         />
       </div>
     </th>
@@ -106,6 +107,7 @@ export function ProcessingTable({
               onRefresh={onRefresh}
               onEditClick={onEditClick}
               index={index}
+              selectedOrderId={selectedOrderId}
             />
           ))}
         </div>
@@ -130,6 +132,7 @@ export function ProcessingTable({
       onRefresh={onRefresh}
       onEditClick={onEditClick}
       formatDate={formatDate}
+      selectedOrderId={selectedOrderId}
     />
   );
 }
@@ -140,14 +143,16 @@ interface OrderRowProps {
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
   index: number; // ✅ NEW: For alternating row colors
+  selectedOrderId?: string | null; // Current/selected order ID for highlighting
 }
 
-function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRowProps) {
+function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOrderId }: OrderRowProps) {
   const router = useRouter();
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
   const isPaid = order.payment_status === 'paid';
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+  const isSelected = selectedOrderId === order.id;
 
   // State for loading and success message
   const [isLoading, setIsLoading] = useState(false);
@@ -156,10 +161,14 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
 
   // Determine row highlight color
   const rowHighlight = isUrgent ? 'border-l-4 border-l-pink-500' : 'border-l-4 border-l-blue-200';
-  
-  // ✅ Visual hierarchy: Alternating row colors
-  const rowBgColor = index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50';
-  const hoverColor = 'hover:bg-blue-50/50';
+
+  // ✅ Visual hierarchy: Alternating row colors with green for selected row
+  const rowBgColor = isSelected
+    ? 'bg-green-50'
+    : index % 2 === 0
+      ? 'bg-white'
+      : 'bg-gray-50/50';
+  const hoverColor = isSelected ? 'hover:bg-green-100' : 'hover:bg-blue-50/50';
 
   const handleStatusToggleClick = () => {
     // Dispatch custom event to open dialog
@@ -167,7 +176,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
       detail: { orderId: order.id }
     }));
   };
-  
+
   // Listen for loading and success events
   useEffect(() => {
     const handleLoadingStart = () => setIsLoading(true);
@@ -183,7 +192,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
     window.addEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
     window.addEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
     window.addEventListener(`mark-ready-success-${order.id}`, handleSuccess);
-    
+
     return () => {
       window.removeEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
       window.removeEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
@@ -208,141 +217,172 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index }: OrderRow
   return (
     <React.Fragment>
       <tr className={`${rowBgColor} ${hoverColor} transition-colors duration-150 ${rowHighlight}`}>
-      {/* ID */}
-      <td className="px-4 py-4">
-        <div className="font-medium text-blue-600">{order.order_no}</div>
-      </td>
+        {/* ID */}
+        <td className="px-4 py-4">
+          <div className="font-medium text-blue-600">{order.order_no}</div>
+        </td>
 
-      {/* READY BY */}
-      <td className="px-4 py-4">
-        <div className="text-sm">{formatDate(order.ready_by_at)}</div>
-      </td>
+        {/* READY BY */}
+        <td className="px-4 py-4">
+          <div className="text-sm">{formatDate(order.ready_by_at)}</div>
+        </td>
 
-      {/* CUSTOMER */}
-      <td className="px-4 py-4">
-        <div className="font-medium">{order.customer_name}</div>
-        {order.customer_name2 && (
-          <div className="text-sm text-gray-500">{order.customer_name2}</div>
-        )}
-      </td>
-
-      {/* ORDER - Multi-line items */}
-      <td className="px-4 py-4">
-        <div className="space-y-1 max-w-xs">
-          {order.items.slice(0, 3).map((item, idx) => (
-            <div key={idx} className="text-sm">
-              {item.product_name} x {item.quantity}
-            </div>
-          ))}
-          {order.items.length > 3 && (
-            <div className="text-sm text-gray-500">
-              +{order.items.length - 3} {t('moreItems')}
-            </div>
+        {/* CUSTOMER */}
+        <td className="px-4 py-4">
+          <div className="font-medium">{order.customer_name}</div>
+          {order.customer_name2 && (
+            <div className="text-sm text-gray-500">{order.customer_name2}</div>
           )}
-          <Link
-            href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
-            className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
-          >
-            {t('details')} →
-          </Link>
-        </div>
-      </td>
+        </td>
 
-      {/* PCS */}
-      <td className="px-4 py-4 text-right">
-        <div className="font-medium">{order.total_items}</div>
-      </td>
-
-      {/* ✅ PROGRESS - NEW */}
-      <td className="px-4 py-4">
-        <div className="w-24">
-          {(() => {
-            const progressPercent = order.total_items > 0
-              ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
-              : 0;
-            
-            return (
-              <>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-gray-700">
-                    {tProcessing('progress')}: {progressPercent}%
-                  </span>
+        {/* ORDER - Multi-line items with details */}
+        <td className="px-4 py-4">
+          <div className="space-y-2 max-w-xs">
+            {order.items.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="text-sm space-y-1">
+                <div className="font-medium">
+                  {item.product_name} x {item.quantity}
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
-                    }`}
-                    style={{ width: `${Math.min(100, progressPercent)}%` }}
-                  />
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      </td>
+                {/* Item Details: Color, Brand */}
+                {(item.color || item.brand) && (
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                    {item.color && (
+                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                        {t('color') || 'Color'}: {item.color}
+                      </span>
+                    )}
+                    {item.brand && (
+                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                        {t('brand') || 'Brand'}: {item.brand}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Condition Flags: Stain, Damage */}
+                {(item.has_stain || item.has_damage) && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {item.has_stain && (
+                      <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded border border-yellow-200">
+                        {t('stain') || 'Stain'}
+                      </span>
+                    )}
+                    {item.has_damage && (
+                      <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded border border-red-200">
+                        {t('damage') || 'Damage'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {order.items.length > 3 && (
+              <div className="text-sm text-gray-500">
+                +{order.items.length - 3} {t('moreItems')}
+              </div>
+            )}
+            <Link
+              href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
+              className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
+            >
+              {t('details')} →
+            </Link>
+          </div>
+        </td>
 
-      {/* NOTES */}
-      <td className="px-4 py-4">
-        <div className="text-sm text-gray-600 max-w-xs truncate">
-          {order.notes || '—'}
-        </div>
-      </td>
+        {/* PCS */}
+        <td className="px-4 py-4 text-right">
+          <div className="font-medium">{order.total_items}</div>
+        </td>
 
-      {/* TOTAL */}
-      <td className="px-4 py-4 text-right">
-        <div className="font-semibold">OMR {order.total.toFixed(3)}</div>
-      </td>
+        {/* ✅ PROGRESS - NEW */}
+        <td className="px-4 py-4">
+          <div className="w-24">
+            {(() => {
+              const progressPercent = order.total_items > 0
+                ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
+                : 0;
 
-      {/* STATUS - Action Icons */}
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-3 justify-end">
-          {/* Payment/Priority Tag */}
-          {!isPaid && (
-            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
-              1st
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-700">
+                      {tProcessing('progress')}: {progressPercent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+                        }`}
+                      style={{ width: `${Math.min(100, progressPercent)}%` }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </td>
+
+        {/* NOTES */}
+        <td className="px-4 py-4">
+          <div className="text-sm text-gray-600 max-w-xs truncate">
+            {order.notes || '—'}
+          </div>
+        </td>
+
+        {/* TOTAL */}
+        <td className="px-4 py-4 text-right">
+          <div className="font-semibold">OMR {order.total.toFixed(3)}</div>
+        </td>
+
+        {/* STATUS - Action Icons */}
+        <td className="px-4 py-4">
+          <div className="flex items-center gap-3 justify-end">
+            {/* Payment/Priority Tag */}
+            {!isPaid && (
+              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                1st
+              </span>
+            )}
+
+            {/* ✅ Edit Icon with Loading State */}
+            <button
+              onClick={handleEdit}
+              disabled={isLoadingEdit}
+              className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
+              title={isLoadingEdit ? (t('opening') || 'Opening...') : (t('edit') || 'Edit')}
+              aria-label={t('edit') || 'Edit'}
+            >
+              {isLoadingEdit ? (
+                <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+              ) : (
+                <SquarePen className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+
+            {/* Status Toggle Icon */}
+            <button
+              onClick={handleStatusToggleClick}
+              disabled={isLoading}
+              className="p-2 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
+              title={isLoading ? (t('processing') || 'Processing...') : t('complete')}
+              aria-label={t('complete')}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              )}
+            </button>
+
+            {/* Current Status Badge */}
+            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+              {order.current_status}
             </span>
-          )}
+          </div>
+        </td>
 
-          {/* ✅ Edit Icon with Loading State */}
-          <button
-            onClick={handleEdit}
-            disabled={isLoadingEdit}
-            className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
-            title={isLoadingEdit ? (t('opening') || 'Opening...') : (t('edit') || 'Edit')}
-            aria-label={t('edit') || 'Edit'}
-          >
-            {isLoadingEdit ? (
-              <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
-            ) : (
-              <SquarePen className="h-4 w-4 text-gray-600" />
-            )}
-          </button>
+      </tr>
 
-          {/* Status Toggle Icon */}
-          <button
-            onClick={handleStatusToggleClick}
-            disabled={isLoading}
-            className="p-2 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
-            title={isLoading ? (t('processing') || 'Processing...') : t('complete')}
-            aria-label={t('complete')}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
-            ) : (
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            )}
-          </button>
-
-          {/* Current Status Badge */}
-          <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
-            {order.current_status}
-          </span>
-        </div>
-      </td>
-
-    </tr>
-    
       {/* Success Message Row */}
       {successMessage && (
         <tr>
@@ -380,7 +420,7 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
     return () => {
       window.removeEventListener(`open-confirm-dialog-${order.id}`, handleOpenDialog as EventListener);
     };
-  }, [order.id]); 
+  }, [order.id]);
 
   const handleConfirm = async () => {
     // Validate rack location
@@ -391,12 +431,12 @@ function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefres
 
     window.dispatchEvent(new CustomEvent(`mark-ready-loading-start-${order.id}`));
     setShowConfirmDialog(false);
-    
+
     try {
       const res = await fetch(`/api/v1/orders/${order.id}/transition`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           toStatus: 'ready', //JhTodo: Change to 'ready' when ready status is implemented
           notes: 'Processing completed via quick action',
           metadata: {
@@ -520,17 +560,21 @@ function ProcessingOrderCard({
   onRefresh,
   onEditClick,
   index,
+  selectedOrderId,
 }: {
   order: ProcessingOrder;
   formatDate: (date: string) => string;
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
   index: number;
+  selectedOrderId?: string | null;
 }) {
   const router = useRouter();
   const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing');
   const isPaid = order.payment_status === 'paid';
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+  const isSelected = selectedOrderId === order.id;
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);
 
   const handleEdit = () => {
@@ -548,9 +592,12 @@ function ProcessingOrderCard({
     : 0;
 
   return (
-    <div className={`bg-white rounded-lg border-2 p-4 ${
-      isUrgent ? 'border-l-4 border-l-pink-500' : 'border-gray-200'
-    }`}>
+    <div className={`rounded-lg border-2 p-4 ${isSelected
+      ? 'bg-green-50 border-green-300'
+      : isUrgent
+        ? 'bg-white border-l-4 border-l-pink-500'
+        : 'bg-white border-gray-200'
+      }`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
@@ -571,10 +618,42 @@ function ProcessingOrderCard({
       </div>
 
       {/* Items */}
-      <div className="mb-3 space-y-1">
+      <div className="mb-3 space-y-2">
         {order.items.slice(0, 2).map((item, idx) => (
-          <div key={idx} className="text-sm text-gray-700">
-            {item.product_name} x {item.quantity}
+          <div key={idx} className="text-sm space-y-1">
+            <div className="font-medium text-gray-700">
+              {item.product_name} x {item.quantity}
+            </div>
+            {/* Item Details: Color, Brand */}
+            {(item.color || item.brand) && (
+              <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                {item.color && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                    {t('color') || 'Color'}: {item.color}
+                  </span>
+                )}
+                {item.brand && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                    {t('brand') || 'Brand'}: {item.brand}
+                  </span>
+                )}
+              </div>
+            )}
+            {/* Condition Flags: Stain, Damage */}
+            {(item.has_stain || item.has_damage) && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {item.has_stain && (
+                  <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded border border-yellow-200">
+                    {t('stain') || 'Stain'}
+                  </span>
+                )}
+                {item.has_damage && (
+                  <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded border border-red-200">
+                    {t('damage') || 'Damage'}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {order.items.length > 2 && (
@@ -592,9 +671,8 @@ function ProcessingOrderCard({
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
-            className={`h-2 rounded-full transition-all duration-300 ${
-              progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
-            }`}
+            className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+              }`}
             style={{ width: `${Math.min(100, progressPercent)}%` }}
           />
         </div>
@@ -650,6 +728,7 @@ function ProcessingTableDesktop({
   onRefresh,
   onEditClick,
   formatDate,
+  selectedOrderId,
 }: {
   orders: ProcessingOrder[];
   sortField: SortField;
@@ -657,6 +736,7 @@ function ProcessingTableDesktop({
   onRefresh: () => void;
   onEditClick?: (orderId: string) => void;
   formatDate: (date: string) => string;
+  selectedOrderId?: string | null;
 }) {
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For progress
@@ -669,9 +749,8 @@ function ProcessingTableDesktop({
       <div className="flex items-center gap-2">
         {children}
         <ArrowUpDown
-          className={`h-4 w-4 ${
-            sortField === field ? 'text-blue-600' : 'text-gray-400'
-          }`}
+          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
+            }`}
         />
       </div>
     </th>
@@ -708,13 +787,14 @@ function ProcessingTableDesktop({
                   onRefresh={onRefresh}
                   onEditClick={onEditClick}
                   index={index}
+                  selectedOrderId={selectedOrderId}
                 />
               ))}
             </tbody>
           </table>
         </div>
       </div>
-      
+
       {/* Render dialogs outside the table */}
       {orders.map((order) => (
         <OrderRowDialog

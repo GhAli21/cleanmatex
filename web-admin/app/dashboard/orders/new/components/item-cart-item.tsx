@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, memo, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
@@ -32,7 +32,7 @@ interface ItemCartItemProps {
   onDelete: () => void;
 }
 
-export function ItemCartItem({
+function ItemCartItemComponent({
   itemNumber,
   itemId,
   productName,
@@ -81,7 +81,7 @@ export function ItemCartItem({
             {onEdit && (
               <button
                 onClick={onEdit}
-                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                 aria-label={tCommon('edit')}
               >
                 <Pencil className="w-4 h-4" />
@@ -89,7 +89,7 @@ export function ItemCartItem({
             )}
             <button
               onClick={onDelete}
-              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
               aria-label={tCommon('delete')}
             >
               <Trash2 className="w-4 h-4" />
@@ -165,3 +165,5 @@ export function ItemCartItem({
     </div>
   );
 }
+
+export const ItemCartItem = memo(ItemCartItemComponent);

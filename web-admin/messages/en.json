@@ -1077,7 +1077,11 @@
       "confirmReady": "Confirm Ready",
       "processing": "Processing...",
       "rackLocation": "Rack Location",
-      "opening": "Opening..."
+      "opening": "Opening...",
+      "color": "Color",
+      "brand": "Brand",
+      "stain": "Stain",
+      "damage": "Damage"
     },
     "detail": {
       "rackLocation": "Rack Location",
@@ -1092,6 +1096,7 @@
       "pieces": "Pieces",
       "piece": "Piece",
       "step": "Processing Step",
+      "loadingSteps": "Loading steps...",
       "ready": "Ready",
       "split": "Split",
       "notes": "Notes",
@@ -1106,7 +1111,52 @@
       "unReject": "Un-reject",
       "quantityReady": "{ready} / {total} Ready",
       "noItems": "No Items Found",
-      "noItemsDesc": "This order has no items to process. Please check the order details or contact support."
+      "noItemsDesc": "This order has no items to process. Please check the order details or contact support.",
+      "color": "Color",
+      "brand": "Brand",
+      "barcode": "Barcode",
+      "hasStain": "Stain",
+      "hasDamage": "Damage",
+      "scanned": "Scanned",
+      "missing": "Missing",
+      "wrong": "Wrong",
+      "pieceStatus": "Piece Status",
+      "isReady": "Is Ready",
+      "summary": {
+        "updateSuccess": "Update Successful",
+        "splitSuccess": "Order Split Successfully",
+        "piecesUpdated": "{count} pieces updated",
+        "readyCount": "{count} pieces marked as ready",
+        "stepsRecorded": "{count} steps recorded",
+        "rackLocationsSet": "{count} rack locations set",
+        "newOrder": "Created new order: {orderNumber}",
+        "movedPieces": "Moved {count} pieces to new order"
+      },
+      "steps": {
+        "sorting": "Sorting",
+        "pretreatment": "Pre-treatment",
+        "washing": "Washing",
+        "drying": "Drying",
+        "finishing": "Finishing"
+      },
+      "searchPlaceholder": "Search items...",
+      "searchLabel": "Search items",
+      "filterByStep": "Filter by step",
+      "allSteps": "All Steps",
+      "filterByStatus": "Filter by status",
+      "allStatus": "All Status",
+      "notReady": "Not Ready",
+      "activeFilters": "Active filters:",
+      "collapsePieces": "Collapse",
+      "expandPieces": "Expand",
+      "modalDescription": "Manage and update processing details for order items and pieces",
+      "status": "Status",
+      "search": "Search",
+      "retry": "Retry",
+      "clickStepToChange": "Click on a step to change the processing stage",
+      "error": {
+        "loadingFailed": "Failed to Load Order"
+      }
     },
     "splitConfirm": {
       "title": "Confirm Split Order",
@@ -1432,6 +1482,7 @@
     },
     "notes": "Notes",
     "readyBy": "Ready By",
+    "calculateReadyBy": "Calculate Ready By",
     "estimatedTotal": "Estimated Total",
     "submitOrder": "Submit Order",
     "tabs": {
@@ -1500,6 +1551,9 @@
       "customGarmentPlaceholder": "e.g., Custom Garment",
       "addItem": "Add Item",
       "noItemsAdded": "No items added yet",
+      "itemName": "Item Name",
+      "actions": "Actions",
+      "removeItem": "Remove item",
       "selectItemsFromGrid": "Select items from the grid to start",
       "orderItems": "Order Items",
       "pieces": "pieces",
@@ -1575,7 +1629,8 @@
       "addItemsToContinue": "Add items to continue",
       "editCustomer": "Edit customer",
       "removeCustomer": "Remove customer",
-      "addCustomer": "Add customer"
+      "addCustomer": "Add customer",
+      "notSet": "Not set"
     },
     "schedule": {
       "title": "Ready / Delivery date",
@@ -1590,6 +1645,11 @@
       "selectReadyDateTime": "Select Ready Date & Time",
       "readyBy": "Ready By",
       "at": "at",
+      "directInput": "Direct Input",
+      "calculateReadyBy": "Calculate Ready By",
+      "validation": {
+        "dateMustBeFuture": "Date must be in the future"
+      },
       "monthNames": {
         "january": "January",
         "february": "February",
@@ -1624,14 +1684,15 @@
       "failedToLoadCategories": "Failed to load categories. Please refresh the page.",
       "failedToLoadProducts": "Failed to load products. Please try selecting a different category.",
       "failedToLoadData": "Failed to load data. Please refresh the page.",
-      "permissionDenied": "You don't have permission to create orders. Please contact your administrator to grant you the \"{permission}\" permission.",
+      "permissionDenied": "Jh001 You don't have permission to create orders. Please contact your administrator to grant you the \"{permission}\" permission.",
       "networkError": "Network error. Please check your internet connection and try again.",
       "timeoutError": "Request timed out. Please try again.",
       "serverError": "A server error occurred. Please try again later or contact support if the problem persists."
     },
     "success": {
       "orderCreated": "Order {orderNo} created successfully!",
-      "customerUpdated": "Customer updated successfully"
+      "customerUpdated": "Customer updated successfully",
+      "readyByCalculated": "Ready-by date calculated successfully"
     },
     "payment": {
       "title": "Payment",
@@ -1710,6 +1771,32 @@
         },
         "success": "Gift card applied! Balance: OMR {balance}"
       },
+      "customItem": {
+        "title": "Add Custom Item",
+        "name": "Item Name",
+        "namePlaceholder": "Enter item name",
+        "name2": "Item Name (Arabic)",
+        "name2Placeholder": "Enter item name in Arabic",
+        "price": "Price ",
+        "quantity": "Quantity",
+        "notes": "Notes",
+        "notesPlaceholder": "Add any special instructions...",
+        "add": "Add Item",
+        "cancel": "Cancel",
+        "successAdd": "Custom item added successfully!",
+        "errorAdd": "Failed to add custom item."
+      },
+      "photoCapture": {
+        "title": "Capture Photo",
+        "capture": "Capture Photo",
+        "capturing": "Capturing...",
+        "retake": "Retake",
+        "usePhoto": "Use Photo",
+        "startingCamera": "Starting camera...",
+        "instructions": "Position the item in the frame and tap Capture Photo when ready.",
+        "maxPhotosReached": "Maximum {max} photos allowed.",
+        "photosCount": "{current} of {max} photos added"
+      },
       "payAllOrders": {
         "label": "Pay all orders",
         "enabled": "Paying all orders",
@@ -1754,7 +1841,9 @@
         "invalidAmount": "Invalid payment amount",
         "amountExceedsTotal": "Payment amount exceeds order total",
         "confirmSubmit": "Confirm payment submission?",
-        "paymentMethodNote": "Payment method: {method}"
+        "paymentMethodNote": "Payment method: {method}",
+        "readyToSubmit": "Ready to submit",
+        "validationErrors": "Please fix the following errors"
       },
       "receipt": {
         "title": "Payment Receipt",
@@ -1790,7 +1879,37 @@
       "customerRequired": "Customer is required",
       "atLeastOneItem": "Add at least one item",
       "dateRequired": "Select ready or delivery date",
-      "paymentRequired": "Select payment method"
+      "paymentRequired": "Select payment method",
+      "readyByMustBeFuture": "Ready by date must be in the future",
+      "readyByTooFar": "Ready by date is more than 30 days away",
+      "readyByRequired": "Ready by date is required",
+      "readyToSubmit": "Ready to submit"
+    },
+    "warnings": {
+      "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+    },
+    "customItem": {
+      "title": "Add Custom Item",
+      "name": "Item Name",
+      "namePlaceholder": "Enter item name",
+      "name2": "Item Name (Arabic)",
+      "name2Placeholder": "Enter item name in Arabic",
+      "price": "Price ",
+      "quantity": "Quantity",
+      "notes": "Notes",
+      "notesPlaceholder": "Add any special instructions...",
+      "add": "Add Item"
+    },
+    "photoCapture": {
+      "title": "Capture Photo",
+      "capture": "Capture Photo",
+      "capturing": "Capturing...",
+      "retake": "Retake",
+      "usePhoto": "Use Photo",
+      "startingCamera": "Starting camera...",
+      "instructions": "Position the item in the frame and tap Capture Photo when ready.",
+      "maxPhotosReached": "Maximum {max} photos allowed.",
+      "photosCount": "{current} of {max} photos added"
     }
   },
   "layout": {
@@ -1809,6 +1928,19 @@
     "sidebar": {
       "currentTenant": "Current Tenant",
       "role": "Role"
+    }
+  },
+  "auth": {
+    "logout": {
+      "signingOut": "Signing out...",
+      "pleaseWait": "Please wait while we sign you out",
+      "redirecting": "Redirecting to login page...",
+      "error": "An error occurred during logout. You will be redirected shortly.",
+      "confirmTitle": "Confirm Logout",
+      "confirmMessage": "Are you sure you want to sign out?",
+      "confirmButton": "Sign Out",
+      "cancelButton": "Cancel",
+      "success": "You have been successfully signed out"
     }
   }
 }

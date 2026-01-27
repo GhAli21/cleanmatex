@@ -432,7 +432,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
             await new Promise(resolve => setTimeout(resolve, 300));
 
             // Search for the customer to get org_customers_mst record with retry logic
-            let orgCustomer: any = null;
+            let orgCustomer: Customer | null = null;
             let attempts = 0;
             const maxAttempts = 3;
 
@@ -455,7 +455,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
               
               if (searchData.success && searchData.data?.customers && searchData.data.customers.length > 0) {
                 // Find the customer we just created (match by phone or firstName)
-                orgCustomer = searchData.data.customers.find((c: any) => {
+                orgCustomer = searchData.data.customers.find((c: Customer) => {
                   if (createdCustomer.phone) {
                     return c.phone === createdCustomer.phone;
                   }

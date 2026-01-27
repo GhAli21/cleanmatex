@@ -216,7 +216,7 @@ INSERT INTO sys_tenant_settings_cd (
   created_by, created_info, updated_at, updated_by, updated_info
 )
 VALUES
-  -- boolean feature flag
+  -- boolean 
   ('USING_SPLIT_ORDER',
    'Using Split Order', 'يستخدم تقسيم الطلبات',
    'Defines whether split sub-orders are allowed.',
@@ -234,7 +234,7 @@ VALUES
    true,false,false,
    2,'UI theme color for reject state',1,
    'system_admin','setup seed', now(),'system_admin','upsert'),
-  -- USE_TRACK_BY_PIECE feature flag
+  -- USE_TRACK_BY_PIECE Setting
   ('USE_TRACK_BY_PIECE',
    'Using Tracking By Piece',
    'إستخدام التتبع على مستوى القطعه',
@@ -245,7 +245,7 @@ VALUES
    1,'Global config for Using Tracking By Piece',1,
    'system_admin','setup seed', now(),'system_admin','upsert'
    ),
-   -- USE_REJECT_TO_SOLVE feature flag
+   -- USE_REJECT_TO_SOLVE Setting
   ('USE_REJECT_TO_SOLVE',
    'Using Reject of items or Pieces of orders',
    'إستحدام رفض وارجاع الصنف او القطع',

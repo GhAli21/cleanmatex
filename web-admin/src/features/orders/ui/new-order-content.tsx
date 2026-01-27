@@ -1,0 +1,452 @@
+/**
+ * New Order Content
+ * Main content area with category tabs, product grid, and order summary
+ */
+
+'use client';
+
+import { useRTL } from '@/lib/hooks/useRTL';
+import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
+import { useCategories, useProducts } from '../hooks/use-category-products';
+import { useOrderTotals } from '../hooks/use-order-totals';
+import { useReadyByEstimation } from '../hooks/use-ready-by-estimation';
+import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useAuth } from '@/lib/auth/auth-context';
+import { useOrderSubmission } from '../hooks/use-order-submission';
+import { useNotesPersistence } from '../hooks/use-notes-persistence';
+import { useOrderWarnings } from '../hooks/use-order-warnings';
+import { useUnsavedChanges } from '../hooks/use-unsaved-changes';
+import { useKeyboardNavigation } from '@/lib/hooks/use-keyboard-navigation';
+import { useOrderPerformance } from '../hooks/use-order-performance';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { useCallback, useMemo, useEffect, useState } from 'react';
+import { CmxButton } from '@ui/primitives/cmx-button';
+import { cmxMessage } from '@ui/feedback';
+// Temporary imports - will move to feature folder later
+// Using @ alias to access app folder components
+import { CategoryTabs } from '@/app/dashboard/orders/new/components/category-tabs';
+import { ProductGrid } from '@/app/dashboard/orders/new/components/product-grid';
+import { OrderSummaryPanel } from '@/app/dashboard/orders/new/components/order-summary-panel';
+import { CategoryTabsSkeleton, ProductGridSkeleton } from '@/app/dashboard/orders/new/components/loading-skeletons';
+import { OrderDetailsSection } from './order-details-section';
+import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
+import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
+
+/**
+ * New Order Content Component
+ */
+export function NewOrderContent() {
+    const t = useTranslations('newOrder');
+    const tWorkflow = useTranslations('workflow');
+    const router = useRouter();
+    const isRTL = useRTL();
+    const { currentTenant } = useAuth();
+    const { trackByPiece } = useTenantSettingsWithDefaults(
+        currentTenant?.tenant_id || ''
+    );
+    const {
+        trackItemAddition,
+        trackModalOpen,
+        resetMetrics,
+    } = useOrderPerformance();
+    const [activeTab, setActiveTab] = useState<'select' | 'details'>('select');
+    const state = useNewOrderStateWithDispatch();
+    const { submitOrder, isSubmitting } = useOrderSubmission();
+    const totals = useOrderTotals();
+    const { warnings, hasErrors } = useOrderWarnings();
+    const { calculateReadyBy } = useReadyByEstimation();
+
+    // Notes persistence
+    const handleLoadNotes = useCallback((savedNotes: string) => {
+        state.setNotes(savedNotes);
+    }, [state]);
+
+    const { clearSavedNotes } = useNotesPersistence(state.state.notes, handleLoadNotes);
+
+    // Unsaved changes warning
+    useUnsavedChanges(() => {
+        return (
+            state.state.items.length > 0 ||
+            (state.state.notes && state.state.notes.trim().length > 0) ||
+            state.state.customer !== null
+        );
+    }, t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?');
+
+    // Clear saved notes when order is successfully created
+    useEffect(() => {
+        if (state.state.createdOrderId) {
+            clearSavedNotes();
+        }
+    }, [state.state.createdOrderId, clearSavedNotes]);
+
+    // Reset performance metrics on mount
+    useEffect(() => {
+        resetMetrics();
+    }, [resetMetrics]);
+
+    // Load categories and products
+    const categoriesQuery = useCategories();
+    const productsQuery = useProducts(state.state.selectedCategory);
+
+    // Handle category selection
+    const handleSelectCategory = useCallback(
+        (category: string) => {
+            state.setSelectedCategory(category);
+        },
+        [state]
+    );
+
+    // Handle add item
+    const handleAddItem = useCallback(
+        (product: Product) => {
+            const pricePerUnit =
+                state.state.express && product.default_express_sell_price
+                    ? product.default_express_sell_price
+                    : product.default_sell_price || 0;
+
+            const newItem: OrderItem = {
+                productId: product.id,
+                productName: product.product_name,
+                productName2: product.product_name2,
+                quantity: 1,
+                pricePerUnit,
+                totalPrice: pricePerUnit,
+                defaultSellPrice: product.default_sell_price ?? null,
+                defaultExpressSellPrice: product.default_express_sell_price ?? null,
+                serviceCategoryCode: product.service_category_code || undefined,
+                pieces: trackByPiece
+                    ? generatePiecesForItem(product.id, 1)
+                    : undefined,
+            };
+
+            state.addItem(newItem);
+            trackItemAddition();
+        },
+        [state, trackByPiece, trackItemAddition]
+    );
+
+    // Handle remove item
+    const handleRemoveItem = useCallback(
+        (productId: string) => {
+            state.removeItem(productId);
+        },
+        [state]
+    );
+
+    // Handle quantity change
+    const handleQuantityChange = useCallback(
+        (productId: string, quantity: number) => {
+            state.updateItemQuantity(productId, quantity);
+        },
+        [state]
+    );
+
+    // Handle pieces change
+    const handlePiecesChange = useCallback(
+        (itemId: string, pieces: PreSubmissionPiece[]) => {
+            state.updateItemPieces(itemId, pieces);
+        },
+        [state]
+    );
+
+    // Handle submit order click
+    const handleSubmitOrderClick = useCallback(() => {
+        // Check for errors first
+        if (hasErrors) {
+            const errorWarnings = warnings.filter((w) => w.severity === 'error');
+            if (errorWarnings.length > 0) {
+                cmxMessage.error(errorWarnings[0].message);
+                return;
+            }
+        }
+
+        if (!state.state.customer) {
+            cmxMessage.error(t('errors.selectCustomer'));
+            return;
+        }
+
+        if (state.state.items.length === 0) {
+            cmxMessage.error(t('errors.addItems'));
+            return;
+        }
+
+        state.openModal('payment');
+    }, [state, t, hasErrors, warnings]);
+
+    // Handle navigation to order
+    const handleNavigateToOrder = useCallback(() => {
+        if (!state.state.createdOrderId) return;
+
+        const status = state.state.createdOrderStatus;
+        const orderId = state.state.createdOrderId;
+
+        let route: string;
+        if (status) {
+            const statusLower = status.toLowerCase();
+            if (statusLower === 'preparing' || statusLower === 'intake') {
+                route = `/dashboard/preparation/${orderId}`;
+            } else if (statusLower === 'processing') {
+                route = `/dashboard/processing/${orderId}`;
+            } else {
+                route = `/dashboard/orders/${orderId}`;
+            }
+        } else {
+            route = `/dashboard/orders/${orderId}`;
+        }
+
+        router.push(route);
+        state.setCreatedOrder('', null);
+    }, [state, router]);
+
+    // Get navigation label
+    const getNavigationLabel = useCallback(
+        (status: string | null): string => {
+            if (!status) return tWorkflow('newOrder.goToOrder') || 'Go to Order';
+
+            const statusLower = status.toLowerCase();
+            if (statusLower === 'preparing' || statusLower === 'intake') {
+                return tWorkflow('newOrder.goToPreparation') || 'Go to Preparation';
+            }
+            if (statusLower === 'processing') {
+                return tWorkflow('newOrder.goToProcessing') || 'Go to Processing';
+            }
+            return tWorkflow('newOrder.goToOrder') || 'Go to Order';
+        },
+        [tWorkflow]
+    );
+
+    // Memoized order items for OrderSummaryPanel
+    const memoizedOrderItems = useMemo(
+        () =>
+            state.state.items.map((item) => ({
+                id: item.productId,
+                productId: item.productId,
+                productName: item.productName || 'Unknown Product',
+                productName2: item.productName2 || undefined,
+                quantity: item.quantity,
+                pricePerUnit: item.pricePerUnit,
+                totalPrice: item.totalPrice,
+                notes: item.notes,
+                pieces: item.pieces,
+            })),
+        [state.state.items]
+    );
+
+    // Get unique service categories from items
+    const serviceCategories = useMemo(() => {
+        return Array.from(
+            new Set(
+                state.state.items
+                    .map((item) => item.serviceCategoryCode)
+                    .filter(Boolean)
+            )
+        ) as string[];
+    }, [state.state.items]);
+
+    // Keyboard navigation
+    useKeyboardNavigation({
+        enabled: true,
+        onKey: (key, event) => {
+            // Ctrl/Cmd + S to submit order
+            if (key === 's' && (event.ctrlKey || event.metaKey) && !isSubmitting && state.state.items.length > 0) {
+                event.preventDefault();
+                handleSubmitOrderClick();
+                return;
+            }
+
+            // Alt + 1 / Alt + 2 to switch main tabs
+            if (event.altKey && !event.ctrlKey && !event.metaKey) {
+                if (key === '1') {
+                    event.preventDefault();
+                    setActiveTab('select');
+                    return;
+                }
+                if (key === '2') {
+                    event.preventDefault();
+                    setActiveTab('details');
+                    return;
+                }
+            }
+        },
+    });
+
+    return (
+        <div
+            className="flex-1 overflow-hidden flex"
+            role="main"
+            aria-label={t('title') || 'New Order'}
+        >
+            {/* Screen reader live region for announcements */}
+            <div
+                aria-live="polite"
+                aria-atomic="true"
+                className="sr-only"
+            >
+                {state.state.items.length > 0 && (
+                    <span>
+                        {t('orderSummary.items', { count: state.state.items.length }) ||
+                            `${state.state.items.length} items in order`}
+                    </span>
+                )}
+            </div>
+
+            <div className={`h-full flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {/* Left/Center Panel - Primary Content Area */}
+                <div className="flex-1 overflow-y-auto">
+                    <div className="p-6 space-y-4">
+                        {/* Main Step Tabs: Select Items / Order Details */}
+                        <div
+                            className="bg-white rounded-lg border border-gray-200 p-2"
+                            role="tablist"
+                            aria-label={t('title') || 'New order steps'}
+                        >
+                            <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'select'}
+                                    aria-controls="new-order-select-items-panel"
+                                    tabIndex={activeTab === 'select' ? 0 : -1}
+                                    onClick={() => setActiveTab('select')}
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                        activeTab === 'select'
+                                            ? 'bg-blue-600 text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    1) {t('itemsGrid.selectItems') || 'Select Items'}
+                                </button>
+                                <button
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={activeTab === 'details'}
+                                    aria-controls="new-order-details-panel"
+                                    tabIndex={activeTab === 'details' ? 0 : -1}
+                                    onClick={() => setActiveTab('details')}
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                                        activeTab === 'details'
+                                            ? 'bg-blue-600 text-white shadow-md'
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                    }`}
+                                >
+                                    2) {t('itemsGrid.orderItems') || 'Order Items'} (
+                                    {state.state.items.length})
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Tab Panels */}
+                        {activeTab === 'select' && (
+                            <div
+                                id="new-order-select-items-panel"
+                                role="tabpanel"
+                                aria-labelledby="new-order-select-items-tab"
+                                className="space-y-4"
+                            >
+                                {/* Category Tabs */}
+                                {state.state.categoriesLoading ? (
+                                    <CategoryTabsSkeleton />
+                                ) : (
+                                    <CategoryTabs
+                                        categories={state.state.categories}
+                                        selectedCategory={state.state.selectedCategory}
+                                        onSelectCategory={handleSelectCategory}
+                                    />
+                                )}
+
+                                {/* Product Grid */}
+                                {state.state.productsLoading ? (
+                                    <ProductGridSkeleton />
+                                ) : (
+                                    <ProductGrid
+                                        products={state.state.products}
+                                        items={state.state.items}
+                                        express={state.state.express}
+                                        onAddItem={handleAddItem}
+                                        onRemoveItem={handleRemoveItem}
+                                        onQuantityChange={handleQuantityChange}
+                                        onOpenCustomItemModal={() => {
+                                            state.openModal('customItem');
+                                            trackModalOpen('customItem');
+                                        }}
+                                        onOpenPhotoCapture={() => {
+                                            state.openModal('photoCapture');
+                                            trackModalOpen('photoCapture');
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'details' && (
+                            <div
+                                id="new-order-details-panel"
+                                role="tabpanel"
+                                aria-labelledby="new-order-details-tab"
+                            >
+                                <OrderDetailsSection trackByPiece={trackByPiece} />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Sidebar - Order Summary */}
+                <div
+                    className={`w-96 ${isRTL ? 'border-r' : 'border-l'
+                        } border-gray-200 bg-white h-full flex flex-col overflow-hidden`}
+                >
+                    <OrderSummaryPanel
+                        customerName={state.state.customerName}
+                        onSelectCustomer={() => state.openModal('customerPicker')}
+                        onEditCustomer={() => state.openModal('customerEdit')}
+                        items={memoizedOrderItems}
+                        onDeleteItem={handleRemoveItem}
+                        onPiecesChange={handlePiecesChange}
+                        isQuickDrop={state.state.isQuickDrop}
+                        onQuickDropToggle={state.setQuickDrop}
+                        quickDropQuantity={state.state.quickDropQuantity}
+                        onQuickDropQuantityChange={state.setQuickDropQuantity}
+                        express={state.state.express}
+                        onExpressToggle={state.setExpress}
+                        notes={state.state.notes}
+                        onNotesChange={state.setNotes}
+                        readyByAt={state.state.readyByAt}
+                        total={totals.subtotal}
+                        onSubmit={handleSubmitOrderClick}
+                        onOpenReadyByModal={() => state.openModal('readyBy')}
+                        onCalculateReadyBy={async () => {
+                            try {
+                                const result = await calculateReadyBy();
+                                if (result) {
+                                    cmxMessage.success(t('success.readyByCalculated') || 'Ready-by date calculated successfully');
+                                } else {
+                                    cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
+                                }
+                            } catch (error) {
+                                console.error('Error calculating ready-by:', error);
+                                cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
+                            }
+                        }}
+                        loading={state.state.loading || isSubmitting}
+                        trackByPiece={trackByPiece}
+                    />
+
+                    {/* Post-creation navigation button */}
+                    {state.state.createdOrderId && (
+                        <div className="p-4 border-t border-gray-200 bg-blue-50">
+                            <CmxButton
+                                onClick={handleNavigateToOrder}
+                                className="w-full"
+                                variant="primary"
+                            >
+                                {getNavigationLabel(state.state.createdOrderStatus)}
+                            </CmxButton>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
+

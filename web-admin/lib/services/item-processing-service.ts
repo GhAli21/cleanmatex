@@ -7,6 +7,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from './workflow-service';
 import { OrderService } from './order-service';
+import { ProcessingStepsService } from './processing-steps-service';
 import type { OrderStatus } from '@/lib/types/workflow';
 
 export interface RecordProcessingStepParams {
@@ -57,12 +58,45 @@ export class ItemProcessingService {
       const supabase = createClient();
       const { orderId, orderItemId, tenantId, stepCode, stepSeq, notes, userId, userName } = params;
 
-      // Validate step_code
-      const validSteps = ['sorting', 'pretreatment', 'washing', 'drying', 'finishing'];
-      if (!validSteps.includes(stepCode)) {
+      // Get order item to find service category
+      const { data: orderItem, error: itemError } = await supabase
+        .from('org_order_items_dtl')
+        .select('service_category_code')
+        .eq('id', orderItemId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (itemError || !orderItem) {
         return {
           success: false,
-          error: 'Invalid step_code. Must be one of: sorting, pretreatment, washing, drying, finishing',
+          error: 'Order item not found',
+        };
+      }
+
+      // Validate step_code against service category configuration
+      if (!orderItem.service_category_code) {
+        return {
+          success: false,
+          error: 'Service category not found for this item',
+        };
+      }
+
+      const isValidStep = await ProcessingStepsService.isValidStepForCategory(
+        tenantId,
+        orderItem.service_category_code,
+        stepCode
+      );
+
+      if (!isValidStep) {
+        // Get valid steps for better error message
+        const validStepCodes = await ProcessingStepsService.getValidStepCodes({
+          tenantId,
+          serviceCategoryCode: orderItem.service_category_code,
+        });
+
+        return {
+          success: false,
+          error: `Invalid step_code "${stepCode}" for service category "${orderItem.service_category_code}". Valid steps: ${validStepCodes.join(', ')}`,
         };
       }
 

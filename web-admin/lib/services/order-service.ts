@@ -349,6 +349,8 @@ export class OrderService {
 
           // Auto-create pieces for each item if tracking by piece is enabled
           if (trackByPiece || true) { // TODO: Remove true after testing
+            const piecesErrors: Array<{ itemId: string; error: string }> = [];
+            
             for (let i = 0; i < createdItems.length; i++) {
               const createdItem = createdItems[i];
               const itemData = items[i];
@@ -368,7 +370,7 @@ export class OrderService {
                     }))
                   : undefined; // Will use baseData fallback
 
-                await OrderPieceService.createPiecesForItem(
+                const piecesResult = await OrderPieceService.createPiecesForItem(
                   tenantId,
                   order.id,
                   createdItem.id,
@@ -387,7 +389,47 @@ export class OrderService {
                   },
                   piecesData // Pass piece-level data array
                 );
+
+                // If pieces creation failed, collect the error
+                if (!piecesResult.success) {
+                  piecesErrors.push({
+                    itemId: createdItem.id,
+                    error: piecesResult.error || 'Failed to create pieces',
+                  });
+                }
               }
+            }
+
+            // If any pieces creation failed, rollback order and items
+            if (piecesErrors.length > 0) {
+              logger.error('Failed to create pieces for order items, rolling back order', {
+                tenantId,
+                orderId: order.id,
+                errors: piecesErrors,
+                feature: 'orders',
+                action: 'create_order',
+              });
+
+              // Delete all created items
+              const itemIds = createdItems.map(item => item.id);
+              await supabase
+                .from('org_order_items_dtl')
+                .delete()
+                .eq('tenant_org_id', tenantId)
+                .eq('order_id', order.id)
+                .in('id', itemIds);
+
+              // Delete the order
+              await supabase
+                .from('org_orders_mst')
+                .delete()
+                .eq('id', order.id)
+                .eq('tenant_org_id', tenantId);
+
+              return {
+                success: false,
+                error: `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`,
+              };
             }
           }
         }

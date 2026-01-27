@@ -29,6 +29,7 @@ import type {
   AuthSession,
   UserRole,
 } from '@/types/auth'
+import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
 
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -305,13 +306,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sign out
    */
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (reason: LogoutReason = 'user') => {
     setIsLoading(true)
     try {
+      // Call server-side logout API for cache invalidation
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason }),
+        })
+      } catch (apiError) {
+        // Log but don't fail - client-side logout will still work
+        console.warn('Logout API call failed:', apiError)
+      }
+
+      // Supabase auth sign out
       const { error } = await supabase.auth.signOut()
       if (error) throw error
 
       // Clear all auth state
+      const currentUser = user
+      const currentTenantId = currentTenant?.id
+
       setUser(null)
       setSession(null)
       setCurrentTenant(null)
@@ -324,8 +341,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('permissions_cache')
       sessionStorage.clear()
 
-      // Note: Cache invalidation will be handled by server-side logout API
-      // We don't need to invalidate cache from client since it will expire
+      // Track logout event
+      if (currentUser) {
+        trackLogout({
+          userId: currentUser.id,
+          tenantId: currentTenantId,
+          reason,
+        })
+      }
 
       router.push('/login')
     } catch (error) {
@@ -334,7 +357,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [router])
+  }, [router, user, currentTenant])
 
   /**
    * Request password reset

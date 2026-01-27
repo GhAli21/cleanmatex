@@ -146,6 +146,7 @@ export function SelectContent({ children, className }: SelectContentProps) {
   const { open, triggerRef } = context;
   const [position, setPosition] = React.useState({ top: 0, left: 0, width: 0, openUpward: false });
   const contentRef = React.useRef<HTMLDivElement>(null);
+  const rafIdRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     if (!open || !triggerRef.current) return;
@@ -162,23 +163,70 @@ export function SelectContent({ children, className }: SelectContentProps) {
       // Open upward if not enough space below and more space above
       const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
 
+      // Add small offset to ensure proper spacing
+      const offset = 4; // 4px offset for better visual spacing
+
       setPosition({
-        top: shouldOpenUpward ? rect.top - dropdownHeight : rect.bottom,
+        top: shouldOpenUpward ? rect.top - dropdownHeight - offset : rect.bottom + offset,
         left: rect.left,
         width: rect.width,
         openUpward: shouldOpenUpward,
       });
     };
 
-    updatePosition();
+    // Initial position update using requestAnimationFrame to ensure DOM is ready
+    const scheduleUpdate = () => {
+      rafIdRef.current = requestAnimationFrame(() => {
+        updatePosition();
+        // Double RAF to ensure layout is complete
+        rafIdRef.current = requestAnimationFrame(updatePosition);
+      });
+    };
+    scheduleUpdate();
 
-    // Update on scroll
+    // Find all scrollable parents (including modal containers)
+    const findScrollableParents = (element: HTMLElement | null): HTMLElement[] => {
+      const scrollableParents: HTMLElement[] = [];
+      let current = element?.parentElement;
+
+      while (current) {
+        const style = window.getComputedStyle(current);
+        const overflowY = style.overflowY || style.overflow;
+        const overflowX = style.overflowX || style.overflow;
+        
+        if (
+          (overflowY === 'auto' || overflowY === 'scroll' || overflowX === 'auto' || overflowX === 'scroll') &&
+          (current.scrollHeight > current.clientHeight || current.scrollWidth > current.clientWidth)
+        ) {
+          scrollableParents.push(current);
+        }
+        current = current.parentElement;
+      }
+
+      return scrollableParents;
+    };
+
+    const scrollableParents = findScrollableParents(triggerRef.current);
     const handleScroll = () => updatePosition();
+
+    // Listen to window scroll and resize
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', updatePosition);
+
+    // Listen to scroll events on all scrollable parents (including modal)
+    scrollableParents.forEach(parent => {
+      parent.addEventListener('scroll', handleScroll, true);
+    });
+
     return () => {
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+      }
       window.removeEventListener('scroll', handleScroll, true);
       window.removeEventListener('resize', updatePosition);
+      scrollableParents.forEach(parent => {
+        parent.removeEventListener('scroll', handleScroll, true);
+      });
     };
   }, [open, triggerRef]);
 
@@ -194,7 +242,7 @@ export function SelectContent({ children, className }: SelectContentProps) {
         top: `${position.top}px`,
         left: `${position.left}px`,
         width: `${position.width}px`,
-        zIndex: 9999,
+        zIndex: 10000, // Higher than modal z-50 (which is 50)
       }}
       className={cn(
         position.openUpward ? 'mb-1' : 'mt-1',

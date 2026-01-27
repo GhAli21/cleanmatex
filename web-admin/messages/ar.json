@@ -1080,7 +1080,11 @@
       "confirmReady": "تأكيد الجاهزية",
       "processing": "جاري المعالجة...",
       "rackLocation": "موقع الرف",
-      "opening": "جاري الفتح..."
+      "opening": "جاري الفتح...",
+      "color": "اللون",
+      "brand": "العلامة التجارية",
+      "stain": "بقعة",
+      "damage": "تلف"
     },
     "detail": {
       "rackLocation": "موقع الرف",
@@ -1095,6 +1099,7 @@
       "pieces": "القطع",
       "piece": "قطعة",
       "step": "خطوة المعالجة",
+      "loadingSteps": "جاري تحميل الخطوات...",
       "ready": "جاهز",
       "split": "تقسيم",
       "notes": "ملاحظات",
@@ -1109,7 +1114,52 @@
       "unReject": "إلغاء الرفض",
       "quantityReady": "{ready} / {total} جاهز",
       "noItems": "لم يتم العثور على عناصر",
-      "noItemsDesc": "هذا الطلب لا يحتوي على عناصر للمعالجة. يرجى التحقق من تفاصيل الطلب أو الاتصال بالدعم."
+      "noItemsDesc": "هذا الطلب لا يحتوي على عناصر للمعالجة. يرجى التحقق من تفاصيل الطلب أو الاتصال بالدعم.",
+      "color": "اللون",
+      "brand": "العلامة التجارية",
+      "barcode": "الرمز الشريطي",
+      "hasStain": "بقعة",
+      "hasDamage": "تلف",
+      "scanned": "تم المسح",
+      "missing": "مفقود",
+      "wrong": "خطأ",
+      "pieceStatus": "حالة القطعة",
+      "isReady": "جاهز",
+      "summary": {
+        "updateSuccess": "تم التحديث بنجاح",
+        "splitSuccess": "تم تقسيم الطلب بنجاح",
+        "piecesUpdated": "تم تحديث {count} قطعة",
+        "readyCount": "{count} قطعة تم وضع علامة جاهز",
+        "stepsRecorded": "تم تسجيل {count} خطوة",
+        "rackLocationsSet": "تم تعيين {count} موقع رف",
+        "newOrder": "تم إنشاء طلب جديد: {orderNumber}",
+        "movedPieces": "تم نقل {count} قطعة إلى الطلب الجديد"
+      },
+      "steps": {
+        "sorting": "الفرز",
+        "pretreatment": "المعالجة المسبقة",
+        "washing": "الغسيل",
+        "drying": "التجفيف",
+        "finishing": "الإنهاء"
+      },
+      "searchPlaceholder": "البحث في العناصر...",
+      "searchLabel": "البحث في العناصر",
+      "filterByStep": "تصفية حسب الخطوة",
+      "allSteps": "جميع الخطوات",
+      "filterByStatus": "تصفية حسب الحالة",
+      "allStatus": "جميع الحالات",
+      "notReady": "غير جاهز",
+      "activeFilters": "المرشحات النشطة:",
+      "collapsePieces": "طي",
+      "expandPieces": "توسيع",
+      "modalDescription": "إدارة وتحديث تفاصيل المعالجة لعناصر وقطع الطلب",
+      "status": "الحالة",
+      "search": "بحث",
+      "retry": "إعادة المحاولة",
+      "clickStepToChange": "انقر على خطوة لتغيير مرحلة المعالجة",
+      "error": {
+        "loadingFailed": "فشل تحميل الطلب"
+      }
     },
     "splitConfirm": {
       "title": "تأكيد تقسيم الطلب",
@@ -1430,6 +1480,7 @@
     "quickDrop": "إسقاط سريع",
     "notes": "ملاحظات",
     "readyBy": "جاهز بحلول",
+    "calculateReadyBy": "حساب تاريخ الجاهزية",
     "estimatedTotal": "إجمالي مقدر",
     "submitOrder": "إرسال الطلب",
     "tabs": {
@@ -1503,6 +1554,9 @@
       "customGarmentPlaceholder": "مثال: قطعة مخصصة",
       "addItem": "إضافة عنصر",
       "noItemsAdded": "لم تتم إضافة عناصر بعد",
+      "itemName": "اسم العنصر",
+      "actions": "الإجراءات",
+      "removeItem": "إزالة العنصر",
       "selectItemsFromGrid": "اختر العناصر من الشبكة للبدء",
       "orderItems": "عناصر الطلب",
       "pieces": "قطع",
@@ -1578,7 +1632,8 @@
       "addItemsToContinue": "أضف عناصر للمتابعة",
       "editCustomer": "تعديل العميل",
       "removeCustomer": "إزالة العميل",
-      "addCustomer": "إضافة عميل"
+      "addCustomer": "إضافة عميل",
+      "notSet": "غير محدد"
     },
     "schedule": {
       "title": "تاريخ الجاهزية / التوصيل",
@@ -1593,6 +1648,11 @@
       "selectReadyDateTime": "اختر تاريخ ووقت الجاهزية",
       "readyBy": "جاهز في",
       "at": "في",
+      "directInput": "إدخال مباشر",
+      "calculateReadyBy": "حساب تاريخ الجاهزية",
+      "validation": {
+        "dateMustBeFuture": "يجب أن يكون التاريخ في المستقبل"
+      },
       "monthNames": {
         "january": "يناير",
         "february": "فبراير",
@@ -1628,13 +1688,15 @@
       "networkError": "خطأ في الشبكة. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.",
       "timeoutError": "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.",
       "serverError": "حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً أو الاتصال بالدعم إذا استمرت المشكلة.",
+      "failedToCalculateReadyBy": "فشل حساب تاريخ الجاهزية. يرجى المحاولة مرة أخرى.",
       "failedToLoadCategories": "فشل تحميل الفئات. يرجى تحديث الصفحة.",
       "failedToLoadProducts": "فشل تحميل المنتجات. يرجى محاولة اختيار فئة مختلفة.",
       "failedToLoadData": "فشل تحميل البيانات. يرجى تحديث الصفحة."
     },
     "success": {
       "orderCreated": "تم إنشاء الطلب {orderNo} بنجاح!",
-      "customerUpdated": "تم تحديث العميل بنجاح"
+      "customerUpdated": "تم تحديث العميل بنجاح",
+      "readyByCalculated": "تم حساب تاريخ الجاهزية بنجاح"
     },
     "payment": {
       "title": "الدفع",
@@ -1713,6 +1775,32 @@
         },
         "success": "تم تطبيق بطاقة الهدية! الرصيد: {balance} ريال عماني"
       },
+      "customItem": {
+        "title": "إضافة عنصر مخصص",
+        "name": "اسم العنصر",
+        "namePlaceholder": "أدخل اسم العنصر",
+        "name2": "اسم العنصر (عربي)",
+        "name2Placeholder": "أدخل اسم العنصر بالعربية",
+        "price": "السعر (ريال عماني)",
+        "quantity": "الكمية",
+        "notes": "ملاحظات",
+        "notesPlaceholder": "أضف أي تعليمات خاصة...",
+        "add": "إضافة عنصر",
+        "cancel": "إلغاء",
+        "successAdd": "تم إضافة العنصر المخصص بنجاح!",
+        "errorAdd": "فشل إضافة العنصر المخصص."
+      },
+      "photoCapture": {
+        "title": "التقاط صورة",
+        "capture": "التقاط صورة",
+        "capturing": "جاري التقاط الصورة...",
+        "retake": "إعادة التقاط",
+        "usePhoto": "استخدام الصورة",
+        "startingCamera": "جاري تشغيل الكاميرا...",
+        "instructions": "ضع العنصر في الإطار واضغط على التقاط الصورة عندما تكون جاهزاً.",
+        "maxPhotosReached": "الحد الأقصى {max} صور مسموح بها.",
+        "photosCount": "{current} من {max} صور مضافة"
+      },
       "payAllOrders": {
         "label": "دفع كل الطلبات",
         "enabled": "دفع جميع الطلبات",
@@ -1757,7 +1845,9 @@
         "invalidAmount": "مبلغ الدفع غير صحيح",
         "amountExceedsTotal": "مبلغ الدفع يتجاوز إجمالي الطلب",
         "confirmSubmit": "تأكيد إرسال الدفع؟",
-        "paymentMethodNote": "طريقة الدفع: {method}"
+        "paymentMethodNote": "طريقة الدفع: {method}",
+        "readyToSubmit": "جاهز للإرسال",
+        "validationErrors": "يرجى إصلاح الأخطاء التالية"
       },
       "receipt": {
         "title": "إيصال الدفع",
@@ -1793,7 +1883,37 @@
       "customerRequired": "العميل مطلوب",
       "atLeastOneItem": "أضف عنصراً واحداً على الأقل",
       "dateRequired": "اختر تاريخ الجاهزية أو التوصيل",
-      "paymentRequired": "اختر طريقة الدفع"
+      "paymentRequired": "اختر طريقة الدفع",
+      "readyByMustBeFuture": "يجب أن يكون تاريخ الجاهزية في المستقبل",
+      "readyByTooFar": "تاريخ الجاهزية يزيد عن 30 يوماً",
+      "readyByRequired": "تاريخ الجاهزية مطلوب",
+      "readyToSubmit": "جاهز للإرسال"
+    },
+    "warnings": {
+      "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟"
+    },
+    "customItem": {
+      "title": "إضافة عنصر مخصص",
+      "name": "اسم العنصر",
+      "namePlaceholder": "أدخل اسم العنصر",
+      "name2": "اسم العنصر (بالعربية)",
+      "name2Placeholder": "أدخل اسم العنصر بالعربية",
+      "price": "السعر (ريال عماني)",
+      "quantity": "الكمية",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "أضف أي تعليمات خاصة...",
+      "add": "إضافة عنصر"
+    },
+    "photoCapture": {
+      "title": "التقاط صورة",
+      "capture": "التقاط صورة",
+      "capturing": "جاري التقاط الصورة...",
+      "retake": "إعادة المحاولة",
+      "usePhoto": "استخدام الصورة",
+      "startingCamera": "جاري تشغيل الكاميرا...",
+      "instructions": "ضع العنصر في الإطار واضغط على التقاط الصورة عندما تكون جاهزاً.",
+      "maxPhotosReached": "الحد الأقصى {max} صورة مسموح بها.",
+      "photosCount": "{current} من {max} صورة مضافة"
     }
   },
   "layout": {
@@ -1812,6 +1932,19 @@
     "sidebar": {
       "currentTenant": "المستأجر الحالي",
       "role": "الدور"
+    }
+  },
+  "auth": {
+    "logout": {
+      "signingOut": "جاري تسجيل الخروج...",
+      "pleaseWait": "يرجى الانتظار أثناء تسجيل الخروج",
+      "redirecting": "جاري إعادة التوجيه إلى صفحة تسجيل الدخول...",
+      "error": "حدث خطأ أثناء تسجيل الخروج. سيتم إعادة التوجيه قريباً.",
+      "confirmTitle": "تأكيد تسجيل الخروج",
+      "confirmMessage": "هل أنت متأكد أنك تريد تسجيل الخروج؟",
+      "confirmButton": "تسجيل الخروج",
+      "cancelButton": "إلغاء",
+      "success": "تم تسجيل الخروج بنجاح"
     }
   }
 }

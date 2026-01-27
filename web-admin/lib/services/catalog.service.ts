@@ -55,36 +55,39 @@ export async function getServiceCategories(): Promise<ServiceCategory[]> {
 /**
  * Get enabled categories for current tenant
  * Falls back to all global categories if no categories are enabled for the tenant
- */ 
+ */
 export async function getEnabledCategories(): Promise<EnabledCategory[]> {
   const startTime = Date.now();
   const supabase = await createClient();
-  
+
   try {
-    const tenantId = await getTenantIdFromSession(); 
+    const tenantId = await getTenantIdFromSession();
 
     // Try simpler query first - just get enabled category codes
-    const simpleQueryPromise = supabase
-      .from('org_service_category_cf')
-      .select('service_category_code')
-      .eq('tenant_org_id', tenantId)
-      .eq('is_active', true);
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Query timeout')), 3000);
+    // Use a reasonable timeout (30 seconds) to prevent hanging
+    const timeoutMs = 30000; // 30 seconds
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Query timeout after 30 seconds')), timeoutMs);
     });
 
     let enabledCodes: string[] = [];
     try {
-      const queryResult = await simpleQueryPromise;
+      const queryPromise = supabase
+        .from('org_service_category_cf')
+        .select('service_category_code')
+        .eq('tenant_org_id', tenantId)
+        .eq('is_active', true);
+
+      // Race the query against timeout
+      const queryResult = await Promise.race([queryPromise, timeoutPromise]);
       const { data: enabledData, error: simpleError } = queryResult;
 
       if (!simpleError && enabledData && enabledData.length > 0) {
         enabledCodes = enabledData.map((item: any) => item.service_category_code);
       }
     } catch (simpleQueryError: any) {
-      console.warn('Simple query failed, trying fallback:', simpleQueryError);
-      // If timeout, continue to fallback
+      console.warn('Simple query failed or timed out, trying fallback:', simpleQueryError.message);
+      // If timeout or error, continue to fallback
     }
 
     // If we have enabled codes, fetch the full category data
@@ -126,7 +129,7 @@ export async function getEnabledCategories(): Promise<EnabledCategory[]> {
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error(`[Catalog Service] getEnabledCategories failed after ${duration}ms:`, error);
-    
+
     // On timeout or any error, fall back to global categories
     try {
       const tenantId = await getTenantIdFromSession();
@@ -468,7 +471,7 @@ export async function searchProducts(
     name: 'product_name',
     category: 'service_category_code',
     createdAt: 'created_at',
-    price: 'default_sell_price', 
+    price: 'default_sell_price',
   }[sortBy] || 'created_at';
 
   query = query.order(sortColumn, { ascending: sortOrder === 'asc' });
