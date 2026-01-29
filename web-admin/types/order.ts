@@ -366,6 +366,9 @@ export interface AddOrderItemInput {
   hasDamage: boolean;
   damageNotes?: string;
   notes?: string;
+  // Price override fields (requires pricing:override permission)
+  priceOverride?: number;
+  overrideReason?: string;
 }
 
 /**
@@ -680,7 +683,8 @@ export interface ItemPiece {
   id: string; // Generated: `${itemId}-piece-${pieceNumber}`
   itemId: string;
   pieceNumber: number; // 1, 2, 3... up to item.quantity
-  isReady: boolean;
+  // isReady is computed from is_ready || piece_status === 'ready' (read-only, for backward compatibility)
+  isReady?: boolean;
   currentStep?: ProcessingStep;
   notes: string;
   rackLocation: string; // Piece-level rack location
@@ -695,6 +699,7 @@ export interface ItemPiece {
   scan_state?: 'expected' | 'scanned' | 'missing' | 'wrong' | null;
   // Status fields
   piece_status?: 'intake' | 'processing' | 'qa' | 'ready' | null;
+  piece_stage?: string | null;
   is_ready?: boolean | null;
 }
 
@@ -714,9 +719,11 @@ export interface PieceUpdate {
   pieceId: string;
   itemId: string;
   pieceNumber: number;
+  // isReady is deprecated, use is_ready instead (source of truth)
   isReady?: boolean;
   is_ready?: boolean | null;
   currentStep?: ProcessingStep;
+  piece_stage?: string | null;
   notes?: string;
   rackLocation?: string;
   isRejected?: boolean;

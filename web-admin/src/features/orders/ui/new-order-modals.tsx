@@ -11,6 +11,7 @@ import { useOrderTotals } from '../hooks/use-order-totals';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useHasPermission } from '@/lib/hooks/use-has-permission';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import type { MinimalCustomer } from '../model/new-order-types';
@@ -46,13 +47,22 @@ const PaymentModalEnhanced = dynamic(
     loading: () => null
   }
 );
+
+const PriceOverrideModal = dynamic(
+  () => import('@/app/dashboard/orders/new/components/price-override-modal').then(mod => ({ default: mod.PriceOverrideModal })),
+  {
+    ssr: false,
+    loading: () => null
+  }
+);
+
 import type { OrderItem } from '../model/new-order-types';
 
 /**
  * New Order Modals Component
  */
 export function NewOrderModals() {
-  const { currentTenant } = useAuth();
+  const { currentTenant, user } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
   const { submitOrder } = useOrderSubmission();
@@ -60,6 +70,7 @@ export function NewOrderModals() {
     currentTenant?.tenant_id || ''
   );
   const t = useTranslations('newOrder');
+  const hasPriceOverridePermission = useHasPermission('pricing', 'override');
 
   // Get unique service categories from items
   const serviceCategories = useMemo(() => {
@@ -154,6 +165,50 @@ export function NewOrderModals() {
     [state]
   );
 
+  // Handle price override save
+  const handlePriceOverrideSave = useCallback(
+    (override: { price: number; reason: string }) => {
+      if (!state.state.priceOverrideItemId) return;
+
+      const item = state.state.items.find(i => i.productId === state.state.priceOverrideItemId);
+      if (!item) return;
+
+      // Get current user ID from auth context
+      const userId = user?.id || 'system';
+
+      state.updateItemPriceOverride(
+        state.state.priceOverrideItemId,
+        override.price,
+        override.reason,
+        userId
+      );
+      state.closeModal('priceOverride');
+    },
+    [state, user]
+  );
+
+  // Get current item for price override modal
+  const priceOverrideItem = useMemo(() => {
+    if (!state.state.priceOverrideItemId) return null;
+    const item = state.state.items.find(i => i.productId === state.state.priceOverrideItemId);
+    if (!item) return null;
+
+    // Calculate the original price (before override)
+    const originalPrice = item.defaultSellPrice || item.defaultExpressSellPrice || item.pricePerUnit;
+
+    return {
+      id: item.productId,
+      productName: item.productName || 'Unknown Product',
+      quantity: item.quantity,
+      calculatedPrice: originalPrice,
+      currentPrice: item.priceOverride !== null && item.priceOverride !== undefined ? item.priceOverride : item.pricePerUnit,
+    };
+  }, [state.state.priceOverrideItemId, state.state.items]);
+
+  // Expose function to open price override modal (for use in other components)
+  // We'll use a ref or context to expose this, but for now let's use a simpler approach
+  // by storing the itemId in the modal state when opening
+
   return (
     <>
       {/* Customer Picker Modal */}
@@ -192,6 +247,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('customItem')}
           onAdd={handleAddCustomItem}
           trackByPiece={trackByPiece}
+          serviceCategoryCode={state.state.selectedCategory || undefined}
         />
       )}
 
@@ -211,6 +267,17 @@ export function NewOrderModals() {
         initialDate={state.state.readyByAt ? new Date(state.state.readyByAt) : undefined}
         initialTime={state.state.readyByAt ? new Date(state.state.readyByAt).toTimeString().slice(0, 5) : undefined}
       />
+
+      {/* Price Override Modal */}
+      {priceOverrideItem && (
+        <PriceOverrideModal
+          open={state.state.modals.priceOverride}
+          onClose={() => state.closeModal('priceOverride')}
+          item={priceOverrideItem}
+          onSave={handlePriceOverrideSave}
+          hasPermission={hasPriceOverridePermission}
+        />
+      )}
     </>
   );
 }

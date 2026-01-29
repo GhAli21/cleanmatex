@@ -47,6 +47,7 @@ export interface CreateOrderParams {
   customerNotes?: string;
   internalNotes?: string;
   paymentMethod?: string;
+  readyByAt?: string; // ISO datetime string for ready-by date from screen
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
@@ -163,6 +164,7 @@ export class OrderService {
         customerNotes,
         internalNotes,
         paymentMethod,
+        readyByAt: providedReadyByAt,
         userId,
         userName,
         useOldWfCodeOrNew,
@@ -174,7 +176,7 @@ export class OrderService {
       let v_orderStatus: string;
       let v_current_status: string;
       let v_current_stage: string;
-      
+
       // Default hardcoded values (old workflow path)
       v_orderStatus = 'processing';
       v_transitionFrom = 'intake';
@@ -188,7 +190,7 @@ export class OrderService {
         v_orderStatus = 'preparing';
         v_current_status = 'preparing';
         v_current_stage = 'intake';
-        
+
       } else {
         // Normal order: has items → processing stage
         v_initialStatus = 'processing';
@@ -196,7 +198,7 @@ export class OrderService {
         v_orderStatus = 'processing';
         v_current_status = 'processing';
         v_current_stage = 'intake';
-        
+
       }
 
       // If using new workflow system (useOldWfCodeOrNew === false), use contract-based status
@@ -204,17 +206,17 @@ export class OrderService {
         const screen = isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)
           ? 'preparation'
           : 'processing';
-        
+
         const contractStatus = await this.getInitialStatusFromContract(
           tenantId,
           screen,
           v_current_status
         );
-        
+
         v_current_status = contractStatus;
         v_orderStatus = contractStatus;
         v_initialStatus = contractStatus;
-        
+
         logger.info('Using new workflow system for order creation', {
           tenantId,
           userId,
@@ -298,7 +300,7 @@ export class OrderService {
           quick_drop_quantity: quickDropQuantity,
           customer_notes: customerNotes,
           internal_notes: internalNotes,
-          
+
         })
         .select()
         .single();
@@ -350,7 +352,7 @@ export class OrderService {
           // Auto-create pieces for each item if tracking by piece is enabled
           if (trackByPiece || true) { // TODO: Remove true after testing
             const piecesErrors: Array<{ itemId: string; error: string }> = [];
-            
+
             for (let i = 0; i < createdItems.length; i++) {
               const createdItem = createdItems[i];
               const itemData = items[i];
@@ -359,15 +361,15 @@ export class OrderService {
                 // Use piece-level data if provided, otherwise use item-level data as fallback
                 const piecesData = itemData.pieces && itemData.pieces.length > 0
                   ? itemData.pieces.map((piece, index) => ({
-                      pieceSeq: piece.pieceSeq || index + 1,
-                      color: piece.color,
-                      brand: piece.brand,
-                      hasStain: piece.hasStain ?? itemData.hasStain,
-                      hasDamage: piece.hasDamage ?? itemData.hasDamage,
-                      notes: piece.notes || itemData.notes,
-                      rackLocation: piece.rackLocation,
-                      metadata: piece.metadata || {},
-                    }))
+                    pieceSeq: piece.pieceSeq || index + 1,
+                    color: piece.color,
+                    brand: piece.brand,
+                    hasStain: piece.hasStain ?? itemData.hasStain,
+                    hasDamage: piece.hasDamage ?? itemData.hasDamage,
+                    notes: piece.notes || itemData.notes,
+                    rackLocation: piece.rackLocation,
+                    metadata: piece.metadata || {},
+                  }))
                   : undefined; // Will use baseData fallback
 
                 const piecesResult = await OrderPieceService.createPiecesForItem(
@@ -402,7 +404,8 @@ export class OrderService {
 
             // If any pieces creation failed, rollback order and items
             if (piecesErrors.length > 0) {
-              logger.error('Failed to create pieces for order items, rolling back order', {
+              const errorMessage = `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`;
+              logger.error('Failed to create pieces for order items, rolling back order', new Error(errorMessage), {
                 tenantId,
                 orderId: order.id,
                 errors: piecesErrors,
@@ -435,25 +438,38 @@ export class OrderService {
         }
       }
 
-      // Calculate ready_by date
-      const readyByAt = await this.estimateReadyBy({
-        items: items.map(item => ({
-          serviceCategoryCode: item.serviceCategoryCode || '',
-          quantity: item.quantity,
-        })),
-        isQuickDrop,
-        express,
-      });
+      // Handle ready_by date: use provided value or calculate if null
+      let finalReadyByAt: string | undefined;
 
-      // Update order with ready_by date
-      if (readyByAt.success && readyByAt.readyByAt) {
+      if (providedReadyByAt) {
+        // Use the ready_by date from the screen field
+        finalReadyByAt = providedReadyByAt;
+      } else {
+        // Calculate ready_by date if not provided
+        const readyByAt = await this.estimateReadyBy({
+          items: items.map(item => ({
+            serviceCategoryCode: item.serviceCategoryCode || '',
+            quantity: item.quantity,
+          })),
+          isQuickDrop,
+          express,
+        });
+
+        if (readyByAt.success && readyByAt.readyByAt) {
+          finalReadyByAt = readyByAt.readyByAt;
+        }
+      }
+
+      // Update order with ready_by date if we have one
+      if (finalReadyByAt) {
         await supabase
           .from('org_orders_mst')
           .update({
-            ready_by: readyByAt.readyByAt,
-            ready_by_at_new: readyByAt.readyByAt,
+            ready_by: finalReadyByAt,
+            ready_by_at_new: finalReadyByAt,
           })
-          .eq('id', order.id);
+          .eq('id', order.id)
+          .eq('tenant_org_id', tenantId);
       }
 
       return {
@@ -462,7 +478,7 @@ export class OrderService {
           id: order.id,
           orderNo: order.order_no,
           currentStatus: order.current_status,
-          readyByAt: readyByAt.readyByAt || '',
+          readyByAt: finalReadyByAt || '',
         },
       };
     } catch (error) {

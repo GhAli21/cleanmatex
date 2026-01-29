@@ -21,6 +21,7 @@ import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import type { ValidatePromoCodeResult, ValidateGiftCardResult } from '@/lib/types/payment';
 import { paymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
+import { taxService } from '@/lib/services/tax.service';
 
 interface PaymentModalProps {
   open: boolean;
@@ -46,7 +47,7 @@ export function PaymentModalEnhanced({
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  
+
   // React Hook Form setup
   const {
     control,
@@ -100,6 +101,21 @@ export function PaymentModalEnhanced({
     balance: number;
   } | null>(null);
 
+  // Tax rate state
+  const [taxRate, setTaxRate] = useState<number>(0.06); // Default 5%
+
+  // Load tax rate when modal opens
+  useEffect(() => {
+    if (open && tenantOrgId) {
+      taxService.getTaxRate(tenantOrgId).then(rate => {
+        setTaxRate(rate);
+      }).catch(err => {
+        console.error('Error loading tax rate:', err);
+        setTaxRate(0.05); // Fallback to default
+      });
+    }
+  }, [open, tenantOrgId]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
@@ -138,25 +154,33 @@ export function PaymentModalEnhanced({
     // Promo discount
     const promoDiscount = appliedPromoCode?.discount || 0;
 
-    // Total after discounts
+    // Subtotal after discounts (before VAT)
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
+
+    // Calculate VAT on discounted amount
+    const vatValue = parseFloat((afterDiscounts * taxRate).toFixed(3));
+
+    // Total after VAT
+    const afterVat = afterDiscounts + vatValue;
 
     // Gift card
     const giftCardApplied = appliedGiftCard?.amount || 0;
 
-    // Final total
-    const finalTotal = Math.max(0, afterDiscounts - giftCardApplied);
+    // Final total (after VAT, minus gift card)
+    const finalTotal = Math.max(0, afterVat - giftCardApplied);
 
     return {
       subtotal,
       manualDiscount,
       promoDiscount,
-      giftCardApplied,
       afterDiscounts,
+      vatTaxPercent: taxRate * 100,
+      vatValue,
+      giftCardApplied,
       finalTotal,
-      totalSavings: subtotal - finalTotal,
+      totalSavings: subtotal + vatValue - finalTotal,
     };
-  }, [total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard]);
+  }, [total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate]);
 
   // Validate promo code
   const handleValidatePromoCode = async () => {
@@ -325,6 +349,38 @@ export function PaymentModalEnhanced({
               )}
             </div>
 
+            {/* VAT/Tax Breakdown */}
+            <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+              <div className="space-y-3">
+                {/* Sub-total */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-sm font-medium text-gray-700">{t('summary.subtotal')}</span>
+                  <span className="text-sm font-semibold text-gray-900">OMR {totals.subtotal.toFixed(3)}</span>
+                </div>
+
+                {/* VAT Tax % */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-sm font-medium text-gray-700">{t('summary.vatTaxPercent')}</span>
+                  <span className="text-sm font-semibold text-gray-900">{totals.vatTaxPercent.toFixed(2)}%</span>
+                </div>
+
+                {/* VAT Value */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-sm font-medium text-gray-700">{t('summary.vatValue')}</span>
+                  <span className="text-sm font-semibold text-gray-900">OMR {totals.vatValue.toFixed(3)}</span>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-300 my-2"></div>
+
+                {/* Total */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-base font-bold text-gray-900">{t('summary.totalAmount')}</span>
+                  <span className="text-base font-bold text-gray-900">OMR {totals.finalTotal.toFixed(3)}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Payment Methods */}
             <div>
               <h3 className={`font-semibold text-gray-900 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>{t('methods.title')}</h3>
@@ -416,9 +472,8 @@ export function PaymentModalEnhanced({
                         {...field}
                         type="text"
                         dir="ltr"
-                        className={`w-full px-4 py-3 border ${
-                          errors.checkNumber ? 'border-red-500' : 'border-gray-300'
-                        } rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                        className={`w-full px-4 py-3 border ${errors.checkNumber ? 'border-red-500' : 'border-gray-300'
+                          } rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
                         placeholder={t('checkNumber.placeholder')}
                       />
                       {errors.checkNumber && (
@@ -443,7 +498,7 @@ export function PaymentModalEnhanced({
                   <button
                     type="button"
                     className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium transition-colors"
-                    onClick={() => {/* Toggle between % and amount */}}
+                    onClick={() => {/* Toggle between % and amount */ }}
                   >
                     <span className="text-gray-700">%</span>
                   </button>
@@ -526,9 +581,8 @@ export function PaymentModalEnhanced({
                               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleValidatePromoCode())}
                               dir="ltr"
-                              className={`flex-1 px-4 py-2 border ${
-                                errors.promoCode ? 'border-red-500' : 'border-gray-300'
-                              } rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              className={`flex-1 px-4 py-2 border ${errors.promoCode ? 'border-red-500' : 'border-gray-300'
+                                } rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
                               placeholder={t('promoCode.placeholder')}
                               disabled={promoCodeValidating}
                             />
@@ -598,9 +652,8 @@ export function PaymentModalEnhanced({
                               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleValidateGiftCard())}
                               dir="ltr"
-                              className={`flex-1 px-4 py-2 border ${
-                                errors.giftCardNumber ? 'border-red-500' : 'border-gray-300'
-                              } rounded-lg focus:ring-2 focus:ring-purple-500 ${isRTL ? 'text-right' : 'text-left'}`}
+                              className={`flex-1 px-4 py-2 border ${errors.giftCardNumber ? 'border-red-500' : 'border-gray-300'
+                                } rounded-lg focus:ring-2 focus:ring-purple-500 ${isRTL ? 'text-right' : 'text-left'}`}
                               placeholder={t('giftCard.placeholder')}
                               disabled={giftCardValidating}
                             />
@@ -699,9 +752,9 @@ export function PaymentModalEnhanced({
             {(() => {
               // Check for any actual errors
               const errorEntries = Object.entries(errors).filter(([_, error]) => error);
-              
+
               if (errorEntries.length === 0) return null;
-              
+
               return (
                 <div className={`space-y-1 mt-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                   <p className="text-xs font-semibold text-red-600 text-center">

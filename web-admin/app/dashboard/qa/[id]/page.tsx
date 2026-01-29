@@ -69,14 +69,50 @@ export default function QADetailPage() {
     if (!currentTenant || !orderId) return;
     
     setLoading(true);
+    setError('');
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
-      if (json.success && json.data?.order) {
-        setOrder(json.data.order);
+      
+      if (!res.ok || !json.success) {
+        setError(json.error || 'Failed to load order');
+        setOrder(null);
+        return;
+      }
+
+      if (json.order) {
+        // Get customer data - prefer sys_customers_mst, fallback to org_customers_mst
+        const orgCustomer = json.order.org_customers_mst;
+        const sysCustomer = orgCustomer?.sys_customers_mst;
+        const customerData = sysCustomer || orgCustomer;
+
+        // Transform items to match QAItem interface
+        const items: QAItem[] = (json.items || []).map((item: any) => ({
+          id: item.id,
+          product_name: item.org_product_data_mst?.product_name || item.product_name || 'Unknown Product',
+          quantity: item.quantity || 0,
+          item_status: item.item_status || item.item_last_step || 'pending',
+        }));
+
+        // Transform order to match QAOrder interface
+        const qaOrder: QAOrder = {
+          id: json.order.id,
+          order_no: json.order.order_no,
+          customer: {
+            name: customerData?.name || 'Unknown Customer',
+            phone: customerData?.phone || 'N/A',
+          },
+          items,
+        };
+
+        setOrder(qaOrder);
+      } else {
+        setError('Order not found');
+        setOrder(null);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to load order');
+      setOrder(null);
     } finally {
       setLoading(false);
     }
@@ -87,6 +123,7 @@ export default function QADetailPage() {
 
   useEffect(() => {
     loadOrder();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, currentTenant]);
 
   const handleAccept = async () => {

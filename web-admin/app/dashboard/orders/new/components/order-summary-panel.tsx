@@ -26,6 +26,8 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  priceOverride?: number | null;
+  overrideReason?: string | null;
 }
 
 interface OrderSummaryPanelProps {
@@ -359,6 +361,9 @@ function OrderSummaryPanelComponent({
           <div className={isRTL ? 'text-left' : 'text-right'}>
             <p className="text-xs opacity-90">{t('total')}</p>
             <p className="text-2xl font-bold">OMR {total.toFixed(3)}</p>
+            <p className="text-xs opacity-75 mt-1">
+              {items.length} {items.length === 1 ? 'item' : 'items'}
+            </p>
           </div>
         </button>
 

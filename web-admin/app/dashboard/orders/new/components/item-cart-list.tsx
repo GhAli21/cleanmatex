@@ -97,6 +97,8 @@ function ItemCartListComponent({
             trackByPiece={trackByPiece}
             onEdit={onEditItem ? () => onEditItem(item.id) : undefined}
             onDelete={() => onDeleteItem(item.id)}
+            priceOverride={item.priceOverride}
+            overrideReason={item.overrideReason}
           />
         ))}
       </div>

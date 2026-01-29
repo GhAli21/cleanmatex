@@ -6,6 +6,7 @@
 'use client'
 
 import * as React from 'react'
+import { Slot } from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 
 export interface CmxButtonProps
@@ -13,10 +14,11 @@ export interface CmxButtonProps
   variant?: 'primary' | 'secondary' | 'ghost' | 'outline' | 'destructive'
   size?: 'xs' | 'sm' | 'md' | 'lg'
   loading?: boolean
+  asChild?: boolean
 }
 
 export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
-  ({ variant = 'primary', size = 'md', loading, className, children, disabled, ...props }, ref) => {
+  ({ variant = 'primary', size = 'md', loading, className, children, disabled, asChild = false, ...props }, ref) => {
     const base =
       'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed rounded-[var(--cmx-radius-md,0.375rem)]'
 
@@ -37,6 +39,18 @@ export const CmxButton = React.forwardRef<HTMLButtonElement, CmxButtonProps>(
       md: 'h-9 px-4 text-sm',
       lg: 'h-10 px-5 text-base',
     }[size]
+
+    if (asChild) {
+      return (
+        <Slot
+          ref={ref as any}
+          className={cn(base, variantClass, sizeClass, className)}
+          {...(props as any)}
+        >
+          {children as React.ReactNode}
+        </Slot>
+      )
+    }
 
     return (
       <button

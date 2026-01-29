@@ -23,6 +23,7 @@ import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-c
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { TenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { taxService } from '@/lib/services/tax.service';
 
 // ==================================================================
 // CREATE OPERATIONS
@@ -103,44 +104,112 @@ export async function addOrderItems(
     },
   });
 
-  // Fetch order to build item barcode value with order_no
+  // Fetch order to get customer_id for pricing and order_no for barcode
   const orderForBarcode = await prisma.org_orders_mst.findUnique({
     where: { id: orderId, tenant_org_id: tenantOrgId },
-    select: { order_no: true },
+    select: { order_no: true, customer_id: true },
   });
 
   // Create product map for easy lookup
   const productMap = new Map(products.map((p) => [p.id, p]));
 
-  // Calculate pricing for each item
-  const itemsWithPricing = input.items.map((item) => {
-    const product = productMap.get(item.productId);
-    if (!product) {
-      throw new Error(`Product not found: ${item.productId}`);
+  // Import PricingService
+  const { pricingService } = await import('@/lib/services/pricing.service');
+
+  // Get current user ID for override tracking (if available)
+  let currentUserId: string | undefined;
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    currentUserId = user?.id;
+  } catch (error) {
+    // User ID not available, continue without override tracking
+    console.warn('[addOrderItems] Could not get current user ID:', error);
+  }
+
+  // Check permission for price override (if any item has override)
+  const hasPriceOverride = input.items.some((item) => item.priceOverride !== undefined);
+  if (hasPriceOverride && currentUserId) {
+    try {
+      const { hasPermissionServer } = await import('@/lib/services/permission-service-server');
+      const canOverride = await hasPermissionServer('pricing:override', {
+        userId: currentUserId,
+        tenantId: tenantOrgId,
+      });
+      if (!canOverride) {
+        throw new Error('Permission denied: pricing:override required for price overrides');
+      }
+    } catch (error: any) {
+      if (error.message.includes('Permission denied')) {
+        throw error;
+      }
+      // If permission check fails for other reasons, log and continue
+      console.warn('[addOrderItems] Permission check failed:', error);
     }
+  }
 
-    const basePrice = Number(product.default_sell_price || 0);
-    // Prefer explicit express price if provided; otherwise fall back to multiplier
-    const explicitExpressPrice = Number(product.default_express_sell_price || 0);
-    const expressMultiplier = Number(product.multiplier_express || 1.5);
-    const isExpress = Boolean(input.isExpressService);
-    const effectiveBase = isExpress && explicitExpressPrice > 0 ? explicitExpressPrice : basePrice;
-    const taxRate = 0.05; // TODO: fetch from tenant settings per tenant_org_id
+  // Calculate pricing for each item using PricingService
+  const itemsWithPricing = await Promise.all(
+    input.items.map(async (item) => {
+      const product = productMap.get(item.productId);
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
 
-    const pricing = calculateItemPrice({
-      basePrice: effectiveBase,
-      quantity: item.quantity,
-      isExpress,
-      expressMultiplier,
-      taxRate,
-    });
+      // Get price from pricing service (uses price lists, tax service, etc.)
+      const priceResult = await pricingService.getPriceForOrderItem({
+        tenantId: tenantOrgId,
+        productId: item.productId,
+        quantity: item.quantity,
+        isExpress: Boolean(input.isExpressService),
+        customerId: orderForBarcode?.customer_id || undefined,
+      });
 
-    return {
-      ...item,
-      product,
-      pricing,
-    };
-  });
+      // Apply price override if provided
+      let finalPrice = priceResult.finalPrice;
+      let finalTotal = priceResult.total;
+      let overrideApplied = false;
+
+      if (item.priceOverride !== undefined && item.priceOverride !== null) {
+        // Use override price
+        finalPrice = item.priceOverride;
+        // Recalculate tax on override price
+        const taxAmount = priceResult.isTaxExempt
+          ? 0
+          : taxService.calculateTax(finalPrice * item.quantity, priceResult.taxRate);
+        finalTotal = finalPrice * item.quantity + taxAmount;
+        overrideApplied = true;
+      }
+
+      // Convert PriceResult to pricing format expected by existing code
+      // Use pricing calculator for consistency with existing structure
+      const expressMultiplier = Number(product.multiplier_express || 1.5);
+      const pricing = calculateItemPrice({
+        basePrice: finalPrice, // Use final price (override or calculated)
+        quantity: item.quantity,
+        isExpress: Boolean(input.isExpressService),
+        expressMultiplier: 1, // Already applied in priceResult
+        taxRate: priceResult.taxRate,
+        discountPercent: 0, // Already applied in priceResult
+      });
+
+      // Override with actual values
+      pricing.unitPrice = finalPrice;
+      pricing.tax = priceResult.isTaxExempt
+        ? 0
+        : taxService.calculateTax(finalPrice * item.quantity, priceResult.taxRate);
+      pricing.total = finalTotal;
+
+      return {
+        ...item,
+        product,
+        pricing,
+        priceResult, // Store full price result for future use
+        overrideApplied,
+      };
+    })
+  );
 
   // Create items in database
   const createdItems = await prisma.$transaction(async (tx) => {
@@ -166,6 +235,10 @@ export async function addOrderItems(
           damage_notes: item.damageNotes,
           notes: item.notes,
           status: 'pending',
+          // Price override fields
+          price_override: item.overrideApplied ? item.priceOverride : null,
+          override_reason: item.overrideApplied ? item.overrideReason : null,
+          override_by: item.overrideApplied && currentUserId ? currentUserId : null,
         },
       });
 
@@ -194,7 +267,7 @@ export async function addOrderItems(
   if (trackByPiece && createdItems.length > 0) {
     // Create pieces for each item
     const piecesErrors: Array<{ itemId: string; error: string }> = [];
-    
+
     for (let i = 0; i < createdItems.length; i++) {
       const createdItem = createdItems[i];
       const itemData = itemsWithPricing[i];
@@ -469,12 +542,14 @@ export async function listOrders(
           OR: [
             { name: { contains: search, mode: 'insensitive' } },
             { phone: { contains: search } },
-            { sys_customers_mst: {
-              OR: [
-                { name: { contains: search, mode: 'insensitive' } },
-                { phone: { contains: search } },
-              ],
-            }},
+            {
+              sys_customers_mst: {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  { phone: { contains: search } },
+                ],
+              }
+            },
           ],
         },
       },
@@ -525,7 +600,7 @@ export async function listOrders(
   // Get piece counts for all orders in batch
   const orderIds = orders.map(o => o.id);
   const itemIds = orders.flatMap(o => o.org_order_items_dtl.map(item => item.id));
-  
+
   const pieceCounts = itemIds.length > 0 ? await prisma.org_order_item_pieces_dtl.groupBy({
     by: ['order_id'],
     where: {
@@ -544,19 +619,19 @@ export async function listOrders(
   const orderList: OrderListItem[] = orders.map((order) => {
     // Get customer data from org_customers_mst, fallback to sys_customers_mst if available
     const customerData = order.org_customers_mst?.sys_customers_mst || order.org_customers_mst;
-    
+
     // Ensure customer data is properly formatted (defensive check)
     const customerId = customerData?.id || order.org_customers_mst?.id || '';
     const customerName = customerData?.name || order.org_customers_mst?.name || '';
     const customerPhone = customerData?.phone || order.org_customers_mst?.phone || '';
-    
+
     // Ensure all values are strings, not objects
     const safeCustomer = {
       id: typeof customerId === 'string' ? customerId : String(customerId || ''),
       name: typeof customerName === 'string' ? customerName : String(customerName || ''),
       phone: typeof customerPhone === 'string' ? customerPhone : String(customerPhone || ''),
     };
-    
+
     return {
       id: order.id,
       order_no: order.order_no,

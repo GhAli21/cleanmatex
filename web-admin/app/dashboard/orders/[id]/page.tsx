@@ -38,7 +38,7 @@ async function OrderDetailContent({
   const order = result.data;
 
   // Serialize Decimal fields to numbers for Client Component
-  // Next.js cannot serialize Decimal objects from Prisma
+  // Next.js cannot serialize Decimal objects from Supabase/PostgreSQL
   const serializedOrder = {
     ...order,
     subtotal: order.subtotal ? Number(order.subtotal) : 0,
@@ -46,13 +46,29 @@ async function OrderDetailContent({
     tax: order.tax ? Number(order.tax) : 0,
     total: order.total ? Number(order.total) : 0,
     paid_amount: order.paid_amount ? Number(order.paid_amount) : null,
-    // Serialize items if they exist
-    items: order.items?.map((item: any) => ({
-      ...item,
-      price_per_unit: item.price_per_unit ? Number(item.price_per_unit) : 0,
-      total_price: item.total_price ? Number(item.total_price) : 0,
-      quantity: item.quantity ? Number(item.quantity) : 0,
-    })) || [],
+    bag_count: order.bag_count ? Number(order.bag_count) : null,
+    priority_multiplier:
+      order.priority_multiplier !== undefined && order.priority_multiplier !== null
+        ? Number(order.priority_multiplier)
+        : null,
+    // Serialize items if they exist - convert all Decimal fields
+    items: order.items?.map((item: any) => {
+      const serializedItem: any = { ...item };
+      // Convert all numeric fields that might be Decimal
+      if (item.price_per_unit !== undefined && item.price_per_unit !== null) {
+        serializedItem.price_per_unit = Number(item.price_per_unit);
+      }
+      if (item.total_price !== undefined && item.total_price !== null) {
+        serializedItem.total_price = Number(item.total_price);
+      }
+      if (item.quantity !== undefined && item.quantity !== null) {
+        serializedItem.quantity = Number(item.quantity);
+      }
+      if (item.quantity_ready !== undefined && item.quantity_ready !== null) {
+        serializedItem.quantity_ready = Number(item.quantity_ready);
+      }
+      return serializedItem;
+    }) || [],
   };
 
   return (

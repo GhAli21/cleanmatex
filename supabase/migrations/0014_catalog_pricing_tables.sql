@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS org_price_list_items_dtl (
   tenant_org_id UUID NOT NULL,
   price_list_id UUID NOT NULL,
   product_id UUID NOT NULL,
-  price NUMERIC(10,3) NOT NULL,
+  price NUMERIC(19,4) NOT NULL,
   discount_percent NUMERIC(5,2) DEFAULT 0,  -- Optional discount
   min_quantity INTEGER DEFAULT 1,            -- Minimum quantity for this price
   max_quantity INTEGER,                      -- Maximum quantity (NULL = unlimited)

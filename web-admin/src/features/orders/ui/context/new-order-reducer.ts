@@ -36,7 +36,9 @@ export const initialState: NewOrderState = {
     customItem: false,
     photoCapture: false,
     readyBy: false,
+    priceOverride: false,
   },
+  priceOverrideItemId: null,
 
   // Data
   categories: [],
@@ -191,6 +193,27 @@ export function newOrderReducer(
         ),
       };
 
+    case 'UPDATE_ITEM_PRICE_OVERRIDE': {
+      const { productId, priceOverride, overrideReason, overrideBy } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          if (item.productId !== productId) {
+            return item;
+          }
+          const effectivePrice = priceOverride !== null ? priceOverride : item.pricePerUnit;
+          return {
+            ...item,
+            priceOverride,
+            overrideReason,
+            overrideBy,
+            pricePerUnit: effectivePrice,
+            totalPrice: item.quantity * effectivePrice,
+          };
+        }),
+      };
+    }
+
     case 'SET_QUICK_DROP':
       return {
         ...state,
@@ -263,6 +286,18 @@ export function newOrderReducer(
           ...state.modals,
           [action.payload]: false,
         },
+        // Clear price override itemId when closing price override modal
+        priceOverrideItemId: action.payload === 'priceOverride' ? null : state.priceOverrideItemId,
+      };
+
+    case 'OPEN_PRICE_OVERRIDE_MODAL':
+      return {
+        ...state,
+        modals: {
+          ...state.modals,
+          priceOverride: true,
+        },
+        priceOverrideItemId: action.payload,
       };
 
     case 'SET_CATEGORIES':

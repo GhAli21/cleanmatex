@@ -5,60 +5,95 @@
 ## CRITICAL RULES
 
 1. **Never do Supabase db reset** - tell me, I'll run migrations
-2. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS only if table not having tenant_org_id column
-3. **After frontend changes: run `npm run build`** and fix until success - keep fixing until build succeeds
+2. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
+3. **After frontend changes: run `npm run build`** and fix until success
 4. **Bilingual support (EN/AR + RTL) is mandatory**
-5. **Check plans first:** `docs/plan/master_plan_cc_01.md`
-6. **Use free/open-source tools whenever possible**
-7. **All documentation files must be placed under `docs/` directory**
-8. **When build fails, fix issues and update:** `.claude/docs/common_issues.md`
+5. **Use agents for exploration** - See efficiency guide below
+6. **Use `/clear` frequently** - When switching topics or context >70%
+7. **Check skills for detailed rules** - Use `/skill-name` for specifics
 
-## Supabase MCPs
-- Local: `supabase_local MCP`
-- Remote: `supabase_remote MCP`
+## Agent-First Workflow
 
-## Database Rules
-- Names should not exceed 30 characters for All database objects such as Tables, columns, functions, .. so on 
-- Tables: `sys_*` (global), `org_*` (tenant with RLS)
-- Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`, `rec_status default 1`, `is_active`, `rec_notes`, `rec_order`
-- Bilingual: `name/name2`, `description/description2`
-- Composite FKs for tenant joins
-- Soft delete: `is_active=false` `rec_status=0`
+**ALWAYS use agents for:**
 
-## Code Rules
-- TypeScript strict, no `any`
-- No hardcoded secrets
-- Use centralized `getTenantIdFromSession()` from `@/lib/db/tenant-context`
-- Wrap Prisma queries with `withTenantContext()`
+- Exploratory questions: "How does X work?" → Use Explore agent
+- Finding code: "Where is Y?" → Use Explore agent
+- Research: "What's the structure of Z?" → Use Explore agent
+- Multi-file tasks: Implementation, debugging, testing → Use specialized agents
 
-## UI Rules
-- Always search for exist messages keys and reuse or add new messages keys into en.json and ar.json
-- Always use common keys for common messages keys
-- use cmxMessages when applicable
+**Direct actions only for:**
 
-## Documentation (load on-demand via Skills)
-Use `/skill-name` to load specific rules when needed:
-- `/architecture` - System design, stack, data access
-- `/database_conventions` - Schema patterns, naming
-- `/frontend_standards` - Next.js, React, Tailwind
-- `/backend_standards` - NestJS, API patterns
-- `/multitenancy` - RLS, tenant isolation
-- `/i18n` - Internationalization, RTL
-- `/common_issues` - Debugging, build errors
+- Specific file edits with exact path
+- Single file reads
+- Precise line-level changes
 
-**Important docs:**
-- Documentation rules: `.claude/docs/documentation_rules.md`
-- Implementation rules: `.claude/docs/prd-implementation_rules.md`
-- For sessions: Update docs capturing remaining work to prevent context loss
+**See:** [docs/dev/claude-code-efficiency-guide.md](docs/dev/claude-code-efficiency-guide.md) for complete best practices
 
 ## Quick Commands
+
 ```bash
 .\scripts\dev\start-services.ps1  # Start all services
-cd web-admin && npm run dev       # Start web admin
+cd web-admin; npm run dev       # Start web admin
 npm run build                     # Build (run after changes)
 ```
 
+## Database Quick Rules
+
+- Tables: `sys_*` (global), `org_*` (tenant with RLS)
+- Max 30 chars for all DB objects
+- Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
+- Bilingual: `name/name2`, `description/description2`
+- Soft delete: `is_active=false`, `rec_status=0`
+
+**See:** `/database` skill for complete rules
+
+## Code Quick Rules
+
+- TypeScript strict, no `any`
+- No hardcoded secrets
+- Tenant context: `getTenantIdFromSession()` from `@/lib/db/tenant-context`
+- Wrap queries: `withTenantContext()`
+
+**See:** `/implementation` skill for coding standards
+
+## UI Quick Rules
+
+- Search existing message keys before adding new
+- Reuse `common.*` keys for shared UI
+- Use `cmxMessages` when applicable
+
+**See:** `/i18n` skill for complete i18n rules
+
+## Skills (Auto-loaded on demand)
+
+### Core Development (Auto-invoked)
+
+- `/multitenancy` - **CRITICAL** - Tenant isolation, RLS policies
+- `/database` - Schema conventions, migrations, naming
+- `/frontend` - Next.js 15, React 19, Cmx Design System
+- `/backend` - API routes, service layer, Supabase patterns
+- `/i18n` - Bilingual support (EN/AR), RTL layout
+
+### Architecture & Planning
+
+- `/architecture` - System design, tech stack, data access
+- `/business-logic` - Order workflows, pricing, quality gates
+
+### Development Workflow (User-invoked)
+
+- `/implementation` - Feature development, coding standards
+- `/dev-commands` - CLI commands reference
+- `/testing` - Testing strategy, patterns
+- `/debugging` - Troubleshooting, build fixes
+- `/documentation` - Documentation standards
+
+### Utility
+
+- `/explain-code` - Code explanations with diagrams
+- `/codebase-visualizer` - Interactive codebase tree
+
 ## Structure
+
 ```
 supabase/     # Database + RLS (PostgreSQL port 54322)
 web-admin/    # Next.js Admin (Active)
@@ -66,8 +101,20 @@ backend/      # NestJS API (Phase 2)
 docs/         # All documentation
 ```
 
+## Key Documentation
+
+- **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
+- **Master Plan:** `docs/plan/master_plan_cc_01.md`
+- **Common Issues:** `.claude/skills/debugging/common-issues.md`
+
 ## Key Guardrails
+
 - **Security:** RLS on all `org_*` tables, composite FKs, no hardcoded secrets
 - **Performance:** Indexes, avoid N+1 queries, paginate results
 - **Testing:** Cover business logic and tenant isolation
 - **Validation:** Validate all inputs at system boundaries
+
+## Supabase MCPs
+
+- Local: `supabase_local MCP`
+- Remote: `supabase_remote MCP`

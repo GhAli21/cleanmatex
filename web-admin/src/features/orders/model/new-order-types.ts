@@ -92,6 +92,10 @@ export interface OrderItem {
   serviceCategoryCode?: string;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  // Price override fields
+  priceOverride?: number | null;
+  overrideReason?: string | null;
+  overrideBy?: string | null;
 }
 
 // ==================================================================
@@ -108,6 +112,7 @@ export interface ModalStates {
   customItem: boolean;
   photoCapture: boolean;
   readyBy: boolean;
+  priceOverride: boolean;
 }
 
 /**
@@ -145,6 +150,7 @@ export interface NewOrderState {
 
   // Modal States
   modals: ModalStates;
+  priceOverrideItemId: string | null;
 
   // Data
   categories: ServiceCategory[];
@@ -172,6 +178,7 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
+  | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
   | { type: 'SET_EXPRESS'; payload: boolean }
@@ -181,6 +188,7 @@ export type NewOrderAction =
   | { type: 'SET_CREATED_ORDER'; payload: { orderId: string; status: string | null } }
   | { type: 'OPEN_MODAL'; payload: keyof ModalStates }
   | { type: 'CLOSE_MODAL'; payload: keyof ModalStates }
+  | { type: 'OPEN_PRICE_OVERRIDE_MODAL'; payload: string } // productId
   | { type: 'SET_CATEGORIES'; payload: ServiceCategory[] }
   | { type: 'SET_PRODUCTS'; payload: Product[] }
   | { type: 'SET_SELECTED_CATEGORY'; payload: string }

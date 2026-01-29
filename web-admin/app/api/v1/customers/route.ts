@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
 
     // Use progressive search
     const result = await searchCustomersProgressive({
-      page, 
+      page,
       limit,
       search,
       searchAllOptions,
@@ -216,9 +216,19 @@ export async function GET(request: NextRequest) {
       sortOrder: 'desc'
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      data: { customers: result.customers || [] } 
+    // Calculate pagination
+    const total = result.total || 0;
+    const totalPages = Math.ceil(total / limit);
+
+    return NextResponse.json({
+      success: true,
+      data: result.customers || [],
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+      }
     }, { status: 200 });
   } catch (error) {
     logger.error(

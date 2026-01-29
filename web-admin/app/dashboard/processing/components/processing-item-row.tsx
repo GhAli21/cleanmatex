@@ -53,7 +53,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   const t = useTranslations('processing.modal');
 
   const isRejected = item.item_is_rejected || pieces.some(p => p.isRejected);
-  const readyCount = pieces.filter(p => p.isReady).length;
+  const readyCount = pieces.filter(p => p.is_ready === true).length;
   const totalCount = item.quantity;
   const progressPercentage = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
 

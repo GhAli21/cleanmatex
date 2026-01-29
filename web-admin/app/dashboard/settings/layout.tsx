@@ -26,7 +26,8 @@ import {
   Building2,
   Workflow,
   Shield,
-  Navigation
+  Navigation,
+  DollarSign
 } from 'lucide-react'
 
 interface Tab {
@@ -81,6 +82,12 @@ export default function SettingsLayout({
       label: t('subscription'),
       icon: <CreditCard className="h-5 w-5" />,
       href: '/dashboard/settings/subscription'
+    },
+    {
+      id: 'finance',
+      label: t('finance', { defaultValue: 'Finance' }),
+      icon: <DollarSign className="h-5 w-5" />,
+      href: '/dashboard/settings/finance'
     },
     {
       id: 'navigation',

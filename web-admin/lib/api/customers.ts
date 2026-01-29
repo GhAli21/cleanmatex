@@ -62,8 +62,13 @@ export async function fetchCustomers(
 
   const data = await response.json();
   return {
-    customers: data.data,
-    pagination: data.pagination,
+    customers: Array.isArray(data.data) ? data.data : [],
+    pagination: data.pagination || {
+      total: 0,
+      page: params.page || 1,
+      limit: params.limit || 20,
+      totalPages: 0,
+    },
     statistics: data.statistics,
   };
 }

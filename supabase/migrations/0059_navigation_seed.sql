@@ -1,5 +1,5 @@
 -- ==================================================================
--- 0058_navigation_seed.sql
+-- 0059_navigation_seed.sql
 -- Purpose: Seed sys_components_cd table with navigation items from NAVIGATION_SECTIONS
 -- Author: CleanMateX Development Team
 -- Created: 2025-01-27

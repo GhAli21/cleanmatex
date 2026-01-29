@@ -30,6 +30,7 @@ const PUBLIC_ROUTES = [
   '/logout',
   '/terms',
   '/privacy',
+  '/public', // Public order tracking pages (no login required)
 ]
 
 /**

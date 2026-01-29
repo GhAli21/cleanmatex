@@ -46,11 +46,41 @@ export async function POST(request: NextRequest) {
     const parsed = CreateOrderRequestSchema.safeParse(body);
 
     if (!parsed.success) {
-      const errorDetails = parsed.error.issues?.map(e => ({
-        path: e.path.join('.'),
-        message: e.message,
-        code: e.code,
-      })) || [];
+      const errorDetails =
+        parsed.error.issues?.map(issue => {
+          const path = issue.path.join('.');
+          const detail: Record<string, unknown> = {
+            path,
+            message: issue.message,
+            code: issue.code,
+          };
+
+          // Enrich item-level errors with additional context from the raw request body
+          if (issue.path[0] === 'items' && typeof issue.path[1] === 'number') {
+            const itemIndex = issue.path[1] as number;
+            const items = Array.isArray((body as any).items) ? (body as any).items : [];
+            const rawItem = items[itemIndex];
+
+            detail.itemIndex = itemIndex;
+
+            if (rawItem && typeof rawItem === 'object') {
+              detail.item = {
+                productId: (rawItem as any).productId,
+                productName:
+                  (rawItem as any).productName ??
+                  (rawItem as any).name ??
+                  (rawItem as any).label ??
+                  null,
+                serviceCategoryCode: (rawItem as any).serviceCategoryCode,
+                quantity: (rawItem as any).quantity,
+                pricePerUnit: (rawItem as any).pricePerUnit,
+                totalPrice: (rawItem as any).totalPrice,
+              };
+            }
+          }
+
+          return detail;
+        }) || [];
 
       logger.warn('Create order validation failed', {
         feature: 'orders',

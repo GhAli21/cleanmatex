@@ -15,7 +15,7 @@ import { useKeyboardNavigation, useFocusTrap } from '@/lib/hooks/use-keyboard-na
 import { sanitizeInput, sanitizeOrderNotes } from '@/lib/utils/security-helpers';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { cmxMessage } from '@ui/feedback';
-import type { OrderItem, PreSubmissionPiece } from '../../model/new-order-types';
+import type { OrderItem } from '../../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
@@ -41,6 +41,11 @@ interface CustomItemModalProps {
   onClose: () => void;
   onAdd: (item: OrderItem) => void;
   trackByPiece?: boolean;
+  /**
+   * Service category to associate with the custom item / product.
+   * Typically the currently selected category in the product grid.
+   */
+  serviceCategoryCode?: string;
 }
 
 /**
@@ -51,10 +56,12 @@ export function CustomItemModal({
   onClose,
   onAdd,
   trackByPiece = false,
+  serviceCategoryCode,
 }: CustomItemModalProps) {
   const t = useTranslations('newOrder.customItem');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     control,
@@ -107,7 +114,93 @@ export function CustomItemModal({
     }
   }, [open, handleClose]);
 
-  const onSubmit = (data: CustomItemFormData) => {
+  const resolveCustomProductId = async (
+    name: string,
+    name2: string | null,
+    price: number,
+  ): Promise<string | null> => {
+    // Decide strategy based on env:
+    // - 'use'  -> use NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID
+    // - 'new'  -> create a fresh product via /api/v1/products (default)
+    const mode =
+      process.env.NEXT_PUBLIC__CUSTOM_IIEM_USE_DEFAULT_ID_OR_CREATE_NEW_PRODUCT ??
+      'new';
+
+    const trimmedMode = mode.toLowerCase();
+
+    // UUID v4 basic validation (must align with backend expectations)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    if (trimmedMode === 'use') {
+      const rawId = process.env.NEXT_PUBLIC_CUSTOM_ITEM_DEFAULT_PRODUCT_ID ?? '';
+
+      if (!rawId || !uuidRegex.test(rawId)) {
+        cmxMessage.error(
+          'Custom item default product ID is not configured or is invalid. Please contact your administrator.',
+        );
+        return null;
+      }
+
+      return rawId;
+    }
+
+    // Default behaviour: create a product via the Products API and return its UUID
+    if (!serviceCategoryCode) {
+      cmxMessage.error(
+        'Service category is required for custom items. Please select a category first.',
+      );
+      return null;
+    }
+
+    try {
+      const response = await fetch('/api/v1/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          service_category_code: serviceCategoryCode,
+          product_name: name,
+          product_name2: name2,
+          product_unit: 'piece',
+          default_sell_price: price,
+          is_active: true,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}));
+        const errorMessage =
+          (errorBody && (errorBody.error as string)) ||
+          'Failed to create custom product. Please try again.';
+        cmxMessage.error(errorMessage);
+        return null;
+      }
+
+      const json = (await response.json()) as {
+        success?: boolean;
+        data?: { id?: string };
+        error?: string;
+      };
+
+      if (!json.success || !json.data?.id || !uuidRegex.test(json.data.id)) {
+        cmxMessage.error(
+          json.error ||
+          'Product was created but a valid product ID was not returned. Please try again.',
+        );
+        return null;
+      }
+
+      return json.data.id;
+    } catch (error) {
+      console.error('Failed to create custom product', error);
+      cmxMessage.error('Failed to create custom product. Please check your connection and try again.');
+      return null;
+    }
+  };
+
+  const onSubmit = async (data: CustomItemFormData) => {
     // Validate form data
     const validation = customItemSchema.safeParse(data);
     if (!validation.success) {
@@ -121,9 +214,18 @@ export function CustomItemModal({
     const sanitizedName = sanitizeInput(data.name);
     const sanitizedName2 = data.name2 ? sanitizeInput(data.name2) : null;
     const sanitizedNotes = data.notes ? sanitizeOrderNotes(data.notes) : undefined;
+    setIsSubmitting(true);
 
-    // Generate a temporary product ID for custom items
-    const customProductId = `custom-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const customProductId = await resolveCustomProductId(
+      sanitizedName,
+      sanitizedName2,
+      data.price,
+    );
+
+    if (!customProductId) {
+      setIsSubmitting(false);
+      return;
+    }
 
     const customItem: OrderItem = {
       productId: customProductId,
@@ -134,7 +236,7 @@ export function CustomItemModal({
       totalPrice: data.price * data.quantity,
       defaultSellPrice: data.price,
       defaultExpressSellPrice: null,
-      serviceCategoryCode: undefined,
+      serviceCategoryCode,
       notes: sanitizedNotes,
       pieces: trackByPiece
         ? generatePiecesForItem(customProductId, data.quantity)
@@ -143,6 +245,7 @@ export function CustomItemModal({
 
     onAdd(customItem);
     handleClose();
+    setIsSubmitting(false);
   };
 
   if (!open) return null;
@@ -356,7 +459,7 @@ export function CustomItemModal({
             <CmxButton
               type="submit"
               variant="primary"
-              disabled={!isValid}
+              disabled={!isValid || isSubmitting}
               className="flex-1"
             >
               {t('add') || 'Add Item'}

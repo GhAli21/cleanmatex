@@ -64,10 +64,6 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
     onChange({ currentStep: value as ProcessingStep });
   };
 
-  const handleReadyChange = (checked: boolean) => {
-    onChange({ isReady: checked });
-  };
-
   const handleSplitChange = (checked: boolean) => {
     onSplitToggle(checked);
   };
@@ -100,6 +96,10 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
 
   const handleIsReadyChange = (checked: boolean) => {
     onChange({ is_ready: checked });
+  };
+
+  const handlePieceStageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange({ piece_stage: e.target.value });
   };
 
   // Determine completed steps
@@ -252,7 +252,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       <div className="mb-4 pb-4 border-b">
         <div className="mb-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t('modal.step')}
+            {t('modal.step')} / {t('modal.lastStep') || 'Last Step'}
           </label>
           <p className="text-xs text-gray-500 mb-3">
             {t('modal.clickStepToChange') || 'Click on a step to change the processing stage'}
@@ -267,6 +267,13 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
           showLabels={true}
           className="w-full"
         />
+        {/* Display current step as text */}
+        {piece.currentStep && (
+          <div className="mt-2 text-sm text-gray-600">
+            <span className="font-medium">{t('modal.currentStep') || 'Current Step'}:</span>{' '}
+            <span className="capitalize">{piece.currentStep.replace('_', ' ')}</span>
+          </div>
+        )}
       </div>
 
       {/* Piece Details Section - Color, Brand, Barcode */}
@@ -334,6 +341,19 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
           </div>
         </div>
 
+        {/* Piece Stage */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            {t('modal.pieceStage') || 'Piece Stage'}
+          </label>
+          <Input
+            value={piece.piece_stage || ''}
+            onChange={handlePieceStageChange}
+            placeholder={t('modal.pieceStage') || 'Piece Stage'}
+            className="h-10 text-sm"
+          />
+        </div>
+
         {/* Rack Location */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -348,7 +368,7 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
         </div>
 
         {/* Notes */}
-        <div>
+        <div className="sm:col-span-2 lg:col-span-3">
           <label className="block text-sm font-medium text-gray-700 mb-1.5">
             {t('modal.notes')}
           </label>
@@ -365,14 +385,9 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
       {/* Checkboxes Row */}
       <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t">
         <Checkbox
-          checked={piece.isReady}
-          onCheckedChange={handleReadyChange}
-          label={t('modal.ready')}
-        />
-        <Checkbox
           checked={piece.is_ready ?? false}
           onCheckedChange={handleIsReadyChange}
-          label={t('modal.isReady') || 'Is Ready'}
+          label={t('modal.ready') || 'Ready'}
         />
         {splitOrderEnabled && (
           <Checkbox

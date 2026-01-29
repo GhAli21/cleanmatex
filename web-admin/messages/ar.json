@@ -50,6 +50,42 @@
     "area": "المنطقة",
     "city": "المدينة"
   },
+  "publicOrderTracking": {
+    "title": "تتبع طلبك",
+    "description": "شاهد حالة طلب الغسيل وتفاصيله بسهولة.",
+    "brandSubtitle": "كلين ميكس",
+    "loading": "جاري تحميل الطلب...",
+    "orderNumberLabel": "رقم الطلب",
+    "receivedAtLabel": "تم الاستلام",
+    "readyByLabel": "متوقع أن يكون جاهزًا",
+    "totalAmountLabel": "إجمالي المبلغ",
+    "itemsCountLabel": "عدد القطع",
+    "customerSection": {
+      "title": "العميل"
+    },
+    "itemsSection": {
+      "title": "عناصر الطلب",
+      "empty": "لا توجد عناصر في هذا الطلب.",
+      "unnamedItem": "عنصر",
+      "quantityLabel": "{quantity} قطع"
+    },
+    "timelineSection": {
+      "title": "الجدول الزمني للطلب"
+    },
+    "notesSection": {
+      "title": "ملاحظات العميل"
+    },
+    "errors": {
+      "notFound": "تعذر العثور على هذا الطلب. يرجى التحقق من الرابط مع محل الغسيل.",
+      "generic": "حدث خطأ أثناء تحميل الطلب. يرجى المحاولة مرة أخرى بعد قليل."
+    },
+    "actions": {
+      "confirmReceived": "لقد استلمت الملابس",
+      "confirmingReceived": "جاري التأكيد...",
+      "confirmReceivedSuccess": "شكرًا لك! تم تحديث حالة الطلب إلى تم الاستلام."
+    },
+    "footer": "مدعوم من CleanMateX – إدارة ذكية لمغسلتك."
+  },
   "navigation": {
     "dashboard": "لوحة التحكم",
     "orders": "الطلبات",
@@ -172,6 +208,56 @@
     "utilizationRate": "معدل الاستخدام",
     "manageDrivers": "إدارة السائقين"
   },
+  "invoices": {
+    "title": "الفواتير",
+    "subtitle": "مراجعة الفواتير والمدفوعات والأرصدة المتبقية",
+    "empty": "لا توجد فواتير",
+    "columns": {
+      "invoiceNo": "رقم الفاتورة",
+      "orderNo": "معرّف الطلب",
+      "total": "الإجمالي",
+      "paid": "مدفوع",
+      "balance": "الرصيد",
+      "status": "الحالة"
+    },
+    "pagination": {
+      "pageOf": "صفحة {page} من {totalPages}"
+    },
+    "stats": {
+      "total": "إجمالي الفواتير",
+      "paid": "مدفوعة",
+      "pending": "معلقة / جزئية",
+      "overdue": "متأخرة"
+    },
+    "detail": {
+      "title": "فاتورة {invoiceNo}",
+      "forOrder": "مرتبطة بالطلب {orderId}",
+      "noOrder": "غير مرتبطة بطلب",
+      "summary": "ملخص الفاتورة",
+      "paymentHistory": "سجل المدفوعات",
+      "orderSummary": "ملخص الطلب",
+      "status": "الحالة"
+    },
+    "history": {
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "method": "الطريقة",
+      "status": "الحالة",
+      "empty": "لا توجد مدفوعات مسجلة بعد"
+    },
+    "recordPayment": {
+      "title": "تسجيل دفعة",
+      "amount": "المبلغ",
+      "paymentMethod": "طريقة الدفع",
+      "cash": "نقداً",
+      "card": "بطاقة (جهاز نقاط البيع)",
+      "submit": "تسجيل الدفعة",
+      "processing": "جاري المعالجة...",
+      "cancel": "إعادة التعيين",
+      "success": "تم تسجيل الدفعة بنجاح",
+      "error": "يرجى التحقق من المبلغ والمحاولة مرة أخرى"
+    }
+  },
   "orders": {
     "title": "الطلبات",
     "newOrder": "طلب جديد",
@@ -203,6 +289,7 @@
     "preparationStatus": "حالة التحضير",
     "numberOfBags": "عدد الأكياس",
     "qrCode": "رمز الاستجابة السريعة",
+    "publicTrackingLink": "رابط تتبع عام",
     "printLabel": "طباعة الملصق",
     "printItemLabels": "طباعة ملصقات العناصر",
     "saveDraft": "حفظ كمسودة",
@@ -654,6 +741,7 @@
     "types": {
       "guest": "زائر",
       "stub": "جزئي",
+      "walk_in": "وافد",
       "full": "ملف كامل"
     },
     "upgradeToFull": "ترقية إلى ملف كامل",
@@ -773,6 +861,7 @@
     "branding": "العلامة التجارية",
     "users": "المستخدمون",
     "subscription": "الاشتراك",
+    "finance": "المالية",
     "navigation": "التنقل",
     "businessInfo": "معلومات العمل",
     "businessName": "اسم العمل",
@@ -1125,6 +1214,10 @@
       "wrong": "خطأ",
       "pieceStatus": "حالة القطعة",
       "isReady": "جاهز",
+      "lastStep": "الخطوة الأخيرة",
+      "currentStep": "الخطوة الحالية",
+      "pieceStage": "مرحلة القطعة",
+      "isRejected": "مرفوض",
       "summary": {
         "updateSuccess": "تم التحديث بنجاح",
         "splitSuccess": "تم تقسيم الطلب بنجاح",
@@ -1809,6 +1902,8 @@
       "summary": {
         "title": "ملخص الدفع",
         "subtotal": "المبلغ الجزئي",
+        "vatTaxPercent": "نسبة ضريبة القيمة المضافة %",
+        "vatValue": "قيمة ضريبة القيمة المضافة",
         "manualDiscount": "الخصم اليدوي",
         "promoDiscount": "خصم الكود",
         "giftCardApplied": "بطاقة الهدية المطبقة",

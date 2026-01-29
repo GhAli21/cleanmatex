@@ -30,6 +30,8 @@ interface ItemCartItemProps {
   trackByPiece?: boolean;
   onEdit?: () => void;
   onDelete: () => void;
+  priceOverride?: number | null;
+  overrideReason?: string | null;
 }
 
 function ItemCartItemComponent({
@@ -49,6 +51,8 @@ function ItemCartItemComponent({
   trackByPiece = false,
   onEdit,
   onDelete,
+  priceOverride,
+  overrideReason,
 }: ItemCartItemProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -101,8 +105,14 @@ function ItemCartItemComponent({
         <div className={`flex items-center gap-2 text-sm text-gray-600 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <span className="font-semibold">{quantity}x</span>
           <span>@{price.toFixed(3)} OMR</span>
+          {priceOverride !== null && priceOverride !== undefined && (
+            <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs font-medium rounded" title={overrideReason || 'Price overridden'}>
+              Override
+            </span>
+          )}
           <span className="mx-1">•</span>
           <span className="font-bold text-gray-900">{totalPrice.toFixed(3)} OMR</span>
+          {/* Price source indicator - will be populated when pricing service integration is complete */}
         </div>
 
         {/* Conditions/Issues */}
@@ -150,7 +160,7 @@ function ItemCartItemComponent({
                 <ChevronDown className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
               )}
             </button>
-            
+
             {piecesExpanded && onPiecesChange && (
               <PreSubmissionPiecesManager
                 pieces={pieces}

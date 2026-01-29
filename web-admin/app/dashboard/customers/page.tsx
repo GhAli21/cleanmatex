@@ -77,11 +77,11 @@ export default function CustomersPage() {
       const { customers: fetchedCustomers, pagination: paginationData } =
         await fetchCustomers(params)
 
-      setCustomers(fetchedCustomers)
+      setCustomers(fetchedCustomers || [])
       setPagination((prev) => ({
         ...prev,
-        total: paginationData.total,
-        totalPages: paginationData.totalPages,
+        total: paginationData?.total ?? 0,
+        totalPages: paginationData?.totalPages ?? 0,
       }))
     } catch (error) {
       console.error('Error loading customers:', error)

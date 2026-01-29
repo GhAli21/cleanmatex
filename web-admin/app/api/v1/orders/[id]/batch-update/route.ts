@@ -244,6 +244,7 @@ export async function POST(
                 piece_status: finalPieceStatus as 'intake' | 'processing' | 'qa' | 'ready',
                 is_ready: finalIsReady,
                 last_step: update.currentStep || undefined,
+                piece_stage: update.piece_stage || undefined,
                 rack_location: update.rackLocation || undefined,
                 notes: update.notes || undefined,
                 is_rejected: update.isRejected ?? undefined,
@@ -254,7 +255,7 @@ export async function POST(
                 has_damage: update.has_damage ?? undefined,
                 updated_at: new Date().toISOString(),
                 updated_by: userId,
-                updated_info: authCheck.userName + ' updated piece_status=' + finalPieceStatus + ', is_ready=' + finalIsReady + ', last_step=' + update.currentStep + ', rack_location=' + update.rackLocation + ', notes=' + update.notes + ', is_rejected=' + update.isRejected + ', color=' + update.color + ', brand=' + update.brand + ', barcode=' + update.barcode + ', has_stain=' + update.has_stain + ', has_damage=' + update.has_damage || undefined,
+                updated_info: authCheck.userName + ' updated piece_status=' + finalPieceStatus + ', is_ready=' + finalIsReady + ', last_step=' + update.currentStep + ', piece_stage=' + update.piece_stage + ', rack_location=' + update.rackLocation + ', notes=' + update.notes + ', is_rejected=' + update.isRejected + ', color=' + update.color + ', brand=' + update.brand + ', barcode=' + update.barcode + ', has_stain=' + update.has_stain + ', has_damage=' + update.has_damage || undefined,
               },
             };
           })

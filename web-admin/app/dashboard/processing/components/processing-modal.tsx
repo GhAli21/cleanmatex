@@ -62,12 +62,16 @@ function generatePieces(item: OrderItem): ItemPiece[] {
   const pieces: ItemPiece[] = [];
 
   for (let i = 1; i <= item.quantity; i++) {
+    const isReady = i <= (item.quantity_ready || 0);
     pieces.push({
       id: `${item.id}-piece-${i}`,
       itemId: item.id,
       pieceNumber: i,
-      isReady: i <= (item.quantity_ready || 0),
+      // is_ready is the source of truth, isReady is computed for backward compatibility
+      is_ready: isReady ? true : null,
+      isReady: isReady,
       currentStep: item.item_last_step as ProcessingStep | undefined,
+      piece_stage: null,
       notes: '',
       rackLocation: '',
       isRejected: item.item_is_rejected || false,
@@ -90,6 +94,7 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     id: dbPiece.id, // Use actual DB UUID
     itemId: itemId,
     pieceNumber: dbPiece.piece_seq,
+    // isReady is now computed from is_ready or piece_status for backward compatibility (read-only)
     isReady: isReady || pieceStatus === 'ready',
     currentStep: dbPiece.last_step as ProcessingStep | undefined,
     notes: dbPiece.notes || '',
@@ -103,8 +108,9 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     barcode: dbPiece.barcode || null,
     piece_code: dbPiece.piece_code || null,
     scan_state: dbPiece.scan_state || null,
-    // Status fields
+    // Status fields - is_ready is the source of truth
     piece_status: pieceStatus || null,
+    piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
   };
 }
@@ -436,7 +442,7 @@ export function ProcessingModal({
     onSuccess: (data, variables) => {
       // Calculate actual counts from the request (use request data, not API response)
       const actualPiecesUpdated = variables.updates.length;
-      const actualReadyCount = variables.updates.filter(u => u.isReady).length;
+      const actualReadyCount = variables.updates.filter(u => u.is_ready === true).length;
       const actualStepsRecorded = new Set(variables.updates.filter(u => u.currentStep).map(u => u.currentStep)).size;
       const actualRackLocationsSet = variables.updates.filter(u => u.rackLocation && u.rackLocation.trim() !== '').length;
 
@@ -552,9 +558,9 @@ export function ProcessingModal({
     if (!original) return true; // New piece, consider it changed
 
     return (
-      current.isReady !== original.isReady ||
       (current.is_ready ?? false) !== (original.is_ready ?? false) ||
       current.currentStep !== original.currentStep ||
+      (current.piece_stage || null) !== (original.piece_stage || null) ||
       (current.notes || '') !== (original.notes || '') ||
       (current.rackLocation || '') !== (original.rackLocation || '') ||
       current.isRejected !== original.isRejected ||
@@ -578,9 +584,10 @@ export function ProcessingModal({
         pieceId: piece.id, // Use the ID (could be DB ID or generated ID)
         itemId: piece.itemId,
         pieceNumber: piece.pieceNumber,
-        isReady: piece.isReady,
+        // Only send is_ready (source of truth), backend will handle piece_status
         is_ready: piece.is_ready ?? null,
         currentStep: piece.currentStep,
+        piece_stage: piece.piece_stage || null,
         notes: piece.notes || '',
         rackLocation: piece.rackLocation || '',
         isRejected: piece.isRejected || false,
@@ -595,7 +602,7 @@ export function ProcessingModal({
     const itemQuantityReady: Record<string, number> = {};
     items.forEach(item => {
       const itemPieces = updates.filter(u => u.itemId === item.id);
-      const readyCount = itemPieces.filter(u => u.isReady).length;
+      const readyCount = itemPieces.filter(u => u.is_ready === true).length;
       itemQuantityReady[item.id] = readyCount;
     });
 
@@ -670,17 +677,26 @@ export function ProcessingModal({
   };
 
   // Get pieces for an item
-  // Uses memoized piecesByItemId for O(1) lookup when trackByPiece is enabled
-  // Falls back to pieceStates for legacy mode
+  // Prioritizes pieceStates (contains user edits) over piecesByItemId (stale DB data)
+  // Falls back to piecesByItemId only if pieces not found in pieceStates
   const getPiecesForItem = React.useCallback((itemId: string): ItemPiece[] => {
-    if (trackByPiece && piecesByItemId.has(itemId)) {
-      // Use memoized grouped pieces (already sorted)
-      return piecesByItemId.get(itemId) || [];
-    }
-    // Fallback to pieceStates (for legacy mode or when pieces haven't loaded yet)
-    return Array.from(pieceStates.values())
+    // First, check pieceStates for pieces matching the itemId (these contain user edits)
+    const piecesFromState = Array.from(pieceStates.values())
       .filter(piece => piece.itemId === itemId)
       .sort((a, b) => a.pieceNumber - b.pieceNumber);
+
+    // If pieces found in state, return them (they contain the latest user edits)
+    if (piecesFromState.length > 0) {
+      return piecesFromState;
+    }
+
+    // Fallback to piecesByItemId only if no pieces in state (for initial load or edge cases)
+    if (trackByPiece && piecesByItemId.has(itemId)) {
+      return piecesByItemId.get(itemId) || [];
+    }
+
+    // Return empty array if no pieces found
+    return [];
   }, [trackByPiece, piecesByItemId, pieceStates]);
 
   // Filter and sort items based on filters
@@ -710,9 +726,9 @@ export function ProcessingModal({
       filtered = filtered.filter(item => {
         const itemPieces = getPiecesForItem(item.id);
         if (filters.status === 'ready') {
-          return itemPieces.some(piece => piece.isReady);
+          return itemPieces.some(piece => piece.is_ready === true);
         } else {
-          return itemPieces.some(piece => !piece.isReady);
+          return itemPieces.some(piece => piece.is_ready !== true);
         }
       });
     }
@@ -741,7 +757,7 @@ export function ProcessingModal({
     if (!order || items.length === 0) return 0;
     const allPieces = Array.from(pieceStates.values());
     const totalPieces = allPieces.length || items.reduce((sum, item) => sum + item.quantity, 0);
-    const readyPieces = allPieces.filter(p => p.isReady).length;
+    const readyPieces = allPieces.filter(p => p.is_ready === true).length;
     return totalPieces > 0 ? (readyPieces / totalPieces) * 100 : 0;
   }, [order, items, pieceStates]);
 
@@ -893,7 +909,7 @@ export function ProcessingModal({
                     size="sm"
                     variant={overallProgress === 100 ? 'success' : 'default'}
                     showPercentage={true}
-                    label={`Overall Progress: ${Array.from(pieceStates.values()).filter(p => p.isReady).length} / ${Array.from(pieceStates.values()).length || items.reduce((sum, item) => sum + item.quantity, 0)} pieces ready`}
+                    label={`Overall Progress: ${Array.from(pieceStates.values()).filter(p => p.is_ready === true).length} / ${Array.from(pieceStates.values()).length || items.reduce((sum, item) => sum + item.quantity, 0)} pieces ready`}
                   />
                 </div>
               )}

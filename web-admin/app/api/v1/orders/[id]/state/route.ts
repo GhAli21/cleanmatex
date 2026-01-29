@@ -24,10 +24,26 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     
     const supabase = await createClient();
     
-    // Fetch order with items
+    // Fetch order with customer data
     const { data: order, error: orderError } = await supabase
       .from('org_orders_mst')
-      .select('*')
+      .select(`
+        *,
+        org_customers_mst(
+          id,
+          name,
+          name2,
+          phone,
+          email,
+          sys_customers_mst(
+            id,
+            name,
+            name2,
+            phone,
+            email
+          )
+        )
+      `)
       .eq('id', id)
       .eq('tenant_org_id', tenantId)
       .single();

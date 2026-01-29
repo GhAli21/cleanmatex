@@ -80,6 +80,14 @@ export function NewOrderContent() {
         }
     }, [state.state.createdOrderId, clearSavedNotes]);
 
+    // Reset active tab to 'select' when order is reset (items cleared)
+    useEffect(() => {
+        // Reset tab to 'select' when items are cleared (after order submission or manual reset)
+        if (state.state.items.length === 0 && activeTab === 'details') {
+            setActiveTab('select');
+        }
+    }, [state.state.items.length, activeTab]);
+
     // Reset performance metrics on mount
     useEffect(() => {
         resetMetrics();
@@ -309,11 +317,10 @@ export function NewOrderContent() {
                                     aria-controls="new-order-select-items-panel"
                                     tabIndex={activeTab === 'select' ? 0 : -1}
                                     onClick={() => setActiveTab('select')}
-                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                        activeTab === 'select'
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'select'
                                             ? 'bg-blue-600 text-white shadow-md'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     1) {t('itemsGrid.selectItems') || 'Select Items'}
                                 </button>
@@ -324,11 +331,10 @@ export function NewOrderContent() {
                                     aria-controls="new-order-details-panel"
                                     tabIndex={activeTab === 'details' ? 0 : -1}
                                     onClick={() => setActiveTab('details')}
-                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                                        activeTab === 'details'
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'details'
                                             ? 'bg-blue-600 text-white shadow-md'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     2) {t('itemsGrid.orderItems') || 'Order Items'} (
                                     {state.state.items.length})
@@ -401,6 +407,9 @@ export function NewOrderContent() {
                         onSelectCustomer={() => state.openModal('customerPicker')}
                         onEditCustomer={() => state.openModal('customerEdit')}
                         items={memoizedOrderItems}
+                        onEditItem={(itemId) => {
+                            state.openPriceOverrideModal(itemId);
+                        }}
                         onDeleteItem={handleRemoveItem}
                         onPiecesChange={handlePiecesChange}
                         isQuickDrop={state.state.isQuickDrop}

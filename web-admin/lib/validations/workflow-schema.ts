@@ -186,6 +186,7 @@ export const CreateOrderRequestSchema = z.object({
   customerNotes: z.string().optional(),
   internalNotes: z.string().optional(),
   paymentMethod: z.string().optional(),
+  readyByAt: z.string().datetime().optional(), // ISO datetime string for ready-by date
 });
 
 export const TransitionOrderRequestSchema = z.object({

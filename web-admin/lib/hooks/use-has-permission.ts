@@ -25,6 +25,9 @@ export function useHasPermission(resource: string, action: string): boolean {
   // Permission code format: 'resource:action' (e.g., 'orders:create')
   const permissionCode = `${resource}:${action}`
 
+  if (permissions.includes(permissionCode)) return true;
+  else return false;
+
   return permissions.includes(permissionCode)
 }
 

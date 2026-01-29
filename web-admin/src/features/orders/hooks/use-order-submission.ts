@@ -92,6 +92,7 @@ export function useOrderSubmission() {
                     express: state.state.express || false,
                     priority: state.state.express ? 'express' : 'normal',
                     ...(sanitizedNotes && { customerNotes: sanitizedNotes }),
+                    ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
                     useOldWfCodeOrNew: !useNewWorkflowSystem,
                     // Payment data (sanitize check number if provided)
                     paymentMethod: paymentData.paymentMethod,

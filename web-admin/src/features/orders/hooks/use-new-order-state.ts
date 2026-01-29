@@ -18,6 +18,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemNotes: (productId: string, notes: string) => void;
+  updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
   setQuickDropQuantity: (quantity: number) => void;
   setExpress: (value: boolean) => void;
@@ -27,6 +28,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   setCreatedOrder: (orderId: string, status: string | null) => void;
   openModal: (modal: keyof NewOrderState['modals']) => void;
   closeModal: (modal: keyof NewOrderState['modals']) => void;
+  openPriceOverrideModal: (productId: string) => void;
   setCategories: (categories: ServiceCategory[]) => void;
   setProducts: (products: Product[]) => void;
   setSelectedCategory: (category: string) => void;
@@ -80,6 +82,13 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       });
     },
 
+    updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => {
+      dispatch({
+        type: 'UPDATE_ITEM_PRICE_OVERRIDE',
+        payload: { productId, priceOverride, overrideReason, overrideBy },
+      });
+    },
+
     setQuickDrop: (value: boolean) => {
       dispatch({ type: 'SET_QUICK_DROP', payload: value });
     },
@@ -117,6 +126,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     closeModal: (modal: keyof typeof state.modals) => {
       dispatch({ type: 'CLOSE_MODAL', payload: modal });
+    },
+
+    openPriceOverrideModal: (productId: string) => {
+      dispatch({ type: 'OPEN_PRICE_OVERRIDE_MODAL', payload: productId });
     },
 
     setCategories: (categories: typeof state.categories) => {

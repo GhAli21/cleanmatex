@@ -50,6 +50,42 @@
     "area": "Area",
     "city": "City"
   },
+  "publicOrderTracking": {
+    "title": "Track Your Order",
+    "description": "View the latest status and details of your laundry order.",
+    "brandSubtitle": "CleanMateX",
+    "loading": "Loading your order...",
+    "orderNumberLabel": "Order Number",
+    "receivedAtLabel": "Received",
+    "readyByLabel": "Expected Ready",
+    "totalAmountLabel": "Total Amount",
+    "itemsCountLabel": "Items",
+    "customerSection": {
+      "title": "Customer"
+    },
+    "itemsSection": {
+      "title": "Order Items",
+      "empty": "No items found for this order.",
+      "unnamedItem": "Item",
+      "quantityLabel": "{quantity} pcs"
+    },
+    "timelineSection": {
+      "title": "Order Timeline"
+    },
+    "notesSection": {
+      "title": "Customer Notes"
+    },
+    "errors": {
+      "notFound": "We could not find this order. Please check the link with the laundry shop.",
+      "generic": "Something went wrong while loading your order. Please try again in a moment."
+    },
+    "actions": {
+      "confirmReceived": "I have received my clothes",
+      "confirmingReceived": "Confirming...",
+      "confirmReceivedSuccess": "Thank you! Your order has been marked as received."
+    },
+    "footer": "Powered by CleanMateX – Smart laundry management."
+  },
   "navigation": {
     "dashboard": "Dashboard",
     "orders": "Orders",
@@ -171,6 +207,56 @@
     "noPaymentData": "No payment data available",
     "utilizationRate": "Utilization Rate",
     "manageDrivers": "Manage drivers"
+  },
+  "invoices": {
+    "title": "Invoices",
+    "subtitle": "Review invoices, payments, and outstanding balances",
+    "empty": "No invoices found",
+    "columns": {
+      "invoiceNo": "Invoice #",
+      "orderNo": "Order ID",
+      "total": "Total",
+      "paid": "Paid",
+      "balance": "Balance",
+      "status": "Status"
+    },
+    "pagination": {
+      "pageOf": "Page {page} of {totalPages}"
+    },
+    "stats": {
+      "total": "Total invoices",
+      "paid": "Paid",
+      "pending": "Pending / Partial",
+      "overdue": "Overdue"
+    },
+    "detail": {
+      "title": "Invoice {invoiceNo}",
+      "forOrder": "Linked to order {orderId}",
+      "noOrder": "No linked order",
+      "summary": "Invoice summary",
+      "paymentHistory": "Payment history",
+      "orderSummary": "Order summary",
+      "status": "Status"
+    },
+    "history": {
+      "date": "Date",
+      "amount": "Amount",
+      "method": "Method",
+      "status": "Status",
+      "empty": "No payments recorded yet"
+    },
+    "recordPayment": {
+      "title": "Record payment",
+      "amount": "Amount",
+      "paymentMethod": "Payment method",
+      "cash": "Cash",
+      "card": "Card (POS)",
+      "submit": "Record payment",
+      "processing": "Processing...",
+      "cancel": "Reset",
+      "success": "Payment recorded successfully",
+      "error": "Please check the amount and try again"
+    }
   },
   "orders": {
     "title": "Orders",
@@ -423,6 +509,7 @@
       "completed": "Completed",
       "numberOfBags": "Number of Bags",
       "qrCode": "QR Code",
+      "publicTrackingLink": "Public tracking link",
       "customerInformation": "Customer Information",
       "name": "Name",
       "phone": "Phone",
@@ -654,6 +741,7 @@
     "types": {
       "guest": "Guest",
       "stub": "Stub",
+      "walk_in": "Walk-in",
       "full": "Full Profile"
     },
     "upgradeToFull": "Upgrade to Full",
@@ -774,6 +862,7 @@
     "users": "Users",
     "workflows": "Workflows",
     "subscription": "Subscription",
+    "finance": "Finance",
     "navigation": "Navigation",
     "businessInfo": "Business Information",
     "businessName": "Business Name",
@@ -1122,6 +1211,10 @@
       "wrong": "Wrong",
       "pieceStatus": "Piece Status",
       "isReady": "Is Ready",
+      "lastStep": "Last Step",
+      "currentStep": "Current Step",
+      "pieceStage": "Piece Stage",
+      "isRejected": "Is Rejected",
       "summary": {
         "updateSuccess": "Update Successful",
         "splitSuccess": "Order Split Successfully",
@@ -1805,6 +1898,8 @@
       "summary": {
         "title": "Payment Summary",
         "subtotal": "Subtotal",
+        "vatTaxPercent": "VAT Tax %",
+        "vatValue": "VAT Value",
         "manualDiscount": "Manual Discount",
         "promoDiscount": "Promo Discount",
         "giftCardApplied": "Gift Card Applied",

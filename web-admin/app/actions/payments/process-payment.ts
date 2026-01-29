@@ -118,9 +118,13 @@ export async function processPayment(
       }
     }
 
-    // Revalidate order pages
+    // Revalidate order and invoice pages
     revalidatePath('/dashboard/orders');
     revalidatePath(`/dashboard/orders/${input.orderId}`);
+    if (input.invoiceId) {
+      revalidatePath('/dashboard/billing/invoices');
+      revalidatePath(`/dashboard/billing/invoices/${input.invoiceId}`);
+    }
 
     return result;
   } catch (error) {
