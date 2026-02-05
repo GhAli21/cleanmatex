@@ -2,6 +2,7 @@
  * GET /api/v1/orders/[id]/state
  * Get order state with flags and allowed transitions
  * PRD-010: Order state endpoint
+ * Includes payment summary and primary invoice for ready/handover flow
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -82,6 +83,43 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       (order.current_status ?? undefined) as any
     );
 
+    // Payment summary from order (total, paid_amount, payment_status)
+    const total = Number(order.total ?? order.total_amount ?? 0);
+    const paid = Number(order.paid_amount ?? 0);
+    const remaining = Math.max(0, total - paid);
+    const paymentSummary = {
+      status: (order.payment_status as string) || 'pending',
+      total,
+      paid,
+      remaining,
+    };
+
+    // All order invoices for payment recording (id, invoice_no, total, paid_amount, remaining)
+    type InvoiceRow = { id: string; invoice_no: string | null; total: number; paid_amount: number };
+    let orderInvoices: Array<InvoiceRow & { remaining: number }> = [];
+    let primaryInvoiceId: string | null = null;
+    try {
+      const { data: invoices } = await supabase
+        .from('org_invoice_mst')
+        .select('id, invoice_no, total, paid_amount')
+        .eq('order_id', id)
+        .eq('tenant_org_id', tenantId)
+        .order('created_at', { ascending: false });
+
+      if (invoices?.length) {
+        orderInvoices = invoices.map((inv: InvoiceRow) => {
+          const total = Number(inv.total ?? 0);
+          const paid = Number(inv.paid_amount ?? 0);
+          return { ...inv, remaining: Math.max(0, total - paid) };
+        });
+        // Primary = first invoice with remaining balance, else most recent
+        const withBalance = orderInvoices.find((inv) => inv.remaining > 0);
+        primaryInvoiceId = (withBalance ?? orderInvoices[0])?.id ?? null;
+      }
+    } catch {
+      // Optional
+    }
+
     // Return data in the format expected by the modal
     return NextResponse.json({
       success: true,
@@ -89,6 +127,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       items: items || [],
       currentStatus: order.current_status,
       allowedTransitions,
+      paymentSummary,
+      primaryInvoiceId,
+      invoices: orderInvoices,
       flags: {
         isQuickDrop: order.is_order_quick_drop,
         hasSplit: order.has_split,

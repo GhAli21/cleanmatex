@@ -205,12 +205,139 @@ WHERE c.comp_code = 'billing_invoices_v2'
   AND p.comp_code = 'billing';
 
 -- =====================================================
+-- 5. Payments: New Payment Page (Create standalone payment)
+-- =====================================================
+-- Child of billing_payments; navigable route for "New Payment"
+-- Date: 2026-01-30
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'billing_payments_new',
+  'billing_payments',
+  'New Payment',
+  'دفعة جديدة',
+  'Create a new standalone payment (invoice, deposit, advance, or POS)',
+  'إنشاء دفعة مستقلة جديدة (فاتورة، عربون، دفعة مسبقة، أو نقطة بيع)',
+  '/dashboard/billing/payments/new',
+  'Plus',
+  2,
+  0,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "operator"]'::jsonb,
+  'billing:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  updated_at = CURRENT_TIMESTAMP;
+
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'billing_payments_new'
+  AND c.parent_comp_code = 'billing_payments'
+  AND p.comp_code = 'billing_payments';
+
+-- =====================================================
+-- 6. Payments: Payment Detail Page (Dynamic route [id])
+-- =====================================================
+-- Not directly navigable; for breadcrumb/reference
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  metadata,
+  rec_status
+) VALUES (
+  'billing_payments_detail',
+  'billing_payments',
+  'Payment Details',
+  'تفاصيل الدفعة',
+  'View payment details, notes, cancel or refund',
+  'عرض تفاصيل الدفعة والملاحظات والإلغاء أو الاسترداد',
+  '/dashboard/billing/payments/[id]',
+  'FileText',
+  2,
+  1,
+  true,
+  false,
+  true,
+  true,
+  true,
+  '["admin", "operator"]'::jsonb,
+  'billing:read',
+  '{"isDynamicRoute": true, "routeParam": "id"}'::jsonb,
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  metadata = EXCLUDED.metadata,
+  updated_at = CURRENT_TIMESTAMP;
+
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'billing_payments_detail'
+  AND c.parent_comp_code = 'billing_payments'
+  AND p.comp_code = 'billing_payments';
+
+-- Ensure parent Payments node is not leaf (has children)
+UPDATE sys_components_cd
+SET is_leaf = false,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'billing_payments';
+
+-- =====================================================
 -- Verification Queries
 -- =====================================================
 -- Uncomment to verify inserts:
 -- SELECT comp_code, label, label2, comp_path, display_order, is_navigable
 -- FROM sys_components_cd
--- WHERE comp_code IN ('settings_finance', 'catalog_pricing_detail', 'catalog_pricing')
+-- WHERE comp_code IN ('settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail')
 -- ORDER BY comp_code;
 
 COMMIT;

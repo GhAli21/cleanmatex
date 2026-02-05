@@ -22,14 +22,19 @@ This document summarizes the current implementation of **invoices and payments**
   - Tenant isolation via `tenant_org_id` + RLS and composite FKs.
 
 - `org_payments_dtl_tr`
-  - 1–many with `org_invoice_mst`.
-  - Stores individual payment transactions (`paid_amount`, `status`, `payment_method`, `paid_at`, `paid_by`, `gateway`, `transaction_id`, `metadata`).
-  - Supports **partial payments**: invoice-level `paid_amount` is the aggregate of successful transactions.
+  - Optional link to `org_invoice_mst` (`invoice_id` nullable); optional `order_id`, `customer_id`.
+  - **Payment kind**: `payment_kind` (`invoice` | `deposit` | `advance` | `pos`) — allows payments without an invoice (down payments, POS receipts, advance payments).
+  - Constraint: at least one of `invoice_id`, `order_id`, or `customer_id` must be set.
+  - Stores individual payment transactions (`paid_amount`, `status`, `payment_method_code`, `paid_at`, `paid_by`, `gateway`, `transaction_id`, `metadata`). Column is **`payment_method_code`** (not `payment_method`); Prisma schema and DB match.
+  - Supports **partial payments**: invoice-level `paid_amount` is the aggregate of successful transactions when `invoice_id` is set.
+  - Unapplied payments (e.g. deposit/advance/pos with `invoice_id` null) can be **applied to an invoice** later via `applyPaymentToInvoice`.
 
-Database indexes and foreign keys are defined in `supabase/migrations/0001_core_schema.sql` and enforced in Prisma models (`web-admin/prisma/schema.prisma`). Tenant isolation is guaranteed by:
+Database indexes and foreign keys are defined in `supabase/migrations/0001_core_schema.sql` and `0087_payments_nullable_invoice_and_kind.sql`, and enforced in Prisma models (`web-admin/prisma/schema.prisma`). Tenant isolation is guaranteed by:
 
 - `tenant_org_id` on all `org_*` tables.
 - RLS policies from the Supabase migration set.
+
+**After schema/DB changes:** run `npx prisma generate` in `web-admin` so the Prisma client matches the schema. To refresh Supabase typings: `supabase gen types typescript --local > web-admin/types/database.ts` (from repo root or `supabase`).
 
 ---
 
@@ -43,17 +48,21 @@ Database indexes and foreign keys are defined in `supabase/migrations/0001_core_
   - All functions run inside `withTenantContext(tenantId, ...)` and resolve tenant via `getTenantIdFromSession()` when needed.
 
 - `web-admin/lib/services/payment-service.ts`
-  - `getAvailablePaymentMethods`, `validatePaymentMethod` (from `sys_payment_method_cd`).
-  - `processPayment` orchestrates validation, invoice lookup, partial payments, invoice status transitions and order payment status updates.
-  - `recordPaymentTransaction` writes to `org_payments_dtl_tr` and returns a typed `PaymentTransaction`.
-  - `getPaymentHistory` returns all payment transactions for a given invoice.
-  - `refundPayment` implements refund transactions by inserting negative payments and adjusting invoice `paid_amount`.
+  - `getAvailablePaymentMethods`, `validatePaymentMethod` (from `sys_payment_method_cd`; uses `payment_method_icon`, `payment_method_color1`, etc.).
+  - `processPayment` orchestrates validation and supports two paths: **(1) invoice-linked** (existing flow: order/invoice, partial payments, invoice status, order paid_amount); **(2) non-invoice** (when `payment_kind` is `deposit`, `advance`, or `pos`: requires `order_id` and/or `customer_id`, records payment without invoice; optionally updates order `paid_amount`).
+  - `recordPaymentTransaction` writes to `org_payments_dtl_tr`; accepts optional `invoice_id`; requires at least one of `invoice_id`, `order_id`, `customer_id`; supports `payment_kind`.
+  - `getPaymentHistory(invoiceId)` returns all payment transactions for a given invoice.
+  - `getPaymentsForOrder(orderId)` returns all payments for an order (including unapplied deposit/pos).
+  - `getPaymentsForCustomer(customerId)` returns all payments for a customer (e.g. advance balance).
+  - `applyPaymentToInvoice(paymentId, invoiceId)` applies an unapplied payment (deposit/advance/pos) to an invoice: sets `invoice_id`, updates invoice `paid_amount` and status, and order if applicable.
+  - `refundPayment` implements refund transactions; copies `invoice_id`, `order_id`, `customer_id` from original (all nullable); only updates invoice when `transaction.invoice_id` is not null.
 
 ### Server Actions
 
 - `web-admin/app/actions/payments/process-payment.ts`
-  - Validates request (`validatePaymentData`) then delegates to `processPayment` service.
-  - Revalidates order pages on success.
+  - `processPayment`: validates request (`validatePaymentData`) then delegates to `processPayment` service; accepts optional `customerId`, `paymentKind` for non-invoice payments; revalidates order/invoice pages on success.
+  - `getPaymentsForOrder(orderId)`, `getPaymentsForCustomer(customerId)` for UI.
+  - `applyPaymentToInvoice(paymentId, invoiceId, userId?, orderId?)` for applying unapplied payments to an invoice; revalidates invoice and order paths.
 
 - `web-admin/app/actions/payments/invoice-actions.ts`
   - Wraps invoice service functions for use in UI and future API handlers:
@@ -89,17 +98,20 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
 ### Record Payment UI
 
 - `web-admin/app/dashboard/billing/invoices/[id]/record-payment-client.tsx`
-  - `'use client'` component rendered on invoice detail page.
+  - `'use client'` component rendered on invoice detail page (invoice-linked payments).
   - Props: `tenantOrgId`, `userId`, `invoiceId`, `orderId`, `remainingBalance`, and a typed `processPaymentAction` bridge.
-  - Features:
-    - Amount input (defaults to remaining balance, supports partial payments).
-    - Payment method selector restricted to **`CASH`** and **`CARD`** (POS), matching the current scope.
-    - Optional notes field.
-    - Calls `processPayment` server action with the correct tenant/user context.
-    - Displays success/error states and triggers `router.refresh()` on success.
-  - Fully localized via the `invoices.recordPayment.*` keys.
+  - Features: amount input (defaults to remaining balance), payment method CASH/CARD, optional notes; calls `processPayment` with tenant/user context; success/error and `router.refresh()`.
+  - Fully localized via the `invoices.recordPayment.*` keys. Payment history table shows **payment kind** badge (invoice / deposit / advance / pos) via `invoices.history.kind_*`.
 
-> The original enhanced payment modal used in the **new order** flow (`PaymentModalEnhanced`) remains the primary UI for initial payment at order creation. The new invoice detail payment form is optimized for counter staff updating existing invoices.
+- **Order detail** (`web-admin/app/dashboard/orders/[id]/`)
+  - **Unapplied payments** section: lists payments for the order with `invoice_id` null (deposit/pos); each row has an **Apply to invoice** button that opens a modal to select an invoice for the order, then calls `applyPaymentToInvoice`.
+  - **Record deposit / POS** form: records payment with `payment_kind` `deposit` or `pos`, `order_id` set; no invoice; amount, method (CASH/CARD), notes; calls `processPayment` without `invoiceId`.
+
+- **Customer detail** (`web-admin/app/dashboard/customers/[id]/`)
+  - **Advance balance** section: shows total unapplied advance payments (where `customer_id` matches and `invoice_id` is null) via `getPaymentsForCustomer`; optional list and count.
+  - **Record advance** form: records payment with `payment_kind` `advance`, `customer_id` set; calls `processPayment` without `invoiceId`.
+
+> The original enhanced payment modal used in the **new order** flow (`PaymentModalEnhanced`) remains the primary UI for initial payment at order creation. The invoice detail payment form is for counter staff updating existing invoices; order and customer pages support non-invoice payments (deposit, advance, POS) and apply-to-invoice flow.
 
 ---
 

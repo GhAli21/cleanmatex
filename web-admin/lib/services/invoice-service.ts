@@ -59,23 +59,35 @@ export async function createInvoice(
       tax: input.tax || 0,
     });
 
+    const now = new Date();
     // Create invoice - middleware automatically adds tenant_org_id
     const invoice = await prisma.org_invoice_mst.create({
       data: {
         order_id: input.order_id,
+        customer_id: order.customer_id ?? input.customer_id,
         tenant_org_id: order.tenant_org_id,
+        branch_id: order.branch_id ?? undefined,
         invoice_no: invoiceNo,
+        invoice_date: now,
         subtotal: input.subtotal,
         discount: input.discount || 0,
         tax: input.tax || 0,
+        tax_rate: order.tax_rate ?? undefined,
         total,
         status: 'pending',
         due_date: input.due_date ? new Date(input.due_date) : undefined,
-        payment_method: input.payment_method,
+        payment_method_code: input.payment_method_code,
+        payment_terms: order.payment_terms ?? undefined,
         paid_amount: 0,
+        service_charge: order.service_charge ?? undefined,
+        service_charge_type: order.service_charge_type ?? undefined,
+        gift_card_id: order.gift_card_id ?? undefined,
+        gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
+        vat_rate: order.vat_rate ?? undefined,
+        vat_amount: order.vat_amount ?? undefined,
         metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
         rec_notes: input.rec_notes,
-        created_at: new Date(),
+        created_at: now,
       },
     });
 
@@ -125,6 +137,10 @@ export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
       where: { id: invoiceId },
+      include: {
+        org_orders_mst: { select: { order_no: true } },
+        org_customers_mst: { select: { name: true, name2: true } },
+      },
     });
 
     if (!invoice) {
@@ -210,26 +226,31 @@ export async function getInvoicesByStatus(
 }
 
 /**
- * List all invoices with filtering and pagination
+ * List all invoices with filtering, search, sorting and pagination
  */
 export async function listInvoices(params: {
   tenantOrgId?: string;
   status?: InvoiceStatus;
   dateFrom?: string;
   dateTo?: string;
+  searchQuery?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
-}): Promise<{ invoices: Invoice[]; total: number }> {
+}): Promise<{ invoices: Invoice[]; total: number; totalPages: number }> {
   // Get tenant ID from params or session
   const tenantId = params.tenantOrgId || (await getTenantIdFromSession());
   if (!tenantId) {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+
   return withTenantContext(tenantId, async () => {
     const where: any = {
-      tenant_org_id: tenantId, // Explicit filter for clarity (middleware also adds it)
+      tenant_org_id: tenantId,
     };
 
     if (params.status) {
@@ -246,14 +267,43 @@ export async function listInvoices(params: {
       }
     }
 
+    if (params.searchQuery && params.searchQuery.trim()) {
+      const q = params.searchQuery.trim();
+      where.OR = [
+        { invoice_no: { contains: q, mode: 'insensitive' } },
+        { rec_notes: { contains: q, mode: 'insensitive' } },
+        { paid_by: { contains: q, mode: 'insensitive' } },
+        { paid_by_name: { contains: q, mode: 'insensitive' } },
+        { trans_desc: { contains: q, mode: 'insensitive' } },
+        { customer_reference: { contains: q, mode: 'insensitive' } },
+        { handed_to_name: { contains: q, mode: 'insensitive' } },
+        { handed_to_mobile_no: { contains: q, mode: 'insensitive' } },
+        { org_orders_mst: { order_no: { contains: q, mode: 'insensitive' } } },
+        {
+          org_customers_mst: {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { name2: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        },
+      ];
+    }
+
+    const allowedSortFields = ['invoice_no', 'created_at', 'due_date', 'total', 'paid_amount', 'status', 'invoice_date'];
+    const sortBy = allowedSortFields.includes(params.sortBy || '') ? params.sortBy! : 'created_at';
+    const sortOrder = params.sortOrder === 'asc' ? 'asc' : 'desc';
+
     const [invoices, total] = await Promise.all([
       prisma.org_invoice_mst.findMany({
         where,
-        orderBy: {
-          created_at: 'desc',
+        include: {
+          org_orders_mst: { select: { order_no: true } },
+          org_customers_mst: { select: { name: true, name2: true } },
         },
-        take: params.limit || 50,
-        skip: params.offset || 0,
+        orderBy: { [sortBy]: sortOrder },
+        take: limit,
+        skip: offset,
       }),
       prisma.org_invoice_mst.count({ where }),
     ]);
@@ -261,6 +311,7 @@ export async function listInvoices(params: {
     return {
       invoices: invoices.map(mapInvoiceToType),
       total,
+      totalPages: Math.ceil(total / limit),
     };
   });
 }
@@ -293,8 +344,8 @@ export async function updateInvoice(
       updateData.status = input.status;
     }
 
-    if (input.payment_method !== undefined) {
-      updateData.payment_method = input.payment_method;
+    if (input.payment_method_code !== undefined) {
+      updateData.payment_method_code = input.payment_method_code;
     }
 
     if (input.paid_amount !== undefined) {
@@ -463,9 +514,7 @@ export async function applyDiscountToInvoice(
     });
 
     // Update metadata to track discount reason
-    const metadata: InvoiceMetadata = invoice.metadata
-      ? JSON.parse(invoice.metadata as string)
-      : {};
+    const metadata: InvoiceMetadata = parseInvoiceMetadata(invoice.metadata) ?? {};
 
     if (reason) {
       metadata.manual_discount_reason = reason;
@@ -658,30 +707,69 @@ export async function getInvoiceStats(tenantOrgId: string): Promise<{
 // ============================================================================
 
 /**
+ * Parse invoice metadata - Prisma Json columns return objects, raw DB may return strings
+ */
+function parseInvoiceMetadata(metadata: unknown): InvoiceMetadata | undefined {
+  if (metadata == null) return undefined;
+  if (typeof metadata === 'object') return metadata as InvoiceMetadata;
+  if (typeof metadata === 'string') return JSON.parse(metadata) as InvoiceMetadata;
+  return undefined;
+}
+
+/**
  * Map Prisma invoice model to Invoice type
  */
 function mapInvoiceToType(invoice: any): Invoice {
+  const customerName = invoice.org_customers_mst
+    ? (invoice.org_customers_mst.name || invoice.org_customers_mst.name2 || undefined)
+    : undefined;
+  const orderNo = invoice.org_orders_mst?.order_no;
   return {
     id: invoice.id,
-    order_id: invoice.order_id,
+    order_id: invoice.order_id ?? undefined,
+    order_no: orderNo,
+    customer_id: invoice.customer_id ?? undefined,
+    customerName,
     tenant_org_id: invoice.tenant_org_id,
+    branch_id: invoice.branch_id ?? undefined,
     invoice_no: invoice.invoice_no,
-    subtotal: Number(invoice.subtotal),
-    discount: Number(invoice.discount),
-    tax: Number(invoice.tax),
-    total: Number(invoice.total),
+    invoice_date: invoice.invoice_date?.toISOString?.()?.slice(0, 10),
+    subtotal: Number(invoice.subtotal ?? 0),
+    discount: Number(invoice.discount ?? 0),
+    tax: Number(invoice.tax ?? 0),
+    tax_rate: invoice.tax_rate != null ? Number(invoice.tax_rate) : undefined,
+    total: Number(invoice.total ?? 0),
+    vat_rate: invoice.vat_rate != null ? Number(invoice.vat_rate) : undefined,
+    vat_amount: invoice.vat_amount != null ? Number(invoice.vat_amount) : undefined,
+    discount_rate: invoice.discount_rate != null ? Number(invoice.discount_rate) : undefined,
+    service_charge: invoice.service_charge != null ? Number(invoice.service_charge) : undefined,
+    service_charge_type: invoice.service_charge_type ?? undefined,
+    promo_discount_amount: invoice.promo_discount_amount != null ? Number(invoice.promo_discount_amount) : undefined,
+    gift_card_discount_amount: invoice.gift_card_discount_amount != null ? Number(invoice.gift_card_discount_amount) : undefined,
     status: invoice.status as InvoiceStatus,
-    due_date: invoice.due_date?.toISOString(),
-    payment_method: invoice.payment_method,
-    paid_amount: Number(invoice.paid_amount),
+    due_date: invoice.due_date?.toISOString?.()?.slice(0, 10),
+    payment_terms: invoice.payment_terms ?? undefined,
+    payment_method_code: invoice.payment_method_code,
+    paid_amount: Number(invoice.paid_amount ?? 0),
     paid_at: invoice.paid_at?.toISOString(),
     paid_by: invoice.paid_by ?? undefined,
-    metadata: invoice.metadata ? JSON.parse(invoice.metadata) : undefined,
+    paid_by_name: invoice.paid_by_name ?? undefined,
+    handed_to_name: invoice.handed_to_name ?? undefined,
+    handed_to_mobile_no: invoice.handed_to_mobile_no ?? undefined,
+    handed_to_date: invoice.handed_to_date?.toISOString(),
+    handed_to_by_user: invoice.handed_to_by_user ?? undefined,
+    trans_desc: invoice.trans_desc ?? undefined,
+    customer_reference: invoice.customer_reference ?? undefined,
+    metadata: parseInvoiceMetadata(invoice.metadata),
     rec_notes: invoice.rec_notes ?? undefined,
-    created_at: invoice.created_at.toISOString(),
+    currency_code: invoice.currency_code ?? undefined,
+    currency_ex_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : undefined,
+    created_at: invoice.created_at?.toISOString?.() ?? new Date().toISOString(),
     created_by: invoice.created_by ?? undefined,
     updated_at: invoice.updated_at?.toISOString(),
     updated_by: invoice.updated_by ?? undefined,
+    rec_status: invoice.rec_status ?? undefined,
+    is_active: invoice.is_active ?? undefined,
   };
 }
 

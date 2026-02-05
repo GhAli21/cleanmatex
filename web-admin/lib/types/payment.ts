@@ -3,46 +3,59 @@
  *
  * This file contains all TypeScript types and interfaces for the payment module,
  * including payment methods, invoices, discounts, promo codes, and gift cards.
+ * Payment codes/statuses: single source of truth is lib/constants/payment.ts; types and key consts re-exported here for one-import convenience.
  */
 
+import {
+  type PaymentMethodCode,
+  type PaymentKind,
+  type PaymentTypeId,
+  type InvoiceStatus,
+  type PaymentStatus,
+  type PaymentGateway,
+  PAYMENT_KINDS,
+  PAYMENT_METHODS,
+  PAYMENT_TYPE_IDS,
+  INVOICE_STATUSES,
+  PAYMENT_STATUSES,
+  PAYMENT_GATEWAYS,
+  getPaymentTypeFromMethod,
+} from "../constants/payment";
+
+export type { PaymentMethodCode, PaymentKind, PaymentTypeId, InvoiceStatus, PaymentStatus, PaymentGateway };
+
+/** Re-export key payment constants (single source: lib/constants/payment.ts) for one-import convenience */
+export {
+  PAYMENT_KINDS,
+  PAYMENT_METHODS,
+  PAYMENT_TYPE_IDS,
+  INVOICE_STATUSES,
+  PAYMENT_STATUSES,
+  PAYMENT_GATEWAYS,
+  getPaymentTypeFromMethod,
+};
+
 // ============================================================================
-// Payment Method Types
+// Payment Method / Type Entities
 // ============================================================================
 
-export type PaymentMethodCode =
-  | 'CASH'
-  | 'CARD'
-  | 'PAY_ON_COLLECTION'
-  | 'CHECK'
-  | 'INVOICE'
-  | 'HYPERPAY'
-  | 'PAYTABS'
-  | 'STRIPE'
-  | 'BANK_TRANSFER'
-  | 'MOBILE_PAYMENT';
-
-export type PaymentTypeId =
-  | 'PAY_IN_ADVANCE'
-  | 'PAY_ON_COLLECTION'
-  | 'PAY_ON_DELIVERY'
-  | 'CREDIT_INVOICE';
-
+/** Payment method entity (DB/API record with code, name, etc.) */
 export interface PaymentMethod {
   payment_method_code: PaymentMethodCode;
   payment_method_name: string;
   payment_method_name2?: string; // Arabic name
   is_enabled: boolean;
   is_active: boolean;
-  payment_type_icon?: string;
-  payment_type_color1?: string;
-  payment_type_color2?: string;
-  payment_type_color3?: string;
-  payment_type_image?: string;
+  payment_method_icon?: string;
+  payment_method_color1?: string;
+  payment_method_color2?: string;
+  payment_method_color3?: string;
+  payment_method_image?: string;
   rec_notes?: string;
 }
 
 export interface PaymentType {
-  payment_type_id: PaymentTypeId;
+  payment_type_code: string;
   payment_type_name: string;
   payment_type_name2?: string; // Arabic name
   is_enabled: boolean;
@@ -57,44 +70,62 @@ export interface PaymentType {
 // Invoice Types
 // ============================================================================
 
-export type InvoiceStatus =
-  | 'draft'
-  | 'pending'
-  | 'partial'
-  | 'paid'
-  | 'overdue'
-  | 'cancelled'
-  | 'refunded';
-
 export interface Invoice {
   id: string;
-  order_id: string;
+  order_id?: string;
+  order_no?: string;
+  customer_id?: string;
+  customerName?: string;
   tenant_org_id: string;
+  branch_id?: string;
   invoice_no: string;
+  invoice_date?: string;
 
   // Amounts
   subtotal: number;
   discount: number;
   tax: number;
+  tax_rate?: number;
   total: number;
+  vat_rate?: number;
+  vat_amount?: number;
+  discount_rate?: number;
+  service_charge?: number;
+  service_charge_type?: string;
+  promo_discount_amount?: number;
+  gift_card_discount_amount?: number;
 
   // Payment info
   status: InvoiceStatus;
   due_date?: string;
-  payment_method?: PaymentMethodCode;
+  payment_terms?: string;
+  payment_method_code?: PaymentMethodCode;
   paid_amount: number;
   paid_at?: string;
   paid_by?: string;
+  paid_by_name?: string;
+  handed_to_name?: string;
+  handed_to_mobile_no?: string;
+  handed_to_date?: string;
+  handed_to_by_user?: string;
+
+  // Reference
+  trans_desc?: string;
+  customer_reference?: string;
 
   // Metadata
   metadata?: InvoiceMetadata;
   rec_notes?: string;
+  currency_code?: string;
+  currency_ex_rate?: number;
 
   // Audit fields
   created_at: string;
   created_by?: string;
   updated_at?: string;
   updated_by?: string;
+  rec_status?: number;
+  is_active?: boolean;
 }
 
 export interface InvoiceMetadata {
@@ -111,21 +142,29 @@ export interface InvoiceMetadata {
 
 export interface CreateInvoiceInput {
   order_id: string;
+  customer_id?: string;
   subtotal: number;
   discount?: number;
   tax?: number;
   due_date?: string;
-  payment_method?: PaymentMethodCode;
+  payment_method_code?: PaymentMethodCode;
   metadata?: InvoiceMetadata;
   rec_notes?: string;
 }
 
 export interface UpdateInvoiceInput {
   status?: InvoiceStatus;
-  payment_method?: PaymentMethodCode;
+  payment_method_code?: PaymentMethodCode;
   paid_amount?: number;
   paid_at?: string;
   paid_by?: string;
+  paid_by_name?: string;
+  handed_to_name?: string;
+  handed_to_mobile_no?: string;
+  handed_to_date?: string;
+  handed_to_by_user?: string;
+  trans_desc?: string;
+  customer_reference?: string;
   metadata?: InvoiceMetadata;
   rec_notes?: string;
 }
@@ -134,32 +173,22 @@ export interface UpdateInvoiceInput {
 // Payment Transaction Types
 // ============================================================================
 
-export type PaymentStatus =
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'refunded'
-  | 'partially_refunded';
-
-export type PaymentGateway =
-  | 'hyperpay'
-  | 'paytabs'
-  | 'stripe'
-  | 'manual'
-  | null;
-
 export interface PaymentTransaction {
   id: string;
-  invoice_id: string;
+  invoice_id?: string;
   tenant_org_id: string;
+  order_id?: string;
+  customer_id?: string;
 
   // Payment details
+  currency_code: string;
   paid_amount: number;
   status: PaymentStatus;
   due_date?: string;
-  payment_method?: PaymentMethodCode;
+  payment_method_code: PaymentMethodCode;
+  payment_type_code?: string;
+  tax?: number;
+  vat?: number;
 
   // Transaction info
   paid_at?: string;
@@ -170,6 +199,7 @@ export interface PaymentTransaction {
   // Metadata
   metadata?: PaymentTransactionMetadata;
   rec_notes?: string;
+  trans_desc?: string;
 
   // Audit fields
   created_at: string;
@@ -191,14 +221,44 @@ export interface PaymentTransactionMetadata {
 }
 
 export interface CreatePaymentTransactionInput {
-  invoice_id: string;
+  invoice_id?: string;
+  order_id?: string;
+  customer_id?: string;
   paid_amount: number;
-  payment_method: PaymentMethodCode;
+  payment_method_code: PaymentMethodCode;
+  currency_code?: string;
+  payment_type_code?: string;
+  /** @deprecated Use tax_amount */
+  tax?: number;
+  /** @deprecated Use vat_amount */
+  vat?: number;
+  tax_rate?: number;
+  tax_amount?: number;
+  vat_amount?: number;
   paid_by?: string;
   gateway?: PaymentGateway;
   transaction_id?: string;
   metadata?: PaymentTransactionMetadata;
   rec_notes?: string;
+  /** Amount breakdown */
+  subtotal?: number;
+  discount_rate?: number;
+  discount_amount?: number;
+  manual_discount_amount?: number;
+  promo_discount_amount?: number;
+  gift_card_applied_amount?: number;
+  vat_rate?: number;
+  currency_ex_rate?: number;
+  payment_channel?: string;
+  check_number?: string;
+  check_bank?: string;
+  check_date?: Date;
+  promo_code_id?: string;
+  gift_card_id?: string;
+  /** For currency lookup when branch-specific */
+  branch_id?: string;
+  /** Short description/reference for the transaction */
+  trans_desc?: string;
 }
 
 // ============================================================================
@@ -512,28 +572,77 @@ export interface EvaluatedDiscount {
 }
 
 // ============================================================================
+// Standalone Payment Creation Input (for Create Payment Page)
+// ============================================================================
+
+export interface CreateStandalonePaymentInput {
+  customer_id?: string;
+  order_id?: string;
+  invoice_id?: string;
+  payment_kind: PaymentKind;
+  payment_method_code: PaymentMethodCode;
+  amount: number;
+  currency_code?: string;
+  payment_type_code?: string;
+  notes?: string;
+  // Check fields
+  check_number?: string;
+  check_bank?: string;
+  check_date?: string;
+}
+
+// ============================================================================
 // Payment Processing Types
 // ============================================================================
 
 export interface ProcessPaymentInput {
-  order_id: string;
+  order_id?: string;
   invoice_id?: string;
-  payment_method: PaymentMethodCode;
+  customer_id?: string;
+  payment_kind?: PaymentKind;
+  payment_method_code: PaymentMethodCode;
   amount: number;
 
   // Optional payment details
   check_number?: string;
+  check_bank?: string;
+  check_date?: Date;
   gateway_token?: string;
 
   // Discounts
   manual_discount?: number;
   promo_code?: string;
+  promo_code_id?: string;
   gift_card_number?: string;
   gift_card_amount?: number;
+  gift_card_id?: string;
+
+  // Amount breakdown (for order payments)
+  subtotal?: number;
+  discount_rate?: number;
+  discount_amount?: number;
+  manual_discount_amount?: number;
+  promo_discount_amount?: number;
+  gift_card_applied_amount?: number;
+  vat_rate?: number;
+  vat_amount?: number;
+  tax_rate?: number;
+  tax_amount?: number;
+  final_total?: number;
+  currency_code?: string;
+  currency_ex_rate?: number;
+  branch_id?: string;
+  payment_type_code?: string;
 
   // Metadata
   processed_by?: string;
   notes?: string;
+  /** Short description/reference for the transaction */
+  trans_desc?: string;
+  /** Channel that recorded the payment (e.g. web_admin, pos) */
+  payment_channel?: string;
+  /** When true and no invoice_id: apply payment across all order invoices with balance (FIFO, oldest first) */
+  distribute_across_invoices?: boolean;
 }
 
 export interface ProcessPaymentResult {
@@ -543,6 +652,7 @@ export interface ProcessPaymentResult {
   payment_status: PaymentStatus;
   amount_paid: number;
   remaining_balance: number;
+  payment_kind?: PaymentKind;
   error?: string;
   errorCode?: string;
   metadata?: Record<string, any>;
@@ -607,7 +717,7 @@ export interface PaymentReceipt {
   invoice_no: string;
   order_id: string;
   payment_date: string;
-  payment_method: PaymentMethodCode;
+  payment_method_code: PaymentMethodCode;
   amount_paid: number;
   payment_summary: PaymentSummary;
   tenant_info: {
@@ -639,7 +749,111 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
   STRIPE: 'credit-card',
   BANK_TRANSFER: 'building-2',
   MOBILE_PAYMENT: 'smartphone',
+  GIFT_CARD: 'gift',
+  PROMO_CODE: 'tag',
 };
 
 export const DEFAULT_CURRENCY = 'OMR';
 export const CURRENCY_DECIMALS = 3; // OMR uses 3 decimal places
+
+// ============================================================================
+// Payment List Types (for Payments Page)
+// ============================================================================
+
+export interface PaymentListItem extends PaymentTransaction {
+  // Joined display fields
+  customerName?: string;
+  customerName2?: string;
+  orderReference?: string;
+  invoiceNumber?: string;
+  paymentMethodName?: string;
+  paymentMethodName2?: string;
+  paymentTypeName?: string;
+  paymentTypeName2?: string;
+  // Extended amount fields
+  subtotal?: number;
+  discount_rate?: number;
+  discount_amount?: number;
+  manual_discount_amount?: number;
+  promo_discount_amount?: number;
+  gift_card_applied_amount?: number;
+  vat_rate?: number;
+  currency_ex_rate?: number;
+  // Check fields
+  check_number?: string;
+  check_bank?: string;
+  check_date?: string;
+  // Channel
+  payment_channel?: string;
+  /** True if any refund rows exist for this payment (original); used to hide Cancel */
+  hasRefunds?: boolean;
+}
+
+export interface PaymentListFilters {
+  status?: PaymentStatus[];
+  paymentMethodCode?: string[];
+  kind?: PaymentKind[];
+  customerId?: string;
+  orderId?: string;
+  invoiceId?: string;
+  startDate?: Date;
+  endDate?: Date;
+  searchQuery?: string;
+}
+
+export interface PaymentStats {
+  totalCount: number;
+  totalAmount: number;
+  byStatus: Record<PaymentStatus, { count: number; amount: number }>;
+  byMethod: Record<string, { count: number; amount: number }>;
+  recentTrends: {
+    today: number;
+    thisWeek: number;
+    thisMonth: number;
+  };
+}
+
+export interface PaymentListResult {
+  payments: PaymentListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalCount: number;
+    totalPages: number;
+  };
+}
+
+// ============================================================================
+// Cash Up / Reconciliation Types
+// ============================================================================
+
+export type CashUpReconciliationStatus = 'pending' | 'reconciled' | 'variance_noted';
+
+export interface CashUpReconciliationEntry {
+  payment_method_code: string;
+  expected_amount: number;
+  actual_amount: number;
+  variance: number;
+  status: CashUpReconciliationStatus;
+  reconciled_by?: string;
+  reconciled_at?: string;
+  notes?: string;
+}
+
+export interface CashUpSubmitEntry {
+  payment_method_code: string;
+  actual_amount: number;
+  notes?: string;
+}
+
+export interface CashUpSubmitInput {
+  date: string;
+  entries: CashUpSubmitEntry[];
+}
+
+export interface CashUpDayData {
+  date: string;
+  expectedByMethod: Record<string, number>;
+  reconciliation: CashUpReconciliationEntry[];
+  paymentMethods: PaymentMethod[];
+}

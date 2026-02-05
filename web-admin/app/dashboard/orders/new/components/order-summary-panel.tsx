@@ -306,11 +306,13 @@ function OrderSummaryPanelComponent({
               {readyByAt ? (
                 <>
                   <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {new Date(readyByAt).toLocaleDateString(isRTL ? 'ar-OM' : 'en-US', {
-                      year: 'numeric',
-                      month: '2-digit',
-                      day: '2-digit',
-                    })}
+                    {(() => {
+                      const d = new Date(readyByAt);
+                      const day = String(d.getDate()).padStart(2, '0');
+                      const month = String(d.getMonth() + 1).padStart(2, '0');
+                      const year = d.getFullYear();
+                      return `${day}/${month}/${year}`;
+                    })()}
                   </span>
                   <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -394,7 +396,7 @@ function OrderSummaryPanelComponent({
           </p>
         )}
       </div>
-    </div>
+    </div> 
   );
 }
 

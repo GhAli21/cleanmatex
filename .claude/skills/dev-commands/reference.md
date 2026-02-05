@@ -3,12 +3,14 @@
 # Dev Commands & Tooling
 
 ## Supabase Local
+
 - `supabase start|stop|status|db reset|db push`
 - Generate TS types → `web-admin/types/database.ts`
 
 ## Prisma Commands
 
 ### Schema Management
+
 ```bash
 cd web-admin
 
@@ -29,6 +31,7 @@ npx prisma validate
 ```
 
 ### Development
+
 ```bash
 # Test Prisma connection
 npx tsx scripts/test-prisma-connection.ts
@@ -38,6 +41,7 @@ cat prisma/schema.prisma
 ```
 
 ### Migrations (Optional - We use Supabase migrations)
+
 ```bash
 # Create migration from schema changes
 npx prisma migrate dev --name migration_name
@@ -52,13 +56,16 @@ npx prisma migrate reset
 **Note:** We primarily use Supabase migrations (`supabase/migrations/*.sql`). Use `npx prisma db pull` to sync Prisma schema after running Supabase migrations.
 
 ## Web Admin
+
 - `npm install`, `npm run dev|build|start|lint|type-check|format`
 
 ## Docker
+
 - `docker-compose up -d|down|logs -f|restart <service>`
 - Services: Redis, MinIO, Redis Commander (NO Postgres - using Supabase's Postgres on port 54322)
 
 ## PowerShell Scripts (Windows)
+
 - `.\scripts\dev\start-services.ps1` - Start all services (Supabase + Docker)
 - `.\scripts\dev\stop-services.ps1` - Stop all services gracefully
 - `.\scripts\dev\status-services.ps1` - Check service health
@@ -66,12 +73,14 @@ npx prisma migrate reset
 ## Typical Development Workflow
 
 ### 1. Start Services (Automated)
+
 ```powershell
 # From project root - starts Supabase + Docker services
 .\scripts\dev\start-services.ps1
 ```
 
 Or manually:
+
 ```bash
 # Start Supabase local (includes Postgres on port 54322)
 supabase start
@@ -81,6 +90,7 @@ docker-compose up -d redis redis-commander minio
 ```
 
 ### 2. Update Database Schema
+
 ```bash
 # Create new migration in supabase/migrations/
 # Example: supabase/migrations/0004_add_new_table.sql
@@ -95,12 +105,14 @@ npx prisma generate
 ```
 
 ### 3. Run Web Admin
+
 ```bash
 cd web-admin
 npm run dev
 ```
 
 ### 4. Test Changes
+
 ```bash
 # Test Prisma connection
 npx tsx scripts/test-prisma-connection.ts
@@ -112,7 +124,6 @@ npm run lint
 npm run type-check
 ```
 
-
 ---
 
 ## 💻 ESSENTIAL COMMANDS
@@ -120,6 +131,7 @@ npm run type-check
 ### Supabase Local Development
 
 #### Starting Supabase
+
 ```bash
 # Navigate to project root
 cd F:/jhapp/cleanmatex
@@ -142,6 +154,7 @@ supabase start
 ```
 
 #### Managing Supabase
+
 ```bash
 # Stop Supabase
 supabase stop
@@ -160,21 +173,33 @@ supabase logs
 
 ## Database Migrations
 
+### Migration version: always use last seq
+
+**Always create new migration files with the next sequential version.**
+
+1. List existing migrations in `supabase/migrations/` (exclude `archive/`, `seeds/`, `x_*`).
+2. Find the latest version prefix: numeric `NNNN` (e.g. `0082`) or timestamp `YYYYMMDDHHMMSS`.
+3. Use the next version:
+   - Latest numeric → next integer zero-padded to 4 digits (e.g. `0083`).
+   - Latest timestamp → current `YYYYMMDDHHMMSS`.
+4. Create the file: `supabase/migrations/{version}_{descriptive_snake_case_name}.sql`.
+
+Example: after `0082_svc_cat_proc_steps.sql`, create `0083_payments_nullable_invoice_id.sql`.
+
 ### Creating Migrations
+
 ```bash
-# Create new migration
+# 1) Determine next version (list dir and take max + 1), then create file manually or:
 supabase migration new descriptive_name
+# 2) Rename the generated file to use your chosen version if needed:
+#    e.g. 0083_descriptive_name.sql
 
-# Example migrations
-supabase migration new add_delivery_routes
-supabase migration new add_loyalty_points
-supabase migration new create_inventory_tables
-
-# Migration file created at:
-# supabase/migrations/YYYYMMDDHHMMSS_descriptive_name.sql
+# Example: next seq after 0082
+# Create: supabase/migrations/0083_add_delivery_routes.sql
 ```
 
 ### Migration Template
+
 ```sql
 -- Migration: Add feature name
 -- Created: YYYY-MM-DD
@@ -186,11 +211,11 @@ BEGIN;
 CREATE TABLE IF NOT EXISTS org_example_mst (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id) ON DELETE CASCADE,
-  
+
   -- Business fields
   name VARCHAR(250) NOT NULL,
   name2 VARCHAR(250),
-  
+
   -- Audit fields
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_by VARCHAR(120),
@@ -217,6 +242,7 @@ COMMIT;
 ```
 
 ### Applying Migrations
+
 ```bash
 # Apply migrations to local database
 supabase db reset
@@ -233,6 +259,7 @@ supabase gen types typescript --local > web-admin/types/database.ts
 ## Web Admin (Next.js)
 
 ### Development
+
 ```bash
 cd web-admin
 
@@ -250,6 +277,7 @@ DEBUG=* npm run dev
 ```
 
 ### Building & Production
+
 ```bash
 # Type checking
 npm run type-check
@@ -275,6 +303,7 @@ npm run analyze
 ## Docker Services
 
 ### Docker Compose Commands
+
 ```bash
 # Start all services
 docker-compose up -d
@@ -301,12 +330,14 @@ docker-compose restart redis
 ### Service URLs
 
 **Supabase (Primary):**
+
 - **Supabase API**: `http://localhost:54321`
 - **Supabase Studio**: `http://localhost:54323`
 - **PostgreSQL**: `postgresql://postgres:postgres@localhost:54322/postgres`
 - **Mailpit**: `http://localhost:54324`
 
 **Docker Services (Supporting):**
+
 - **Redis**: `localhost:6379`
 - **MinIO API**: `localhost:9000`
 - **MinIO Console**: `localhost:9001`
@@ -319,6 +350,7 @@ docker-compose restart redis
 ## Git Workflow
 
 ### Branch Strategy
+
 ```bash
 # Create feature branch
 git checkout -b feature/order-management
@@ -331,6 +363,7 @@ git checkout -b hotfix/critical-security-patch
 ```
 
 ### Commit Convention
+
 ```bash
 # Format: type(scope): description
 
@@ -342,6 +375,7 @@ git commit -m "refactor(database): optimize query performance"
 ```
 
 Types:
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation
@@ -355,6 +389,7 @@ Types:
 ## Testing Commands
 
 ### Unit Tests
+
 ```bash
 # Run all tests
 npm test
@@ -370,6 +405,7 @@ npm test orders.test.ts
 ```
 
 ### E2E Tests
+
 ```bash
 # Install Playwright
 npx playwright install
@@ -392,12 +428,14 @@ npx playwright test --ui
 ## Database Commands
 
 ### Direct Database Access
+
 ```bash
 # Connect to Supabase PostgreSQL (the ONLY postgres in development)
 psql postgresql://postgres:postgres@localhost:54322/postgres
 ```
 
 ### Useful SQL Commands
+
 ```sql
 -- List all tables
 \dt
@@ -426,6 +464,7 @@ SELECT * FROM pg_stat_activity;
 ## Deployment Commands
 
 ### Vercel Deployment
+
 ```bash
 # Install Vercel CLI
 npm i -g vercel
@@ -442,6 +481,7 @@ vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY
 ```
 
 ### Build for Self-Hosting
+
 ```bash
 # Build Docker image
 docker build -t cleanmatex-web .
@@ -455,6 +495,7 @@ docker run -p 3000:3000 cleanmatex-web
 ## Monitoring & Debugging
 
 ### View Logs
+
 ```bash
 # Supabase logs
 supabase logs --tail 100
@@ -467,6 +508,7 @@ docker-compose logs -f --tail=100
 ```
 
 ### Performance Monitoring
+
 ```bash
 # Bundle analyzer
 npm run analyze
@@ -484,6 +526,7 @@ npm run build
 ## Utility Scripts
 
 ### Reset Everything
+
 ```bash
 #!/bin/bash
 # reset-all.sh
@@ -512,6 +555,7 @@ echo "Reset complete!"
 ```
 
 Make it executable:
+
 ```bash
 chmod +x reset-all.sh
 ./reset-all.sh

@@ -1,9 +1,6 @@
 ---
-title: UI/UX Design Rules
 description: Guidelines for designing intuitive, scalable, and accessible interfaces for CleanMateX
-author: Gehad Abdo Mohammed Ali
-created: 2025-10-17
-tags: [uiux, design, accessibility, cleanmatex, dashboard]
+alwaysApply: true
 ---
 
 # 🎨 UI/UX Design Rules

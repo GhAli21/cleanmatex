@@ -149,6 +149,66 @@ export class TenantSettingsService {
       return {};
     }
   }
+
+  /**
+   * Get tenant's configured currency code.
+   * @param tenantId - The tenant organization ID
+   * @param _branchId - Optional branch ID (reserved for future branch-level override)
+   * @returns Promise<string> - Currency code (e.g. 'USD', 'OMR', 'SAR', 'AED')
+   */
+  async getTenantCurrency(tenantId: string, _branchId?: string): Promise<string> {
+    try {
+      const v = await this.getSettingValue(tenantId, 'TENANT_CURRENCY');
+      console.log('[TenantSettingsService] [1] getTenantCurrency: Currency:', v);
+      let vCurrency = (typeof v === 'string' ? v : String(v ?? '')).trim() || 'USD';
+      console.log('[TenantSettingsService] [2] getTenantCurrency: Currency:', vCurrency);
+      return vCurrency;
+      //return (typeof v === 'string' ? v : String(v ?? '')).trim() || 'USD';
+    } catch (error) {//just default to USD for now jhTODO: get the default from the database
+      console.error('[TenantSettingsService] Error getting currency:', error);
+      return 'USD';
+    }
+  }
+
+  /**
+   * Get tenant's configured decimal places for currency.
+   * @param tenantId - The tenant organization ID
+   * @param _branchId - Optional branch ID (reserved for future override)
+   * @returns Promise<number> - Decimal places (typically 2, 3, or 4)
+   */
+  async getTenantDecimalPlaces(tenantId: string, _branchId?: string): Promise<number> {
+    try {
+      const v = await this.getSettingValue(tenantId, 'TENANT_DECIMAL_PLACES');
+      if (v == null) return 3;
+      let vDecimalPlaces = parseInt(String(v), 10);
+      console.log('[TenantSettingsService] [3] getTenantDecimalPlaces: Decimal Places:', vDecimalPlaces);
+      return vDecimalPlaces;
+      
+      //const n = parseInt(String(v), 10);
+      //return Number.isFinite(n) && n >= 0 ? n : 3;
+      
+    } catch (error) {
+      console.error('[TenantSettingsService] Error getting decimal places:', error);
+      return 3;
+    }
+  }
+
+  /**
+   * Get currency configuration (code + decimal places) in one call.
+   * @param tenantId - The tenant organization ID
+   * @param branchId - Optional branch ID
+   * @returns Promise<{ currencyCode: string; decimalPlaces: number }>
+   */
+  async getCurrencyConfig(
+    tenantId: string,
+    branchId?: string
+  ): Promise<{ currencyCode: string; decimalPlaces: number }> {
+    const [currencyCode, decimalPlaces] = await Promise.all([
+      this.getTenantCurrency(tenantId, branchId),
+      this.getTenantDecimalPlaces(tenantId, branchId),
+    ]);
+    return { currencyCode, decimalPlaces };
+  }
 }
 
 // Export singleton instance

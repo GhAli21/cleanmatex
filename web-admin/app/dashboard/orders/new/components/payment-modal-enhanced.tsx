@@ -19,18 +19,24 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { PAYMENT_OPTIONS } from '@/lib/types/order-creation';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
+import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import type { ValidatePromoCodeResult, ValidateGiftCardResult } from '@/lib/types/payment';
 import { paymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import { taxService } from '@/lib/services/tax.service';
+import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
+import { cmxMessage } from '@ui/feedback';
+import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (paymentData: PaymentFormData) => void;
+  /** Called with form data and extended payload (amountToCharge, totals) for invoice/payment flow */
+  onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
   tenantOrgId: string;
   customerId?: string;
   serviceCategories?: string[];
+  branchId?: string;
   loading?: boolean;
 }
 
@@ -42,6 +48,7 @@ export function PaymentModalEnhanced({
   tenantOrgId,
   customerId,
   serviceCategories,
+  branchId,
   loading = false,
 }: PaymentModalProps) {
   const t = useTranslations('newOrder.payment');
@@ -59,8 +66,10 @@ export function PaymentModalEnhanced({
   } = useForm<PaymentFormData>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
-      paymentMethod: 'pay_on_collection',
+      paymentMethod: PAYMENT_METHODS.PAY_ON_COLLECTION,
       checkNumber: '',
+      checkBank: '',
+      checkDate: '',
       percentDiscount: 0,
       amountDiscount: 0,
       promoCode: '',
@@ -101,27 +110,43 @@ export function PaymentModalEnhanced({
     balance: number;
   } | null>(null);
 
-  // Tax rate state
-  const [taxRate, setTaxRate] = useState<number>(0.06); // Default 5%
+  // VAT rate state (used for VAT calculation)
+  const [taxRate, setTaxRate] = useState<number>(0.06); // Default 6% VAT
+  // Tax (distinct from VAT): rate % and optional manual amount
+  const [orderTaxRate, setOrderTaxRate] = useState<number>(0);
+  const [orderTaxAmount, setOrderTaxAmount] = useState<number>(0);
 
-  // Load tax rate when modal opens
+  // Currency config (fetched once when modal opens)
+  const [currencyConfig, setCurrencyConfig] = useState<{
+    currencyCode: string;
+    decimalPlaces: number;
+    currencyExRate: number;
+  } | null>(null);
+
+  // Load tax rate and currency when modal opens
   useEffect(() => {
     if (open && tenantOrgId) {
       taxService.getTaxRate(tenantOrgId).then(rate => {
         setTaxRate(rate);
-      }).catch(err => {
-        console.error('Error loading tax rate:', err);
-        setTaxRate(0.05); // Fallback to default
+      }).catch(() => {
+        setTaxRate(0.05);
+      });
+      getCurrencyConfigAction(tenantOrgId, branchId).then(config => {
+        setCurrencyConfig(config);
+      }).catch(() => {
+        setCurrencyConfig({ currencyCode: 'OMR', decimalPlaces: 3, currencyExRate: 1 });
       });
     }
-  }, [open, tenantOrgId]);
+  }, [open, tenantOrgId, branchId]);
 
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
       reset({
-        paymentMethod: 'pay_on_collection',
+        paymentMethod: PAYMENT_METHODS.PAY_ON_COLLECTION,
         checkNumber: '',
+        checkBank: '',
+        checkDate: '',
         percentDiscount: 0,
         amountDiscount: 0,
         promoCode: '',
@@ -137,6 +162,10 @@ export function PaymentModalEnhanced({
       setAppliedGiftCard(null);
     }
   }, [open, reset]);
+
+  const currencyCode = currencyConfig?.currencyCode ?? 'OMR';
+  const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
+  const formatAmount = (n: number) => n.toFixed(decimalPlaces);
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -154,14 +183,21 @@ export function PaymentModalEnhanced({
     // Promo discount
     const promoDiscount = appliedPromoCode?.discount || 0;
 
-    // Subtotal after discounts (before VAT)
+    // Subtotal after discounts (before tax and VAT)
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
 
-    // Calculate VAT on discounted amount
-    const vatValue = parseFloat((afterDiscounts * taxRate).toFixed(3));
+    // Tax (distinct from VAT): use manual amount or compute from rate
+    const taxAmount =
+      orderTaxAmount > 0
+        ? orderTaxAmount
+        : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(3));
+    const afterTax = afterDiscounts + taxAmount;
+
+    // Calculate VAT on amount after tax
+    const vatValue = parseFloat((afterTax * taxRate).toFixed(3));
 
     // Total after VAT
-    const afterVat = afterDiscounts + vatValue;
+    const afterVat = afterTax + vatValue;
 
     // Gift card
     const giftCardApplied = appliedGiftCard?.amount || 0;
@@ -174,13 +210,15 @@ export function PaymentModalEnhanced({
       manualDiscount,
       promoDiscount,
       afterDiscounts,
+      taxRate: orderTaxRate,
+      taxAmount,
       vatTaxPercent: taxRate * 100,
       vatValue,
       giftCardApplied,
       finalTotal,
-      totalSavings: subtotal + vatValue - finalTotal,
+      totalSavings: subtotal + taxAmount + vatValue - finalTotal,
     };
-  }, [total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate]);
+  }, [total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount]);
 
   // Validate promo code
   const handleValidatePromoCode = async () => {
@@ -273,22 +311,47 @@ export function PaymentModalEnhanced({
     setAppliedGiftCard(null);
   };
 
-  // Handle form submit
+  // Handle form submit: validate extended payload, then pass data + payload to parent
   const onSubmitForm = (data: PaymentFormData) => {
-    onSubmit(data);
+    const payload = {
+      amountToCharge: totals.finalTotal,
+      totals: {
+        subtotal: totals.subtotal,
+        manualDiscount: totals.manualDiscount,
+        promoDiscount: totals.promoDiscount,
+        afterDiscounts: totals.afterDiscounts,
+        taxRate: totals.taxRate,
+        taxAmount: totals.taxAmount,
+        vatTaxPercent: totals.vatTaxPercent,
+        vatValue: totals.vatValue,
+        giftCardApplied: totals.giftCardApplied,
+        finalTotal: totals.finalTotal,
+      },
+      ...(currencyConfig && {
+        currencyCode: currencyConfig.currencyCode,
+        currencyExRate: currencyConfig.currencyExRate,
+      }),
+    };
+    const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
+      return;
+    }
+    onSubmit(data, parsed.data);
   };
 
   const getPaymentIcon = (id: string) => {
     switch (id) {
-      case 'cash':
+      case PAYMENT_METHODS.CASH:
         return <Banknote className="w-6 h-6" />;
-      case 'card':
+      case PAYMENT_METHODS.CARD:
         return <CreditCard className="w-6 h-6" />;
-      case 'pay_on_collection':
+      case PAYMENT_METHODS.PAY_ON_COLLECTION:
         return <Package className="w-6 h-6" />;
-      case 'check':
+      case PAYMENT_METHODS.CHECK:
         return <CheckSquare className="w-6 h-6" />;
-      case 'invoice':
+      case PAYMENT_METHODS.INVOICE:
         return <FileText className="w-6 h-6" />;
       default:
         return <Banknote className="w-6 h-6" />;
@@ -297,15 +360,15 @@ export function PaymentModalEnhanced({
 
   const getPaymentLabel = (id: string) => {
     switch (id) {
-      case 'cash':
+      case PAYMENT_METHODS.CASH:
         return t('methods.cash');
-      case 'card':
+      case PAYMENT_METHODS.CARD:
         return t('methods.card');
-      case 'pay_on_collection':
+      case PAYMENT_METHODS.PAY_ON_COLLECTION:
         return t('methods.payOnCollection');
-      case 'check':
+      case PAYMENT_METHODS.CHECK:
         return t('methods.check');
-      case 'invoice':
+      case PAYMENT_METHODS.INVOICE:
         return t('methods.invoice');
       default:
         return id;
@@ -336,14 +399,14 @@ export function PaymentModalEnhanced({
             {/* Total Display */}
             <div className={`text-center p-6 bg-gradient-to-br from-blue-50 to-green-50 rounded-xl ${isRTL ? 'text-right' : 'text-left'}`}>
               <p className="text-sm text-gray-600 mb-1">{t('totalAmount')}</p>
-              <p className="text-5xl font-bold text-gray-900">OMR {totals.finalTotal.toFixed(3)}</p>
+              <p className="text-5xl font-bold text-gray-900">{currencyCode} {formatAmount(totals.finalTotal)}</p>
               {totals.totalSavings > 0 && (
                 <div className={`mt-2 flex items-center ${isRTL ? 'flex-row-reverse justify-center' : 'justify-center'} gap-2`}>
                   <span className="text-sm text-gray-500 line-through">
-                    OMR {total.toFixed(3)}
+                    {currencyCode} {formatAmount(total)}
                   </span>
                   <span className="text-sm font-semibold text-green-600">
-                    {t('savings')} OMR {totals.totalSavings.toFixed(3)}
+                    {t('savings')} {currencyCode} {formatAmount(totals.totalSavings)}
                   </span>
                 </div>
               )}
@@ -352,10 +415,53 @@ export function PaymentModalEnhanced({
             {/* VAT/Tax Breakdown */}
             <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
               <div className="space-y-3">
+                {/* Currency info */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} text-sm pb-2 border-b border-gray-200`}>
+                  <span className="text-gray-600">{t('summary.currencyCode')}</span>
+                  <span className="font-medium text-gray-900">{currencyCode}</span>
+                </div>
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} text-sm pb-2 border-b border-gray-200`}>
+                  <span className="text-gray-600">{t('summary.exchangeRate')}</span>
+                  <span className="font-medium text-gray-900">{(currencyConfig?.currencyExRate ?? 1).toFixed(6)}</span>
+                </div>
                 {/* Sub-total */}
                 <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
                   <span className="text-sm font-medium text-gray-700">{t('summary.subtotal')}</span>
-                  <span className="text-sm font-semibold text-gray-900">OMR {totals.subtotal.toFixed(3)}</span>
+                  <span className="text-sm font-semibold text-gray-900">{currencyCode} {formatAmount(totals.subtotal)}</span>
+                </div>
+
+                {/* Tax rate (%) - distinct from VAT */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-sm font-medium text-gray-700">{t('summary.taxRate')}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={0.01}
+                      value={orderTaxRate}
+                      onChange={(e) => setOrderTaxRate(parseFloat(e.target.value) || 0)}
+                      className="w-16 rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                    />
+                    <span className="text-sm">%</span>
+                  </div>
+                </div>
+
+                {/* Tax amount - distinct from VAT */}
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                  <span className="text-sm font-medium text-gray-700">{t('summary.taxAmount')}</span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.001}
+                      value={orderTaxAmount > 0 ? orderTaxAmount : ''}
+                      onChange={(e) => setOrderTaxAmount(parseFloat(e.target.value) || 0)}
+                      placeholder={formatAmount(totals.taxAmount ?? 0)}
+                      className="w-24 rounded border border-gray-300 px-2 py-1 text-sm text-right"
+                    />
+                    <span className="text-sm font-semibold text-gray-900">{currencyCode}</span>
+                  </div>
                 </div>
 
                 {/* VAT Tax % */}
@@ -367,7 +473,7 @@ export function PaymentModalEnhanced({
                 {/* VAT Value */}
                 <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
                   <span className="text-sm font-medium text-gray-700">{t('summary.vatValue')}</span>
-                  <span className="text-sm font-semibold text-gray-900">OMR {totals.vatValue.toFixed(3)}</span>
+                  <span className="text-sm font-semibold text-gray-900">{currencyCode} {formatAmount(totals.vatValue)}</span>
                 </div>
 
                 {/* Divider */}
@@ -376,7 +482,7 @@ export function PaymentModalEnhanced({
                 {/* Total */}
                 <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
                   <span className="text-base font-bold text-gray-900">{t('summary.totalAmount')}</span>
-                  <span className="text-base font-bold text-gray-900">OMR {totals.finalTotal.toFixed(3)}</span>
+                  <span className="text-base font-bold text-gray-900">{currencyCode} {formatAmount(totals.finalTotal)}</span>
                 </div>
               </div>
             </div>
@@ -393,26 +499,26 @@ export function PaymentModalEnhanced({
                       {/* Cash */}
                       <button
                         type="button"
-                        onClick={() => field.onChange('cash')}
+                          onClick={() => field.onChange(PAYMENT_METHODS.CASH)}
                         className={`
                           p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
-                          ${field.value === 'cash' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
+                          ${field.value === PAYMENT_METHODS.CASH ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
                         `}
                       >
-                        <Banknote className={`w-12 h-12 ${field.value === 'cash' ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <Banknote className={`w-12 h-12 ${field.value === PAYMENT_METHODS.CASH ? 'text-blue-600' : 'text-gray-600'}`} />
                         <span className="font-semibold">{t('methods.cash')}</span>
                       </button>
 
                       {/* Card */}
                       <button
                         type="button"
-                        onClick={() => field.onChange('card')}
+                        onClick={() => field.onChange(PAYMENT_METHODS.CARD)}
                         className={`
                           p-6 rounded-xl border-2 transition-all flex flex-col items-center gap-3
-                          ${field.value === 'card' ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
+                          ${field.value === PAYMENT_METHODS.CARD ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}
                         `}
                       >
-                        <CreditCard className={`w-12 h-12 ${field.value === 'card' ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <CreditCard className={`w-12 h-12 ${field.value === PAYMENT_METHODS.CARD ? 'text-blue-600' : 'text-gray-600'}`} />
                         <span className="font-semibold">{t('methods.card')}</span>
                       </button>
                     </div>
@@ -421,10 +527,10 @@ export function PaymentModalEnhanced({
                     <div className="grid grid-cols-3 gap-3 mt-3">
                       <button
                         type="button"
-                        onClick={() => field.onChange('pay_on_collection')}
+                        onClick={() => field.onChange(PAYMENT_METHODS.PAY_ON_COLLECTION)}
                         className={`
                           p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                          ${field.value === 'pay_on_collection' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                          ${field.value === PAYMENT_METHODS.PAY_ON_COLLECTION ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
                         `}
                       >
                         <span className="text-sm font-medium">{t('methods.payOnCollection')}</span>
@@ -432,10 +538,10 @@ export function PaymentModalEnhanced({
 
                       <button
                         type="button"
-                        onClick={() => field.onChange('check')}
+                        onClick={() => field.onChange(PAYMENT_METHODS.CHECK)}
                         className={`
                           p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                          ${field.value === 'check' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                          ${field.value === PAYMENT_METHODS.CHECK ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
                         `}
                       >
                         <span className="text-sm font-medium">{t('methods.check')}</span>
@@ -443,10 +549,10 @@ export function PaymentModalEnhanced({
 
                       <button
                         type="button"
-                        onClick={() => field.onChange('invoice')}
+                        onClick={() => field.onChange(PAYMENT_METHODS.INVOICE)}
                         className={`
                           p-4 rounded-xl border transition-all ${isRTL ? 'text-right' : 'text-left'}
-                          ${field.value === 'invoice' ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
+                          ${field.value === PAYMENT_METHODS.INVOICE ? 'bg-blue-500 text-white border-blue-600' : 'bg-white border-gray-200'}
                         `}
                       >
                         <span className="text-sm font-medium">{t('methods.invoice')}</span>
@@ -457,9 +563,9 @@ export function PaymentModalEnhanced({
               />
             </div>
 
-            {/* Check Number Field - Conditional */}
-            {paymentMethod === 'check' && (
-              <div className={`bg-purple-50 p-4 rounded-xl border border-purple-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {/* Check fields - shown when payment method is CHECK */}
+            {paymentMethod === PAYMENT_METHODS.CHECK && (
+              <div className={`bg-purple-50 p-4 rounded-xl border border-purple-200 space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <Controller
                   name="checkNumber"
                   control={control}
@@ -479,6 +585,44 @@ export function PaymentModalEnhanced({
                       {errors.checkNumber && (
                         <p className="mt-1 text-sm text-red-600">{errors.checkNumber.message}</p>
                       )}
+                    </>
+                  )}
+                />
+                <Controller
+                  name="checkBank"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <label className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('checkBank.label')}
+                      </label>
+                      <input
+                        {...field}
+                        type="text"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        dir="ltr"
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                        placeholder={t('checkBank.placeholder')}
+                      />
+                    </>
+                  )}
+                />
+                <Controller
+                  name="checkDate"
+                  control={control}
+                  render={({ field }) => (
+                    <>
+                      <label className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('checkDate.label')}
+                      </label>
+                      <input
+                        {...field}
+                        type="date"
+                        value={field.value ?? ''}
+                        onChange={(e) => field.onChange(e.target.value || '')}
+                        className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                      />
                     </>
                   )}
                 />
@@ -524,7 +668,7 @@ export function PaymentModalEnhanced({
                       />
                     )}
                   />
-                  <span className="text-gray-600 text-sm font-medium w-16">OMR</span>
+                  <span className="text-gray-600 text-sm font-medium w-16">{currencyCode}</span>
                   <Controller
                     name="amountDiscount"
                     control={control}
@@ -623,7 +767,7 @@ export function PaymentModalEnhanced({
                         <div className={isRTL ? 'text-right' : 'text-left'}>
                           <p className="font-medium text-green-900">{appliedPromoCode.code}</p>
                           <p className="text-sm text-green-700">
-                            -OMR {appliedPromoCode.discount.toFixed(3)}
+                            -{currencyCode} {formatAmount(appliedPromoCode.discount)}
                           </p>
                         </div>
                       </div>
@@ -694,7 +838,7 @@ export function PaymentModalEnhanced({
                         <div className={isRTL ? 'text-right' : 'text-left'}>
                           <p className="font-medium text-purple-900">{appliedGiftCard.number}</p>
                           <p className="text-sm text-purple-700">
-                            {t('giftCard.appliedAmount')}: -OMR {appliedGiftCard.amount.toFixed(3)} | {t('giftCard.balance')}: OMR {appliedGiftCard.balance.toFixed(3)}
+                            {t('giftCard.appliedAmount')}: -{currencyCode} {formatAmount(appliedGiftCard.amount)} | {t('giftCard.balance')}: {currencyCode} {formatAmount(appliedGiftCard.balance)}
                           </p>
                         </div>
                       </div>
@@ -745,7 +889,7 @@ export function PaymentModalEnhanced({
                   {t('actions.processing')}
                 </>
               ) : (
-                `${t('actions.submit')} - OMR ${totals.finalTotal.toFixed(3)}`
+                `${t('actions.submit')} - ${currencyCode} ${formatAmount(totals.finalTotal)}`
               )}
             </button>
             {/* Show validation errors - only if there are actual errors */}

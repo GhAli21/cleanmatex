@@ -22,6 +22,7 @@ import { CustomItemModal } from './components/custom-item-modal';
 import { PhotoCaptureModal } from './components/photo-capture-modal';
 import { ReadyDatePickerModal } from '@/app/dashboard/orders/new/components/ready-date-picker-modal';
 import type { PaymentFormData } from '../model/payment-form-schema';
+import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 
 // Lazy load heavy modals for code splitting
 const CustomerPickerModal = dynamic(
@@ -127,10 +128,10 @@ export function NewOrderModals() {
     [state, t]
   );
 
-  // Handle payment submit
+  // Handle payment submit (extended payload: amountToCharge, totals for invoice/payment flow)
   const handlePaymentSubmit = useCallback(
-    async (paymentData: PaymentFormData) => {
-      await submitOrder(paymentData);
+    async (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => {
+      await submitOrder(paymentData, payload);
     },
     [submitOrder]
   );

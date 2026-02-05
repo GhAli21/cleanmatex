@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -10,9 +12,35 @@ import { OrderItemsList } from '../components/order-items-list';
 import { OrderActions } from '../components/order-actions';
 import { PrintLabelButton } from '../components/print-label-button';
 import { isPreparationEnabled } from '@/lib/config/features';
+import type { PaymentTransaction } from '@/lib/types/payment';
+import type { Invoice } from '@/lib/types/payment';
+import type { PaymentMethodCode } from '@/lib/types/payment';
 
 interface OrderDetailClientProps {
   order: any;
+  unappliedPayments: PaymentTransaction[];
+  orderInvoices: Invoice[];
+  tenantOrgId: string;
+  userId: string;
+  processPaymentAction: (
+    tenantOrgId: string,
+    userId: string,
+    input: {
+      orderId: string;
+      invoiceId?: string;
+      customerId?: string;
+      paymentKind?: 'invoice' | 'deposit' | 'advance' | 'pos';
+      paymentMethod: PaymentMethodCode;
+      amount: number;
+      notes?: string;
+    }
+  ) => Promise<{ success: boolean; error?: string }>;
+  applyPaymentToInvoiceAction: (
+    paymentId: string,
+    invoiceId: string,
+    userId?: string,
+    orderId?: string
+  ) => Promise<{ success: boolean; error?: string }>;
   translations: {
     backToOrders: string;
     edit: string;
@@ -49,24 +77,109 @@ interface OrderDetailClientProps {
     paymentMethod: string;
     received: string;
     readyBy: string;
+    unappliedPayments: string;
+    applyToInvoice: string;
+    noUnappliedPayments: string;
+    recordDepositPos: string;
+    selectInvoiceToApply: string;
+    paymentKind: string;
+    kindDeposit: string;
+    kindPos: string;
+    recordPaymentTitle: string;
+    recordPaymentAmount: string;
+    recordPaymentMethod: string;
+    recordPaymentCash: string;
+    recordPaymentCard: string;
+    recordPaymentSubmit: string;
+    recordPaymentProcessing: string;
+    recordPaymentCancel: string;
+    recordPaymentSuccess: string;
+    recordPaymentError: string;
   };
   locale: 'en' | 'ar';
-  returnUrl?: string;      // NEW
-  returnLabel?: string;    // NEW
+  returnUrl?: string;
+  returnLabel?: string;
 }
 
-export function OrderDetailClient({ 
-  order, 
-  translations: t, 
+export function OrderDetailClient({
+  order,
+  unappliedPayments,
+  orderInvoices,
+  tenantOrgId,
+  userId,
+  processPaymentAction,
+  applyPaymentToInvoiceAction,
+  translations: t,
   locale,
-  returnUrl = '/dashboard/orders',        // Default fallback
-  returnLabel                              // Use provided or default
+  returnUrl = '/dashboard/orders',
+  returnLabel,
 }: OrderDetailClientProps) {
   const isRTL = useRTL();
+  const router = useRouter();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
+  const [applyModalPaymentId, setApplyModalPaymentId] = useState<string | null>(null);
+  const [applyModalInvoiceId, setApplyModalInvoiceId] = useState<string>('');
+  const [applyError, setApplyError] = useState<string | null>(null);
+  const [applyPending, startApplyTransition] = useTransition();
+
+  const [depositAmount, setDepositAmount] = useState<number>(0);
+  const [depositMethod, setDepositMethod] = useState<PaymentMethodCode>('CASH');
+  const [depositKind, setDepositKind] = useState<'deposit' | 'pos'>('deposit');
+  const [depositNotes, setDepositNotes] = useState<string>('');
+  const [depositError, setDepositError] = useState<string | null>(null);
+  const [depositSuccess, setDepositSuccess] = useState<string | null>(null);
+  const [depositPending, startDepositTransition] = useTransition();
+
   const tenantId = currentTenant?.tenant_id;
+
+  const handleApplyToInvoice = () => {
+    if (!applyModalPaymentId || !applyModalInvoiceId) return;
+    setApplyError(null);
+    startApplyTransition(async () => {
+      const result = await applyPaymentToInvoiceAction(
+        applyModalPaymentId,
+        applyModalInvoiceId,
+        userId,
+        order.id
+      );
+      if (result.success) {
+        setApplyModalPaymentId(null);
+        setApplyModalInvoiceId('');
+        router.refresh();
+      } else {
+        setApplyError(result.error ?? 'Failed to apply');
+      }
+    });
+  };
+
+  const handleRecordDepositPos = (e: React.FormEvent) => {
+    e.preventDefault();
+    setDepositError(null);
+    setDepositSuccess(null);
+    if (depositAmount <= 0) {
+      setDepositError(t.recordPaymentError);
+      return;
+    }
+    startDepositTransition(async () => {
+      const result = await processPaymentAction(tenantOrgId, userId, {
+        orderId: order.id,
+        paymentKind: depositKind,
+        paymentMethod: depositMethod,
+        amount: depositAmount,
+        notes: depositNotes || undefined,
+      });
+      if (result.success) {
+        setDepositSuccess(t.recordPaymentSuccess);
+        setDepositAmount(0);
+        setDepositNotes('');
+        router.refresh();
+      } else {
+        setDepositError(result.error ?? t.recordPaymentError);
+      }
+    });
+  };
 
   const publicTrackingPath =
     tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
@@ -431,15 +544,181 @@ export function OrderDetailClient({
                   </div>
                 </>
               )}
-              {order.payment_method && (
+              {order.payment_method_code && (
                 <div className="pt-3 border-t border-gray-200">
                   <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.paymentMethod}</div>
                   <div className={`text-sm font-medium text-gray-900 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {order.payment_method.replace('_', ' ').toUpperCase()}
+                    {order.payment_method_code.replace('_', ' ').toUpperCase()}
                   </div>
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Unapplied payments */}
+          {unappliedPayments.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.unappliedPayments}
+              </h2>
+              <ul className="space-y-2">
+                {unappliedPayments.map((p) => (
+                  <li
+                    key={p.id}
+                    className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm`}
+                  >
+                    <span className="font-medium text-gray-900">
+                      {Number(p.paid_amount).toFixed(3)} OMR
+                    </span>
+                    <span className="text-gray-600">
+                      {p.payment_method_code}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApplyModalPaymentId(p.id);
+                        setApplyModalInvoiceId('');
+                        setApplyError(null);
+                      }}
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      {t.applyToInvoice}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Apply to invoice modal */}
+          {applyModalPaymentId && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="apply-invoice-title">
+              <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                <h3 id="apply-invoice-title" className="text-lg font-semibold text-gray-900 mb-4">
+                  {t.selectInvoiceToApply}
+                </h3>
+                <select
+                  value={applyModalInvoiceId}
+                  onChange={(e) => setApplyModalInvoiceId(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                >
+                  <option value="">—</option>
+                  {orderInvoices.map((inv) => (
+                    <option key={inv.id} value={inv.id}>
+                      {inv.invoice_no} — {Number(inv.total).toFixed(3)} OMR
+                    </option>
+                  ))}
+                </select>
+                {applyError && (
+                  <p className="mt-2 text-sm text-red-600">{applyError}</p>
+                )}
+                <div className={`flex gap-2 mt-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setApplyModalPaymentId(null);
+                      setApplyModalInvoiceId('');
+                      setApplyError(null);
+                    }}
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                  >
+                    {t.recordPaymentCancel}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!applyModalInvoiceId || applyPending}
+                    onClick={handleApplyToInvoice}
+                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {applyPending ? t.recordPaymentProcessing : t.applyToInvoice}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Record deposit / POS */}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.recordDepositPos}
+            </h2>
+            <form onSubmit={handleRecordDepositPos} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">{t.recordPaymentAmount}</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  min={0}
+                  value={depositAmount || ''}
+                  onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-right"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">{t.recordPaymentMethod}</label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDepositMethod('CASH')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                      depositMethod === 'CASH' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    {t.recordPaymentCash}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepositMethod('CARD')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                      depositMethod === 'CARD' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    {t.recordPaymentCard}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">{t.paymentKind}</label>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDepositKind('deposit')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                      depositKind === 'deposit' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    {t.kindDeposit}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDepositKind('pos')}
+                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                      depositKind === 'pos' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
+                    }`}
+                  >
+                    {t.kindPos}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Notes</label>
+                <textarea
+                  value={depositNotes}
+                  onChange={(e) => setDepositNotes(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                />
+              </div>
+              {depositError && <p className="text-sm text-red-600">{depositError}</p>}
+              {depositSuccess && <p className="text-sm text-green-600">{depositSuccess}</p>}
+              <button
+                type="submit"
+                disabled={depositPending || depositAmount <= 0}
+                className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {depositPending ? t.recordPaymentProcessing : t.recordPaymentSubmit}
+              </button>
+            </form>
           </div>
         </div>
       </div>

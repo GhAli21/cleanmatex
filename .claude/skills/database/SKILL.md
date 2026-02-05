@@ -13,10 +13,12 @@ user-invocable: true
 ## Naming Patterns
 
 ### Prefixes
+
 - `sys_*` - Global system (no tenant_org_id)
 - `org_*` - Tenant tables (requires tenant_org_id)
 
 ### Suffixes
+
 - `_mst` - Master tables (main entities)
 - `_dtl` - Detail tables (line items)
 - `_tr` - Transaction tables
@@ -28,6 +30,7 @@ user-invocable: true
 Format: `{scope}_{feature}_{object_name}_{suffix}`
 
 Examples:
+
 - `org_ord_orders_mst` - Orders master table
 - `org_ord_order_items_dtl` - Order items detail
 - `sys_auth_users_mst` - System auth users
@@ -63,9 +66,10 @@ description TEXT,        -- English
 description2 TEXT        -- Arabic
 ```
 
-## Money/Price Fields
+## Money/Price Fields and Datatype and size
 
 ```sql
+DECIMAL(19, 4)
 price DECIMAL(19, 4)
 total_amount DECIMAL(19, 4)
 ```
@@ -103,6 +107,22 @@ CREATE POLICY tenant_isolation ON org_example_mst
   USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
 ```
 
+## Database Migrations – Version (Last Seq)
+
+**Always create new migration files with the next sequential version.**
+
+Before adding a migration:
+
+1. **List existing migrations** in `supabase/migrations/` (excluding `archive/`, `seeds/`, and `x_*` / `xproduction/`).
+2. **Determine the latest version** from filenames: either numeric `NNNN` (e.g. `0082`) or timestamp `YYYYMMDDHHMMSS` (e.g. `20260127090030`).
+3. **Use the next version:**
+   - If the latest is **numeric** (e.g. `0082_svc_cat_proc_steps.sql`), use the next integer zero-padded to 4 digits: **`0083`**.
+   - If the latest is **timestamp**, use current date-time in that format: **`YYYYMMDDHHMMSS`**.
+4. **Name the file:** `{version}_{descriptive_snake_case_name}.sql`  
+   Example: `0083_payments_nullable_invoice_id.sql`.
+
+Never reuse or skip version numbers. When in doubt, list the migrations directory and take max(version) + 1.
+
 ## Before Creating Any Table
 
 **MUST follow this workflow:**
@@ -117,6 +137,7 @@ See [table-check-workflow.md](./table-check-workflow.md) for complete workflow.
 ### Red Flags - STOP and Check!
 
 🚨 Before creating tables for:
+
 - "orders" → check `org_orders_mst`
 - "users" → check `org_auth_users_mst`, `sys_auth_users_mst`
 - "settings" → check `org_stng_*`, `sys_stng_*`

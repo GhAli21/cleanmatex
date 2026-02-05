@@ -15,8 +15,13 @@ import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cmxMessage } from '@ui/feedback';
 import { validateProductIds } from '@/lib/utils/validation-helpers';
-import { sanitizeOrderNotes, sanitizeInput, sanitizeNumber } from '@/lib/utils/security-helpers';
+import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers';
 import type { PaymentFormData } from '../model/payment-form-schema';
+import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
+import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
+import { processPayment } from '@/app/actions/payments/process-payment';
+import { createInvoiceAction } from '@/app/actions/payments/invoice-actions';
+import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 
 /**
  * Hook to handle order submission
@@ -25,7 +30,7 @@ export function useOrderSubmission() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
     const router = useRouter();
-    const { currentTenant } = useAuth();
+    const { currentTenant, user } = useAuth();
     const useNewWorkflowSystem = useWorkflowSystemMode();
     const { trackByPiece } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
@@ -35,12 +40,24 @@ export function useOrderSubmission() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const submitOrder = useCallback(
-        async (paymentData: PaymentFormData) => {
+        async (paymentData: PaymentFormData, payload?: NewOrderPaymentPayload) => {
             setIsSubmitting(true);
             state.setLoading(true);
-            const submissionStartTime = performance.now();
 
             try {
+                // Validate extended payload when provided (invoice or cash/card/check flow)
+                if (payload) {
+                    const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
+                    if (!parsed.success) {
+                        const first = parsed.error.issues[0];
+                        cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('payment.errors.invalidAmount'));
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
+                    payload = parsed.data;
+                }
+
                 // Validate all product IDs are UUIDs
                 const productIds = state.state.items.map((item) => item.productId);
                 const invalidProductIds = validateProductIds(productIds);
@@ -99,6 +116,12 @@ export function useOrderSubmission() {
                     ...(paymentData.checkNumber && {
                         checkNumber: sanitizeInput(paymentData.checkNumber),
                     }),
+                    ...(paymentData.checkBank && {
+                        checkBank: sanitizeInput(paymentData.checkBank),
+                    }),
+                    ...(paymentData.checkDate && {
+                        checkDate: paymentData.checkDate,
+                    }),
                     ...(paymentData.percentDiscount > 0 && {
                         percentDiscount: paymentData.percentDiscount,
                     }),
@@ -115,6 +138,27 @@ export function useOrderSubmission() {
                         giftCardAmount: paymentData.giftCardAmount,
                     }),
                     payAllOrders: paymentData.payAllOrders,
+                    // Payment & order data enhancement: totals and breakdown for order + payment
+                    ...(payload?.totals && {
+                        totals: {
+                            subtotal: payload.totals.subtotal,
+                            discount: (payload.totals.manualDiscount ?? 0) + (payload.totals.promoDiscount ?? 0),
+                            tax: (payload.totals.taxAmount ?? 0) + (payload.totals.vatValue ?? 0),
+                            total: payload.totals.finalTotal,
+                            taxRate: payload.totals.taxRate,
+                            taxAmount: payload.totals.taxAmount,
+                            vatRate: payload.totals.vatTaxPercent,
+                            vatAmount: payload.totals.vatValue,
+                        },
+                        discountRate: paymentData.percentDiscount || 0,
+                        discountType: paymentData.promoCode ? 'promo' : (paymentData.percentDiscount || paymentData.amountDiscount ? 'manual' : undefined),
+                        ...(paymentData.promoCodeId && { promoCodeId: paymentData.promoCodeId }),
+                        promoDiscountAmount: payload.totals.promoDiscount ?? 0,
+                        giftCardDiscountAmount: payload.totals.giftCardApplied ?? 0,
+                        paymentTypeCode: getPaymentTypeFromMethod(paymentData.paymentMethod),
+                    }),
+                    ...(payload?.currencyCode && { currencyCode: payload.currencyCode }),
+                    ...(payload?.currencyExRate != null && { currencyExRate: payload.currencyExRate }),
                 };
 
                 // Include CSRF token in headers
@@ -248,10 +292,6 @@ export function useOrderSubmission() {
                     return;
                 }
 
-                // Success - close payment modal
-                state.closeModal('payment');
-
-                // Store created order info
                 const data = json.data as {
                     id?: string;
                     orderId?: string;
@@ -262,20 +302,100 @@ export function useOrderSubmission() {
                 };
                 const orderId = data?.id || data?.orderId;
                 const orderStatus = data?.currentStatus || data?.status;
+                const tenantOrgId = currentTenant?.tenant_id || '';
+                const userId = user?.id || '';
 
+                // Invoice-only (INVOICE): create invoice for the order; payment collected later
+                const method = paymentData.paymentMethod;
+                const amountToCharge = payload?.amountToCharge ?? payload?.totals?.finalTotal ?? 0;
+                const totals = payload?.totals;
+                if (
+                    orderId &&
+                    tenantOrgId &&
+                    method === PAYMENT_METHODS.INVOICE &&
+                    totals
+                ) {
+                    const invoiceResult = await createInvoiceAction(tenantOrgId, {
+                        order_id: orderId,
+                        subtotal: totals.subtotal,
+                        discount: (totals.manualDiscount ?? 0) + (totals.promoDiscount ?? 0),
+                        tax: (totals.taxAmount ?? 0) + (totals.vatValue ?? 0),
+                        payment_method_code: 'INVOICE',
+                    });
+                    if (!invoiceResult.success) {
+                        cmxMessage.error(
+                            invoiceResult.error ?? t('payment.errors.invoiceCreationFailed')
+                        );
+                        state.closeModal('payment');
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
+                }
+
+                // Immediate payment (CASH, CARD, CHECK): create invoice and record payment via processPayment
+                if (
+                    orderId &&
+                    tenantOrgId &&
+                    (method === PAYMENT_METHODS.CASH || method === PAYMENT_METHODS.CARD || method === PAYMENT_METHODS.CHECK) &&
+                    amountToCharge > 0
+                ) {
+                    const paymentMethodCode = method === PAYMENT_METHODS.CASH ? 'CASH' : method === PAYMENT_METHODS.CARD ? 'CARD' : 'CHECK';
+                    const paymentResult = await processPayment(tenantOrgId, userId, {
+                        orderId, 
+                        customerId: state.state.customer?.id || undefined,
+                        amount: amountToCharge,
+                        paymentMethod: paymentMethodCode,
+                        paymentKind: 'pos', //'invoice',
+                        checkNumber: paymentData.checkNumber || undefined,
+                        checkBank: paymentData.checkBank || undefined,
+                        checkDate: paymentData.checkDate ? new Date(paymentData.checkDate) : undefined,
+                        notes: undefined,
+                        ...(totals && {
+                            subtotal: totals.subtotal,
+                            discountRate: paymentData.percentDiscount || 0,
+                            discountAmount: (totals.manualDiscount ?? 0) + (totals.promoDiscount ?? 0),
+                            manualDiscountAmount: totals.manualDiscount ?? 0,
+                            promoDiscountAmount: totals.promoDiscount ?? 0,
+                            giftCardAppliedAmount: totals.giftCardApplied ?? 0,
+                            taxRate: totals.taxRate,
+                            taxAmount: totals.taxAmount,
+                            vatRate: totals.vatTaxPercent,
+                            vatAmount: totals.vatValue,
+                            finalTotal: totals.finalTotal,
+                            paymentTypeCode: getPaymentTypeFromMethod(paymentData.paymentMethod),
+                        }),
+                        ...(payload?.currencyCode && { currencyCode: payload.currencyCode }),
+                        ...(payload?.currencyExRate != null && { currencyExRate: payload.currencyExRate }),
+                        ...(paymentData.promoCode && { promoCode: paymentData.promoCode, promoCodeId: paymentData.promoCodeId }),
+                        ...(paymentData.giftCardNumber && {
+                            giftCardNumber: paymentData.giftCardNumber,
+                            giftCardAmount: paymentData.giftCardAmount ?? 0,
+                        }),
+                    });
+                    if (!paymentResult.success) {
+                        cmxMessage.error(
+                            paymentResult.error ?? t('payment.errors.paymentNotRecordedCompleteOnOrder')
+                        );
+                        state.closeModal('payment');
+                        state.resetOrder();
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
+                }
+
+                // Success - close payment modal, show success, reset
+                state.closeModal('payment');
                 if (orderId) {
                     state.setCreatedOrder(orderId, orderStatus || null);
                 }
-
-                // Show success message
                 const orderNo = data?.orderNo || data?.order_no || '';
                 cmxMessage.success(
                     tWorkflow('newOrder.orderCreatedSuccess', { orderNo }) ||
                     t('success.orderCreated', { orderNo }) ||
                     `Order ${orderNo} created successfully`
                 );
-
-                // Reset order (keep categories and products)
                 state.resetOrder();
             } catch (err: unknown) {
                 const error = err as Error;
@@ -322,6 +442,8 @@ export function useOrderSubmission() {
             trackByPiece,
             useNewWorkflowSystem,
             csrfToken,
+            currentTenant,
+            user,
         ]
     );
 

@@ -51,6 +51,16 @@ export interface CreateOrderParams {
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
+  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number };
+  discountRate?: number;
+  discountType?: string;
+  promoCodeId?: string;
+  giftCardId?: string;
+  promoDiscountAmount?: number;
+  giftCardDiscountAmount?: number;
+  paymentTypeCode?: string;
+  currencyCode?: string;
+  currencyExRate?: number;
 }
 
 export interface CreateOrderResult {
@@ -168,6 +178,16 @@ export class OrderService {
         userId,
         userName,
         useOldWfCodeOrNew,
+        totals,
+        discountRate,
+        discountType,
+        promoCodeId,
+        giftCardId,
+        promoDiscountAmount,
+        giftCardDiscountAmount,
+        paymentTypeCode,
+        currencyCode: passedCurrencyCode,
+        currencyExRate: passedCurrencyExRate,
       } = params;
 
       // Determine initial status based on Quick Drop vs Normal
@@ -252,11 +272,30 @@ export class OrderService {
 
       const orderNo = orderNoData as string;
 
-      // Calculate totals
-      const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0);
-      const discount = 0; // TODO: Apply discounts
-      const tax = 0; // TODO: Calculate tax
-      const total = subtotal - discount + tax;
+      // Calculate totals (use provided totals when present, else from items)
+      const subtotal = totals?.subtotal ?? items.reduce((sum, item) => sum + item.totalPrice, 0);
+      const discount = totals?.discount ?? 0;
+      const tax = totals?.tax ?? 0;
+      const total = totals?.total ?? subtotal - discount + tax;
+      const vatRate = totals?.vatRate;
+      const vatAmount = totals?.vatAmount;
+
+      // Currency: prefer passed values, else fetch from tenant settings when we have payment-related data
+      const hasPaymentData = !!(
+        totals || paymentMethod || paymentTypeCode ||
+        discountRate != null || promoCodeId || giftCardId ||
+        passedCurrencyCode
+      );
+      let currencyCode = passedCurrencyCode;
+      let currencyExRate = passedCurrencyExRate;
+      if (!currencyCode && hasPaymentData) {
+        const tenantSettingsSvc = new TenantSettingsService();
+        const config = await tenantSettingsSvc.getCurrencyConfig(tenantId, branchId ?? undefined);
+        currencyCode = config.currencyCode;
+      }
+      if (currencyExRate == null) {
+        currencyExRate = 1;
+      }
 
       // Get primary service category from first item
       const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
@@ -272,36 +311,51 @@ export class OrderService {
 
       const v_workflowTemplateId = templateData?.template_id || null;
 
+      const insertPayload: Record<string, unknown> = {
+        tenant_org_id: tenantId,
+        branch_id: branchId,
+        customer_id: customerId,
+        order_type_id: orderTypeId,
+        order_no: orderNo,
+        status: v_orderStatus,
+        workflow_template_id: v_workflowTemplateId,
+        current_status: v_current_status,
+        current_stage: v_current_stage,
+        priority: priority || 'normal',
+        priority_multiplier: express ? 0.5 : 1.0,
+        total_items: items.length > 0 ? items.length : quickDropQuantity || 0,
+        subtotal,
+        discount,
+        tax,
+        total,
+        payment_status: paymentMethod ? 'partial' : 'pending',
+        payment_method_code: paymentMethod,
+        paid_amount: 0,
+        service_category_code: primaryServiceCategory,
+        is_order_quick_drop: isQuickDrop || false,
+        quick_drop_quantity: quickDropQuantity,
+        customer_notes: customerNotes,
+        internal_notes: internalNotes,
+      };
+
+      if (currencyCode != null) {
+        insertPayload.currency_code = currencyCode;
+        insertPayload.currency_ex_rate = currencyExRate ?? 1;
+      }
+      if (vatRate != null) insertPayload.vat_rate = vatRate;
+      if (vatAmount != null) insertPayload.vat_amount = vatAmount;
+      if (discountRate != null) insertPayload.discount_rate = discountRate;
+      if (discountType != null) insertPayload.discount_type = discountType;
+      if (promoCodeId != null) insertPayload.promo_code_id = promoCodeId;
+      if (giftCardId != null) insertPayload.gift_card_id = giftCardId;
+      if (promoDiscountAmount != null) insertPayload.promo_discount_amount = promoDiscountAmount;
+      if (giftCardDiscountAmount != null) insertPayload.gift_card_discount_amount = giftCardDiscountAmount;
+      if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
+
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('org_orders_mst')
-        .insert({
-          tenant_org_id: tenantId,
-          branch_id: branchId,
-          customer_id: customerId,
-          order_type_id: orderTypeId,
-          order_no: orderNo,
-          status: v_orderStatus, // 'processing' // 'intake', 
-          workflow_template_id: v_workflowTemplateId,
-          current_status: v_current_status, // v_initialStatus,
-          current_stage: v_current_stage, // v_transitionFrom, //initialStatus
-          priority: priority || 'normal',
-          priority_multiplier: express ? 0.5 : 1.0,
-          total_items: items.length > 0 ? items.length : quickDropQuantity || 0,
-          subtotal,
-          discount,
-          tax,
-          total,
-          payment_status: paymentMethod ? 'partial' : 'pending',
-          payment_method: paymentMethod,
-          paid_amount: 0,
-          service_category_code: primaryServiceCategory,
-          is_order_quick_drop: isQuickDrop || false,
-          quick_drop_quantity: quickDropQuantity,
-          customer_notes: customerNotes,
-          internal_notes: internalNotes,
-
-        })
+        .insert(insertPayload)
         .select()
         .single();
 

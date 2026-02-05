@@ -108,9 +108,9 @@ export interface PaymentOption {
 }
 
 export const PAYMENT_OPTIONS: PaymentOption[] = [
-  { id: 'cash', label: 'Cash', icon: '💵' },
-  { id: 'card', label: 'Card', icon: '💳' },
-  { id: 'pay_on_collection', label: 'Pay on Collection', isDefault: true, icon: '📦' },
-  { id: 'check', label: 'Check', icon: '🏦' },
-  { id: 'invoice', label: 'Invoice', icon: '📄' },
+  { id: 'CASH', label: 'Cash', icon: '💵' },
+  { id: 'CARD', label: 'Card', icon: '💳' },
+  { id: 'PAY_ON_COLLECTION', label: 'Pay on Collection', isDefault: true, icon: '📦' },
+  { id: 'CHECK', label: 'Check', icon: '🏦' },
+  { id: 'INVOICE', label: 'Invoice', icon: '📄' },
 ];

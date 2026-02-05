@@ -7,26 +7,25 @@
  */
 
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import {
-  listInvoices,
-  getInvoiceStats,
-} from '@/lib/services/invoice-service';
+import { listInvoices, getInvoiceStats } from '@/lib/services/invoice-service';
+import InvoiceFiltersBar from './components/invoice-filters-bar';
+import InvoicesTable from './components/invoices-table';
 
 type InvoicesSearchParams = {
   page?: string;
   status?: string;
   fromDate?: string;
   toDate?: string;
+  search?: string;
+  sortBy?: string;
+  sortOrder?: string;
 };
 
 interface PageProps {
   searchParams?: Promise<InvoicesSearchParams>;
 }
-
-const INVOICES_BASE = '/dashboard/billing/invoices';
 
 export default async function InvoicesPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices');
@@ -66,6 +65,9 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     status: params.status as any,
     dateFrom: parseDate(params.fromDate),
     dateTo: parseDate(params.toDate),
+    searchQuery: params.search?.trim(),
+    sortBy: params.sortBy,
+    sortOrder: (params.sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
     limit: 20,
     offset: (page - 1) * 20,
   };
@@ -75,7 +77,12 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     getInvoiceStats(tenantOrgId),
   ]);
 
-  const totalPages = Math.ceil((invoicesResult.total || 0) / 20);
+  const pagination = {
+    page,
+    limit: 20,
+    totalCount: invoicesResult.total,
+    totalPages: invoicesResult.totalPages ?? Math.ceil((invoicesResult.total || 0) / 20),
+  };
 
   return (
     <div className="space-y-6 p-6">
@@ -117,113 +124,15 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Invoices table */}
-      <Suspense fallback={<div>{tCommon('loading')}</div>}>
-        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.invoiceNo')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.orderNo')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.total')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.paid')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.balance')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {t('columns.status')}
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  {tCommon('actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {invoicesResult.invoices.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-sm text-gray-500"
-                  >
-                    {t('empty')}
-                  </td>
-                </tr>
-              ) : (
-                invoicesResult.invoices.map((invoice) => {
-                  const balance =
-                    Number(invoice.total) - Number(invoice.paid_amount);
-                  return (
-                    <tr key={invoice.id} className="hover:bg-gray-50">
-                      <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                        {invoice.invoice_no}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                        {invoice.order_id}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                        {Number(invoice.total).toFixed(3)} OMR
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-green-700">
-                        {Number(invoice.paid_amount).toFixed(3)} OMR
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm text-orange-700">
-                        {balance.toFixed(3)} OMR
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm">
-                        <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
-                          {invoice.status}
-                        </span>
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-sm">
-                        <Link
-                          href={`${INVOICES_BASE}/${invoice.id}`}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          {tCommon('view')}
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+      <InvoiceFiltersBar />
 
-          {/* Simple pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 text-sm text-gray-700">
-              <div>
-                {t('pagination.pageOf', { page, totalPages })}
-              </div>
-              <div className="space-x-2">
-                {page > 1 && (
-                  <Link
-                    href={`${INVOICES_BASE}?page=${page - 1}`}
-                    className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                  >
-                    {tCommon('previous')}
-                  </Link>
-                )}
-                {page < totalPages && (
-                  <Link
-                    href={`${INVOICES_BASE}?page=${page + 1}`}
-                    className="rounded border border-gray-300 px-3 py-1 hover:bg-gray-50"
-                  >
-                    {tCommon('next')}
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+      <Suspense fallback={<div>{tCommon('loading')}</div>}>
+        <InvoicesTable
+          invoices={invoicesResult.invoices}
+          pagination={pagination}
+          sortBy={params.sortBy || 'created_at'}
+          sortOrder={params.sortOrder === 'asc' ? 'asc' : 'desc'}
+        />
       </Suspense>
     </div>
   );

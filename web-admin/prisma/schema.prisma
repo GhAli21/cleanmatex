@@ -390,6 +390,7 @@ model org_branches_mst {
   org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
   org_dlv_routes_mst          org_dlv_routes_mst[]
   org_dlv_slots_mst           org_dlv_slots_mst[]
+  org_invoice_mst             org_invoice_mst[]
   org_orders_mst              org_orders_mst[]
   org_stng_audit_log_tr       org_stng_audit_log_tr[]
   org_stng_effective_cache_cf org_stng_effective_cache_cf[]
@@ -487,7 +488,9 @@ model org_customers_mst {
   org_customer_addresses org_customer_addresses[]
   sys_customers_mst      sys_customers_mst?       @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
   org_tenants_mst        org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
+  org_invoice_mst        org_invoice_mst[]
   org_orders_mst         org_orders_mst[]
+  org_payments_dtl_tr    org_payments_dtl_tr[]
 
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
   @@index([tenant_org_id], map: "idx_org_customers_tenant")
@@ -497,35 +500,69 @@ model org_customers_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_invoice_mst {
-  id                  String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  order_id            String?               @db.Uuid
-  tenant_org_id       String                @db.Uuid
-  invoice_no          String
-  subtotal            Decimal?              @default(0) @db.Decimal(10, 3)
-  discount            Decimal?              @default(0) @db.Decimal(10, 3)
-  tax                 Decimal?              @default(0) @db.Decimal(10, 3)
-  total               Decimal?              @default(0) @db.Decimal(10, 3)
-  status              String?               @default("pending")
-  due_date            DateTime?             @db.Date
-  payment_method      String?               @db.VarChar(50)
-  paid_amount         Decimal?              @default(0) @db.Decimal(10, 3)
-  paid_at             DateTime?             @db.Timestamp(6)
-  paid_by             String?               @db.VarChar(255)
-  metadata            Json?
-  rec_notes           String?               @db.VarChar(1000)
-  created_at          DateTime              @default(now()) @db.Timestamp(6)
-  created_by          String?               @db.VarChar(120)
-  created_info        String?
-  updated_at          DateTime?             @db.Timestamp(6)
-  updated_by          String?               @db.VarChar(120)
-  updated_info        String?
-  org_orders_mst      org_orders_mst?       @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
-  org_tenants_mst     org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_tenant")
-  org_payments_dtl_tr org_payments_dtl_tr[]
+  id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id                 String?                @db.Uuid
+  customer_id              String?                @db.Uuid
+  tenant_org_id            String                 @db.Uuid
+  branch_id                String?                @db.Uuid
+  invoice_no               String
+  invoice_date             DateTime?              @db.Date
+  subtotal                 Decimal?               @default(0) @db.Decimal(10, 3)
+  discount                 Decimal?               @default(0) @db.Decimal(10, 3)
+  tax                      Decimal?               @default(0) @db.Decimal(10, 3)
+  tax_rate                 Decimal?               @db.Decimal(5, 3)
+  total                    Decimal?               @default(0) @db.Decimal(10, 3)
+  status                   String?                @default("pending")
+  due_date                 DateTime?              @db.Date
+  payment_method_code      String?                @db.VarChar(50)
+  payment_terms            String?                @db.VarChar(50)
+  paid_amount              Decimal?               @default(0) @db.Decimal(10, 3)
+  paid_at                  DateTime?              @db.Timestamp(6)
+  paid_by                  String?                @db.VarChar(255)
+  paid_by_name             String?                @db.VarChar(255)
+  handed_to_name           String?                @db.VarChar(255)
+  handed_to_mobile_no      String?                @db.VarChar(50)
+  handed_to_date           DateTime?              @db.Timestamp(6)
+  handed_to_by_user        String?                @db.Uuid
+  trans_desc               String?                @db.VarChar(255)
+  customer_reference       String?                @db.VarChar(120)
+  service_charge           Decimal?               @default(0) @db.Decimal(19, 4)
+  service_charge_type      String?                @db.VarChar(50)
+  gift_card_id             String?                @db.Uuid
+  gift_card_discount_amount Decimal?              @default(0) @db.Decimal(19, 4)
+  metadata                 Json?
+  rec_notes                String?                @db.VarChar(1000)
+  rec_status               Int?                   @default(1) @db.SmallInt
+  is_active                Boolean                @default(true)
+  created_at               DateTime               @default(now()) @db.Timestamp(6)
+  created_by               String?                @db.VarChar(120)
+  created_info             String?
+  updated_at               DateTime?              @db.Timestamp(6)
+  updated_by               String?                @db.VarChar(120)
+  updated_info             String?
+  currency_code            String?                @db.VarChar(3)
+  currency_ex_rate         Decimal                @default(1.000000) @db.Decimal(10, 6)
+  vat_rate                 Decimal?               @default(0) @db.Decimal(5, 2)
+  vat_amount               Decimal?               @default(0) @db.Decimal(19, 4)
+  discount_rate            Decimal?               @default(0) @db.Decimal(5, 2)
+  discount_type            String?                @db.VarChar(20)
+  promo_code_id            String?                @db.Uuid
+  promo_discount_amount    Decimal?               @default(0) @db.Decimal(19, 4)
+  org_branches_mst         org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_branch")
+  org_customers_mst        org_customers_mst?     @relation(fields: [customer_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_customer")
+  org_gift_cards_mst       org_gift_cards_mst?   @relation(fields: [gift_card_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_gift_card")
+  org_orders_mst           org_orders_mst?        @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
+  org_payments_dtl_tr      org_payments_dtl_tr[]
+  org_tenants_mst          org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_tenant")
+  org_promo_codes_mst      org_promo_codes_mst?   @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_invoice_promo_code")
+  org_users_mst_handed_to  org_users_mst?         @relation("invoice_handed_to_user", fields: [handed_to_by_user], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_handed_to_user")
+  sys_payment_method_cd    sys_payment_method_cd? @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_invoice_payment_method")
 
   @@unique([tenant_org_id, invoice_no])
   @@index([order_id], map: "idx_org_invoice_order")
   @@index([tenant_org_id, invoice_no], map: "idx_org_invoice_tenant_no")
+  @@index([tenant_org_id, customer_id], map: "idx_org_invoice_customer")
+  @@index([tenant_org_id, branch_id], map: "idx_org_invoice_branch")
   @@schema("public")
 }
 
@@ -562,6 +599,9 @@ model org_order_items_dtl {
   item_last_step_at               DateTime?                         @db.Timestamptz(6)
   item_last_step_by               String?                           @db.Uuid
   quantity_ready                  Int?                              @default(0)
+  price_override                  Decimal?                          @db.Decimal(10, 3)
+  override_reason                 String?
+  override_by                     String?                           @db.Uuid
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
@@ -569,6 +609,7 @@ model org_order_items_dtl {
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
   org_product_data_mst            org_product_data_mst?             @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_prod")
+  org_users_mst                   org_users_mst?                    @relation(fields: [override_by], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@unique([id, tenant_org_id], map: "org_order_items_tenant_org_id_id_key")
   @@unique([id, order_id, tenant_org_id], map: "org_order_items_tenant_org_id_order_id_key")
@@ -627,7 +668,7 @@ model org_orders_mst {
   tax                             Decimal?                          @default(0) @db.Decimal(10, 3)
   total                           Decimal?                          @default(0) @db.Decimal(10, 3)
   payment_status                  String?                           @default("pending") @db.VarChar(20)
-  payment_method                  String?                           @db.VarChar(50)
+  payment_method_code             String?                           @db.VarChar(50)
   paid_amount                     Decimal?                          @default(0) @db.Decimal(10, 3)
   paid_at                         DateTime?                         @db.Timestamp(6)
   paid_by                         String?                           @db.VarChar(255)
@@ -666,6 +707,22 @@ model org_orders_mst {
   is_order_quick_drop             Boolean?                          @default(false)
   quick_drop_quantity             Int?
   rack_location                   String?                           @db.VarChar(100)
+  tax_rate                        Decimal?                          @db.Decimal(5, 3)
+  currency_code                   String?                           @db.VarChar(3)
+  currency_ex_rate                Decimal                           @default(1.000000) @db.Decimal(10, 6)
+  vat_rate                        Decimal?                          @default(0) @db.Decimal(5, 2)
+  vat_amount                      Decimal?                          @default(0) @db.Decimal(19, 4)
+  discount_rate                   Decimal?                          @default(0) @db.Decimal(5, 2)
+  discount_type                   String?                           @db.VarChar(20)
+  promo_code_id                   String?                           @db.Uuid
+  gift_card_id                    String?                           @db.Uuid
+  promo_discount_amount           Decimal?                          @default(0) @db.Decimal(19, 4)
+  gift_card_discount_amount       Decimal?                          @default(0) @db.Decimal(19, 4)
+  payment_type_code               String?                           @db.VarChar(30)
+  service_charge                  Decimal?                          @default(0) @db.Decimal(19, 4)
+  service_charge_type             String?                           @db.VarChar(50)
+  payment_terms                   String?                           @db.VarChar(50)
+  payment_due_date                DateTime?                         @db.Date
   org_asm_tasks_mst               org_asm_tasks_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_invoice_mst                 org_invoice_mst[]
@@ -678,11 +735,16 @@ model org_orders_mst {
   org_order_status_history        org_order_status_history[]
   org_orders_mst                  org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
   other_org_orders_mst            org_orders_mst[]                  @relation("org_orders_mstToorg_orders_mst")
+  org_gift_cards_mst              org_gift_cards_mst?               @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_orders_gift_card")
+  sys_payment_type_cd             sys_payment_type_cd?              @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction, map: "fk_orders_payment_type")
+  org_promo_codes_mst             org_promo_codes_mst?              @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_orders_promo_code")
   org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_branch")
   org_customers_mst               org_customers_mst                 @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_customer")
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
   sys_order_type_cd               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
+  sys_payment_method_cd           sys_payment_method_cd?            @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_orders_payment_method")
   sys_workflow_template_cd        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
+  org_payments_dtl_tr             org_payments_dtl_tr[]
   org_pck_packing_lists_mst       org_pck_packing_lists_mst[]
   org_qa_decisions_tr             org_qa_decisions_tr[]
   org_rcpt_receipts_mst           org_rcpt_receipts_mst[]
@@ -709,30 +771,76 @@ model org_orders_mst {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_payments_dtl_tr {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  invoice_id      String          @db.Uuid
-  tenant_org_id   String          @db.Uuid
-  paid_amount     Decimal?        @default(0) @db.Decimal(10, 3)
-  status          String?         @default("pending")
-  due_date        DateTime?       @db.Date
-  payment_method  String?         @db.VarChar(50)
-  paid_at         DateTime?       @db.Timestamp(6)
-  paid_by         String?         @db.VarChar(255)
-  gateway         String?
-  transaction_id  String?
-  metadata        Json?
-  rec_notes       String?         @db.VarChar(1000)
-  created_at      DateTime        @default(now()) @db.Timestamp(6)
-  created_by      String?         @db.VarChar(120)
-  created_info    String?
-  updated_at      DateTime?       @db.Timestamp(6)
-  updated_by      String?         @db.VarChar(120)
-  updated_info    String?
-  org_invoice_mst org_invoice_mst @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_invoice")
-  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_tenant")
+  id                       String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id               String?               @db.Uuid
+  tenant_org_id            String                @db.Uuid
+  paid_amount              Decimal?              @default(0) @db.Decimal(19, 4)
+  status                   String?               @default("pending")
+  due_date                 DateTime?             @db.Date
+  payment_method_code      String                @db.VarChar(50)
+  paid_at                  DateTime?             @db.Timestamp(6)
+  paid_by                  String?               @db.VarChar(255)
+  gateway                  String?
+  transaction_id           String?
+  metadata                 Json?
+  rec_notes                String?               @db.VarChar(1000)
+  created_at               DateTime              @default(now()) @db.Timestamp(6)
+  created_by               String?               @db.VarChar(120)
+  created_info             String?
+  updated_at               DateTime?             @db.Timestamp(6)
+  updated_by               String?               @db.VarChar(120)
+  updated_info             String?
+  order_id                 String?               @db.Uuid
+  customer_id              String?               @db.Uuid
+  currency_code            String                @db.VarChar(3)
+  tax_amount               Decimal?              @default(0) @db.Decimal(19, 4)
+  vat_amount               Decimal?              @default(0) @db.Decimal(19, 4)
+  payment_type_code        String?               @db.VarChar(30)
+  subtotal                 Decimal?              @default(0) @db.Decimal(19, 4)
+  discount_rate            Decimal?              @default(0) @db.Decimal(5, 2)
+  discount_amount          Decimal?              @default(0) @db.Decimal(19, 4)
+  vat_rate                 Decimal?              @default(0) @db.Decimal(5, 2)
+  manual_discount_amount   Decimal?              @default(0) @db.Decimal(19, 4)
+  promo_discount_amount    Decimal?              @default(0) @db.Decimal(19, 4)
+  gift_card_applied_amount Decimal?              @default(0) @db.Decimal(19, 4)
+  promo_code_id            String?               @db.Uuid
+  gift_card_id             String?               @db.Uuid
+  currency_ex_rate         Decimal               @default(1.000000) @db.Decimal(10, 6)
+  check_number             String?               @db.VarChar(100)
+  check_bank               String?               @db.VarChar(100)
+  check_date               DateTime?             @db.Date
+  payment_channel          String?               @default("web_admin") @db.VarChar(30)
+  trans_desc               String?               @db.VarChar(500)
+  org_invoice_mst          org_invoice_mst?      @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_invoice")
+  org_tenants_mst          org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_tenant")
+  sys_payment_method_cd    sys_payment_method_cd @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction, map: "fk_org_payments_payment_method")
+  sys_payment_type_cd      sys_payment_type_cd?  @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction, map: "fk_org_payments_payment_type")
+  org_gift_cards_mst       org_gift_cards_mst?   @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_payments_gift_card")
+  org_promo_codes_mst      org_promo_codes_mst?  @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_payments_promo_code")
+  org_customers_mst        org_customers_mst?    @relation(fields: [customer_id], references: [id], onUpdate: NoAction)
+  org_orders_mst           org_orders_mst?       @relation(fields: [order_id], references: [id], onUpdate: NoAction)
 
   @@index([invoice_id], map: "idx_org_payments_invoice")
   @@index([tenant_org_id], map: "idx_org_payments_tenant")
+  org_payment_audit_log org_payment_audit_log[]
+  @@schema("public")
+}
+
+/// Payment audit log: append-only history (CREATED, CANCELLED, REFUNDED, NOTES_UPDATED)
+model org_payment_audit_log {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id String   @db.Uuid
+  payment_id    String   @db.Uuid
+  action_type   String   @db.VarChar(30)
+  before_value  Json?
+  after_value   Json?
+  changed_by    String?  @db.VarChar(120)
+  changed_at    DateTime @default(now()) @db.Timestamptz(6)
+  metadata      Json?
+  org_payments_dtl_tr org_payments_dtl_tr @relation(fields: [payment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_tenants_mst      org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([tenant_org_id, payment_id])
+  @@index([tenant_org_id, changed_at(sort: Desc)])
   @@schema("public")
 }
 
@@ -785,6 +893,7 @@ model org_product_data_mst {
   item_type_code             String?                     @db.VarChar(50)
   org_order_item_pieces_dtl  org_order_item_pieces_dtl[]
   org_order_items_dtl        org_order_items_dtl[]
+  org_price_history_audit    org_price_history_audit[]
   org_price_list_items_dtl   org_price_list_items_dtl[]
   org_service_category_cf    org_service_category_cf?    @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_prod_ctg")
   org_tenants_mst            org_tenants_mst             @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_prod_tenant")
@@ -822,6 +931,7 @@ model org_service_category_cf {
   org_product_data_mst                    org_product_data_mst[]
   sys_service_category_cd                 sys_service_category_cd                  @relation(fields: [service_category_code], references: [service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_ctg_sys")
   org_tenants_mst                         org_tenants_mst                          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_ctg_tenant")
+  org_svc_cat_proc_steps_cf               org_svc_cat_proc_steps_cf[]
   org_tenant_service_category_workflow_cf org_tenant_service_category_workflow_cf?
   org_workflow_settings_cf                org_workflow_settings_cf?
 
@@ -832,38 +942,39 @@ model org_service_category_cf {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_subscriptions_mst {
-  id                  String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id       String          @db.Uuid
-  plan                String?         @default("free") @db.VarChar(20)
-  status              String?         @default("trial") @db.VarChar(20)
-  orders_limit        Int?            @default(20)
-  orders_used         Int?            @default(0)
-  branch_limit        Int?            @default(1)
-  user_limit          Int?            @default(2)
-  start_date          DateTime?       @default(now()) @db.Timestamp(6)
-  end_date            DateTime        @db.Timestamp(6)
-  trial_ends          DateTime?       @db.Timestamp(6)
-  last_payment_date   DateTime?       @db.Timestamp(6)
-  last_payment_amount Decimal?        @db.Decimal(10, 2)
-  last_payment_method String?         @db.VarChar(50)
-  payment_reference   String?         @db.VarChar(100)
-  payment_notes       String?
-  last_invoice_number String?         @db.VarChar(50)
-  last_invoice_date   DateTime?       @db.Timestamp(6)
-  is_active           Boolean?        @default(true)
-  is_enabled          Boolean?        @default(true)
-  rec_status          Int?            @default(1) @db.SmallInt
-  rec_notes           String?
-  created_at          DateTime?       @default(now()) @db.Timestamp(6)
-  created_by          String?
-  created_info        String?
-  updated_at          DateTime?       @db.Timestamp(6)
-  updated_by          String?
-  updated_info        String?
-  auto_renew          Boolean?        @default(true)
-  cancellation_date   DateTime?       @db.Timestamp(6)
-  cancellation_reason String?
-  org_tenants_mst     org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_subs_tenant")
+  id                       String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                 @db.Uuid
+  plan                     String?                @default("free") @db.VarChar(20)
+  status                   String?                @default("trial") @db.VarChar(20)
+  orders_limit             Int?                   @default(20)
+  orders_used              Int?                   @default(0)
+  branch_limit             Int?                   @default(1)
+  user_limit               Int?                   @default(2)
+  start_date               DateTime?              @default(now()) @db.Timestamp(6)
+  end_date                 DateTime               @db.Timestamp(6)
+  trial_ends               DateTime?              @db.Timestamp(6)
+  last_payment_date        DateTime?              @db.Timestamp(6)
+  last_payment_amount      Decimal?               @db.Decimal(10, 2)
+  last_payment_method_code String?                @db.VarChar(50)
+  payment_reference        String?                @db.VarChar(100)
+  payment_notes            String?
+  last_invoice_number      String?                @db.VarChar(50)
+  last_invoice_date        DateTime?              @db.Timestamp(6)
+  is_active                Boolean?               @default(true)
+  is_enabled               Boolean?               @default(true)
+  rec_status               Int?                   @default(1) @db.SmallInt
+  rec_notes                String?
+  created_at               DateTime?              @default(now()) @db.Timestamp(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?              @db.Timestamp(6)
+  updated_by               String?
+  updated_info             String?
+  auto_renew               Boolean?               @default(true)
+  cancellation_date        DateTime?              @db.Timestamp(6)
+  cancellation_reason      String?
+  sys_payment_method_cd    sys_payment_method_cd? @relation(fields: [last_payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_subs_payment_method")
+  org_tenants_mst          org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_subs_tenant")
 
   @@schema("public")
 }
@@ -932,10 +1043,13 @@ model org_tenants_mst {
   org_order_item_processing_steps  org_order_item_processing_steps[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
+  org_payment_audit_log             org_payment_audit_log[]
+  org_payment_reconciliation_log   org_payment_reconciliation_log[]
   org_payments_dtl_tr              org_payments_dtl_tr[]
   org_pck_packing_lists_mst        org_pck_packing_lists_mst[]
   org_pln_change_history_tr        org_pln_change_history_tr[]
   org_pln_subscriptions_mst        org_pln_subscriptions_mst[]
+  org_price_history_audit          org_price_history_audit[]
   org_price_list_items_dtl         org_price_list_items_dtl[]
   org_price_lists_mst              org_price_lists_mst[]
   org_product_data_mst             org_product_data_mst[]
@@ -947,6 +1061,7 @@ model org_tenants_mst {
   org_stng_audit_log_tr            org_stng_audit_log_tr[]
   org_stng_effective_cache_cf      org_stng_effective_cache_cf[]
   org_subscriptions_mst            org_subscriptions_mst[]
+  org_svc_cat_proc_steps_cf        org_svc_cat_proc_steps_cf[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
   org_tenant_workflow_settings_cf  org_tenant_workflow_settings_cf?
   org_tenant_workflow_templates_cf org_tenant_workflow_templates_cf[]
@@ -1030,6 +1145,8 @@ model org_users_mst {
   building                    String?
   floor                       String?
   is_user                     Boolean                       @default(true)
+  org_invoice_mst_handed_to   org_invoice_mst[]             @relation("invoice_handed_to_user")
+  org_order_items_dtl         org_order_items_dtl[]
   org_stng_audit_log_tr       org_stng_audit_log_tr[]
   org_stng_effective_cache_cf org_stng_effective_cache_cf[]
   org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -1242,6 +1359,7 @@ model sys_service_category_cd {
   updated_by                    String?                         @db.Uuid
   org_service_category_cf       org_service_category_cf[]
   sys_service_prod_templates_cd sys_service_prod_templates_cd[]
+  sys_svc_cat_proc_steps        sys_svc_cat_proc_steps[]
 
   @@schema("public")
 }
@@ -1386,6 +1504,7 @@ model org_price_lists_mst {
   rec_order                Int?
   rec_notes                String?                    @db.VarChar(200)
   is_active                Boolean                    @default(true)
+  org_price_history_audit  org_price_history_audit[]
   org_price_list_items_dtl org_price_list_items_dtl[]
   org_tenants_mst          org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -1614,6 +1733,9 @@ model org_gift_cards_mst {
   rec_order                  Int?
   org_gift_card_transactions org_gift_card_transactions[]
   org_tenants_mst            org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_cards_tenant_fk")
+  org_invoice_mst            org_invoice_mst[]
+  org_orders_mst             org_orders_mst[]
+  org_payments_dtl_tr        org_payments_dtl_tr[]
 
   @@index([tenant_org_id, issued_to_customer_id], map: "idx_gift_cards_customer")
   @@index([tenant_org_id], map: "idx_gift_cards_tenant")
@@ -1654,6 +1776,9 @@ model org_promo_codes_mst {
   rec_status            Int?                  @default(1) @db.SmallInt
   rec_order             Int?
   rec_notes             String?               @db.VarChar(1000)
+  org_invoice_mst       org_invoice_mst[]
+  org_orders_mst        org_orders_mst[]
+  org_payments_dtl_tr   org_payments_dtl_tr[]
   org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_promo_codes_tenant_fk")
   org_promo_usage_log   org_promo_usage_log[]
 
@@ -1689,39 +1814,49 @@ model org_promo_usage_log {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_payment_method_cd {
-  payment_method_code  String    @id(map: "pk_sys_payment_method_cd")
-  payment_method_name  String?
-  payment_method_name2 String?
-  is_enabled           Boolean   @default(true)
-  is_active            Boolean   @default(true)
-  rec_notes            String?
-  created_at           DateTime? @default(now()) @db.Timestamp(6)
-  updated_at           DateTime? @db.Timestamp(6)
-  payment_type_color1  String?
-  payment_type_color2  String?
-  payment_type_color3  String?
-  payment_type_icon    String?
-  payment_type_image   String?
+  payment_method_code            String                           @id(map: "pk_sys_payment_method_cd")
+  payment_method_name            String?
+  payment_method_name2           String?
+  is_enabled                     Boolean                          @default(true)
+  is_active                      Boolean                          @default(true)
+  rec_notes                      String?
+  created_at                     DateTime?                        @default(now()) @db.Timestamp(6)
+  updated_at                     DateTime?                        @db.Timestamp(6)
+  payment_method_color1          String?
+  payment_method_color2          String?
+  payment_method_color3          String?
+  payment_method_icon            String?
+  payment_method_image           String?
+  org_invoice_mst                org_invoice_mst[]
+  org_orders_mst                 org_orders_mst[]
+  org_payment_reconciliation_log org_payment_reconciliation_log[]
+  org_payments_dtl_tr            org_payments_dtl_tr[]
+  org_subscriptions_mst          org_subscriptions_mst[]
+  sys_bill_invoice_payments_tr   sys_bill_invoice_payments_tr[]
+  sys_bill_invoices_mst          sys_bill_invoices_mst[]
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model sys_payment_type_cd {
-  payment_type_id     String    @id(map: "pk_sys_payment_type_cd")
-  payment_type_name   String?
-  payment_type_name2  String?
-  is_enabled          Boolean   @default(false)
-  has_plan            Boolean   @default(false)
-  is_active           Boolean   @default(true)
-  rec_notes           String?
-  created_at          DateTime? @default(now()) @db.Timestamp(6)
-  updated_at          DateTime? @db.Timestamp(6)
-  payment_type_color1 String?
-  payment_type_color2 String?
-  payment_type_color3 String?
-  payment_type_icon   String?
-  payment_type_image  String?
+  payment_type_code            String                         @id(map: "pk_sys_payment_type_cd")
+  payment_type_name            String?
+  payment_type_name2           String?
+  is_enabled                   Boolean                        @default(false)
+  has_plan                     Boolean                        @default(false)
+  is_active                    Boolean                        @default(true)
+  rec_notes                    String?
+  created_at                   DateTime?                      @default(now()) @db.Timestamp(6)
+  updated_at                   DateTime?                      @db.Timestamp(6)
+  payment_type_color1          String?
+  payment_type_color2          String?
+  payment_type_color3          String?
+  payment_type_icon            String?
+  payment_type_image           String?
+  org_orders_mst               org_orders_mst[]
+  org_payments_dtl_tr          org_payments_dtl_tr[]
+  sys_bill_invoice_payments_tr sys_bill_invoice_payments_tr[]
 
   @@schema("public")
 }
@@ -2355,9 +2490,9 @@ model sys_bill_invoice_payments_tr {
   invoice_id                                                                                         String                @db.Uuid
   tenant_org_id                                                                                      String                @db.Uuid
   payment_date                                                                                       DateTime              @db.Date
-  amount                                                                                             Decimal               @db.Decimal(10, 3)
-  currency                                                                                           String?               @default("OMR") @db.VarChar(3)
-  payment_method                                                                                     String?               @db.VarChar(50)
+  amount                                                                                             Decimal               @db.Decimal(19, 4)
+  currency_code                                                                                      String                @db.VarChar(3)
+  payment_method_code                                                                                String                @db.VarChar(50)
   payment_gateway                                                                                    String?               @db.VarChar(50)
   payment_gateway_ref                                                                                String?               @db.VarChar(255)
   payment_gateway_fee                                                                                Decimal?              @db.Decimal(10, 3)
@@ -2367,7 +2502,12 @@ model sys_bill_invoice_payments_tr {
   created_at                                                                                         DateTime?             @default(now()) @db.Timestamp(6)
   created_by                                                                                         String?               @db.VarChar(120)
   created_info                                                                                       String?
+  payment_type_code                                                                                  String?               @db.VarChar(30)
+  tax                                                                                                Decimal?              @default(0) @db.Decimal(19, 4)
+  vat                                                                                                Decimal?              @default(0) @db.Decimal(19, 4)
+  sys_payment_method_cd                                                                              sys_payment_method_cd @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction, map: "fk_sys_bill_pay_method")
   sys_bill_invoices_mst_sys_bill_invoice_payments_tr_invoice_idTosys_bill_invoices_mst               sys_bill_invoices_mst @relation("sys_bill_invoice_payments_tr_invoice_idTosys_bill_invoices_mst", fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_payment_type_cd                                                                                sys_payment_type_cd?  @relation(fields: [payment_type_code], references: [payment_type_code], onUpdate: NoAction)
   org_tenants_mst                                                                                    org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sys_bill_invoices_mst_sys_bill_invoice_payments_tr_tenant_org_id_invoice_idTosys_bill_invoices_mst sys_bill_invoices_mst @relation("sys_bill_invoice_payments_tr_tenant_org_id_invoice_idTosys_bill_invoices_mst", fields: [tenant_org_id, invoice_id], references: [tenant_org_id, id], onDelete: NoAction, onUpdate: NoAction)
 
@@ -2401,7 +2541,7 @@ model sys_bill_invoices_mst {
   currency                                                                                                  String?                            @default("OMR") @db.VarChar(3)
   status                                                                                                    String?                            @default("pending") @db.VarChar(20)
   paid_at                                                                                                   DateTime?                          @db.Timestamp(6)
-  payment_method                                                                                            String?                            @db.VarChar(50)
+  payment_method_code                                                                                       String?                            @db.VarChar(50)
   payment_gateway                                                                                           String?                            @db.VarChar(50)
   payment_gateway_ref                                                                                       String?                            @db.VarChar(255)
   payment_gateway_fee                                                                                       Decimal?                           @db.Decimal(10, 3)
@@ -2422,6 +2562,7 @@ model sys_bill_invoices_mst {
   sys_bill_dunning_mst_sys_bill_dunning_mst_tenant_org_id_invoice_idTosys_bill_invoices_mst                 sys_bill_dunning_mst[]             @relation("sys_bill_dunning_mst_tenant_org_id_invoice_idTosys_bill_invoices_mst")
   sys_bill_invoice_payments_tr_sys_bill_invoice_payments_tr_invoice_idTosys_bill_invoices_mst               sys_bill_invoice_payments_tr[]     @relation("sys_bill_invoice_payments_tr_invoice_idTosys_bill_invoices_mst")
   sys_bill_invoice_payments_tr_sys_bill_invoice_payments_tr_tenant_org_id_invoice_idTosys_bill_invoices_mst sys_bill_invoice_payments_tr[]     @relation("sys_bill_invoice_payments_tr_tenant_org_id_invoice_idTosys_bill_invoices_mst")
+  sys_payment_method_cd                                                                                     sys_payment_method_cd?             @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_sys_bill_inv_payment_method")
   org_pln_subscriptions_mst                                                                                 org_pln_subscriptions_mst?         @relation(fields: [subscription_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   org_tenants_mst                                                                                           org_tenants_mst                    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -3812,7 +3953,7 @@ model org_asm_tasks_mst {
   org_qa_decisions_tr       org_qa_decisions_tr[]
 
   @@id([id, tenant_org_id], map: "pk_org_asm_tasks_mst")
-  @@unique([order_id, tenant_org_id])
+  @@unique([tenant_org_id, order_id])
   @@index([tenant_org_id, assigned_to], map: "idx_asm_tasks_assigned")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_asm_tasks_created")
   @@index([tenant_org_id, location_id], map: "idx_asm_tasks_location")
@@ -4033,7 +4174,7 @@ model org_pck_packing_lists_mst {
   org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_task")
   org_tenants_mst     org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_tenant")
 
-  @@unique([order_id, tenant_org_id])
+  @@unique([tenant_org_id, order_id])
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_pck_lists_created")
   @@index([order_id], map: "idx_pck_lists_order")
   @@index([task_id], map: "idx_pck_lists_task")
@@ -4539,7 +4680,7 @@ model org_order_item_pieces_dtl {
   price_per_unit          Decimal                  @db.Decimal(19, 4)
   total_price             Decimal                  @db.Decimal(19, 4)
   piece_status            String?                  @default("processing")
-  piece_stage              String?
+  piece_stage             String?
   is_rejected             Boolean?                 @default(false)
   issue_id                String?                  @db.Uuid
   rack_location           String?
@@ -4561,6 +4702,7 @@ model org_order_item_pieces_dtl {
   updated_at              DateTime?                @db.Timestamp(6)
   updated_by              String?
   updated_info            String?
+  is_ready                Boolean                  @default(false)
   org_order_items_dtl     org_order_items_dtl      @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")
   org_orders_mst          org_orders_mst           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_order")
   org_product_data_mst    org_product_data_mst?    @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_org_pieces_product")
@@ -4764,6 +4906,140 @@ model sys_stng_settings_cd {
   org_stng_settings_cf          org_stng_settings_cf[]
   sys_stng_categories_cd        sys_stng_categories_cd @relation(fields: [stng_category_code], references: [stng_category_code], onDelete: NoAction, onUpdate: NoAction)
 
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model org_price_history_audit {
+  id                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String                @db.Uuid
+  entity_type          String                @db.VarChar(50)
+  entity_id            String                @db.Uuid
+  price_list_id        String?               @db.Uuid
+  product_id           String?               @db.Uuid
+  old_price            Decimal?              @db.Decimal(10, 3)
+  new_price            Decimal?              @db.Decimal(10, 3)
+  old_discount_percent Decimal?              @db.Decimal(5, 2)
+  new_discount_percent Decimal?              @db.Decimal(5, 2)
+  change_reason        String?
+  effective_from       DateTime?             @db.Date
+  effective_to         DateTime?             @db.Date
+  created_at           DateTime?             @default(now()) @db.Timestamp(6)
+  created_by           String?               @db.Uuid
+  created_info         String?
+  org_price_lists_mst  org_price_lists_mst?  @relation(fields: [price_list_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_product_data_mst org_product_data_mst? @relation(fields: [product_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction)
+  org_tenants_mst      org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([created_at(sort: Desc)], map: "idx_price_history_created")
+  @@index([entity_type, entity_id], map: "idx_price_history_entity")
+  @@index([price_list_id], map: "idx_price_history_price_list")
+  @@index([product_id], map: "idx_price_history_product")
+  @@index([tenant_org_id], map: "idx_price_history_tenant")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_svc_cat_proc_steps_cf {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                  @db.Uuid
+  service_category_code   String                  @db.VarChar(120)
+  step_code               String                  @db.VarChar(50)
+  step_seq                Int
+  step_name               String                  @db.VarChar(250)
+  step_name2              String?                 @db.VarChar(250)
+  step_color              String?                 @db.VarChar(60)
+  step_icon               String?                 @db.VarChar(120)
+  is_active               Boolean?                @default(true)
+  display_order           Int?                    @default(0)
+  created_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  created_by              String?                 @db.Uuid
+  updated_at              DateTime?               @db.Timestamptz(6)
+  updated_by              String?                 @db.Uuid
+  rec_status              Int?                    @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?                 @db.VarChar(200)
+  org_service_category_cf org_service_category_cf @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_steps_category")
+  org_tenants_mst         org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_steps_tenant")
+
+  @@unique([tenant_org_id, service_category_code, step_code])
+  @@index([tenant_org_id, service_category_code, step_seq], map: "idx_org_steps_tenant_category")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_jwt_tenant_health_log {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  event_type         String    @db.VarChar(50)
+  tenant_id          String?   @db.Uuid
+  org_user_id        String?   @db.Uuid
+  auth_user_id       String?   @db.Uuid
+  had_tenant_context Boolean
+  repair_attempted   Boolean?  @default(false)
+  repair_successful  Boolean?  @default(false)
+  error_message      String?
+  metadata           Json?
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+
+  @@index([event_type, created_at(sort: Desc)], map: "idx_jwt_health_event")
+  @@index([repair_attempted, repair_successful, created_at(sort: Desc)], map: "idx_jwt_health_repair")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_jwt_health_user")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model sys_svc_cat_proc_steps {
+  id                      String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  service_category_code   String                  @db.VarChar(120)
+  step_code               String                  @db.VarChar(50)
+  step_seq                Int
+  step_name               String                  @db.VarChar(250)
+  step_name2              String?                 @db.VarChar(250)
+  step_color              String?                 @db.VarChar(60)
+  step_icon               String?                 @db.VarChar(120)
+  is_active               Boolean?                @default(true)
+  display_order           Int?                    @default(0)
+  created_at              DateTime?               @default(now()) @db.Timestamptz(6)
+  created_by              String?                 @db.Uuid
+  updated_at              DateTime?               @db.Timestamptz(6)
+  updated_by              String?                 @db.Uuid
+  rec_status              Int?                    @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?                 @db.VarChar(200)
+  sys_service_category_cd sys_service_category_cd @relation(fields: [service_category_code], references: [service_category_code], onDelete: Cascade, onUpdate: NoAction, map: "fk_sys_steps_category")
+
+  @@unique([service_category_code, step_code])
+  @@index([service_category_code, step_seq], map: "idx_sys_steps_category")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_payment_reconciliation_log {
+  id                    String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String                @db.Uuid
+  reconciliation_date   DateTime              @db.Date
+  payment_method_code   String                @db.VarChar(50)
+  expected_amount       Decimal               @db.Decimal(19, 4)
+  actual_amount         Decimal               @db.Decimal(19, 4)
+  variance              Decimal?              @default(dbgenerated("(actual_amount - expected_amount)")) @db.Decimal(19, 4)
+  reconciled_by         String?               @db.VarChar(120)
+  reconciled_at         DateTime?             @db.Timestamptz(6)
+  notes                 String?
+  status                String                @default("pending") @db.VarChar(20)
+  created_at            DateTime              @default(now()) @db.Timestamptz(6)
+  created_by            String?               @db.VarChar(120)
+  updated_at            DateTime?             @db.Timestamptz(6)
+  updated_by            String?               @db.VarChar(120)
+  sys_payment_method_cd sys_payment_method_cd @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction)
+  org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([tenant_org_id, reconciliation_date, payment_method_code], map: "uq_recon_tenant_date_method")
+  @@index([tenant_org_id, reconciliation_date(sort: Desc)], map: "idx_recon_tenant_date")
+  @@index([tenant_org_id, status], map: "idx_recon_tenant_status")
   @@schema("public")
 }
 

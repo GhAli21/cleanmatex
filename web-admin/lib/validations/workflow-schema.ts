@@ -162,6 +162,15 @@ export const CreateOrderPieceDataSchema = z.object({
   metadata: z.record(z.string(), z.any()).optional(),
 });
 
+const CreateOrderTotalsSchema = z.object({
+  subtotal: z.number().min(0),
+  discount: z.number().min(0).optional(),
+  tax: z.number().min(0).optional(),
+  total: z.number().min(0),
+  vatRate: z.number().min(0).max(100).optional(),
+  vatAmount: z.number().min(0).optional(),
+}).optional();
+
 export const CreateOrderRequestSchema = z.object({
   customerId: z.string(),//.uuid(),
   branchId: z.string().uuid().optional(),
@@ -187,6 +196,16 @@ export const CreateOrderRequestSchema = z.object({
   internalNotes: z.string().optional(),
   paymentMethod: z.string().optional(),
   readyByAt: z.string().datetime().optional(), // ISO datetime string for ready-by date
+  totals: CreateOrderTotalsSchema.optional(),
+  discountRate: z.number().min(0).max(100).optional(),
+  discountType: z.string().optional(),
+  promoCodeId: z.string().uuid().optional(),
+  giftCardId: z.string().uuid().optional(),
+  promoDiscountAmount: z.number().min(0).optional(),
+  giftCardDiscountAmount: z.number().min(0).optional(),
+  paymentTypeCode: z.string().optional(),
+  currencyCode: z.string().length(3).optional(),
+  currencyExRate: z.number().min(0).optional(),
 });
 
 export const TransitionOrderRequestSchema = z.object({

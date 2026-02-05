@@ -171,7 +171,7 @@ const { data } = await supabase
     *,
     customer:org_customers_mst(*),
     items:org_order_items_dtl(*)
-  `
+  `,
   )
   .eq("tenant_org_id", tenantId);
 
@@ -252,13 +252,14 @@ COMMIT;
 
 ### Migration Rules
 
-1. **One logical change per migration** - Don't mix unrelated changes
-2. **Use transactions** - Wrap migrations in BEGIN/COMMIT
-3. **Test locally first** - Always test migrations before applying
-4. **Never modify existing migrations** - Create new migrations for fixes
-5. **Include rollback instructions** - Comment rollback SQL
-6. **Add indexes after data** - Create indexes after table creation
-7. **Document complex logic** - Add comments for complex migrations
+1. **Always use last seq for version** - List `supabase/migrations/`, determine the latest version (numeric `NNNN` or timestamp `YYYYMMDDHHMMSS`), and create the new file as `{next_version}_{descriptive_snake_case_name}.sql`. Never reuse or skip version numbers.
+2. **One logical change per migration** - Don't mix unrelated changes
+3. **Use transactions** - Wrap migrations in BEGIN/COMMIT
+4. **Test locally first** - Always test migrations before applying
+5. **Never modify existing migrations** - Create new migrations for fixes
+6. **Include rollback instructions** - Comment rollback SQL
+7. **Add indexes after data** - Create indexes after table creation
+8. **Document complex logic** - Add comments for complex migrations
 
 ---
 
@@ -375,7 +376,7 @@ import { logger } from "@/lib/utils/logger";
 async function createOrder(
   orderData: CreateOrderDto,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const startTime = Date.now();
 
@@ -443,7 +444,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Server-side only
+  process.env.SUPABASE_SERVICE_ROLE_KEY!, // Server-side only
 );
 
 // Admin operation
@@ -505,7 +506,7 @@ export async function queryWithTenant<T>(
     filters?: Record<string, unknown>;
     orderBy?: { column: string; ascending?: boolean };
     limit?: number;
-  }
+  },
 ) {
   let query = supabase
     .from(table)
@@ -596,7 +597,7 @@ export async function insertWithAudit<T>(
   table: string,
   data: Partial<T>,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const { data: result, error } = await supabase
     .from(table)
@@ -627,7 +628,7 @@ const order = await insertWithAudit(
   "org_orders_mst",
   orderData,
   tenantId,
-  userId
+  userId,
 );
 
 // ❌ Bad: Duplicate insert logic
@@ -650,7 +651,7 @@ export async function updateWithAudit<T>(
   id: string,
   updates: Partial<T>,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   const { data: result, error } = await supabase
     .from(table)
@@ -684,7 +685,7 @@ const updatedOrder = await updateWithAudit(
   orderId,
   { status: "PROCESSING" },
   tenantId,
-  userId
+  userId,
 );
 ```
 
@@ -697,7 +698,7 @@ export async function softDelete(
   table: string,
   id: string,
   tenantId: string,
-  userId: string
+  userId: string,
 ) {
   return await updateWithAudit(
     supabase,
@@ -708,7 +709,7 @@ export async function softDelete(
       rec_status: 0,
     } as any,
     tenantId,
-    userId
+    userId,
   );
 }
 

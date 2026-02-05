@@ -4,7 +4,7 @@
 
 ## CRITICAL RULES
 
-1. **Never do Supabase db reset** - tell me, I'll run migrations
+1. **Never do Supabase db reset** - tell me, I'll run db migrations
 2. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
 3. **After frontend changes: run `npm run build`** and fix until success
 4. **Bilingual support (EN/AR + RTL) is mandatory**
@@ -41,9 +41,12 @@ npm run build                     # Build (run after changes)
 
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
+- **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
 - Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
 - Bilingual: `name/name2`, `description/description2`
 - Soft delete: `is_active=false`, `rec_status=0`
+- Money Fields Datatype and Size `DECIMAL(19, 4)`
+- No default value for currency_code
 
 **See:** `/database` skill for complete rules
 
@@ -55,6 +58,15 @@ npm run build                     # Build (run after changes)
 - Wrap queries: `withTenantContext()`
 
 **See:** `/implementation` skill for coding standards
+
+## Constants & Types (single source of truth)
+
+- **Constants live in `lib/constants/`** — one file per domain (e.g. `payment.ts`, `order-types.ts`). Define const objects (`as const`) and derive types from them: `type X = (typeof CONST)[keyof typeof CONST]`.
+- **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and optionally key consts so app code can use one import (e.g. `@/lib/types/payment` for both types and `PAYMENT_METHODS`, `INVOICE_STATUSES`, etc.).
+- **Do not duplicate** — same concept (e.g. payment method codes) in one place only; other files re-export or import. Validation (Zod) should align with the same constants where possible.
+- **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` and `lib/types/payment.ts`.
+
+**See:** `docs/dev/unification_types_order_payment_audit.md` for the payment/order unification audit.
 
 ## UI Quick Rules
 
@@ -105,6 +117,7 @@ docs/         # All documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
+- **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
 
 ## Key Guardrails
@@ -116,5 +129,6 @@ docs/         # All documentation
 
 ## Supabase MCPs
 
+- do not use to apply database migrations before you confirm with me if create db migration files only or apply them also
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`

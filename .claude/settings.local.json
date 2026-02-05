@@ -30,7 +30,11 @@
       "Bash(curl:*)",
       "Bash(ls:*)",
       "Read(//f/jhapp/cleanmatex_Bkp/old_CLAUDE/**)",
-      "Bash(powershell.exe:*)"
+      "Bash(powershell.exe:*)",
+      "Bash(if [ -f build.log ])",
+      "Bash(then tail -100 build.log)",
+      "Bash(else echo \"Build log not found. Running build...\")",
+      "Bash(fi)"
     ],
     "deny": [
       "Read(node_modules)",

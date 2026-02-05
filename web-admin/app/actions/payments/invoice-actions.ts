@@ -21,6 +21,7 @@ import type {
   UpdateInvoiceInput,
   Invoice,
 } from '@/lib/types/payment';
+import { createInvoiceInputSchema } from '@/lib/validations/new-order-payment-schemas';
 
 /**
  * Create a new invoice for an order
@@ -33,8 +34,17 @@ export async function createInvoiceAction(
   tenantOrgId: string,
   input: CreateInvoiceInput
 ) {
+  const parsed = createInvoiceInputSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      success: false,
+      error: first ? `${first.path.join('.')}: ${first.message}` : 'Invalid invoice input',
+    };
+  }
+
   try {
-    const invoice = await createInvoice(input);
+    const invoice = await createInvoice(parsed.data as CreateInvoiceInput);
 
     // Revalidate order pages
     revalidatePath('/dashboard/orders');

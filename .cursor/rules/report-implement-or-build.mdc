@@ -1,0 +1,8 @@
+---
+description: 
+alwaysApply: true
+---
+
+- When building/Implementing A New report then put  at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... , for example orders-payments-print-rprt.tsx
+- Always use best practice 
+- use centrlized/reusable themes/fonts/layout/ UI/UX for all alike reports

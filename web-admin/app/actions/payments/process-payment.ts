@@ -18,19 +18,44 @@ import type {
   ProcessPaymentInput,
   ProcessPaymentResult,
   PaymentMethodCode,
+  PaymentKind,
 } from '@/lib/types/payment';
+import { processPaymentActionInputSchema } from '@/lib/validations/new-order-payment-schemas';
 
 interface ProcessPaymentActionInput {
-  orderId: string;
+  orderId?: string;
   invoiceId?: string;
+  customerId?: string;
+  paymentKind?: PaymentKind;
   paymentMethod: PaymentMethodCode;
   amount: number;
   checkNumber?: string;
+  checkBank?: string;
+  checkDate?: Date;
   manualDiscount?: number;
   promoCode?: string;
+  promoCodeId?: string;
   giftCardNumber?: string;
   giftCardAmount?: number;
+  giftCardId?: string;
   notes?: string;
+  subtotal?: number;
+  discountRate?: number;
+  discountAmount?: number;
+  manualDiscountAmount?: number;
+  promoDiscountAmount?: number;
+  giftCardAppliedAmount?: number;
+  vatRate?: number;
+  vatAmount?: number;
+  taxRate?: number;
+  taxAmount?: number;
+  finalTotal?: number;
+  currencyCode?: string;
+  currencyExRate?: number;
+  branchId?: string;
+  paymentTypeCode?: string;
+  /** When true and no invoiceId: apply payment across all order invoices (FIFO) */
+  distributeAcrossInvoices?: boolean;
 }
 
 /**
@@ -46,12 +71,27 @@ export async function processPayment(
   userId: string,
   input: ProcessPaymentActionInput
 ): Promise<ProcessPaymentResult> {
+  const parsed = processPaymentActionInputSchema.safeParse(input);
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    return {
+      success: false,
+      invoice_id: input.invoiceId || '',
+      payment_status: 'failed',
+      amount_paid: 0,
+      remaining_balance: input.amount,
+      error: first ? `${first.path.join('.')}: ${first.message}` : 'Invalid payment input',
+      errorCode: 'VALIDATION_ERROR',
+    };
+  }
+
   try {
-    // Validate payment data
     const validation = await validatePaymentData({
       order_id: input.orderId,
       invoice_id: input.invoiceId,
-      payment_method: input.paymentMethod,
+      customer_id: input.customerId,
+      payment_kind: input.paymentKind,
+      payment_method_code: input.paymentMethod,
       amount: input.amount,
       check_number: input.checkNumber,
       processed_by: userId,
@@ -70,19 +110,41 @@ export async function processPayment(
       };
     }
 
-    // Process payment
     const result = await processPaymentService({
       order_id: input.orderId,
       invoice_id: input.invoiceId,
-      payment_method: input.paymentMethod,
+      customer_id: input.customerId,
+      payment_kind: input.paymentKind,
+      payment_method_code: input.paymentMethod,
       amount: input.amount,
+      distribute_across_invoices: input.distributeAcrossInvoices,
       check_number: input.checkNumber,
+      check_bank: input.checkBank,
+      check_date: input.checkDate,
       manual_discount: input.manualDiscount,
       promo_code: input.promoCode,
+      promo_code_id: input.promoCodeId,
       gift_card_number: input.giftCardNumber,
       gift_card_amount: input.giftCardAmount,
+      gift_card_id: input.giftCardId,
       processed_by: userId,
       notes: input.notes,
+      trans_desc: input.trans_desc ?? input.notes ,
+      subtotal: input.subtotal,
+      discount_rate: input.discountRate,
+      discount_amount: input.discountAmount,
+      manual_discount_amount: input.manualDiscountAmount,
+      promo_discount_amount: input.promoDiscountAmount,
+      gift_card_applied_amount: input.giftCardAppliedAmount,
+      vat_rate: input.vatRate,
+      vat_amount: input.vatAmount,
+      tax_rate: input.taxRate,
+      tax_amount: input.taxAmount,
+      final_total: input.finalTotal,
+      currency_code: input.currencyCode,
+      currency_ex_rate: input.currencyExRate,
+      branch_id: input.branchId,
+      payment_type_code: input.paymentTypeCode,
     });
 
     if (!result.success) {
@@ -95,8 +157,7 @@ export async function processPayment(
       // This is just for additional validation if needed
     }
 
-    // Apply gift card if provided
-    if (input.giftCardNumber && input.giftCardAmount && result.invoice_id) {
+    if (input.giftCardNumber && input.giftCardAmount && result.invoice_id && input.orderId) {
       const giftCardResult = await applyGiftCard({
         card_number: input.giftCardNumber,
         amount: input.giftCardAmount,
@@ -120,10 +181,13 @@ export async function processPayment(
 
     // Revalidate order and invoice pages
     revalidatePath('/dashboard/orders');
-    revalidatePath(`/dashboard/orders/${input.orderId}`);
-    if (input.invoiceId) {
+    if (input.orderId) {
+      revalidatePath(`/dashboard/orders/${input.orderId}`);
+    }
+    const invoiceIdToRevalidate = input.invoiceId || result.invoice_id;
+    if (invoiceIdToRevalidate) {
       revalidatePath('/dashboard/billing/invoices');
-      revalidatePath(`/dashboard/billing/invoices/${input.invoiceId}`);
+      revalidatePath(`/dashboard/billing/invoices/${invoiceIdToRevalidate}`);
     }
 
     return result;
@@ -206,6 +270,74 @@ export async function getPaymentHistory(invoiceId: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payment history',
+    };
+  }
+}
+
+/**
+ * Get payments for an order (including unapplied deposits/pos)
+ */
+export async function getPaymentsForOrder(orderId: string) {
+  try {
+    const { getPaymentsForOrder: getOrderPayments } = await import(
+      '@/lib/services/payment-service'
+    );
+    const payments = await getOrderPayments(orderId);
+    return { success: true, data: payments };
+  } catch (error) {
+    console.error('Error fetching payments for order:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch payments',
+    };
+  }
+}
+
+/**
+ * Get payments for a customer (e.g. advance balance)
+ */
+export async function getPaymentsForCustomer(customerId: string) {
+  try {
+    const { getPaymentsForCustomer: getCustomerPayments } = await import(
+      '@/lib/services/payment-service'
+    );
+    const payments = await getCustomerPayments(customerId);
+    return { success: true, data: payments };
+  } catch (error) {
+    console.error('Error fetching payments for customer:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to fetch payments',
+    };
+  }
+}
+
+/**
+ * Apply an unapplied payment (deposit/advance/pos) to an invoice
+ */
+export async function applyPaymentToInvoice(
+  paymentId: string,
+  invoiceId: string,
+  userId?: string,
+  orderId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { applyPaymentToInvoice: applyToInvoice } = await import(
+      '@/lib/services/payment-service'
+    );
+    const result = await applyToInvoice(paymentId, invoiceId, userId);
+    if (result.success) {
+      revalidatePath('/dashboard/billing/invoices');
+      revalidatePath(`/dashboard/billing/invoices/${invoiceId}`);
+      revalidatePath('/dashboard/orders');
+      if (orderId) revalidatePath(`/dashboard/orders/${orderId}`);
+    }
+    return result;
+  } catch (error) {
+    console.error('Error applying payment to invoice:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to apply payment',
     };
   }
 }

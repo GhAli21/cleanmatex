@@ -165,6 +165,13 @@ export async function GET(request: NextRequest) {
     const includeItems = searchParams.get('include_items') === 'true';
     const createdAfter = searchParams.get('created_after');
     const updatedAfter = searchParams.get('updated_after');
+    const search = searchParams.get('search')?.trim() || '';
+    const sortBy = searchParams.get('sort_by') || 'received_at';
+    const sortOrder = searchParams.get('sort_order') === 'asc' ? true : false;
+    const receivedFrom = searchParams.get('received_from');
+    const receivedTo = searchParams.get('received_to');
+    const readyByFrom = searchParams.get('ready_by_from');
+    const readyByTo = searchParams.get('ready_by_to');
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -264,6 +271,44 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Search - order_no, customer name, phone, email
+    if (search.length > 0) {
+      const escaped = search.replace(/[%_\\]/g, '\\$&').replace(/,/g, '');
+      const pattern = `%${escaped}%`;
+      query = query.or(
+        `order_no.ilike.${pattern},` +
+        `org_customers_mst.name.ilike.${pattern},` +
+        `org_customers_mst.name2.ilike.${pattern},` +
+        `org_customers_mst.phone.ilike.${pattern},` +
+        `org_customers_mst.email.ilike.${pattern}`
+      );
+    }
+
+    // Date filters
+    if (receivedFrom) {
+      query = query.gte('received_at', receivedFrom);
+    }
+    if (receivedTo) {
+      query = query.lte('received_at', receivedTo);
+    }
+    if (readyByFrom) {
+      query = query.gte('ready_by_at_new', readyByFrom);
+    }
+    if (readyByTo) {
+      query = query.lte('ready_by_at_new', readyByTo);
+    }
+
+    // Sorting
+    const validSortColumns: Record<string, string> = {
+      order_no: 'order_no',
+      received_at: 'received_at',
+      ready_by: 'ready_by_at_new',
+      created_at: 'created_at',
+      total: 'total',
+    };
+    const sortColumn = validSortColumns[sortBy] || 'received_at';
+    query = query.order(sortColumn, { ascending: sortOrder });
+
     // Apply pagination
     const from = (page - 1) * limit;
     const to = from + limit - 1;
@@ -276,9 +321,6 @@ export async function GET(request: NextRequest) {
     if (updatedAfter) {
       query = query.gte('updated_at', updatedAfter);
     }
-
-    // Sorting
-    query = query.order('created_at', { ascending: false });
 
     // Add timeout wrapper to prevent hanging requests
     const timeoutPromise = new Promise<never>((_, reject) => {

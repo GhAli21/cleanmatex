@@ -16,8 +16,15 @@ const paymentMethodSchema = z.enum([
   PAYMENT_METHODS.CHECK,
   PAYMENT_METHODS.GIFT_CARD,
   PAYMENT_METHODS.PROMO_CODE,
-  'pay_on_collection', // Pay on collection/delivery
-  'invoice', // Invoice payment
+  PAYMENT_METHODS.PAY_ON_COLLECTION,
+  PAYMENT_METHODS.BANK_TRANSFER,
+  PAYMENT_METHODS.MOBILE_PAYMENT,
+  PAYMENT_METHODS.HYPERPAY,
+  PAYMENT_METHODS.PAYTABS,
+  PAYMENT_METHODS.STRIPE,
+  PAYMENT_METHODS.INVOICE, // Invoice payment
+   //'pay_on_collection', // Pay on collection/delivery
+   //'invoice', // Invoice payment
 ]);
 
 /**
@@ -33,6 +40,8 @@ export const paymentFormSchema = z
   .object({
     paymentMethod: paymentMethodSchema,
     checkNumber: z.string().optional(),
+    checkBank: z.string().optional(),
+    checkDate: z.string().optional(), // ISO date string from input[type="date"]
     percentDiscount: z.number().min(0).max(100).default(0),
     amountDiscount: z.number().nonnegative().default(0),
     promoCode: emptyStringToUndefined,

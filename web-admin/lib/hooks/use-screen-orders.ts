@@ -56,6 +56,17 @@ export interface UseScreenOrdersOptions {
   page?: number;
   limit?: number;
   additionalFilters?: Record<string, string | number | boolean | undefined | null>;
+  /** Search by order #, customer name, phone, email */
+  search?: string;
+  /** Sort by: order_no, received_at, ready_by, created_at, total */
+  sortBy?: string;
+  /** asc or desc */
+  sortOrder?: 'asc' | 'desc';
+  /** ISO date strings for date range filters */
+  receivedFrom?: string;
+  receivedTo?: string;
+  readyByFrom?: string;
+  readyByTo?: string;
   enabled?: boolean;
   /**
    * Gradual migration flag.
@@ -134,13 +145,52 @@ export function useScreenOrders<TOrder = any>(
   const enabled = (options.enabled ?? true) && !contractLoading;
 
   const { data, isLoading, error, refetch, isFetching } = useQuery<OrdersListResponse<TOrder>>({
-    queryKey: ['orders', 'screen', screen, { statusFilter, page, limit, ...options.additionalFilters }],
+    queryKey: [
+      'orders',
+      'screen',
+      screen,
+      {
+        statusFilter,
+        page,
+        limit,
+        search: options.search,
+        sortBy: options.sortBy,
+        sortOrder: options.sortOrder,
+        receivedFrom: options.receivedFrom,
+        receivedTo: options.receivedTo,
+        readyByFrom: options.readyByFrom,
+        readyByTo: options.readyByTo,
+        ...options.additionalFilters,
+      },
+    ],
     enabled: enabled && statusFilter.length > 0,
     queryFn: async () => {
       const params = new URLSearchParams();
       params.set('status_filter', statusFilter);
       params.set('page', String(page));
       params.set('limit', String(limit));
+
+      if (options.search?.trim()) {
+        params.set('search', options.search.trim());
+      }
+      if (options.sortBy) {
+        params.set('sort_by', options.sortBy);
+      }
+      if (options.sortOrder) {
+        params.set('sort_order', options.sortOrder);
+      }
+      if (options.receivedFrom) {
+        params.set('received_from', options.receivedFrom);
+      }
+      if (options.receivedTo) {
+        params.set('received_to', options.receivedTo);
+      }
+      if (options.readyByFrom) {
+        params.set('ready_by_from', options.readyByFrom);
+      }
+      if (options.readyByTo) {
+        params.set('ready_by_to', options.readyByTo);
+      }
 
       const additionalFilters = options.additionalFilters ?? {};
       for (const [key, value] of Object.entries(additionalFilters)) {

@@ -1,23 +1,20 @@
 /**
  * Order Types Constants
- * Enums and constants for order-related types
+ * Enums and constants for order-related types.
+ * Payment kinds/methods re-exported from lib/constants/payment.ts (single source of truth).
  */
 
-/**
- * Payment Method Types
- */
-export const PAYMENT_METHODS = {
-  CASH: 'cash',
-  CARD: 'card',
-  CHECK: 'check',
-  GIFT_CARD: 'gift_card',
-  PROMO_CODE: 'promo_code',
-} as const;
-
-export type PaymentMethod = typeof PAYMENT_METHODS[keyof typeof PAYMENT_METHODS];
+export {
+  PAYMENT_KINDS,
+  PAYMENT_METHODS,
+  getPaymentTypeFromMethod,
+  type PaymentKind,
+  type PaymentMethodCode,
+} from "./payment";
 
 /**
- * Order Status Types
+ * Order Status Types (simplified set for UI/filters).
+ * For workflow transitions and full lifecycle, use lib/types/workflow.ts (OrderStatus, ORDER_STATUSES) as source of truth.
  */
 export const ORDER_STATUSES = {
   DRAFT: 'draft',

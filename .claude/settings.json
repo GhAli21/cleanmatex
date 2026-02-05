@@ -1,6 +1,6 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); style=$(echo \"$input\" | jq -r '.output_style.name'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // empty'); if [ -n \"$remaining\" ]; then echo \"$model | Context: $remaining% | Style: $style\"; else echo \"$model | Style: $style\"; fi"
+    "command": "input=$(cat); model=$(echo \"$input\" | jq -r '.model.display_name'); remaining=$(echo \"$input\" | jq -r '.context_window.remaining_percentage // 100'); echo \"$model | Context: $remaining%\""
   }
 }

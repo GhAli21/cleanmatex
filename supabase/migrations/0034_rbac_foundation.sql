@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS sys_auth_roles (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   created_by VARCHAR(120),
   updated_at TIMESTAMP,
-  updated_by VARCHAR(120),
+  updated_by VARCHAR(120)
   
   -- System roles must have specific codes
   --CONSTRAINT check_system_role_code CHECK (

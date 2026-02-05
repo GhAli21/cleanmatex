@@ -1,0 +1,23 @@
+{
+  "commonErrorMessages": {
+    "savingError": "An error occurred. Unable to Save."
+  },
+  "apiErrorMessages": {
+    "400": "Bad request",
+    "401": "Unauthorized",
+    "403": "Access denied",
+    "404": "Resource not found",
+    "409": "Conflict",
+    "422": "Unprocessable entity",
+    "500": "Internal Server Error",
+    "502": "Bad Gateway",
+    "503": "Service Unavailable",
+    "504": "Gateway Timeout",
+    "505": "HTTP Version Not Supported"
+  },
+  "networkErrorMessages": {
+    "timeout": "Request timed out. Please try again.",
+    "networkError": "Network error. Please check your internet connection and try again.",
+    "serverError": "A server error occurred. Please try again later or contact support if the problem persists."
+  }
+}
