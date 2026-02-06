@@ -300,9 +300,25 @@ export function NewOrderContent() {
             </div>
 
             <div className={`h-full min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
-                {/* Left/Center Panel - Primary Content Area */}
-                <div className="flex-1 min-h-0 overflow-y-auto">
-                    <div className="p-6 space-y-4">
+                {/* Left/Center Panel - Primary Content Area: categories fixed, Select Items scrollable */}
+                <div className="flex-1 min-h-0 flex flex-col">
+                    {/* Fixed at top: categories first, then step tabs */}
+                    <div className="flex-shrink-0 p-6 space-y-4">
+                        {/* Category Tabs - fixed at top when on Select Items */}
+                        {activeTab === 'select' && (
+                            <>
+                                {state.state.categoriesLoading ? (
+                                    <CategoryTabsSkeleton />
+                                ) : (
+                                    <CategoryTabs
+                                        categories={state.state.categories}
+                                        selectedCategory={state.state.selectedCategory}
+                                        onSelectCategory={handleSelectCategory}
+                                    />
+                                )}
+                            </>
+                        )}
+
                         {/* Main Step Tabs: Select Items / Order Details */}
                         <div
                             className="bg-white rounded-lg border border-gray-200 p-2"
@@ -341,27 +357,17 @@ export function NewOrderContent() {
                                 </button>
                             </div>
                         </div>
+                    </div>
 
-                        {/* Tab Panels */}
+                    {/* Scrollable: Select Items (product grid) or Order Details */}
+                    <div
+                        id={activeTab === 'select' ? 'new-order-select-items-panel' : 'new-order-details-panel'}
+                        role="tabpanel"
+                        aria-labelledby={activeTab === 'select' ? 'new-order-select-items-tab' : 'new-order-details-tab'}
+                        className="flex-1 min-h-0 overflow-y-auto"
+                    >
                         {activeTab === 'select' && (
-                            <div
-                                id="new-order-select-items-panel"
-                                role="tabpanel"
-                                aria-labelledby="new-order-select-items-tab"
-                                className="space-y-4"
-                            >
-                                {/* Category Tabs */}
-                                {state.state.categoriesLoading ? (
-                                    <CategoryTabsSkeleton />
-                                ) : (
-                                    <CategoryTabs
-                                        categories={state.state.categories}
-                                        selectedCategory={state.state.selectedCategory}
-                                        onSelectCategory={handleSelectCategory}
-                                    />
-                                )}
-
-                                {/* Product Grid */}
+                            <div className="p-6 pt-0">
                                 {state.state.productsLoading ? (
                                     <ProductGridSkeleton />
                                 ) : (
@@ -386,11 +392,7 @@ export function NewOrderContent() {
                         )}
 
                         {activeTab === 'details' && (
-                            <div
-                                id="new-order-details-panel"
-                                role="tabpanel"
-                                aria-labelledby="new-order-details-tab"
-                            >
+                            <div className="p-6 pt-0">
                                 <OrderDetailsSection trackByPiece={trackByPiece} />
                             </div>
                         )}
