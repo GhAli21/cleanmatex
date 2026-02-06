@@ -113,7 +113,7 @@ export interface Order {
 
   // Payment
   payment_status: PaymentStatus;
-  payment_method: string | null;
+  payment_method_code: string | null;
   paid_amount: number;
   paid_at: Date | null;
   paid_by: string | null;
