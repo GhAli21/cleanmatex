@@ -13,6 +13,9 @@ import { ProductCard } from './product-card';
 import { StainConditionToggles } from './stain-condition-toggles';
 import { Plus, Camera } from 'lucide-react';
 
+/** Set to true to show the "Photo / Capture item" button in the product grid. */
+const SHOW_PHOTO_CAPTURE = false;
+
 interface Product {
   id: string;
   product_code: string;
@@ -118,18 +121,20 @@ export const ProductGrid = memo(function ProductGrid({
               <span className="text-xs text-gray-500">{t('describeItem')}</span>
             </button>
 
-            {/* Photo Button */}
-            <button
-              onClick={onOpenPhotoCapture}
-              disabled={!onOpenPhotoCapture}
-              className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:border-green-500 disabled:focus:ring-0"
-            >
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <Camera className="w-8 h-8" />
-              </div>
-              <span className="font-semibold">{t('addPhoto')}</span>
-              <span className="text-xs text-gray-500">{t('captureItem')}</span>
-            </button>
+            {/* Photo Button - hidden for now; set SHOW_PHOTO_CAPTURE to true to re-enable */}
+            {SHOW_PHOTO_CAPTURE && (
+              <button
+                onClick={onOpenPhotoCapture}
+                disabled={!onOpenPhotoCapture}
+                className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:border-green-500 disabled:focus:ring-0"
+              >
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <span className="font-semibold">{t('addPhoto')}</span>
+                <span className="text-xs text-gray-500">{t('captureItem')}</span>
+              </button>
+            )}
           </div>
         )}
       </div>
