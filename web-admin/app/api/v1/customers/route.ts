@@ -194,15 +194,23 @@ export async function GET(request: NextRequest) {
 
     // If all=true, return all customers for the provided tenant_org_id or current session tenant
     if (all) {
-      //const tenantOrgId = searchParams.get('tenant_org_id');
-      const customers = await getAllTenantCustomers();//tenantOrgId);
+      const customers = await getAllTenantCustomers();
       return NextResponse.json({ success: true, data: { customers } }, { status: 200 });
     }
 
-    // Parse query parameters
+    // Parse and validate query parameters
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
+    const limit = Math.min(100, Math.max(1, Number.isNaN(rawLimit) ? 20 : rawLimit));
     const search = searchParams.get('search') || '';
-    const limit = parseInt(searchParams.get('limit') || '100', 100);
-    const page = parseInt(searchParams.get('page') || '1', 10);
+    const typeParam = searchParams.get('type');
+    const type = typeParam && ['guest', 'stub', 'walk_in', 'full'].includes(typeParam) ? typeParam : undefined;
+    const statusParam = searchParams.get('status');
+    const status = statusParam && (statusParam === 'active' || statusParam === 'inactive') ? statusParam : 'active';
+    const sortByParam = searchParams.get('sortBy');
+    const sortBy = sortByParam && ['name', 'createdAt', 'lastOrderAt', 'totalOrders'].includes(sortByParam) ? sortByParam : 'createdAt';
+    const sortOrderParam = searchParams.get('sortOrder');
+    const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc';
 
     // Use progressive search
     const result = await searchCustomersProgressive({
@@ -210,10 +218,10 @@ export async function GET(request: NextRequest) {
       limit,
       search,
       searchAllOptions,
-      type: undefined, // Don't filter by type when searching
-      status: 'active',
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
+      type,
+      status,
+      sortBy,
+      sortOrder,
     });
 
     // Calculate pagination

@@ -291,7 +291,7 @@ useEffect(() => {
 ### Phase 6: Backend API Endpoints (NestJS)
 
 #### Reports Controller
-**File**: `backend/src/reports/reports.controller.ts`
+**File**: `cmx-api/src/reports/reports.controller.ts`
 
 **Endpoints**:
 ```typescript

@@ -15,6 +15,10 @@ You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS p
 - Routing and composition only
 - Compose feature screens and Cmx UI
 
+**Naming:**
+- Screens should start with feature name then screen name then end with `-screen`
+- When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
+
 **DO NOT:**
 - Define reusable primitives
 - Put business logic here
@@ -50,6 +54,7 @@ Domain-level modules live here:
 
 Each feature may have:
 - `ui/` - feature-specific components and screens
+- `reports/` - feature-specific reports components and screens
 - `api/` - API clients for this feature
 - `hooks/` - feature hooks
 - `model/` - types and mappers
@@ -60,6 +65,9 @@ src/features/orders/
   ui/
     order-list-screen.tsx
     order-filters.tsx
+  reports/
+    order-list-rprt.tsx
+    order-filters-rprt.tsx
   api/
     orders-api.ts
   hooks/

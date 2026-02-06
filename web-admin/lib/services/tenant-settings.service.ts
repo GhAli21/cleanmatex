@@ -194,6 +194,23 @@ export class TenantSettingsService {
   }
 
   /**
+   * Get tenant's default phone country code (e.g. '+968', '+966').
+   * @param tenantId - The tenant organization ID
+   * @param _branchId - Optional branch ID (reserved for future override)
+   * @returns Promise<string> - E.164 country code with + (default '+968')
+   */
+  async getDefaultPhoneCountryCode(tenantId: string, _branchId?: string): Promise<string> {
+    try {
+      const v = await this.getSettingValue(tenantId, 'DEFAULT_PHONE_COUNTRY_CODE');
+      const code = (typeof v === 'string' ? v : String(v ?? '')).trim();
+      return code && code.startsWith('+') ? code : '+968';
+    } catch (error) {
+      console.error('[TenantSettingsService] Error getting default phone country code:', error);
+      return '+968';
+    }
+  }
+
+  /**
    * Get currency configuration (code + decimal places) in one call.
    * @param tenantId - The tenant organization ID
    * @param branchId - Optional branch ID

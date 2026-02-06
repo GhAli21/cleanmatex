@@ -234,6 +234,38 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/reports',
     roles: ['admin'],
     featureFlag: 'advanced_analytics',
+    children: [
+      {
+        key: 'reports_orders',
+        label: 'Orders & Sales',
+        path: '/dashboard/reports/orders',
+        roles: ['admin'],
+      },
+      {
+        key: 'reports_payments',
+        label: 'Payments',
+        path: '/dashboard/reports/payments',
+        roles: ['admin'],
+      },
+      {
+        key: 'reports_invoices',
+        label: 'Invoices',
+        path: '/dashboard/reports/invoices',
+        roles: ['admin'],
+      },
+      {
+        key: 'reports_revenue',
+        label: 'Revenue',
+        path: '/dashboard/reports/revenue',
+        roles: ['admin'],
+      },
+      {
+        key: 'reports_customers',
+        label: 'Customers',
+        path: '/dashboard/reports/customers',
+        roles: ['admin'],
+      },
+    ],
   },
   {
     key: 'inventory',

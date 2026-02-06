@@ -111,7 +111,7 @@ Write-Host "🎉 Ready to start developing!" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next steps:"
 Write-Host "  1. cd web-admin; npm run dev      (Start admin dashboard)"
-Write-Host "  2. cd backend; npm run dev         (Start backend API)"
+Write-Host "  2. cd cmx-api; npm run start:dev   (Start cmx-api client API)"
 Write-Host ""
 Write-Host "To stop services: npm run services:stop"
 Write-Host ""

@@ -1019,6 +1019,10 @@
     "starchLevel": "Starch Level",
     "accountInfo": "Account Information",
     "customerType": "Customer Type",
+    "errors": {
+      "loadFailed": "Failed to load customers",
+      "exportFailed": "Failed to export customers"
+    },
     "status": "Status",
     "active": "Active",
     "inactive": "Inactive",
@@ -1302,7 +1306,7 @@
     }
   },
   "reports": {
-    "title": "Reports",
+    "title": "Reports & Analytics",
     "subtitle": "Business intelligence and analytics",
     "revenueReport": "Revenue Report",
     "ordersReport": "Orders Report",
@@ -1313,6 +1317,8 @@
     "exportReport": "Export Report",
     "exportCSV": "Export CSV",
     "exportPDF": "Export PDF",
+    "exportExcel": "Export Excel",
+    "print": "Print",
     "dateRange": "Date Range",
     "from": "From",
     "to": "To",
@@ -1331,7 +1337,94 @@
     "avgTurnaroundTime": "Avg Turnaround Time",
     "onTimeDelivery": "On-Time Delivery",
     "avgResponseTime": "Avg Response Time",
-    "hours": "hours"
+    "hours": "hours",
+    "noData": "No data available for the selected period",
+    "tabs": {
+      "orders": "Orders & Sales",
+      "payments": "Payments",
+      "invoices": "Invoices",
+      "revenue": "Revenue",
+      "customers": "Customers"
+    },
+    "filters": {
+      "today": "Today",
+      "7d": "7 Days",
+      "30d": "30 Days",
+      "90d": "90 Days",
+      "custom": "Custom",
+      "apply": "Apply",
+      "allStatuses": "All Statuses"
+    },
+    "kpi": {
+      "totalPayments": "Total Payments",
+      "totalAmount": "Total Amount",
+      "avgAmount": "Average Amount",
+      "refundedPayments": "Refunded",
+      "totalInvoices": "Total Invoices",
+      "totalOutstanding": "Outstanding",
+      "collectionRate": "Collection Rate",
+      "overdueCount": "Overdue",
+      "totalCustomers": "Total Customers",
+      "newCustomers": "New Customers",
+      "returningCustomers": "Returning",
+      "avgLTV": "Avg. Lifetime Value"
+    },
+    "charts": {
+      "revenueTrend": "Revenue Trend",
+      "ordersByStatus": "Orders by Status",
+      "ordersByType": "Orders by Type",
+      "revenue": "Revenue",
+      "count": "Count",
+      "amount": "Amount",
+      "paymentsTrend": "Payments Trend",
+      "byPaymentMethod": "By Payment Method",
+      "byPaymentStatus": "By Payment Status",
+      "invoicesByStatus": "Invoices by Status",
+      "agingBuckets": "Aging Buckets",
+      "collectionTrend": "Collection Trend",
+      "collected": "Collected",
+      "outstanding": "Outstanding",
+      "byServiceCategory": "By Service Category",
+      "byOrderType": "By Order Type",
+      "byBranch": "By Branch",
+      "orders": "Orders",
+      "topCustomers": "Top 10 Customers by Revenue",
+      "newVsReturning": "New vs Returning Customers",
+      "newCustomers": "New Customers",
+      "returningCustomers": "Returning Customers"
+    },
+    "table": {
+      "orderNo": "Order #",
+      "customer": "Customer",
+      "status": "Status",
+      "items": "Items",
+      "total": "Total",
+      "paymentStatus": "Payment",
+      "date": "Date",
+      "invoiceNo": "Invoice #",
+      "amount": "Amount",
+      "method": "Method",
+      "paid": "Paid",
+      "balance": "Balance",
+      "dueDate": "Due Date",
+      "phone": "Phone",
+      "totalOrders": "Orders",
+      "totalRevenue": "Revenue",
+      "avgOrderValue": "Avg. Value",
+      "lastOrder": "Last Order",
+      "firstOrder": "First Order"
+    },
+    "pagination": {
+      "showing": "Showing {from}-{to} of {total}",
+      "rowsPerPage": "Rows per page"
+    },
+    "export": {
+      "title": "Export Report",
+      "csv": "CSV",
+      "excel": "Excel",
+      "pdf": "PDF",
+      "downloading": "Downloading..."
+    }
   },
   "catalog": {
     "title": "Catalog & Pricing",

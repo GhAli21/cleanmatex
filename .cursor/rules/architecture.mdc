@@ -193,7 +193,7 @@ const orders = await prisma.org_orders_mst.findMany()
 
 ### Backend API 
 - **Framework**: NestJS (REST + GraphQL)
-- **Location**: `backend/`
+- **Location**: `cmx-api/`
 - **Cache**: Redis 7+
 - **Queue**: BullMQ for background jobs
 - **Purpose**: Complex business logic, integrations

@@ -40,7 +40,7 @@ Visit http://localhost:3000 to access the admin dashboard.
 
 ```
 cleanmatex/
-├── backend/              # NestJS backend API
+├── cmx-api/              # NestJS client API
 ├── web-admin/           # Next.js admin dashboard
 ├── mobile-apps/         # Flutter mobile apps
 │   ├── customer-app/    # Customer mobile app
@@ -89,7 +89,7 @@ cleanmatex/
 | Service         | Port  | Description            |
 | --------------- | ----- | ---------------------- |
 | Web Admin       | 3000  | Admin dashboard        |
-| Backend API     | 3001  | REST API               |
+| cmx-api         | 3001  | Client API (NestJS)     |
 | PostgreSQL      | 5432  | Primary database       |
 | Redis           | 6379  | Cache & queues         |
 | MinIO API       | 9000  | S3-compatible storage  |

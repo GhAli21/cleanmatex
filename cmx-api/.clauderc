@@ -1,5 +1,5 @@
-# Backend-Specific Claude Code Configuration
-# Location: backend/.clauderc
+# cmx-api Claude Code Configuration
+# Location: cmx-api/.clauderc
 
 context: "NestJS Backend API for CleanMateX Laundry SaaS"
 

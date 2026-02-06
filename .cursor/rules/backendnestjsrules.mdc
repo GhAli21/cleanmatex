@@ -11,8 +11,9 @@ NestJS is a **Node.js framework** for building efficient, scalable server-side a
 - **DTOs**: Data Transfer Objects - define what data comes in/out
 
 ## Project Structure
+Location: `cmx-api/` (NestJS client API).
 ```
-/src
+cmx-api/src/
   /common
     /decorators     # Custom decorators
     /filters        # Exception filters

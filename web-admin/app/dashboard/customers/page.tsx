@@ -23,6 +23,7 @@ import {
   exportCustomers,
   downloadCSV,
 } from '@/lib/api/customers'
+import { cmxMessage } from '@ui/feedback'
 import type {
   CustomerListItem,
   CustomerSearchParams,
@@ -84,8 +85,7 @@ export default function CustomersPage() {
         totalPages: paginationData?.totalPages ?? 0,
       }))
     } catch (error) {
-      console.error('Error loading customers:', error)
-      // TODO: Show error notification
+      cmxMessage.error(error instanceof Error ? error.message : t('errors.loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -96,8 +96,8 @@ export default function CustomersPage() {
     try {
       const statistics = await fetchCustomerStats()
       setStats(statistics)
-    } catch (error) {
-      console.error('Error loading statistics:', error)
+    } catch {
+      // Stats are optional; ignore failure
     }
   }, [])
 
@@ -143,8 +143,7 @@ export default function CustomersPage() {
       const filename = `customers_${new Date().toISOString().split('T')[0]}.csv`
       downloadCSV(blob, filename)
     } catch (error) {
-      console.error('Error exporting customers:', error)
-      // TODO: Show error notification
+      cmxMessage.error(error instanceof Error ? error.message : t('errors.exportFailed'))
     } finally {
       setExporting(false)
     }

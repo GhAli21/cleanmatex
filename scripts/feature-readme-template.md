@@ -20,7 +20,7 @@ Describe current state.
 ## Related Files
 
 * Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
+* API: web-admin/app/api/v1/feature-path (Next.js) | cmx-api /api/v1/... (NestJS client API)
 * Services: web-admin/lib/services/feature-service.ts
 * Database: supabase/migrations/
 

@@ -5,10 +5,13 @@ web-admin/nul
 web-admin/nul.*
 nul.*
 
+#Ignore Other Files
+scripts/dev/cleanmatex_how_to_start_Jh.txt
+
 # Environment variables
 .env
 .env.*
-!.env.example
+.env.example
 .env.local
 .env.production
 .env.staging

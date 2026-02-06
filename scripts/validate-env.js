@@ -32,15 +32,15 @@ const requiredVars = {
   REDIS_URL: { description: 'Redis connection URL' },
   
   // Application
-  APP_PORT: { description: 'Backend API port' },
-  APP_URL: { description: 'Backend API URL' },
+  APP_PORT: { description: 'cmx-api port' },
+  APP_URL: { description: 'cmx-api URL' },
 };
 
 // Optional but recommended variables
 const recommendedVars = {
   JWT_SECRET: { description: 'JWT signing secret' },
   SESSION_SECRET: { description: 'Session encryption secret' },
-  SUPABASE_SERVICE_ROLE_KEY: { description: 'Supabase service role key (backend only)' },
+  SUPABASE_SERVICE_ROLE_KEY: { description: 'Supabase service role key (cmx-api only)' },
   S3_ENDPOINT: { description: 'S3/MinIO endpoint' },
 };
 

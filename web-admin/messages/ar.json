@@ -1019,6 +1019,10 @@
     "starchLevel": "مستوى النشا",
     "accountInfo": "معلومات الحساب",
     "customerType": "نوع العميل",
+    "errors": {
+      "loadFailed": "فشل تحميل العملاء",
+      "exportFailed": "فشل تصدير العملاء"
+    },
     "status": "الحالة",
     "active": "نشط",
     "inactive": "غير نشط",
@@ -1305,7 +1309,7 @@
     }
   },
   "reports": {
-    "title": "التقارير",
+    "title": "التقارير والتحليلات",
     "subtitle": "ذكاء الأعمال والتحليلات",
     "revenueReport": "تقرير الإيرادات",
     "ordersReport": "تقرير الطلبات",
@@ -1316,6 +1320,8 @@
     "exportReport": "تصدير التقرير",
     "exportCSV": "تصدير CSV",
     "exportPDF": "تصدير PDF",
+    "exportExcel": "تصدير Excel",
+    "print": "طباعة",
     "dateRange": "نطاق التاريخ",
     "from": "من",
     "to": "إلى",
@@ -1334,7 +1340,94 @@
     "avgTurnaroundTime": "متوسط وقت التنفيذ",
     "onTimeDelivery": "التسليم في الوقت المحدد",
     "avgResponseTime": "متوسط وقت الاستجابة",
-    "hours": "ساعات"
+    "hours": "ساعات",
+    "noData": "لا توجد بيانات للفترة المحددة",
+    "tabs": {
+      "orders": "الطلبات والمبيعات",
+      "payments": "المدفوعات",
+      "invoices": "الفواتير",
+      "revenue": "الإيرادات",
+      "customers": "العملاء"
+    },
+    "filters": {
+      "today": "اليوم",
+      "7d": "7 أيام",
+      "30d": "30 يوم",
+      "90d": "90 يوم",
+      "custom": "مخصص",
+      "apply": "تطبيق",
+      "allStatuses": "جميع الحالات"
+    },
+    "kpi": {
+      "totalPayments": "إجمالي المدفوعات",
+      "totalAmount": "إجمالي المبلغ",
+      "avgAmount": "متوسط المبلغ",
+      "refundedPayments": "مسترد",
+      "totalInvoices": "إجمالي الفواتير",
+      "totalOutstanding": "المستحق",
+      "collectionRate": "نسبة التحصيل",
+      "overdueCount": "متأخرة",
+      "totalCustomers": "إجمالي العملاء",
+      "newCustomers": "عملاء جدد",
+      "returningCustomers": "عملاء عائدون",
+      "avgLTV": "متوسط القيمة العمرية"
+    },
+    "charts": {
+      "revenueTrend": "اتجاه الإيرادات",
+      "ordersByStatus": "الطلبات حسب الحالة",
+      "ordersByType": "الطلبات حسب النوع",
+      "revenue": "الإيرادات",
+      "count": "العدد",
+      "amount": "المبلغ",
+      "paymentsTrend": "اتجاه المدفوعات",
+      "byPaymentMethod": "حسب طريقة الدفع",
+      "byPaymentStatus": "حسب حالة الدفع",
+      "invoicesByStatus": "الفواتير حسب الحالة",
+      "agingBuckets": "فترات التقادم",
+      "collectionTrend": "اتجاه التحصيل",
+      "collected": "محصل",
+      "outstanding": "مستحق",
+      "byServiceCategory": "حسب فئة الخدمة",
+      "byOrderType": "حسب نوع الطلب",
+      "byBranch": "حسب الفرع",
+      "orders": "الطلبات",
+      "topCustomers": "أفضل 10 عملاء من حيث الإيرادات",
+      "newVsReturning": "العملاء الجدد مقابل العائدين",
+      "newCustomers": "عملاء جدد",
+      "returningCustomers": "عملاء عائدون"
+    },
+    "table": {
+      "orderNo": "رقم الطلب",
+      "customer": "العميل",
+      "status": "الحالة",
+      "items": "القطع",
+      "total": "المجموع",
+      "paymentStatus": "الدفع",
+      "date": "التاريخ",
+      "invoiceNo": "رقم الفاتورة",
+      "amount": "المبلغ",
+      "method": "الطريقة",
+      "paid": "المدفوع",
+      "balance": "الرصيد",
+      "dueDate": "تاريخ الاستحقاق",
+      "phone": "الهاتف",
+      "totalOrders": "الطلبات",
+      "totalRevenue": "الإيرادات",
+      "avgOrderValue": "متوسط القيمة",
+      "lastOrder": "آخر طلب",
+      "firstOrder": "أول طلب"
+    },
+    "pagination": {
+      "showing": "عرض {from}-{to} من {total}",
+      "rowsPerPage": "صفوف لكل صفحة"
+    },
+    "export": {
+      "title": "تصدير التقرير",
+      "csv": "CSV",
+      "excel": "Excel",
+      "pdf": "PDF",
+      "downloading": "جاري التحميل..."
+    }
   },
   "catalog": {
     "title": "الفهرس والتسعير",

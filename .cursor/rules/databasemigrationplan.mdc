@@ -319,10 +319,10 @@ ORDER BY event_object_table, trigger_name;
 
 # Find all references to old table names
 echo "Finding references to org_orders_mst..."
-grep -r "org_orders_mst" web-admin/ backend/ supabase/migrations/ --exclude-dir=node_modules
+grep -r "org_orders_mst" web-admin/ cmx-api/ supabase/migrations/ --exclude-dir=node_modules
 
 echo "Finding references to cmx_order_transition..."
-grep -r "cmx_order_transition" web-admin/ backend/ supabase/migrations/ --exclude-dir=node_modules
+grep -r "cmx_order_transition" web-admin/ cmx-api/ supabase/migrations/ --exclude-dir=node_modules
 
 # Generate sed commands for bulk replacement
 # sed -i 's/org_orders_mst/org_ord_orders_mst/g' **/*.ts **/*.tsx **/*.sql

@@ -20,7 +20,7 @@ stack:
 
 # Key Directories
 directories:
-  backend: "./backend"
+  backend: "./cmx-api"
   web: "./web-admin"
   mobile: "./mobile-apps"
   docs: "./docs"

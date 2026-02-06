@@ -549,8 +549,8 @@ Services:
 npm run migration:run
 npm run seed:dev
 
-# Start Backend
-cd backend
+# Start cmx-api (client API)
+cd cmx-api
 npm run start:dev
 
 # Start Web Admin

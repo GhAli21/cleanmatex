@@ -73,6 +73,7 @@ npm run build                     # Build (run after changes)
 - Search existing message keys before adding new
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
+- When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
 
 **See:** `/i18n` skill for complete i18n rules
 
@@ -106,10 +107,12 @@ npm run build                     # Build (run after changes)
 
 ## Structure
 
+One **shared Supabase instance** (same DB schema). Separate app/module folders all use it.
+
 ```
-supabase/     # Database + RLS (PostgreSQL port 54322)
+supabase/     # Shared DB + RLS (PostgreSQL port 54322)
 web-admin/    # Next.js Admin (Active)
-backend/      # NestJS API (Phase 2)
+cmx-api/      # NestJS client API (Phase 2)
 docs/         # All documentation
 ```
 

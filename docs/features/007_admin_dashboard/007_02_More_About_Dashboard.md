@@ -133,7 +133,7 @@ Push notification integration (future)
 WhatsApp/SMS template integration
 Phase 6: Backend API Endpoints
 6.1 Reports API
-File: backend/src/reports/reports.controller.ts (NestJS)
+File: cmx-api/src/reports/reports.controller.ts (NestJS)
 GET /api/v1/reports/kpi-overview?branchId=&from=&to=
 Returns: {
   orders: { today: 64, inProcess: 18, ready: 22, outForDelivery: 9 },

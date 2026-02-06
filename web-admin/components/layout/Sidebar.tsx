@@ -89,14 +89,14 @@ export default function Sidebar() {
   const getNavLabel = (key: string, fallback: string): string => {
     const translationKeyMap: Record<string, string> = {
       'home': 'dashboard',
-      'orders': 'orders',
-      'orders_list': 'allOrders',
-      'orders_new': 'newOrder',
-      'orders_preparation': 'preparation',
-      'orders_processing': 'processing',
-      'orders_assembly': 'assembly',
-      'orders_qa': 'qualityCheck',
-      'orders_ready': 'ready',
+      //'orders': 'orders',
+      //'orders_list': 'allOrders',
+      //'orders_new': 'newOrder',
+      //'orders_preparation': 'preparation',
+      //'orders_processing': 'processing',
+      //'orders_assembly': 'assembly',
+      //'orders_qa': 'qualityCheck',
+      //'orders_ready': 'ready',
       'assembly': 'assembly',
       'drivers': 'driversAndRoutes',
       'drivers_list': 'allDrivers',
@@ -139,25 +139,21 @@ export default function Sidebar() {
   // Navigation is already filtered by API, but we can apply additional client-side filtering if needed
   // For now, use navigation directly from API (it's already filtered by permissions)
   const filteredNavigation = useMemo(() => {
-    // Additional client-side filtering by feature flags if needed
-    // IMPORTANT: Create new objects instead of mutating existing ones to prevent infinite loops
+    // Only hide by feature flag when we have explicit flag data (key present and false).
+    // When feature flags are not loaded (e.g. API disabled), show all API-returned sections.
+    const isFeatureEnabled = (flag: string | undefined) => {
+      if (!flag) return true
+      if (!(flag in featureFlags)) return true // no data = show
+      return featureFlags[flag] === true
+    }
     return navigation
-      .filter((section) => {
-        // Check feature flag if required
-        if (section.featureFlag && !featureFlags[section.featureFlag]) {
-          return false
-        }
-        return true
-      })
+      .filter((section) => isFeatureEnabled(section.featureFlag))
       .map((section) => {
         // Filter children by feature flags without mutating the original
         if (section.children) {
-          const filteredChildren = section.children.filter((child) => {
-            if (child.featureFlag && !featureFlags[child.featureFlag]) {
-              return false
-            }
-            return true
-          })
+          const filteredChildren = section.children.filter((child) =>
+            isFeatureEnabled(child.featureFlag)
+          )
           // Return new section object with filtered children
           return {
             ...section,

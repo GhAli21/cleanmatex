@@ -29,7 +29,7 @@
   },
   "workspaces": [
     "web-admin",
-    "backend",
+    "cmx-api",
     "packages/*"
   ],
   "dependencies": {

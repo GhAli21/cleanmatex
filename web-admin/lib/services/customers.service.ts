@@ -1,10 +1,14 @@
 /**
  * PRD-003: Customer Management Service
- * Core business logic for progressive customer engagement
+ * Core business logic for progressive customer engagement.
+ * When CONNECT_WITH_SYS_CUSTOMERS !== 'true', only org_ tables are used (org_customers_mst).
+ * When CONNECT_WITH_SYS_CUSTOMERS=true, methods may use sys_customers_mst and org_customers_mst.
  */
 
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { logger } from '@/lib/utils/logger';
 import type {
   Customer,
   CustomerWithTenantData,
@@ -19,6 +23,51 @@ import type {
   CustomerPreferences,
 } from '@/lib/types/customer';
 
+/** When true, service uses sys_customers_mst + org_customers_mst; when false, only org_customers_mst. */
+function useSysCustomers(): boolean {
+  
+  return false;
+
+  if (process.env.CONNECT_WITH_SYS_CUSTOMERS === undefined) {
+    return false;
+  }
+  if (process.env.CONNECT_WITH_SYS_CUSTOMERS?.toLowerCase() === 'true') {
+    return true;
+  }
+  if (process.env.CONNECT_WITH_SYS_CUSTOMERS?.toLowerCase() === 'false') {
+    return false;
+  }
+  return false; //process.env.CONNECT_WITH_SYS_CUSTOMERS === 'true';
+}
+
+/** Map org_customers_mst row to Customer (org-only mode). */
+function mapFromOrgRow(row: Record<string, unknown>, tenantId: string): Customer {
+  return {
+    id: row.id as string,
+    customerNumber: (row.customer_number as string) ?? (row.id as string),
+    firstName: (row.first_name as string) || '',
+    lastName: (row.last_name as string) ?? null,
+    displayName: (row.display_name as string) ?? null,
+    name: (row.name as string) ?? null,
+    name2: (row.name2 as string) ?? null,
+    phone: (row.phone as string) ?? null,
+    phoneVerified: false,
+    email: (row.email as string) ?? null,
+    emailVerified: false,
+    type: (row.type as CustomerType) ?? 'walk_in',
+    profileStatus: (row.profile_status as number) ?? 1,
+    avatarUrl: null,
+    preferences: (row.preferences as CustomerPreferences) ?? {},
+    address: (row.address as string) ?? null,
+    area: (row.area as string) ?? null,
+    building: (row.building as string) ?? null,
+    floor: (row.floor as string) ?? null,
+    firstTenantOrgId: tenantId,
+    createdAt: (row.created_at as string) ?? new Date().toISOString(),
+    updatedAt: (row.updated_at as string) ?? (row.created_at as string) ?? new Date().toISOString(),
+  };
+}
+
 // Define a reusable type for session context
 export interface CurrentUserTenantSessionContext {
   userId: string;
@@ -30,7 +79,8 @@ export interface CurrentUserTenantSessionContext {
 // ==================================================================
 
 /**
- * Normalize phone number to E.164 format
+ * Normalize phone number to E.164 format.
+ * If the phone already contains a country code (starts with +), it is preserved; otherwise defaultCountryCode is used.
  * Examples:
  *   "+968 9012 3456" → "+96890123456"
  *   "90123456" → "+96890123456" (with default country code)
@@ -40,11 +90,10 @@ export function normalizePhone(
   phone: string,
   defaultCountryCode: string = '+968'
 ): PhoneNormalizationResult {
-  // Remove all spaces, hyphens, parentheses
-  let normalized = phone.replace(/[\s\-\(\)]/g, '');
+  let normalized = (phone ?? '').trim().replace(/[\s\-\(\)]/g, '');
 
-  // If doesn't start with +, add default country code
-  if (!normalized.startsWith('+')) {
+  // If phone already contains country code (starts with +), keep it; otherwise prepend default
+  if (!normalized.startsWith('+') && !normalized.startsWith('00')) {
     normalized = defaultCountryCode + normalized;
   }
 
@@ -102,6 +151,12 @@ async function getCurrentUserTenantSessionContext(): Promise<CurrentUserTenantSe
 // Note: Using centralized getTenantIdFromSession from @/lib/db/tenant-context
 // The centralized version uses user.user_metadata?.tenant_org_id which is more reliable
 
+/** Default phone country code for current tenant (from tenant/branch settings). */
+async function getDefaultCountryCodeForCurrentTenant(): Promise<string> {
+  const tenantId = await getTenantIdFromSession();
+  return tenantId ? tenantSettingsService.getDefaultPhoneCountryCode(tenantId) : '+968';
+}
+
 /**
  * Generate sequential customer number for tenant
  * Format: CUST-00001, CUST-00002, etc.
@@ -115,7 +170,7 @@ export async function generateCustomerNumber(tenantOrgId: string): Promise<strin
   });
 
   if (error) {
-    console.error('Error generating customer number:', error);
+    logger.error('Error generating customer number', error as Error, { feature: 'customers' });
     throw new Error('Failed to generate customer number');
   }
 
@@ -127,73 +182,99 @@ export async function generateCustomerNumber(tenantOrgId: string): Promise<strin
 // ==================================================================
 
 /**
- * Create a new customer (guest, stub, or full)
+ * Create a new customer (guest, stub, or full).
+ * Org-only: inserts into org_customers_mst only. Sys mode: inserts sys_customers_mst then org_customers_mst link.
  */
 export async function createCustomer(
   request: CustomerCreateRequest
 ): Promise<Customer> {
   const supabase = await createClient();
-  // Use centralized getTenantIdFromSession
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) {
     throw new Error('Unauthorized: Tenant ID required');
   }
-  
-  // Get user context for created_by
   const session = await getCurrentUserTenantSessionContext();
   const curUserId = session.userId;
-  const curUserRole = session.userRole;
-  // Normalize phone if provided
   let normalizedPhone: string | null = null;
   if ('phone' in request && request.phone) {
-    const phoneResult = normalizePhone(request.phone);
+    const defaultCountryCode = await getDefaultCountryCodeForCurrentTenant();
+    const phoneResult = normalizePhone(request.phone, defaultCountryCode);
     if (!phoneResult.isValid) {
       throw new Error('Invalid phone number format');
     }
     normalizedPhone = phoneResult.normalized;
-
-    // Check for duplicate phone in this tenant
-    const { data: existing } = await supabase
-      .from('sys_customers_mst')
-      .select('id, first_name, phone')
-      .eq('phone', normalizedPhone)
-      .maybeSingle();
-
-    if (existing) {
-      // Check if already linked to this tenant
-      const { data: tenantLink } = await supabase
-        .from('org_customers_mst')
-        .select('customer_id')
-        .eq('customer_id', existing.id)
-        .eq('tenant_org_id', tenantId)
-        .maybeSingle();
-
-      if (tenantLink) {
-        throw new Error(
-          `Customer with phone ${maskPhone(normalizedPhone)} already exists`
-        );
+    const duplicateCheck = useSysCustomers()
+      ? await supabase.from('sys_customers_mst').select('id').eq('phone', normalizedPhone).maybeSingle()
+      : await supabase.from('org_customers_mst').select('id').eq('tenant_org_id', tenantId).eq('phone', normalizedPhone).maybeSingle();
+    if (duplicateCheck.data) {
+      if (useSysCustomers()) {
+        const tenantLink = await supabase
+          .from('org_customers_mst')
+          .select('customer_id')
+          .eq('customer_id', duplicateCheck.data.id)
+          .eq('tenant_org_id', tenantId)
+          .maybeSingle();
+        if (tenantLink.data) {
+          throw new Error(`Customer with phone ${maskPhone(normalizedPhone)} already exists`);
+        }
+      } else {
+        throw new Error(`Customer with phone ${maskPhone(normalizedPhone)} already exists`);
       }
     }
   }
 
-  // Generate customer number
+  if (!useSysCustomers()) {
+    const displayName = request.displayName ?? `${request.firstName} ${('lastName' in request && request.lastName) || ''}`.trim();
+    const name = request.name ?? displayName;
+    const { data: orgRow, error: orgError } = await supabase
+      .from('org_customers_mst')
+      .insert({
+        tenant_org_id: tenantId,
+        customer_id: null,
+        first_name: request.firstName,
+        last_name: 'lastName' in request ? request.lastName : null,
+        name,
+        name2: request.name2 ?? null,
+        display_name: displayName,
+        phone: normalizedPhone,
+        email: 'email' in request ? request.email : null,
+        type: request.type ?? 'walk_in',
+        loyalty_points: 0,
+        is_active: true,
+        created_at: new Date().toISOString(),
+        created_by: curUserId,
+        customer_source_type: 'DIRECT',
+      })
+      .select()
+      .single();
+    if (orgError) {
+      logger.error('Error creating customer', orgError as Error, { feature: 'customers', action: 'create' });
+      throw new Error('Failed to create customer: ' + orgError.message);
+    }
+    if (request.type === 'full' && 'addresses' in request && request.addresses) {
+      const addressesService = await import('./customer-addresses.service');
+      for (const addressReq of request.addresses) {
+        try {
+          await addressesService.createAddress(orgRow.id, addressReq);
+        } catch (err) {
+          logger.error('Error creating address', err as Error, { feature: 'customers', action: 'create' });
+        }
+      }
+    }
+    return mapFromOrgRow(orgRow as Record<string, unknown>, tenantId);
+  }
+
   const customerNumber = await generateCustomerNumber(tenantId);
-
-  // Determine profile status based on type
-  const profileStatus = request.type||'guest';
-
-  // For full customers, OTP verification should be done before calling this
+  const profileStatus = request.type ?? 'guest';
   const phoneVerified = request.type === 'full' && !!normalizedPhone;
-
-  // Create customer in sys_customers_mst
   const { data: customer, error: customerError } = await supabase
     .from('sys_customers_mst')
     .insert({
       first_name: request.firstName,
       last_name: 'lastName' in request ? request.lastName : null,
-      name: request.name||request.firstName+' '+('lastName' in request && request.lastName),
-      name2: request.name2,
-      display_name: request.displayName||request.firstName+' '+('lastName' in request && request.lastName),
+      name: request.name ?? request.firstName + ' ' + (('lastName' in request && request.lastName) ?? ''),
+      name2: request.name2 ?? null,
+      display_name: request.displayName ?? request.firstName + ' ' + (('lastName' in request && request.lastName) ?? ''),
       phone: normalizedPhone,
       email: 'email' in request ? request.email : null,
       type: request.type,
@@ -201,31 +282,26 @@ export async function createCustomer(
       profile_status: profileStatus,
       phone_verified: phoneVerified,
       email_verified: false,
-      //preferences: 'preferences' in request ? request.preferences : {},
       first_tenant_org_id: tenantId,
       created_at: new Date().toISOString(),
       created_by: curUserId,
       customer_source_type: 'TENANT',
-      
     })
     .select()
     .single();
-
   if (customerError) {
-    console.error('Error creating customer:', customerError);
-    throw new Error('Failed to create customer : '+customerError.message);
+    logger.error('Error creating customer', customerError as Error, { feature: 'customers', action: 'create' });
+    throw new Error('Failed to create customer: ' + customerError.message);
   }
-
-  // Link customer to tenant in org_customers_mst
   const { error: linkError } = await supabase
     .from('org_customers_mst')
     .insert({
       customer_id: customer.id,
       tenant_org_id: tenantId,
-      name: request.name,
-      name2: request.name2,
+      name: request.name ?? null,
+      name2: request.name2 ?? null,
       first_name: request.firstName,
-      last_name: request.lastName,
+      last_name: 'lastName' in request ? request.lastName : null,
       display_name: `${request.firstName} ${('lastName' in request && request.lastName) || ''}`.trim(),
       phone: normalizedPhone,
       email: 'email' in request ? request.email : null,
@@ -235,35 +311,27 @@ export async function createCustomer(
       created_at: new Date().toISOString(),
       created_by: curUserId,
       customer_source_type: 'TENANT',
-      //preferences: 'preferences' in request ? request.preferences : {},
     });
-
   if (linkError) {
-    console.error('Error linking customer to tenant:', linkError);
-    // Rollback: delete the customer
+    logger.error('Error linking customer to tenant', linkError as Error, { feature: 'customers', action: 'create' });
     await supabase.from('sys_customers_mst').delete().eq('id', customer.id);
-    throw new Error('Failed to link customer to tenant : '+linkError.message);
+    throw new Error('Failed to link customer to tenant: ' + linkError.message);
   }
-
-  // If full customer with addresses, create them
   if (request.type === 'full' && 'addresses' in request && request.addresses) {
     const addressesService = await import('./customer-addresses.service');
     for (const addressReq of request.addresses) {
       try {
         await addressesService.createAddress(customer.id, addressReq);
-      } catch (error) {
-        console.error('Error creating address:', error);
-        // Continue with other addresses
+      } catch (err) {
+        logger.error('Error creating address', err as Error, { feature: 'customers', action: 'create' });
       }
     }
   }
-
   return mapToCustomer(customer);
 }
 
 /**
- * Find customer by ID
- * Handles both sys_customers_mst.id and org_customers_mst.id
+ * Find customer by ID (org_customers_mst.id when org-only; sys or org id when CONNECT_WITH_SYS_CUSTOMERS).
  */
 export async function findCustomerById(
   customerId: string
@@ -271,162 +339,182 @@ export async function findCustomerById(
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  // First, check if this is an org_customers_mst.id
-  const { data: orgCustomer, error: orgError } = await supabase
+  if (!useSysCustomers()) {
+    const { data: orgRow, error } = await supabase
+      .from('org_customers_mst')
+      .select('*')
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .maybeSingle();
+    if (error) {
+      logger.error('Error finding customer', error as Error, { feature: 'customers', action: 'findById' });
+      return null;
+    }
+    if (!orgRow) return null;
+    const { data: orderStats } = await supabase
+      .from('org_orders_mst')
+      .select('id, total, delivered_at')
+      .eq('customer_id', customerId)
+      .eq('tenant_org_id', tenantId);
+    const totalOrders = orderStats?.length || 0;
+    const totalSpent = orderStats?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
+    const lastOrderAt = orderStats
+      ?.filter((o) => o.delivered_at)
+      .sort((a, b) => new Date(b.delivered_at!).getTime() - new Date(a.delivered_at!).getTime())[0]
+      ?.delivered_at ?? null;
+    return {
+      ...mapFromOrgRow(orgRow as Record<string, unknown>, tenantId),
+      tenantData: {
+        tenantOrgId: tenantId,
+        loyaltyPoints: Number(orgRow.loyalty_points) || 0,
+        totalOrders,
+        totalSpent,
+        lastOrderAt,
+        joinedAt: (orgRow.created_at as string) ?? new Date().toISOString(),
+      },
+    };
+  }
+
+  const { data: orgCustomer } = await supabase
     .from('org_customers_mst')
     .select('id, customer_id, tenant_org_id')
     .eq('id', customerId)
     .eq('tenant_org_id', tenantId)
     .maybeSingle();
-
-  // Determine the actual sys_customers_mst.id to use
   let sysCustomerId = customerId;
-  if (orgCustomer && orgCustomer.customer_id) {
-    // This is an org_customers_mst.id, use the linked customer_id
-    sysCustomerId = orgCustomer.customer_id;
-  }
+  if (orgCustomer?.customer_id) sysCustomerId = orgCustomer.customer_id;
 
-  // Get customer with tenant data using sys_customers_mst.id
   const { data: customer, error } = await supabase
     .from('sys_customers_mst')
     .select(
-      `
-      *,
-      org_customers_mst!inner(
-        id,
-        tenant_org_id,
-        loyalty_points,
-        created_at
-      )
-    `
+      `*,
+      org_customers_mst!inner(id, tenant_org_id, loyalty_points, created_at)`
     )
     .eq('id', sysCustomerId)
     .eq('org_customers_mst.tenant_org_id', tenantId)
     .maybeSingle();
-
   if (error) {
-    console.error('Error finding customer:', error);
+    logger.error('Error finding customer', error as Error, { feature: 'customers', action: 'findById' });
     return null;
   }
+  if (!customer) return null;
 
-  if (!customer) {
-    return null;
-  }
-
-  // Get order statistics using sys_customers_mst.id
   const { data: orderStats } = await supabase
     .from('org_orders_mst')
     .select('id, total, delivered_at')
     .eq('customer_id', sysCustomerId)
     .eq('tenant_org_id', tenantId);
-
   const totalOrders = orderStats?.length || 0;
-  const totalSpent = orderStats?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
+  const totalSpent = orderStats?.reduce((sum, o) => sum + (Number(o.total) || 0), 0) || 0;
   const lastOrderAt = orderStats
     ?.filter((o) => o.delivered_at)
     .sort((a, b) => new Date(b.delivered_at!).getTime() - new Date(a.delivered_at!).getTime())[0]
-    ?.delivered_at || null;
-
+    ?.delivered_at ?? null;
   return {
     ...mapToCustomer(customer),
     tenantData: {
       tenantOrgId: tenantId,
-      loyaltyPoints: customer.org_customers_mst[0].loyalty_points || 0,
+      loyaltyPoints: (customer as { org_customers_mst: Array<{ loyalty_points?: number; created_at?: string }> }).org_customers_mst[0]?.loyalty_points ?? 0,
       totalOrders,
       totalSpent,
       lastOrderAt,
-      joinedAt: customer.org_customers_mst[0].created_at || new Date().toISOString(),
+      joinedAt: (customer as { org_customers_mst: Array<{ created_at?: string }> }).org_customers_mst[0]?.created_at ?? new Date().toISOString(),
     },
   };
 }
 
 /**
- * Find customer by phone number
+ * Find customer by phone number (org-only: org_customers_mst; sys: sys_customers_mst + org link).
  */
 export async function findCustomerByPhone(
   phone: string
 ): Promise<Customer | null> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
-
-  const phoneResult = normalizePhone(phone);
+  const defaultCountryCode = await getDefaultCountryCodeForCurrentTenant();
+  const phoneResult = normalizePhone(phone, defaultCountryCode);
   if (!phoneResult.isValid) {
     throw new Error('Invalid phone number format');
   }
-
+  if (!useSysCustomers()) {
+    const { data: orgRow, error } = await supabase
+      .from('org_customers_mst')
+      .select('*')
+      .eq('tenant_org_id', tenantId)
+      .eq('phone', phoneResult.normalized)
+      .maybeSingle();
+    if (error) {
+      logger.error('Error finding customer by phone', error as Error, { feature: 'customers' });
+      return null;
+    }
+    return orgRow ? mapFromOrgRow(orgRow as Record<string, unknown>, tenantId) : null;
+  }
   const { data: customer, error } = await supabase
     .from('sys_customers_mst')
-    .select(
-      `
-      *,
-      org_customers_mst!inner(tenant_org_id)
-    `
-    )
+    .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('phone', phoneResult.normalized)
     .eq('org_customers_mst.tenant_org_id', tenantId)
     .maybeSingle();
-
   if (error) {
-    console.error('Error finding customer by phone:', error);
+    logger.error('Error finding customer by phone', error as Error, { feature: 'customers' });
     return null;
   }
-
   return customer ? mapToCustomer(customer) : null;
 }
 
 /**
- * Get all customers for a specific tenant (by tenant_org_id)
+ * Get all customers for current tenant (org-only: org_customers_mst only; sys: unchanged).
  */
 export async function getAllCurrentTenantCustomers(
   tenantOrgId?: string | null
-): Promise<{ customers: Customer[]; total: number }> { 
+): Promise<{ customers: Customer[]; total: number }> {
   const supabase = await createClient();
   const tenantId = tenantOrgId ?? (await getTenantIdFromSession());
-  console.log('Jh In getAllTenantCustomers(): tenantId=', tenantId);
   const { data, error, count } = await supabase
-  .from('org_customers_mst')
-  .select('id, first_name, last_name, display_name, phone, email, type, loyalty_points, created_at', { count: 'exact' })
-  //.eq('tenant_org_id', tenantId)
-  .eq('is_active', true)
-  //.limit(100)
-  ;
-  console.log('Jh In getAllCurrentTenantCustomers(): data.length =', data?.length);
-  console.log('Jh In getAllCurrentTenantCustomers(): count=', count);
+    .from('org_customers_mst')
+    .select('id, first_name, last_name, display_name, name, name2, phone, email, type, loyalty_points, created_at, updated_at', { count: 'exact' })
+    .eq('tenant_org_id', tenantId)
+    .eq('is_active', true);
   if (error) {
-    console.error('Error fetching tenant customers:', error);
+    logger.error('Error fetching tenant customers', error as Error, { feature: 'customers' });
     throw new Error('Failed to fetch tenant customers');
   }
-
+  const useSys = useSysCustomers();
   return {
-    customers: (data || []).map((row) => mapToCustomer({...row, sys_customers_mst: row})),
+    customers: (data || []).map((row) =>
+      useSys ? mapToCustomer({ ...row, sys_customers_mst: row }) : mapFromOrgRow(row as Record<string, unknown>, tenantId)
+    ),
     total: count || 0,
   };
 }
 
 /**
- * Get all customers for a specific tenant (by tenant_org_id)
+ * Get all customers for a specific tenant (org-only: org_customers_mst; sys: sys + org link).
  */
 export async function getAllTenantCustomers(
   tenantOrgId?: string | null
-): Promise<Customer[]> { 
+): Promise<Customer[]> {
   const supabase = await createClient();
   const tenantId = tenantOrgId ?? (await getTenantIdFromSession());
-  console.log('Jh In getAllTenantCustomers(): tenantId=', tenantId);
+  if (!useSysCustomers()) {
+    const { data, error } = await supabase
+      .from('org_customers_mst')
+      .select('*')
+      .eq('tenant_org_id', tenantId);
+    if (error) {
+      logger.error('Error fetching tenant customers', error as Error, { feature: 'customers' });
+      throw new Error('Failed to fetch tenant customers');
+    }
+    return (data || []).map((row) => mapFromOrgRow(row as Record<string, unknown>, tenantId));
+  }
   const { data, error } = await supabase
     .from('sys_customers_mst')
-    .select(
-      `
-      *,
-      org_customers_mst!inner(tenant_org_id)
-    `
-    )
+    .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('org_customers_mst.tenant_org_id', tenantId);
-
   if (error) {
-    console.error('Error fetching tenant customers:', error);
+    logger.error('Error fetching tenant customers', error as Error, { feature: 'customers' });
     throw new Error('Failed to fetch tenant customers');
   }
-
   return (data || []).map((row) => mapToCustomer(row));
 }
 
@@ -441,41 +529,25 @@ export async function getAllTenantCustomers(
 export async function searchCustomers( 
   params: CustomerSearchParams
 ): Promise<{ customers: CustomerListItem[]; total: number }> {
-  console.log('Jh In searchCustomers() [1]: start');
-  
   const supabase = await createClient();
-  console.log('Jh In searchCustomers() [2]: Before get tenant id');
   const tenantId = await getTenantIdFromSession();
-  console.log('Jh In searchCustomers() [3]: After get tenant id=', tenantId);
-  console.log('Jh In searchCustomers() [4]: Starting search with params:', { 
-    search: params.search, 
-    tenantId,
-    page: params.page,
-    limit: params.limit 
-  });
-
   const page = params.page || 1;
-  console.log('Jh In searchCustomers() [5]: page', page);
   const limit = params.limit || 100;
-  console.log('Jh In searchCustomers() [6]: limit', limit);
   const offset = (page - 1) * limit;
 
-  // Build query on org_customers_mst (tenant-scoped table)
-  console.log('Jh In searchCustomers() [7]: Before build query');
   let query = supabase
     .from('org_customers_mst')
     .select('id, first_name, last_name, display_name, phone, email, type, loyalty_points, created_at', { count: 'exact' })
-    //.eq('tenant_org_id', tenantId)
-    .eq('is_active', true)
-    ;
-  console.log('Jh In searchCustomers() [8]: After build query');
+    .eq('tenant_org_id', tenantId);
 
-  
-  // Apply search filter at database level using ILIKE for case-insensitive search
-  // PostgREST uses * for wildcards, not %
+  if (params.status === 'inactive') {
+    query = query.eq('is_active', false);
+  } else {
+    query = query.eq('is_active', true);
+  }
+
   if (params.search && params.search.trim().length > 0) {
     const searchTerm = params.search.trim();
-    console.log('Jh In searchCustomers() [9]: searchTerm', searchTerm);
     /*
     query = query.or( 
       //`first_name.ilike.*${searchTerm}*,last_name.ilike.*${searchTerm}*,phone.ilike.*${searchTerm}*,email.ilike.*${searchTerm}*,display_name.ilike.*${searchTerm}*`
@@ -500,77 +572,28 @@ export async function searchCustomers(
       //`display_name.ilike.%${searchTerm}%`,
       `phone.ilike.%${searchTerm}%`
     ].join(',');
-
-    console.log('Jh In searchCustomers() [10.1]: orFilter', orFilter);
-    // .or() only takes one parameter - a comma-separated string of conditions
     query = query.or(orFilter);
-    
-    console.log('Jh In searchCustomers() [10]: After apply search filter');
   }
-  
-  /*
-  // Apply type filter if provided
+
   if (params.type) {
-    console.log('Jh In searchCustomers() [11]: type', params.type);
     query = query.eq('type', params.type);
-    console.log('Jh In searchCustomers() [12]: After apply type filter');
   }
-  */
-  /*
-  // Apply status filter
-  /*
-  if (params.status === 'active') {
-    console.log('Jh In searchCustomers() [13]: status active');
-    query = query.eq('is_active', true);
-    console.log('Jh In searchCustomers() [14]: After apply status filter active');
-  } else if (params.status === 'inactive') {
-    query = query.eq('is_active', false);
-    console.log('Jh In searchCustomers() [15]: After apply status filter inactive');
-  }
-  */
-  /*
-  // Apply sorting
-  /*
   const sortBy = params.sortBy || 'createdAt';
-  console.log('Jh In searchCustomers() [16]: sortBy', sortBy);
   const sortOrder = params.sortOrder || 'desc';
-  console.log('Jh In searchCustomers() [17]: sortOrder', sortOrder);
-  */
-  /*
   if (sortBy === 'name') {
-    console.log('Jh In searchCustomers() [18]: sortBy name');
     query = query.order('first_name', { ascending: sortOrder === 'asc' });
-    console.log('Jh In searchCustomers() [19]: After apply sort by name');
-  } else if (sortBy === 'createdAt') {
+  } else {
     query = query.order('created_at', { ascending: sortOrder === 'asc' });
-    console.log('Jh In searchCustomers() [20]: After apply sort by createdAt');
   }
-  */
-  console.log('Jh In searchCustomers() [21]: Before apply pagination');
-  // Apply pagination at database level
+
   query = query.range(offset, offset + limit - 1);
-  console.log('Jh In searchCustomers() [22]: After apply pagination');
-  
-  console.log('Jh In searchCustomers() [23]: Before execute query');
-  //console.log('Jh In searchCustomers() [23.2]: query', query.toSQL()); 
   const { data, error, count } = await query;
-  
-  console.log('Jh In searchCustomers() [24]: After execute query');
 
   if (error) {
-    console.error('Jh In searchCustomers() [23]: Database error', error);
-    console.error('[searchCustomers] Database error:', error);
+    logger.error('searchCustomers database error', error as Error, { feature: 'customers', action: 'search' });
     throw new Error(`Failed to search customers: ${error.message}`);
   }
 
-  console.log('Jh In searchCustomers() [25]: Query result:', { 
-    count: count || 0, 
-    dataLength: data?.length || 0,
-    searchTerm: params.search 
-  });
-
-  // Map to CustomerListItem format
-  console.log('Jh In searchCustomers() [26]: Before map to CustomerListItem count=', data?.length);
   const customers: CustomerListItem[] =
     data?.map((c) => ({
       id: c.id,
@@ -589,12 +612,7 @@ export async function searchCustomers(
       lastOrderAt: null, // Could be optimized with a separate query if needed
       createdAt: c.created_at || '',
     })) || [];
-  console.log('Jh In searchCustomers() [28]: After map to CustomerListItem');
-  //console.log('Jh In searchCustomers() [29]: customers', JSON.stringify(customers, null, 2));
-  
-  console.log('Jh In searchCustomers() [30]: Before return');
-  console.log('Jh In searchCustomers() [31]: total', count || 0);
-  
+
   return {
     customers,
     total: count || 0,
@@ -632,7 +650,7 @@ export async function searchCustomersProgressive(
   const { data: currentTenantData, error: currentTenantError, count: currentTenantCount } = await query;
   
   if (currentTenantError) {
-    console.error('Error searching current tenant customers:', currentTenantError);
+    logger.error('Error searching current tenant customers', currentTenantError as Error, { feature: 'customers', action: 'search' });
     throw new Error(`Failed to search customers: ${currentTenantError.message}`);
   }
   
@@ -663,7 +681,11 @@ export async function searchCustomersProgressive(
       total: currentTenantCount || customers.length,
     };
   }
-  
+
+  if (!useSysCustomers()) {
+    return { customers: [], total: 0 };
+  }
+
   // Step 2: If searchAllOptions is true, search sys_customers_mst (global)
   if (searchAllOptions && searchTerm.length > 0) {
     let sysQuery = supabase
@@ -803,24 +825,21 @@ export async function searchCustomersProgressive(
 }
 
 /**
- * Link customer to current tenant
- * Supports linking from sys_customers_mst (global) or org_customers_mst (other tenant)
+ * Link customer to current tenant (sys mode only).
+ * When CONNECT_WITH_SYS_CUSTOMERS is false, linking is not supported.
  */
 export async function linkCustomerToTenant(
   sourceCustomerId: string,
   sourceType: 'sys' | 'org_other_tenant',
   originalTenantId?: string
 ): Promise<{ orgCustomerId: string; customerId: string }> {
+  if (!useSysCustomers()) {
+    throw new Error('Linking customers to tenant is not supported when CONNECT_WITH_SYS_CUSTOMERS is false');
+  }
   const supabase = await createClient();
-  //const tenantId = await getTenantIdFromSession();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
   const curUserId = session.userId;
-  const curUserRole = session.userRole;
-  console.log('Jh In linkCustomerToTenant(): tenantId', tenantId);
-  console.log('Jh In linkCustomerToTenant(): curUserId', curUserId);
-  console.log('Jh In linkCustomerToTenant(): curUserRole', curUserRole);
-  
 
   if (sourceType === 'sys') {
     // Verify customer exists in sys_customers_mst
@@ -843,13 +862,11 @@ export async function linkCustomerToTenant(
       .maybeSingle();
 
     if (existingLink) {
-      console.log('Jh In linkCustomerToTenant(): Already linked to current tenant');
       return {
         orgCustomerId: existingLink.id,
         customerId: sourceCustomerId,
       };
     }
-    console.log('Jh In linkCustomerToTenant(): Not linked to current tenant');
     // Create org_customers_mst entry linking to sys customer
     const { data: newOrgCustomer, error: linkError } = await supabase
       .from('org_customers_mst')
@@ -874,7 +891,7 @@ export async function linkCustomerToTenant(
       .single();
 
     if (linkError || !newOrgCustomer) {
-      console.error('Error linking customer to tenant:', linkError);
+      logger.error('Error linking customer to tenant', linkError as Error, { feature: 'customers', action: 'link' });
       throw new Error('Failed to link customer to tenant');
     }
 
@@ -950,7 +967,7 @@ export async function linkCustomerToTenant(
         .single();
 
       if (sysCreateError || !newSysCustomer) {
-        console.error('Error creating sys customer:', sysCreateError);
+        logger.error('Error creating sys customer', sysCreateError as Error, { feature: 'customers', action: 'link' });
         throw new Error('Failed to create global customer record');
       }
 
@@ -987,7 +1004,7 @@ export async function linkCustomerToTenant(
       .single();
 
     if (orgCreateError || !newOrgCustomer) {
-      console.error('Error creating org customer:', orgCreateError);
+      logger.error('Error creating org customer', orgCreateError as Error, { feature: 'customers', action: 'link' });
       throw new Error('Failed to create tenant customer record');
     }
 
@@ -1003,86 +1020,103 @@ export async function linkCustomerToTenant(
 export async function searchCustomersAll(
   params: CustomerSearchParams
 ): Promise<{ customers: CustomerListItem[]; total: number }> {
-  console.log('Jh In searchCustomers(): params', JSON.stringify(params, null, 2));
-  console.log('Jh In searchCustomers(): Before get tenant id');
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
-  console.log('Jh In searchCustomers(): After get tenant id');
-  console.log('Jh In searchCustomers(): tenantId', tenantId);
-
-
   const page = params.page || 1;
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
 
-  // Build query
+  if (!useSysCustomers()) {
+    let query = supabase
+      .from('org_customers_mst')
+      .select('*', { count: 'exact' })
+      .eq('tenant_org_id', tenantId);
+    if (params.search) {
+      const searchTerm = `%${params.search}%`;
+      query = query.or(
+        `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},phone.ilike.${searchTerm},email.ilike.${searchTerm},display_name.ilike.${searchTerm},name.ilike.${searchTerm}`
+      );
+    }
+    if (params.type) query = query.eq('type', params.type);
+    if (params.status === 'active') query = query.eq('is_active', true);
+    else if (params.status === 'inactive') query = query.eq('is_active', false);
+    const sortBy = params.sortBy || 'createdAt';
+    const sortOrder = params.sortOrder || 'desc';
+    if (sortBy === 'name') query = query.order('first_name', { ascending: sortOrder === 'asc' });
+    else query = query.order('created_at', { ascending: sortOrder === 'asc' });
+    query = query.range(offset, offset + limit - 1);
+    const { data, error, count } = await query;
+    if (error) {
+      logger.error('Error searching customers', error as Error, { feature: 'customers', action: 'searchAll' });
+      throw new Error('Failed to search customers');
+    }
+    const customerIds = data?.map((c) => c.id) || [];
+    const { data: orderCounts } = await supabase
+      .from('org_orders_mst')
+      .select('customer_id')
+      .eq('tenant_org_id', tenantId)
+      .in('customer_id', customerIds);
+    const orderCountMap = new Map<string, number>();
+    orderCounts?.forEach((o) => {
+      orderCountMap.set(o.customer_id, (orderCountMap.get(o.customer_id) || 0) + 1);
+    });
+    const customers: CustomerListItem[] = (data || []).map((c) => ({
+      id: c.id,
+      customerNumber: c.id,
+      displayName: c.display_name ?? (`${c.first_name ?? ''} ${c.last_name ?? ''}`.trim() || 'Unknown'),
+      name: c.name ?? null,
+      name2: c.name2 ?? null,
+      firstName: c.first_name ?? '',
+      lastName: c.last_name ?? null,
+      phone: c.phone ?? null,
+      email: c.email ?? null,
+      type: (c.type as CustomerType) ?? 'walk_in',
+      profileStatus: 1,
+      loyaltyPoints: c.loyalty_points ?? 0,
+      totalOrders: orderCountMap.get(c.id) ?? 0,
+      lastOrderAt: null,
+      createdAt: (c.created_at as string) ?? '',
+    }));
+    return { customers, total: count ?? 0 };
+  }
+
   let query = supabase
     .from('sys_customers_mst')
     .select(
-      `
-      *,
-      org_customers_mst!inner(
-        tenant_org_id,
-        loyalty_points,
-        is_active
-      )
-    `,
+      `*,
+      org_customers_mst!inner(tenant_org_id, loyalty_points, is_active)`,
       { count: 'exact' }
     )
     .eq('org_customers_mst.tenant_org_id', tenantId);
-
-  console.log('Jh In searchCustomers(): After build query');
-  // Apply filters
   if (params.search) {
     const searchTerm = `%${params.search}%`;
     query = query.or(
       `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},phone.ilike.${searchTerm},email.ilike.${searchTerm},customer_number.ilike.${searchTerm}`
     );
   }
-  console.log('Jh In searchCustomers(): After apply search');
-  if (params.type) {
-    query = query.eq('type', params.type);
-  }
-
-  if (params.status === 'active') {
-    query = query.eq('org_customers_mst.is_active', true);
-  } else if (params.status === 'inactive') {
-    query = query.eq('org_customers_mst.is_active', false);
-  }
-
-  // Apply sorting
+  if (params.type) query = query.eq('type', params.type);
+  if (params.status === 'active') query = query.eq('org_customers_mst.is_active', true);
+  else if (params.status === 'inactive') query = query.eq('org_customers_mst.is_active', false);
   const sortBy = params.sortBy || 'createdAt';
   const sortOrder = params.sortOrder || 'desc';
-
-  if (sortBy === 'name') {
-    query = query.order('first_name', { ascending: sortOrder === 'asc' });
-  } else if (sortBy === 'createdAt') {
-    query = query.order('created_at', { ascending: sortOrder === 'asc' });
-  }
-
-  // Apply pagination
+  if (sortBy === 'name') query = query.order('first_name', { ascending: sortOrder === 'asc' });
+  else if (sortBy === 'createdAt') query = query.order('created_at', { ascending: sortOrder === 'asc' });
   query = query.range(offset, offset + limit - 1);
-
   const { data, error, count } = await query;
-
   if (error) {
-    console.error('Error searching customers:', error);
+    logger.error('Error searching customers', error as Error, { feature: 'customers', action: 'searchAll' });
     throw new Error('Failed to search customers');
   }
-
-  // Get order counts for each customer
   const customerIds = data?.map((c) => c.id) || [];
   const { data: orderCounts } = await supabase
     .from('org_orders_mst')
     .select('customer_id')
     .eq('tenant_org_id', tenantId)
     .in('customer_id', customerIds);
-
   const orderCountMap = new Map<string, number>();
   orderCounts?.forEach((o) => {
     orderCountMap.set(o.customer_id, (orderCountMap.get(o.customer_id) || 0) + 1);
   });
-
   const customers: CustomerListItem[] =
     data?.map((c) => ({
       id: c.id,
@@ -1110,24 +1144,45 @@ export async function searchCustomersAll(
 }
 
 /**
- * Update customer profile
- * Handles both sys_customers_mst.id and org_customers_mst.id
+ * Update customer profile (org-only: org_customers_mst only; sys: org + sys).
  */
 export async function updateCustomer(
   customerId: string,
   updates: CustomerUpdateRequest
 ): Promise<Customer> {
   const supabase = await createClient();
-  //const tenantId = await getTenantIdFromSession();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
   const curUserId = session.userId;
-  const curUserRole = session.userRole;
-  console.log('Jh In updateCustomerProfile(): tenantId', tenantId);
-  console.log('Jh In updateCustomerProfile(): curUserId', curUserId);
-  console.log('Jh In updateCustomerProfile(): curUserRole', curUserRole);
-  
-  // First, check if this is an org_customers_mst.id
+
+  if (!useSysCustomers()) {
+    const { data: orgRow, error } = await supabase
+      .from('org_customers_mst')
+      .update({
+        first_name: updates.firstName,
+        last_name: updates.lastName,
+        name: updates.name ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
+        name2: updates.name2 ?? null,
+        display_name: updates.displayName ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
+        email: updates.email ?? undefined,
+        address: updates.address ?? undefined,
+        area: updates.area ?? undefined,
+        building: updates.building ?? undefined,
+        floor: updates.floor ?? undefined,
+        updated_at: new Date().toISOString(),
+        updated_by: curUserId,
+      })
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .select()
+      .single();
+    if (error) {
+      logger.error('Error updating customer', error as Error, { feature: 'customers', action: 'update' });
+      throw new Error('Customer not found or access denied');
+    }
+    return mapFromOrgRow(orgRow as Record<string, unknown>, tenantId);
+  }
+
   const { data: orgCustomerCheck } = await supabase
     .from('org_customers_mst')
     .select('id, customer_id')
@@ -1137,52 +1192,44 @@ export async function updateCustomer(
 
   let sysCustomerId: string;
   let orgCustomerId: string;
-
   if (orgCustomerCheck) {
-    // This is an org_customers_mst.id
     orgCustomerId = orgCustomerCheck.id;
-    sysCustomerId = orgCustomerCheck.customer_id || customerId;
+    sysCustomerId = orgCustomerCheck.customer_id ?? customerId;
   } else {
-    // This might be a sys_customers_mst.id, verify it belongs to this tenant
     const { data: link } = await supabase
       .from('org_customers_mst')
       .select('id, customer_id')
       .eq('customer_id', customerId)
       .eq('tenant_org_id', tenantId)
       .maybeSingle();
-
     if (!link) {
-      throw new Error('Customer not found or access denied customerId: '+customerId);
+      throw new Error('Customer not found or access denied');
     }
-
     orgCustomerId = link.id;
     sysCustomerId = customerId;
   }
-  const { data: orgCustomer, error: orgError } = await supabase
+
+  const { error: orgError } = await supabase
     .from('org_customers_mst')
     .update({
       first_name: updates.firstName,
       last_name: updates.lastName,
-      name: updates.name||updates.firstName+' '+updates.lastName,
+      name: updates.name ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
       name2: updates.name2,
-      display_name: updates.displayName||updates.firstName+' '+updates.lastName,
+      display_name: updates.displayName ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
       email: updates.email,
       address: updates.address,
       area: updates.area,
       building: updates.building,
       floor: updates.floor,
-      //preferences: updates.preferences as unknown as unknown as Record<string, any>,
       updated_at: new Date().toISOString(),
       updated_by: curUserId,
     })
     .eq('id', orgCustomerId)
-    .eq('tenant_org_id', tenantId)
-    .select('id')
-    .single();
-
+    .eq('tenant_org_id', tenantId);
   if (orgError) {
-    console.error('Error updating customer:', orgError);
-    throw new Error('Failed to update customer : '+orgError.message);
+    logger.error('Error updating customer', orgError as Error, { feature: 'customers', action: 'update' });
+    throw new Error('Failed to update customer: ' + orgError.message);
   }
 
   const { data: customer, error } = await supabase
@@ -1190,63 +1237,70 @@ export async function updateCustomer(
     .update({
       first_name: updates.firstName,
       last_name: updates.lastName,
-      name: updates.name||updates.firstName+' '+updates.lastName,
+      name: updates.name ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
       name2: updates.name2,
-      display_name: updates.displayName||updates.firstName+' '+updates.lastName,
+      display_name: updates.displayName ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
       email: updates.email,
       address: updates.address,
       area: updates.area,
       building: updates.building,
       floor: updates.floor,
-      //preferences: updates.preferences as unknown as unknown as Record<string, any>,
       updated_at: new Date().toISOString(),
       updated_by: curUserId,
     })
     .eq('id', sysCustomerId)
     .select()
     .single();
-
   if (error) {
-    console.error('Error updating customer:', error);
-    throw new Error('Failed to update customer : '+error.message);
+    logger.error('Error updating customer', error as Error, { feature: 'customers', action: 'update' });
+    throw new Error('Failed to update customer: ' + error.message);
   }
-
   return mapToCustomer(customer);
 }
 
 /**
- * Upgrade stub customer to full profile
+ * Upgrade stub customer to full profile (org-only: update org_customers_mst; sys: update sys_customers_mst).
  */
 export async function upgradeCustomerProfile(
   customerId: string,
   email?: string,
-  preferences?: any
+  preferences?: CustomerPreferences
 ): Promise<Customer> {
   const supabase = await createClient();
-  //const tenantId = await getTenantIdFromSession();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
-  const curUserId = session.userId;
-  const curUserRole = session.userRole;
-  console.log('Jh In upgradeCustomerProfile(): tenantId', tenantId);
-  console.log('Jh In upgradeCustomerProfile(): curUserId', curUserId);
-  console.log('Jh In upgradeCustomerProfile(): curUserRole', curUserRole);
-  
 
-  // Verify customer belongs to this tenant and is stub
+  if (!useSysCustomers()) {
+    const { data: orgRow, error } = await supabase
+      .from('org_customers_mst')
+      .update({
+        type: 'full',
+        email: email ?? undefined,
+        preferences: (preferences ?? {}) as Record<string, unknown>,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', customerId)
+      .eq('tenant_org_id', tenantId)
+      .select()
+      .single();
+    if (error) {
+      logger.error('Error upgrading customer', error as Error, { feature: 'customers', action: 'upgrade' });
+      throw new Error('Customer not found or access denied');
+    }
+    return mapFromOrgRow(orgRow as Record<string, unknown>, tenantId);
+  }
+
   const { data: customer } = await supabase
     .from('sys_customers_mst')
     .select('*, org_customers_mst!inner(tenant_org_id)')
     .eq('id', customerId)
     .eq('org_customers_mst.tenant_org_id', tenantId)
     .maybeSingle();
-
-  if (!customer) { 
-    throw new Error('Customer not found or access denied customerId: '+customerId);
+  if (!customer) {
+    throw new Error('Customer not found or access denied');
   }
-
   if (customer.profile_status === 'full') {
-    throw new Error('Customer is already a full profile customerId: '+customerId);
+    throw new Error('Customer is already a full profile');
   }
 
   const { data: upgraded, error } = await supabase
@@ -1254,24 +1308,22 @@ export async function upgradeCustomerProfile(
     .update({
       profile_status: 'full',
       type: 'full',
-      email,
-      preferences: preferences || customer.preferences,
+      email: email ?? customer.email,
+      preferences: preferences ?? customer.preferences ?? {},
       updated_at: new Date().toISOString(),
     })
     .eq('id', customerId)
     .select()
     .single();
-
   if (error) {
-    console.error('Error upgrading customer:', error);
-    throw new Error('Failed to upgrade customer profile customerId: '+customerId);
+    logger.error('Error upgrading customer', error as Error, { feature: 'customers', action: 'upgrade' });
+    throw new Error('Failed to upgrade customer profile');
   }
-
   return mapToCustomer(upgraded);
 }
 
 /**
- * Merge duplicate customers (Admin only)
+ * Merge duplicate customers (Admin only). Org-only: source/target are org_customers_mst ids; sys: source/target are sys ids (customer_id in org).
  */
 export async function mergeCustomers(
   request: MergeCustomersRequest
@@ -1281,64 +1333,95 @@ export async function mergeCustomers(
   loyaltyPointsMerged: number;
 }> {
   const supabase = await createClient();
-  //const tenantId = await getTenantIdFromSession();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
-  const curUserId = session.userId;
-  const curUserRole = session.userRole;
-  console.log('Jh In mergeCustomers(): tenantId', tenantId);
-  console.log('Jh In mergeCustomers(): curUserId', curUserId);
-  console.log('Jh In mergeCustomers(): curUserRole', curUserRole);
-  
-  const { sourceCustomerId, targetCustomerId, reason } = request;
+  const { sourceCustomerId, targetCustomerId } = request;
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
   if (!user) {
-    throw new Error('Unauthorized customerId: '+sourceCustomerId);
+    throw new Error('Unauthorized');
   }
 
-  // Verify both customers belong to this tenant
+  if (!useSysCustomers()) {
+    const { data: sourceRow } = await supabase
+      .from('org_customers_mst')
+      .select('id, loyalty_points')
+      .eq('id', sourceCustomerId)
+      .eq('tenant_org_id', tenantId)
+      .maybeSingle();
+    const { data: targetRow } = await supabase
+      .from('org_customers_mst')
+      .select('id, loyalty_points')
+      .eq('id', targetCustomerId)
+      .eq('tenant_org_id', tenantId)
+      .maybeSingle();
+    if (!sourceRow || !targetRow) {
+      throw new Error('One or both customers not found');
+    }
+    const { error: ordersError } = await supabase
+      .from('org_orders_mst')
+      .update({ customer_id: targetCustomerId })
+      .eq('customer_id', sourceCustomerId)
+      .eq('tenant_org_id', tenantId);
+    if (ordersError) {
+      logger.error('Error moving orders', ordersError as Error, { feature: 'customers', action: 'merge' });
+      throw new Error('Failed to move orders');
+    }
+    const loyaltyPointsMerged = Number(sourceRow.loyalty_points) || 0;
+    await supabase
+      .from('org_customers_mst')
+      .update({
+        loyalty_points: (Number(targetRow.loyalty_points) || 0) + loyaltyPointsMerged,
+      })
+      .eq('id', targetCustomerId)
+      .eq('tenant_org_id', tenantId);
+    await supabase
+      .from('org_customers_mst')
+      .update({ is_active: false, rec_status: 0 })
+      .eq('id', sourceCustomerId)
+      .eq('tenant_org_id', tenantId);
+    const targetCustomer = await findCustomerById(targetCustomerId);
+    if (!targetCustomer) throw new Error('Target customer not found after merge');
+    const { count } = await supabase
+      .from('org_orders_mst')
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_id', targetCustomerId)
+      .eq('tenant_org_id', tenantId);
+    return {
+      targetCustomer,
+      ordersMoved: count ?? 0,
+      loyaltyPointsMerged,
+    };
+  }
+
   const { data: sourceLink } = await supabase
     .from('org_customers_mst')
     .select('loyalty_points')
     .eq('customer_id', sourceCustomerId)
     .eq('tenant_org_id', tenantId)
     .single();
-
   const { data: targetLink } = await supabase
     .from('org_customers_mst')
     .select('loyalty_points')
     .eq('customer_id', targetCustomerId)
     .eq('tenant_org_id', tenantId)
     .single();
-
   if (!sourceLink || !targetLink) {
-    throw new Error('One or both customers not found customerId: '+sourceCustomerId);
+    throw new Error('One or both customers not found');
   }
 
-  // Move all orders from source to target
   const { error: ordersError } = await supabase
     .from('org_orders_mst')
     .update({ customer_id: targetCustomerId })
     .eq('customer_id', sourceCustomerId)
     .eq('tenant_org_id', tenantId);
-
   if (ordersError) {
-    console.error('Error moving orders:', ordersError);
-    throw new Error('Failed to move orders customerId: '+sourceCustomerId);
+    logger.error('Error moving orders', ordersError as Error, { feature: 'customers', action: 'merge' });
+    throw new Error('Failed to move orders');
   }
 
-  // Count moved orders
-  const { count: ordersMoved } = await supabase
-    .from('org_orders_mst')
-    .select('id', { count: 'exact', head: true })
-    .eq('customer_id', targetCustomerId)
-    .eq('tenant_org_id', tenantId);
-
-  // Merge loyalty points
   const loyaltyPointsMerged = sourceLink.loyalty_points || 0;
   const { error: pointsError } = await supabase
     .from('org_customers_mst')
@@ -1347,99 +1430,120 @@ export async function mergeCustomers(
     })
     .eq('customer_id', targetCustomerId)
     .eq('tenant_org_id', tenantId);
-
   if (pointsError) {
-    console.error('Error merging loyalty points:', pointsError);
+    logger.error('Error merging loyalty points', pointsError as Error, { feature: 'customers', action: 'merge' });
   }
 
-  // Deactivate source customer
   await supabase
     .from('org_customers_mst')
-    .update({ is_active: false })
+    .update({ is_active: false, rec_status: 0 })
     .eq('customer_id', sourceCustomerId)
     .eq('tenant_org_id', tenantId);
 
-  // Log the merge
-  await supabase.from('org_customer_merge_log').insert({
-    tenant_org_id: tenantId,
-    source_customer_id: sourceCustomerId,
-    target_customer_id: targetCustomerId,
-    merged_by: user.id,
-    merge_reason: reason,
-    orders_moved: ordersMoved || 0,
-    loyalty_points_merged: loyaltyPointsMerged,
-  });
+  const { count: ordersMoved } = await supabase
+    .from('org_orders_mst')
+    .select('id', { count: 'exact', head: true })
+    .eq('customer_id', targetCustomerId)
+    .eq('tenant_org_id', tenantId);
 
-  // Get updated target customer
+  try {
+    await supabase.from('org_customer_merge_log').insert({
+      tenant_org_id: tenantId,
+      source_customer_id: sourceCustomerId,
+      target_customer_id: targetCustomerId,
+      merged_by: user.id,
+      merge_reason: request.reason ?? null,
+      orders_moved: ordersMoved ?? 0,
+      loyalty_points_merged: loyaltyPointsMerged,
+    });
+  } catch {
+    // Log table may not exist
+  }
+
   const targetCustomer = await findCustomerById(targetCustomerId);
-
+  if (!targetCustomer) throw new Error('Target customer not found after merge');
   return {
-    targetCustomer: targetCustomer!,
-    ordersMoved: ordersMoved || 0,
+    targetCustomer,
+    ordersMoved: ordersMoved ?? 0,
     loyaltyPointsMerged,
   };
 }
 
 /**
- * Deactivate customer (soft delete)
+ * Deactivate customer (soft delete).
+ * Accepts either org_customers_mst.id or sys_customers_mst.id (customer_id); resolves tenant row then sets is_active=false, rec_status=0.
  */
 export async function deactivateCustomer(customerId: string): Promise<void> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
+  const { data: orgRow, error: findError } = await supabase
+    .from('org_customers_mst')
+    .select('id')
+    .eq('tenant_org_id', tenantId)
+    .or(`id.eq.${customerId},customer_id.eq.${customerId}`)
+    .maybeSingle();
+
+  if (findError || !orgRow) {
+    throw new Error('Customer not found or access denied');
+  }
+
   const { error } = await supabase
     .from('org_customers_mst')
-    .update({ is_active: false })
-    .eq('customer_id', customerId)
+    .update({ is_active: false, rec_status: 0 })
+    .eq('id', orgRow.id)
     .eq('tenant_org_id', tenantId);
 
   if (error) {
-    console.error('Error deactivating customer:', error);
-    throw new Error('Failed to deactivate customer customerId: '+customerId);
+    throw new Error(`Failed to deactivate customer: ${error.message}`);
   }
 }
 
 /**
- * Get customer statistics
+ * Get customer statistics (org-only: from org_customers_mst; sys: from sys + org link).
  */
 export async function getCustomerStatistics(): Promise<CustomerStatistics> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
+  if (!useSysCustomers()) {
+    const { data: customers } = await supabase
+      .from('org_customers_mst')
+      .select('id, type, created_at, is_active')
+      .eq('tenant_org_id', tenantId);
+    const total = customers?.length ?? 0;
+    const byType = {
+      guest: customers?.filter((c) => c.type === 'guest').length ?? 0,
+      stub: customers?.filter((c) => c.type === 'stub').length ?? 0,
+      full: customers?.filter((c) => c.type === 'full').length ?? 0,
+    };
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const newThisMonth =
+      customers?.filter((c) => c.created_at && new Date(c.created_at) >= firstDayOfMonth).length ?? 0;
+    const active = customers?.filter((c) => c.is_active).length ?? 0;
+    const inactive = total - active;
+    return { total, byType, newThisMonth, active, inactive };
+  }
+
   const { data: customers } = await supabase
     .from('sys_customers_mst')
-    .select(
-      `
-      id,
-      type,
-      created_at,
-      org_customers_mst!inner(tenant_org_id, is_active)
-    `
-    )
+    .select('id, type, created_at, org_customers_mst!inner(tenant_org_id, is_active)')
     .eq('org_customers_mst.tenant_org_id', tenantId);
 
-  const total = customers?.length || 0;
+  const total = customers?.length ?? 0;
   const byType = {
-    guest: customers?.filter((c) => c.type === 'guest').length || 0,
-    stub: customers?.filter((c) => c.type === 'stub').length || 0,
-    full: customers?.filter((c) => c.type === 'full').length || 0,
+    guest: customers?.filter((c) => c.type === 'guest').length ?? 0,
+    stub: customers?.filter((c) => c.type === 'stub').length ?? 0,
+    full: customers?.filter((c) => c.type === 'full').length ?? 0,
   };
-
   const now = new Date();
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const newThisMonth =
-    customers?.filter((c) => c.created_at && new Date(c.created_at) >= firstDayOfMonth).length || 0;
-
-  const active = customers?.filter((c) => c.org_customers_mst[0]?.is_active).length || 0;
+    customers?.filter((c) => c.created_at && new Date(c.created_at) >= firstDayOfMonth).length ?? 0;
+  const active = customers?.filter((c) => (c as { org_customers_mst?: Array<{ is_active?: boolean }> }).org_customers_mst?.[0]?.is_active).length ?? 0;
   const inactive = total - active;
-
-  return {
-    total,
-    byType,
-    newThisMonth,
-    active,
-    inactive,
-  };
+  return { total, byType, newThisMonth, active, inactive };
 }
 
 // ==================================================================
@@ -1455,7 +1559,7 @@ function mapToCustomer(row: any): Customer {
     customerNumber: row.customer_number,
     firstName: row.first_name || '',
     lastName: row.last_name,
-    displayName: row.disply_name,
+    displayName: row.display_name,
     name: row.name,
     name2: row.name2,
     phone: row.phone,

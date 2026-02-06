@@ -6,6 +6,20 @@
 
 BEGIN;
 
+INSERT INTO public.sys_components_cd (comp_code, parent_comp_code, label, label2, description, description2, comp_level, comp_path, feature_code, main_permission_code, role_code, screen_code, badge, display_order, is_leaf, is_navigable, is_active, is_system, is_for_tenant_use, roles, permissions, require_all_permissions, feature_flag, metadata, comp_value1, comp_value2, comp_value3, comp_value4, comp_value5, color1, color2, color3, comp_icon, comp_image, rec_order, rec_notes, rec_status, created_at, created_by, created_info, updated_at, updated_by, updated_info) 
+VALUES ('orders_packing', 'orders', 'Orders Packing', 'تعبئة الطلبات', NULL, NULL, 1, '/dashboard/packing', NULL, 'orders:read', NULL, NULL, NULL, 10, false, true, true, true, true, '["''super_admin''", "''tenant_admin''", "''admin''", "''operator''"]', '[]', false, '[]', '{}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Boxes', NULL, NULL, NULL, 1, '2026-01-15 21:30:00.658385', 'SYSTEM_USER', NULL, '2026-01-15 21:30:53.244', 'SYSTEM_USER', NULL) ;
+
+INSERT INTO public.sys_components_cd (comp_code, parent_comp_code, label, label2, description, description2, comp_level, comp_path, feature_code, main_permission_code, role_code, screen_code, badge, display_order, is_leaf, is_navigable, is_active, is_system, is_for_tenant_use, roles, permissions, require_all_permissions, feature_flag, metadata, comp_value1, comp_value2, comp_value3, comp_value4, comp_value5, color1, color2, color3, comp_icon, comp_image, rec_order, rec_notes, rec_status, created_at, created_by, created_info, updated_at, updated_by, updated_info) 
+VALUES ('orders_delivery', 'orders', 'Orders Delivery', 'تسليم الطلبات', NULL, NULL, 1, '/dashboard/delivery', NULL, 'orders:read', NULL, NULL, NULL, 11, false, true, true, true, true, '[]', '[]', false, '[]', '{}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Truck', NULL, NULL, NULL, 1, '2026-01-15 21:32:12.263608', 'SYSTEM_USER', NULL, NULL, NULL, NULL) ;
+
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.parent_comp_code = p.comp_code
+  AND c.parent_comp_code = 'orders'
+  AND p.comp_code = 'orders';
+
+
 -- =====================================================
 -- 1. Finance Settings Page
 -- =====================================================
@@ -46,7 +60,7 @@ INSERT INTO sys_components_cd (
   true,
   true,
   true,
-  '["admin"]'::jsonb,
+  '["admin", "super_admin", "tenant_admin"]'::jsonb,
   'settings:read',
   1
 ) ON CONFLICT (comp_code) DO UPDATE SET
@@ -330,6 +344,175 @@ UPDATE sys_components_cd
 SET is_leaf = false,
     updated_at = CURRENT_TIMESTAMP
 WHERE comp_code = 'billing_payments';
+
+-- =====================================================
+-- 7. Reports & Analytics (parent + children)
+-- =====================================================
+-- Make reports a node (is_leaf = false) and add child screens.
+-- Parent already exists in 0059_navigation_seed; update and add children.
+-- Feature: advanced_analytics; roles: admin
+UPDATE sys_components_cd
+SET
+  label2 = 'التقارير والتحليلات',
+  description = 'Reports and analytics for orders, payments, invoices, revenue, and customers',
+  description2 = 'التقارير والتحليلات للطلبات والمدفوعات والفواتير والإيرادات والعملاء',
+  is_leaf = false,
+  updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'reports';
+
+-- Reports children: Orders & Sales, Payments, Invoices, Revenue, Customers
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  feature_flag,
+  rec_status
+) VALUES
+  (
+    'reports_orders',
+    'reports',
+    'Orders & Sales',
+    'الطلبات والمبيعات',
+    'Orders and sales reports',
+    'تقارير الطلبات والمبيعات',
+    '/dashboard/reports/orders',
+    'BarChart3',
+    1,
+    0,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '["super_admin", "tenant_admin", "operator", "viewer"]'::jsonb,
+    'settings:read',
+    '["advanced_analytics"]'::jsonb,
+    1
+  ),
+  (
+    'reports_payments',
+    'reports',
+    'Payments',
+    'المدفوعات',
+    'Payments reports',
+    'تقارير المدفوعات',
+    '/dashboard/reports/payments',
+    'BarChart3',
+    1,
+    1,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '["super_admin", "tenant_admin", "operator", "viewer"]'::jsonb,
+    'settings:read',
+    '["advanced_analytics"]'::jsonb,
+    1
+  ),
+  (
+    'reports_invoices',
+    'reports',
+    'Invoices',
+    'الفواتير',
+    'Invoices reports',
+    'تقارير الفواتير',
+    '/dashboard/reports/invoices',
+    'BarChart3',
+    1,
+    2,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '["super_admin", "tenant_admin", "operator", "viewer"]'::jsonb,
+    'settings:read',
+    '["advanced_analytics"]'::jsonb,
+    1
+  ),
+  (
+    'reports_revenue',
+    'reports',
+    'Revenue',
+    'الإيرادات',
+    'Revenue reports',
+    'تقارير الإيرادات',
+    '/dashboard/reports/revenue',
+    'BarChart3',
+    1,
+    3,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '["super_admin", "tenant_admin", "operator", "viewer"]'::jsonb,
+    'settings:read',
+    '["advanced_analytics"]'::jsonb,
+    1
+  ),
+  (
+    'reports_customers',
+    'reports',
+    'Customers',
+    'العملاء',
+    'Customers reports',
+    'تقارير العملاء',
+    '/dashboard/reports/customers',
+    'BarChart3',
+    1,
+    4,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '["super_admin", "tenant_admin", "operator", "viewer"]'::jsonb,
+    'settings:read',
+    '["advanced_analytics"]'::jsonb,
+    1
+  )
+ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  main_permission_code = EXCLUDED.main_permission_code,
+  feature_flag = EXCLUDED.feature_flag,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Set parent_comp_id for all reports children
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.parent_comp_code = 'reports'
+  AND p.comp_code = 'reports'
+  AND c.parent_comp_id IS DISTINCT FROM p.comp_id;
+
+-- Ensure parent Reports node is not leaf (has children)
+UPDATE sys_components_cd
+SET is_leaf = false,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'reports';
 
 -- =====================================================
 -- Verification Queries

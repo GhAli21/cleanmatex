@@ -16,7 +16,7 @@ Implement a configurable workflow state machine for orders with validation, qual
 
 ## Backend (NestJS API)
 
-- Module: `backend/src/modules/orders/workflow/`
+- Module: `cmx-api/src/modules/orders/workflow/`
 - Core service: `WorkflowEngineService`
 - Load effective config (tenant → category → defaults)
 - Validate transition via transition matrix + config overrides

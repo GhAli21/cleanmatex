@@ -405,7 +405,7 @@ export const config = {
 **NestJS Guard**:
 
 ```typescript
-// backend/src/common/guards/tenant.guard.ts
+// cmx-api/src/common/guards/tenant.guard.ts
 import {
   Injectable,
   CanActivate,

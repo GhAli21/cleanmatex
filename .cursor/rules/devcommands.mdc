@@ -494,7 +494,7 @@ supabase stop
 
 echo "Cleaning node_modules..."
 rm -rf web-admin/node_modules
-rm -rf backend/node_modules
+rm -rf cmx-api/node_modules
 
 echo "Reinstalling dependencies..."
 cd web-admin && npm install

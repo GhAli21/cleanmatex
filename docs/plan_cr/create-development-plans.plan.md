@@ -61,7 +61,7 @@ Create 6 documents for Next.js web admin interface in `web-admin/`.
 
 ### Phase 3: Backend API NestJS (021-026)
 
-Create 6 documents for NestJS backend in `backend/`.
+Create 6 documents for NestJS client API in `cmx-api/`.
 
 **021_backend_architecture_setup_dev_prd.md**: NestJS DDD structure, Prisma ORM, connection to Supabase PostgreSQL
 **022_backend_auth_middleware_dev_prd.md**: JWT validation, tenant context, RBAC guards, RLS enforcement

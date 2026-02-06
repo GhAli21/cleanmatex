@@ -102,7 +102,7 @@ This is a draft suggestion for complete CleanMateX project structure
 # 3. COMPLETE PROJECT STRUCTURE
 CLEANMATEX/
 ├── apps/                                 # All applications
-│   ├── api/                             # Main Backend API (NestJS)
+│   ├── api/                             # Main client API (NestJS); repo root: cmx-api/
 │   ├── platform-api/                    # Platform Admin API
 │   ├── web/                             # Tenant Admin Dashboard (Next.js)
 │   ├── platform-web/                    # Platform Admin Dashboard

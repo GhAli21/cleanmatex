@@ -200,7 +200,7 @@ const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 ### NestJS Configuration
 ```typescript
-// backend/src/config/configuration.ts
+// cmx-api/src/config/configuration.ts
 export default () => ({
   supabase: {
     url: process.env.SUPABASE_URL,

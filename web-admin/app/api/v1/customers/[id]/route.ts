@@ -4,44 +4,17 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import {
   findCustomerById,
   updateCustomer,
   deactivateCustomer,
 } from '@/lib/services/customers.service';
 import { getCustomerAddresses } from '@/lib/services/customer-addresses.service';
+import { requirePermission } from '@/lib/middleware/require-permission';
+import { validateCSRF } from '@/lib/middleware/csrf';
+import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
+import { logger } from '@/lib/utils/logger';
 import type { CustomerUpdateRequest } from '@/lib/types/customer';
-
-// ==================================================================
-// HELPER FUNCTIONS
-// ==================================================================
-
-/**
- * Get authenticated user and tenant context
- */
-async function getAuthContext() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error('Unauthorized');
-  }
-
-  const tenantId = user.user_metadata?.tenant_org_id;
-  if (!tenantId) {
-    throw new Error('No tenant context');
-  }
-
-  return {
-    user,
-    tenantId,
-    userId: user.id,
-    userRole: user.user_metadata?.role || 'user',
-  };
-}
 
 // ==================================================================
 // GET /api/v1/customers/:id - Get Customer Details
@@ -64,58 +37,51 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Verify authentication
-    await getAuthContext();
+    const authCheck = await requirePermission('customers:read')(request);
+    if (authCheck instanceof NextResponse) return authCheck;
+    const { tenantId } = authCheck;
 
-    // 2. Get customer ID from route params
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id: customerId } = await params;
-
     if (!customerId) {
       return NextResponse.json(
-        { error: 'Customer ID is required' },
+        { success: false, error: 'Customer ID is required' },
         { status: 400 }
       );
     }
 
-    // 3. Find customer by ID (with tenant data)
     const customer = await findCustomerById(customerId);
-
     if (!customer) {
       return NextResponse.json(
-        { error: 'Customer not found' },
+        { success: false, error: 'Customer not found' },
         { status: 404 }
       );
     }
 
-    // 4. Get customer addresses using the sys_customers_mst.id (customer.id)
-    // Note: customer.id is the sys_customers_mst.id, which is what getCustomerAddresses expects
     const addresses = await getCustomerAddresses(customer.id);
-
-    // 5. Return success response
     return NextResponse.json({
       success: true,
-      data: {
-        ...customer,
-        addresses,
-      },
+      data: { ...customer, addresses },
     });
   } catch (error) {
-    console.error('Error fetching customer:', error);
-
+    logger.error(
+      'Error fetching customer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'getById' }
+    );
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
-        return NextResponse.json({ error: error.message }, { status: 401 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 401 });
       }
-
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 404 });
       }
-
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-
     return NextResponse.json(
-      { error: 'Failed to fetch customer' },
+      { success: false, error: 'Failed to fetch customer' },
       { status: 500 }
     );
   }
@@ -148,75 +114,72 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Verify authentication
-    await getAuthContext();
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) return csrfResponse;
 
-    // 2. Get customer ID from route params
+    const authCheck = await requirePermission('customers:update')(request);
+    if (authCheck instanceof NextResponse) return authCheck;
+    const { tenantId } = authCheck;
+
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id: customerId } = await params;
-
     if (!customerId) {
       return NextResponse.json(
-        { error: 'Customer ID is required' },
+        { success: false, error: 'Customer ID is required' },
         { status: 400 }
       );
     }
 
-    // 3. Parse request body
     const updates: CustomerUpdateRequest = await request.json();
-
-    // 4. Validate at least one field is being updated
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(
-        { error: 'No fields to update' },
+        { success: false, error: 'No fields to update' },
         { status: 400 }
       );
     }
 
-    // 5. Validate email format if provided
-    if (updates.email) {
+    if (updates.email !== undefined) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(updates.email)) {
         return NextResponse.json(
-          { error: 'Invalid email format' },
+          { success: false, error: 'Invalid email format' },
           { status: 400 }
         );
       }
     }
 
-    // 6. Validate name fields if provided
     if (updates.firstName !== undefined && updates.firstName.trim().length === 0) {
       return NextResponse.json(
-        { error: 'firstName cannot be empty' },
+        { success: false, error: 'firstName cannot be empty' },
         { status: 400 }
       );
     }
 
-    // 7. Update customer
     const customer = await updateCustomer(customerId, updates);
-
-    // 8. Return success response
     return NextResponse.json({
       success: true,
       data: customer,
       message: 'Customer profile updated successfully',
     });
   } catch (error) {
-    console.error('Error updating customer:', error);
-
+    logger.error(
+      'Error updating customer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'update' }
+    );
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
-        return NextResponse.json({ error: error.message }, { status: 401 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 401 });
       }
-
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 404 });
       }
-
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-
     return NextResponse.json(
-      { error: 'Failed to update customer' },
+      { success: false, error: 'Failed to update customer' },
       { status: 500 }
     );
   }
@@ -236,72 +199,54 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Verify authentication
-    const { userRole } = await getAuthContext();
+    const csrfResponse = await validateCSRF(request);
+    if (csrfResponse) return csrfResponse;
 
-    // 2. Check permission (only admin can deactivate customers)
-    if (userRole !== 'admin' && userRole !== 'owner') {
-      return NextResponse.json(
-        { error: 'Insufficient permissions. Only admins can deactivate customers.' },
-        { status: 403 }
-      );
-    }
+    const authCheck = await requirePermission('customers:delete')(request);
+    if (authCheck instanceof NextResponse) return authCheck;
+    const { tenantId } = authCheck;
 
-    // 3. Get customer ID from route params
+    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    if (rateLimitResponse) return rateLimitResponse;
+
     const { id: customerId } = await params;
-
     if (!customerId) {
       return NextResponse.json(
-        { error: 'Customer ID is required' },
+        { success: false, error: 'Customer ID is required' },
         { status: 400 }
       );
     }
 
-    // 4. Verify customer exists before deactivating
     const customer = await findCustomerById(customerId);
-
     if (!customer) {
       return NextResponse.json(
-        { error: 'Customer not found' },
+        { success: false, error: 'Customer not found' },
         { status: 404 }
       );
     }
 
-    // 5. Check if customer has pending orders (optional business rule)
-    // TODO: Add check for pending orders if required
-    // const hasPendingOrders = await checkPendingOrders(customerId);
-    // if (hasPendingOrders) {
-    //   return NextResponse.json(
-    //     { error: 'Cannot deactivate customer with pending orders' },
-    //     { status: 409 }
-    //   );
-    // }
-
-    // 6. Deactivate customer
     await deactivateCustomer(customerId);
-
-    // 7. Return success response
     return NextResponse.json({
       success: true,
       message: 'Customer deactivated successfully',
     });
   } catch (error) {
-    console.error('Error deactivating customer:', error);
-
+    logger.error(
+      'Error deactivating customer',
+      error instanceof Error ? error : new Error('Unknown error'),
+      { feature: 'customers', action: 'delete' }
+    );
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
-        return NextResponse.json({ error: error.message }, { status: 401 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 401 });
       }
-
       if (error.message.includes('not found') || error.message.includes('access denied')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
+        return NextResponse.json({ success: false, error: error.message }, { status: 404 });
       }
-
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-
     return NextResponse.json(
-      { error: 'Failed to deactivate customer' },
+      { success: false, error: 'Failed to deactivate customer' },
       { status: 500 }
     );
   }

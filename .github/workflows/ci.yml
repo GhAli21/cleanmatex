@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  changes:
+    name: Paths filter
+    runs-on: ubuntu-latest
+    outputs:
+      cmx-api: ${{ steps.filter.outputs.cmx-api }}
+      web-admin: ${{ steps.filter.outputs.web-admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            cmx-api:
+              - 'cmx-api/**'
+            web-admin:
+              - 'web-admin/**'
+
+  cmx-api:
+    name: cmx-api
+    needs: changes
+    if: needs.changes.outputs.cmx-api == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Lint cmx-api
+        run: npm run lint --workspace=cmx-api
+      - name: Build cmx-api
+        run: npm run build --workspace=cmx-api
+      - name: Test cmx-api
+        run: npm run test --workspace=cmx-api
+      - name: OpenAPI contract
+        run: npm run test:openapi --workspace=cmx-api
+
+  web-admin:
+    name: web-admin
+    needs: changes
+    if: needs.changes.outputs.web-admin == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - name: Install
+        run: npm ci
+      - name: Lint web-admin
+        run: npm run lint --workspace=web-admin
+      - name: Build web-admin
+        run: npm run build --workspace=web-admin

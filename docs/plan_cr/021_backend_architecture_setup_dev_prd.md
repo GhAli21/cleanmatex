@@ -20,18 +20,11 @@ Set up NestJS backend with Domain-Driven Design structure, Prisma ORM, environme
 ## Project Structure
 
 ```
-backend/src/
-├── domains/           # Business domains
-│   ├── orders/
-│   ├── customers/
-│   ├── invoices/
-│   └── ...
-├── common/            # Shared code
-│   ├── guards/
-│   ├── interceptors/
-│   ├── pipes/
-│   └── utils/
+cmx-api/src/
+├── modules/           # Business domains (e.g. orders, customers, invoices)
+├── common/            # Shared code (guards, interceptors, pipes, utils)
 ├── config/            # Configuration
+├── supabase/          # Typed Supabase client
 └── main.ts
 ```
 
