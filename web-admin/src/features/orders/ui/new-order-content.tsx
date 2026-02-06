@@ -281,7 +281,7 @@ export function NewOrderContent() {
 
     return (
         <div
-            className="flex-1 overflow-hidden flex"
+            className="flex-1 min-h-0 overflow-hidden flex flex-col"
             role="main"
             aria-label={t('title') || 'New Order'}
         >
@@ -299,9 +299,9 @@ export function NewOrderContent() {
                 )}
             </div>
 
-            <div className={`h-full flex ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`h-full min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Left/Center Panel - Primary Content Area */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 min-h-0 overflow-y-auto">
                     <div className="p-6 space-y-4">
                         {/* Main Step Tabs: Select Items / Order Details */}
                         <div

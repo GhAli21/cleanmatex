@@ -72,6 +72,21 @@ INSERT INTO sys_components_cd (
    '["admin", "operator"]'::jsonb, 'orders:read', 1)
 ON CONFLICT (comp_code) DO NOTHING;
 
+--'283a0258-6121-40f8-9c02-d6be47237987', '4bdaf2f1-3983-4492-a295-6475e9dd3134',
+INSERT INTO public.sys_components_cd ( comp_code, parent_comp_code
+, label, label2, description, description2, comp_level, comp_path, feature_code
+, main_permission_code, role_code, screen_code, badge, display_order, is_leaf
+, is_navigable, is_active, is_system, is_for_tenant_use, roles, permissions
+, require_all_permissions, feature_flag, metadata, comp_value1, comp_value2
+, comp_value3, comp_value4, comp_value5, color1, color2, color3, comp_icon
+, comp_image, rec_order, rec_notes, rec_status, created_at, created_by
+, created_info, updated_at, updated_by, updated_info) 
+VALUES ( 'orders_packing', 'orders', 'Orders Packing', 'تعبئة الطلبات', NULL, NULL, 1, '/dashboard/packing', NULL, 'orders:read', NULL, NULL, NULL, 10, false, true, true, true, true, '["''super_admin''", "''tenant_admin''", "''admin''", "''operator''"]', '[]', false, '[]', '{}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Boxes', NULL, NULL, NULL, 1, '2026-01-15 21:30:00.658385', 'SYSTEM_USER', NULL, '2026-01-15 21:30:53.244', 'SYSTEM_USER', NULL) ;
+
+--'e451ee1c-4411-4f6b-8f10-7b0c33435fd3', '4bdaf2f1-3983-4492-a295-6475e9dd3134', 
+INSERT INTO public.sys_components_cd (comp_code, parent_comp_code, label, label2, description, description2, comp_level, comp_path, feature_code, main_permission_code, role_code, screen_code, badge, display_order, is_leaf, is_navigable, is_active, is_system, is_for_tenant_use, roles, permissions, require_all_permissions, feature_flag, metadata, comp_value1, comp_value2, comp_value3, comp_value4, comp_value5, color1, color2, color3, comp_icon, comp_image, rec_order, rec_notes, rec_status, created_at, created_by, created_info, updated_at, updated_by, updated_info) 
+VALUES ('orders_delivery', 'orders', 'Orders Delivery', 'تسليم الطلبات', NULL, NULL, 1, '/dashboard/delivery', NULL, 'orders:read', NULL, NULL, NULL, 11, false, true, true, true, true, '[]', '[]', false, '[]', '{}', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Truck', NULL, NULL, NULL, 1, '2026-01-15 21:32:12.263608', 'SYSTEM_USER', NULL, NULL, NULL, NULL) ;
+
 -- Update parent_comp_id for orders children
 UPDATE sys_components_cd c
 SET parent_comp_id = p.comp_id

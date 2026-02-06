@@ -23,7 +23,7 @@ export function NewOrderLayout({ children }: NewOrderLayoutProps) {
 
     return (
         <div className="flex flex-col h-screen bg-gray-50">
-            <div className={`flex-1 overflow-hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className={`flex-1 min-h-0 overflow-hidden flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {children}
             </div>
         </div>
