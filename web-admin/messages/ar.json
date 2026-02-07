@@ -546,7 +546,9 @@
   },
   "billing": {
     "receiptVoucher": {
-      "title": "إيصال الدفعة",
+      "title": "إيصالات الدفع",
+      "description": "عرض وإدارة إيصالات الدفع",
+      "newVoucher": "إيصال جديد",
       "voucherDetails": "تفاصيل الإيصال",
       "voucherNo": "رقم الإيصال #",
       "invoiceNo": "رقم الفاتورة #",
@@ -556,7 +558,36 @@
       "paymentDetails": "تفاصيل الدفع",
       "businessInfo": "معلومات العمل",
       "thankYou": "شكراً لتعاملك معنا!",
-      "voided": "ملغي"
+      "voided": "ملغي",
+      "voucherCategory": "الفئة",
+      "voucherType": "النوع",
+      "vouchers": "إيصالات",
+      "empty": "لا توجد إيصالات",
+      "searchPlaceholder": "البحث برقم الإيصال، رقم الفاتورة، رقم الطلب...",
+      "allStatuses": "جميع الحالات",
+      "allCategories": "جميع الفئات",
+      "allTypes": "جميع الأنواع",
+      "printReceiptVoucher": "طباعة إيصال الدفعة",
+      "create": {
+        "title": "إنشاء إيصال دفع",
+        "description": "إنشاء إيصال دفع جديد يدوياً",
+        "invoice": "رقم الفاتورة",
+        "order": "رقم الطلب",
+        "customer": "رقم العميل",
+        "amount": "المبلغ",
+        "currency": "العملة",
+        "reasonCode": "رمز السبب",
+        "invoicePlaceholder": "أدخل رقم الفاتورة",
+        "orderPlaceholder": "أدخل رقم الطلب",
+        "customerPlaceholder": "أدخل رقم العميل",
+        "amountPlaceholder": "0.000",
+        "reasonCodePlaceholder": "أدخل رمز السبب إن وجد",
+        "amountInvalid": "يجب أن يكون المبلغ أكبر من صفر",
+        "atLeastOneReference": "يجب إدخال واحد على الأقل من: الفاتورة، الطلب، أو العميل",
+        "create": "إنشاء الإيصال",
+        "creating": "جاري الإنشاء...",
+        "error": "فشل إنشاء الإيصال"
+      }
     }
   },
   "cashup": {

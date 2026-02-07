@@ -22,7 +22,7 @@ import type {
   VoucherData,
 } from '../types/voucher';
 
-const RECEIPT_PREFIX = 'VCR_RCP';
+const RECEIPT_PREFIX = 'RCP';
 const YEAR_LEN = 4;
 const SEQ_LEN = 5;
 
@@ -322,4 +322,129 @@ export async function createReceiptVoucherForPayment(
   }
 
   return { voucher_id, voucher_no };
+}
+
+/**
+ * List vouchers with filtering, search, sorting and pagination.
+ */
+export async function listVouchers(params: {
+  tenantOrgId?: string;
+  status?: string[];
+  voucherCategory?: string[];
+  voucherType?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  searchQuery?: string;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}): Promise<{ vouchers: VoucherData[]; total: number; totalPages: number }> {
+  const tenantId = params.tenantOrgId || (await getTenantIdFromSession());
+  if (!tenantId) {
+    throw new Error('Unauthorized: Tenant ID required');
+  }
+
+  const limit = params.limit || 20;
+  const offset = params.offset || 0;
+
+  return withTenantContext(tenantId, async () => {
+    const where: any = {
+      tenant_org_id: tenantId,
+    };
+
+    if (params.status && params.status.length > 0) {
+      where.status = { in: params.status };
+    }
+
+    if (params.voucherCategory && params.voucherCategory.length > 0) {
+      where.voucher_category = { in: params.voucherCategory };
+    }
+
+    if (params.voucherType && params.voucherType.length > 0) {
+      where.voucher_type = { in: params.voucherType };
+    }
+
+    if (params.dateFrom || params.dateTo) {
+      where.created_at = {};
+      if (params.dateFrom) {
+        where.created_at.gte = new Date(params.dateFrom);
+      }
+      if (params.dateTo) {
+        where.created_at.lte = new Date(params.dateTo);
+      }
+    }
+
+    if (params.searchQuery && params.searchQuery.trim()) {
+      const search = params.searchQuery.trim();
+      where.OR = [
+        { voucher_no: { contains: search, mode: 'insensitive' } },
+        { invoice_id: { contains: search, mode: 'insensitive' } },
+        { order_id: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [vouchers, total] = await Promise.all([
+      prisma.org_fin_vouchers_mst.findMany({
+        where,
+        include: {
+          org_invoice_mst: { select: { invoice_no: true } },
+          org_orders_mst: { select: { order_no: true } },
+          org_customers_mst: { select: { name: true, name2: true } },
+          org_payments_dtl_tr: {
+            select: { id: true },
+            take: 1,
+            orderBy: { created_at: 'desc' },
+          },
+        },
+        orderBy: {
+          [params.sortBy && ['voucher_no', 'created_at', 'issued_at', 'total_amount', 'status'].includes(params.sortBy)
+            ? params.sortBy
+            : 'created_at']: params.sortOrder || 'desc',
+        },
+        take: limit,
+        skip: offset,
+      }),
+      prisma.org_fin_vouchers_mst.count({ where }),
+    ]);
+
+    return {
+      vouchers: vouchers.map((row) => {
+        const voucher = mapRowToVoucherData({
+          id: row.id,
+          tenant_org_id: row.tenant_org_id,
+          branch_id: row.branch_id,
+          voucher_no: row.voucher_no,
+          voucher_category: row.voucher_category,
+          voucher_subtype: row.voucher_subtype,
+          voucher_type: row.voucher_type,
+          invoice_id: row.invoice_id,
+          order_id: row.order_id,
+          customer_id: row.customer_id,
+          total_amount: row.total_amount,
+          currency_code: row.currency_code,
+          status: row.status,
+          issued_at: row.issued_at,
+          voided_at: row.voided_at,
+          void_reason: row.void_reason,
+          reason_code: row.reason_code,
+          reversed_by_voucher_id: row.reversed_by_voucher_id,
+          content_html: row.content_html,
+          content_text: row.content_text,
+          metadata: row.metadata,
+          created_at: row.created_at,
+          created_by: row.created_by,
+          updated_at: row.updated_at,
+          updated_by: row.updated_by,
+        });
+        // Add first payment ID for linking
+        return {
+          ...voucher,
+          payment_id: row.org_payments_dtl_tr?.[0]?.id || null,
+        };
+      }),
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  });
 }

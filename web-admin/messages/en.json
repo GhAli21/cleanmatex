@@ -546,7 +546,9 @@
   },
   "billing": {
     "receiptVoucher": {
-      "title": "Receipt Voucher",
+      "title": "Receipt Vouchers",
+      "description": "View and manage receipt vouchers",
+      "newVoucher": "New Voucher",
       "voucherDetails": "Voucher Details",
       "voucherNo": "Voucher #",
       "invoiceNo": "Invoice #",
@@ -556,7 +558,36 @@
       "paymentDetails": "Payment Details",
       "businessInfo": "Business Information",
       "thankYou": "Thank you for your business!",
-      "voided": "VOIDED"
+      "voided": "VOIDED",
+      "voucherCategory": "Category",
+      "voucherType": "Type",
+      "vouchers": "vouchers",
+      "empty": "No vouchers found",
+      "searchPlaceholder": "Search by voucher #, invoice #, order #...",
+      "allStatuses": "All Statuses",
+      "allCategories": "All Categories",
+      "allTypes": "All Types",
+      "printReceiptVoucher": "Print Receipt Voucher",
+      "create": {
+        "title": "Create Receipt Voucher",
+        "description": "Create a new receipt voucher manually",
+        "invoice": "Invoice ID",
+        "order": "Order ID",
+        "customer": "Customer ID",
+        "amount": "Amount",
+        "currency": "Currency",
+        "reasonCode": "Reason Code",
+        "invoicePlaceholder": "Enter invoice ID",
+        "orderPlaceholder": "Enter order ID",
+        "customerPlaceholder": "Enter customer ID",
+        "amountPlaceholder": "0.000",
+        "reasonCodePlaceholder": "Enter reason code if applicable",
+        "amountInvalid": "Amount must be greater than zero",
+        "atLeastOneReference": "At least one of Invoice, Order, or Customer is required",
+        "create": "Create Voucher",
+        "creating": "Creating...",
+        "error": "Failed to create voucher"
+      }
     }
   },
   "cashup": {
