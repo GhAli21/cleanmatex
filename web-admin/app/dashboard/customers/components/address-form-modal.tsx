@@ -12,9 +12,7 @@
  * - Form validation
  */
 
-'use client'
-
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { createAddress, updateAddress } from '@/lib/api/customers'
@@ -178,20 +176,21 @@ export default function AddressFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="address-modal-title">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        {/* Backdrop */}
+        {/* Backdrop - semi-transparent so page content is visible behind */}
         <div
-          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          className="fixed inset-0 z-0 transition-opacity bg-black/40"
           onClick={onClose}
+          aria-hidden="true"
         />
 
-        {/* Modal */}
-        <div className={`inline-block align-bottom bg-white rounded-lg ${isRTL ? 'text-right' : 'text-left'} overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full`}>
+        {/* Modal content - above backdrop */}
+        <div className={`relative z-10 inline-block align-bottom bg-white rounded-lg ${isRTL ? 'text-right' : 'text-left'} overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full`}>
           {/* Header */}
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 id="address-modal-title" className="text-lg font-semibold text-gray-900">
                 {isEditMode ? t('editAddress') : t('addNewAddress')}
               </h3>
               <button

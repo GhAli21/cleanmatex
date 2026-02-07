@@ -216,12 +216,14 @@ export function CustomerAddressesSection({
       )}
 
       {showModal && (
-        <AddressFormModal
-          customerId={customerId}
-          address={editingAddress ?? undefined}
-          onClose={handleCloseModal}
-          onSuccess={handleModalSuccess}
-        />
+        <div className="fixed inset-0 z-[9999]" aria-modal="true">
+          <AddressFormModal
+            customerId={customerId}
+            address={editingAddress ?? undefined}
+            onClose={handleCloseModal}
+            onSuccess={handleModalSuccess}
+          />
+        </div>
       )}
     </div>
   )
