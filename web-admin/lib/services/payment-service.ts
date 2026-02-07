@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import { tenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
+import { createReceiptVoucherForPayment } from './voucher-service';
 import type {
   PaymentMethod,
   PaymentMethodCode,
@@ -708,9 +709,24 @@ export async function recordPaymentTransaction(
       }
     }
 
+    // Create receipt voucher first (Enhanced: voucher is parent of payment row)
+    const { voucher_id } = await createReceiptVoucherForPayment({
+      tenant_org_id: tenantId,
+      branch_id: input.branch_id,
+      invoice_id: input.invoice_id ?? undefined,
+      order_id: input.order_id ?? undefined,
+      customer_id: input.customer_id ?? undefined,
+      total_amount: input.paid_amount,
+      currency_code: currencyCode,
+      issued_at: new Date(),
+      created_by: input.paid_by ?? undefined,
+      auto_issue: true,
+    });
+
     const transaction = await prisma.org_payments_dtl_tr.create({
       data: {
         tenant_org_id: tenantId,
+        voucher_id,
         invoice_id: input.invoice_id ?? undefined,
         order_id: input.order_id ?? undefined,
         customer_id: input.customer_id ?? undefined,

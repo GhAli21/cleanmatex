@@ -21,6 +21,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { getPaymentsForCustomer, processPayment } from '@/app/actions/payments/process-payment'
 import type { CustomerWithTenantData } from '@/lib/types/customer'
 import type { PaymentMethodCode } from '@/lib/types/payment'
+import { CustomerOrdersSection } from './components/customer-orders-section'
 
 // Tab definitions
 type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty'
@@ -400,7 +401,13 @@ export default function CustomerDetailPage() {
                 addresses={[]}
               />
             )}
-            {activeTab === 'orders' && <OrdersTab customerId={customer.id} />}
+            {activeTab === 'orders' && (
+              <CustomerOrdersSection
+                customerId={customer.id}
+                returnToCustomerUrl={`/dashboard/customers/${customer.id}`}
+                returnToCustomerLabel={[customer.firstName, customer.lastName].filter(Boolean).join(' ').trim() ? `Back to ${[customer.firstName, customer.lastName].filter(Boolean).join(' ')}` : undefined}
+              />
+            )}
             {activeTab === 'loyalty' && (
               <LoyaltyTab
                 customerId={customer.id}
@@ -612,37 +619,6 @@ function AddressesTab({
           ))}
         </div>
       )}
-    </div>
-  )
-}
-
-/**
- * Orders Tab - Order history
- */
-function OrdersTab({ customerId }: { customerId: string }) {
-  return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-6">Order History</h3>
-
-      <div className="text-center py-12 bg-gray-50 rounded-lg">
-        <svg
-          className="mx-auto h-12 w-12 text-gray-400 mb-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-          />
-        </svg>
-        <p className="text-gray-500 mb-2">No orders yet</p>
-        <p className="text-sm text-gray-400">
-          Order history will appear here once the customer places orders
-        </p>
-      </div>
     </div>
   )
 }

@@ -55,7 +55,11 @@
     "to": "إلى",
     "newestFirst": "الأحدث أولاً",
     "oldestFirst": "الأقدم أولاً",
-    "date": "التاريخ"
+    "date": "التاريخ",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "saving": "جاري الحفظ...",
+    "deleting": "جاري الحذف..."
   },
   "publicOrderTracking": {
     "title": "تتبع طلبك",
@@ -114,6 +118,7 @@
     "invoicesAndPayments": "الفواتير والمدفوعات",
     "invoices": "الفواتير",
     "payments": "المدفوعات",
+    "receiptVouchers": "إيصالات الدفع",
     "cashUp": "جمع النقد",
     "reportsAndAnalytics": "التقارير والتحليلات",
     "inventoryAndMachines": "المخزون والآلات",
@@ -281,6 +286,7 @@
       "orderSummary": "ملخص الطلب",
       "status": "الحالة"
     },
+    "printReceiptVoucher": "طباعة إيصال الدفعة",
     "history": {
       "date": "التاريخ",
       "amount": "المبلغ",
@@ -535,6 +541,22 @@
       "cancel": "إلغاء",
       "success": "تم إنشاء الدفعة بنجاح",
       "error": "فشل إنشاء الدفعة"
+    },
+    "printReceiptVoucher": "طباعة إيصال الدفعة"
+  },
+  "billing": {
+    "receiptVoucher": {
+      "title": "إيصال الدفعة",
+      "voucherDetails": "تفاصيل الإيصال",
+      "voucherNo": "رقم الإيصال #",
+      "invoiceNo": "رقم الفاتورة #",
+      "orderNo": "رقم الطلب #",
+      "customerInfo": "معلومات العميل",
+      "amountPaid": "المبلغ المدفوع",
+      "paymentDetails": "تفاصيل الدفع",
+      "businessInfo": "معلومات العمل",
+      "thankYou": "شكراً لتعاملك معنا!",
+      "voided": "ملغي"
     }
   },
   "cashup": {
@@ -653,6 +675,7 @@
     "showing": "عرض",
     "to": "إلى",
     "of": "من",
+    "orders": "طلبات",
     "previous": "السابق",
     "next": "التالي",
     "view": "عرض",
@@ -1053,6 +1076,7 @@
     "addFirstAddress": "أضف أول عنوان",
     "defaultAddress": "افتراضي",
     "noOrdersYet": "لا توجد طلبات بعد",
+    "orderHistoryEmptyDescription": "سيظهر سجل الطلبات هنا بمجرد أن يقدم العميل طلبات.",
     "loyaltyRewards": "نقاط الولاء والمكافآت",
     "currentBalance": "الرصيد الحالي",
     "noTransactions": "لا توجد معاملات بعد",
@@ -2501,6 +2525,94 @@
       "confirmButton": "تسجيل الخروج",
       "cancelButton": "إلغاء",
       "success": "تم تسجيل الخروج بنجاح"
+    }
+  },
+  "inventory": {
+    "title": "مخزون المواد",
+    "labels": {
+      "itemCode": "رمز الصنف",
+      "itemName": "اسم الصنف",
+      "quantity": "الكمية",
+      "unit": "الوحدة",
+      "unitCost": "تكلفة الوحدة",
+      "sellPrice": "سعر البيع",
+      "stockValue": "قيمة المخزون",
+      "status": "الحالة",
+      "reorderPoint": "نقطة إعادة الطلب",
+      "storageLocation": "موقع التخزين",
+      "sku": "رمز التخزين",
+      "initialQty": "الكمية المبدئية",
+      "currentQty": "الكمية الحالية",
+      "adjustmentType": "نوع التعديل",
+      "reason": "السبب",
+      "date": "التاريخ",
+      "type": "النوع",
+      "before": "قبل",
+      "after": "بعد"
+    },
+    "statuses": {
+      "inStock": "متوفر",
+      "lowStock": "مخزون منخفض",
+      "outOfStock": "نفد المخزون",
+      "overstock": "مخزون زائد"
+    },
+    "units": {
+      "piece": "قطعة",
+      "liter": "لتر",
+      "kg": "كيلوغرام",
+      "gram": "غرام",
+      "box": "صندوق",
+      "bottle": "زجاجة",
+      "pack": "عبوة",
+      "roll": "لفة"
+    },
+    "actions": {
+      "addItem": "إضافة صنف",
+      "editItem": "تعديل صنف",
+      "adjust": "تعديل",
+      "adjustStock": "تعديل المخزون",
+      "history": "السجل",
+      "deleteItem": "حذف صنف"
+    },
+    "adjustActions": {
+      "increase": "زيادة",
+      "decrease": "نقصان",
+      "set": "تعيين إلى"
+    },
+    "transactionTypes": {
+      "stockIn": "إدخال مخزون",
+      "stockOut": "إخراج مخزون",
+      "adjustment": "تسوية"
+    },
+    "stats": {
+      "totalItems": "إجمالي الأصناف",
+      "lowStock": "مخزون منخفض",
+      "outOfStock": "نفد المخزون",
+      "totalStockValue": "إجمالي قيمة المخزون"
+    },
+    "filters": {
+      "searchPlaceholder": "بحث بالاسم أو الرمز أو SKU...",
+      "allStatuses": "جميع الحالات"
+    },
+    "pagination": {
+      "showing": "عرض {count} من {total}"
+    },
+    "messages": {
+      "noItems": "لا توجد أصناف في المخزون",
+      "noTransactions": "لا توجد حركات",
+      "confirmDelete": "هل أنت متأكد من حذف هذا الصنف؟",
+      "createFailed": "فشل في إنشاء الصنف",
+      "updateFailed": "فشل في تحديث الصنف",
+      "deleteFailed": "فشل في حذف الصنف",
+      "adjustFailed": "فشل في تعديل المخزون"
+    },
+    "placeholders": {
+      "reason": "مثال: إعادة تخزين من المورد، بضائع تالفة..."
+    },
+    "validation": {
+      "nameRequired": "اسم الصنف مطلوب",
+      "quantityRequired": "الكمية يجب أن تكون أكبر من صفر",
+      "reasonRequired": "السبب مطلوب"
     }
   }
 }

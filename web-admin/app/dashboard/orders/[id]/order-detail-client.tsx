@@ -279,6 +279,14 @@ export function OrderDetailClient({
                 {order.priority?.toUpperCase() || 'NORMAL'}
               </span>
             </div>
+            {order.received_at && (
+              <p className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {new Date(order.received_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
+              </p>
+            )}
             <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <Clock className="w-4 h-4" />

@@ -214,6 +214,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'operator'],
       },
       {
+        key: 'billing_vouchers',
+        label: 'Receipt Vouchers',
+        path: '/dashboard/billing/vouchers',
+        roles: ['admin', 'super_admin', 'operator'],
+      },
+      {
         key: 'billing_payments',
         label: 'Payments',
         path: '/dashboard/billing/payments',
@@ -272,19 +278,19 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: 'Inventory & Machines',
     icon: Boxes,
     path: '/dashboard/inventory',
-    roles: ['admin', 'operator'],
+    roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
     children: [
       {
         key: 'inventory_stock',
         label: 'Stock',
         path: '/dashboard/inventory/stock',
-        roles: ['admin', 'operator'],
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
       },
       {
         key: 'inventory_machines',
         label: 'Machines',
         path: '/dashboard/inventory/machines',
-        roles: ['admin'],
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
       },
     ],
   },

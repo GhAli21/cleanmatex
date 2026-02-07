@@ -39,11 +39,11 @@ CREATE TABLE IF NOT EXISTS sys_payment_method_cd (
    rec_notes            TEXT         null,
    created_at           TIMESTAMP            null default CURRENT_TIMESTAMP,
    updated_at           TIMESTAMP            null,
-   payment_type_color1  TEXT          null,
-   payment_type_color2  TEXT          null,
-   payment_type_color3  TEXT          null,
-   payment_type_icon    TEXT         null,
-   payment_type_image   TEXT         null,
+   payment_method_color1  TEXT          null,
+   payment_method_color2  TEXT          null,
+   payment_method_color3  TEXT          null,
+   payment_method_icon    TEXT         null,
+   payment_method_image   TEXT         null,
    constraint PK_SYS_PAYMENT_METHOD_CD primary key (payment_method_code)
 );
 

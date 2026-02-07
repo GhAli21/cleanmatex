@@ -55,7 +55,11 @@
     "to": "To",
     "newestFirst": "Newest first",
     "oldestFirst": "Oldest first",
-    "date": "Date"
+    "date": "Date",
+    "active": "Active",
+    "inactive": "Inactive",
+    "saving": "Saving...",
+    "deleting": "Deleting..."
   },
   "publicOrderTracking": {
     "title": "Track Your Order",
@@ -114,6 +118,7 @@
     "invoicesAndPayments": "Invoices & Payments",
     "invoices": "Invoices",
     "payments": "Payments",
+    "receiptVouchers": "Receipt Vouchers",
     "cashUp": "Cash Up",
     "reportsAndAnalytics": "Reports & Analytics",
     "inventoryAndMachines": "Inventory & Machines",
@@ -281,6 +286,7 @@
       "orderSummary": "Order summary",
       "status": "Status"
     },
+    "printReceiptVoucher": "Print Receipt Voucher",
     "history": {
       "date": "Date",
       "amount": "Amount",
@@ -535,6 +541,22 @@
       "cancel": "Cancel",
       "success": "Payment created successfully",
       "error": "Failed to create payment"
+    },
+    "printReceiptVoucher": "Print Receipt Voucher"
+  },
+  "billing": {
+    "receiptVoucher": {
+      "title": "Receipt Voucher",
+      "voucherDetails": "Voucher Details",
+      "voucherNo": "Voucher #",
+      "invoiceNo": "Invoice #",
+      "orderNo": "Order #",
+      "customerInfo": "Customer Information",
+      "amountPaid": "Amount Paid",
+      "paymentDetails": "Payment Details",
+      "businessInfo": "Business Information",
+      "thankYou": "Thank you for your business!",
+      "voided": "VOIDED"
     }
   },
   "cashup": {
@@ -652,6 +674,7 @@
     "showing": "Showing",
     "to": "to",
     "of": "of",
+    "orders": "orders",
     "previous": "Previous",
     "next": "Next",
     "view": "View",
@@ -1053,6 +1076,7 @@
     "addFirstAddress": "Add First Address",
     "defaultAddress": "Default",
     "noOrdersYet": "No orders yet",
+    "orderHistoryEmptyDescription": "Order history will appear here once the customer places orders.",
     "loyaltyRewards": "Loyalty Points & Rewards",
     "currentBalance": "Current Balance",
     "noTransactions": "No transactions yet",
@@ -2497,6 +2521,94 @@
       "confirmButton": "Sign Out",
       "cancelButton": "Cancel",
       "success": "You have been successfully signed out"
+    }
+  },
+  "inventory": {
+    "title": "Inventory Stock",
+    "labels": {
+      "itemCode": "Item Code",
+      "itemName": "Item Name",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "unitCost": "Unit Cost",
+      "sellPrice": "Sell Price",
+      "stockValue": "Stock Value",
+      "status": "Status",
+      "reorderPoint": "Reorder Point",
+      "storageLocation": "Storage Location",
+      "sku": "SKU",
+      "initialQty": "Initial Quantity",
+      "currentQty": "Current Quantity",
+      "adjustmentType": "Adjustment Type",
+      "reason": "Reason",
+      "date": "Date",
+      "type": "Type",
+      "before": "Before",
+      "after": "After"
+    },
+    "statuses": {
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "overstock": "Overstock"
+    },
+    "units": {
+      "piece": "Piece",
+      "liter": "Liter",
+      "kg": "Kilogram",
+      "gram": "Gram",
+      "box": "Box",
+      "bottle": "Bottle",
+      "pack": "Pack",
+      "roll": "Roll"
+    },
+    "actions": {
+      "addItem": "Add Item",
+      "editItem": "Edit Item",
+      "adjust": "Adjust",
+      "adjustStock": "Adjust Stock",
+      "history": "History",
+      "deleteItem": "Delete Item"
+    },
+    "adjustActions": {
+      "increase": "Increase",
+      "decrease": "Decrease",
+      "set": "Set To"
+    },
+    "transactionTypes": {
+      "stockIn": "Stock In",
+      "stockOut": "Stock Out",
+      "adjustment": "Adjustment"
+    },
+    "stats": {
+      "totalItems": "Total Items",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "totalStockValue": "Total Stock Value"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by name, code, or SKU...",
+      "allStatuses": "All Statuses"
+    },
+    "pagination": {
+      "showing": "Showing {count} of {total}"
+    },
+    "messages": {
+      "noItems": "No inventory items found",
+      "noTransactions": "No transactions found",
+      "confirmDelete": "Are you sure you want to delete this item?",
+      "createFailed": "Failed to create item",
+      "updateFailed": "Failed to update item",
+      "deleteFailed": "Failed to delete item",
+      "adjustFailed": "Failed to adjust stock"
+    },
+    "placeholders": {
+      "reason": "e.g. Restocked from supplier, damaged goods..."
+    },
+    "validation": {
+      "nameRequired": "Item name is required",
+      "quantityRequired": "Quantity must be greater than 0",
+      "reasonRequired": "Reason is required"
     }
   }
 }

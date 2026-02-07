@@ -9,7 +9,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { FileText, Receipt, History, Package, Banknote } from 'lucide-react';
+import { FileText, Receipt, History, Package, Banknote, Printer } from 'lucide-react';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getInvoice } from '@/lib/services/invoice-service';
 import { getPaymentHistory } from '@/lib/services/payment-service';
@@ -213,12 +213,24 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
-                          <Link
-                            href={`/dashboard/billing/payments/${p.id}?from=invoice&invoiceId=${invoice.id}`}
-                            className="inline-flex items-center font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                          >
-                            {tCommon('view')}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/dashboard/billing/payments/${p.id}?from=invoice&invoiceId=${invoice.id}`}
+                              className="inline-flex items-center font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                            >
+                              {tCommon('view')}
+                            </Link>
+                            {p.status === 'completed' && Number(p.paid_amount) > 0 && (
+                              <Link
+                                href={`/dashboard/billing/payments/${p.id}/print/receipt-voucher`}
+                                target="_blank"
+                                className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                                title={t('printReceiptVoucher') ?? 'Print Receipt Voucher'}
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                              </Link>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))

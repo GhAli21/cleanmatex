@@ -387,6 +387,7 @@ model org_branches_mst {
   name2                       String?
   is_main                     Boolean?                      @default(false)
   org_asm_locations_mst       org_asm_locations_mst[]
+  org_fin_vouchers_mst        org_fin_vouchers_mst[]
   org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
   org_dlv_routes_mst          org_dlv_routes_mst[]
   org_dlv_slots_mst           org_dlv_slots_mst[]
@@ -486,12 +487,14 @@ model org_customers_mst {
   updated_by             String?                  @db.Uuid
   updated_info           String?
   org_customer_addresses org_customer_addresses[]
+  org_fin_vouchers_mst   org_fin_vouchers_mst[]
   sys_customers_mst      sys_customers_mst?       @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
   org_tenants_mst        org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
   org_invoice_mst        org_invoice_mst[]
   org_orders_mst         org_orders_mst[]
   org_payments_dtl_tr    org_payments_dtl_tr[]
 
+  @@unique([id, tenant_org_id], map: "ak_org_customers_id_tenant")
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
   @@index([tenant_org_id], map: "idx_org_customers_tenant")
   @@schema("public")
@@ -551,6 +554,7 @@ model org_invoice_mst {
   org_branches_mst         org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_branch")
   org_customers_mst        org_customers_mst?     @relation(fields: [customer_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_customer")
   org_gift_cards_mst       org_gift_cards_mst?   @relation(fields: [gift_card_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_gift_card")
+  org_fin_vouchers_mst     org_fin_vouchers_mst[]
   org_orders_mst           org_orders_mst?        @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
   org_payments_dtl_tr      org_payments_dtl_tr[]
   org_tenants_mst          org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_tenant")
@@ -558,6 +562,7 @@ model org_invoice_mst {
   org_users_mst_handed_to  org_users_mst?         @relation("invoice_handed_to_user", fields: [handed_to_by_user], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_handed_to_user")
   sys_payment_method_cd    sys_payment_method_cd? @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_invoice_payment_method")
 
+  @@unique([id, tenant_org_id], map: "ak_org_invoice_id_tenant")
   @@unique([tenant_org_id, invoice_no])
   @@index([order_id], map: "idx_org_invoice_order")
   @@index([tenant_org_id, invoice_no], map: "idx_org_invoice_tenant_no")
@@ -725,6 +730,7 @@ model org_orders_mst {
   payment_due_date                DateTime?                         @db.Date
   org_asm_tasks_mst               org_asm_tasks_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
+  org_fin_vouchers_mst            org_fin_vouchers_mst[]
   org_invoice_mst                 org_invoice_mst[]
   org_ord_transition_events       org_ord_transition_events[]
   org_order_history               org_order_history[]
@@ -819,10 +825,13 @@ model org_payments_dtl_tr {
   org_promo_codes_mst      org_promo_codes_mst?  @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_payments_promo_code")
   org_customers_mst        org_customers_mst?    @relation(fields: [customer_id], references: [id], onUpdate: NoAction)
   org_orders_mst           org_orders_mst?       @relation(fields: [order_id], references: [id], onUpdate: NoAction)
+  voucher_id               String?               @db.Uuid
+  org_fin_vouchers_mst     org_fin_vouchers_mst? @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payments_voucher")
 
   @@index([invoice_id], map: "idx_org_payments_invoice")
   @@index([tenant_org_id], map: "idx_org_payments_tenant")
-  org_payment_audit_log org_payment_audit_log[]
+  @@index([voucher_id], map: "idx_org_payments_voucher")
+  org_payment_audit_log    org_payment_audit_log[]
   @@schema("public")
 }
 
@@ -841,6 +850,75 @@ model org_payment_audit_log {
   org_tenants_mst      org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   @@index([tenant_org_id, payment_id])
   @@index([tenant_org_id, changed_at(sort: Desc)])
+  @@schema("public")
+}
+
+/// Finance vouchers: parent of payment rows (receipt/refund/credit/adjustment)
+model org_fin_vouchers_mst {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id         String    @db.Uuid
+  branch_id             String?   @db.Uuid
+  voucher_no            String    @db.VarChar(50)
+  voucher_category      String    @db.VarChar(30)
+  voucher_subtype       String?   @db.VarChar(50)
+  voucher_type          String?   @db.VarChar(30)
+  invoice_id            String?   @db.Uuid
+  order_id              String?   @db.Uuid
+  customer_id           String?   @db.Uuid
+  total_amount          Decimal   @db.Decimal(19, 4)
+  currency_code         String?   @db.VarChar(3)
+  status                String    @default("draft") @db.VarChar(20)
+  issued_at             DateTime? @db.Timestamptz(6)
+  voided_at             DateTime? @db.Timestamptz(6)
+  void_reason           String?
+  reason_code           String?   @db.VarChar(50)
+  reversed_by_voucher_id String?  @db.Uuid
+  content_html          String?
+  content_text          String?
+  metadata              Json?
+  rec_status            Int?      @default(1) @db.SmallInt
+  rec_order             Int?
+  rec_notes             String?   @db.VarChar(200)
+  is_active             Boolean   @default(true)
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  created_by            String?   @db.VarChar(120)
+  created_info          String?
+  updated_at            DateTime? @db.Timestamptz(6)
+  updated_by            String?   @db.VarChar(120)
+  updated_info          String?
+  org_branches_mst       org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_branch")
+  org_customers_mst      org_customers_mst?     @relation(fields: [customer_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_customer")
+  org_fin_voucher_audit_log org_fin_voucher_audit_log[]
+  org_invoice_mst        org_invoice_mst?       @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_invoice")
+  org_orders_mst         org_orders_mst?        @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_order")
+  org_fin_vouchers_mst   org_fin_vouchers_mst?  @relation("voucher_reversed_by", fields: [reversed_by_voucher_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_reversed")
+  org_fin_vouchers_mst_reversed org_fin_vouchers_mst[] @relation("voucher_reversed_by")
+  org_payments_dtl_tr    org_payments_dtl_tr[]
+  org_rcpt_receipts_mst  org_rcpt_receipts_mst[]
+  org_tenants_mst        org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fin_voucher_tenant")
+  @@unique([id, tenant_org_id], map: "uq_fin_voucher_id_tenant")
+  @@unique([tenant_org_id, voucher_no], map: "uq_fin_voucher_tenant_no")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_fin_vouchers_tenant_created")
+  @@index([tenant_org_id, status], map: "idx_fin_vouchers_tenant_status")
+  @@index([invoice_id], map: "idx_fin_vouchers_invoice")
+  @@index([order_id], map: "idx_fin_vouchers_order")
+  @@index([customer_id], map: "idx_fin_vouchers_customer")
+  @@schema("public")
+}
+
+/// Audit log for voucher actions: issued, voided, reversed, edited, approved
+model org_fin_voucher_audit_log {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  voucher_id         String   @db.Uuid
+  tenant_org_id      String   @db.Uuid
+  action             String   @db.VarChar(30)
+  snapshot_or_reason String?
+  changed_at         DateTime @default(now()) @db.Timestamptz(6)
+  changed_by         String?  @db.VarChar(120)
+  org_fin_vouchers_mst org_fin_vouchers_mst @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_fin_voucher_audit_voucher")
+  org_tenants_mst     org_tenants_mst?    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([voucher_id], map: "idx_fin_voucher_audit_voucher")
+  @@index([tenant_org_id, changed_at(sort: Desc)], map: "idx_fin_voucher_audit_tenant_changed")
   @@schema("public")
 }
 
@@ -1043,6 +1121,8 @@ model org_tenants_mst {
   org_order_item_processing_steps  org_order_item_processing_steps[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
+  org_fin_voucher_audit_log        org_fin_voucher_audit_log[]
+  org_fin_vouchers_mst             org_fin_vouchers_mst[]
   org_payment_audit_log             org_payment_audit_log[]
   org_payment_reconciliation_log   org_payment_reconciliation_log[]
   org_payments_dtl_tr              org_payments_dtl_tr[]
@@ -4219,7 +4299,8 @@ model org_qa_decisions_tr {
 model org_rcpt_receipts_mst {
   id                    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id         String          @db.Uuid
-  order_id              String          @db.Uuid
+  order_id              String?         @db.Uuid
+  voucher_id            String?         @db.Uuid
   receipt_type_code     String          @db.VarChar(50)
   delivery_channel_code String          @db.VarChar(50)
   delivery_status_code  String?         @default("pending") @db.VarChar(50)
@@ -4243,7 +4324,8 @@ model org_rcpt_receipts_mst {
   updated_at            DateTime?       @db.Timestamp(6)
   updated_by            String?         @db.VarChar(120)
   updated_info          String?
-  org_orders_mst        org_orders_mst  @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_order")
+  org_fin_vouchers_mst  org_fin_vouchers_mst? @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_rcpt_receipts_voucher")
+  org_orders_mst        org_orders_mst? @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_order")
   org_tenants_mst       org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_tenant")
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_rcpt_receipts_created")

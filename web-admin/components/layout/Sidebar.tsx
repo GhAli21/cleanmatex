@@ -108,6 +108,7 @@ export default function Sidebar() {
       'catalog_addons': 'addons',
       'billing': 'invoicesAndPayments',
       'billing_invoices': 'invoices',
+      'billing_vouchers': 'receiptVouchers',
       'billing_payments': 'payments',
       'billing_cashup': 'cashUp',
       'reports': 'reportsAndAnalytics',

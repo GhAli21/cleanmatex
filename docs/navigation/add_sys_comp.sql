@@ -515,12 +515,219 @@ SET is_leaf = false,
 WHERE comp_code = 'reports';
 
 -- =====================================================
+-- 8. Receipt Vouchers Under Billing
+-- =====================================================
+-- Add Receipt Vouchers page under billing parent
+-- Display order: 1 (between invoices 0 and payments 1)
+-- Date: 2026-02-07
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'billing_vouchers',
+  'billing',
+  'Receipt Vouchers',
+  'إيصالات الدفع',
+  'View and manage receipt vouchers',
+  'عرض وإدارة إيصالات الدفع',
+  '/dashboard/billing/vouchers',
+  'Receipt',
+  1,
+  1,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  'billing:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Link vouchers node to billing parent
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'billing_vouchers'
+  AND c.parent_comp_code = 'billing'
+  AND p.comp_code = 'billing';
+
+-- Update display_order for existing billing children to maintain order:
+-- vouchers = 1, payments = 2, cashup = 3
+UPDATE sys_components_cd
+SET display_order = 2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'billing_payments';
+
+UPDATE sys_components_cd
+SET display_order = 3,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'billing_cashup';
+
+-- =====================================================
+-- 9. Inventory & Machines (Parent + Children)
+-- =====================================================
+-- Update/Add Inventory parent and its children (Stock and Machines)
+-- Date: 2026-02-07
+
+-- Update parent Inventory node
+UPDATE sys_components_cd
+SET
+  label2 = 'المخزون والآلات',
+  description = 'Manage inventory stock and machines',
+  description2 = 'إدارة مخزون المواد والآلات',
+  comp_icon = 'Boxes',
+  is_leaf = false,
+  roles = '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'inventory';
+
+-- Add/Update inventory_stock child
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'inventory_stock',
+  'inventory',
+  'Stock',
+  'المخزون',
+  'Manage inventory stock levels and adjustments',
+  'إدارة مستويات المخزون والتعديلات',
+  '/dashboard/inventory/stock',
+  'Boxes',
+  1,
+  0,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  'inventory:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Add/Update inventory_machines child
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'inventory_machines',
+  'inventory',
+  'Machines',
+  'الآلات',
+  'Manage machines and equipment',
+  'إدارة الآلات والمعدات',
+  '/dashboard/inventory/machines',
+  'Boxes',
+  1,
+  1,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  'inventory:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Link children to inventory parent
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.parent_comp_code = 'inventory'
+  AND p.comp_code = 'inventory'
+  AND c.parent_comp_id IS DISTINCT FROM p.comp_id;
+
+-- Ensure parent Inventory node is not leaf (has children)
+UPDATE sys_components_cd
+SET is_leaf = false,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'inventory';
+
+-- =====================================================
 -- Verification Queries
 -- =====================================================
 -- Uncomment to verify inserts:
 -- SELECT comp_code, label, label2, comp_path, display_order, is_navigable
 -- FROM sys_components_cd
--- WHERE comp_code IN ('settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail')
+-- WHERE comp_code IN ('settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail', 'billing_vouchers', 'inventory', 'inventory_stock', 'inventory_machines')
 -- ORDER BY comp_code;
 
 COMMIT;

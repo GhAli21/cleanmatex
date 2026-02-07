@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Printer } from 'lucide-react';
 import type { PaymentListItem } from '@/lib/types/payment';
 import type { PaymentAuditEntry } from '@/lib/services/payment-audit.service';
 import {
@@ -380,6 +381,18 @@ export default function PaymentDetailClient({
                     {t('refund.title')}
                   </button>
                 </RequirePermission>
+              )}
+
+              {/* Print Receipt Voucher Button */}
+              {payment.status === 'completed' && payment.paid_amount > 0 && (
+                <Link
+                  href={`/dashboard/billing/payments/${payment.id}/print/receipt-voucher`}
+                  target="_blank"
+                  className="flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  <Printer className="h-4 w-4" />
+                  {t('printReceiptVoucher') ?? 'Print Receipt Voucher'}
+                </Link>
               )}
             </div>
 
