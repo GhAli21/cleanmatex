@@ -9,9 +9,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getReceiptVoucherDataByPaymentIdAction } from '@/app/actions/payments/voucher-actions';
-import { getPaymentById as getPaymentByIdService } from '@/lib/services/payment-service';
-import { BillingReceiptVoucherPrintRprt } from '../../components/billing-receipt-voucher-print-rprt';
-import type { BillingReceiptVoucherPrintRprtData } from '../../components/billing-receipt-voucher-print-rprt';
+import { getPaymentAction } from '@/app/actions/payments/payment-crud-actions';
+import { BillingReceiptVoucherPrintRprt } from '@/app/dashboard/billing/components/billing-receipt-voucher-print-rprt';
+import type { BillingReceiptVoucherPrintRprtData } from '@/app/dashboard/billing/components/billing-receipt-voucher-print-rprt';
 
 export default function ReceiptVoucherPrintPage() {
   const params = useParams<{ id: string }>();
@@ -35,36 +35,37 @@ export default function ReceiptVoucherPrintPage() {
           return;
         }
         const voucher = voucherResult.data;
-        const paymentResult = await getPaymentByIdService(paymentId);
-        if (!paymentResult) {
-          setError('Payment not found');
+        const paymentResult = await getPaymentAction(paymentId);
+        if (!paymentResult.success || !paymentResult.data) {
+          setError(paymentResult.error || 'Payment not found');
           return;
         }
+        const payment = paymentResult.data;
         // Tenant info - simplified for now (can be enhanced later)
         const tenant = { name: 'CleanMateX', phone: null, address: null };
 
         const data: BillingReceiptVoucherPrintRprtData = {
           voucher,
           payment: {
-            id: paymentResult.id,
-            payment_method_code: paymentResult.payment_method_code,
-            paid_at: paymentResult.paid_at,
-            transaction_id: paymentResult.transaction_id,
+            id: payment.id,
+            payment_method_code: payment.payment_method_code,
+            paid_at: payment.paid_at,
+            transaction_id: payment.transaction_id,
           },
-          invoice: voucher.invoice_id && paymentResult.invoiceNumber
+          invoice: voucher.invoice_id && payment.invoiceNumber
             ? {
-                invoice_no: paymentResult.invoiceNumber,
+                invoice_no: payment.invoiceNumber,
                 invoice_date: null, // Can be fetched separately if needed
               }
             : undefined,
-          order: voucher.order_id && paymentResult.orderReference
+          order: voucher.order_id && payment.orderReference
             ? {
-                order_no: paymentResult.orderReference,
+                order_no: payment.orderReference,
               }
             : undefined,
-          customer: voucher.customer_id && paymentResult.customerName
+          customer: voucher.customer_id && payment.customerName
             ? {
-                name: paymentResult.customerName,
+                name: payment.customerName,
                 phone: null, // Can be fetched separately if needed
                 email: null, // Can be fetched separately if needed
               }

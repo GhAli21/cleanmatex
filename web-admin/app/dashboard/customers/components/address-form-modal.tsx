@@ -134,7 +134,7 @@ export default function AddressFormModal({
 
     setLoading(true)
     try {
-      const addressData = {
+      const baseData = {
         label: formData.label,
         street: formData.street_address,
         building: formData.building_name || undefined,
@@ -157,13 +157,13 @@ export default function AddressFormModal({
         result = await updateAddress(
           customerId,
           address.id,
-          addressData as UpdateAddressRequest
+          baseData as UpdateAddressRequest
         )
       } else {
-        result = await createAddress(
-          customerId,
-          addressData as CreateAddressRequest
-        )
+        result = await createAddress(customerId, {
+          ...baseData,
+          addressType: 'home',
+        } as CreateAddressRequest)
       }
 
       onSuccess(result)

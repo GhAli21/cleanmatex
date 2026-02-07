@@ -22,6 +22,7 @@ import { getPaymentsForCustomer, processPayment } from '@/app/actions/payments/p
 import type { CustomerWithTenantData } from '@/lib/types/customer'
 import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from './components/customer-orders-section'
+import { CustomerAddressesSection } from './components/customer-addresses-section'
 
 // Tab definitions
 type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty'
@@ -396,9 +397,17 @@ export default function CustomerDetailPage() {
               <ProfileTab customer={customer} onUpdate={setCustomer} />
             )}
             {activeTab === 'addresses' && (
-              <AddressesTab
+              <CustomerAddressesSection
                 customerId={customer.id}
-                addresses={[]}
+                addresses={customer.addresses ?? []}
+                onAddressesChange={async () => {
+                  try {
+                    const data = await getCustomerById(customerId)
+                    setCustomer(data)
+                  } catch {
+                    // Keep current state on refetch error
+                  }
+                }}
               />
             )}
             {activeTab === 'orders' && (
@@ -537,88 +546,6 @@ function ProfileTab({
           </dl>
         </div>
       </div>
-    </div>
-  )
-}
-
-/**
- * Addresses Tab - Address management
- */
-function AddressesTab({
-  customerId,
-  addresses,
-}: {
-  customerId: string
-  addresses: any[]
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Delivery Addresses</h3>
-        <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
-          Add Address
-        </button>
-      </div>
-
-      {addresses.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400 mb-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-          </svg>
-          <p className="text-gray-500 mb-4">No addresses added yet</p>
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium">
-            Add First Address
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {addresses.map((address) => (
-            <div
-              key={address.id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <h4 className="font-medium text-gray-900">{address.label}</h4>
-                {address.is_default && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                    Default
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                {address.street_address}, {address.area}
-                <br />
-                {address.city}
-              </p>
-              <div className="flex items-center space-x-2">
-                <button className="text-sm text-blue-600 hover:text-blue-700">
-                  Edit
-                </button>
-                <span className="text-gray-300">|</span>
-                <button className="text-sm text-red-600 hover:text-red-700">
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

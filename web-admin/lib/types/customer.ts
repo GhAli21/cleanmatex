@@ -78,6 +78,7 @@ export interface Customer {
 
 /**
  * Customer with Tenant-Specific Data
+ * GET /api/v1/customers/:id returns this with optional addresses array.
  */
 export interface CustomerWithTenantData extends Customer {
   tenantData: {
@@ -88,6 +89,8 @@ export interface CustomerWithTenantData extends Customer {
     lastOrderAt: string | null;
     joinedAt: string;
   };
+  /** Populated when fetching customer by id; not present on list responses */
+  addresses?: CustomerAddress[];
 }
 
 /**

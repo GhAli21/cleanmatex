@@ -1075,6 +1075,7 @@
     "noAddresses": "لم تتم إضافة عناوين بعد",
     "addFirstAddress": "أضف أول عنوان",
     "defaultAddress": "افتراضي",
+    "deleteAddressConfirm": "هل أنت متأكد أنك تريد حذف هذا العنوان؟",
     "noOrdersYet": "لا توجد طلبات بعد",
     "orderHistoryEmptyDescription": "سيظهر سجل الطلبات هنا بمجرد أن يقدم العميل طلبات.",
     "loyaltyRewards": "نقاط الولاء والمكافآت",
