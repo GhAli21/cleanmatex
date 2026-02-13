@@ -40,6 +40,7 @@
     "customers": "العملاء",
     "reports": "التقارير",
     "settings": "الإعدادات",
+    "name": "الاسم",
     "quickSearch": "بحث سريع برقم الطلب، العميل، أو الهاتف...",
     "dateFrom": "من تاريخ",
     "dateTo": "إلى تاريخ",
@@ -59,7 +60,28 @@
     "active": "نشط",
     "inactive": "غير نشط",
     "saving": "جاري الحفظ...",
-    "deleting": "جاري الحذف..."
+    "deleting": "جاري الحذف...",
+    "page": "صفحة",
+    "of": "من",
+    "showing": "عرض",
+    "itemCount": "{count, plural, one {# عنصر} other {# عناصر}}",
+    "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}"
+  },
+  "amountMismatch": {
+    "title": "تم اكتشاف عدم تطابق في المبالغ",
+    "message": "لقد تغيرت المبالغ. يرجى التحديث للحصول على القيم الصحيحة قبل إبلاغ العميل.",
+    "yourValue": "قيمتك",
+    "serverValue": "قيمة الخادم",
+    "refreshPage": "تحديث الصفحة",
+    "cancel": "إلغاء",
+    "field": "الحقل",
+    "fields": {
+      "subtotal": "المجموع الفرعي",
+      "manualDiscount": "الخصم اليدوي",
+      "promoDiscount": "خصم الترويج",
+      "vatValue": "ضريبة القيمة المضافة",
+      "finalTotal": "المجموع النهائي"
+    }
   },
   "publicOrderTracking": {
     "title": "تتبع طلبك",
@@ -182,6 +204,7 @@
     "createFirstOrder": "أنشئ أول طلب",
     "configureServices": "قم بتكوين الخدمات والأسعار",
     "recentOrders": "الطلبات الأخيرة",
+    "viewAllOrders": "عرض جميع الطلبات",
     "noOrdersYet": "لا توجد طلبات بعد.",
     "totalActiveCustomers": "إجمالي العملاء النشطين",
     "readyForDelivery": "جاهز للتسليم",
@@ -212,12 +235,9 @@
     "days": "أيام",
     "noServiceData": "لا توجد بيانات خدمة متاحة",
     "ordersCount": "{count} طلب",
-    "successRate": "معدل النجاح",
-    "openIssues": "المشاكل المفتوحة",
     "criticalCount": "{count} حرج",
     "viewAllIssues": "عرض جميع المشاكل",
     "noPaymentData": "لا توجد بيانات دفع متاحة",
-    "utilizationRate": "معدل الاستخدام",
     "manageDrivers": "إدارة السائقين"
   },
   "invoices": {
@@ -226,7 +246,6 @@
     "empty": "لا توجد فواتير",
     "filters": {
       "search": "البحث برقم الفاتورة، الطلب، العميل، الملاحظات...",
-      "clearFilters": "مسح الفلاتر",
       "allStatuses": "كل الحالات",
       "fromDate": "من تاريخ",
       "toDate": "إلى تاريخ"
@@ -321,6 +340,7 @@
     "emptyDescription": "ستظهر المدفوعات هنا بمجرد قيام العملاء بالدفع",
     "newPayment": "دفعة جديدة",
     "recordPayment": "تسجيل دفعة",
+    "paymentMethod": "طريقة الدفع",
     "stats": {
       "totalPayments": "إجمالي المدفوعات",
       "totalAmount": "إجمالي المبلغ المحصل",
@@ -337,7 +357,6 @@
       "startDate": "تاريخ البداية",
       "endDate": "تاريخ النهاية",
       "search": "البحث برقم المعاملة أو العميل",
-      "clearFilters": "مسح الفلاتر",
       "applyFilters": "تطبيق الفلاتر",
       "allStatuses": "جميع الحالات",
       "allMethods": "جميع الطرق",
@@ -615,6 +634,7 @@
   },
   "orders": {
     "title": "الطلبات",
+    "allOrders": "جميع الطلبات",
     "newOrder": "طلب جديد",
     "orderNumber": "رقم الطلب",
     "customer": "العميل",
@@ -623,30 +643,135 @@
     "total": "المجموع",
     "received": "تم الاستلام",
     "readyBy": "جاهز في",
-    "actions": "الإجراءات",
+    "actions": {
+      "buttons": {
+        "startPreparation": "بدء التحضير",
+        "markAsReady": "تحديد كجاهز",
+        "outForDelivery": "خارج للتسليم",
+        "markAsDelivered": "تحديد كمسلم",
+        "cancelOrder": "إلغاء الطلب"
+      },
+      "success": {
+        "statusUpdated": "تم تحديث حالة الطلب إلى {status}"
+      },
+      "errors": {
+        "updateFailed": "فشل تحديث الحالة"
+      },
+      "dialog": {
+        "changeStatusTo": "تغيير الحالة إلى {status}؟",
+        "cannotChangeStatus": "لا يمكن تغيير الحالة",
+        "notes": "ملاحظات",
+        "notesPlaceholder": "أضف أي ملاحظات حول تغيير الحالة هذا...",
+        "confirmChange": "تأكيد التغيير"
+      }
+    },
     "search": "البحث برقم الطلب أو اسم العميل أو الهاتف...",
     "filterByStatus": "تصفية حسب الحالة",
     "filterByPriority": "تصفية حسب الأولوية",
-    "clearFilters": "مسح التصفية",
+    "retail": "بيع مباشر",
+    "retailOnly": "بيع بالتجزئة فقط",
+    "servicesOnly": "الخدمات فقط",
     "noOrders": "لا توجد طلبات",
     "orderDetails": "تفاصيل الطلب",
     "customerInfo": "معلومات العميل",
     "orderItems": "عناصر الطلب",
     "paymentDetails": "تفاصيل الدفع",
     "payments": "المدفوعات",
-    "timeline": "الجدول الزمني",
+    "timeline": {
+      "loading": "جاري تحميل الجدول الزمني...",
+      "noHistory": "لا يوجد تاريخ متاح",
+      "notes": "ملاحظات",
+      "details": "التفاصيل",
+      "expandDetails": "توسيع التفاصيل",
+      "collapseDetails": "طي التفاصيل",
+      "actions": {
+        "orderCreated": "تم إنشاء الطلب",
+        "statusChanged": "تم تغيير الحالة",
+        "fieldUpdated": "تم تحديث الحقل",
+        "orderSplit": "تم تقسيم الطلب",
+        "qaDecision": "قرار مراقبة الجودة",
+        "processingStep": "خطوة المعالجة",
+        "issueCreated": "تم إنشاء المشكلة",
+        "issueResolved": "تم حل المشكلة"
+      }
+    },
     "notes": "ملاحظات",
     "customerNotes": "ملاحظات العميل",
     "internalNotes": "ملاحظات داخلية",
     "photos": "الصور",
-    "preparation": "التحضير",
+    "preparation": {
+      "error": "خطأ",
+      "orderPhotos": "صور الطلب",
+      "addPhotos": "إضافة صور",
+      "removePhoto": "إزالة الصورة",
+      "orderItems": "عناصر الطلب",
+      "addItem": "إضافة عنصر",
+      "item": "العنصر",
+      "removeItem": "إزالة العنصر",
+      "productName": "اسم المنتج",
+      "productNamePlaceholder": "مثال: قميص، فستان، بدلة",
+      "productNameArabic": "اسم المنتج (بالعربية)",
+      "productNameArabicPlaceholder": "اسم المنتج بالعربية",
+      "quantity": "الكمية",
+      "price": "السعر",
+      "color": "اللون",
+      "colorPlaceholder": "مثال: أبيض، أزرق",
+      "brand": "العلامة التجارية",
+      "brandPlaceholder": "مثال: نايك، زارا",
+      "hasStain": "يحتوي على بقع",
+      "hasDamage": "يحتوي على تلف",
+      "stainNotes": "ملاحظات البقع",
+      "stainNotesPlaceholder": "وصف موقع ونوع البقع...",
+      "damageNotes": "ملاحظات التلف",
+      "damageNotesPlaceholder": "وصف التلف...",
+      "notes": "ملاحظات",
+      "notesPlaceholder": "ملاحظات إضافية حول هذا العنصر...",
+      "itemTotal": "إجمالي العنصر",
+      "packaging": "التعبئة والتغليف",
+      "numberOfBags": "عدد الأكياس",
+      "orderSummary": "ملخص الطلب",
+      "totalItems": "إجمالي العناصر",
+      "subtotal": "المجموع الفرعي",
+      "tax": "الضريبة (ضريبة القيمة المضافة 5%)",
+      "grandTotal": "الإجمالي الكلي",
+      "saving": "جاري الحفظ...",
+      "completePreparation": "إكمال التحضير",
+      "errors": {
+        "atLeastOneItem": "يجب أن يكون لديك عنصر واحد على الأقل",
+        "allItemsMustHaveName": "يجب أن يكون لجميع العناصر اسم منتج",
+        "quantityMustBeAtLeast1": "يجب أن تكون الكمية 1 على الأقل",
+        "priceMustBeGreaterThan0": "يجب أن يكون السعر أكبر من 0",
+        "provideStainNotes": "يرجى تقديم ملاحظات البقع للعناصر التي تحتوي على بقع",
+        "provideDamageNotes": "يرجى تقديم ملاحظات التلف للعناصر التي تحتوي على تلف",
+        "failedToAddItems": "فشل إضافة العناصر",
+        "failedToCompletePreparation": "فشل إكمال التحضير",
+        "failedToSavePreparation": "فشل حفظ التحضير"
+      }
+    },
     "startPreparation": "بدء التحضير",
     "continuePreparation": "متابعة التحضير",
     "preparationStatus": "حالة التحضير",
     "numberOfBags": "عدد الأكياس",
     "qrCode": "رمز الاستجابة السريعة",
     "publicTrackingLink": "رابط تتبع عام",
-    "printLabel": "طباعة الملصق",
+    "printLabel": {
+      "title": "طباعة الملصق",
+      "printLabel": "طباعة الملصق",
+      "printing": "جاري الطباعة...",
+      "tbd": "لم يتم التحديد",
+      "label": {
+        "customer": "العميل",
+        "readyBy": "جاهز بحلول",
+        "scanToTrack": "امسح للمتابعة",
+        "barcode": "الرمز الشريطي",
+        "footerThankYou": "شكراً لاختيارك CleanMateX",
+        "footerInquiries": "للاستفسارات"
+      },
+      "errors": {
+        "allowPopups": "يرجى السماح بالنوافذ المنبثقة لطباعة الملصقات",
+        "noCodesAvailable": "لا يوجد رمز QR أو رمز شريطي متاح"
+      }
+    },
     "printItemLabels": "طباعة ملصقات العناصر",
     "saveDraft": "حفظ كمسودة",
     "completeAndContinue": "إكمال والمتابعة",
@@ -663,7 +788,51 @@
     "pickups": "الاستلامات",
     "ready": "جاهز",
     "cleaning": "قيد الغسيل",
-    "detail": "تفاصيل",
+    "detail": {
+      "backToOrders": "العودة إلى الطلبات",
+      "edit": "تعديل",
+      "retail": "بيع مباشر",
+      "totalAmount": "المبلغ الإجمالي",
+      "paid": "مدفوع",
+      "pendingPayment": "في انتظار الدفع",
+      "preparationStatus": "حالة التحضير",
+      "startPreparation": "بدء التحضير",
+      "continuePreparation": "متابعة التحضير",
+      "completed": "مكتمل",
+      "numberOfBags": "عدد الأكياس",
+      "qrCode": "رمز QR",
+      "publicTrackingLink": "رابط تتبع عام",
+      "customerInformation": "معلومات العميل",
+      "name": "الاسم",
+      "phone": "الهاتف",
+      "email": "البريد الإلكتروني",
+      "address": "العنوان",
+      "loyaltyPoints": "نقاط الولاء",
+      "points": "نقطة",
+      "orderItems": "عناصر الطلب",
+      "notes": "ملاحظات",
+      "customerNotes": "ملاحظات العميل",
+      "internalNotes": "ملاحظات داخلية",
+      "photos": "الصور",
+      "orderTimeline": "الجدول الزمني للطلب",
+      "quickActions": "إجراءات سريعة",
+      "paymentDetails": "تفاصيل الدفع",
+      "subtotal": "المجموع الفرعي",
+      "discount": "الخصم",
+      "tax": "الضريبة (ضريبة القيمة المضافة)",
+      "total": "الإجمالي",
+      "paidAmount": "المبلغ المدفوع",
+      "balance": "الرصيد",
+      "paymentMethod": "طريقة الدفع",
+      "received": "تم الاستلام",
+      "readyBy": "جاهز بحلول",
+      "unappliedPayments": "مدفوعات غير مطبقة",
+      "applyToInvoice": "تطبيق على الفاتورة",
+      "noUnappliedPayments": "لا توجد مدفوعات غير مطبقة",
+      "recordDepositPos": "تسجيل عربون / نقاط بيع",
+      "selectInvoiceToApply": "اختر الفاتورة لتطبيق الدفعة عليها",
+      "paymentKind": "نوع الدفع"
+    },
     "statuses": {
       "intake": "الاستلام",
       "preparation": "التحضير",
@@ -687,8 +856,7 @@
     "deliveredToday": "تم التسليم اليوم",
     "overdue": "متأخر",
     "prepStatus": "حالة التحضير",
-    "ordersSelected": "تم اختيار {count} طلب",
-    "ordersSelectedPlural": "تم اختيار {count} طلبات",
+    "ordersSelected": "{count, plural, one {تم اختيار طلب واحد} other {تم اختيار # طلبات}}",
     "clearSelection": "مسح التحديد",
     "updateStatus": "تحديث الحالة",
     "noOrdersFound": "لا توجد طلبات",
@@ -803,25 +971,21 @@
     },
     "bulkStatusUpdate": {
       "title": "تحديث الحالة بالجملة",
-      "subtitle": "تحديث الحالة لطلب محدد واحد",
-      "subtitlePlural": "تحديث الحالة لـ {count} طلبات محددة",
+      "subtitle": "{count, plural, one {تحديث الحالة لطلب محدد واحد} other {تحديث الحالة لـ # طلبات محددة}}",
       "form": {
         "newStatus": "الحالة الجديدة",
         "selectStatus": "اختر الحالة...",
         "notes": "ملاحظات",
         "notesPlaceholder": "أضف ملاحظات حول تغيير الحالة هذا...",
         "confirmationRequired": "التأكيد مطلوب",
-        "confirmationMessage": "أنت على وشك تحديث طلب واحد إلى الحالة: {status}",
-        "confirmationMessagePlural": "أنت على وشك تحديث {count} طلبات إلى الحالة: {status}",
+        "confirmationMessage": "{count, plural, one {أنت على وشك تحديث طلب واحد إلى الحالة: {status}} other {أنت على وشك تحديث # طلبات إلى الحالة: {status}}}",
         "updating": "جاري التحديث...",
         "updateOrders": "تحديث الطلبات"
       },
       "results": {
         "updateComplete": "اكتمل التحديث",
-        "successMessage": "تم تحديث {successCount} طلب بنجاح",
-        "successMessagePlural": "تم تحديث {successCount} طلبات بنجاح",
-        "successWithFailures": "تم تحديث {successCount} طلب بنجاح • فشل {failureCount}",
-        "successWithFailuresPlural": "تم تحديث {successCount} طلبات بنجاح • فشل {failureCount}",
+        "successMessage": "{successCount, plural, one {تم تحديث طلب واحد بنجاح} other {تم تحديث # طلبات بنجاح}}",
+        "successWithFailures": "{successCount, plural, one {تم تحديث طلب واحد بنجاح • فشل {failureCount}} other {تم تحديث # طلبات بنجاح • فشل {failureCount}}}",
         "failedUpdates": "التحديثات الفاشلة",
         "order": "الطلب",
         "unknownError": "خطأ غير معروف"
@@ -831,138 +995,6 @@
         "noOrdersSelected": "لم يتم تحديد أي طلبات",
         "tooManyOrders": "لا يمكن تحديث أكثر من 100 طلب في المرة الواحدة",
         "updateFailed": "فشل تحديث الطلبات"
-      }
-    },
-    "actions": {
-      "buttons": {
-        "startPreparation": "بدء التحضير",
-        "markAsReady": "تحديد كجاهز",
-        "outForDelivery": "خارج للتسليم",
-        "markAsDelivered": "تحديد كمسلم",
-        "cancelOrder": "إلغاء الطلب"
-      },
-      "success": {
-        "statusUpdated": "تم تحديث حالة الطلب إلى {status}"
-      },
-      "errors": {
-        "updateFailed": "فشل تحديث الحالة"
-      },
-      "dialog": {
-        "changeStatusTo": "تغيير الحالة إلى {status}؟",
-        "cannotChangeStatus": "لا يمكن تغيير الحالة",
-        "notes": "ملاحظات",
-        "notesPlaceholder": "أضف أي ملاحظات حول تغيير الحالة هذا...",
-        "confirmChange": "تأكيد التغيير"
-      }
-    },
-    "detail": {
-      "backToOrders": "العودة إلى الطلبات",
-      "edit": "تعديل",
-      "totalAmount": "المبلغ الإجمالي",
-      "paid": "مدفوع",
-      "pendingPayment": "في انتظار الدفع",
-      "preparationStatus": "حالة التحضير",
-      "startPreparation": "بدء التحضير",
-      "continuePreparation": "متابعة التحضير",
-      "completed": "مكتمل",
-      "numberOfBags": "عدد الأكياس",
-      "qrCode": "رمز QR",
-      "customerInformation": "معلومات العميل",
-      "name": "الاسم",
-      "phone": "الهاتف",
-      "email": "البريد الإلكتروني",
-      "address": "العنوان",
-      "loyaltyPoints": "نقاط الولاء",
-      "points": "نقطة",
-      "orderItems": "عناصر الطلب",
-      "notes": "ملاحظات",
-      "customerNotes": "ملاحظات العميل",
-      "internalNotes": "ملاحظات داخلية",
-      "photos": "الصور",
-      "orderTimeline": "الجدول الزمني للطلب",
-      "quickActions": "إجراءات سريعة",
-      "paymentDetails": "تفاصيل الدفع",
-      "subtotal": "المجموع الفرعي",
-      "discount": "الخصم",
-      "tax": "الضريبة (ضريبة القيمة المضافة)",
-      "total": "الإجمالي",
-      "paidAmount": "المبلغ المدفوع",
-      "balance": "الرصيد",
-      "paymentMethod": "طريقة الدفع",
-      "received": "تم الاستلام",
-      "readyBy": "جاهز بحلول",
-      "unappliedPayments": "مدفوعات غير مطبقة",
-      "applyToInvoice": "تطبيق على الفاتورة",
-      "noUnappliedPayments": "لا توجد مدفوعات غير مطبقة",
-      "recordDepositPos": "تسجيل عربون / نقاط بيع",
-      "selectInvoiceToApply": "اختر الفاتورة لتطبيق الدفعة عليها",
-      "paymentKind": "نوع الدفع"
-    },
-    "printLabel": {
-      "title": "طباعة الملصق",
-      "printLabel": "طباعة الملصق",
-      "printing": "جاري الطباعة...",
-      "tbd": "لم يتم التحديد",
-      "label": {
-        "customer": "العميل",
-        "readyBy": "جاهز بحلول",
-        "scanToTrack": "امسح للمتابعة",
-        "barcode": "الرمز الشريطي",
-        "footerThankYou": "شكراً لاختيارك CleanMateX",
-        "footerInquiries": "للاستفسارات"
-      },
-      "errors": {
-        "allowPopups": "يرجى السماح بالنوافذ المنبثقة لطباعة الملصقات",
-        "noCodesAvailable": "لا يوجد رمز QR أو رمز شريطي متاح"
-      }
-    },
-    "preparation": {
-      "error": "خطأ",
-      "orderPhotos": "صور الطلب",
-      "addPhotos": "إضافة صور",
-      "removePhoto": "إزالة الصورة",
-      "orderItems": "عناصر الطلب",
-      "addItem": "إضافة عنصر",
-      "item": "العنصر",
-      "removeItem": "إزالة العنصر",
-      "productName": "اسم المنتج",
-      "productNamePlaceholder": "مثال: قميص، فستان، بدلة",
-      "productNameArabic": "اسم المنتج (بالعربية)",
-      "productNameArabicPlaceholder": "اسم المنتج بالعربية",
-      "quantity": "الكمية",
-      "price": "السعر",
-      "color": "اللون",
-      "colorPlaceholder": "مثال: أبيض، أزرق",
-      "brand": "العلامة التجارية",
-      "brandPlaceholder": "مثال: نايك، زارا",
-      "hasStain": "يحتوي على بقع",
-      "hasDamage": "يحتوي على تلف",
-      "stainNotes": "ملاحظات البقع",
-      "stainNotesPlaceholder": "وصف موقع ونوع البقع...",
-      "damageNotes": "ملاحظات التلف",
-      "damageNotesPlaceholder": "وصف التلف...",
-      "notes": "ملاحظات",
-      "notesPlaceholder": "ملاحظات إضافية حول هذا العنصر...",
-      "itemTotal": "إجمالي العنصر",
-      "packaging": "التعبئة والتغليف",
-      "numberOfBags": "عدد الأكياس",
-      "orderSummary": "ملخص الطلب",
-      "totalItems": "إجمالي العناصر",
-      "subtotal": "المجموع الفرعي",
-      "tax": "الضريبة (ضريبة القيمة المضافة 5%)",
-      "grandTotal": "الإجمالي الكلي",
-      "saving": "جاري الحفظ...",
-      "completePreparation": "إكمال التحضير",
-      "errors": {
-        "atLeastOneItem": "يجب أن يكون لديك عنصر واحد على الأقل",
-        "allItemsMustHaveName": "يجب أن يكون لجميع العناصر اسم منتج",
-        "quantityMustBeAtLeast1": "يجب أن تكون الكمية 1 على الأقل",
-        "priceMustBeGreaterThan0": "يجب أن يكون السعر أكبر من 0",
-        "provideStainNotes": "يرجى تقديم ملاحظات البقع للعناصر التي تحتوي على بقع",
-        "provideDamageNotes": "يرجى تقديم ملاحظات التلف للعناصر التي تحتوي على تلف",
-        "failedToAddItems": "فشل إضافة العناصر",
-        "failedToCompletePreparation": "فشل إكمال التحضير",
-        "failedToSavePreparation": "فشل حفظ التحضير"
       }
     },
     "quickDrop": {
@@ -1012,24 +1044,6 @@
       "damageNotes": "ملاحظات التلف",
       "notes": "ملاحظات",
       "totalItems": "إجمالي العناصر"
-    },
-    "timeline": {
-      "loading": "جاري تحميل الجدول الزمني...",
-      "noHistory": "لا يوجد تاريخ متاح",
-      "notes": "ملاحظات",
-      "details": "التفاصيل",
-      "expandDetails": "توسيع التفاصيل",
-      "collapseDetails": "طي التفاصيل",
-      "actions": {
-        "orderCreated": "تم إنشاء الطلب",
-        "statusChanged": "تم تغيير الحالة",
-        "fieldUpdated": "تم تحديث الحقل",
-        "orderSplit": "تم تقسيم الطلب",
-        "qaDecision": "قرار مراقبة الجودة",
-        "processingStep": "خطوة المعالجة",
-        "issueCreated": "تم إنشاء المشكلة",
-        "issueResolved": "تم حل المشكلة"
-      }
     }
   },
   "customers": {
@@ -1234,6 +1248,7 @@
     "general": "عام",
     "branding": "العلامة التجارية",
     "users": "المستخدمون",
+    "workflows": "سير العمل",
     "subscription": "الاشتراك",
     "finance": "المالية",
     "navigation": "التنقل",
@@ -1414,7 +1429,32 @@
       "apply": "تطبيق",
       "allStatuses": "جميع الحالات"
     },
+    "table": {
+      "orderNo": "رقم الطلب",
+      "invoiceNo": "رقم الفاتورة",
+      "customer": "العميل",
+      "status": "الحالة",
+      "items": "العناصر",
+      "total": "المجموع",
+      "payment": "الدفع",
+      "date": "التاريخ",
+      "amount": "المبلغ",
+      "method": "الطريقة",
+      "paid": "مدفوع",
+      "balance": "الرصيد",
+      "dueDate": "تاريخ الاستحقاق",
+      "phone": "الهاتف",
+      "orders": "الطلبات",
+      "revenue": "الإيرادات",
+      "avgValue": "متوسط القيمة",
+      "lastOrder": "آخر طلب",
+      "firstOrder": "أول طلب"
+    },
     "kpi": {
+      "totalRevenue": "إجمالي الإيرادات",
+      "totalOrders": "إجمالي الطلبات",
+      "avgOrderValue": "متوسط قيمة الطلب",
+      "activeCustomers": "العملاء النشطون",
       "totalPayments": "إجمالي المدفوعات",
       "totalAmount": "إجمالي المبلغ",
       "avgAmount": "متوسط المبلغ",
@@ -1506,7 +1546,6 @@
     "turnaroundHours": "ساعات",
     "minQuantity": "الحد الأدنى للكمية",
     "maxQuantity": "الحد الأقصى للكمية",
-    "import": "استيراد المنتجات",
     "export": "تصدير المنتجات",
     "downloadTemplate": "تحميل النموذج",
     "basicTemplate": "النموذج الأساسي",
@@ -1538,8 +1577,6 @@
     "categoriesDisabled": "تم تعطيل الفئات بنجاح",
     "all": "الكل",
     "search": "بحث",
-    "clearFilters": "مسح الفلاتر",
-    "loading": "جاري التحميل...",
     "previous": "السابق",
     "next": "التالي",
     "showing": "عرض",
@@ -1550,8 +1587,7 @@
     "close": "إغلاق",
     "download": "تحميل",
     "yes": "نعم",
-    "no": "لا",
-    "create": "إنشاء"
+    "no": "لا"
   },
   "validation": {
     "required": "هذا الحقل مطلوب",
@@ -1918,21 +1954,21 @@
         "pending": "معلق"
       },
       "actions": {
-      "title": "إجراءات التسليم",
-      "open": "فتح",
-      "backToReady": "العودة إلى الجاهز",
-      "markDelivered": "تمييز كتم التسليم",
-      "printReceipt": "طباعة الإيصال",
-      "printReceiptThermal": "طباعة الإيصال (٨٠ ملم)",
-      "printReceiptA4": "طباعة الإيصال (A4)",
-      "printOrderDetailsThermal": "طباعة تفاصيل الطلب (٨٠ ملم)",
-      "printOrderDetailsA4": "طباعة تفاصيل الطلب (A4)",
-      "reportsA4Rprt": "تقارير A4",
-      "printInvoicesPaymentsA4Rprt": "طباعة الفواتير والمدفوعات (A4)",
-      "printPaymentsA4DescRprt": "طباعة المدفوعات (A4، الأحدث أولاً)",
-      "printPaymentsA4AscRprt": "طباعة المدفوعات (A4، الأقدم أولاً)",
-      "printOrderHistoryA4Rprt": "طباعة سجل الطلب (A4)",
-      "processing": "جارٍ المعالجة..."
+        "title": "إجراءات التسليم",
+        "open": "فتح",
+        "backToReady": "العودة إلى الجاهز",
+        "markDelivered": "تمييز كتم التسليم",
+        "printReceipt": "طباعة الإيصال",
+        "printReceiptThermal": "طباعة الإيصال (٨٠ ملم)",
+        "printReceiptA4": "طباعة الإيصال (A4)",
+        "printOrderDetailsThermal": "طباعة تفاصيل الطلب (٨٠ ملم)",
+        "printOrderDetailsA4": "طباعة تفاصيل الطلب (A4)",
+        "reportsA4Rprt": "تقارير A4",
+        "printInvoicesPaymentsA4Rprt": "طباعة الفواتير والمدفوعات (A4)",
+        "printPaymentsA4DescRprt": "طباعة المدفوعات (A4، الأحدث أولاً)",
+        "printPaymentsA4AscRprt": "طباعة المدفوعات (A4، الأقدم أولاً)",
+        "printOrderHistoryA4Rprt": "طباعة سجل الطلب (A4)",
+        "processing": "جارٍ المعالجة..."
       },
       "messages": {
         "loadFailed": "فشل تحميل الطلب",
@@ -2069,6 +2105,7 @@
   },
   "newOrder": {
     "title": "طلب جديد",
+    "addNewOrder": "إضافة طلب جديد",
     "selectCustomer": "اختر العميل",
     "quickDrop": "إسقاط سريع",
     "notes": "ملاحظات",
@@ -2127,7 +2164,7 @@
       "title": "العناصر",
       "qtyLabel": "الكمية",
       "priceLabel": "السعر",
-      "addItem": "عنصر",
+      "addItem": "إضافة عنصر",
       "addPhoto": "صورة",
       "customItemTitle": "وصف عنصر",
       "fieldName": "الاسم",
@@ -2145,7 +2182,6 @@
       "total": "الإجمالي",
       "totalPieces": "إجمالي القطع",
       "customGarmentPlaceholder": "مثال: قطعة مخصصة",
-      "addItem": "إضافة عنصر",
       "noItemsAdded": "لم تتم إضافة عناصر بعد",
       "itemName": "اسم العنصر",
       "actions": "الإجراءات",
@@ -2273,6 +2309,8 @@
     "errors": {
       "selectCustomer": "يرجى اختيار عميل",
       "addItems": "يرجى إضافة عنصر واحد على الأقل للطلب",
+      "mixedRetailServices": "لا يمكن خلط العناصر البيع بالتجزئة وخدمات الغسيل في نفس الطلب. يرجى إضافة نوع واحد فقط.",
+      "retailPayOnCollection": "يجب دفع طلبات البيع بالتجزئة عند نقطة البيع. يرجى اختيار نقداً أو بطاقة.",
       "invalidCustomer": "تم اختيار عميل غير صحيح. يرجى اختيار عميل مرة أخرى.",
       "invalidProductIds": "بعض المنتجات تحتوي على معرفات غير صحيحة. يرجى تحديث الصفحة والمحاولة مرة أخرى.",
       "orderCreationFailed": "فشل إنشاء الطلب",
@@ -2301,6 +2339,8 @@
       "total": "الإجمالي",
       "finalTotal": "الإجمالي النهائي",
       "savings": "وفّر",
+      "haveCoupon": "لديك قسيمة؟",
+      "promoOrGiftCard": "كود خصم أو بطاقة هدية",
       "methods": {
         "title": "اختر طريقة الدفع",
         "cash": "نقداً",
@@ -2323,6 +2363,9 @@
       "checkDate": {
         "label": "تاريخ الشيك",
         "placeholder": "اختر التاريخ"
+      },
+      "validation": {
+        "discountExceedsTotal": "الخصم لا يمكن أن يتجاوز إجمالي الطلب"
       },
       "manualDiscount": {
         "title": "تطبيق الخصم",
@@ -2412,8 +2455,8 @@
         "currencyCode": "العملة",
         "exchangeRate": "سعر الصرف",
         "subtotal": "المبلغ الجزئي",
-        "taxRate": "نسبة الضريبة %",
-        "taxAmount": "مبلغ الضريبة",
+        "taxRate": "نسبة الضريبة % الأخرى",
+        "taxAmount": "مبلغ الضريبة الأخرى",
         "vatTaxPercent": "نسبة ضريبة القيمة المضافة %",
         "vatValue": "قيمة ضريبة القيمة المضافة",
         "manualDiscount": "الخصم اليدوي",
@@ -2444,6 +2487,7 @@
       },
       "errors": {
         "invalidAmount": "المبلغ غير صحيح. يرجى التحقق من الإجمالي.",
+        "productNotFound": "تعذر العثور على منتج واحد أو أكثر. ربما تمت إزالته من الكتالوج. يرجى إزالته من طلبك.",
         "invoiceCreationFailed": "تعذر إنشاء الفاتورة. أصلح الخطأ وحاول مرة أخرى.",
         "paymentRecordingFailed": "تعذر تسجيل الدفع. أصلح الخطأ وحاول مرة أخرى.",
         "paymentNotRecordedCompleteOnOrder": "تم إنشاء الطلب لكن تعذر تسجيل الدفع. يمكنك إتمام الدفع من صفحة الطلب."
@@ -2502,7 +2546,9 @@
       "readyToSubmit": "جاهز للإرسال"
     },
     "warnings": {
-      "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟"
+      "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟",
+      "discardAndNewOrder": "لديك تغييرات غير محفوظة. هل تريد التخلص منها والبدء بطلب جديد؟",
+      "discardAndNewOrderTitle": "التخلص من التغييرات؟"
     },
     "customItem": {
       "title": "إضافة عنصر مخصص",
@@ -2580,7 +2626,35 @@
       "date": "التاريخ",
       "type": "النوع",
       "before": "قبل",
-      "after": "بعد"
+      "after": "بعد",
+      "hintText": "نص التلميح",
+      "serviceCategoryCode": "الفئة",
+      "isRetailItem": "صنف تجزئة",
+      "defaultExpressSellPrice": "سعر الإسعاف",
+      "minSellPrice": "الحد الأدنى لسعر البيع",
+      "minStockLevel": "الحد الأدنى للمخزون",
+      "maxStockLevel": "الحد الأقصى للمخزون",
+      "lastPurchaseCost": "آخر تكلفة شراء",
+      "productGroup1": "المجموعة 1",
+      "productGroup2": "المجموعة 2",
+      "productGroup3": "المجموعة 3",
+      "minQuantity": "الحد الأدنى للكمية",
+      "piecesPerProduct": "قطع لكل منتج",
+      "turnaroundHh": "وقت التنفيذ (ساعات)",
+      "turnaroundHhExpress": "وقت الإسعاف (ساعات)",
+      "priceType": "نوع السعر",
+      "productType": "نوع المنتج",
+      "extraDays": "أيام إضافية",
+      "multiplierExpress": "مضاعف الإسعاف",
+      "productOrder": "ترتيب العرض",
+      "isTaxExempt": "معفى من الضريبة",
+      "productColor1": "اللون 1",
+      "productColor2": "اللون 2",
+      "productColor3": "اللون 3",
+      "productIcon": "الأيقونة",
+      "productImage": "رابط الصورة",
+      "recOrder": "ترتيب الفرز",
+      "recNotes": "ملاحظات"
     },
     "statuses": {
       "inStock": "متوفر",
@@ -2624,7 +2698,9 @@
     },
     "filters": {
       "searchPlaceholder": "بحث بالاسم أو الرمز أو SKU...",
-      "allStatuses": "جميع الحالات"
+      "allStatuses": "جميع الحالات",
+      "branch": "الفرع",
+      "allBranches": "جميع الفروع"
     },
     "pagination": {
       "showing": "عرض {count} من {total}"
@@ -2640,6 +2716,9 @@
     },
     "placeholders": {
       "reason": "مثال: إعادة تخزين من المورد، بضائع تالفة..."
+    },
+    "sections": {
+      "optional": "حقول إضافية"
     },
     "validation": {
       "nameRequired": "اسم الصنف مطلوب",

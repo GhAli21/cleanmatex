@@ -11,6 +11,38 @@ user-invocable: true
 1. **Always search for existing message keys** before adding new ones
 2. **Always use common keys** for common messages (`tCommon()`)
 3. **Update BOTH en.json and ar.json** when adding translations
+4. **Run `npm run check:i18n`** after translation changes
+
+## Workflow Checklist
+
+1. Search en.json and ar.json for existing keys
+2. Reuse or add new keys
+3. Update both locale files
+4. Run `npm run check:i18n`
+
+## Common Keys (use tCommon)
+
+for common keys such as: save, cancel, delete, edit, create, update, search, filter, clearFilters, loading, error, success, actions, status, date, import, close, optional, itemCount, warningCount
+
+## ICU Pluralization
+
+Prefer ICU format over manual plural keys:
+
+```json
+"ordersSelected": "{count, plural, one {# order selected} other {# orders selected}}"
+```
+
+Arabic: use `one` + `other` for simplicity; full ICU supports zero, one, two, few, many, other.
+
+## Error Message Conventions
+
+- Pattern: `errors.loadFailed`, `errors.saveFailed`, `errors.deleteFailed`, `errors.notFound`
+- Parameterized: `"loadFailed": "Failed to load {resource}"`
+- Feature-specific: Keep domain errors in feature namespace (e.g. `orders.preparation.errors.atLeastOneItem`)
+
+## Reference
+
+- [docs/dev/i18n_docs/](../docs/dev/i18n_docs/) — style guide, future suggestions, migration checklist
 
 ## Translation Usage
 
@@ -62,14 +94,11 @@ description2 TEXT        -- Arabic
 
 ```tsx
 // app/[locale]/layout.tsx
-export default async function LocaleLayout({
-  children,
-  params: { locale }
-}) {
+export default async function LocaleLayout({ children, params: { locale } }) {
   const messages = await getMessages();
 
   return (
-    <html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
       <body>
         <NextIntlClientProvider messages={messages}>
           {children}
@@ -115,24 +144,24 @@ export default async function LocaleLayout({
 ## Date & Currency Formatting
 
 ```typescript
-import { useLocale } from 'next-intl';
+import { useLocale } from "next-intl";
 
 function formatDate(date: Date): string {
   const locale = useLocale();
 
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-OM" : "en-OM", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
   }).format(date);
 }
 
 function formatCurrency(amount: number): string {
   const locale = useLocale();
 
-  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-    style: 'currency',
-    currency: 'OMR'
+  return new Intl.NumberFormat(locale === "ar" ? "ar-OM" : "en-OM", {
+    style: "currency",
+    currency: "OMR",
   }).format(amount);
 }
 ```
@@ -140,10 +169,10 @@ function formatCurrency(amount: number): string {
 ## Font Setup for Arabic
 
 ```css
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap");
 
 body[dir="rtl"] {
-  font-family: 'Noto Sans Arabic', sans-serif;
+  font-family: "Noto Sans Arabic", sans-serif;
 }
 ```
 

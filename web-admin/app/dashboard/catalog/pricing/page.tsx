@@ -22,6 +22,7 @@ interface PriceList {
 
 export default function PricingPage() {
   const t = useTranslations('catalog')
+  const tCommon = useTranslations('common')
   const [loading, setLoading] = useState(true)
   const [lists, setLists] = useState<PriceList[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -118,7 +119,7 @@ export default function PricingPage() {
             <option value="yes">{t('yes')}</option>
           </select>
           <div className="flex gap-2">
-            <Button type="submit" disabled={creating}>{creating ? t('loading') : t('create')}</Button>
+            <Button type="submit" disabled={creating}>{creating ? tCommon('loading') : tCommon('create')}</Button>
           </div>
         </form>
       </Card>
@@ -126,7 +127,7 @@ export default function PricingPage() {
       {/* List */}
       <Card className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-4 text-gray-500">{t('loading')}</div>
+          <div className="p-4 text-gray-500">{tCommon('loading')}</div>
         ) : lists.length === 0 ? (
           <div className="p-4 text-gray-500">{t('noPriceLists')}</div>
         ) : (

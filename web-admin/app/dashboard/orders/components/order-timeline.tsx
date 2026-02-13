@@ -37,6 +37,7 @@ const ACTION_ICONS: Record<string, any> = {
 
 export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
   const t = useTranslations('orders.timeline');
+  const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -131,7 +132,7 @@ export function OrderTimeline({ orderId, currentStatus }: OrderTimelineProps) {
       <div className="flex items-center justify-center py-8">
         <div className={`flex items-center gap-2 text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Clock className="w-5 h-5 animate-spin" />
-          <span className={isRTL ? 'text-right' : 'text-left'}>{t('loading')}</span>
+          <span className={isRTL ? 'text-right' : 'text-left'}>{tCommon('loading')}</span>
         </div>
       </div>
     );

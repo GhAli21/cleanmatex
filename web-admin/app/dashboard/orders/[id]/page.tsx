@@ -108,6 +108,7 @@ async function OrderDetailContent({
         completed: t('completed'),
         numberOfBags: t('numberOfBags'),
         qrCode: t('qrCode'),
+        retail: t('retail'),
         customerInformation: t('customerInformation'),
         name: t('name'),
         phone: t('phone'),

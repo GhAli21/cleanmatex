@@ -31,9 +31,17 @@ export function OrdersTodayWidget() {
         const count = await dashboardService.getTodayOrdersCount(
           currentTenant.tenant_id
         )
-
-        // TODO: Calculate actual trend from yesterday's data
-        const trend = 0
+        const yesterday = new Date()
+        yesterday.setDate(yesterday.getDate() - 1)
+        const yesterdayCount =
+          await dashboardService.getOrdersCountForDate(
+            currentTenant.tenant_id,
+            yesterday
+          )
+        const trend =
+          yesterdayCount > 0
+            ? Math.round(((count - yesterdayCount) / yesterdayCount) * 100)
+            : count > 0 ? 100 : 0
 
         setData({ count, trend })
       } catch (error) {

@@ -1,7 +1,7 @@
 # New Order Page - Complete Documentation
 
-**Version**: 1.0.0  
-**Last Updated**: 2026-01-24  
+**Version**: 1.2.0  
+**Last Updated**: 2026-02-12  
 **Status**: ✅ Production Ready
 
 ---
@@ -21,6 +21,7 @@
 11. [Performance](#performance)
 12. [Usage Guide](#usage-guide)
 13. [API Reference](#api-reference)
+14. [Retail & Inventory Integration](#retail--inventory-integration)
 
 ---
 
@@ -36,6 +37,9 @@ The New Order Page is a comprehensive, production-ready order creation interface
 - Photo capture
 - Payment processing
 - Bilingual support (EN/AR + RTL)
+- **Retail vs Services separation**: Orders contain either retail items or service items, never both
+- **Retail order payment**: Retail-only orders must be paid at POS (Cash or Card); Pay-on-Collection disabled
+- **Stock deduction**: Retail items automatically deduct inventory on order creation
 
 ### Key Highlights
 
@@ -141,14 +145,26 @@ lib/
    - Order notes (with auto-save)
    - Piece-level tracking (when enabled)
 
-4. **Payment Processing**
-   - Multiple payment methods
-   - Discounts (percent/amount)
-   - Promo codes
-   - Gift cards
-   - Payment summary
+4. **Payment Processing (Server-Side Calculation)**
+   - **Server as source of truth**: Totals fetched from `POST /api/v1/orders/preview-payment`; displayed only from server response
+   - Single-transaction create: `POST /api/v1/orders/create-with-payment` creates order + invoice + payment atomically
+   - On amount mismatch: API returns `AMOUNT_MISMATCH`; client shows `AmountMismatchDialog` with diff (Field | Your Value | Server Value); nothing persisted
+   - Multiple payment methods: Cash, Card, Check, Invoice, Pay-on-Collection
+   - Discounts (percent/amount), promo codes, gift cards
+   - **Retail orders**: Pay-on-Collection is disabled; payment must be Cash or Card at POS
 
-5. **Validation & Warnings**
+5. **Retail vs Services Validation**
+   - Orders must contain either retail items **or** service items, never both
+   - Client-side: blocks adding opposite type when cart has items
+   - Server-side: API returns 400 if mixed items submitted
+   - Retail items: `service_category_code === 'RETAIL_ITEMS'`
+
+6. **Stock Deduction**
+   - When order has retail items, stock is deducted on creation via `deduct_retail_stock_for_order` RPC
+   - Insufficient stock triggers rollback and error message
+   - Branch-level deduction when `branch_id` is set
+
+7. **Validation & Warnings**
    - Real-time validation
    - Duplicate product detection
    - High quantity warnings
@@ -191,9 +207,10 @@ Main content area with:
 
 #### `NewOrderModals`
 Container for all modals:
+- AmountMismatchDialog (server vs client totals mismatch)
 - CustomerPickerModal
 - CustomerEditModal
-- PaymentModalEnhanced
+- PaymentModalEnhanced02 (server totals, preview API)
 - CustomItemModal
 - PhotoCaptureModal
 
@@ -267,7 +284,7 @@ All state mutations go through the reducer with typed actions:
 - **`useOrderTotals`**: Memoized total calculations
 - **`useOrderValidation`**: Comprehensive validation
 - **`useOrderWarnings`**: Warning/error detection
-- **`useOrderSubmission`**: Order submission with error handling
+- **`useOrderSubmission`**: Order submission via create-with-payment API; handles `AMOUNT_MISMATCH`, exposes `amountMismatch` and `setAmountMismatch` for the mismatch dialog
 
 ### Data Hooks
 
@@ -317,6 +334,8 @@ const safeNotes = sanitizeOrderNotes(orderNotes);
 - UUID validation for IDs
 - Quantity/price range validation
 - Product ID validation before submission
+- **Retail vs Services**: Mixed retail/service items rejected (client and server)
+- **Retail payment**: PAY_ON_COLLECTION blocked for retail-only orders
 
 ---
 
@@ -388,7 +407,11 @@ const isRTL = useRTL();
     "orderSummary": { ... },
     "payment": { ... },
     "customItem": { ... },
-    "photoCapture": { ... }
+    "photoCapture": { ... },
+    "errors": {
+      "mixedRetailServices": "Orders cannot mix retail items and service items...",
+      "retailPayOnCollection": "Retail orders must be paid at POS. Please select Cash or Card."
+    }
   }
 }
 ```
@@ -502,6 +525,42 @@ npm run test:e2e
 
 ## API Reference
 
+### REST Endpoints (New Order Flow)
+
+#### `POST /api/v1/orders/preview-payment`
+
+Fetches server-calculated totals for an order (before it exists in DB). Used by the payment modal to display totals.
+
+**Request body:**
+
+```json
+{
+  "items": [{"productId": "uuid", "quantity": 2}, ...],
+  "customerId": "uuid",
+  "isExpress": false,
+  "percentDiscount": 0,
+  "amountDiscount": 0,
+  "promoCode": "",
+  "giftCardNumber": ""
+}
+```
+
+**Response:** `{ success: true, data: { subtotal, manualDiscount, promoDiscount, vatValue, finalTotal, currencyCode, decimalPlaces, ... } }`
+
+---
+
+#### `POST /api/v1/orders/create-with-payment`
+
+Creates order + invoice + payment in a single transaction. Replaces sequential create order → create invoice → process payment.
+
+**Request body:** Order data + payment data + `clientTotals` (from preview).
+
+**Flow:** Server recalculates totals; compares with `clientTotals` (tolerance 0.001). If mismatch → returns `AMOUNT_MISMATCH` (400) with `differences`; nothing persisted. If match → creates order, invoice, and (for CASH/CARD/CHECK) receipt voucher + payment in one transaction.
+
+**Success response:** `{ success: true, data: { id, orderId, orderNo, currentStatus } }`
+
+---
+
 ### Hooks API
 
 #### `useNewOrderStateWithDispatch()`
@@ -527,6 +586,21 @@ Returns validation results.
 ```typescript
 const { isValid, errors, warnings } = useOrderValidation();
 ```
+
+#### `useOrderSubmission()`
+
+Handles order submission via create-with-payment API. Returns:
+
+```typescript
+const {
+  submitOrder,      // (paymentData, payload) => Promise<void>
+  isSubmitting,     // boolean
+  amountMismatch,  // { open, message?, differences? }
+  setAmountMismatch // React setState for amountMismatch
+} = useOrderSubmission();
+```
+
+On `AMOUNT_MISMATCH`, `amountMismatch.open` is set; render `AmountMismatchDialog` with `differences` for transparency.
 
 ### Utilities API
 
@@ -589,6 +663,51 @@ ORDER_DEFAULTS = {
    - Ensure customer selected
    - Verify items added
    - Check product IDs are valid UUIDs
+
+4. **Insufficient stock (retail orders)**
+   - Order creation fails with stock-related error
+   - Ensure inventory levels are sufficient before creating retail orders
+   - Check Inventory Stock page for current quantities
+
+5. **Amount Mismatch**
+   - Server returns `AMOUNT_MISMATCH` when client totals differ from server-calculated totals
+   - User sees `AmountMismatchDialog` with Field | Your Value | Server Value
+   - Click **Refresh Page** to reload and retry with fresh totals; no order was created
+   - Click **Cancel** to close dialog and refetch preview if inputs changed
+
+---
+
+## Retail & Inventory Integration
+
+### Order Type Rules
+
+| Rule | Description |
+|------|--------------|
+| **Retail-only** | All items have `service_category_code === 'RETAIL_ITEMS'` |
+| **Services-only** | No retail items; all items are laundry services |
+| **No mixing** | One order cannot contain both retail and service items |
+
+### Retail Order Status
+
+Retail orders are created with status `closed` and skip the laundry workflow (preparation, processing, QA, packing, ready, delivered). Items are paid for and handed over at POS; the order is completed immediately.
+
+### is_retail Column
+
+The `org_orders_mst.is_retail` column is set at order creation (`true` when all items are RETAIL_ITEMS). Use it for efficient filtering (e.g. `GET /api/v1/orders?is_retail=true`) and the Orders list "Retail only" / "Services only" filters.
+
+### Payment Rules for Retail Orders
+
+- Pay-on-Collection is **disabled** in the payment modal
+- Default payment method: **Cash**
+- Allowed methods: Cash, Card, Check, Invoice
+- Submission hook validates and rejects retail + PAY_ON_COLLECTION
+
+### Stock Deduction Flow
+
+1. Order and items created successfully
+2. If order has retail items → call `deduct_retail_stock_for_order(orderId, tenantId, branchId)`
+3. On insufficient stock → rollback order and items; return error
+4. Branch-level: when `branch_id` set, deducts from `org_inv_stock_by_branch`; otherwise uses `org_product_data_mst.qty_on_hand` (legacy)
 
 ---
 

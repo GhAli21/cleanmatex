@@ -23,6 +23,8 @@ import type { CustomerWithTenantData } from '@/lib/types/customer'
 import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from './components/customer-orders-section'
 import { CustomerAddressesSection } from './components/customer-addresses-section'
+import UpgradeProfileModal from '../components/upgrade-profile-modal'
+import { CustomerEditModal } from '@/app/dashboard/orders/new/components/customer-edit-modal'
 
 // Tab definitions
 type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty'
@@ -32,13 +34,6 @@ interface Tab {
   label: string
   icon: string
 }
-
-const tabs: Tab[] = [
-  { id: 'profile', label: 'Profile', icon: '👤' },
-  { id: 'addresses', label: 'Addresses', icon: '📍' },
-  { id: 'orders', label: 'Orders', icon: '📦' },
-  { id: 'loyalty', label: 'Loyalty', icon: '⭐' },
-]
 
 export default function CustomerDetailPage() {
   const params = useParams()
@@ -56,9 +51,18 @@ export default function CustomerDetailPage() {
   const [advanceError, setAdvanceError] = useState<string | null>(null)
   const [advanceSuccess, setAdvanceSuccess] = useState<string | null>(null)
   const [advancePending, startAdvanceTransition] = useTransition()
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const { currentTenant, user } = useAuth()
   const t = useTranslations('customers')
+
+  const tabs: Tab[] = [
+    { id: 'profile', label: t('profile'), icon: '👤' },
+    { id: 'addresses', label: t('addresses'), icon: '📍' },
+    { id: 'orders', label: t('orderHistory'), icon: '📦' },
+    { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
+  ]
 
   // Fetch customer data
   useEffect(() => {
@@ -136,9 +140,10 @@ export default function CustomerDetailPage() {
   // Get customer type badge
   const getTypeBadge = (type: string) => {
     const badges = {
-      guest: { color: 'bg-gray-100 text-gray-800', label: 'Guest' },
-      stub: { color: 'bg-blue-100 text-blue-800', label: 'Stub' },
-      full: { color: 'bg-green-100 text-green-800', label: 'Full Profile' },
+      guest: { color: 'bg-gray-100 text-gray-800', label: t('types.guest') },
+      stub: { color: 'bg-blue-100 text-blue-800', label: t('types.stub') },
+      full: { color: 'bg-green-100 text-green-800', label: t('types.full') },
+      walk_in: { color: 'bg-blue-100 text-blue-800', label: t('types.walk_in') },
     }
     return badges[type as keyof typeof badges] || badges.guest
   }
@@ -293,24 +298,43 @@ export default function CustomerDetailPage() {
               {customer.type === 'stub' && (
                 <button
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm font-medium"
-                  onClick={() => {
-                    /* TODO: Implement upgrade modal */
-                  }}
+                  onClick={() => setShowUpgradeModal(true)}
                 >
                   Upgrade to Full
                 </button>
               )}
               <button
                 className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 text-sm font-medium text-gray-700"
-                onClick={() => {
-                  /* TODO: Implement edit modal */
-                }}
+                onClick={() => setShowEditModal(true)}
               >
                 Edit
               </button>
             </div>
           </div>
         </div>
+
+        {/* Modals */}
+        {customer && showUpgradeModal && (
+          <UpgradeProfileModal
+            customer={customer}
+            onClose={() => setShowUpgradeModal(false)}
+            onSuccess={(updated) => {
+              setCustomer({ ...customer, ...updated })
+              setShowUpgradeModal(false)
+            }}
+          />
+        )}
+        {showEditModal && (
+          <CustomerEditModal
+            open={showEditModal}
+            customerId={customerId}
+            onClose={() => setShowEditModal(false)}
+            onSuccess={(updated) => {
+              setCustomer((prev) => (prev ? { ...prev, ...updated } : null))
+              setShowEditModal(false)
+            }}
+          />
+        )}
 
         {/* Advance balance & Record advance */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

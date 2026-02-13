@@ -341,7 +341,7 @@ supabase logs | grep email
 **Solutions:**
 ```bash
 # Check browser console for errors
-# Check middleware.ts configuration
+# Check proxy.ts configuration
 # Verify Next.js version compatibility
 ```
 

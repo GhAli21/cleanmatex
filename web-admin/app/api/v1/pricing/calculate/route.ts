@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         productId: item.productId,
         quantity: item.quantity,
       })),
-      customerId
+      { customerId, isExpress: isExpress || false }
     );
 
     return NextResponse.json({

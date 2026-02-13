@@ -18,6 +18,7 @@ interface ServiceCategory {
 
 export default function CategoriesPage() {
   const t = useTranslations("catalog");
+  const tCommon = useTranslations("common");
   const { currentTenant } = useAuth();
 
   const [loading, setLoading] = useState(true);
@@ -102,7 +103,7 @@ export default function CategoriesPage() {
         <h1 className="text-2xl font-semibold">{t("categories")}</h1>
         <div className="flex items-center gap-2">
           <Button onClick={onSave} disabled={saving || loading}>
-            {saving ? t("loading") : t("saveCategories")}
+            {saving ? tCommon("loading") : t("saveCategories")}
           </Button>
         </div>
       </div>
@@ -120,7 +121,7 @@ export default function CategoriesPage() {
 
       <Card className="p-4">
         {loading ? (
-          <div className="text-gray-500">{t("loading")}</div>
+          <div className="text-gray-500">{tCommon("loading")}</div>
         ) : categories.length === 0 ? (
           <div className="text-gray-500">{t("noCategories")}</div>
         ) : (

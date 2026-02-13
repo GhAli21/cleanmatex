@@ -6,7 +6,7 @@ todos:
     content: Create logout page component with i18n, accessibility, and error handling
     status: completed
   - id: update-middleware
-    content: Add /logout to PUBLIC_ROUTES in middleware.ts
+    content: Add /logout to PUBLIC_ROUTES in proxy.ts
     status: completed
   - id: add-translations
     content: Add logout translations to en.json and ar.json with RTL support
@@ -72,7 +72,7 @@ Create a comprehensive, production-ready logout system that includes:
 
 ### Middleware Configuration
 
-- **File**: `web-admin/middleware.ts`
+- **File**: `web-admin/proxy.ts`
 - `PUBLIC_ROUTES` includes `/login` but not `/logout`
 - `AUTH_ROUTES` includes login/register but not logout
 
@@ -257,7 +257,7 @@ export default function LogoutPage() {
 
 ### 2. Update Middleware Configuration
 
-**File**: `web-admin/middleware.ts`**Changes**:
+**File**: `web-admin/proxy.ts`**Changes**:
 
 - Add `/logout` to `PUBLIC_ROUTES` array (line 22-32)
 - Ensure logout route is accessible regardless of authentication state
@@ -593,7 +593,7 @@ web-admin/
 ├── messages/
 │   ├── en.json (MODIFY - add logout translations)
 │   └── ar.json (MODIFY - add logout translations)
-└── middleware.ts (MODIFY - add /logout to PUBLIC_ROUTES)
+└── proxy.ts (MODIFY - add /logout to PUBLIC_ROUTES)
 ```
 
 
@@ -757,7 +757,7 @@ flowchart TD
 - [ ] Add translations to en.json and ar.json
 - [ ] Create logout API route
 - [ ] Create logout page component
-- [ ] Update middleware.ts
+- [ ] Update proxy.ts
 - [ ] Update auth-context.tsx signOut function
 - [ ] Create logout-tracker.ts utility
 - [ ] Run TypeScript type checking

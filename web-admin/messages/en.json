@@ -40,6 +40,7 @@
     "customers": "Customers",
     "reports": "Reports",
     "settings": "Settings",
+    "name": "Name",
     "quickSearch": "Quick search by order#, customer, phone...",
     "dateFrom": "From Date",
     "dateTo": "To Date",
@@ -59,7 +60,28 @@
     "active": "Active",
     "inactive": "Inactive",
     "saving": "Saving...",
-    "deleting": "Deleting..."
+    "deleting": "Deleting...",
+    "page": "Page",
+    "of": "of",
+    "showing": "Showing",
+    "itemCount": "{count, plural, one {# item} other {# items}}",
+    "warningCount": "{count, plural, one {# Warning} other {# Warnings}}"
+  },
+  "amountMismatch": {
+    "title": "Amount Mismatch Detected",
+    "message": "The amounts have changed. Please refresh to get the correct values before informing the customer.",
+    "yourValue": "Your value",
+    "serverValue": "Server value",
+    "refreshPage": "Refresh Page",
+    "cancel": "Cancel",
+    "field": "Field",
+    "fields": {
+      "subtotal": "Subtotal",
+      "manualDiscount": "Manual discount",
+      "promoDiscount": "Promo discount",
+      "vatValue": "VAT",
+      "finalTotal": "Final total"
+    }
   },
   "publicOrderTracking": {
     "title": "Track Your Order",
@@ -182,6 +204,7 @@
     "createFirstOrder": "Create your first order",
     "configureServices": "Configure your services and pricing",
     "recentOrders": "Recent Orders",
+    "viewAllOrders": "View all orders",
     "noOrdersYet": "No orders yet.",
     "totalActiveCustomers": "Total active customers",
     "readyForDelivery": "Ready for delivery",
@@ -212,12 +235,9 @@
     "days": "days",
     "noServiceData": "No service data available",
     "ordersCount": "{count} orders",
-    "successRate": "Success Rate",
-    "openIssues": "Open Issues",
     "criticalCount": "{count} critical",
     "viewAllIssues": "View all issues",
     "noPaymentData": "No payment data available",
-    "utilizationRate": "Utilization Rate",
     "manageDrivers": "Manage drivers"
   },
   "invoices": {
@@ -226,7 +246,6 @@
     "empty": "No invoices found",
     "filters": {
       "search": "Search by invoice #, order #, customer, notes...",
-      "clearFilters": "Clear Filters",
       "allStatuses": "All Statuses",
       "fromDate": "From Date",
       "toDate": "To Date"
@@ -321,6 +340,7 @@
     "emptyDescription": "Payments will appear here once customers make payments",
     "newPayment": "New Payment",
     "recordPayment": "Record Payment",
+    "paymentMethod": "Payment Method",
     "stats": {
       "totalPayments": "Total Payments",
       "totalAmount": "Total Amount Collected",
@@ -337,7 +357,6 @@
       "startDate": "Start Date",
       "endDate": "End Date",
       "search": "Search by Transaction ID or Customer",
-      "clearFilters": "Clear Filters",
       "applyFilters": "Apply Filters",
       "allStatuses": "All Statuses",
       "allMethods": "All Methods",
@@ -615,6 +634,7 @@
   },
   "orders": {
     "title": "Orders",
+    "allOrders": "All Orders",
     "newOrder": "New Order",
     "orderNumber": "Order #",
     "customer": "Customer",
@@ -623,29 +643,134 @@
     "total": "Total",
     "received": "Received",
     "readyBy": "Ready By",
-    "actions": "Actions",
+    "actions": {
+      "buttons": {
+        "startPreparation": "Start Preparation",
+        "markAsReady": "Mark as Ready",
+        "outForDelivery": "Out for Delivery",
+        "markAsDelivered": "Mark as Delivered",
+        "cancelOrder": "Cancel Order"
+      },
+      "success": {
+        "statusUpdated": "Order status updated to {status}"
+      },
+      "errors": {
+        "updateFailed": "Failed to update status"
+      },
+      "dialog": {
+        "changeStatusTo": "Change Status to {status}?",
+        "cannotChangeStatus": "Cannot change status",
+        "notes": "Notes",
+        "notesPlaceholder": "Add any notes about this status change...",
+        "confirmChange": "Confirm Change"
+      }
+    },
     "search": "Search by order #, customer name, or phone...",
     "filterByStatus": "Filter by status",
     "filterByPriority": "Filter by priority",
-    "clearFilters": "Clear Filters",
+    "retail": "Retail",
+    "retailOnly": "Retail only",
+    "servicesOnly": "Services only",
     "noOrders": "No orders found",
     "orderDetails": "Order Details",
     "customerInfo": "Customer Information",
     "orderItems": "Order Items",
     "paymentDetails": "Payment Details",
     "payments": "Payments",
-    "timeline": "Timeline",
+    "timeline": {
+      "loading": "Loading timeline...",
+      "noHistory": "No history available",
+      "notes": "Notes",
+      "details": "Details",
+      "expandDetails": "Expand details",
+      "collapseDetails": "Collapse details",
+      "actions": {
+        "orderCreated": "Order Created",
+        "statusChanged": "Status Changed",
+        "fieldUpdated": "Field Updated",
+        "orderSplit": "Order Split",
+        "qaDecision": "QA Decision",
+        "processingStep": "Processing Step",
+        "issueCreated": "Issue Created",
+        "issueResolved": "Issue Resolved"
+      }
+    },
     "notes": "Notes",
     "customerNotes": "Customer Notes",
     "internalNotes": "Internal Notes",
     "photos": "Photos",
-    "preparation": "Preparation",
+    "preparation": {
+      "error": "Error",
+      "orderPhotos": "Order Photos",
+      "addPhotos": "Add Photos",
+      "removePhoto": "Remove photo",
+      "orderItems": "Order Items",
+      "addItem": "Add Item",
+      "item": "Item",
+      "removeItem": "Remove item",
+      "productName": "Product Name",
+      "productNamePlaceholder": "e.g., Shirt, Dress, Suit",
+      "productNameArabic": "Product Name (Arabic)",
+      "productNameArabicPlaceholder": "اسم المنتج بالعربية",
+      "quantity": "Quantity",
+      "price": "Price",
+      "color": "Color",
+      "colorPlaceholder": "e.g., White, Blue",
+      "brand": "Brand",
+      "brandPlaceholder": "e.g., Nike, Zara",
+      "hasStain": "Has Stain",
+      "hasDamage": "Has Damage",
+      "stainNotes": "Stain Notes",
+      "stainNotesPlaceholder": "Describe the stain location and type...",
+      "damageNotes": "Damage Notes",
+      "damageNotesPlaceholder": "Describe the damage...",
+      "notes": "Notes",
+      "notesPlaceholder": "Additional notes about this item...",
+      "itemTotal": "Item Total",
+      "packaging": "Packaging",
+      "numberOfBags": "Number of Bags",
+      "orderSummary": "Order Summary",
+      "totalItems": "Total Items",
+      "subtotal": "Subtotal",
+      "tax": "Tax (VAT 5%)",
+      "grandTotal": "Grand Total",
+      "saving": "Saving...",
+      "completePreparation": "Complete Preparation",
+      "errors": {
+        "atLeastOneItem": "You must have at least one item",
+        "allItemsMustHaveName": "All items must have a product name",
+        "quantityMustBeAtLeast1": "Quantity must be at least 1",
+        "priceMustBeGreaterThan0": "Price must be greater than 0",
+        "provideStainNotes": "Please provide stain notes for items with stains",
+        "provideDamageNotes": "Please provide damage notes for items with damage",
+        "failedToAddItems": "Failed to add items",
+        "failedToCompletePreparation": "Failed to complete preparation",
+        "failedToSavePreparation": "Failed to save preparation"
+      }
+    },
     "startPreparation": "Start Preparation",
     "continuePreparation": "Continue Preparation",
     "preparationStatus": "Preparation Status",
     "numberOfBags": "Number of Bags",
     "qrCode": "QR Code",
-    "printLabel": "Print Label",
+    "printLabel": {
+      "title": "Print label",
+      "printLabel": "Print Label",
+      "printing": "Printing...",
+      "tbd": "TBD",
+      "label": {
+        "customer": "Customer",
+        "readyBy": "READY BY",
+        "scanToTrack": "Scan to Track",
+        "barcode": "Barcode",
+        "footerThankYou": "Thank you for choosing CleanMateX",
+        "footerInquiries": "For inquiries"
+      },
+      "errors": {
+        "allowPopups": "Please allow popups to print labels",
+        "noCodesAvailable": "No QR code or barcode available"
+      }
+    },
     "printItemLabels": "Print Item Labels",
     "saveDraft": "Save Draft",
     "completeAndContinue": "Complete & Continue",
@@ -662,7 +787,51 @@
     "pickups": "Pickups",
     "ready": "Ready",
     "cleaning": "Cleaning",
-    "detail": "Detail",
+    "detail": {
+      "backToOrders": "Back to Orders",
+      "edit": "Edit",
+      "retail": "Retail",
+      "totalAmount": "Total Amount",
+      "paid": "Paid",
+      "pendingPayment": "Pending Payment",
+      "preparationStatus": "Preparation Status",
+      "startPreparation": "Start Preparation",
+      "continuePreparation": "Continue Preparation",
+      "completed": "Completed",
+      "numberOfBags": "Number of Bags",
+      "qrCode": "QR Code",
+      "publicTrackingLink": "Public tracking link",
+      "customerInformation": "Customer Information",
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "address": "Address",
+      "loyaltyPoints": "Loyalty Points",
+      "points": "points",
+      "orderItems": "Order Items",
+      "notes": "Notes",
+      "customerNotes": "Customer Notes",
+      "internalNotes": "Internal Notes",
+      "photos": "Photos",
+      "orderTimeline": "Order Timeline",
+      "quickActions": "Quick Actions",
+      "paymentDetails": "Payment Details",
+      "subtotal": "Subtotal",
+      "discount": "Discount",
+      "tax": "Tax (VAT)",
+      "total": "Total",
+      "paidAmount": "Paid Amount",
+      "balance": "Balance",
+      "paymentMethod": "Payment Method",
+      "received": "Received",
+      "readyBy": "Ready By",
+      "unappliedPayments": "Unapplied payments",
+      "applyToInvoice": "Apply to invoice",
+      "noUnappliedPayments": "No unapplied payments",
+      "recordDepositPos": "Record deposit / POS",
+      "selectInvoiceToApply": "Select invoice to apply payment to",
+      "paymentKind": "Payment kind"
+    },
     "statuses": {
       "intake": "Intake",
       "preparation": "Preparation",
@@ -686,8 +855,8 @@
     "deliveredToday": "Delivered Today",
     "overdue": "Overdue",
     "prepStatus": "Prep Status",
-    "ordersSelected": "{count} order selected",
-    "ordersSelectedPlural": "{count} orders selected",
+    "publicTrackingLink": "Public tracking link",
+    "ordersSelected": "{count, plural, one {# order selected} other {# orders selected}}",
     "clearSelection": "Clear selection",
     "updateStatus": "Update Status",
     "noOrdersFound": "No orders found",
@@ -802,25 +971,21 @@
     },
     "bulkStatusUpdate": {
       "title": "Bulk Status Update",
-      "subtitle": "Update status for {count} selected order",
-      "subtitlePlural": "Update status for {count} selected orders",
+      "subtitle": "{count, plural, one {Update status for # selected order} other {Update status for # selected orders}}",
       "form": {
         "newStatus": "New Status",
         "selectStatus": "Select a status...",
         "notes": "Notes",
         "notesPlaceholder": "Add notes about this status change...",
         "confirmationRequired": "Confirmation Required",
-        "confirmationMessage": "You are about to update {count} order to status: {status}",
-        "confirmationMessagePlural": "You are about to update {count} orders to status: {status}",
+        "confirmationMessage": "{count, plural, one {You are about to update # order to status: {status}} other {You are about to update # orders to status: {status}}}",
         "updating": "Updating...",
         "updateOrders": "Update Orders"
       },
       "results": {
         "updateComplete": "Update Complete",
-        "successMessage": "Successfully updated {successCount} order",
-        "successMessagePlural": "Successfully updated {successCount} orders",
-        "successWithFailures": "Successfully updated {successCount} order • {failureCount} failed",
-        "successWithFailuresPlural": "Successfully updated {successCount} orders • {failureCount} failed",
+        "successMessage": "{successCount, plural, one {Successfully updated # order} other {Successfully updated # orders}}",
+        "successWithFailures": "{successCount, plural, one {Successfully updated # order • {failureCount} failed} other {Successfully updated # orders • {failureCount} failed}}",
         "failedUpdates": "Failed Updates",
         "order": "Order",
         "unknownError": "Unknown error"
@@ -830,139 +995,6 @@
         "noOrdersSelected": "No orders selected",
         "tooManyOrders": "Cannot update more than 100 orders at once",
         "updateFailed": "Failed to update orders"
-      }
-    },
-    "actions": {
-      "buttons": {
-        "startPreparation": "Start Preparation",
-        "markAsReady": "Mark as Ready",
-        "outForDelivery": "Out for Delivery",
-        "markAsDelivered": "Mark as Delivered",
-        "cancelOrder": "Cancel Order"
-      },
-      "success": {
-        "statusUpdated": "Order status updated to {status}"
-      },
-      "errors": {
-        "updateFailed": "Failed to update status"
-      },
-      "dialog": {
-        "changeStatusTo": "Change Status to {status}?",
-        "cannotChangeStatus": "Cannot change status",
-        "notes": "Notes",
-        "notesPlaceholder": "Add any notes about this status change...",
-        "confirmChange": "Confirm Change"
-      }
-    },
-    "detail": {
-      "backToOrders": "Back to Orders",
-      "edit": "Edit",
-      "totalAmount": "Total Amount",
-      "paid": "Paid",
-      "pendingPayment": "Pending Payment",
-      "preparationStatus": "Preparation Status",
-      "startPreparation": "Start Preparation",
-      "continuePreparation": "Continue Preparation",
-      "completed": "Completed",
-      "numberOfBags": "Number of Bags",
-      "qrCode": "QR Code",
-      "publicTrackingLink": "Public tracking link",
-      "customerInformation": "Customer Information",
-      "name": "Name",
-      "phone": "Phone",
-      "email": "Email",
-      "address": "Address",
-      "loyaltyPoints": "Loyalty Points",
-      "points": "points",
-      "orderItems": "Order Items",
-      "notes": "Notes",
-      "customerNotes": "Customer Notes",
-      "internalNotes": "Internal Notes",
-      "photos": "Photos",
-      "orderTimeline": "Order Timeline",
-      "quickActions": "Quick Actions",
-      "paymentDetails": "Payment Details",
-      "subtotal": "Subtotal",
-      "discount": "Discount",
-      "tax": "Tax (VAT)",
-      "total": "Total",
-      "paidAmount": "Paid Amount",
-      "balance": "Balance",
-      "paymentMethod": "Payment Method",
-      "received": "Received",
-      "readyBy": "Ready By",
-      "unappliedPayments": "Unapplied payments",
-      "applyToInvoice": "Apply to invoice",
-      "noUnappliedPayments": "No unapplied payments",
-      "recordDepositPos": "Record deposit / POS",
-      "selectInvoiceToApply": "Select invoice to apply payment to",
-      "paymentKind": "Payment kind"
-    },
-    "printLabel": {
-      "title": "Print label",
-      "printLabel": "Print Label",
-      "printing": "Printing...",
-      "tbd": "TBD",
-      "label": {
-        "customer": "Customer",
-        "readyBy": "READY BY",
-        "scanToTrack": "Scan to Track",
-        "barcode": "Barcode",
-        "footerThankYou": "Thank you for choosing CleanMateX",
-        "footerInquiries": "For inquiries"
-      },
-      "errors": {
-        "allowPopups": "Please allow popups to print labels",
-        "noCodesAvailable": "No QR code or barcode available"
-      }
-    },
-    "preparation": {
-      "error": "Error",
-      "orderPhotos": "Order Photos",
-      "addPhotos": "Add Photos",
-      "removePhoto": "Remove photo",
-      "orderItems": "Order Items",
-      "addItem": "Add Item",
-      "item": "Item",
-      "removeItem": "Remove item",
-      "productName": "Product Name",
-      "productNamePlaceholder": "e.g., Shirt, Dress, Suit",
-      "productNameArabic": "Product Name (Arabic)",
-      "productNameArabicPlaceholder": "اسم المنتج بالعربية",
-      "quantity": "Quantity",
-      "price": "Price",
-      "color": "Color",
-      "colorPlaceholder": "e.g., White, Blue",
-      "brand": "Brand",
-      "brandPlaceholder": "e.g., Nike, Zara",
-      "hasStain": "Has Stain",
-      "hasDamage": "Has Damage",
-      "stainNotes": "Stain Notes",
-      "stainNotesPlaceholder": "Describe the stain location and type...",
-      "damageNotes": "Damage Notes",
-      "damageNotesPlaceholder": "Describe the damage...",
-      "notes": "Notes",
-      "notesPlaceholder": "Additional notes about this item...",
-      "itemTotal": "Item Total",
-      "packaging": "Packaging",
-      "numberOfBags": "Number of Bags",
-      "orderSummary": "Order Summary",
-      "totalItems": "Total Items",
-      "subtotal": "Subtotal",
-      "tax": "Tax (VAT 5%)",
-      "grandTotal": "Grand Total",
-      "saving": "Saving...",
-      "completePreparation": "Complete Preparation",
-      "errors": {
-        "atLeastOneItem": "You must have at least one item",
-        "allItemsMustHaveName": "All items must have a product name",
-        "quantityMustBeAtLeast1": "Quantity must be at least 1",
-        "priceMustBeGreaterThan0": "Price must be greater than 0",
-        "provideStainNotes": "Please provide stain notes for items with stains",
-        "provideDamageNotes": "Please provide damage notes for items with damage",
-        "failedToAddItems": "Failed to add items",
-        "failedToCompletePreparation": "Failed to complete preparation",
-        "failedToSavePreparation": "Failed to save preparation"
       }
     },
     "quickDrop": {
@@ -1012,24 +1044,6 @@
       "damageNotes": "Damage Notes",
       "notes": "Notes",
       "totalItems": "Total Items"
-    },
-    "timeline": {
-      "loading": "Loading timeline...",
-      "noHistory": "No history available",
-      "notes": "Notes",
-      "details": "Details",
-      "expandDetails": "Expand details",
-      "collapseDetails": "Collapse details",
-      "actions": {
-        "orderCreated": "Order Created",
-        "statusChanged": "Status Changed",
-        "fieldUpdated": "Field Updated",
-        "orderSplit": "Order Split",
-        "qaDecision": "QA Decision",
-        "processingStep": "Processing Step",
-        "issueCreated": "Issue Created",
-        "issueResolved": "Issue Resolved"
-      }
     }
   },
   "customers": {
@@ -1347,7 +1361,11 @@
     "passwordResetSent": "Password reset email sent successfully",
     "userDeactivated": "User deactivated successfully",
     "userActivated": "User activated successfully",
-    "cannotDeactivateSelf": "You cannot deactivate your own account"
+    "cannotDeactivateSelf": "You cannot deactivate your own account",
+    "billingCycle": "Billing Cycle",
+    "nextBilling": "Next Billing Date",
+    "upgradePlan": "Upgrade Plan",
+    "manageSubscription": "Manage Subscription"
   },
   "notifications": {
     "title": "Notifications",
@@ -1411,7 +1429,32 @@
       "apply": "Apply",
       "allStatuses": "All Statuses"
     },
+    "table": {
+      "orderNo": "Order #",
+      "invoiceNo": "Invoice #",
+      "customer": "Customer",
+      "status": "Status",
+      "items": "Items",
+      "total": "Total",
+      "payment": "Payment",
+      "date": "Date",
+      "amount": "Amount",
+      "method": "Method",
+      "paid": "Paid",
+      "balance": "Balance",
+      "dueDate": "Due Date",
+      "phone": "Phone",
+      "orders": "Orders",
+      "revenue": "Revenue",
+      "avgValue": "Avg Value",
+      "lastOrder": "Last Order",
+      "firstOrder": "First Order"
+    },
     "kpi": {
+      "totalRevenue": "Total Revenue",
+      "totalOrders": "Total Orders",
+      "avgOrderValue": "Average Order Value",
+      "activeCustomers": "Active Customers",
       "totalPayments": "Total Payments",
       "totalAmount": "Total Amount",
       "avgAmount": "Average Amount",
@@ -1503,7 +1546,6 @@
     "turnaroundHours": "Hours",
     "minQuantity": "Min Quantity",
     "maxQuantity": "Max Quantity",
-    "import": "Import Products",
     "export": "Export Products",
     "downloadTemplate": "Download Template",
     "basicTemplate": "Basic Template",
@@ -1535,8 +1577,6 @@
     "categoriesDisabled": "Categories disabled successfully",
     "all": "All",
     "search": "Search",
-    "clearFilters": "Clear Filters",
-    "loading": "Loading...",
     "previous": "Previous",
     "next": "Next",
     "showing": "Showing",
@@ -1547,8 +1587,7 @@
     "close": "Close",
     "download": "Download",
     "yes": "Yes",
-    "no": "No",
-    "create": "Create"
+    "no": "No"
   },
   "validation": {
     "required": "This field is required",
@@ -1915,21 +1954,21 @@
         "pending": "Pending"
       },
       "actions": {
-      "title": "Delivery Actions",
-      "open": "Open",
-      "backToReady": "Back to Ready",
-      "markDelivered": "Mark as Delivered",
-      "printReceipt": "Print Receipt",
-      "printReceiptThermal": "Print Receipt (80mm)",
-      "printReceiptA4": "Print Receipt (A4)",
-      "printOrderDetailsThermal": "Print Order Details (80mm)",
-      "printOrderDetailsA4": "Print Order Details (A4)",
-      "reportsA4Rprt": "A4 Reports",
-      "printInvoicesPaymentsA4Rprt": "Print Invoices & Payments (A4)",
-      "printPaymentsA4DescRprt": "Print Payments (A4, newest first)",
-      "printPaymentsA4AscRprt": "Print Payments (A4, oldest first)",
-      "printOrderHistoryA4Rprt": "Print Order History (A4)",
-      "processing": "Processing..."
+        "title": "Delivery Actions",
+        "open": "Open",
+        "backToReady": "Back to Ready",
+        "markDelivered": "Mark as Delivered",
+        "printReceipt": "Print Receipt",
+        "printReceiptThermal": "Print Receipt (80mm)",
+        "printReceiptA4": "Print Receipt (A4)",
+        "printOrderDetailsThermal": "Print Order Details (80mm)",
+        "printOrderDetailsA4": "Print Order Details (A4)",
+        "reportsA4Rprt": "A4 Reports",
+        "printInvoicesPaymentsA4Rprt": "Print Invoices & Payments (A4)",
+        "printPaymentsA4DescRprt": "Print Payments (A4, newest first)",
+        "printPaymentsA4AscRprt": "Print Payments (A4, oldest first)",
+        "printOrderHistoryA4Rprt": "Print Order History (A4)",
+        "processing": "Processing..."
       },
       "messages": {
         "loadFailed": "Failed to load order",
@@ -2066,6 +2105,7 @@
   },
   "newOrder": {
     "title": "New Order",
+    "addNewOrder": "Add New Order",
     "selectCustomer": "Select Customer",
     "quickDrop": "Quick Drop",
     "express": {
@@ -2124,7 +2164,7 @@
       "title": "Items",
       "qtyLabel": "Qty",
       "priceLabel": "Price",
-      "addItem": "Item",
+      "addItem": "Add Item",
       "addPhoto": "Photo",
       "customItemTitle": "Describe an Item",
       "fieldName": "Name",
@@ -2142,7 +2182,6 @@
       "total": "Total",
       "totalPieces": "Total pieces",
       "customGarmentPlaceholder": "e.g., Custom Garment",
-      "addItem": "Add Item",
       "noItemsAdded": "No items added yet",
       "itemName": "Item Name",
       "actions": "Actions",
@@ -2270,6 +2309,9 @@
     "errors": {
       "selectCustomer": "Please select a customer",
       "addItems": "Please add at least one item to the order",
+      "mixedRetailServices": "Orders cannot mix retail items and service items. Please add only one type per order.",
+      "retailPayOnCollection": "Retail orders must be paid at POS. Please select Cash or Card.",
+      "failedToCalculateReadyBy": "Failed to calculate ready-by date. Please try again.",
       "invalidCustomer": "Invalid customer selected. Please select a customer again.",
       "invalidProductIds": "Some products have invalid IDs. Please refresh the page and try again.",
       "orderCreationFailed": "Failed to create order",
@@ -2297,6 +2339,8 @@
       "total": "Total",
       "finalTotal": "Final Total",
       "savings": "Save",
+      "haveCoupon": "Have a coupon?",
+      "promoOrGiftCard": "Promo code or gift card",
       "methods": {
         "title": "Select Payment Method",
         "cash": "Cash",
@@ -2319,6 +2363,9 @@
       "checkDate": {
         "label": "Check Date",
         "placeholder": "Select date"
+      },
+      "validation": {
+        "discountExceedsTotal": "Discount cannot exceed order total"
       },
       "manualDiscount": {
         "title": "Apply Discount",
@@ -2408,8 +2455,8 @@
         "currencyCode": "Currency",
         "exchangeRate": "Exchange Rate",
         "subtotal": "Subtotal",
-        "taxRate": "Tax Rate %",
-        "taxAmount": "Tax Amount",
+        "taxRate": "Additional Tax Rate %",
+        "taxAmount": "Additional Tax Amount",
         "vatTaxPercent": "VAT Tax %",
         "vatValue": "VAT Value",
         "manualDiscount": "Manual Discount",
@@ -2440,6 +2487,7 @@
       },
       "errors": {
         "invalidAmount": "Invalid amount. Please check the payment total.",
+        "productNotFound": "One or more products could not be found. They may have been removed from the catalog. Please remove them from your order.",
         "invoiceCreationFailed": "Invoice could not be created. Fix the error and try again.",
         "paymentRecordingFailed": "Payment could not be recorded. Fix the error and try again.",
         "paymentNotRecordedCompleteOnOrder": "Order created but payment could not be recorded. You can complete payment on the order page."
@@ -2498,7 +2546,9 @@
       "readyToSubmit": "Ready to submit"
     },
     "warnings": {
-      "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?"
+      "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+      "discardAndNewOrder": "You have unsaved changes. Discard and start a new order?",
+      "discardAndNewOrderTitle": "Discard changes?"
     },
     "customItem": {
       "title": "Add Custom Item",
@@ -2576,7 +2626,35 @@
       "date": "Date",
       "type": "Type",
       "before": "Before",
-      "after": "After"
+      "after": "After",
+      "hintText": "Hint Text",
+      "serviceCategoryCode": "Category",
+      "isRetailItem": "Retail Item",
+      "defaultExpressSellPrice": "Express Price",
+      "minSellPrice": "Min Sell Price",
+      "minStockLevel": "Min Stock Level",
+      "maxStockLevel": "Max Stock Level",
+      "lastPurchaseCost": "Last Purchase Cost",
+      "productGroup1": "Group 1",
+      "productGroup2": "Group 2",
+      "productGroup3": "Group 3",
+      "minQuantity": "Min Quantity",
+      "piecesPerProduct": "Pieces per Product",
+      "turnaroundHh": "Turnaround (hrs)",
+      "turnaroundHhExpress": "Express Turnaround (hrs)",
+      "priceType": "Price Type",
+      "productType": "Product Type",
+      "extraDays": "Extra Days",
+      "multiplierExpress": "Express Multiplier",
+      "productOrder": "Display Order",
+      "isTaxExempt": "Tax Exempt",
+      "productColor1": "Color 1",
+      "productColor2": "Color 2",
+      "productColor3": "Color 3",
+      "productIcon": "Icon",
+      "productImage": "Image URL",
+      "recOrder": "Sort Order",
+      "recNotes": "Notes"
     },
     "statuses": {
       "inStock": "In Stock",
@@ -2620,7 +2698,9 @@
     },
     "filters": {
       "searchPlaceholder": "Search by name, code, or SKU...",
-      "allStatuses": "All Statuses"
+      "allStatuses": "All Statuses",
+      "branch": "Branch",
+      "allBranches": "All Branches"
     },
     "pagination": {
       "showing": "Showing {count} of {total}"
@@ -2636,6 +2716,9 @@
     },
     "placeholders": {
       "reason": "e.g. Restocked from supplier, damaged goods..."
+    },
+    "sections": {
+      "optional": "Additional Fields"
     },
     "validation": {
       "nameRequired": "Item name is required",

@@ -164,8 +164,11 @@ export class TenantSettingsService {
       console.log('[TenantSettingsService] [2] getTenantCurrency: Currency:', vCurrency);
       return vCurrency;
       //return (typeof v === 'string' ? v : String(v ?? '')).trim() || 'USD';
-    } catch (error) {//just default to USD for now jhTODO: get the default from the database
-      console.error('[TenantSettingsService] Error getting currency:', error);
+    } catch (error) {
+      console.warn(
+        '[TenantSettingsService] getTenantCurrency failed, using default USD',
+        { tenantId, error }
+      );
       return 'USD';
     }
   }

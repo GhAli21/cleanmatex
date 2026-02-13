@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { DollarSign, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { Widget } from '../Widget'
+import { dashboardService } from '@/lib/services/dashboard.service'
 
 export function RevenueWidget() {
   const { currentTenant } = useAuth()
@@ -32,15 +32,15 @@ export function RevenueWidget() {
 
       try {
         setIsLoading(true)
-
-        // TODO: Implement actual revenue calculation
-        // For now, using mock data
+        const kpi = await dashboardService.getKPIOverview(
+          currentTenant.tenant_id
+        )
         setData({
-          today: 0,
-          mtd: 0,
-          last30d: 0,
-          currency: 'OMR',
-          trend: 0,
+          today: kpi.revenue.today,
+          mtd: kpi.revenue.mtd,
+          last30d: kpi.revenue.last30d,
+          currency: kpi.revenue.currency,
+          trend: kpi.revenue.deltaToday ?? 0,
         })
       } catch (error) {
         console.error('Error fetching revenue:', error)

@@ -14,14 +14,17 @@ import {
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, AdjustmentAction } from '@/lib/types/inventory';
+import type { BranchOption } from '@/lib/services/inventory-service';
 
 interface AdjustStockModalProps {
   item: InventoryItemListItem;
   onClose: () => void;
   onSuccess: () => void;
+  branchId?: string;
+  branches?: BranchOption[];
 }
 
-export default function AdjustStockModal({ item, onClose, onSuccess }: AdjustStockModalProps) {
+export default function AdjustStockModal({ item, onClose, onSuccess, branchId, branches = [] }: AdjustStockModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
 
@@ -53,6 +56,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess }: AdjustSto
       action,
       quantity: qty,
       reason: reason.trim(),
+      branch_id: branchId || undefined,
     });
 
     setSaving(false);

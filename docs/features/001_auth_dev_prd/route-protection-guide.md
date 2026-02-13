@@ -10,14 +10,14 @@
 ## 📋 Overview
 
 This guide covers the route protection implementation including:
-1. **Next.js Middleware** - Automatic route protection at the edge
+1. **Next.js Proxy** - Automatic route protection at the network boundary
 2. **withAuth HOC** - Component-level authentication
 3. **withRole HOC** - Role-based access control
 
 ### Files Created
 ```
 web-admin/
-├── middleware.ts                    # Next.js Edge Middleware
+├── proxy.ts                         # Next.js Proxy for route protection
 └── lib/auth/
     ├── with-auth.tsx               # Authentication HOC
     └── with-role.tsx               # Role-based HOC
@@ -27,7 +27,7 @@ web-admin/
 
 ## 🎯 Features Implemented
 
-### 1. Next.js Middleware (`middleware.ts`)
+### 1. Next.js Proxy (`proxy.ts`)
 
 **Capabilities:**
 - ✅ Automatic authentication checks on all routes
@@ -416,9 +416,9 @@ export default withStaffRole(StaffPage)
 
 #### 2. Adding New Protected Routes
 
-**Update Middleware:**
+**Update Proxy:**
 ```typescript
-// middleware.ts
+// proxy.ts
 
 // Add to PUBLIC_ROUTES if route is public
 const PUBLIC_ROUTES = [

@@ -14,7 +14,9 @@ import type {
 import {
   searchInventoryItemsAction,
   getInventoryStatisticsAction,
+  getBranchesAction,
 } from '@/app/actions/inventory/inventory-actions';
+import type { BranchOption } from '@/lib/services/inventory-service';
 import StatsCards from './components/stats-cards';
 import AddItemModal from './components/add-item-modal';
 import EditItemModal from './components/edit-item-modal';
@@ -45,6 +47,8 @@ export default function StockPage() {
   const [search, setSearch] = useState('');
   const [stockStatus, setStockStatus] = useState<string>('all');
   const [activeFilter, setActiveFilter] = useState<string>('active');
+  const [branchId, setBranchId] = useState<string>('');
+  const [branches, setBranches] = useState<BranchOption[]>([]);
 
   // Modals
   const [showAdd, setShowAdd] = useState(false);
@@ -66,13 +70,14 @@ export default function StockPage() {
         search: search || undefined,
         stock_status: stockStatus !== 'all' ? (stockStatus as StockStatus) : undefined,
         is_active: activeFilter === 'all' ? undefined : activeFilter === 'active',
+        branch_id: branchId || undefined,
         sortBy: 'createdAt',
         sortOrder: 'desc',
       };
 
       const [itemsResult, statsResult] = await Promise.all([
         searchInventoryItemsAction(params),
-        getInventoryStatisticsAction(),
+        getInventoryStatisticsAction({ branch_id: branchId || undefined }),
       ]);
 
       if (itemsResult.success && itemsResult.data) {
@@ -95,11 +100,19 @@ export default function StockPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentTenant, pagination.page, pagination.limit, search, stockStatus, activeFilter]);
+  }, [currentTenant, pagination.page, pagination.limit, search, stockStatus, activeFilter, branchId]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (currentTenant) {
+      getBranchesAction().then((r) => {
+        if (r.success && r.data) setBranches(r.data);
+      });
+    }
+  }, [currentTenant]);
 
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,6 +123,7 @@ export default function StockPage() {
     setSearch('');
     setStockStatus('all');
     setActiveFilter('active');
+    setBranchId('');
     setPagination((p) => ({ ...p, page: 1 }));
   }
 
@@ -141,12 +155,28 @@ export default function StockPage() {
 
       {/* Filters */}
       <Card className="p-4">
-        <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-4">
+        <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <Input
             placeholder={t('filters.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          {branches.length > 1 && (
+            <Select
+              value={branchId}
+              onChange={(e) => {
+                setBranchId(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              options={[
+                { value: '', label: t('filters.allBranches') },
+                ...branches.map((b) => ({
+                  value: b.id,
+                  label: isRtl ? b.name2 || b.name : b.name,
+                })),
+              ]}
+            />
+          )}
           <Select
             value={stockStatus}
             onChange={(e) => { setStockStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
@@ -272,6 +302,8 @@ export default function StockPage() {
         <AddItemModal
           onClose={() => setShowAdd(false)}
           onSuccess={handleAfterMutation}
+          branchId={branchId || undefined}
+          branches={branches}
         />
       )}
       {editItem && (
@@ -286,12 +318,15 @@ export default function StockPage() {
           item={adjustItem}
           onClose={() => setAdjustItem(null)}
           onSuccess={handleAfterMutation}
+          branchId={branchId || undefined}
+          branches={branches}
         />
       )}
       {historyItem && (
         <StockHistoryModal
           item={historyItem}
           onClose={() => setHistoryItem(null)}
+          branchId={branchId || undefined}
         />
       )}
     </div>

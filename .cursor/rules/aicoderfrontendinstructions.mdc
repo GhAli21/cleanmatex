@@ -130,10 +130,12 @@ Do not invent other top-level paths like `@/components` or `@/core` unless they 
 
 - Always use Global Message Utility (`cmxMessage`) for all and any messages, errors, alerts ... so on
 
-- Always for Common Translated Keys/Messages Use this:
+- **Always use `tCommon` for common keys** (save, cancel, delete, edit, create, loading, error, etc.):
   ```ts
   const tCommon = useTranslations('common');
   ```
+
+- **Before adding UI text:** Search `messages/en.json` and `messages/ar.json`; reuse common keys; run `npm run check:i18n` after i18n changes
   
 - Any component that is:
   - Reused across multiple features

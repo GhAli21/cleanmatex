@@ -28,6 +28,9 @@ export const ORDER_STATUSES = {
   CANCELLED: 'cancelled',
 } as const;
 
+/** Status for retail-only orders at creation (skip workflow, POS completed) */
+export const RETAIL_TERMINAL_STATUS = 'closed' as const;
+
 export type OrderStatus = typeof ORDER_STATUSES[keyof typeof ORDER_STATUSES];
 
 /**

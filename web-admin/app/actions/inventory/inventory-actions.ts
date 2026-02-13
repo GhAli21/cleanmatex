@@ -8,6 +8,7 @@ import {
   adjustStock,
   searchStockTransactions,
   getInventoryStatistics,
+  getBranchesForCurrentTenant,
 } from '@/lib/services/inventory-service';
 
 import type {
@@ -78,12 +79,22 @@ export async function searchStockTransactionsAction(params: StockTransactionSear
   }
 }
 
-export async function getInventoryStatisticsAction() {
+export async function getInventoryStatisticsAction(params?: { branch_id?: string }) {
   try {
-    const stats = await getInventoryStatistics();
+    const stats = await getInventoryStatistics(params);
     return { success: true, data: stats };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to fetch inventory statistics';
     return { success: false, error: message };
+  }
+}
+
+export async function getBranchesAction() {
+  try {
+    const branches = await getBranchesForCurrentTenant();
+    return { success: true, data: branches };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Failed to fetch branches';
+    return { success: false, error: message, data: [] };
   }
 }

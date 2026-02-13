@@ -46,7 +46,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
         {/* Search */}
         <form onSubmit={handleSearch} className="md:col-span-2">
           <input
@@ -100,12 +100,25 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           <option value="urgent">{t('priorities.urgent')}</option>
           <option value="express">{t('priorities.express')}</option>
         </select>
+
+        {/* Retail Filter */}
+        <select
+          value={currentFilters.isRetail || ''}
+          onChange={(e) => handleFilterChange('isRetail', e.target.value)}
+          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
+          <option value="">{t('allOrders')}</option>
+          <option value="true">{t('retailOnly')}</option>
+          <option value="false">{t('servicesOnly')}</option>
+        </select>
       </div>
 
       {/* Clear Filters */}
       {(currentFilters.status ||
         currentFilters.preparationStatus ||
         currentFilters.priority ||
+        currentFilters.isRetail ||
         currentFilters.search) && (
         <div className="mt-3">
           <button

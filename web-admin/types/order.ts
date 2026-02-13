@@ -88,6 +88,7 @@ export interface Order {
   last_transition_by?: string;
   is_order_quick_drop?: boolean;
   quick_drop_quantity?: number;
+  is_retail?: boolean;
   rack_location?: string;
 
   // Preparation workflow (new in PRD-004)
@@ -402,6 +403,7 @@ export interface OrderFilters {
   status?: OrderStatus | OrderStatus[];
   preparationStatus?: PreparationStatus | PreparationStatus[];
   priority?: Priority | Priority[];
+  isRetail?: 'true' | 'false';
   customerId?: string;
   branchId?: string;
   fromDate?: Date;
@@ -443,6 +445,7 @@ export interface OrderListItem {
   status: OrderStatus;
   preparation_status: PreparationStatus;
   priority: Priority;
+  is_retail?: boolean;
   total_items: number;
   total_pieces?: number | null; // Total pieces count (when trackByPiece is enabled)
   total: number;

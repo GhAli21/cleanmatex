@@ -105,7 +105,7 @@ export function getPaymentTypeFromMethod(method: string): PaymentTypeId | undefi
     case PAYMENT_METHODS.PAY_ON_COLLECTION:
       return PAYMENT_TYPE_IDS.PAY_ON_COLLECTION;
     case PAYMENT_METHODS.INVOICE:
-      return PAYMENT_TYPE_IDS.PAY_ON_COLLECTION;
+      return PAYMENT_TYPE_IDS.CREDIT_INVOICE;//PAY_ON_COLLECTION;
     default:
       return undefined;
   }

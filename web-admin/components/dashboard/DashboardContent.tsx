@@ -23,6 +23,7 @@ import {
   TopServicesWidget,
   AlertsWidget,
 } from '@/components/dashboard/widgets'
+import { RecentOrdersList } from './RecentOrdersList'
 
 export default function DashboardContent() {
   const { user, currentTenant } = useAuth()
@@ -110,8 +111,7 @@ export default function DashboardContent() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
             {t('recentOrders')}
           </h2>
-          <p className="text-gray-500">{t('noOrdersYet')}</p>
-          {/* TODO: Add recent orders list */}
+          <RecentOrdersList />
         </div>
       </div>
 

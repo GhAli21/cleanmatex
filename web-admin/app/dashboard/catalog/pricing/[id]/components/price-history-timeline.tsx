@@ -81,11 +81,47 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
 
   async function handleExport() {
     try {
-      // TODO: Implement export
-      // const params = new URLSearchParams({ ...filters })
-      // if (priceListId) params.append('priceListId', priceListId)
-      // if (productId) params.append('productId', productId)
-      // window.open(`/api/v1/pricing/history/export?${params.toString()}`)
+      if (history.length === 0) return
+      const headers = [
+        'Date',
+        'Entity Type',
+        'Price List / Product',
+        'Old Price',
+        'New Price',
+        'Old Discount %',
+        'New Discount %',
+        'Change Reason',
+        'Changed By',
+      ]
+      const rows = history.map((entry) => [
+        formatDate(entry.created_at),
+        entry.entity_type,
+        entry.entity_type === 'price_list_item'
+          ? entry.price_list_name || 'N/A'
+          : entry.product_name || entry.product_name2 || 'N/A',
+        entry.old_price ?? '',
+        entry.new_price ?? '',
+        entry.old_discount_percent ?? '',
+        entry.new_discount_percent ?? '',
+        entry.change_reason ?? '',
+        (entry.user_name || entry.user_email || entry.created_by) ?? '',
+      ])
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) =>
+          row.map((cell) => {
+            const s = String(cell)
+            return s.includes(',') || s.includes('"') ? `"${s.replace(/"/g, '""')}"` : s
+          }).join(',')
+        ),
+      ].join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `price-history-${new Date().toISOString().slice(0, 10)}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
     } catch (err) {
       console.error('Failed to export:', err)
     }

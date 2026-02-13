@@ -55,6 +55,96 @@ export type NewOrderPaymentTotals = z.infer<typeof newOrderPaymentTotalsSchema>;
 export type NewOrderPaymentPayload = z.infer<typeof newOrderPaymentPayloadSchema>;
 
 // ---------------------------------------------------------------------------
+// Preview Payment API input
+// ---------------------------------------------------------------------------
+
+export const previewPaymentRequestSchema = z.object({
+  items: z.array(
+    z.object({
+      productId: z.string().uuid(),
+      quantity: z.number().positive(),
+    })
+  ).min(1),
+  customerId: z.string().uuid().optional(),
+  isExpress: z.boolean().optional(),
+  percentDiscount: z.number().min(0).max(100).optional(),
+  amountDiscount: z.number().min(0).optional(),
+  promoCode: z.string().optional(),
+  giftCardNumber: z.string().optional(),
+});
+
+export type PreviewPaymentRequest = z.infer<typeof previewPaymentRequestSchema>;
+
+// ---------------------------------------------------------------------------
+// Create With Payment API input
+// ---------------------------------------------------------------------------
+
+export const clientTotalsSchema = z.object({
+  subtotal: z.number().min(0),
+  manualDiscount: z.number().min(0).optional(),
+  promoDiscount: z.number().min(0).optional(),
+  vatValue: z.number().min(0),
+  finalTotal: z.number().min(0),
+});
+
+export const createWithPaymentRequestSchema = z.object({
+  customerId: z.string(),
+  orderTypeId: z.string().default('POS'),
+  items: z.array(
+    z.object({
+      productId: z.string().uuid(),
+      quantity: z.number().positive(),
+      pricePerUnit: z.number().nonnegative(),
+      totalPrice: z.number().nonnegative(),
+      serviceCategoryCode: z.string().optional(),
+      notes: z.string().optional(),
+      hasStain: z.boolean().optional(),
+      hasDamage: z.boolean().optional(),
+      stainNotes: z.string().optional(),
+      damageNotes: z.string().optional(),
+      pieces: z.array(z.object({
+        pieceSeq: z.number().positive(),
+        color: z.string().optional(),
+        brand: z.string().optional(),
+        hasStain: z.boolean().optional(),
+        hasDamage: z.boolean().optional(),
+        notes: z.string().optional(),
+        rackLocation: z.string().optional(),
+        metadata: z.record(z.string(), z.unknown()).optional(),
+      })).optional(),
+    })
+  ).min(1),
+  isQuickDrop: z.boolean().optional(),
+  quickDropQuantity: z.number().positive().optional(),
+  express: z.boolean().optional(),
+  customerNotes: z.string().optional(),
+  readyByAt: z.string().datetime().optional(),
+  paymentMethod: z.string(),
+  percentDiscount: z.number().min(0).max(100).optional(),
+  amountDiscount: z.number().min(0).optional(),
+  promoCode: z.string().optional(),
+  promoCodeId: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().uuid().optional()
+  ),
+  promoDiscount: z.number().min(0).optional(),
+  giftCardNumber: z.string().optional(),
+  giftCardAmount: z.number().min(0).optional(),
+  giftCardId: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().uuid().optional()
+  ),
+  checkNumber: z.string().optional(),
+  checkBank: z.string().optional(),
+  checkDate: z.string().optional(),
+  branchId: z.string().uuid().optional(),
+  clientTotals: clientTotalsSchema,
+});
+
+export type CreateWithPaymentRequest = z.infer<typeof createWithPaymentRequestSchema>;
+export type ClientTotals = z.infer<typeof clientTotalsSchema>;
+
+// ---------------------------------------------------------------------------
 // createInvoiceAction input
 // ---------------------------------------------------------------------------
 

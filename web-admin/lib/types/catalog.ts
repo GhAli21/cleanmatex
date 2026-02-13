@@ -113,6 +113,7 @@ export interface ProductListItem {
   product_name: string | null;
   product_name2: string | null;
   service_category_code: string | null;
+  is_retail_item: boolean;
   category_name: string | null;
   category_name2: string | null;
   default_sell_price: number | null;

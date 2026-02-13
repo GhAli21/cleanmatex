@@ -66,6 +66,7 @@ interface ApiResponse {
 export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTrackingPageProps) {
     const isRTL = useRTL();
     const t = useTranslations('publicOrderTracking');
+    const tCommon = useTranslations('common');
     const tOrders = useTranslations('orders');
 
     const [loading, setLoading] = useState(true);
@@ -127,7 +128,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="flex flex-col items-center gap-3">
                     <div className="h-10 w-10 rounded-full border-4 border-blue-500 border-t-transparent animate-spin" />
-                    <p className="text-sm text-slate-600">{t('loading')}</p>
+                    <p className="text-sm text-slate-600">{tCommon('loading')}</p>
                 </div>
             </div>
         );

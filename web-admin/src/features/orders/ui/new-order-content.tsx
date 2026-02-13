@@ -22,7 +22,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { cmxMessage } from '@ui/feedback';
+import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 // Temporary imports - will move to feature folder later
 // Using @ alias to access app folder components
 import { CategoryTabs } from '@/app/dashboard/orders/new/components/category-tabs';
@@ -39,6 +39,7 @@ import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 export function NewOrderContent() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
+    const tCommon = useTranslations('common');
     const router = useRouter();
     const isRTL = useRTL();
     const { currentTenant } = useAuth();
@@ -51,6 +52,7 @@ export function NewOrderContent() {
         resetMetrics,
     } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details'>('select');
+    const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const state = useNewOrderStateWithDispatch();
     const { submitOrder, isSubmitting } = useOrderSubmission();
     const totals = useOrderTotals();
@@ -88,6 +90,13 @@ export function NewOrderContent() {
         }
     }, [state.state.items.length, activeTab]);
 
+    const isRetailOnlyOrder = useMemo(
+        () =>
+            state.state.items.length > 0 &&
+            state.state.items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS'),
+        [state.state.items]
+    );
+
     // Reset performance metrics on mount
     useEffect(() => {
         resetMetrics();
@@ -105,9 +114,20 @@ export function NewOrderContent() {
         [state]
     );
 
-    // Handle add item
+    // Handle add item (retail vs services: cannot mix)
     const handleAddItem = useCallback(
         (product: Product) => {
+            const isNewRetail = product.service_category_code === 'RETAIL_ITEMS' || (product as { is_retail_item?: boolean }).is_retail_item;
+            const existingItems = state.state.items;
+            if (existingItems.length > 0) {
+                const firstExisting = existingItems[0];
+                const isExistingRetail = firstExisting.serviceCategoryCode === 'RETAIL_ITEMS';
+                if (isNewRetail !== isExistingRetail) {
+                    cmxMessage.error(t('errors.mixedRetailServices'));
+                    return;
+                }
+            }
+
             const pricePerUnit =
                 state.state.express && product.default_express_sell_price
                     ? product.default_express_sell_price
@@ -131,7 +151,7 @@ export function NewOrderContent() {
             state.addItem(newItem);
             trackItemAddition();
         },
-        [state, trackByPiece, trackItemAddition]
+        [state, trackByPiece, trackItemAddition, t]
     );
 
     // Handle remove item
@@ -223,6 +243,30 @@ export function NewOrderContent() {
         },
         [tWorkflow]
     );
+
+    // Add New Order: reset form, with confirmation when unsaved changes exist
+    const handleAddNewOrder = useCallback(() => {
+        if (state.state.createdOrderId) {
+            state.resetOrder();
+            clearSavedNotes?.();
+            return;
+        }
+        const hasUnsaved =
+            state.state.items.length > 0 ||
+            (state.state.notes?.trim().length ?? 0) > 0 ||
+            state.state.customer !== null;
+        if (hasUnsaved) {
+            setShowDiscardConfirm(true);
+        } else {
+            state.resetOrder();
+        }
+    }, [state, clearSavedNotes]);
+
+    const handleConfirmDiscard = useCallback(() => {
+        state.resetOrder();
+        clearSavedNotes?.();
+        setShowDiscardConfirm(false);
+    }, [state, clearSavedNotes]);
 
     // Memoized order items for OrderSummaryPanel
     const memoizedOrderItems = useMemo(
@@ -404,6 +448,19 @@ export function NewOrderContent() {
                     className={`w-96 ${isRTL ? 'border-r' : 'border-l'
                         } border-gray-200 bg-white h-full flex flex-col overflow-hidden`}
                 >
+                    {/* Add New Order - compact link when not in post-creation state */}
+                    {!state.state.createdOrderId && (
+                        <div className={`flex-shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
+                            <button
+                                type="button"
+                                onClick={handleAddNewOrder}
+                                className="text-sm text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                                aria-label={t('addNewOrder')}
+                            >
+                                + {t('addNewOrder')}
+                            </button>
+                        </div>
+                    )}
                     <OrderSummaryPanel
                         customerName={state.state.customerName}
                         onSelectCustomer={() => state.openModal('customerPicker')}
@@ -441,11 +498,19 @@ export function NewOrderContent() {
                         }}
                         loading={state.state.loading || isSubmitting}
                         trackByPiece={trackByPiece}
+                        isRetailOnlyOrder={isRetailOnlyOrder}
                     />
 
-                    {/* Post-creation navigation button */}
+                    {/* Post-creation: Add New Order + Go to Order */}
                     {state.state.createdOrderId && (
-                        <div className="p-4 border-t border-gray-200 bg-blue-50">
+                        <div className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}>
+                            <CmxButton
+                                onClick={handleAddNewOrder}
+                                className="w-full"
+                                variant="secondary"
+                            >
+                                + {t('addNewOrder')}
+                            </CmxButton>
                             <CmxButton
                                 onClick={handleNavigateToOrder}
                                 className="w-full"
@@ -457,6 +522,18 @@ export function NewOrderContent() {
                     )}
                 </div>
             </div>
+
+            {/* Discard changes confirmation when adding new order with unsaved data */}
+            <CmxAlertDialog
+                open={showDiscardConfirm}
+                title={t('warnings.discardAndNewOrderTitle')}
+                message={t('warnings.discardAndNewOrder')}
+                variant="warning"
+                confirmLabel={tCommon('confirm')}
+                cancelLabel={tCommon('cancel')}
+                onConfirm={handleConfirmDiscard}
+                onCancel={() => setShowDiscardConfirm(false)}
+            />
         </div>
     );
 }

@@ -13,7 +13,7 @@
  */
 
 import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { Bell, ChevronDown, Search, User, LogOut, Settings } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -23,6 +23,7 @@ import { useRTL } from '@/lib/hooks/useRTL'
 
 export default function TopBar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, currentTenant, availableTenants, signOut, switchTenant } = useAuth()
   const isRTL = useRTL()
   const t = useTranslations('layout.topBar')
@@ -183,7 +184,7 @@ export default function TopBar() {
                     type="button"
                     onClick={() => {
                       setShowUserMenu(false)
-                      // TODO: Navigate to profile
+                      router.push('/dashboard/settings/general')
                     }}
                     className={`w-full ${isRTL ? 'text-right' : 'text-left'} px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}
                   >
@@ -195,7 +196,7 @@ export default function TopBar() {
                     type="button"
                     onClick={() => {
                       setShowUserMenu(false)
-                      // TODO: Navigate to settings
+                      router.push('/dashboard/settings')
                     }}
                     className={`w-full ${isRTL ? 'text-right' : 'text-left'} px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}
                   >

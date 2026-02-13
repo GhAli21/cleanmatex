@@ -111,7 +111,7 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
   - **Advance balance** section: shows total unapplied advance payments (where `customer_id` matches and `invoice_id` is null) via `getPaymentsForCustomer`; optional list and count.
   - **Record advance** form: records payment with `payment_kind` `advance`, `customer_id` set; calls `processPayment` without `invoiceId`.
 
-> The original enhanced payment modal used in the **new order** flow (`PaymentModalEnhanced`) remains the primary UI for initial payment at order creation. The invoice detail payment form is for counter staff updating existing invoices; order and customer pages support non-invoice payments (deposit, advance, POS) and apply-to-invoice flow.
+> **New Order Flow (Server-Side Payment Calculation):** The new order page uses `PaymentModalEnhanced02`, which fetches totals from `POST /api/v1/orders/preview-payment` and submits via `POST /api/v1/orders/create-with-payment`. This single API creates order + invoice + payment (and receipt voucher when CASH/CARD/CHECK) in one transaction. On amount mismatch, the API returns `AMOUNT_MISMATCH` (400) with differences; nothing is persisted; the client shows `AmountMismatchDialog`. This flow **replaces** the previous sequential `createOrder` → `createInvoiceAction` → `processPayment` for new orders. The invoice detail payment form is for counter staff updating existing invoices; order and customer pages support non-invoice payments (deposit, advance, POS) and apply-to-invoice flow.
 
 ---
 

@@ -11,6 +11,9 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
+
+/** Transaction client for use inside prisma.$transaction */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { tenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
 import { createReceiptVoucherForPayment } from './voucher-service';
@@ -614,9 +617,11 @@ async function processPaymentByMethod(
  * Record a payment transaction (invoice-linked or standalone deposit/advance/pos)
  * At least one of invoice_id, order_id, or customer_id must be set.
  * Uses tenant settings for currency when not provided; stores calculation breakdown in metadata.
+ * When tx is provided, all operations run inside that transaction.
  */
 export async function recordPaymentTransaction(
-  input: CreatePaymentTransactionInput
+  input: CreatePaymentTransactionInput,
+  tx?: PrismaTx
 ): Promise<PaymentTransaction> {
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) {
@@ -625,7 +630,8 @@ export async function recordPaymentTransaction(
   if (!input.invoice_id && !input.order_id && !input.customer_id) {
     throw new Error('At least one of invoice_id, order_id, or customer_id is required');
   }
-  
+
+  const db = tx ?? prisma;
   const tPayments = useTranslations('payments');
 
   return withTenantContext(tenantId, async () => {
@@ -633,7 +639,7 @@ export async function recordPaymentTransaction(
     let currencyCode = input.currency_code;
     let currencyExRate = input.currency_ex_rate;
     if (!currencyCode && input.order_id) {
-      const order = await prisma.org_orders_mst.findUnique({
+      const order = await db.org_orders_mst.findUnique({
         where: { id: input.order_id },
         select: { currency_code: true, currency_ex_rate: true },
       });
@@ -710,20 +716,23 @@ export async function recordPaymentTransaction(
     }
 
     // Create receipt voucher first (Enhanced: voucher is parent of payment row)
-    const { voucher_id } = await createReceiptVoucherForPayment({
-      tenant_org_id: tenantId,
-      branch_id: input.branch_id,
-      invoice_id: input.invoice_id ?? undefined,
-      order_id: input.order_id ?? undefined,
-      customer_id: input.customer_id ?? undefined,
-      total_amount: input.paid_amount,
-      currency_code: currencyCode,
-      issued_at: new Date(),
-      created_by: input.paid_by ?? undefined,
-      auto_issue: true,
-    });
+    const { voucher_id } = await createReceiptVoucherForPayment(
+      {
+        tenant_org_id: tenantId,
+        branch_id: input.branch_id,
+        invoice_id: input.invoice_id ?? undefined,
+        order_id: input.order_id ?? undefined,
+        customer_id: input.customer_id ?? undefined,
+        total_amount: input.paid_amount,
+        currency_code: currencyCode,
+        issued_at: new Date(),
+        created_by: input.paid_by ?? undefined,
+        auto_issue: true,
+      },
+      db
+    );
 
-    const transaction = await prisma.org_payments_dtl_tr.create({
+    const transaction = await db.org_payments_dtl_tr.create({
       data: {
         tenant_org_id: tenantId,
         voucher_id,
@@ -764,13 +773,16 @@ export async function recordPaymentTransaction(
       },
     });
 
-    await recordPaymentAudit({
-      tenantId,
-      paymentId: transaction.id,
-      actionType: 'CREATED',
-      afterValue: paymentSnapshot(transaction),
-      changedBy: input.paid_by ?? '',
-    });
+    await recordPaymentAudit(
+      {
+        tenantId,
+        paymentId: transaction.id,
+        actionType: 'CREATED',
+        afterValue: paymentSnapshot(transaction),
+        changedBy: input.paid_by ?? '',
+      },
+      db
+    );
 
     return mapTransactionToType(transaction);
   });

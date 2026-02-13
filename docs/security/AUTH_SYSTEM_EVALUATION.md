@@ -552,7 +552,7 @@ The system is secure enough for production use, but implementing the high-priori
 ### Authentication Context
 
 - `web-admin/lib/auth/auth-context.tsx` - Main auth context provider
-- `web-admin/middleware.ts` - Route protection middleware
+- `web-admin/proxy.ts` - Route protection proxy
 - `web-admin/lib/supabase/client.ts` - Client-side Supabase client
 - `web-admin/lib/supabase/server.ts` - Server-side Supabase client
 

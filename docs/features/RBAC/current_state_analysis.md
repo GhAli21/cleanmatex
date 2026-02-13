@@ -180,9 +180,9 @@ export default withRole(StaffPage, { requiredRole: ['admin', 'operator'] });
 </RequireRole>
 ```
 
-**Middleware Protection:**
+**Proxy Protection:**
 ```typescript
-// web-admin/middleware.ts
+// web-admin/proxy.ts
 const ADMIN_ROUTES = [
   '/dashboard/users',
   '/dashboard/settings/organization',
@@ -686,11 +686,11 @@ interface RoleContextType {
 
 ---
 
-## 7. API & Middleware Assessment
+## 7. API & Proxy Assessment
 
-### 7.1 Current Middleware
+### 7.1 Current Proxy
 
-**Location:** `web-admin/middleware.ts`
+**Location:** `web-admin/proxy.ts`
 
 **What it does:**
 - ✅ Checks authentication status

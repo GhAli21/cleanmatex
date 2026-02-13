@@ -57,6 +57,7 @@ export function OrderPiecesManager({
   }
 
   const t = useTranslations('orders.pieces');
+  const tCommon = useTranslations('common');
   const isRTL = useRTL();
 
   const [pieces, setPieces] = React.useState<OrderItemPiece[]>([]);
@@ -243,7 +244,7 @@ export function OrderPiecesManager({
       <div className={`flex items-center justify-center py-8 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         <span className={`ml-2 text-sm text-gray-500 ${isRTL ? 'mr-2 ml-0' : ''}`}>
-          {t('loading')}
+          {tCommon('loading')}
         </span>
       </div>
     );

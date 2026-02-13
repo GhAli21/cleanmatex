@@ -235,7 +235,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
 
         {/* Status */}
         <div className="flex items-end gap-2">
-          <Button type="submit" disabled={saving}>{saving ? t('loading') : mode === 'create' ? t('create') : tCommon('update')}</Button>
+          <Button type="submit" disabled={saving}>{saving ? tCommon('loading') : mode === 'create' ? tCommon('create') : tCommon('update')}</Button>
           {values.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}
           <Button type="button" variant="secondary" onClick={() => setField('is_active', !values.is_active)}>
             {values.is_active ? t('disableCategories') : t('enableCategories')}

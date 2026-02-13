@@ -138,39 +138,15 @@ export async function GET(request: NextRequest) {
       limit: 10000, // Export up to 10,000 customers at once
       type: (searchParams.get('type') as any) || undefined,
       status: (searchParams.get('status') as 'active' | 'inactive') || undefined,
+      startDate: searchParams.get('startDate') || undefined,
+      endDate: searchParams.get('endDate') || undefined,
     };
 
-    // 4. Add date filters if provided
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-
-    // TODO: Implement date filtering in searchCustomers service
-    // For now, we'll fetch all and filter client-side (not optimal for large datasets)
-
-    // 5. Fetch customers
+    // 4. Fetch customers (with server-side date filtering)
     const { customers } = await searchCustomers(params);
 
-    // 6. Filter by date range if provided
-    let filteredCustomers = customers;
-
-    if (startDate || endDate) {
-      filteredCustomers = customers.filter((customer) => {
-        const createdAt = new Date(customer.createdAt);
-
-        if (startDate && createdAt < new Date(startDate)) {
-          return false;
-        }
-
-        if (endDate && createdAt > new Date(endDate)) {
-          return false;
-        }
-
-        return true;
-      });
-    }
-
-    // 7. Convert to CSV
-    const csvContent = convertToCSV(filteredCustomers);
+    // 5. Convert to CSV
+    const csvContent = convertToCSV(customers);
 
     // 8. Generate filename with timestamp
     const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD

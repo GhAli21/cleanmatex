@@ -4,6 +4,14 @@
 
 ** when adding to translation files such as en.json, ar.json first search if already exist and reuse**
 
+## Before Adding Keys
+- Search `messages/en.json` and `messages/ar.json` for existing keys; reuse when possible
+- Use `tCommon` for: save, cancel, delete, edit, create, update, search, filter, clearFilters, loading, error, success, actions, status, date, etc.
+- Key naming: camelCase, concise; avoid long key names
+- Parity: Always update both en.json and ar.json; run `npm run check:i18n` before committing
+- Pluralization: Prefer ICU format `{count, plural, one {...} other {...}}` over manual plural keys (*Plural)
+- Reference: [docs/dev/i18n_docs/style-guide.md](../docs/dev/i18n_docs/style-guide.md)
+
 ## Backend
 Store EN/AR fields and return both.
 

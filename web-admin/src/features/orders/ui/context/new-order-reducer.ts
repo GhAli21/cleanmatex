@@ -8,6 +8,11 @@ import type { NewOrderState, NewOrderAction, PreSubmissionPiece } from '../../mo
 /**
  * Initial state
  */
+/** Check if all items are retail (RETAIL_ITEMS) */
+function isRetailOnlyItems(items: { serviceCategoryCode?: string }[]): boolean {
+  return items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+}
+
 export const initialState: NewOrderState = {
   // Customer
   customer: null,
@@ -66,39 +71,49 @@ export function newOrderReducer(
         customerName: action.payload.customerName,
       };
 
-    case 'SET_ITEMS':
+    case 'SET_ITEMS': {
+      const newItems = action.payload;
+      const retailReadyBy =
+        isRetailOnlyItems(newItems) && !state.readyByAt
+          ? new Date().toISOString()
+          : state.readyByAt;
       return {
         ...state,
-        items: action.payload,
+        items: newItems,
+        readyByAt: retailReadyBy,
       };
+    }
 
     case 'ADD_ITEM': {
       const existingItem = state.items.find(
         (item) => item.productId === action.payload.productId
       );
 
+      let newItems: typeof state.items;
       if (existingItem) {
-        // Update existing item
-        return {
-          ...state,
-          items: state.items.map((item) =>
-            item.productId === action.payload.productId
-              ? {
+        newItems = state.items.map((item) =>
+          item.productId === action.payload.productId
+            ? {
                 ...item,
                 quantity: item.quantity + 1,
                 totalPrice: (item.quantity + 1) * item.pricePerUnit,
-                // Update pieces if trackByPiece is enabled
                 pieces: action.payload.pieces || item.pieces,
               }
-              : item
-          ),
-        };
+            : item
+        );
+      } else {
+        newItems = [...state.items, action.payload];
       }
 
-      // Add new item
+      const retailReadyBy =
+        isRetailOnlyItems(newItems) && !state.readyByAt
+          ? new Date().toISOString()
+          : state.readyByAt;
+
       return {
         ...state,
-        items: [...state.items, action.payload],
+        items: newItems,
+        readyByAt: retailReadyBy,
       };
     }
 

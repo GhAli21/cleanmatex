@@ -87,9 +87,7 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
           <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
             <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <span className="text-sm font-medium text-blue-900">
-                {selectedIds.size === 1 
-                  ? t('ordersSelected', { count: selectedIds.size })
-                  : t('ordersSelectedPlural', { count: selectedIds.size })}
+                {t('ordersSelected', { count: selectedIds.size })}
               </span>
               <button
                 onClick={() => setSelectedIds(new Set())}

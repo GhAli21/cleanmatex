@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import { useOrderSubmission } from '../hooks/use-order-submission';
+import { AmountMismatchDialog } from '@/app/dashboard/orders/new/components/amount-mismatch-dialog';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useHasPermission } from '@/lib/hooks/use-has-permission';
@@ -41,8 +42,8 @@ const CustomerEditModal = dynamic(
   }
 );
 
-const PaymentModalEnhanced = dynamic(
-  () => import('@/app/dashboard/orders/new/components/payment-modal-enhanced').then(mod => ({ default: mod.PaymentModalEnhanced })),
+const PaymentModalEnhanced02 = dynamic(
+  () => import('@/app/dashboard/orders/new/components/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
   {
     ssr: false,
     loading: () => null
@@ -66,7 +67,7 @@ export function NewOrderModals() {
   const { currentTenant, user } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
-  const { submitOrder } = useOrderSubmission();
+  const { submitOrder, amountMismatch, setAmountMismatch } = useOrderSubmission();
   const { trackByPiece } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
@@ -82,6 +83,12 @@ export function NewOrderModals() {
           .filter(Boolean)
       )
     ) as string[];
+  }, [state.state.items]);
+
+  // Retail-only: all items are RETAIL_ITEMS (payment must be at POS, no PAY_ON_COLLECTION)
+  const isRetailOnlyOrder = useMemo(() => {
+    const items = state.state.items;
+    return items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
   }, [state.state.items]);
 
   // Handle customer selection
@@ -136,13 +143,22 @@ export function NewOrderModals() {
     [submitOrder]
   );
 
-  // Handle custom item add
+  // Handle custom item add (retail vs services: cannot mix)
   const handleAddCustomItem = useCallback(
     (item: OrderItem) => {
+      const isNewRetail = item.serviceCategoryCode === 'RETAIL_ITEMS';
+      const existingItems = state.state.items;
+      if (existingItems.length > 0) {
+        const isExistingRetail = existingItems[0].serviceCategoryCode === 'RETAIL_ITEMS';
+        if (isNewRetail !== isExistingRetail) {
+          cmxMessage.error(t('errors.mixedRetailServices'));
+          return;
+        }
+      }
       state.addItem(item);
       state.closeModal('customItem');
     },
-    [state]
+    [state, t]
   );
 
   // Handle photo capture
@@ -212,6 +228,15 @@ export function NewOrderModals() {
 
   return (
     <>
+      {/* Amount Mismatch Dialog (server vs client totals) */}
+      <AmountMismatchDialog
+        open={amountMismatch.open}
+        onClose={() => setAmountMismatch((prev) => ({ ...prev, open: false }))}
+        onRefresh={() => window.location.reload()}
+        message={amountMismatch.message}
+        differences={amountMismatch.differences}
+      />
+
       {/* Customer Picker Modal */}
       <CustomerPickerModal
         open={state.state.modals.customerPicker}
@@ -229,14 +254,17 @@ export function NewOrderModals() {
 
       {/* Payment Modal */}
       {currentTenant && (
-        <PaymentModalEnhanced
+        <PaymentModalEnhanced02
           open={state.state.modals.payment}
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
+          items={state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))}
+          isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
           serviceCategories={serviceCategories}
+          isRetailOnlyOrder={isRetailOnlyOrder}
           loading={state.state.loading}
         />
       )}
@@ -267,6 +295,7 @@ export function NewOrderModals() {
         onApply={handleReadyByChange}
         initialDate={state.state.readyByAt ? new Date(state.state.readyByAt) : undefined}
         initialTime={state.state.readyByAt ? new Date(state.state.readyByAt).toTimeString().slice(0, 5) : undefined}
+        allowNow={isRetailOnlyOrder}
       />
 
       {/* Price Override Modal */}

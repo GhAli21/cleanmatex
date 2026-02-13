@@ -3,6 +3,10 @@
  * Reusable badge for displaying customer type (guest/stub/full)
  */
 
+'use client';
+
+import type { ReactNode } from 'react';
+import { useTranslations } from 'next-intl';
 import type { CustomerType } from '@/lib/types/customer'
 
 interface CustomerTypeBadgeProps {
@@ -16,6 +20,8 @@ export default function CustomerTypeBadge({
   size = 'md',
   showIcon = false,
 }: CustomerTypeBadgeProps) {
+  const t = useTranslations('customers.types');
+
   const getBadgeStyles = () => {
     const baseStyles = 'inline-flex items-center font-semibold rounded-full'
 
@@ -25,19 +31,20 @@ export default function CustomerTypeBadge({
       lg: 'px-3 py-1 text-sm',
     }
 
-    const typeStyles = {
+    const typeStyles: Record<string, string> = {
       guest: 'bg-gray-100 text-gray-800',
       stub: 'bg-yellow-100 text-yellow-800',
       full: 'bg-green-100 text-green-800',
+      walk_in: 'bg-blue-100 text-blue-800',
     }
 
-    return `${baseStyles} ${sizeStyles[size]} ${typeStyles[type]}`
+    return `${baseStyles} ${sizeStyles[size]} ${typeStyles[type] ?? typeStyles.guest}`
   }
 
   const getIcon = () => {
     if (!showIcon) return null
 
-    const icons = {
+    const icons: Record<string, ReactNode> = {
       guest: (
         <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
           <path
@@ -63,16 +70,17 @@ export default function CustomerTypeBadge({
       ),
     }
 
-    return icons[type]
+    return icons[type] ?? null
   }
 
   const getLabel = () => {
-    const labels = {
-      guest: 'Guest',
-      stub: 'Stub',
-      full: 'Full',
+    const labels: Record<string, string> = {
+      guest: t('guest'),
+      stub: t('stub'),
+      full: t('full'),
+      walk_in: t('walk_in'),
     }
-    return labels[type]
+    return labels[type] ?? type
   }
 
   return (

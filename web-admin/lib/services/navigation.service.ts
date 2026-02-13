@@ -107,12 +107,12 @@ export async function getNavigationFromDatabase(
     
     console.log('Jh In getNavigationFromDatabase() [ 1 ] : data received:', {
       dataLength: data?.length || 0,
-      data: data,
+      //data: data,
       error: error,
     });
     
     if (error) {
-      console.error('Database function error details:', {
+      console.error('Error in Jh In getNavigationFromDatabase() [ 10 ] : Database function error details:', {
         message: error.message,
         details: error.details,
         hint: error.hint,
@@ -121,7 +121,7 @@ export async function getNavigationFromDatabase(
     }
     
     if (error) {
-      console.error('Error fetching navigation from database:', error)
+      console.error('Error in Jh In getNavigationFromDatabase() [ 11 ] : Error fetching navigation from database:', error)
       // Return empty array if error (no default fallback)
       const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
       // Ensure super_admin always gets navigation items

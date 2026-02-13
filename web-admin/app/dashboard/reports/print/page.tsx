@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { format } from 'date-fns';
 import {
   fetchOrdersReport,
@@ -20,6 +21,8 @@ type ReportData = OrdersReportData | PaymentsReportData | InvoicesReportData | C
 
 export default function ReportPrintPage() {
   const searchParams = useSearchParams();
+  const t = useTranslations('reports');
+  const tCommon = useTranslations('common');
   const reportType = searchParams.get('type') || 'orders';
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
@@ -77,7 +80,7 @@ export default function ReportPrintPage() {
   if (!data) {
     return (
       <div className="flex min-h-screen items-center justify-center p-8">
-        <p className="text-gray-500">No data available</p>
+        <p className="text-gray-500">{tCommon('noData')}</p>
       </div>
     );
   }
@@ -114,13 +117,13 @@ export default function ReportPrintPage() {
             onClick={() => window.print()}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
           >
-            Print
+            {t('print')}
           </button>
           <button
             onClick={() => window.close()}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            Close
+            {tCommon('close')}
           </button>
         </div>
 
@@ -136,27 +139,27 @@ export default function ReportPrintPage() {
         </div>
 
         {/* Report Content based on type */}
-        {reportType === 'orders' && <OrdersPrintContent data={data as OrdersReportData} />}
-        {reportType === 'payments' && <PaymentsPrintContent data={data as PaymentsReportData} />}
-        {reportType === 'invoices' && <InvoicesPrintContent data={data as InvoicesReportData} />}
-        {reportType === 'customers' && <CustomersPrintContent data={data as CustomerReportData} />}
+        {reportType === 'orders' && <OrdersPrintContent data={data as OrdersReportData} t={t} />}
+        {reportType === 'payments' && <PaymentsPrintContent data={data as PaymentsReportData} t={t} />}
+        {reportType === 'invoices' && <InvoicesPrintContent data={data as InvoicesReportData} t={t} />}
+        {reportType === 'customers' && <CustomersPrintContent data={data as CustomerReportData} t={t} />}
       </div>
     </>
   );
 }
 
-function OrdersPrintContent({ data }: { data: OrdersReportData }) {
+function OrdersPrintContent({ data, t }: { data: OrdersReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <KPIBox label="Total Revenue" value={`${kpis.currencyCode} ${kpis.totalRevenue.toLocaleString()}`} />
-        <KPIBox label="Total Orders" value={String(kpis.totalOrders)} />
-        <KPIBox label="Avg Order Value" value={`${kpis.currencyCode} ${kpis.avgOrderValue.toLocaleString()}`} />
-        <KPIBox label="Active Customers" value={String(kpis.activeCustomers)} />
+        <KPIBox label={t('kpi.totalRevenue')} value={`${kpis.currencyCode} ${kpis.totalRevenue.toLocaleString()}`} />
+        <KPIBox label={t('kpi.totalOrders')} value={String(kpis.totalOrders)} />
+        <KPIBox label={t('kpi.avgOrderValue')} value={`${kpis.currencyCode} ${kpis.avgOrderValue.toLocaleString()}`} />
+        <KPIBox label={t('kpi.activeCustomers')} value={String(kpis.activeCustomers)} />
       </div>
       <PrintTable
-        headers={['Order #', 'Customer', 'Status', 'Items', 'Total', 'Payment', 'Date']}
+        headers={[t('table.orderNo'), t('table.customer'), t('table.status'), t('table.items'), t('table.total'), t('table.payment'), t('table.date')]}
         rows={data.orders.map((o) => [
           o.orderNo,
           o.customerName,
@@ -171,18 +174,18 @@ function OrdersPrintContent({ data }: { data: OrdersReportData }) {
   );
 }
 
-function PaymentsPrintContent({ data }: { data: PaymentsReportData }) {
+function PaymentsPrintContent({ data, t }: { data: PaymentsReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <KPIBox label="Total Payments" value={String(kpis.totalPayments)} />
-        <KPIBox label="Total Amount" value={`${kpis.currencyCode} ${kpis.totalAmount.toLocaleString()}`} />
-        <KPIBox label="Avg Amount" value={`${kpis.currencyCode} ${kpis.avgAmount.toLocaleString()}`} />
-        <KPIBox label="Refunded" value={String(kpis.refundedPayments)} />
+        <KPIBox label={t('kpi.totalPayments')} value={String(kpis.totalPayments)} />
+        <KPIBox label={t('kpi.totalAmount')} value={`${kpis.currencyCode} ${kpis.totalAmount.toLocaleString()}`} />
+        <KPIBox label={t('kpi.avgAmount')} value={`${kpis.currencyCode} ${kpis.avgAmount.toLocaleString()}`} />
+        <KPIBox label={t('kpi.refundedPayments')} value={String(kpis.refundedPayments)} />
       </div>
       <PrintTable
-        headers={['Order #', 'Invoice #', 'Customer', 'Amount', 'Method', 'Status', 'Date']}
+        headers={[t('table.orderNo'), t('table.invoiceNo'), t('table.customer'), t('table.amount'), t('table.method'), t('table.status'), t('table.date')]}
         rows={data.payments.map((p) => [
           p.orderNo ?? '-',
           p.invoiceNo ?? '-',
@@ -197,18 +200,18 @@ function PaymentsPrintContent({ data }: { data: PaymentsReportData }) {
   );
 }
 
-function InvoicesPrintContent({ data }: { data: InvoicesReportData }) {
+function InvoicesPrintContent({ data, t }: { data: InvoicesReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <KPIBox label="Total Invoices" value={String(kpis.totalInvoices)} />
-        <KPIBox label="Outstanding" value={`${kpis.currencyCode} ${kpis.totalOutstanding.toLocaleString()}`} />
-        <KPIBox label="Collection Rate" value={`${kpis.collectionRate}%`} />
-        <KPIBox label="Overdue" value={String(kpis.overdueCount)} />
+        <KPIBox label={t('kpi.totalInvoices')} value={String(kpis.totalInvoices)} />
+        <KPIBox label={t('kpi.totalOutstanding')} value={`${kpis.currencyCode} ${kpis.totalOutstanding.toLocaleString()}`} />
+        <KPIBox label={t('kpi.collectionRate')} value={`${kpis.collectionRate}%`} />
+        <KPIBox label={t('kpi.overdueCount')} value={String(kpis.overdueCount)} />
       </div>
       <PrintTable
-        headers={['Invoice #', 'Customer', 'Total', 'Paid', 'Balance', 'Status', 'Due Date']}
+        headers={[t('table.invoiceNo'), t('table.customer'), t('table.total'), t('table.paid'), t('table.balance'), t('table.status'), t('table.dueDate')]}
         rows={data.invoices.map((inv) => [
           inv.invoiceNo,
           inv.customerName ?? '-',
@@ -223,18 +226,18 @@ function InvoicesPrintContent({ data }: { data: InvoicesReportData }) {
   );
 }
 
-function CustomersPrintContent({ data }: { data: CustomerReportData }) {
+function CustomersPrintContent({ data, t }: { data: CustomerReportData; t: ReturnType<typeof useTranslations<'reports'>> }) {
   const { kpis } = data;
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-4 gap-4">
-        <KPIBox label="Total Customers" value={String(kpis.totalCustomers)} />
-        <KPIBox label="New Customers" value={String(kpis.newCustomers)} />
-        <KPIBox label="Returning" value={String(kpis.returningCustomers)} />
-        <KPIBox label="Avg LTV" value={`${kpis.currencyCode} ${kpis.avgLTV.toLocaleString()}`} />
+        <KPIBox label={t('kpi.totalCustomers')} value={String(kpis.totalCustomers)} />
+        <KPIBox label={t('kpi.newCustomers')} value={String(kpis.newCustomers)} />
+        <KPIBox label={t('kpi.returningCustomers')} value={String(kpis.returningCustomers)} />
+        <KPIBox label={t('kpi.avgLTV')} value={`${kpis.currencyCode} ${kpis.avgLTV.toLocaleString()}`} />
       </div>
       <PrintTable
-        headers={['Customer', 'Phone', 'Orders', 'Revenue', 'Avg Value', 'Last Order', 'First Order']}
+        headers={[t('table.customer'), t('table.phone'), t('table.orders'), t('table.revenue'), t('table.avgValue'), t('table.lastOrder'), t('table.firstOrder')]}
         rows={data.customers.map((c) => [
           c.name,
           c.phone ?? '-',

@@ -418,7 +418,25 @@ export class DeliveryService {
         });
       }
 
-      // TODO: Send OTP to customer via WhatsApp/SMS
+      // Send OTP to customer via SMS
+      const { data: orderWithCustomer } = await supabase
+        .from('org_orders_mst')
+        .select('customer:org_customers_mst(phone)')
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      const customerPhone = (orderWithCustomer as { customer?: { phone?: string } })?.customer?.phone;
+      if (customerPhone) {
+        const { sendSMS } = await import('@/lib/notifications/sms-sender');
+        const message = `Your CleanMateX delivery OTP is: ${otpCode}. Give this code to the driver upon delivery.`;
+        await sendSMS(customerPhone, message);
+      } else {
+        logger.warn('No customer phone for delivery OTP - OTP not sent', {
+          tenantId,
+          orderId,
+        });
+      }
 
       logger.info('OTP generated successfully', {
         tenantId,

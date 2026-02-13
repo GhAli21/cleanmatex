@@ -460,9 +460,9 @@ export default withRole(OrdersPage, {
 
 ### 3. Route-Level Protection
 
-**Middleware:**
+**Proxy:**
 ```typescript
-// web-admin/middleware.ts
+// web-admin/proxy.ts
 const ADMIN_ROUTES = [
   '/dashboard/users',
   '/dashboard/settings/organization',

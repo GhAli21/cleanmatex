@@ -29,9 +29,6 @@ export function QuickDropForm() {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
   const customerInputRef = useRef<HTMLInputElement | null>(null);
 
-  // TODO: Get tenant ID from session
-  const tenantOrgId = 'demo-tenant-id';
-
   // Debounced search for customers
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +59,7 @@ export function QuickDropForm() {
     const formData = new FormData(e.currentTarget);
 
     try {
-      const result = await createOrder(tenantOrgId, formData);
+      const result = await createOrder(formData);
 
       if (result.success && result.data) {
         // Redirect to preparation page

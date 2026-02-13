@@ -96,10 +96,13 @@ export default function TenantRegisterPage() {
 
     setSlugChecking(true);
     try {
-      // TODO: Implement actual slug check API
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setSlugAvailable(true);
+      const res = await fetch(`/api/v1/tenants/check-slug?slug=${encodeURIComponent(slug)}`);
+      const json = await res.json();
+      if (res.ok) {
+        setSlugAvailable(json.available === true);
+      } else {
+        setSlugAvailable(false);
+      }
     } catch (err) {
       setSlugAvailable(false);
     } finally {
@@ -116,6 +119,9 @@ export default function TenantRegisterPage() {
       if (!formData.slug) newErrors.slug = 'Slug is required';
       if (formData.slug && !/^[a-z0-9-]+$/.test(formData.slug)) {
         newErrors.slug = 'Slug must contain only lowercase letters, numbers, and hyphens';
+      }
+      if (formData.slug && slugAvailable === false) {
+        newErrors.slug = 'This slug is already taken. Please choose another.';
       }
       if (!formData.email) newErrors.email = 'Email is required';
       if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -281,6 +287,7 @@ export default function TenantRegisterPage() {
                   value={formData.slug}
                   onChange={(e) => {
                     setFormData((prev) => ({ ...prev, slug: e.target.value }));
+                    setSlugAvailable(null);
                     setSlugAvailable(null);
                   }}
                   onBlur={() => checkSlugAvailability(formData.slug)}

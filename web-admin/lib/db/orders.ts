@@ -488,6 +488,7 @@ export async function listOrders(
     status,
     preparationStatus,
     priority,
+    isRetail,
     customerId,
     branchId,
     fromDate,
@@ -516,6 +517,12 @@ export async function listOrders(
 
   if (priority) {
     where.priority = Array.isArray(priority) ? { in: priority } : priority;
+  }
+
+  if (isRetail === 'true') {
+    where.is_retail = true;
+  } else if (isRetail === 'false') {
+    where.is_retail = false;
   }
 
   if (customerId) {
@@ -639,6 +646,7 @@ export async function listOrders(
       status: order.status as any,
       preparation_status: order.preparation_status as any,
       priority: order.priority as any,
+      is_retail: (order as { is_retail?: boolean }).is_retail ?? false,
       total_items: order.total_items ?? 0,
       total_pieces: pieceCountMap.get(order.id) ?? null,
       total: Number(order.total),

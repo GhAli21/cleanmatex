@@ -10,6 +10,7 @@ import { OrderPieceService } from './order-piece-service';
 import { TenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
+import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
 
 export interface CreateOrderPieceData {
   pieceSeq: number;
@@ -190,27 +191,31 @@ export class OrderService {
         currencyExRate: passedCurrencyExRate,
       } = params;
 
-      // Determine initial status based on Quick Drop vs Normal
+      // Determine initial status based on Retail vs Quick Drop vs Normal
       let v_initialStatus: string;
       let v_transitionFrom: string;
       let v_orderStatus: string;
       let v_current_status: string;
       let v_current_stage: string;
 
-      // Default hardcoded values (old workflow path)
-      v_orderStatus = 'processing';
-      v_transitionFrom = 'intake';
-      v_current_status = 'intake';
-      v_current_stage = 'intake';
+      // Retail-only orders: skip workflow, go directly to closed
+      const isRetailOnlyOrder =
+        items.length > 0 &&
+        items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
 
-      if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
+      if (isRetailOnlyOrder) {
+        v_initialStatus = RETAIL_TERMINAL_STATUS;
+        v_transitionFrom = RETAIL_TERMINAL_STATUS;
+        v_orderStatus = RETAIL_TERMINAL_STATUS;
+        v_current_status = RETAIL_TERMINAL_STATUS;
+        v_current_stage = RETAIL_TERMINAL_STATUS;
+      } else if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
         // Quick Drop: insufficient items → preparing stage
         v_initialStatus = 'preparing';
         v_transitionFrom = 'intake';
         v_orderStatus = 'preparing';
         v_current_status = 'preparing';
         v_current_stage = 'intake';
-
       } else {
         // Normal order: has items → processing stage
         v_initialStatus = 'processing';
@@ -218,11 +223,11 @@ export class OrderService {
         v_orderStatus = 'processing';
         v_current_status = 'processing';
         v_current_stage = 'intake';
-
       }
 
       // If using new workflow system (useOldWfCodeOrNew === false), use contract-based status
-      if (useOldWfCodeOrNew === false) {
+      // Skip for retail orders - they bypass workflow
+      if (!isRetailOnlyOrder && useOldWfCodeOrNew === false) {
         const screen = isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)
           ? 'preparation'
           : 'processing';
@@ -243,6 +248,13 @@ export class OrderService {
           screen,
           contractStatus,
           isQuickDrop,
+          feature: 'orders',
+          action: 'create_order',
+        });
+      } else if (isRetailOnlyOrder) {
+        logger.info('Retail order created with closed status (workflow skipped)', {
+          tenantId,
+          userId,
           feature: 'orders',
           action: 'create_order',
         });
@@ -334,6 +346,7 @@ export class OrderService {
         service_category_code: primaryServiceCategory,
         is_order_quick_drop: isQuickDrop || false,
         quick_drop_quantity: quickDropQuantity,
+        is_retail: isRetailOnlyOrder,
         customer_notes: customerNotes,
         internal_notes: internalNotes,
       };
@@ -404,7 +417,7 @@ export class OrderService {
           );
 
           // Auto-create pieces for each item if tracking by piece is enabled
-          if (trackByPiece || true) { // TODO: Remove true after testing
+          if (trackByPiece) {
             const piecesErrors: Array<{ itemId: string; error: string }> = [];
 
             for (let i = 0; i < createdItems.length; i++) {
@@ -488,6 +501,64 @@ export class OrderService {
                 error: `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`,
               };
             }
+          }
+        }
+
+        // Stock deduction for retail items
+        const hasRetailItems = items.some((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+        if (hasRetailItems) {
+          try {
+            const { error: deductError } = await supabase.rpc('deduct_retail_stock_for_order', {
+              p_order_id: order.id,
+              p_tenant_org_id: tenantId,
+              p_branch_id: order.branch_id ?? null,
+            });
+            if (deductError) {
+              const errMsg = deductError.message || 'Insufficient stock';
+              logger.error('Stock deduction failed for retail order', new Error(errMsg), {
+                tenantId,
+                orderId: order.id,
+                feature: 'orders',
+                action: 'create_order',
+              });
+              // Rollback: delete items then order
+              await supabase
+                .from('org_order_items_dtl')
+                .delete()
+                .eq('tenant_org_id', tenantId)
+                .eq('order_id', order.id);
+              await supabase
+                .from('org_orders_mst')
+                .delete()
+                .eq('id', order.id)
+                .eq('tenant_org_id', tenantId);
+              return {
+                success: false,
+                error: errMsg.includes('INSUFFICIENT_STOCK') ? errMsg : `Stock deduction failed: ${errMsg}`,
+              };
+            }
+          } catch (deductErr) {
+            const errMsg = deductErr instanceof Error ? deductErr.message : 'Stock deduction failed';
+            logger.error('Stock deduction failed for retail order', deductErr as Error, {
+              tenantId,
+              orderId: order.id,
+              feature: 'orders',
+              action: 'create_order',
+            });
+            await supabase
+              .from('org_order_items_dtl')
+              .delete()
+              .eq('tenant_org_id', tenantId)
+              .eq('order_id', order.id);
+            await supabase
+              .from('org_orders_mst')
+              .delete()
+              .eq('id', order.id)
+              .eq('tenant_org_id', tenantId);
+            return {
+              success: false,
+              error: errMsg.includes('INSUFFICIENT_STOCK') ? errMsg : `Stock deduction failed: ${errMsg}`,
+            };
           }
         }
       }

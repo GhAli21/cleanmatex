@@ -29,6 +29,7 @@ export interface PieceHistoryProps {
 
 export function PieceHistory({ pieceId, tenantId }: PieceHistoryProps) {
   const t = useTranslations('orders.pieces');
+  const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [history, setHistory] = React.useState<PieceHistoryEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -53,7 +54,7 @@ export function PieceHistory({ pieceId, tenantId }: PieceHistoryProps) {
   };
 
   if (loading) {
-    return <div className="text-sm text-gray-500">{t('loading')}</div>;
+    return <div className="text-sm text-gray-500">{tCommon('loading')}</div>;
   }
 
   if (history.length === 0) {

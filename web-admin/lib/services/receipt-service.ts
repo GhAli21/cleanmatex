@@ -563,11 +563,57 @@ export class ReceiptService {
     htmlContent: string,
     qrCode?: string
   ): Promise<void> {
-    // TODO: Implement email sending
-    logger.info('Sending receipt via Email', {
-      tenantId,
-      receiptId,
-    });
+    try {
+      const { sendEmail } = await import('@/lib/notifications/email-sender');
+      const { createClient } = await import('@/lib/supabase/server');
+
+      const supabase = await createClient();
+      const { data: receipt, error: receiptError } = await supabase
+        .from('org_rcpt_receipts_mst')
+        .select('recipient_email, order:org_orders_mst(customer:org_customers_mst(email))')
+        .eq('id', receiptId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (receiptError || !receipt) {
+        throw new Error('Receipt not found');
+      }
+
+      const r = receipt as {
+        recipient_email?: string | null;
+        order?: { customer?: { email?: string | null } } | null;
+      };
+      const recipientEmail =
+        r.recipient_email ||
+        r.order?.customer?.email;
+      if (!recipientEmail) {
+        throw new Error('Customer email not found for receipt');
+      }
+
+      const sent = await sendEmail({
+        to: recipientEmail,
+        subject: 'Your CleanMateX Receipt',
+        html: htmlContent,
+      });
+
+      if (!sent) {
+        throw new Error('Failed to send email');
+      }
+
+      await this.updateReceiptStatus(receiptId, tenantId, 'sent');
+      logger.info('Receipt sent via Email successfully', {
+        tenantId,
+        receiptId,
+        recipient: recipientEmail.slice(0, 3) + '***',
+      });
+    } catch (error) {
+      logger.error('Failed to send receipt via Email', error as Error, {
+        tenantId,
+        receiptId,
+      });
+      await this.updateReceiptStatus(receiptId, tenantId, 'failed');
+      throw error;
+    }
   }
 
   /**

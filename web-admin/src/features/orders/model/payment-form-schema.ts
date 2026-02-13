@@ -36,24 +36,28 @@ const emptyStringToUndefined = z.preprocess(
   z.string().optional()
 );
 
-export const paymentFormSchema = z
-  .object({
-    paymentMethod: paymentMethodSchema,
-    checkNumber: z.string().optional(),
-    checkBank: z.string().optional(),
-    checkDate: z.string().optional(), // ISO date string from input[type="date"]
-    percentDiscount: z.number().min(0).max(100).default(0),
-    amountDiscount: z.number().nonnegative().default(0),
-    promoCode: emptyStringToUndefined,
-    promoCodeId: z.string().uuid().optional().or(z.literal('')),
-    promoDiscount: z.number().nonnegative().optional(),
-    giftCardNumber: emptyStringToUndefined,
-    giftCardAmount: z.number().nonnegative().optional(),
-    payAllOrders: z.boolean().default(false),
-  })
+const paymentFormBaseSchema = z.object({
+  paymentMethod: paymentMethodSchema,
+  checkNumber: z.string().optional(),
+  checkBank: z.string().optional(),
+  checkDate: z.string().optional(), // ISO date string from input[type="date"]
+  percentDiscount: z.number().min(0).max(100).default(0),
+  amountDiscount: z.number().nonnegative().default(0),
+  promoCode: emptyStringToUndefined,
+  promoCodeId: z.string().uuid().optional().or(z.literal('')),
+  promoDiscount: z.number().nonnegative().optional(),
+  giftCardNumber: emptyStringToUndefined,
+  giftCardAmount: z.number().nonnegative().optional(),
+  payAllOrders: z.boolean().default(false),
+});
+
+/**
+ * Base schema (no subtotal-dependent validation).
+ * Use getPaymentFormSchema(subtotal) when subtotal is available for discount validation.
+ */
+export const paymentFormSchema = paymentFormBaseSchema
   .refine(
     (data) => {
-      // If payment method is CHECK, checkNumber is required
       if (data.paymentMethod === PAYMENT_METHODS.CHECK) {
         return !!data.checkNumber && data.checkNumber.trim().length > 0;
       }
@@ -62,16 +66,6 @@ export const paymentFormSchema = z
     {
       message: 'Check number is required when payment method is check',
       path: ['checkNumber'],
-    }
-  )
-  .refine(
-    (data) => {
-      // Cannot have both percent and amount discount
-      return !(data.percentDiscount > 0 && data.amountDiscount > 0);
-    },
-    {
-      message: 'Cannot apply both percent and amount discount',
-      path: ['amountDiscount'],
     }
   )
   .refine(
@@ -90,7 +84,6 @@ export const paymentFormSchema = z
   )
   .refine(
     (data) => {
-      // If gift card number is provided (non-empty), gift card amount should be provided
       const hasGiftCard = data.giftCardNumber && data.giftCardNumber.trim().length > 0;
       if (hasGiftCard && !data.giftCardAmount) {
         return false;
@@ -102,6 +95,31 @@ export const paymentFormSchema = z
       path: ['giftCardAmount'],
     }
   );
+
+/**
+ * Payment form schema with discount validation against subtotal.
+ * Use this when subtotal is available (e.g. in payment modal).
+ * @param subtotal Order subtotal (before discount)
+ * @param message Optional i18n message (default: "Discount cannot exceed order total")
+ */
+export function getPaymentFormSchema(
+  subtotal: number,
+  message = 'Discount cannot exceed order total'
+) {
+  return paymentFormSchema.refine(
+    (data) => {
+      const effectiveDiscount =
+        data.percentDiscount > 0
+          ? (subtotal * data.percentDiscount) / 100
+          : data.amountDiscount;
+      return effectiveDiscount <= Math.max(0, subtotal);
+    },
+    {
+      message,
+      path: ['amountDiscount'],
+    }
+  );
+}
 
 /**
  * Type inference for payment form

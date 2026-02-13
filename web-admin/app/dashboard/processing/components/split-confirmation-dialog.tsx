@@ -38,6 +38,7 @@ export function SplitConfirmationDialog({
   isLoading = false,
 }: SplitConfirmationDialogProps) {
   const t = useTranslations('processing.splitConfirm');
+  const tCommon = useTranslations('common');
   const [reason, setReason] = React.useState('');
   const [error, setError] = React.useState('');
 
@@ -117,7 +118,7 @@ export function SplitConfirmationDialog({
             onClick={handleCancel}
             disabled={isLoading}
           >
-            {t('cancel')}
+            {tCommon('cancel')}
           </Button>
           <Button
             variant="danger"

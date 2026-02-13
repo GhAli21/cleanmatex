@@ -69,59 +69,13 @@ export function verifyVerificationToken(token: string): { phone: string } | null
 }
 
 // ==================================================================
-// SMS SENDING (Mock Implementation)
+// SMS SENDING (Twilio when configured)
 // ==================================================================
 
-/**
- * Send SMS via Twilio (or other SMS provider)
- *
- * For development, this is a mock implementation.
- * In production, integrate with Twilio:
- *
- * ```typescript
- * import twilio from 'twilio';
- *
- * const client = twilio(
- *   process.env.TWILIO_ACCOUNT_SID,
- *   process.env.TWILIO_AUTH_TOKEN
- * );
- *
- * await client.messages.create({
- *   body: `Your CleanMateX verification code is: ${code}`,
- *   from: process.env.TWILIO_PHONE_NUMBER,
- *   to: phone,
- * });
- * ```
- */
+import { sendSMS as sendSMSViaProvider } from '@/lib/notifications/sms-sender';
+
 async function sendSMS(phone: string, message: string): Promise<boolean> {
-  // TODO: Replace with actual Twilio integration
-  console.log(`[SMS] Sending to ${phone}: ${message}`);
-
-  // Mock implementation for development
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[DEV] OTP Code: ${message}`);
-    return true;
-  }
-
-  // In production, use Twilio
-  try {
-    // const twilio = require('twilio');
-    // const client = twilio(
-    //   process.env.TWILIO_ACCOUNT_SID,
-    //   process.env.TWILIO_AUTH_TOKEN
-    // );
-    //
-    // await client.messages.create({
-    //   body: message,
-    //   from: process.env.TWILIO_PHONE_NUMBER,
-    //   to: phone,
-    // });
-
-    return true;
-  } catch (error) {
-    console.error('Error sending SMS:', error);
-    return false;
-  }
+  return sendSMSViaProvider(phone, message);
 }
 
 // ==================================================================

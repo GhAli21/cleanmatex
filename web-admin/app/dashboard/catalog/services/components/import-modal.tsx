@@ -23,6 +23,7 @@ interface ImportModalProps {
 
 export default function ImportModal({ onClose }: ImportModalProps) {
   const t = useTranslations('catalog')
+  const tCommon = useTranslations('common')
   const [template, setTemplate] = useState<'basic' | 'advanced'>('advanced')
   const [csv, setCsv] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -57,7 +58,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4">
       <Card className="w-full max-w-3xl p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">{t('import')}</h2>
+          <h2 className="text-xl font-semibold">{tCommon('import')}</h2>
           <Button variant="secondary" onClick={onClose}>{t('close')}</Button>
         </div>
 
@@ -91,7 +92,7 @@ export default function ImportModal({ onClose }: ImportModalProps) {
           </div>
 
           <div className="flex items-center justify-between">
-            <Button type="submit" disabled={submitting}>{submitting ? t('loading') : t('import')}</Button>
+            <Button type="submit" disabled={submitting}>{submitting ? tCommon('loading') : tCommon('import')}</Button>
             <Button type="button" variant="secondary" onClick={onClose}>{t('close')}</Button>
           </div>
         </form>

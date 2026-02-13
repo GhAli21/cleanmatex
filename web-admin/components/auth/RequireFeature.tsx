@@ -54,37 +54,23 @@ export function RequireFeature({
       }
 
       try {
-        // TODO: Replace with actual feature flags service call
-        // For now, mock some feature flags
-        const mockFeatureFlags: Record<string, boolean> = {
-          pdf_invoices: true,
-          whatsapp_receipts: true,
-          in_app_receipts: true,
-          printing: true,
-          b2b_contracts: false,
-          white_label: false,
-          marketplace_listings: false,
-          loyalty_programs: true,
-          driver_app: true,
-          multi_branch: true,
-          advanced_analytics: true,
-          api_access: false,
+        const res = await fetch('/api/feature-flags')
+        if (!res.ok) {
+          setHasAccess(false)
+          return
         }
+        const flags = (await res.json()) as Record<string, boolean>
 
-        // Check feature access
         if (Array.isArray(feature)) {
           if (requireAll) {
-            // All features must be enabled
-            const allEnabled = feature.every((f) => mockFeatureFlags[f] === true)
+            const allEnabled = feature.every((f) => flags[f] === true)
             setHasAccess(allEnabled)
           } else {
-            // Any feature can be enabled
-            const anyEnabled = feature.some((f) => mockFeatureFlags[f] === true)
+            const anyEnabled = feature.some((f) => flags[f] === true)
             setHasAccess(anyEnabled)
           }
         } else {
-          // Single feature check
-          setHasAccess(mockFeatureFlags[feature] === true)
+          setHasAccess(flags[feature] === true)
         }
       } catch (error) {
         console.error('Error checking feature access:', error)
@@ -169,8 +155,7 @@ export function UpgradePrompt({
               type="button"
               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
               onClick={() => {
-                // TODO: Navigate to subscription page
-                window.location.href = '/dashboard/subscription'
+                window.location.href = '/dashboard/settings/subscription'
               }}
             >
               Upgrade Plan
@@ -203,23 +188,13 @@ export function useFeature(feature: FeatureFlagKey): boolean {
       }
 
       try {
-        // TODO: Replace with actual feature flags service call
-        const mockFeatureFlags: Record<string, boolean> = {
-          pdf_invoices: true,
-          whatsapp_receipts: true,
-          in_app_receipts: true,
-          printing: true,
-          b2b_contracts: false,
-          white_label: false,
-          marketplace_listings: false,
-          loyalty_programs: true,
-          driver_app: true,
-          multi_branch: true,
-          advanced_analytics: true,
-          api_access: false,
+        const res = await fetch('/api/feature-flags')
+        if (!res.ok) {
+          setHasAccess(false)
+          return
         }
-
-        setHasAccess(mockFeatureFlags[feature] === true)
+        const flags = (await res.json()) as Record<string, boolean>
+        setHasAccess(flags[feature] === true)
       } catch (error) {
         console.error('Error checking feature:', error)
         setHasAccess(false)

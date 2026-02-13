@@ -22,6 +22,42 @@ import type {
 } from '@/lib/types/inventory';
 
 // ==================================================================
+// BRANCHES (for branch-level stock)
+// ==================================================================
+
+export interface BranchOption {
+  id: string;
+  name: string;
+  name2: string | null;
+  is_main: boolean | null;
+}
+
+/**
+ * Get branches for current tenant (for branch selector)
+ */
+export async function getBranchesForCurrentTenant(): Promise<BranchOption[]> {
+  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
+  const { data, error } = await supabase
+    .from('org_branches_mst')
+    .select('id, name, name2, branch_name, is_main')
+    .eq('tenant_org_id', tenantId)
+    .eq('is_active', true)
+    .order('is_main', { ascending: false, nullsFirst: false })
+    .order('s_date', { ascending: true });
+  if (error) {
+    console.error('Error fetching branches:', error);
+    return [];
+  }
+  return (data || []).map((b: { id: string; name?: string; name2?: string; branch_name?: string; is_main?: boolean }) => ({
+    id: b.id,
+    name: b.name || b.branch_name || 'Branch',
+    name2: b.name2 ?? null,
+    is_main: b.is_main ?? null,
+  }));
+}
+
+// ==================================================================
 // INVENTORY ITEMS (org_product_data_mst WHERE is_retail_item = true)
 // ==================================================================
 
@@ -36,6 +72,7 @@ async function generateItemCode(): Promise<string> {
     .from('org_product_data_mst')
     .select('product_code')
     .eq('tenant_org_id', tenantId)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .like('product_code', 'INV-%')
     .order('product_code', { ascending: false })
@@ -64,30 +101,59 @@ export async function createInventoryItem(
 
   const productCode = request.product_code || (await generateItemCode());
 
+  const insertData: Record<string, unknown> = {
+    tenant_org_id: tenantId,
+    product_code: productCode,
+    product_name: request.product_name,
+    product_name2: request.product_name2 || null,
+    hint_text: request.hint_text || null,
+    is_retail_item: true,
+    item_type_code: request.item_type_code || 'RETAIL_GOODS',
+    service_category_code: 'RETAIL_ITEMS',
+    product_unit: request.product_unit || 'piece',
+    product_cost: request.product_cost ?? 0,
+    default_sell_price: request.default_sell_price ?? 0,
+    id_sku: request.id_sku || null,
+    qty_on_hand: request.qty_on_hand ?? 0,
+    reorder_point: request.reorder_point ?? 0,
+    min_stock_level: request.min_stock_level ?? 0,
+    max_stock_level: request.max_stock_level ?? null,
+    last_purchase_cost: request.last_purchase_cost ?? null,
+    storage_location: request.storage_location || null,
+    is_active: request.is_active ?? true,
+    rec_status: 1,
+  };
+
+  if (request.default_express_sell_price !== undefined)
+    insertData.default_express_sell_price = request.default_express_sell_price;
+  if (request.min_sell_price !== undefined) insertData.min_sell_price = request.min_sell_price;
+  if (request.product_group1 !== undefined) insertData.product_group1 = request.product_group1;
+  if (request.product_group2 !== undefined) insertData.product_group2 = request.product_group2;
+  if (request.product_group3 !== undefined) insertData.product_group3 = request.product_group3;
+  if (request.product_type !== undefined) insertData.product_type = request.product_type;
+  if (request.price_type !== undefined) insertData.price_type = request.price_type;
+  if (request.min_quantity !== undefined) insertData.min_quantity = request.min_quantity;
+  if (request.pieces_per_product !== undefined)
+    insertData.pieces_per_product = request.pieces_per_product;
+  if (request.extra_days !== undefined) insertData.extra_days = request.extra_days;
+  if (request.turnaround_hh !== undefined) insertData.turnaround_hh = request.turnaround_hh;
+  if (request.turnaround_hh_express !== undefined)
+    insertData.turnaround_hh_express = request.turnaround_hh_express;
+  if (request.multiplier_express !== undefined)
+    insertData.multiplier_express = request.multiplier_express;
+  if (request.product_order !== undefined) insertData.product_order = request.product_order;
+  if (request.is_tax_exempt !== undefined) insertData.is_tax_exempt = request.is_tax_exempt;
+  if (request.product_color1 !== undefined) insertData.product_color1 = request.product_color1;
+  if (request.product_color2 !== undefined) insertData.product_color2 = request.product_color2;
+  if (request.product_color3 !== undefined) insertData.product_color3 = request.product_color3;
+  if (request.product_icon !== undefined) insertData.product_icon = request.product_icon;
+  if (request.product_image !== undefined) insertData.product_image = request.product_image;
+  if (request.rec_order !== undefined) insertData.rec_order = request.rec_order;
+  if (request.rec_notes !== undefined) insertData.rec_notes = request.rec_notes;
+
   const { data, error } = await supabase
     .from('org_product_data_mst')
-    .insert({
-      tenant_org_id: tenantId,
-      product_code: productCode,
-      product_name: request.product_name,
-      product_name2: request.product_name2 || null,
-      hint_text: request.hint_text || null,
-      is_retail_item: true,
-      item_type_code: request.item_type_code || 'RETAIL_GOODS',
-      service_category_code: 'RETAIL_ITEMS',
-      product_unit: request.product_unit || 'PC',
-      product_cost: request.product_cost ?? 0,
-      default_sell_price: request.default_sell_price ?? 0,
-      id_sku: request.id_sku || null,
-      qty_on_hand: request.qty_on_hand ?? 0,
-      reorder_point: request.reorder_point ?? 0,
-      min_stock_level: request.min_stock_level ?? 0,
-      max_stock_level: request.max_stock_level ?? null,
-      last_purchase_cost: request.last_purchase_cost ?? null,
-      storage_location: request.storage_location || null,
-      is_active: true,
-      rec_status: 1,
-    })
+    .insert(insertData)
     .select()
     .single();
 
@@ -97,6 +163,25 @@ export async function createInventoryItem(
       throw new Error('Item code already exists');
     }
     throw new Error('Failed to create inventory item');
+  }
+
+  // When branch_id provided, seed org_inv_stock_by_branch
+  if (request.branch_id && data) {
+    const qty = request.qty_on_hand ?? 0;
+    await supabase.from('org_inv_stock_by_branch').upsert(
+      {
+        tenant_org_id: tenantId,
+        product_id: data.id,
+        branch_id: request.branch_id,
+        qty_on_hand: qty,
+        reorder_point: request.reorder_point ?? 0,
+        min_stock_level: request.min_stock_level ?? 0,
+        max_stock_level: request.max_stock_level ?? null,
+        last_purchase_cost: request.last_purchase_cost ?? null,
+        storage_location: request.storage_location ?? null,
+      },
+      { onConflict: 'tenant_org_id,product_id,branch_id' }
+    );
   }
 
   return data as unknown as InventoryItem;
@@ -122,6 +207,9 @@ export async function updateInventoryItem(
   if (request.product_unit !== undefined) updateData.product_unit = request.product_unit;
   if (request.product_cost !== undefined) updateData.product_cost = request.product_cost;
   if (request.default_sell_price !== undefined) updateData.default_sell_price = request.default_sell_price;
+  if (request.default_express_sell_price !== undefined)
+    updateData.default_express_sell_price = request.default_express_sell_price;
+  if (request.min_sell_price !== undefined) updateData.min_sell_price = request.min_sell_price;
   if (request.id_sku !== undefined) updateData.id_sku = request.id_sku;
   if (request.reorder_point !== undefined) updateData.reorder_point = request.reorder_point;
   if (request.min_stock_level !== undefined) updateData.min_stock_level = request.min_stock_level;
@@ -129,12 +217,35 @@ export async function updateInventoryItem(
   if (request.last_purchase_cost !== undefined) updateData.last_purchase_cost = request.last_purchase_cost;
   if (request.storage_location !== undefined) updateData.storage_location = request.storage_location;
   if (request.is_active !== undefined) updateData.is_active = request.is_active;
+  if (request.product_group1 !== undefined) updateData.product_group1 = request.product_group1;
+  if (request.product_group2 !== undefined) updateData.product_group2 = request.product_group2;
+  if (request.product_group3 !== undefined) updateData.product_group3 = request.product_group3;
+  if (request.product_type !== undefined) updateData.product_type = request.product_type;
+  if (request.price_type !== undefined) updateData.price_type = request.price_type;
+  if (request.min_quantity !== undefined) updateData.min_quantity = request.min_quantity;
+  if (request.pieces_per_product !== undefined) updateData.pieces_per_product = request.pieces_per_product;
+  if (request.extra_days !== undefined) updateData.extra_days = request.extra_days;
+  if (request.turnaround_hh !== undefined) updateData.turnaround_hh = request.turnaround_hh;
+  if (request.turnaround_hh_express !== undefined)
+    updateData.turnaround_hh_express = request.turnaround_hh_express;
+  if (request.multiplier_express !== undefined)
+    updateData.multiplier_express = request.multiplier_express;
+  if (request.product_order !== undefined) updateData.product_order = request.product_order;
+  if (request.is_tax_exempt !== undefined) updateData.is_tax_exempt = request.is_tax_exempt;
+  if (request.product_color1 !== undefined) updateData.product_color1 = request.product_color1;
+  if (request.product_color2 !== undefined) updateData.product_color2 = request.product_color2;
+  if (request.product_color3 !== undefined) updateData.product_color3 = request.product_color3;
+  if (request.product_icon !== undefined) updateData.product_icon = request.product_icon;
+  if (request.product_image !== undefined) updateData.product_image = request.product_image;
+  if (request.rec_order !== undefined) updateData.rec_order = request.rec_order;
+  if (request.rec_notes !== undefined) updateData.rec_notes = request.rec_notes;
 
   const { data, error } = await supabase
     .from('org_product_data_mst')
     .update(updateData)
     .eq('tenant_org_id', tenantId)
     .eq('id', request.id)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .select()
     .single();
@@ -159,6 +270,7 @@ export async function deleteInventoryItem(id: string): Promise<void> {
     .update({ is_active: false, rec_status: 0, updated_at: new Date().toISOString() })
     .eq('tenant_org_id', tenantId)
     .eq('id', id)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true);
 
   if (error) {
@@ -179,6 +291,7 @@ export async function getInventoryItemById(id: string): Promise<InventoryItem> {
     .select('*')
     .eq('tenant_org_id', tenantId)
     .eq('id', id)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .single();
 
@@ -203,6 +316,7 @@ export async function searchInventoryItems(
     .from('org_product_data_mst')
     .select('*', { count: 'exact' })
     .eq('tenant_org_id', tenantId)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true);
 
   // Filter: active status
@@ -248,9 +362,33 @@ export async function searchInventoryItems(
 
   const total = count || 0;
 
+  // When branch_id provided, fetch qty from org_inv_stock_by_branch and override
+  let branchQtyMap: Record<string, number> = {};
+  if (params.branch_id) {
+    const productIds = (data || []).map((r: Record<string, unknown>) => r.id as string);
+    if (productIds.length > 0) {
+      const { data: branchData } = await supabase
+        .from('org_inv_stock_by_branch')
+        .select('product_id, qty_on_hand')
+        .eq('tenant_org_id', tenantId)
+        .eq('branch_id', params.branch_id)
+        .in('product_id', productIds);
+      branchQtyMap = (branchData || []).reduce(
+        (acc, row) => {
+          acc[row.product_id] = Number(row.qty_on_hand) || 0;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+    }
+  }
+
   // Map to list items with computed fields
   const items: InventoryItemListItem[] = (data || []).map((row: Record<string, unknown>) => {
-    const qtyOnHand = Number(row.qty_on_hand) || 0;
+    const baseQty = Number(row.qty_on_hand) || 0;
+    const qtyOnHand = params.branch_id
+      ? (branchQtyMap[row.id as string] ?? 0)
+      : baseQty;
     const reorderPoint = Number(row.reorder_point) || 0;
     const maxStockLevel = row.max_stock_level != null ? Number(row.max_stock_level) : null;
     const productCost = Number(row.product_cost) || 0;
@@ -326,7 +464,8 @@ async function generateTransactionNo(): Promise<string> {
 
 /**
  * Adjust stock for an item (increase, decrease, or set)
- * Creates a transaction and updates qty_on_hand atomically
+ * Creates a transaction and updates qty_on_hand atomically.
+ * When branch_id provided: updates org_inv_stock_by_branch. When null: updates org_product_data_mst.qty_on_hand (legacy).
  */
 export async function adjustStock(
   request: StockAdjustmentRequest
@@ -334,12 +473,13 @@ export async function adjustStock(
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  // Get current item
+  // Get current item for product_cost and branch upsert fields
   const { data: item, error: itemError } = await supabase
     .from('org_product_data_mst')
-    .select('id, qty_on_hand, product_cost')
+    .select('id, qty_on_hand, product_cost, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location')
     .eq('tenant_org_id', tenantId)
     .eq('id', request.product_id)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .single();
 
@@ -347,7 +487,19 @@ export async function adjustStock(
     throw new Error('Inventory item not found');
   }
 
-  const qtyBefore = Number(item.qty_on_hand) || 0;
+  let qtyBefore: number;
+  if (request.branch_id) {
+    const { data: branchRow } = await supabase
+      .from('org_inv_stock_by_branch')
+      .select('qty_on_hand')
+      .eq('tenant_org_id', tenantId)
+      .eq('product_id', request.product_id)
+      .eq('branch_id', request.branch_id)
+      .maybeSingle();
+    qtyBefore = branchRow ? Number(branchRow.qty_on_hand) || 0 : 0;
+  } else {
+    qtyBefore = Number(item.qty_on_hand) || 0;
+  }
   let quantity: number;
   let qtyAfter: number;
   let transactionType: string;
@@ -376,12 +528,13 @@ export async function adjustStock(
   const transactionNo = await generateTransactionNo();
   const unitCost = request.unit_cost ?? Number(item.product_cost) ?? 0;
 
-  // Create transaction
+  // Create transaction (with branch_id)
   const { data: transaction, error: txError } = await supabase
     .from('org_inv_stock_tr')
     .insert({
       tenant_org_id: tenantId,
       product_id: request.product_id,
+      branch_id: request.branch_id || null,
       transaction_no: transactionNo,
       transaction_type: transactionType,
       quantity,
@@ -403,19 +556,46 @@ export async function adjustStock(
     throw new Error('Failed to create stock transaction');
   }
 
-  // Update qty_on_hand on product
-  const { error: updateError } = await supabase
-    .from('org_product_data_mst')
-    .update({
-      qty_on_hand: qtyAfter,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('tenant_org_id', tenantId)
-    .eq('id', request.product_id);
+  // Update qty: branch-level or org_product_data_mst
+  if (request.branch_id) {
+    const { error: upsertError } = await supabase
+      .from('org_inv_stock_by_branch')
+      .upsert(
+        {
+          tenant_org_id: tenantId,
+          product_id: request.product_id,
+          branch_id: request.branch_id,
+          qty_on_hand: qtyAfter,
+          reorder_point: item.reorder_point ?? 0,
+          min_stock_level: item.min_stock_level ?? 0,
+          max_stock_level: item.max_stock_level ?? null,
+          last_purchase_cost: item.last_purchase_cost ?? null,
+          storage_location: item.storage_location ?? null,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'tenant_org_id,product_id,branch_id',
+          ignoreDuplicates: false,
+        }
+      );
+    if (upsertError) {
+      console.error('Error updating branch stock:', upsertError);
+      throw new Error('Failed to update stock quantity');
+    }
+  } else {
+    const { error: updateError } = await supabase
+      .from('org_product_data_mst')
+      .update({
+        qty_on_hand: qtyAfter,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tenant_org_id', tenantId)
+      .eq('id', request.product_id);
 
-  if (updateError) {
-    console.error('Error updating qty_on_hand:', updateError);
-    throw new Error('Failed to update stock quantity');
+    if (updateError) {
+      console.error('Error updating qty_on_hand:', updateError);
+      throw new Error('Failed to update stock quantity');
+    }
   }
 
   return transaction as unknown as StockTransaction;
@@ -439,6 +619,9 @@ export async function searchStockTransactions(
 
   if (params.transaction_type) {
     query = query.eq('transaction_type', params.transaction_type);
+  }
+  if (params.branch_id) {
+    query = query.eq('branch_id', params.branch_id);
   }
 
   query = query.order('transaction_date', { ascending: false });
@@ -471,16 +654,71 @@ export async function searchStockTransactions(
 // ==================================================================
 
 /**
- * Get inventory statistics (totals, low stock, out of stock, value)
+ * Get inventory statistics (totals, low stock, out of stock, value).
+ * When branch_id provided: stats from org_inv_stock_by_branch. When null: from org_product_data_mst.
  */
-export async function getInventoryStatistics(): Promise<InventoryStatistics> {
+export async function getInventoryStatistics(params?: {
+  branch_id?: string;
+}): Promise<InventoryStatistics> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
+
+  if (params?.branch_id) {
+    const { data: products } = await supabase
+      .from('org_product_data_mst')
+      .select('id, product_cost, reorder_point, max_stock_level')
+      .eq('tenant_org_id', tenantId)
+      .eq('service_category_code', 'RETAIL_ITEMS')
+      .eq('is_retail_item', true)
+      .eq('is_active', true);
+
+    const productIds = (products || []).map((p) => p.id);
+    const { data: branchData } =
+      productIds.length > 0
+        ? await supabase
+            .from('org_inv_stock_by_branch')
+            .select('product_id, qty_on_hand')
+            .eq('tenant_org_id', tenantId)
+            .eq('branch_id', params.branch_id)
+            .in('product_id', productIds)
+        : { data: [] };
+
+    const qtyMap = (branchData || []).reduce(
+      (acc, row) => {
+        acc[row.product_id] = Number(row.qty_on_hand) || 0;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
+
+    let totalItems = 0;
+    let lowStockCount = 0;
+    let outOfStockCount = 0;
+    let totalStockValue = 0;
+
+    for (const prod of products || []) {
+      const qty = qtyMap[prod.id] ?? 0;
+      const reorder = Number(prod.reorder_point) || 0;
+      const cost = Number(prod.product_cost) || 0;
+      totalItems++;
+      if (qty <= 0) outOfStockCount++;
+      else if (qty <= reorder) lowStockCount++;
+      totalStockValue += qty * cost;
+    }
+
+    return {
+      totalItems,
+      lowStockCount,
+      outOfStockCount,
+      totalStockValue,
+    };
+  }
 
   const { data, error } = await supabase
     .from('org_product_data_mst')
     .select('qty_on_hand, reorder_point, product_cost')
     .eq('tenant_org_id', tenantId)
+    .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .eq('is_active', true);
 

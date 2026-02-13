@@ -42,13 +42,8 @@ export default function HelpPage() {
                 {t('documentation.description') || 'Browse our comprehensive documentation and user guides'}
               </p>
               <a
-                href="#"
+                href="/api-docs"
                 className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // TODO: Link to documentation
-                  alert('Documentation coming soon!');
-                }}
               >
                 {t('documentation.viewDocs') || 'View Documentation'}
                 <ExternalLink className="h-4 w-4" />
@@ -95,13 +90,8 @@ export default function HelpPage() {
                 {t('faq.description') || 'Find quick answers to common questions'}
               </p>
               <a
-                href="#"
+                href="/dashboard/help#faq"
                 className="text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-2"
-                onClick={(e) => {
-                  e.preventDefault();
-                  // TODO: Link to FAQ
-                  alert('FAQ coming soon!');
-                }}
               >
                 {t('faq.viewFAQ') || 'View FAQ'}
                 <ExternalLink className="h-4 w-4" />

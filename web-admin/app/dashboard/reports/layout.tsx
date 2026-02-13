@@ -75,7 +75,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       if (activeTab === 'orders') {
         const res = await fetchOrdersReport(params);
         if (res.success && res.data) {
-          const headers = ['Order #', 'Customer', 'Status', 'Items', 'Total', 'Payment', 'Date'];
+          const headers = [t('table.orderNo'), t('table.customer'), t('table.status'), t('table.items'), t('table.total'), t('table.payment'), t('table.date')];
           const rows = res.data.orders.map((o) => [
             o.orderNo, o.customerName, o.status, String(o.totalItems),
             String(o.total), o.paymentStatus, o.createdAt ? format(new Date(o.createdAt), 'dd/MM/yyyy') : '',
@@ -85,7 +85,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       } else if (activeTab === 'payments') {
         const res = await fetchPaymentsReport(params);
         if (res.success && res.data) {
-          const headers = ['Order #', 'Invoice #', 'Customer', 'Amount', 'Method', 'Status', 'Date'];
+          const headers = [t('table.orderNo'), t('table.invoiceNo'), t('table.customer'), t('table.amount'), t('table.method'), t('table.status'), t('table.date')];
           const rows = res.data.payments.map((p) => [
             p.orderNo ?? '', p.invoiceNo ?? '', p.customerName ?? '',
             String(p.amount), p.methodName ?? p.methodCode, p.status,
@@ -96,7 +96,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       } else if (activeTab === 'invoices') {
         const res = await fetchInvoicesReport(params);
         if (res.success && res.data) {
-          const headers = ['Invoice #', 'Customer', 'Total', 'Paid', 'Balance', 'Status', 'Due Date'];
+          const headers = [t('table.invoiceNo'), t('table.customer'), t('table.total'), t('table.paid'), t('table.balance'), t('table.status'), t('table.dueDate')];
           const rows = res.data.invoices.map((inv) => [
             inv.invoiceNo, inv.customerName ?? '', String(inv.total),
             String(inv.paidAmount), String(inv.balance), inv.status,
@@ -107,7 +107,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
       } else if (activeTab === 'customers') {
         const res = await fetchCustomerReport(params);
         if (res.success && res.data) {
-          const headers = ['Customer', 'Phone', 'Orders', 'Revenue', 'Avg Value', 'Last Order', 'First Order'];
+          const headers = [t('table.customer'), t('table.phone'), t('table.orders'), t('table.revenue'), t('table.avgValue'), t('table.lastOrder'), t('table.firstOrder')];
           const rows = res.data.customers.map((c) => [
             c.name, c.phone ?? '', String(c.totalOrders), String(c.totalRevenue),
             String(c.avgOrderValue),
@@ -133,7 +133,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
         if (res.success && res.data) {
           const blob = await generateExcelWorkbook([{
             name: 'Orders Report',
-            headers: ['Order #', 'Customer', 'Status', 'Items', 'Total', 'Payment', 'Date'],
+            headers: [t('table.orderNo'), t('table.customer'), t('table.status'), t('table.items'), t('table.total'), t('table.payment'), t('table.date')],
             rows: res.data.orders.map((o) => [
               o.orderNo, o.customerName, o.status, o.totalItems,
               o.total, o.paymentStatus, o.createdAt ? format(new Date(o.createdAt), 'dd/MM/yyyy') : '',
@@ -146,7 +146,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
         if (res.success && res.data) {
           const blob = await generateExcelWorkbook([{
             name: 'Payments Report',
-            headers: ['Order #', 'Invoice #', 'Customer', 'Amount', 'Method', 'Status', 'Date'],
+            headers: [t('table.orderNo'), t('table.invoiceNo'), t('table.customer'), t('table.amount'), t('table.method'), t('table.status'), t('table.date')],
             rows: res.data.payments.map((p) => [
               p.orderNo ?? '', p.invoiceNo ?? '', p.customerName ?? '',
               p.amount, p.methodName ?? p.methodCode, p.status,
@@ -160,7 +160,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
         if (res.success && res.data) {
           const blob = await generateExcelWorkbook([{
             name: 'Invoices Report',
-            headers: ['Invoice #', 'Customer', 'Total', 'Paid', 'Balance', 'Status', 'Due Date'],
+            headers: [t('table.invoiceNo'), t('table.customer'), t('table.total'), t('table.paid'), t('table.balance'), t('table.status'), t('table.dueDate')],
             rows: res.data.invoices.map((inv) => [
               inv.invoiceNo, inv.customerName ?? '', inv.total,
               inv.paidAmount, inv.balance, inv.status,
@@ -174,7 +174,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
         if (res.success && res.data) {
           const blob = await generateExcelWorkbook([{
             name: 'Customers Report',
-            headers: ['Customer', 'Phone', 'Orders', 'Revenue', 'Avg Value', 'Last Order', 'First Order'],
+            headers: [t('table.customer'), t('table.phone'), t('table.orders'), t('table.revenue'), t('table.avgValue'), t('table.lastOrder'), t('table.firstOrder')],
             rows: res.data.customers.map((c) => [
               c.name, c.phone ?? '', c.totalOrders, c.totalRevenue,
               c.avgOrderValue,
@@ -211,7 +211,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
             ],
             tables: [{
               title: 'Orders',
-              headers: ['Order #', 'Customer', 'Status', 'Items', 'Total', 'Payment', 'Date'],
+              headers: [t('table.orderNo'), t('table.customer'), t('table.status'), t('table.items'), t('table.total'), t('table.payment'), t('table.date')],
               rows: res.data.orders.map((o) => [
                 o.orderNo, o.customerName, o.status, String(o.totalItems),
                 `${res.data!.kpis.currencyCode} ${o.total}`, o.paymentStatus,

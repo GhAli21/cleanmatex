@@ -18,9 +18,10 @@ import type { InventoryItemListItem, StockTransaction } from '@/lib/types/invent
 interface StockHistoryModalProps {
   item: InventoryItemListItem;
   onClose: () => void;
+  branchId?: string;
 }
 
-export default function StockHistoryModal({ item, onClose }: StockHistoryModalProps) {
+export default function StockHistoryModal({ item, onClose, branchId }: StockHistoryModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
 
@@ -35,6 +36,7 @@ export default function StockHistoryModal({ item, onClose }: StockHistoryModalPr
       product_id: item.id,
       page,
       limit: 10,
+      branch_id: branchId,
     });
 
     if (result.success && result.data) {
@@ -42,7 +44,7 @@ export default function StockHistoryModal({ item, onClose }: StockHistoryModalPr
       setTotalPages(result.data.totalPages);
     }
     setLoading(false);
-  }, [item.id, page]);
+  }, [item.id, page, branchId]);
 
   useEffect(() => {
     load();

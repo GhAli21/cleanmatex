@@ -100,6 +100,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate: orders cannot mix retail items and service items
+    const items = parsed.data.items || [];
+    if (items.length > 1) {
+      const hasRetail = items.some((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+      const hasServices = items.some((i) => i.serviceCategoryCode && i.serviceCategoryCode !== 'RETAIL_ITEMS');
+      if (hasRetail && hasServices) {
+        return NextResponse.json(
+          { success: false, error: 'Orders cannot mix retail items and service items. Please add only one type per order.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const result = await OrderService.createOrder({
       tenantId,
       userId,
@@ -172,6 +185,7 @@ export async function GET(request: NextRequest) {
     const receivedTo = searchParams.get('received_to');
     const readyByFrom = searchParams.get('ready_by_from');
     const readyByTo = searchParams.get('ready_by_to');
+    const isRetail = searchParams.get('is_retail');
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -196,6 +210,7 @@ export async function GET(request: NextRequest) {
         priority,
         has_issue,
         is_rejected,
+        is_retail,
         customer_notes,
         internal_notes,
         rack_location,
@@ -255,6 +270,13 @@ export async function GET(request: NextRequest) {
           { count: 'exact' }
         )
         .eq('tenant_org_id', tenantId);
+    }
+
+    // Apply is_retail filter
+    if (isRetail === 'true') {
+      query = query.eq('is_retail', true);
+    } else if (isRetail === 'false') {
+      query = query.eq('is_retail', false);
     }
 
     // Apply status filter - support multiple statuses (comma-separated)

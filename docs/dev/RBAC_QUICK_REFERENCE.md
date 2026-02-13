@@ -2,6 +2,8 @@
 
 **Quick guide for using Role-Based Access Control in CleanMateX**
 
+**Note:** `RequireFeature` now fetches real feature flags from `/api/feature-flags` (tenant plan + overrides) instead of mock data.
+
 ---
 
 ## 🎯 Role Hierarchy
@@ -136,8 +138,8 @@ export default function AdminLayout({ children }) {
 }
 ```
 
-#### Middleware Already Handles This
-Routes in `middleware.ts` ADMIN_ROUTES are automatically protected.
+#### Proxy Already Handles This
+Routes in `proxy.ts` ADMIN_ROUTES are automatically protected.
 
 ---
 
@@ -433,7 +435,7 @@ function OrderForm() {
 ### "Middleware not redirecting"
 - Check route is in ADMIN_ROUTES
 - Verify user role in database (org_users_mst)
-- Check middleware.ts config.matcher includes your route
+- Check proxy.ts config.matcher includes your route
 
 ---
 

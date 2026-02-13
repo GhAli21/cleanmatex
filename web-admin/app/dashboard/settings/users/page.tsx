@@ -33,6 +33,7 @@ const MOCK_TEAM: TeamMember[] = [
 
 export default function UsersSettingsPage() {
   const t = useTranslations('settings')
+  const tCommon = useTranslations('common')
   const { currentTenant, user: currentUser } = useAuth()
   const [team, setTeam] = useState<TeamMember[]>(MOCK_TEAM)
   const [showInvite, setShowInvite] = useState(false)
@@ -214,7 +215,7 @@ export default function UsersSettingsPage() {
                 onClick={() => setShowInvite(false)}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                {t('cancel')}
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={handleInvite}
@@ -399,7 +400,7 @@ export default function UsersSettingsPage() {
                 }}
                 className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
               >
-                {t('cancel')}
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={async () => {

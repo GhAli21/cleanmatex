@@ -7,6 +7,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Card, Button, ProgressBar, Badge } from '@/components/ui';
 import type { UsageMetrics } from '@/lib/types/tenant';
@@ -17,6 +18,7 @@ interface UsageWidgetProps {
 }
 
 export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
+  const tCommon = useTranslations('common');
   const [usage, setUsage] = useState<UsageMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -118,7 +120,7 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
         </div>
         {hasWarnings && (
           <Badge variant="warning" size="sm">
-            {usage.warnings.length} {usage.warnings.length === 1 ? 'Warning' : 'Warnings'}
+            {tCommon('warningCount', { count: usage.warnings.length })}
           </Badge>
         )}
       </div>

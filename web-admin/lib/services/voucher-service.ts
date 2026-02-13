@@ -22,22 +22,28 @@ import type {
   VoucherData,
 } from '../types/voucher';
 
-const RECEIPT_PREFIX = 'RCP';
+/** Transaction client type for use inside prisma.$transaction */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+const RECEIPT_PREFIX = 'VCR-RCP'; // Voucher Category Receipt
 const YEAR_LEN = 4;
 const SEQ_LEN = 5;
 
 /**
- * Generate next voucher_no for a tenant (RCP-YYYY-NNNNN).
+ * Generate next voucher_no for a tenant (VCR-RCP-YYYY-NNNNN).
  * Uses max existing number for tenant + year and increments.
+ * When tx is provided, uses it for transactional consistency.
  */
 export async function generateVoucherNo(
   tenantId: string,
-  prefix: string = RECEIPT_PREFIX
+  prefix: string = RECEIPT_PREFIX,
+  tx?: PrismaTx
 ): Promise<string> {
+  const db = tx ?? prisma;
   return withTenantContext(tenantId, async () => {
     const year = new Date().getFullYear().toString();
     const pattern = `${prefix}-${year}-%`;
-    const existing = await prisma.org_fin_vouchers_mst.findMany({
+    const existing = await db.org_fin_vouchers_mst.findMany({
       where: {
         tenant_org_id: tenantId,
         voucher_no: { startsWith: `${prefix}-${year}-` },
@@ -61,12 +67,15 @@ export async function generateVoucherNo(
 
 /**
  * Create a voucher (draft by default). Returns voucher id and voucher_no.
+ * When tx is provided, all operations run inside that transaction.
  */
 export async function createVoucher(
-  input: CreateVoucherInput
+  input: CreateVoucherInput,
+  tx?: PrismaTx
 ): Promise<{ id: string; voucher_no: string }> {
-  const voucher_no = await generateVoucherNo(input.tenant_org_id);
-  const row = await prisma.org_fin_vouchers_mst.create({
+  const db = tx ?? prisma;
+  const voucher_no = await generateVoucherNo(input.tenant_org_id, RECEIPT_PREFIX, db);
+  const row = await db.org_fin_vouchers_mst.create({
     data: {
       tenant_org_id: input.tenant_org_id,
       branch_id: input.branch_id ?? null,
@@ -282,26 +291,32 @@ function mapRowToVoucherData(row: {
 /**
  * Create a receipt voucher for a payment (CASH_IN, RECEIPT, SALE_PAYMENT).
  * Optionally auto-issue. Returns voucher id for attaching to payment row.
+ * When tx is provided, all operations run inside that transaction.
  */
 export async function createReceiptVoucherForPayment(
-  input: CreateReceiptVoucherForPaymentInput
+  input: CreateReceiptVoucherForPaymentInput,
+  tx?: PrismaTx
 ): Promise<{ voucher_id: string; voucher_no: string }> {
-  const { id: voucher_id, voucher_no } = await createVoucher({
-    tenant_org_id: input.tenant_org_id,
-    branch_id: input.branch_id,
-    voucher_category: VOUCHER_CATEGORY.CASH_IN,
-    voucher_subtype: VOUCHER_SUBTYPE.SALE_PAYMENT,
-    voucher_type: VOUCHER_TYPE.RECEIPT,
-    invoice_id: input.invoice_id,
-    order_id: input.order_id,
-    customer_id: input.customer_id,
-    total_amount: input.total_amount,
-    currency_code: input.currency_code ?? undefined,
-    created_by: input.created_by,
-  });
+  const db = tx ?? prisma;
+  const { id: voucher_id, voucher_no } = await createVoucher(
+    {
+      tenant_org_id: input.tenant_org_id,
+      branch_id: input.branch_id,
+      voucher_category: VOUCHER_CATEGORY.CASH_IN,
+      voucher_subtype: VOUCHER_SUBTYPE.SALE_PAYMENT,
+      voucher_type: VOUCHER_TYPE.RECEIPT,
+      invoice_id: input.invoice_id,
+      order_id: input.order_id,
+      customer_id: input.customer_id,
+      total_amount: input.total_amount,
+      currency_code: input.currency_code ?? undefined,
+      created_by: input.created_by,
+    },
+    db
+  );
 
   if (input.auto_issue !== false) {
-    await prisma.org_fin_vouchers_mst.update({
+    await db.org_fin_vouchers_mst.update({
       where: { id: voucher_id },
       data: {
         status: VOUCHER_STATUS.ISSUED,
@@ -310,7 +325,7 @@ export async function createReceiptVoucherForPayment(
         updated_by: input.created_by ?? null,
       },
     });
-    await prisma.org_fin_voucher_audit_log.create({
+    await db.org_fin_voucher_audit_log.create({
       data: {
         voucher_id,
         tenant_org_id: input.tenant_org_id,

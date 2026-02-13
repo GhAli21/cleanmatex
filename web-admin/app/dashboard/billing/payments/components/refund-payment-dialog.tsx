@@ -20,6 +20,7 @@ export default function RefundPaymentDialog({
   onSuccess,
 }: RefundPaymentDialogProps) {
   const t = useTranslations('payments.refund');
+  const tCommon = useTranslations('common');
   const [reason, setReason] = useState('');
   const [isSubmitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +81,7 @@ export default function RefundPaymentDialog({
             disabled={isSubmitting}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            {t('cancel')}
+            {tCommon('cancel')}
           </button>
           <button
             onClick={handleSubmit}

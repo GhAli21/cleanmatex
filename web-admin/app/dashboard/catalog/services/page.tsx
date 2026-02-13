@@ -35,6 +35,7 @@ interface Pagination {
 
 export default function ServicesPage() {
   const t = useTranslations('catalog')
+  const tCommon = useTranslations('common')
   const { currentTenant } = useAuth()
   const [loading, setLoading] = useState(true)
   const [products, setProducts] = useState<ProductListItem[]>([])
@@ -108,7 +109,7 @@ export default function ServicesPage() {
             {t('export')}
           </Button>
           <Button variant="secondary" onClick={() => setShowImport(true)}>
-            {t('import')}
+            {tCommon('import')}
           </Button>
         </div>
       </div>
@@ -137,7 +138,7 @@ export default function ServicesPage() {
           <div className="flex gap-2">
             <Button type="submit">{t('search')}</Button>
             <Button type="button" variant="secondary" onClick={onClearFilters}>
-              {t('clearFilters')}
+              {tCommon('clearFilters')}
             </Button>
           </div>
         </form>
@@ -145,7 +146,7 @@ export default function ServicesPage() {
 
       <Card className="p-0 overflow-hidden">
         {loading ? (
-          <div className="p-4 text-gray-500">{t('loading')}</div>
+          <div className="p-4 text-gray-500">{tCommon('loading')}</div>
         ) : products.length === 0 ? (
           <div className="p-4 text-gray-500">{t('noProducts')}</div>
         ) : (

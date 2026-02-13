@@ -117,7 +117,7 @@ Granular access control in format `resource:action`:
 | User role storage | ✅ Database column | `org_users_mst.role` |
 | User role types | ✅ 3 roles defined | `admin`, `operator`, `viewer` |
 | User role context | ✅ React context | `useAuth()`, `useRole()` |
-| Route protection | ✅ Middleware + HOCs | `middleware.ts`, `with-role.tsx` |
+| Route protection | ✅ Proxy + HOCs | `proxy.ts`, `with-role.tsx` |
 | RLS policies | ✅ Tenant isolation | Multiple migration files |
 | Workflow role constants | ✅ Code definitions | `lib/auth/roles.ts` |
 

@@ -85,6 +85,7 @@ export interface InventoryItemListItem {
 
 /**
  * Create inventory item request
+ * All user-editable columns from org_product_data_mst (retail items)
  */
 export interface CreateInventoryItemRequest {
   product_code?: string;
@@ -95,6 +96,8 @@ export interface CreateInventoryItemRequest {
   product_unit?: string;
   product_cost?: number;
   default_sell_price?: number;
+  default_express_sell_price?: number;
+  min_sell_price?: number;
   id_sku?: string;
   qty_on_hand?: number;
   reorder_point?: number;
@@ -102,6 +105,28 @@ export interface CreateInventoryItemRequest {
   max_stock_level?: number;
   last_purchase_cost?: number;
   storage_location?: string;
+  product_group1?: string;
+  product_group2?: string;
+  product_group3?: string;
+  product_type?: number;
+  price_type?: string;
+  min_quantity?: number;
+  pieces_per_product?: number;
+  extra_days?: number;
+  turnaround_hh?: number;
+  turnaround_hh_express?: number;
+  multiplier_express?: number;
+  product_order?: number;
+  is_tax_exempt?: number;
+  product_color1?: string;
+  product_color2?: string;
+  product_color3?: string;
+  product_icon?: string;
+  product_image?: string;
+  rec_order?: number;
+  rec_notes?: string;
+  is_active?: boolean;
+  branch_id?: string;
 }
 
 /**
@@ -116,12 +141,34 @@ export interface UpdateInventoryItemRequest {
   product_unit?: string;
   product_cost?: number;
   default_sell_price?: number;
+  default_express_sell_price?: number;
+  min_sell_price?: number;
   id_sku?: string;
   reorder_point?: number;
   min_stock_level?: number;
   max_stock_level?: number;
   last_purchase_cost?: number;
   storage_location?: string;
+  product_group1?: string;
+  product_group2?: string;
+  product_group3?: string;
+  product_type?: number;
+  price_type?: string;
+  min_quantity?: number;
+  pieces_per_product?: number;
+  extra_days?: number;
+  turnaround_hh?: number;
+  turnaround_hh_express?: number;
+  multiplier_express?: number;
+  product_order?: number;
+  is_tax_exempt?: number;
+  product_color1?: string;
+  product_color2?: string;
+  product_color3?: string;
+  product_icon?: string;
+  product_image?: string;
+  rec_order?: number;
+  rec_notes?: string;
   is_active?: boolean;
 }
 
@@ -136,6 +183,7 @@ export interface StockTransaction {
   id: string;
   tenant_org_id: string;
   product_id: string;
+  branch_id?: string | null;
   transaction_no: string | null;
   transaction_date: string;
   transaction_type: TransactionType;
@@ -165,6 +213,7 @@ export interface StockAdjustmentRequest {
   reason: string;
   notes?: string;
   unit_cost?: number;
+  branch_id?: string;
 }
 
 // ==================================================================
@@ -178,6 +227,7 @@ export interface InventorySearchParams {
   item_type_code?: string;
   stock_status?: StockStatus;
   is_active?: boolean;
+  branch_id?: string;
   sortBy?: 'code' | 'name' | 'quantity' | 'value' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
@@ -195,6 +245,7 @@ export interface StockTransactionSearchParams {
   page?: number;
   limit?: number;
   transaction_type?: TransactionType;
+  branch_id?: string;
 }
 
 export interface StockTransactionSearchResponse {

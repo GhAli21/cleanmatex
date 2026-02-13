@@ -143,6 +143,7 @@ export const orderFiltersSchema = z.object({
   status: z.union([orderStatusSchema, z.array(orderStatusSchema)]).optional(),
   preparationStatus: z.union([preparationStatusSchema, z.array(preparationStatusSchema)]).optional(),
   priority: z.union([prioritySchema, z.array(prioritySchema)]).optional(),
+  isRetail: z.enum(['true', 'false']).optional(),
   customerId: z.string().uuid().optional(),
   branchId: z.string().uuid().optional(),
   fromDate: z.coerce.date().optional(),

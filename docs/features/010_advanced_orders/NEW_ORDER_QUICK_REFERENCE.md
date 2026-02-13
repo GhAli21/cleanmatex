@@ -1,6 +1,8 @@
 # New Order Page - Quick Reference Guide
 
-**For Developers**
+**For Developers**  
+**Last Updated**: 2026-02-12  
+**Payment flow**: Server-side calculation (preview + create-with-payment APIs)
 
 ---
 
@@ -35,12 +37,14 @@ function MyComponent() {
 
 | File | Purpose |
 |------|---------|
-| `new-order-context.tsx`` | Context provider |
+| `new-order-context.tsx` | Context provider |
 | `new-order-reducer.ts` | State reducer |
 | `new-order-types.ts` | TypeScript types |
-| `use-order-submission.ts` | Order submission logic |
+| `use-order-submission.ts` | Order submission via create-with-payment API |
 | `use-category-products.ts` | Data fetching |
 | `order-defaults.ts` | Constants |
+| `payment-modal-enhanced-02.tsx` | Payment modal (server totals) |
+| `amount-mismatch-dialog.tsx` | Mismatch diff dialog |
 
 ---
 
@@ -110,6 +114,10 @@ npm run test:coverage -- __tests__/features/orders
 ## 📝 Translation Keys
 
 ```typescript
+// Errors (retail/inventory)
+t('newOrder.errors.mixedRetailServices')
+t('newOrder.errors.retailPayOnCollection')
+
 // Structure
 t('newOrder.title')
 t('newOrder.customer.label')
@@ -118,7 +126,37 @@ t('newOrder.orderSummary.total')
 t('newOrder.payment.title')
 t('newOrder.customItem.title')
 t('newOrder.photoCapture.title')
+
+// Amount mismatch
+t('amountMismatch.title')
+t('amountMismatch.message')
+t('amountMismatch.yourValue')
+t('amountMismatch.serverValue')
+t('amountMismatch.refreshPage')
 ```
+
+---
+
+## 🛒 Retail vs Services
+
+- **Rule**: Orders contain either retail items **or** service items, never both
+- **Retail**: `service_category_code === 'RETAIL_ITEMS'`
+- **Column**: `org_orders_mst.is_retail` is set at creation for retail-only orders; use for filtering
+- **Status**: Retail orders are created with status `closed` (skip workflow)
+- **Payment**: Retail orders → Pay-on-Collection disabled; must use Cash or Card
+- **Stock**: Retail items auto-deduct inventory on order creation
+
+---
+
+## 📡 Payment APIs (Server-Side Calculation)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/v1/orders/preview-payment` | POST | Fetch server totals (items, discounts, promo, gift card) |
+| `/api/v1/orders/create-with-payment` | POST | Create order + invoice + payment in one transaction |
+
+- **Preview**: Used by payment modal to display totals; debounced refetch on input change
+- **Create-with-payment**: Single API call; on `AMOUNT_MISMATCH` (400), shows `AmountMismatchDialog`
 
 ---
 
@@ -158,6 +196,15 @@ t('newOrder.photoCapture.title')
 - Ensure customer selected
 - Verify items added
 - Check product IDs are UUIDs
+
+**Issue**: Insufficient stock (retail orders)
+- Check Inventory Stock page for quantities
+- Ensure retail items have available stock before creating order
+
+**Issue**: Amount Mismatch
+- Server totals differ from client; dialog shows diff
+- Refresh page to retry; no order was created
+- Ensure pricing/discount inputs haven't changed mid-flow
 
 ---
 

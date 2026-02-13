@@ -31,6 +31,7 @@ import { ProcessingModal } from './components/processing-modal';
 
 export default function ProcessingPage() {
   const t = useTranslations('processing');
+  const tCommon = useTranslations('common');
   const tOrders = useTranslations('orders');
   const isRTL = useRTL();
   const { currentTenant, isLoading: authLoading } = useAuth();
@@ -215,7 +216,7 @@ export default function ProcessingPage() {
         <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
           <div className="p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-            <p className="text-sm text-gray-600">{tOrders('loadingOrders') || t('loading') || 'Loading orders...'}</p>
+            <p className="text-sm text-gray-600">{tOrders('loadingOrders') || tCommon('loading')}</p>
           </div>
         </div>
       ) : (

@@ -5,39 +5,46 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+import * as jwt from 'jsonwebtoken';
 
 /**
- * Placeholder JWT guard. Validates presence of Authorization Bearer token
- * and attaches decoded claims to request (tenant_org_id, sub, role).
- * Replace with Passport JWT strategy or Supabase JWT validation in production.
+ * JWT guard. Validates Authorization Bearer token with Supabase JWT secret,
+ * verifies signature and expiration, and attaches decoded claims to request
+ * (tenant_org_id, sub, role).
+ *
+ * Requires SUPABASE_JWT_SECRET or JWT_SECRET env var.
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest<Request & { userId?: string; tenantOrgId?: string; roles?: string[] }>();
+    const request = context.switchToHttp().getRequest<
+      Request & { userId?: string; tenantOrgId?: string; roles?: string[] }
+    >();
     const auth = request.headers.authorization;
     if (!auth?.startsWith('Bearer ')) {
       throw new UnauthorizedException('Missing or invalid Authorization header');
     }
     const token = auth.slice(7);
-    // TODO: verify JWT with Supabase or JWT_SECRET and decode tenant_org_id, sub, role
-    // For now, allow any Bearer token and set placeholder; auth module will do real validation
+    const secret =
+      process.env.SUPABASE_JWT_SECRET || process.env.JWT_SECRET;
+    if (!secret) {
+      throw new UnauthorizedException('JWT secret not configured');
+    }
     try {
-      const payload = this.decodeJwtPayload(token);
-      request.tenantOrgId = (payload.tenant_org_id ?? payload.tenantOrgId) as string | undefined;
+      const payload = jwt.verify(token, secret, {
+        algorithms: ['HS256'],
+      }) as Record<string, unknown>;
+      request.tenantOrgId = (payload.tenant_org_id ??
+        payload.tenantOrgId) as string | undefined;
       request.userId = (payload.sub ?? payload.user_id) as string | undefined;
-      request.roles = Array.isArray(payload.role) ? (payload.role as string[]) : payload.role ? [payload.role as string] : [];
+      request.roles = Array.isArray(payload.role)
+        ? (payload.role as string[])
+        : payload.role
+          ? [payload.role as string]
+          : [];
       return true;
     } catch {
-      throw new UnauthorizedException('Invalid token');
+      throw new UnauthorizedException('Invalid or expired token');
     }
-  }
-
-  private decodeJwtPayload(token: string): Record<string, unknown> {
-    const parts = token.split('.');
-    if (parts.length !== 3) throw new Error('Invalid JWT');
-    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    const json = Buffer.from(base64, 'base64').toString('utf8');
-    return JSON.parse(json) as Record<string, unknown>;
   }
 }

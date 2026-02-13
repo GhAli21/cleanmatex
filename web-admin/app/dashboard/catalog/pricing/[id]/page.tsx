@@ -405,6 +405,7 @@ function ItemsTab({
   onReload: () => void
 }) {
   const t = useTranslations('catalog')
+  const tCommon = useTranslations('common')
   const isRTL = useRTL()
   const [importingAll, setImportingAll] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
@@ -471,7 +472,7 @@ function ItemsTab({
           </Button>
         </div>
         <div className="text-sm text-gray-500">
-          {items.length} {items.length === 1 ? 'item' : 'items'}
+          {tCommon('itemCount', { count: items.length })}
         </div>
       </div>
 

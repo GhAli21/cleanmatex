@@ -857,3 +857,13 @@ export interface CashUpDayData {
   reconciliation: CashUpReconciliationEntry[];
   paymentMethods: PaymentMethod[];
 }
+
+/** Amount mismatch diff for create-with-payment AMOUNT_MISMATCH response */
+export interface AmountMismatchDiff {
+  client: number;
+  server: number;
+}
+
+export type AmountMismatchDifferences = Partial<
+  Record<'subtotal' | 'manualDiscount' | 'promoDiscount' | 'vatValue' | 'finalTotal', AmountMismatchDiff>
+>;

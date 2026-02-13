@@ -114,7 +114,16 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                   <div className="font-medium">{order.customer?.name || '—'}</div>
                   <div className="text-xs text-gray-500">{order.customer?.phone || '—'}</div>
                 </td>
-                <td className="px-4 py-3 capitalize">{order.status?.replace(/_/g, ' ') || '—'}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1">
+                    <span className="capitalize">{order.status?.replace(/_/g, ' ') || '—'}</span>
+                    {order.is_retail && (
+                      <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
+                        {t('retail')}
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-4 py-3 capitalize">
                   {order.preparation_status?.replace(/_/g, ' ') || '—'}
                 </td>

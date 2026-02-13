@@ -30,6 +30,7 @@ export default function CreatePaymentForm({
   defaultCurrencyCode,
 }: CreatePaymentFormProps) {
   const t = useTranslations('payments.create');
+  const tCommon = useTranslations('common');
   const router = useRouter();
   const [isSubmitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -390,7 +391,7 @@ export default function CreatePaymentForm({
           onClick={() => router.push('/dashboard/billing/payments')}
           className="rounded-md border border-gray-300 px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          {t('cancel')}
+          {tCommon('cancel')}
         </button>
       </div>
     </form>

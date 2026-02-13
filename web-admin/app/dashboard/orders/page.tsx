@@ -22,6 +22,7 @@ type OrdersSearchParams = {
   status?: string;
   preparationStatus?: string;
   priority?: string;
+  isRetail?: string;
   search?: string;
   fromDate?: string;
   toDate?: string;
@@ -74,6 +75,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     status: params.status,
     preparationStatus: params.preparationStatus,
     priority: params.priority,
+    isRetail: params.isRetail === 'true' || params.isRetail === 'false' ? params.isRetail : undefined,
     search: params.search,
     fromDate: parseDate(params.fromDate),
     toDate: parseDate(params.toDate),

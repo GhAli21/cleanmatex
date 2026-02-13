@@ -711,6 +711,7 @@ model org_orders_mst {
   last_transition_by              String?                           @db.Uuid
   is_order_quick_drop             Boolean?                          @default(false)
   quick_drop_quantity             Int?
+  is_retail                       Boolean?                          @default(false)
   rack_location                   String?                           @db.VarChar(100)
   tax_rate                        Decimal?                          @db.Decimal(5, 3)
   currency_code                   String?                           @db.VarChar(3)

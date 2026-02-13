@@ -578,6 +578,18 @@ export async function searchCustomers(
   if (params.type) {
     query = query.eq('type', params.type);
   }
+
+  if (params.startDate) {
+    query = query.gte('created_at', params.startDate);
+  }
+  if (params.endDate) {
+    // Include full day: if date-only (no time), append end-of-day
+    const endVal = params.endDate.includes('T')
+      ? params.endDate
+      : `${params.endDate}T23:59:59.999Z`;
+    query = query.lte('created_at', endVal);
+  }
+
   const sortBy = params.sortBy || 'createdAt';
   const sortOrder = params.sortOrder || 'desc';
   if (sortBy === 'name') {

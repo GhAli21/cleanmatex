@@ -56,6 +56,8 @@ interface OrderSummaryPanelProps {
   onCalculateReadyBy?: () => Promise<void>;
   loading: boolean;
   trackByPiece?: boolean;
+  /** When true (retail orders), allow "now" as valid ready-by instead of requiring strict future */
+  isRetailOnlyOrder?: boolean;
 }
 
 function OrderSummaryPanelComponent({
@@ -84,13 +86,15 @@ function OrderSummaryPanelComponent({
   onCalculateReadyBy,
   loading,
   trackByPiece = false,
+  isRetailOnlyOrder = false,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
+  const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Validate ready_by date
+  // Validate ready_by date (retail allows "now", services require future)
   const readyByValidation = useMemo(() => {
     if (!readyByAt) {
       return { isValid: false, isFuture: false, isTooFar: false, message: '' };
@@ -99,12 +103,14 @@ function OrderSummaryPanelComponent({
     const readyByDate = new Date(readyByAt);
     const now = new Date();
     const daysDiff = Math.ceil((readyByDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    const isFuture = readyByDate > now;
+    const threshold = isRetailOnlyOrder ? now.getTime() - 60000 : now.getTime();
+    const isFuture = isRetailOnlyOrder
+      ? readyByDate.getTime() >= threshold
+      : readyByDate > now;
     const isTooFar = daysDiff > 30;
 
     return {
-      isValid: isFuture,
+      isValid: isFuture && !isTooFar,
       isFuture,
       isTooFar,
       message: !isFuture
@@ -113,7 +119,7 @@ function OrderSummaryPanelComponent({
           ? tNewOrder('validation.readyByTooFar') || 'Ready by date is more than 30 days away'
           : '',
     };
-  }, [readyByAt, tNewOrder]);
+  }, [readyByAt, tNewOrder, isRetailOnlyOrder]);
 
   const handleCalculateReadyBy = useCallback(async () => {
     if (!onCalculateReadyBy) return;
@@ -364,7 +370,7 @@ function OrderSummaryPanelComponent({
             <p className="text-xs opacity-90">{t('total')}</p>
             <p className="text-2xl font-bold">OMR {total.toFixed(3)}</p>
             <p className="text-xs opacity-75 mt-1">
-              {items.length} {items.length === 1 ? 'item' : 'items'}
+              {tCommon('itemCount', { count: items.length })}
             </p>
           </div>
         </button>

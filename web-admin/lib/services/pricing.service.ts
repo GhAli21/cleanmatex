@@ -5,7 +5,7 @@
  * Integrates with TaxService for tax calculations.
  */
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import { taxService } from './tax.service';
 import { calculateItemPrice } from '@/lib/utils/pricing-calculator';
 import type {
@@ -18,8 +18,6 @@ import type {
 } from '@/lib/types/pricing';
 
 export class PricingService {
-    private supabase = createClient();
-
     /**
      * Determine price list type based on order context
      * @param isExpress - Is this an express order?
@@ -29,7 +27,8 @@ export class PricingService {
     private async determinePriceListType(
         tenantId: string,
         isExpress: boolean,
-        customerId?: string
+        customerId: string | undefined,
+        supabase: Awaited<ReturnType<typeof createClient>>
     ): Promise<PriceListType> {
         // Start with standard or express
         let priceListType: PriceListType = isExpress ? 'express' : 'standard';
@@ -37,7 +36,7 @@ export class PricingService {
         // Check customer-specific pricing if customer provided
         if (customerId) {
             try {
-                const { data: customer, error } = await this.supabase
+                const { data: customer, error } = await supabase
                     .from('org_customers_mst')
                     .select('type, preferences')
                     .eq('tenant_org_id', tenantId)
@@ -87,15 +86,18 @@ export class PricingService {
         } = params;
 
         try {
+            const supabase = await createClient();
+
             // Determine price list type
             const priceListType = await this.determinePriceListType(
                 tenantId,
                 isExpress,
-                customerId
+                customerId,
+                supabase
             );
 
             // Call database function to get price
-            const { data: priceData, error: priceError } = await (this.supabase.rpc as any)(
+            const { data: priceData, error: priceError } = await (supabase.rpc as any)(
                 'get_product_price',
                 {
                     p_tenant_org_id: tenantId,
@@ -121,7 +123,7 @@ export class PricingService {
                 );
 
                 // Fallback to product default price
-                const { data: product, error: productError } = await this.supabase
+                const { data: product, error: productError } = await supabase
                     .from('org_product_data_mst')
                     .select('default_sell_price, default_express_sell_price')
                     .eq('tenant_org_id', tenantId)
@@ -145,7 +147,7 @@ export class PricingService {
 
                 // Try to get price list item details for additional info
                 try {
-                    const { data: priceListItems } = await this.supabase
+                    const { data: priceListItems } = await supabase
                         .from('org_price_list_items_dtl')
                         .select(
                             `
@@ -228,18 +230,26 @@ export class PricingService {
      * Calculate order totals from multiple items
      * @param tenantId - Tenant organization ID
      * @param items - Array of order items with pricing
-     * @param customerId - Customer ID (optional)
-     * @param orderDiscountPercent - Order-level discount percentage (optional)
-     * @param orderDiscountAmount - Order-level fixed discount (optional)
+     * @param options - Optional: customerId, isExpress, orderDiscountPercent, orderDiscountAmount
      * @returns Promise<OrderTotals> - Order-level totals
      */
     async calculateOrderTotals(
         tenantId: string,
         items: OrderItemForPricing[],
-        customerId?: string,
-        orderDiscountPercent = 0,
-        orderDiscountAmount = 0
+        options: {
+            customerId?: string;
+            isExpress?: boolean;
+            orderDiscountPercent?: number;
+            orderDiscountAmount?: number;
+        } = {}
     ): Promise<OrderTotals> {
+        const {
+            customerId,
+            isExpress = false,
+            orderDiscountPercent = 0,
+            orderDiscountAmount = 0,
+        } = options;
+
         // Get price results for all items
         const priceResults = await Promise.all(
             items.map((item) =>
@@ -247,7 +257,7 @@ export class PricingService {
                     tenantId,
                     productId: item.productId,
                     quantity: item.quantity,
-                    isExpress: false, // TODO: Get from order context
+                    isExpress,
                     customerId,
                 })
             )
@@ -265,8 +275,8 @@ export class PricingService {
             return calculateItemPrice({
                 basePrice: result.basePrice,
                 quantity: item.quantity,
-                isExpress: false,
-                expressMultiplier: 1,
+                isExpress,
+                expressMultiplier: 1, // Price already reflects express via price list
                 taxRate: result.taxRate,
                 discountPercent: result.discountPercent,
             });

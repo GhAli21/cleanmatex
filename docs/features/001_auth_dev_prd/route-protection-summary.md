@@ -8,8 +8,8 @@
 
 ## 📦 What Was Delivered
 
-### 1. Next.js Middleware
-**File:** `web-admin/middleware.ts`
+### 1. Next.js Proxy
+**File:** `web-admin/proxy.ts`
 
 **Features:**
 - ✅ Edge-level route protection (runs before page loads)
@@ -327,7 +327,7 @@ UPDATE org_users_mst SET role = 'admin' WHERE user_id = 'uuid';
 
 **Solution:**
 ```bash
-# Check middleware.ts matcher config
+# Check proxy.ts matcher config
 # Verify route not excluded
 # Clear .next cache
 ```
@@ -377,7 +377,7 @@ docs/features/authentication/route-protection-summary.md      (This file)
 
 ### Modified Files
 ```
-web-admin/middleware.ts                                       (Enhanced)
+web-admin/proxy.ts                                             (Enhanced)
 ```
 
 ---

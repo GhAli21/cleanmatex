@@ -6,11 +6,10 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
 import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
-import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { cmxMessage } from '@ui/feedback';
@@ -19,9 +18,7 @@ import { sanitizeOrderNotes, sanitizeInput } from '@/lib/utils/security-helpers'
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
-import { processPayment } from '@/app/actions/payments/process-payment';
-import { createInvoiceAction } from '@/app/actions/payments/invoice-actions';
-import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
+import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 
 /**
  * Hook to handle order submission
@@ -29,15 +26,18 @@ import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order
 export function useOrderSubmission() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
-    const router = useRouter();
     const { currentTenant, user } = useAuth();
-    const useNewWorkflowSystem = useWorkflowSystemMode();
     const { trackByPiece } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
     const { token: csrfToken } = useCSRFToken();
     const state = useNewOrderStateWithDispatch();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [amountMismatch, setAmountMismatch] = useState<{
+        open: boolean;
+        message?: string;
+        differences?: AmountMismatchDifferences;
+    }>({ open: false });
 
     const submitOrder = useCallback(
         async (paymentData: PaymentFormData, payload?: NewOrderPaymentPayload) => {
@@ -58,6 +58,16 @@ export function useOrderSubmission() {
                     payload = parsed.data;
                 }
 
+                // Retail orders: PAY_ON_COLLECTION not allowed (must pay at POS)
+                const isRetailOnly = state.state.items.length > 0
+                    && state.state.items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+                if (isRetailOnly && paymentData.paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) {
+                    cmxMessage.error(t('errors.retailPayOnCollection'));
+                    setIsSubmitting(false);
+                    state.setLoading(false);
+                    return;
+                }
+
                 // Validate all product IDs are UUIDs
                 const productIds = state.state.items.map((item) => item.productId);
                 const invalidProductIds = validateProductIds(productIds);
@@ -74,21 +84,28 @@ export function useOrderSubmission() {
                     ? sanitizeOrderNotes(state.state.notes)
                     : undefined;
 
-                // Prepare request body with payment data
-                const requestBody = {
+                if (!payload?.totals) {
+                    cmxMessage.error(t('payment.errors.invalidAmount'));
+                    setIsSubmitting(false);
+                    state.setLoading(false);
+                    return;
+                }
+
+                const createWithPaymentBody = {
                     customerId: state.state.customer?.id || '',
                     orderTypeId: 'POS',
                     items: state.state.items.map((item) => ({
                         productId: item.productId,
                         quantity: item.quantity,
-                        pricePerUnit: item.pricePerUnit,
-                        totalPrice: item.totalPrice,
+                        pricePerUnit: item.pricePerUnit ?? 0,
+                        totalPrice: item.totalPrice ?? 0,
                         serviceCategoryCode: item.serviceCategoryCode,
                         notes: item.notes ? sanitizeOrderNotes(item.notes) : undefined,
-                        // Include piece-level data if trackByPiece is enabled and pieces exist
-                        ...(trackByPiece &&
-                            item.pieces &&
-                            item.pieces.length > 0 && {
+                        hasStain: item.hasStain,
+                        hasDamage: item.hasDamage,
+                        stainNotes: item.stainNotes,
+                        damageNotes: item.damageNotes,
+                        ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
                             pieces: item.pieces.map((piece) => ({
                                 pieceSeq: piece.pieceSeq,
                                 color: piece.color,
@@ -102,76 +119,44 @@ export function useOrderSubmission() {
                         }),
                     })),
                     isQuickDrop: state.state.isQuickDrop || false,
-                    ...(state.state.isQuickDrop &&
-                        state.state.quickDropQuantity > 0 && {
+                    ...(state.state.isQuickDrop && state.state.quickDropQuantity > 0 && {
                         quickDropQuantity: state.state.quickDropQuantity,
                     }),
                     express: state.state.express || false,
-                    priority: state.state.express ? 'express' : 'normal',
-                    ...(sanitizedNotes && { customerNotes: sanitizedNotes }),
-                    ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
-                    useOldWfCodeOrNew: !useNewWorkflowSystem,
-                    // Payment data (sanitize check number if provided)
+                    customerNotes: sanitizedNotes,
+                    readyByAt: state.state.readyByAt,
                     paymentMethod: paymentData.paymentMethod,
-                    ...(paymentData.checkNumber && {
-                        checkNumber: sanitizeInput(paymentData.checkNumber),
-                    }),
-                    ...(paymentData.checkBank && {
-                        checkBank: sanitizeInput(paymentData.checkBank),
-                    }),
-                    ...(paymentData.checkDate && {
-                        checkDate: paymentData.checkDate,
-                    }),
-                    ...(paymentData.percentDiscount > 0 && {
-                        percentDiscount: paymentData.percentDiscount,
-                    }),
-                    ...(paymentData.amountDiscount > 0 && {
-                        amountDiscount: paymentData.amountDiscount,
-                    }),
-                    ...(paymentData.promoCode && {
-                        promoCode: paymentData.promoCode,
-                        promoCodeId: paymentData.promoCodeId,
-                        promoDiscount: paymentData.promoDiscount,
-                    }),
-                    ...(paymentData.giftCardNumber && {
-                        giftCardNumber: paymentData.giftCardNumber,
-                        giftCardAmount: paymentData.giftCardAmount,
-                    }),
-                    payAllOrders: paymentData.payAllOrders,
-                    // Payment & order data enhancement: totals and breakdown for order + payment
-                    ...(payload?.totals && {
-                        totals: {
-                            subtotal: payload.totals.subtotal,
-                            discount: (payload.totals.manualDiscount ?? 0) + (payload.totals.promoDiscount ?? 0),
-                            tax: (payload.totals.taxAmount ?? 0) + (payload.totals.vatValue ?? 0),
-                            total: payload.totals.finalTotal,
-                            taxRate: payload.totals.taxRate,
-                            taxAmount: payload.totals.taxAmount,
-                            vatRate: payload.totals.vatTaxPercent,
-                            vatAmount: payload.totals.vatValue,
-                        },
-                        discountRate: paymentData.percentDiscount || 0,
-                        discountType: paymentData.promoCode ? 'promo' : (paymentData.percentDiscount || paymentData.amountDiscount ? 'manual' : undefined),
-                        ...(paymentData.promoCodeId && { promoCodeId: paymentData.promoCodeId }),
-                        promoDiscountAmount: payload.totals.promoDiscount ?? 0,
-                        giftCardDiscountAmount: payload.totals.giftCardApplied ?? 0,
-                        paymentTypeCode: getPaymentTypeFromMethod(paymentData.paymentMethod),
-                    }),
-                    ...(payload?.currencyCode && { currencyCode: payload.currencyCode }),
-                    ...(payload?.currencyExRate != null && { currencyExRate: payload.currencyExRate }),
+                    percentDiscount: paymentData.percentDiscount ?? 0,
+                    amountDiscount: paymentData.amountDiscount ?? 0,
+                    promoCode: paymentData.promoCode?.trim() || undefined,
+                    ...(paymentData.promoCodeId?.trim() && { promoCodeId: paymentData.promoCodeId.trim() }),
+                    promoDiscount: payload.totals.promoDiscount ?? 0,
+                    giftCardNumber: paymentData.giftCardNumber?.trim() || undefined,
+                    giftCardAmount: paymentData.giftCardAmount ?? 0,
+                    ...(paymentData.giftCardId?.trim() && { giftCardId: paymentData.giftCardId.trim() }),
+                    checkNumber: paymentData.checkNumber ? sanitizeInput(paymentData.checkNumber) : undefined,
+                    checkBank: paymentData.checkBank ? sanitizeInput(paymentData.checkBank) : undefined,
+                    checkDate: paymentData.checkDate,
+                    branchId: undefined,
+                    clientTotals: {
+                        subtotal: payload.totals.subtotal,
+                        manualDiscount: payload.totals.manualDiscount ?? 0,
+                        promoDiscount: payload.totals.promoDiscount ?? 0,
+                        vatValue: payload.totals.vatValue,
+                        finalTotal: payload.totals.finalTotal,
+                    },
                 };
 
-                // Include CSRF token in headers
                 const headers: Record<string, string> = {
                     'Content-Type': 'application/json',
                     ...getCSRFHeader(csrfToken),
                 };
 
-                const res = await fetch('/api/v1/orders', {
+                const res = await fetch('/api/v1/orders/create-with-payment', {
                     method: 'POST',
                     headers,
                     credentials: 'include',
-                    body: JSON.stringify(requestBody),
+                    body: JSON.stringify(createWithPaymentBody),
                 });
 
                 // Handle error responses
@@ -191,6 +176,18 @@ export function useOrderSubmission() {
                         }
                     } catch {
                         errorMessage = `Server returned ${res.status} ${res.statusText}`;
+                    }
+
+                    // AMOUNT_MISMATCH: show dialog, do not persist anything
+                    if (json.errorCode === 'AMOUNT_MISMATCH') {
+                        setAmountMismatch({
+                            open: true,
+                            message: (json.error as string) ?? undefined,
+                            differences: json.differences as AmountMismatchDifferences | undefined,
+                        });
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
                     }
 
                     // Extract error message
@@ -302,89 +299,8 @@ export function useOrderSubmission() {
                 };
                 const orderId = data?.id || data?.orderId;
                 const orderStatus = data?.currentStatus || data?.status;
-                const tenantOrgId = currentTenant?.tenant_id || '';
-                const userId = user?.id || '';
 
-                // Invoice-only (INVOICE): create invoice for the order; payment collected later
-                const method = paymentData.paymentMethod;
-                const amountToCharge = payload?.amountToCharge ?? payload?.totals?.finalTotal ?? 0;
-                const totals = payload?.totals;
-                if (
-                    orderId &&
-                    tenantOrgId &&
-                    method === PAYMENT_METHODS.INVOICE &&
-                    totals
-                ) {
-                    const invoiceResult = await createInvoiceAction(tenantOrgId, {
-                        order_id: orderId,
-                        subtotal: totals.subtotal,
-                        discount: (totals.manualDiscount ?? 0) + (totals.promoDiscount ?? 0),
-                        tax: (totals.taxAmount ?? 0) + (totals.vatValue ?? 0),
-                        payment_method_code: 'INVOICE',
-                    });
-                    if (!invoiceResult.success) {
-                        cmxMessage.error(
-                            invoiceResult.error ?? t('payment.errors.invoiceCreationFailed')
-                        );
-                        state.closeModal('payment');
-                        setIsSubmitting(false);
-                        state.setLoading(false);
-                        return;
-                    }
-                }
-
-                // Immediate payment (CASH, CARD, CHECK): create invoice and record payment via processPayment
-                if (
-                    orderId &&
-                    tenantOrgId &&
-                    (method === PAYMENT_METHODS.CASH || method === PAYMENT_METHODS.CARD || method === PAYMENT_METHODS.CHECK) &&
-                    amountToCharge > 0
-                ) {
-                    const paymentMethodCode = method === PAYMENT_METHODS.CASH ? 'CASH' : method === PAYMENT_METHODS.CARD ? 'CARD' : 'CHECK';
-                    const paymentResult = await processPayment(tenantOrgId, userId, {
-                        orderId, 
-                        customerId: state.state.customer?.id || undefined,
-                        amount: amountToCharge,
-                        paymentMethod: paymentMethodCode,
-                        paymentKind: 'pos', //'invoice',
-                        checkNumber: paymentData.checkNumber || undefined,
-                        checkBank: paymentData.checkBank || undefined,
-                        checkDate: paymentData.checkDate ? new Date(paymentData.checkDate) : undefined,
-                        notes: undefined,
-                        ...(totals && {
-                            subtotal: totals.subtotal,
-                            discountRate: paymentData.percentDiscount || 0,
-                            discountAmount: (totals.manualDiscount ?? 0) + (totals.promoDiscount ?? 0),
-                            manualDiscountAmount: totals.manualDiscount ?? 0,
-                            promoDiscountAmount: totals.promoDiscount ?? 0,
-                            giftCardAppliedAmount: totals.giftCardApplied ?? 0,
-                            taxRate: totals.taxRate,
-                            taxAmount: totals.taxAmount,
-                            vatRate: totals.vatTaxPercent,
-                            vatAmount: totals.vatValue,
-                            finalTotal: totals.finalTotal,
-                            paymentTypeCode: getPaymentTypeFromMethod(paymentData.paymentMethod),
-                        }),
-                        ...(payload?.currencyCode && { currencyCode: payload.currencyCode }),
-                        ...(payload?.currencyExRate != null && { currencyExRate: payload.currencyExRate }),
-                        ...(paymentData.promoCode && { promoCode: paymentData.promoCode, promoCodeId: paymentData.promoCodeId }),
-                        ...(paymentData.giftCardNumber && {
-                            giftCardNumber: paymentData.giftCardNumber,
-                            giftCardAmount: paymentData.giftCardAmount ?? 0,
-                        }),
-                    });
-                    if (!paymentResult.success) {
-                        cmxMessage.error(
-                            paymentResult.error ?? t('payment.errors.paymentNotRecordedCompleteOnOrder')
-                        );
-                        state.closeModal('payment');
-                        state.resetOrder();
-                        setIsSubmitting(false);
-                        state.setLoading(false);
-                        return;
-                    }
-                }
-
+                // Order + invoice + payment created atomically by create-with-payment API
                 // Success - close payment modal, show success, reset
                 state.closeModal('payment');
                 if (orderId) {
@@ -440,7 +356,6 @@ export function useOrderSubmission() {
             tWorkflow,
             state,
             trackByPiece,
-            useNewWorkflowSystem,
             csrfToken,
             currentTenant,
             user,
@@ -450,6 +365,8 @@ export function useOrderSubmission() {
     return {
         submitOrder,
         isSubmitting,
+        amountMismatch,
+        setAmountMismatch,
     };
 }
 

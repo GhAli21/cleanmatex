@@ -45,13 +45,20 @@ export function useOrderState() {
   // Calculate totals whenever items or settings change
   useEffect(() => {
     const subtotal = state.items.reduce((sum, item) => sum + item.totalPrice, 0);
-    const discount = 0; // TODO: Implement discount logic
-    const tax = 0; // TODO: Implement tax logic
-    const total = subtotal - discount + tax;
+    const orderDiscount = 0; // Can be extended with state.settings.orderDiscountPercent/Amount
+    const afterDiscount = Math.max(0, subtotal - orderDiscount);
+    const taxRate = 0.05; // Default 5%; can be fetched from tenant via useTenantSettings
+    const tax = afterDiscount * taxRate;
+    const total = afterDiscount + tax;
 
     setState((prev) => ({
       ...prev,
-      totals: { subtotal, discount, tax, total },
+      totals: {
+        subtotal,
+        discount: orderDiscount,
+        tax,
+        total,
+      },
     }));
   }, [state.items]);
 

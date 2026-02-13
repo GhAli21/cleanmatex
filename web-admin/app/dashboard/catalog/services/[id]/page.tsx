@@ -10,6 +10,7 @@ export default function EditProductPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
   const t = useTranslations('catalog')
+  const tCommon = useTranslations('common')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [data, setData] = useState<Partial<ProductFormValues> | null>(null)
@@ -55,7 +56,7 @@ export default function EditProductPage() {
 
   if (loading) {
     return (
-      <Card className="p-4 text-gray-500">{t('loading')}</Card>
+      <Card className="p-4 text-gray-500">{tCommon('loading')}</Card>
     )
   }
 

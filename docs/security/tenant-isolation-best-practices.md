@@ -56,6 +56,20 @@ export async function listOrders() {
 }
 ```
 
+### ✅ Correct: Server Action with Session-Derived Tenant (createOrder)
+
+```typescript
+// Client passes NO tenant ID - server derives it
+export async function createOrder(formData: FormData): Promise<CreateOrderResult> {
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) {
+    return { success: false, error: 'Tenant ID is required. User must be authenticated.' };
+  }
+  const order = await createOrderDb(tenantId, validation.data);
+  return { success: true, data: order };
+}
+```
+
 ### ❌ Incorrect: Manual Filtering
 
 ```typescript

@@ -17,6 +17,8 @@ interface ReadyDatePickerModalProps {
   onApply: (date: Date, time: string) => void;
   initialDate?: Date;
   initialTime?: string;
+  /** When true (retail orders), allow "now" as valid instead of requiring strict future */
+  allowNow?: boolean;
 }
 
 export function ReadyDatePickerModal({
@@ -25,6 +27,7 @@ export function ReadyDatePickerModal({
   onApply,
   initialDate,
   initialTime,
+  allowNow = false,
 }: ReadyDatePickerModalProps) {
   const t = useTranslations('newOrder.schedule');
   const tCommon = useTranslations('common');
@@ -72,15 +75,17 @@ export function ReadyDatePickerModal({
     }
   };
 
-  // Validate date is in the future
+  // Validate date: future for services; "now" or future for retail (allowNow)
   const dateValidation = useMemo(() => {
     const now = new Date();
     const selectedDateTime = new Date(`${selectedDate.toDateString()} ${selectedTime}`);
+    const threshold = allowNow ? now.getTime() - 60000 : now.getTime();
+    const isValid = allowNow ? selectedDateTime.getTime() >= threshold : selectedDateTime > now;
     return {
-      isValid: selectedDateTime > now,
-      isFuture: selectedDateTime > now,
+      isValid,
+      isFuture: isValid,
     };
-  }, [selectedDate, selectedTime]);
+  }, [selectedDate, selectedTime, allowNow]);
 
   const handleApply = () => {
     if (!dateValidation.isValid) {
@@ -337,7 +342,7 @@ export function ReadyDatePickerModal({
             onClick={onClose}
             className="flex-1 h-10 px-4 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm transition-colors"
           >
-            {t('cancel')}
+            {tCommon('cancel')}
           </button>
           <button
             onClick={handleApply}

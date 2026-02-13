@@ -19,7 +19,8 @@
     "prisma:generate": "npx prisma generate",
     "prisma:pull": "npx prisma db pull",
     "prisma:studio": "npx prisma studio",
-    "prisma:generate:safe": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-prisma.ps1"
+    "prisma:generate:safe": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-prisma.ps1",
+    "check:i18n": "node scripts/check-i18n-parity.js"
   },
   "dependencies": {
     "@alloc/quick-lru": "^5.2.0",
@@ -55,10 +56,12 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.68.0",
     "recharts": "^3.3.0",
+    "resend": "^6.9.2",
     "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-react": "^5.31.0",
+    "twilio": "^5.12.1",
     "xlsx": "^0.18.5",
     "zod": "^4.1.12"
   },

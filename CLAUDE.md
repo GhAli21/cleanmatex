@@ -47,6 +47,7 @@ npm run build                     # Build (run after changes)
 - Soft delete: `is_active=false`, `rec_status=0`
 - Money Fields Datatype and Size `DECIMAL(19, 4)`
 - No default value for currency_code
+- No default value for any countery or locale related such as currency_code, country, city, timezone ...etc
 
 **See:** `/database` skill for complete rules
 
@@ -73,6 +74,7 @@ npm run build                     # Build (run after changes)
 - Search existing message keys before adding new
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
+- Run `npm run check:i18n` after translation changes
 - When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
 
 **See:** `/i18n` skill for complete i18n rules
@@ -121,6 +123,7 @@ docs/         # All documentation
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
+- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
 
 ## Key Guardrails

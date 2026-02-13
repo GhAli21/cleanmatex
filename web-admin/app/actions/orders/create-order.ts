@@ -10,6 +10,7 @@
 import { revalidatePath } from 'next/cache';
 import { createOrderSchema } from '@/lib/validations/order-schema';
 import { createOrder as createOrderDb } from '@/lib/db/orders';
+import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type { Order } from '@/types/order';
 
 interface CreateOrderResult {
@@ -22,15 +23,24 @@ interface CreateOrderResult {
 /**
  * Create a new Quick Drop order
  *
- * @param tenantOrgId - Tenant organization ID (from session)
+ * Tenant ID is resolved from session server-side. Client must be authenticated
+ * with tenant_org_id in user metadata.
+ *
  * @param formData - Form data or input object
  * @returns Result with created order or error
  */
 export async function createOrder(
-  tenantOrgId: string,
   formData: FormData | Record<string, any>
 ): Promise<CreateOrderResult> {
   try {
+    const tenantId = await getTenantIdFromSession();
+    if (!tenantId) {
+      return {
+        success: false,
+        error: 'Tenant ID is required. User must be authenticated and have tenant_org_id in metadata.',
+      };
+    }
+
     // Parse form data
     const rawData =
       formData instanceof FormData
@@ -66,7 +76,7 @@ export async function createOrder(
     }
 
     // Create order in database
-    const order = await createOrderDb(tenantOrgId, validation.data);
+    const order = await createOrderDb(tenantId, validation.data);
 
     // Revalidate orders list
     revalidatePath('/dashboard/orders');

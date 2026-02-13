@@ -508,6 +508,7 @@ export async function searchProducts(
     product_name: item.product_name,
     product_name2: item.product_name2,
     service_category_code: item.service_category_code,
+    is_retail_item: item.is_retail_item ?? false,
     category_name: item.service_category_code, // Use code for now
     category_name2: item.service_category_code,
     default_sell_price: item.default_sell_price,

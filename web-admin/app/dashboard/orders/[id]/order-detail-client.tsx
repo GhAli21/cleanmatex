@@ -53,6 +53,7 @@ interface OrderDetailClientProps {
     completed: string;
     numberOfBags: string;
     qrCode: string;
+    retail: string;
     customerInformation: string;
     name: string;
     phone: string;
@@ -278,6 +279,11 @@ export function OrderDetailClient({
               >
                 {order.priority?.toUpperCase() || 'NORMAL'}
               </span>
+              {order.is_retail && (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
+                  {t.retail}
+                </span>
+              )}
             </div>
             {order.received_at && (
               <p className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>

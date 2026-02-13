@@ -129,38 +129,76 @@ export class DashboardService {
     if (cached) return cached
 
     try {
-      // TODO: Replace with actual API call
-      // For now, return mock data
+      const branchId = options?.branchId
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const todayStart = today.toISOString()
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+      const last30Start = new Date(today)
+      last30Start.setDate(last30Start.getDate() - 30)
+      const last30StartStr = last30Start.toISOString()
+
+      let ordersQuery = this.supabase
+        .from('org_orders_mst')
+        .select('id, status, total, created_at')
+        .eq('tenant_org_id', tenantId)
+        .not('status', 'in', '("CANCELLED","CLOSED")')
+      if (branchId) ordersQuery = ordersQuery.eq('branch_id', branchId)
+
+      const { data: orders } = await ordersQuery
+      const ordersList = orders || []
+
+      const todayOrders = ordersList.filter(
+        (o) => (o as { created_at: string }).created_at >= todayStart
+      )
+      const mtdOrders = ordersList.filter(
+        (o) => (o as { created_at: string }).created_at >= monthStart
+      )
+      const last30Orders = ordersList.filter(
+        (o) => (o as { created_at: string }).created_at >= last30StartStr
+      )
+
+      const statusCounts: Record<string, number> = {}
+      todayOrders.forEach((o) => {
+        const s = (o as { status: string }).status || 'unknown'
+        statusCounts[s] = (statusCounts[s] || 0) + 1
+      })
+
+      const revenueToday = todayOrders.reduce(
+        (sum, o) => sum + Number((o as { total?: number }).total || 0),
+        0
+      )
+      const revenueMtd = mtdOrders.reduce(
+        (sum, o) => sum + Number((o as { total?: number }).total || 0),
+        0
+      )
+      const revenue30d = last30Orders.reduce(
+        (sum, o) => sum + Number((o as { total?: number }).total || 0),
+        0
+      )
+
       const data: KPIOverview = {
         orders: {
-          today: 0,
-          inProcess: 0,
-          ready: 0,
-          outForDelivery: 0,
+          today: todayOrders.length,
+          inProcess:
+            (statusCounts['INTAKE'] || 0) +
+            (statusCounts['PREPARATION'] || 0) +
+            (statusCounts['PROCESSING'] || 0),
+          ready: statusCounts['READY'] || 0,
+          outForDelivery: statusCounts['OUT_FOR_DELIVERY'] || 0,
           deltaToday: 0,
         },
         revenue: {
-          today: 0,
-          mtd: 0,
-          last30d: 0,
+          today: revenueToday,
+          mtd: revenueMtd,
+          last30d: revenue30d,
           currency: 'OMR',
           deltaToday: 0,
         },
-        sla: {
-          avgTATHours: 0,
-          onTimePct: 0,
-        },
-        issues: {
-          open: 0,
-          last7d: 0,
-        },
-        payments: {
-          cashPct: 0,
-          onlinePct: 0,
-        },
-        drivers: {
-          activePct: 0,
-        },
+        sla: { avgTATHours: 0, onTimePct: 0 },
+        issues: { open: 0, last7d: 0 },
+        payments: { cashPct: 0, onlinePct: 0 },
+        drivers: { activePct: 0 },
         topServices: [],
       }
 
@@ -189,10 +227,27 @@ export class DashboardService {
     if (cached) return cached
 
     try {
-      // TODO: Implement actual query
-      const data: OrdersTrendData[] = []
-      cache.set(cacheKey, data)
-      return data
+      const to = options?.to || new Date()
+      const from = options?.from || new Date(to)
+      from.setDate(from.getDate() - 7)
+      let query = this.supabase
+        .from('org_orders_mst')
+        .select('created_at')
+        .eq('tenant_org_id', tenantId)
+        .gte('created_at', from.toISOString())
+        .lte('created_at', to.toISOString())
+      if (options?.branchId) query = query.eq('branch_id', options.branchId)
+      const { data } = await query
+      const byDate: Record<string, number> = {}
+      ;(data || []).forEach((o) => {
+        const d = (o as { created_at: string }).created_at?.slice(0, 10)
+        if (d) byDate[d] = (byDate[d] || 0) + 1
+      })
+      const result = Object.entries(byDate)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      cache.set(cacheKey, result)
+      return result
     } catch (error) {
       console.error('Error fetching orders trend:', error)
       throw new Error('Failed to fetch orders trend')
@@ -216,10 +271,29 @@ export class DashboardService {
     if (cached) return cached
 
     try {
-      // TODO: Implement actual query
-      const data: RevenueTrendData[] = []
-      cache.set(cacheKey, data)
-      return data
+      const to = options?.to || new Date()
+      const from = options?.from || new Date(to)
+      from.setDate(from.getDate() - 7)
+      let query = this.supabase
+        .from('org_orders_mst')
+        .select('created_at, total')
+        .eq('tenant_org_id', tenantId)
+        .not('status', 'in', '("CANCELLED")')
+        .gte('created_at', from.toISOString())
+        .lte('created_at', to.toISOString())
+      if (options?.branchId) query = query.eq('branch_id', options.branchId)
+      const { data } = await query
+      const byDate: Record<string, number> = {}
+      ;(data || []).forEach((o) => {
+        const d = (o as { created_at: string }).created_at?.slice(0, 10)
+        const t = Number((o as { total?: number }).total || 0)
+        if (d) byDate[d] = (byDate[d] || 0) + t
+      })
+      const result = Object.entries(byDate)
+        .map(([date, amount]) => ({ date, amount }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      cache.set(cacheKey, result)
+      return result
     } catch (error) {
       console.error('Error fetching revenue trend:', error)
       throw new Error('Failed to fetch revenue trend')
@@ -227,31 +301,51 @@ export class DashboardService {
   }
 
   /**
+   * Get orders count for a specific date
+   */
+  async getOrdersCountForDate(
+    tenantId: string,
+    date: Date,
+    branchId?: string
+  ): Promise<number> {
+    const start = new Date(date)
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(date)
+    end.setHours(23, 59, 59, 999)
+    let query = this.supabase
+      .from('org_orders_mst')
+      .select('id', { count: 'exact', head: true })
+      .eq('tenant_org_id', tenantId)
+      .gte('created_at', start.toISOString())
+      .lte('created_at', end.toISOString())
+    if (branchId) query = query.eq('branch_id', branchId)
+    const { count, error } = await query
+    if (error) return 0
+    return count || 0
+  }
+
+  /**
    * Get today's orders count
    */
   async getTodayOrdersCount(tenantId: string, branchId?: string): Promise<number> {
-    try {
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
+    return this.getOrdersCountForDate(tenantId, new Date(), branchId)
+  }
 
-      let query = this.supabase
-        .from('org_orders_mst')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_org_id', tenantId)
-        .gte('created_at', today.toISOString())
-
-      if (branchId) {
-        query = query.eq('branch_id', branchId)
-      }
-
-      const { count, error } = await query
-
-      if (error) throw error
-      return count || 0
-    } catch (error) {
-      console.error('Error fetching today orders count:', error)
-      return 0
-    }
+  /**
+   * Get recent orders for dashboard
+   */
+  async getRecentOrders(
+    tenantId: string,
+    limit = 5
+  ): Promise<Array<{ id: string; order_no: string; status: string; created_at: string }>> {
+    const { data, error } = await this.supabase
+      .from('org_orders_mst')
+      .select('id, order_no, status, created_at')
+      .eq('tenant_org_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error) return []
+    return (data || []) as Array<{ id: string; order_no: string; status: string; created_at: string }>
   }
 
   /**

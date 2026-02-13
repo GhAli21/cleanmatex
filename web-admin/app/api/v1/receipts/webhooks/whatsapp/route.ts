@@ -4,31 +4,45 @@
  * Handles WhatsApp delivery status webhooks
  */
 
+import { createHmac, timingSafeEqual } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 /**
- * Verify webhook signature (for production)
+ * Verify WhatsApp webhook signature (X-Hub-Signature-256).
+ * Meta signs the raw request body with HMAC-SHA256 using the app secret.
+ *
+ * @param payload - Raw request body string
+ * @param signature - Header value (format: sha256=<hex>)
+ * @param secret - WHATSAPP_WEBHOOK_SECRET (app secret)
  */
 function verifyWebhookSignature(
   payload: string,
   signature: string,
   secret: string
 ): boolean {
-  // TODO: Implement webhook signature verification
-  // For now, return true (should verify in production)
-  return true;
+  if (!secret || !signature || !signature.startsWith('sha256=')) {
+    return false;
+  }
+  const expectedHex = signature.slice(7);
+  const expected = Buffer.from(expectedHex, 'hex');
+  if (expected.length !== 32) {
+    return false;
+  }
+  const computed = createHmac('sha256', secret).update(payload).digest();
+  return timingSafeEqual(computed, expected);
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Read raw body for signature verification (Meta signs the exact bytes)
+    const rawBody = await request.text();
+    const body = JSON.parse(rawBody) as Record<string, unknown>;
     const signature = request.headers.get('x-hub-signature-256') || '';
 
-    // Verify webhook (in production, verify signature)
     const webhookSecret = process.env.WHATSAPP_WEBHOOK_SECRET || '';
-    if (webhookSecret && !verifyWebhookSignature(JSON.stringify(body), signature, webhookSecret)) {
+    if (webhookSecret && !verifyWebhookSignature(rawBody, signature, webhookSecret)) {
       logger.warn('Invalid webhook signature', {
         feature: 'whatsapp',
         action: 'webhook_verification',

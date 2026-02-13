@@ -292,7 +292,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
         {/* Results */}
         <div className="flex-1 overflow-y-auto p-6">
           {loading ? (
-            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-gray-500`}>{t('loading')}</div>
+            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-gray-500`}>{tCommon('loading')}</div>
           ) : error ? (
             <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-red-500`}>
               {t('error') || 'Error'}: {error}

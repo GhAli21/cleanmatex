@@ -9,6 +9,9 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+
+/** Transaction client for use inside prisma.$transaction */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
 import type {
   Invoice,
@@ -24,21 +27,22 @@ import type {
 // ============================================================================
 
 /**
- * Create an invoice for an order
+ * Create an invoice for an order.
+ * When tx is provided, all operations run inside that transaction.
  */
 export async function createInvoice(
-  input: CreateInvoiceInput
+  input: CreateInvoiceInput,
+  tx?: PrismaTx
 ): Promise<Invoice> {
-  // Get tenant ID from session
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) {
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id to all queries
+  const db = tx ?? prisma;
+
   return withTenantContext(tenantId, async () => {
-    // Get order details - middleware adds tenant_org_id automatically
-    const order = await prisma.org_orders_mst.findUnique({
+    const order = await db.org_orders_mst.findUnique({
       where: { id: input.order_id },
       include: {
         org_order_items_dtl: true,
@@ -49,10 +53,8 @@ export async function createInvoice(
       throw new Error('Order not found');
     }
 
-    // Generate invoice number
-    const invoiceNo = await generateInvoiceNumber(order.tenant_org_id);
+    const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
 
-    // Calculate total
     const total = calculateInvoiceTotal({
       subtotal: input.subtotal,
       discount: input.discount || 0,
@@ -60,8 +62,7 @@ export async function createInvoice(
     });
 
     const now = new Date();
-    // Create invoice - middleware automatically adds tenant_org_id
-    const invoice = await prisma.org_invoice_mst.create({
+    const invoice = await db.org_invoice_mst.create({
       data: {
         order_id: input.order_id,
         customer_id: order.customer_id ?? input.customer_id,
@@ -97,16 +98,17 @@ export async function createInvoice(
 
 /**
  * Generate unique invoice number for tenant
- * Note: This function is called within tenant context, so middleware applies automatically
  */
-async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
+async function generateInvoiceNumber(
+  tenantOrgId: string,
+  db: typeof prisma | PrismaTx = prisma
+): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const prefix = `INV-${year}${month}`;
 
-  // Get count of invoices this month - middleware adds tenant_org_id automatically
-  const count = await prisma.org_invoice_mst.count({
+  const count = await db.org_invoice_mst.count({
     where: {
       tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
       invoice_no: {

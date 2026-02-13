@@ -133,9 +133,7 @@ export function BulkStatusUpdate({
               {t('title')}
             </h2>
             <p className={`mt-1 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {selectedOrderIds.length === 1 
-                ? t('subtitle', { count: selectedOrderIds.length })
-                : t('subtitlePlural', { count: selectedOrderIds.length })}
+              {t('subtitle', { count: selectedOrderIds.length })}
             </p>
           </div>
           <button
@@ -162,12 +160,8 @@ export function BulkStatusUpdate({
                     </h3>
                     <p className="mt-1 text-sm text-green-700">
                       {failureCount > 0 
-                        ? (successCount === 1 
-                            ? t('results.successWithFailures', { successCount, failureCount })
-                            : t('results.successWithFailuresPlural', { successCount, failureCount }))
-                        : (successCount === 1 
-                            ? t('results.successMessage', { successCount })
-                            : t('results.successMessagePlural', { successCount }))}
+                        ? t('results.successWithFailures', { successCount, failureCount })
+                        : t('results.successMessage', { successCount })}
                     </p>
                   </div>
                 </div>
@@ -263,19 +257,12 @@ export function BulkStatusUpdate({
                     <div className={`text-sm text-blue-900 ${isRTL ? 'text-right' : 'text-left'}`}>
                       <div className="font-medium mb-1">{t('form.confirmationRequired')}</div>
                       <div>
-                        {selectedOrderIds.length === 1
-                          ? t('form.confirmationMessage', {
-                              count: selectedOrderIds.length,
-                              status: locale === 'ar' 
-                                ? STATUS_META[selectedStatus]?.labelAr 
-                                : STATUS_META[selectedStatus]?.label || selectedStatus
-                            })
-                          : t('form.confirmationMessagePlural', {
-                              count: selectedOrderIds.length,
-                              status: locale === 'ar' 
-                                ? STATUS_META[selectedStatus]?.labelAr 
-                                : STATUS_META[selectedStatus]?.label || selectedStatus
-                            })}
+                        {t('form.confirmationMessage', {
+                          count: selectedOrderIds.length,
+                          status: locale === 'ar' 
+                            ? STATUS_META[selectedStatus]?.labelAr 
+                            : STATUS_META[selectedStatus]?.label || selectedStatus
+                        })}
                       </div>
                     </div>
                   </div>

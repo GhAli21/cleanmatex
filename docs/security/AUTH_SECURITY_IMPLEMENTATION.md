@@ -67,7 +67,7 @@ This document summarizes the implementation of security hardening measures for t
 
 - Created `web-admin/lib/security/csrf.ts` - CSRF token utilities
 - Created `web-admin/lib/middleware/csrf.ts` - CSRF validation middleware
-- Updated `web-admin/middleware.ts` to generate CSRF tokens for authenticated users
+- Updated `web-admin/proxy.ts` to generate CSRF tokens for authenticated users
 - Applied CSRF validation to state-changing API routes:
   - Orders API (POST)
   - Customers API (POST)
@@ -95,7 +95,7 @@ This document summarizes the implementation of security hardening measures for t
 
 **Files Modified:**
 
-- `web-admin/middleware.ts` - Added CSRF token generation
+- `web-admin/proxy.ts` - Added CSRF token generation
 - `web-admin/app/api/v1/orders/route.ts` - Added CSRF validation
 - `web-admin/app/api/v1/customers/route.ts` - Added CSRF validation
 - `web-admin/app/api/v1/orders/[id]/batch-update/route.ts` - Added CSRF validation
@@ -214,7 +214,24 @@ Rate limiting is automatically applied. To configure:
 - All security features are production-ready but require proper configuration
 - Password requirements are enforced client-side; Supabase config was reverted by user
 
+## Phase 4: JWT Guard and Webhook Verification (2025-02)
+
+**Status:** Completed
+
+### cmx-api JWT Guard
+
+- `cmx-api/src/common/guards/jwt-auth.guard.ts` now verifies JWT signature using `jsonwebtoken`
+- Requires `SUPABASE_JWT_SECRET` or `JWT_SECRET` env var
+- Rejects invalid or expired tokens
+
+### WhatsApp Webhook Signature
+
+- `web-admin/app/api/v1/receipts/webhooks/whatsapp/route.ts` verifies `X-Hub-Signature-256`
+- Uses HMAC-SHA256 with `timingSafeEqual` for constant-time comparison
+- Requires `WHATSAPP_WEBHOOK_SECRET` for production
+
 ## Related Documentation
 
 - `docs/security/AUTH_SYSTEM_EVALUATION.md` - Original security evaluation
 - `.cursor/plans/auth_system_security_hardening_9d48d810.plan.md` - Implementation plan
+- `docs/dev/CompletePendingAndTODOCodes_13022026/` - TODO completion docs
