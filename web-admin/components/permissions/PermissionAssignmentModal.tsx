@@ -3,7 +3,9 @@
 /**
  * Permission Assignment Modal
  *
- * Modal for assigning permissions to a role
+ * Modal for assigning permissions to a role.
+ * All data fetched from platform-api via rbacFetch.
+ *
  * Features:
  * - Grouped permissions by category
  * - Search/filter functionality
@@ -13,13 +15,15 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { X, Search, CheckCircle2, Shield, ChevronDown, ChevronRight } from 'lucide-react'
-import { getAllPermissions, type Permission } from '@/lib/api/permissions'
+import { getAllPermissions, type TenantPermission } from '@/lib/api/permissions'
 import { assignPermissionsToRole } from '@/lib/api/roles'
-import type { Role } from '@/lib/api/roles'
+import type { TenantRole } from '@/lib/api/roles'
 
 interface PermissionAssignmentModalProps {
-  role: Role
+  role: TenantRole
   assignedPermissions: string[]
+  /** JWT access token from session.access_token */
+  accessToken: string
   onClose: () => void
   onSuccess: () => void
 }
@@ -46,11 +50,12 @@ const CATEGORY_NAMES: Record<string, { name: string; name2: string }> = {
 export default function PermissionAssignmentModal({
   role,
   assignedPermissions,
+  accessToken,
   onClose,
   onSuccess,
 }: PermissionAssignmentModalProps) {
-  const [permissions, setPermissions] = useState<Permission[]>([])
-  const [groupedPermissions, setGroupedPermissions] = useState<Record<string, Permission[]>>({})
+  const [permissions, setPermissions] = useState<TenantPermission[]>([])
+  const [groupedPermissions, setGroupedPermissions] = useState<Record<string, TenantPermission[]>>({})
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
     new Set(assignedPermissions)
   )
@@ -62,15 +67,15 @@ export default function PermissionAssignmentModal({
 
   useEffect(() => {
     loadPermissions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadPermissions = async () => {
     try {
       setLoading(true)
-      const data = await getAllPermissions()
+      const data = await getAllPermissions(accessToken)
       setPermissions(data.permissions)
       setGroupedPermissions(data.grouped)
-      
       // Expand all categories by default
       setExpandedCategories(new Set(Object.keys(data.grouped)))
     } catch (err) {
@@ -126,7 +131,7 @@ export default function PermissionAssignmentModal({
     if (!searchQuery) return groupedPermissions
 
     const query = searchQuery.toLowerCase()
-    const filtered: Record<string, Permission[]> = {}
+    const filtered: Record<string, TenantPermission[]> = {}
 
     Object.entries(groupedPermissions).forEach(([category, perms]) => {
       const matching = perms.filter(
@@ -148,7 +153,8 @@ export default function PermissionAssignmentModal({
     try {
       setSaving(true)
       setError(null)
-      await assignPermissionsToRole(role.role_id, Array.from(selectedPermissions))
+      // Use role.code (string identifier) — NOT role_id (UUID)
+      await assignPermissionsToRole(role.code, Array.from(selectedPermissions), accessToken)
       onSuccess()
       onClose()
     } catch (err) {
@@ -160,8 +166,7 @@ export default function PermissionAssignmentModal({
   }
 
   const getCategoryDisplayName = (category: string) => {
-    const categoryInfo = CATEGORY_NAMES[category] || { name: category, name2: category }
-    return categoryInfo
+    return CATEGORY_NAMES[category] || { name: category, name2: category }
   }
 
   const getResourceFromCode = (code: string) => {
@@ -190,10 +195,16 @@ export default function PermissionAssignmentModal({
             <p className="text-sm text-gray-500 mt-1">
               Select permissions to assign to this role. Users with this role will have access to the selected permissions.
             </p>
+            {role.is_system && (
+              <p className="text-xs text-amber-600 mt-1 font-medium">
+                ⚠ System role — changes will affect all users with this role
+              </p>
+            )}
           </div>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
+            aria-label="Close"
           >
             <X className="h-6 w-6" />
           </button>
@@ -222,97 +233,108 @@ export default function PermissionAssignmentModal({
 
         {/* Permissions List */}
         <div className="flex-1 overflow-y-auto px-6 py-4">
-          <div className="space-y-4">
-            {Object.entries(filteredGrouped).map(([category, perms]) => {
-              const categoryInfo = getCategoryDisplayName(category)
-              const isExpanded = expandedCategories.has(category)
-              const allSelected = perms.every(p => selectedPermissions.has(p.code))
-              const someSelected = perms.some(p => selectedPermissions.has(p.code))
+          {Object.keys(filteredGrouped).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchQuery ? 'No permissions match your search.' : 'No permissions available.'}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(filteredGrouped).map(([category, perms]) => {
+                const categoryInfo = getCategoryDisplayName(category)
+                const isExpanded = expandedCategories.has(category)
+                const allSelected = perms.every(p => selectedPermissions.has(p.code))
 
-              return (
-                <div key={category} className="border border-gray-200 rounded-lg">
-                  {/* Category Header */}
-                  <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <button
-                        onClick={() => toggleCategory(category)}
-                        className="text-gray-600 hover:text-gray-900"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="h-5 w-5" />
-                        ) : (
-                          <ChevronRight className="h-5 w-5" />
-                        )}
-                      </button>
-                      <Shield className="h-5 w-5 text-gray-400" />
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">{categoryInfo.name}</div>
-                        {categoryInfo.name2 && (
-                          <div className="text-sm text-gray-500">{categoryInfo.name2}</div>
-                        )}
+                return (
+                  <div key={category} className="border border-gray-200 rounded-lg">
+                    {/* Category Header */}
+                    <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <button
+                          onClick={() => toggleCategory(category)}
+                          className="text-gray-600 hover:text-gray-900"
+                          aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-5 w-5" />
+                          ) : (
+                            <ChevronRight className="h-5 w-5" />
+                          )}
+                        </button>
+                        <Shield className="h-5 w-5 text-gray-400" />
+                        <div className="flex-1">
+                          <div className="font-medium text-gray-900">{categoryInfo.name}</div>
+                          {categoryInfo.name2 && (
+                            <div className="text-sm text-gray-500">{categoryInfo.name2}</div>
+                          )}
+                        </div>
+                        <span className="text-sm text-gray-500">
+                          {perms.length} permission{perms.length !== 1 ? 's' : ''}
+                        </span>
                       </div>
-                      <span className="text-sm text-gray-500">
-                        {perms.length} permission{perms.length !== 1 ? 's' : ''}
-                      </span>
+                      <button
+                        onClick={() => toggleCategorySelection(category)}
+                        className="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {allSelected ? 'Deselect All' : 'Select All'}
+                      </button>
                     </div>
-                    <button
-                      onClick={() => toggleCategorySelection(category)}
-                      className="ml-4 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                    >
-                      {allSelected ? 'Deselect All' : 'Select All'}
-                    </button>
-                  </div>
 
-                  {/* Permissions */}
-                  {isExpanded && (
-                    <div className="divide-y divide-gray-200">
-                      {perms.map((perm) => {
-                        const isSelected = selectedPermissions.has(perm.code)
-                        const resource = getResourceFromCode(perm.code)
+                    {/* Permissions */}
+                    {isExpanded && (
+                      <div className="divide-y divide-gray-200">
+                        {perms.map((perm) => {
+                          const isSelected = selectedPermissions.has(perm.code)
+                          const resource = getResourceFromCode(perm.code)
 
-                        return (
-                          <label
-                            key={perm.permission_id}
-                            className={`flex items-start p-4 hover:bg-gray-50 cursor-pointer ${
-                              isSelected ? 'bg-blue-50' : ''
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => togglePermission(perm.code)}
-                              className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                            <div className="ml-3 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium text-gray-900">
-                                  {perm.name || perm.code}
-                                </span>
-                                {isSelected && (
-                                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                          return (
+                            <label
+                              key={perm.code}
+                              className={`flex items-start p-4 hover:bg-gray-50 cursor-pointer ${
+                                isSelected ? 'bg-blue-50' : ''
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => togglePermission(perm.code)}
+                                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <div className="ml-3 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium text-gray-900">
+                                    {perm.name || perm.code}
+                                  </span>
+                                  {isSelected && (
+                                    <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                                  )}
+                                  {perm.is_system && (
+                                    <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                                      system
+                                    </span>
+                                  )}
+                                </div>
+                                {perm.name2 && (
+                                  <div className="text-sm text-gray-500 mt-1">{perm.name2}</div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-xs font-mono text-gray-400">{perm.code}</span>
+                                  <span className="text-xs text-gray-400">•</span>
+                                  <span className="text-xs text-gray-400 capitalize">{resource}</span>
+                                </div>
+                                {perm.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{perm.description}</p>
                                 )}
                               </div>
-                              {perm.name2 && (
-                                <div className="text-sm text-gray-500 mt-1">{perm.name2}</div>
-                              )}
-                              <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs font-mono text-gray-400">{perm.code}</span>
-                                <span className="text-xs text-gray-400">•</span>
-                                <span className="text-xs text-gray-400 capitalize">{resource}</span>
-                              </div>
-                              {perm.description && (
-                                <p className="text-sm text-gray-600 mt-1">{perm.description}</p>
-                              )}
-                            </div>
-                          </label>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

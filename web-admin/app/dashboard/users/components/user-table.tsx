@@ -3,23 +3,34 @@
 /**
  * User Table Component
  *
- * Displays list of users with actions
+ * Displays list of users with actions.
+ * All API calls go through platform-api via lib/api/users.
+ * No Supabase imports.
  */
 
 import { useState } from 'react'
-import type { UserListItem, PaginationData } from '@/types/user-management'
-import { activateUser, deleteUser, resetUserPassword } from '@/lib/api/users'
+import Link from 'next/link'
+import { activateUser, deactivateUser } from '@/lib/api/users'
 import { useAuth } from '@/lib/auth/auth-context'
+import type { TenantUser } from '@/lib/api/users'
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+}
 
 interface UserTableProps {
-  users: UserListItem[]
+  users: TenantUser[]
   loading: boolean
   pagination: PaginationData
   selectedUsers: string[]
   onPageChange: (page: number) => void
-  onEditUser: (user: UserListItem) => void
+  onEditUser: (user: TenantUser) => void
   onSelectionChange: (userIds: string[]) => void
   onRefresh: () => void
+  accessToken?: string
 }
 
 export default function UserTable({
@@ -31,6 +42,7 @@ export default function UserTable({
   onEditUser,
   onSelectionChange,
   onRefresh,
+  accessToken = '',
 }: UserTableProps) {
   const { currentTenant, user: currentUser } = useAuth()
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -38,6 +50,7 @@ export default function UserTable({
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'admin':
+      case 'tenant_admin':
         return 'bg-purple-100 text-purple-800'
       case 'operator':
         return 'bg-blue-100 text-blue-800'
@@ -73,11 +86,11 @@ export default function UserTable({
     }
   }
 
-  const handleActivate = async (user: UserListItem) => {
+  const handleActivate = async (user: TenantUser) => {
     if (!currentTenant) return
 
     setActionLoading(user.user_id)
-    const result = await activateUser(user.user_id, currentTenant.tenant_id)
+    const result = await activateUser(currentTenant.tenant_id, user.user_id, accessToken)
     setActionLoading(null)
 
     if (result.success) {
@@ -85,28 +98,16 @@ export default function UserTable({
     }
   }
 
-  const handleDeactivate = async (user: UserListItem) => {
+  const handleDeactivate = async (user: TenantUser) => {
     if (!currentTenant) return
     if (!confirm(`Are you sure you want to deactivate ${user.email}?`)) return
 
     setActionLoading(user.user_id)
-    const result = await deleteUser(user.user_id, currentTenant.tenant_id)
+    const result = await deactivateUser(currentTenant.tenant_id, user.user_id, accessToken)
     setActionLoading(null)
 
     if (result.success) {
       onRefresh()
-    }
-  }
-
-  const handleResetPassword = async (user: UserListItem) => {
-    if (!confirm(`Send password reset email to ${user.email}?`)) return
-
-    setActionLoading(user.user_id)
-    const result = await resetUserPassword(user.email)
-    setActionLoading(null)
-
-    if (result.success) {
-      alert(result.message)
     }
   }
 
@@ -215,6 +216,13 @@ export default function UserTable({
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                 ) : (
                   <div className="flex space-x-2">
+                    {/* View Details link */}
+                    <Link
+                      href={`/dashboard/users/${user.user_id}`}
+                      className="text-indigo-600 hover:text-indigo-900"
+                    >
+                      Details
+                    </Link>
                     <button
                       onClick={() => onEditUser(user)}
                       className="text-blue-600 hover:text-blue-900"
@@ -238,12 +246,6 @@ export default function UserTable({
                         Activate
                       </button>
                     )}
-                    <button
-                      onClick={() => handleResetPassword(user)}
-                      className="text-gray-600 hover:text-gray-900"
-                    >
-                      Reset Password
-                    </button>
                   </div>
                 )}
               </td>

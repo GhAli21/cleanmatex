@@ -3,7 +3,8 @@
 /**
  * User Management Page
  *
- * Admin-only page for managing users within a tenant
+ * Admin-only page for managing users within a tenant.
+ * All data fetched via platform-api (no Supabase imports).
  * Features:
  * - User list with pagination
  * - Search and filters
@@ -16,18 +17,22 @@ import { useState, useEffect } from 'react'
 import { withAdminRole } from '@/lib/auth/with-role'
 import { useAuth } from '@/lib/auth/auth-context'
 import { fetchUsers, fetchUserStats } from '@/lib/api/users'
-import type { UserListItem, UserFilters, UserStats } from '@/types/user-management'
+import { getAllRoles } from '@/lib/api/roles'
+import type { TenantUser, UserFilters, UserStats } from '@/lib/api/users'
+import type { TenantRole } from '@/lib/api/roles'
 import UserTable from './components/user-table'
 import UserFiltersBar from './components/user-filters-bar'
 import UserStatsCards from './components/user-stats-cards'
 import UserModal from './components/user-modal'
 
 function UsersPage() {
-  const { currentTenant } = useAuth()
+  const { currentTenant, session } = useAuth()
+  const accessToken = session?.access_token ?? ''
 
   // State
-  const [users, setUsers] = useState<UserListItem[]>([])
+  const [users, setUsers] = useState<TenantUser[]>([])
   const [stats, setStats] = useState<UserStats | null>(null)
+  const [availableRoles, setAvailableRoles] = useState<TenantRole[]>([])
   const [filters, setFilters] = useState<UserFilters>({
     search: '',
     role: 'all',
@@ -43,12 +48,12 @@ function UsersPage() {
   })
   const [loading, setLoading] = useState(true)
   const [showUserModal, setShowUserModal] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<UserListItem | null>(null)
+  const [selectedUser, setSelectedUser] = useState<TenantUser | null>(null)
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
 
   // Fetch users
   const loadUsers = async () => {
-    if (!currentTenant) return
+    if (!currentTenant?.tenant_id || !accessToken) return
 
     setLoading(true)
     try {
@@ -56,11 +61,16 @@ function UsersPage() {
         currentTenant.tenant_id,
         filters,
         pagination.page,
-        pagination.limit
+        pagination.limit,
+        accessToken
       )
 
-      setUsers(response.users)
-      setPagination(response.pagination)
+      setUsers(response.data)
+      setPagination((prev) => ({
+        ...prev,
+        total: response.total,
+        totalPages: Math.ceil(response.total / prev.limit),
+      }))
     } catch (error) {
       console.error('Error loading users:', error)
     } finally {
@@ -70,25 +80,43 @@ function UsersPage() {
 
   // Fetch stats
   const loadStats = async () => {
-    if (!currentTenant) return
+    if (!currentTenant?.tenant_id || !accessToken) return
 
     try {
-      const statsData = await fetchUserStats(currentTenant.tenant_id)
+      const statsData = await fetchUserStats(currentTenant.tenant_id, accessToken)
       setStats(statsData)
     } catch (error) {
       console.error('Error loading stats:', error)
     }
   }
 
+  // Fetch roles for filter dropdown
+  const loadRoles = async () => {
+    if (!accessToken) return
+    try {
+      const roles = await getAllRoles(accessToken)
+      setAvailableRoles(roles)
+    } catch (error) {
+      console.error('Error loading roles:', error)
+    }
+  }
+
   // Load users on mount and when filters/pagination change
   useEffect(() => {
-    loadUsers()
-  }, [currentTenant, filters, pagination.page])
+    if (accessToken) {
+      loadUsers()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTenant, filters, pagination.page, accessToken])
 
-  // Load stats on mount
+  // Load stats and roles on mount
   useEffect(() => {
-    loadStats()
-  }, [currentTenant])
+    if (accessToken) {
+      loadStats()
+      loadRoles()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTenant, accessToken])
 
   // Handlers
   const handleFilterChange = (newFilters: Partial<UserFilters>) => {
@@ -105,7 +133,7 @@ function UsersPage() {
     setShowUserModal(true)
   }
 
-  const handleEditUser = (user: UserListItem) => {
+  const handleEditUser = (user: TenantUser) => {
     setSelectedUser(user)
     setShowUserModal(true)
   }
@@ -120,6 +148,9 @@ function UsersPage() {
   const handleSelectionChange = (userIds: string[]) => {
     setSelectedUsers(userIds)
   }
+
+  // Prepare roles for filter bar
+  const rolesForFilter = availableRoles.map((r) => ({ code: r.code, name: r.name }))
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -170,6 +201,7 @@ function UsersPage() {
             filters={filters}
             onFilterChange={handleFilterChange}
             selectedCount={selectedUsers.length}
+            availableRoles={rolesForFilter.length > 0 ? rolesForFilter : undefined}
           />
         </div>
 
@@ -184,6 +216,7 @@ function UsersPage() {
             onEditUser={handleEditUser}
             onSelectionChange={handleSelectionChange}
             onRefresh={loadUsers}
+            accessToken={accessToken}
           />
         </div>
       </div>
@@ -197,6 +230,7 @@ function UsersPage() {
             setSelectedUser(null)
           }}
           onSaved={handleUserSaved}
+          accessToken={accessToken}
         />
       )}
     </div>

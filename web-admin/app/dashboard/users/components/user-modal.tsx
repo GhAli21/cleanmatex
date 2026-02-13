@@ -3,23 +3,25 @@
 /**
  * User Modal Component
  *
- * Modal for adding new users or editing existing users
- * Includes form validation and role selection
+ * Modal for adding new users or editing existing users.
+ * All API calls go through platform-api via lib/api/users.
+ * No Supabase imports.
  */
 
-import { useState, useEffect, FormEvent } from 'react'
+import { useState, FormEvent } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { createUser, updateUser } from '@/lib/api/users'
 import { validateEmail, validatePassword } from '@/lib/auth/validation'
-import type { UserListItem, CreateUserData, UpdateUserData, UserRole } from '@/types/user-management'
+import type { TenantUser, CreateUserData, UpdateUserData } from '@/lib/api/users'
 
 interface UserModalProps {
-  user: UserListItem | null
+  user: TenantUser | null
   onClose: () => void
   onSaved: () => void
+  accessToken: string
 }
 
-export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
+export default function UserModal({ user, onClose, onSaved, accessToken }: UserModalProps) {
   const { currentTenant } = useAuth()
   const isEditMode = !!user
 
@@ -29,8 +31,7 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
     password: '',
     confirmPassword: '',
     display_name: user?.display_name || '',
-    role: (user?.role || 'viewer') as UserRole,
-    send_invite: !user, // Send invite for new users by default
+    role: user?.role || 'viewer',
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -42,14 +43,13 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Email validation (only for new users)
+    // Email and password validation for new users only
     if (!isEditMode) {
       const emailError = validateEmail(formData.email)
       if (emailError) {
         newErrors.email = emailError
       }
 
-      // Password validation (only for new users)
       if (!formData.password) {
         newErrors.password = 'Password is required'
       } else {
@@ -59,7 +59,6 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
         }
       }
 
-      // Confirm password
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match'
       }
@@ -87,34 +86,30 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
       let result
 
       if (isEditMode) {
-        // Update existing user
         const updateData: UpdateUserData = {
           display_name: formData.display_name,
           role: formData.role,
         }
-
-        result = await updateUser(user.user_id, currentTenant.tenant_id, updateData)
+        result = await updateUser(currentTenant.tenant_id, user.user_id, updateData, accessToken)
       } else {
-        // Create new user
         const createData: CreateUserData = {
           email: formData.email,
           password: formData.password,
           display_name: formData.display_name,
           role: formData.role,
-          send_invite: formData.send_invite,
         }
-
-        result = await createUser(currentTenant.tenant_id, createData)
+        result = await createUser(currentTenant.tenant_id, createData, accessToken)
       }
 
       if (result.success) {
         onSaved()
       } else {
-        setErrors({ general: result.error || 'Operation failed' })
+        setErrors({ general: result.error || result.message || 'Operation failed' })
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'An error occurred'
       console.error('Error saving user:', error)
-      setErrors({ general: error.message || 'An error occurred' })
+      setErrors({ general: message })
     } finally {
       setLoading(false)
     }
@@ -122,17 +117,17 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
 
   const roleOptions = [
     {
-      value: 'viewer' as UserRole,
+      value: 'viewer',
       label: 'Viewer',
       description: 'Read-only access to view data',
     },
     {
-      value: 'operator' as UserRole,
+      value: 'operator',
       label: 'Operator',
       description: 'Can manage orders and customers',
     },
     {
-      value: 'admin' as UserRole,
+      value: 'admin',
       label: 'Administrator',
       description: 'Full access including user management',
     },
@@ -339,7 +334,7 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
                     name="role"
                     value={option.value}
                     checked={formData.role === option.value}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-3 flex flex-col">
@@ -354,29 +349,6 @@ export default function UserModal({ user, onClose, onSaved }: UserModalProps) {
               ))}
             </div>
           </div>
-
-          {/* Send Invite (new users only) */}
-          {!isEditMode && (
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="send_invite"
-                  type="checkbox"
-                  checked={formData.send_invite}
-                  onChange={(e) => setFormData({ ...formData, send_invite: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="send_invite" className="font-medium text-gray-700">
-                  Send invitation email
-                </label>
-                <p className="text-gray-500">
-                  User will receive an email with instructions to verify their account
-                </p>
-              </div>
-            </div>
-          )}
         </form>
 
         {/* Footer */}

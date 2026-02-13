@@ -3,19 +3,20 @@
 /**
  * User Filters Bar Component
  *
- * Search, filters, and bulk actions for user list
+ * Search, filters, and bulk actions for user list.
+ * No Supabase imports.
  */
 
 import { useState } from 'react'
-import type { UserFilters } from '@/types/user-management'
-import { bulkUserAction } from '@/lib/api/users'
-import { useAuth } from '@/lib/auth/auth-context'
+import type { UserFilters } from '@/lib/api/users'
 
 interface UserFiltersBarProps {
   filters: UserFilters
   onFilterChange: (filters: Partial<UserFilters>) => void
   selectedCount: number
   onBulkActionComplete?: () => void
+  /** Optional dynamic role list. If provided, overrides the hardcoded role options. */
+  availableRoles?: { code: string; name: string }[]
 }
 
 export default function UserFiltersBar({
@@ -23,8 +24,8 @@ export default function UserFiltersBar({
   onFilterChange,
   selectedCount,
   onBulkActionComplete,
+  availableRoles,
 }: UserFiltersBarProps) {
-  const { currentTenant } = useAuth()
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,15 +33,15 @@ export default function UserFiltersBar({
   }
 
   const handleRoleFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFilterChange({ role: e.target.value as any })
+    onFilterChange({ role: e.target.value })
   }
 
   const handleStatusFilter = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFilterChange({ status: e.target.value as any })
+    onFilterChange({ status: e.target.value })
   }
 
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onFilterChange({ sortBy: e.target.value as any })
+    onFilterChange({ sortBy: e.target.value })
   }
 
   const handleClearFilters = () => {
@@ -53,23 +54,11 @@ export default function UserFiltersBar({
     })
   }
 
-  const handleBulkAction = async (action: 'activate' | 'deactivate' | 'delete') => {
-    if (!currentTenant) return
-
-    const confirmMessage = {
-      activate: 'Are you sure you want to activate the selected users?',
-      deactivate: 'Are you sure you want to deactivate the selected users?',
-      delete: 'Are you sure you want to delete the selected users? This action cannot be undone.',
-    }
-
-    if (!confirm(confirmMessage[action])) return
-
+  const handleBulkAction = async (_action: 'activate' | 'deactivate' | 'delete') => {
     setBulkActionLoading(true)
     try {
-      // Note: This needs the selected user IDs to be passed from parent
-      // For now, this is a placeholder
-      alert('Bulk action functionality requires selected user IDs from parent component')
-
+      // Bulk actions are not supported by platform-api in this version.
+      alert('Bulk user actions are not supported in this version.')
       onBulkActionComplete?.()
     } catch (error) {
       console.error('Bulk action error:', error)
@@ -79,6 +68,15 @@ export default function UserFiltersBar({
   }
 
   const hasActiveFilters = filters.search || filters.role !== 'all' || filters.status !== 'all'
+
+  // Use dynamic roles if provided, fall back to hardcoded defaults
+  const roleOptions = availableRoles
+    ? availableRoles.map((r) => ({ value: r.code, label: r.name }))
+    : [
+        { value: 'admin', label: 'Admin' },
+        { value: 'operator', label: 'Operator' },
+        { value: 'viewer', label: 'Viewer' },
+      ]
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -124,9 +122,11 @@ export default function UserFiltersBar({
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
               <option value="all">All Roles</option>
-              <option value="admin">Admin</option>
-              <option value="operator">Operator</option>
-              <option value="viewer">Viewer</option>
+              {roleOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
             </select>
           </div>
 

@@ -6,7 +6,7 @@
  * Displays user statistics in card format
  */
 
-import type { UserStats } from '@/types/user-management'
+import type { UserStats } from '@/lib/api/users'
 
 interface UserStatsCardsProps {
   stats: UserStats

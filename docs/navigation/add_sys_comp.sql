@@ -722,12 +722,284 @@ SET is_leaf = false,
 WHERE comp_code = 'inventory';
 
 -- =====================================================
+-- 10. Delivery (standalone root)
+-- =====================================================
+-- Add Delivery as root-level nav item (between drivers and customers)
+-- Path: /dashboard/delivery; roles: admin, operator
+-- Date: 2026-02-13
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'delivery',
+  NULL,
+  'Delivery',
+  'التوصيل',
+  'Delivery management and tracking',
+  'إدارة التوصيل وتتبعه',
+  '/dashboard/delivery',
+  'Truck',
+  0,
+  4,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "operator"]'::jsonb,
+  'orders:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  main_permission_code = EXCLUDED.main_permission_code,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Bump display_order for siblings after delivery (customers, catalog, billing, reports, inventory, settings, help, jhtestui)
+UPDATE sys_components_cd SET display_order = 6, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'customers';
+UPDATE sys_components_cd SET display_order = 7, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'catalog';
+UPDATE sys_components_cd SET display_order = 8, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'billing';
+UPDATE sys_components_cd SET display_order = 9, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'reports';
+UPDATE sys_components_cd SET display_order = 10, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'inventory';
+UPDATE sys_components_cd SET display_order = 11, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'settings';
+UPDATE sys_components_cd SET display_order = 12, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'help';
+UPDATE sys_components_cd SET display_order = 13, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'jhtestui';
+
+-- =====================================================
+-- 10b. Users / Team Members (root + child)
+-- =====================================================
+-- Add Users as root-level nav (standalone Team Members at /dashboard/users)
+-- Between delivery and customers
+-- Date: 2026-02-13
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'users',
+  NULL,
+  'Team Members',
+  'أعضاء الفريق',
+  'Manage team members and user access',
+  'إدارة أعضاء الفريق والوصول',
+  '/dashboard/users',
+  'Users',
+  0,
+  5,
+  false,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin"]'::jsonb,
+  'users:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  main_permission_code = EXCLUDED.main_permission_code,
+  is_leaf = EXCLUDED.is_leaf,
+  updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'users_list',
+  'users',
+  'All Users',
+  'جميع المستخدمين',
+  'View and manage all team members',
+  'عرض وإدارة جميع أعضاء الفريق',
+  '/dashboard/users',
+  'Users',
+  1,
+  0,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin"]'::jsonb,
+  'users:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  parent_comp_code = EXCLUDED.parent_comp_code,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Link users_list to users parent
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'users_list'
+  AND c.parent_comp_code = 'users'
+  AND p.comp_code = 'users';
+
+-- Ensure parent Users node is not leaf (has children)
+UPDATE sys_components_cd
+SET is_leaf = false,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'users';
+
+-- =====================================================
+-- 11. Settings Permissions (child of settings)
+-- =====================================================
+-- Add Permissions page under Settings parent
+-- Display order: 3 (after Roles & Permissions which is 2)
+-- Date: 2026-02-13
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'settings_permissions',
+  'settings',
+  'Permissions',
+  'الصلاحيات',
+  'Manage granular permissions and access control',
+  'إدارة الصلاحيات التفصيلية والتحكم في الوصول',
+  '/dashboard/settings/permissions',
+  'Shield',
+  1,
+  3,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  'settings:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Link settings_permissions to settings parent
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'settings_permissions'
+  AND c.parent_comp_code = 'settings'
+  AND p.comp_code = 'settings';
+
+-- Bump display_order for settings children after permissions (workflow_roles, branding, subscription, finance)
+UPDATE sys_components_cd SET display_order = 4, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'settings_workflow_roles';
+UPDATE sys_components_cd SET display_order = 5, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'settings_branding';
+UPDATE sys_components_cd SET display_order = 6, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'settings_subscription';
+UPDATE sys_components_cd SET display_order = 7, updated_at = CURRENT_TIMESTAMP WHERE comp_code = 'settings_finance';
+
+-- Ensure parent Settings node is not leaf (has children)
+UPDATE sys_components_cd
+SET is_leaf = false,
+    updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'settings';
+
+-- =====================================================
+-- 12. Assembly label update (AssemblyJh as per nav config)
+-- =====================================================
+UPDATE sys_components_cd
+SET
+  label = 'AssemblyJh',
+  roles = '["admin", "super_admin", "tenant_admin", "operator"]'::jsonb,
+  updated_at = CURRENT_TIMESTAMP
+WHERE comp_code = 'assembly';
+
+-- =====================================================
 -- Verification Queries
 -- =====================================================
 -- Uncomment to verify inserts:
 -- SELECT comp_code, label, label2, comp_path, display_order, is_navigable
 -- FROM sys_components_cd
--- WHERE comp_code IN ('settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail', 'billing_vouchers', 'inventory', 'inventory_stock', 'inventory_machines')
--- ORDER BY comp_code;
+-- WHERE comp_code IN ('delivery', 'users', 'users_list', 'settings_permissions', 'assembly', 'settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail', 'billing_vouchers', 'inventory', 'inventory_stock', 'inventory_machines')
+-- ORDER BY comp_level, display_order, comp_code;
 
 COMMIT;

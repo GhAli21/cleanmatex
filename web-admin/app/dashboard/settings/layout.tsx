@@ -27,7 +27,8 @@ import {
   Workflow,
   Shield,
   Navigation,
-  DollarSign
+  DollarSign,
+  Key,
 } from 'lucide-react'
 
 interface Tab {
@@ -70,6 +71,12 @@ export default function SettingsLayout({
       label: t('rolesManagement', { defaultValue: 'Roles & Permissions' }),
       icon: <Shield className="h-5 w-5" />,
       href: '/dashboard/settings/roles'
+    },
+    {
+      id: 'permissions',
+      label: t('permissions', { defaultValue: 'Permissions' }),
+      icon: <Key className="h-5 w-5" />,
+      href: '/dashboard/settings/permissions'
     },
     {
       id: 'workflows',
