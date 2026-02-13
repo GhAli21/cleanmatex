@@ -7,8 +7,9 @@
  * All data fetched from platform-api via lib/api/users and lib/api/roles.
  */
 
+import { useLocale, useTranslations } from 'next-intl'
 import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertCircle, X, Shield, Check } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -27,8 +28,12 @@ type ActiveTab = 'roles' | 'permissions'
 
 export default function UserDetailPage() {
   const params = useParams()
-  const router = useRouter()
   const userId = params.userId as string
+  const t = useTranslations('users.detail')
+  const tTable = useTranslations('users.table')
+  const tCommon = useTranslations('common')
+  const tSettings = useTranslations('settings')
+  const locale = useLocale()
   const { currentTenant, session } = useAuth()
   const accessToken = session?.access_token ?? ''
 
@@ -74,7 +79,7 @@ export default function UserDetailPage() {
       setAllRoles(allRolesData)
     } catch (err) {
       console.error('Error loading user data:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load user data')
+      setError(err instanceof Error ? err.message : t('loadFailed'))
     } finally {
       setLoading(false)
     }
@@ -115,7 +120,7 @@ export default function UserDetailPage() {
       setEffectivePermissions(permsData.permissions)
     } catch (err) {
       console.error('Error assigning roles:', err)
-      setActionError(err instanceof Error ? err.message : 'Failed to assign roles')
+      setActionError(err instanceof Error ? err.message : t('assignFailed'))
     } finally {
       setSaving(false)
     }
@@ -136,7 +141,7 @@ export default function UserDetailPage() {
       setEffectivePermissions(permsData.permissions)
     } catch (err) {
       console.error('Error removing role:', err)
-      setError(err instanceof Error ? err.message : 'Failed to remove role')
+      setError(err instanceof Error ? err.message : t('removeFailed'))
       setDeleteConfirmRole(null)
     } finally {
       setSaving(false)
@@ -144,8 +149,8 @@ export default function UserDetailPage() {
   }
 
   const formatDate = (date: string | null) => {
-    if (!date) return 'Never'
-    return new Date(date).toLocaleDateString('en-US', {
+    if (!date) return tTable('never')
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -178,8 +183,8 @@ export default function UserDetailPage() {
           href="/dashboard/users"
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Users
+          <ArrowLeft className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+          {t('backToUsers')}
         </Link>
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-3" />
@@ -196,11 +201,11 @@ export default function UserDetailPage() {
           href="/dashboard/users"
           className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
         >
-          <ArrowLeft className="h-4 w-4 mr-1" />
-          Back to Users
+          <ArrowLeft className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+          {t('backToUsers')}
         </Link>
         <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">User not found.</p>
+          <p className="text-gray-500">{t('userNotFound')}</p>
         </div>
       </div>
     )
@@ -213,8 +218,8 @@ export default function UserDetailPage() {
         href="/dashboard/users"
         className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900"
       >
-        <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to Users
+        <ArrowLeft className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+        {t('backToUsers')}
       </Link>
 
       {/* Error banner */}
@@ -241,7 +246,7 @@ export default function UserDetailPage() {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-bold text-gray-900 truncate">
-              {user.display_name || 'No name'}
+              {user.display_name || tTable('noName')}
             </h1>
             <p className="text-sm text-gray-500">{user.email}</p>
             <div className="mt-2 flex items-center gap-2 flex-wrap">
@@ -255,24 +260,24 @@ export default function UserDetailPage() {
                     : 'bg-red-100 text-red-800'
                 }`}
               >
-                {user.is_active ? 'Active' : 'Inactive'}
+                {user.is_active ? tCommon('active') : tCommon('inactive')}
               </span>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-4 text-sm text-gray-500">
               <div>
-                <span className="font-medium text-gray-700">Last Login:</span>{' '}
+                <span className="font-medium text-gray-700">{t('lastLogin')}</span>{' '}
                 {formatDate(user.last_login_at)}
               </div>
               <div>
-                <span className="font-medium text-gray-700">Login Count:</span> {user.login_count}
+                <span className="font-medium text-gray-700">{t('loginCount')}</span> {user.login_count}
               </div>
               <div>
-                <span className="font-medium text-gray-700">Member Since:</span>{' '}
+                <span className="font-medium text-gray-700">{t('memberSince')}</span>{' '}
                 {formatDate(user.created_at)}
               </div>
               {user.phone && (
                 <div>
-                  <span className="font-medium text-gray-700">Phone:</span> {user.phone}
+                <span className="font-medium text-gray-700">{t('phone')}</span> {user.phone}
                 </div>
               )}
             </div>
@@ -282,7 +287,7 @@ export default function UserDetailPage() {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="-mb-px flex space-x-8 rtl:space-x-reverse">
           <button
             onClick={() => setActiveTab('roles')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -291,7 +296,7 @@ export default function UserDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Roles ({userRoles.length})
+            {t('rolesTab')} ({userRoles.length})
           </button>
           <button
             onClick={() => setActiveTab('permissions')}
@@ -301,7 +306,7 @@ export default function UserDetailPage() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Effective Permissions ({effectivePermissions.length})
+            {t('effectivePermissions')} ({effectivePermissions.length})
           </button>
         </nav>
       </div>
@@ -310,13 +315,13 @@ export default function UserDetailPage() {
       {activeTab === 'roles' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">Assigned Roles</h2>
+            <h2 className="text-lg font-medium text-gray-900">{t('assignedRoles')}</h2>
             <button
               onClick={handleOpenAssignModal}
               className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
             >
-              <Shield className="h-4 w-4 mr-1" />
-              Assign Role
+              <Shield className="h-4 w-4 mr-1 rtl:mr-0 rtl:ml-1" />
+              {t('assignRole')}
             </button>
           </div>
 
@@ -324,17 +329,17 @@ export default function UserDetailPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role
+                  <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {tSettings('role')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
+                  <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('type')}
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Assigned At
+                  <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {t('assignedAt')}
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th className="px-6 py-3 text-right rtl:text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    {tCommon('actions')}
                   </th>
                 </tr>
               </thead>
@@ -342,7 +347,7 @@ export default function UserDetailPage() {
                 {userRoles.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                      No roles assigned. Click &quot;Assign Role&quot; to add roles.
+                      {t('noRolesAssigned')}
                     </td>
                   </tr>
                 ) : (
@@ -364,11 +369,11 @@ export default function UserDetailPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         {assignment.is_system ? (
                           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                            System
+                            {t('system')}
                           </span>
                         ) : (
                           <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                            Custom
+                            {t('custom')}
                           </span>
                         )}
                       </td>
@@ -380,7 +385,7 @@ export default function UserDetailPage() {
                           onClick={() => setDeleteConfirmRole(assignment)}
                           className="text-red-600 hover:text-red-900 text-sm"
                         >
-                          Remove
+                          {t('remove')}
                         </button>
                       </td>
                     </tr>
@@ -396,17 +401,15 @@ export default function UserDetailPage() {
       {activeTab === 'permissions' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">Effective Permissions</h2>
+            <h2 className="text-lg font-medium text-gray-900">{t('effectivePermissions')}</h2>
             <p className="text-sm text-gray-500 bg-blue-50 border border-blue-100 rounded px-3 py-1.5">
-              Computed from all assigned roles
+              {t('computedFromRoles')}
             </p>
           </div>
 
           {effectivePermissions.length === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-500">
-                No effective permissions. Assign roles to grant permissions.
-              </p>
+              <p className="text-gray-500">{t('noEffectivePermissions')}</p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -444,7 +447,7 @@ export default function UserDetailPage() {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">Assign Roles</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('assignRolesTitle')}</h3>
               <button
                 onClick={() => setShowAssignModal(false)}
                 className="text-gray-400 hover:text-gray-600"
@@ -457,9 +460,7 @@ export default function UserDetailPage() {
                 {actionError}
               </div>
             )}
-            <p className="text-sm text-gray-500 mb-4">
-              Select all roles to assign to this user. Unchecking a role will remove it.
-            </p>
+            <p className="text-sm text-gray-500 mb-4">{t('assignRolesHint')}</p>
             <div className="space-y-2">
               {allRoles.map((role) => (
                 <label
@@ -477,7 +478,7 @@ export default function UserDetailPage() {
                       <span className="text-sm font-medium text-gray-900">{role.name}</span>
                       {role.is_system && (
                         <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
-                          System
+                          {t('system')}
                         </span>
                       )}
                     </div>
@@ -489,13 +490,13 @@ export default function UserDetailPage() {
                 </label>
               ))}
             </div>
-            <div className="mt-6 flex justify-end space-x-3">
+            <div className="mt-6 flex justify-end space-x-3 rtl:space-x-reverse">
               <button
                 onClick={() => setShowAssignModal(false)}
                 disabled={saving}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                Cancel
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={handleSaveRoles}
@@ -505,7 +506,7 @@ export default function UserDetailPage() {
                 {saving && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 )}
-                Save
+                {tCommon('save')}
               </button>
             </div>
           </div>
@@ -520,19 +521,18 @@ export default function UserDetailPage() {
               <div className="p-2 bg-red-100 rounded-full">
                 <AlertCircle className="h-6 w-6 text-red-600" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900">Remove Role</h3>
+              <h3 className="text-lg font-medium text-gray-900">{t('removeRoleTitle')}</h3>
             </div>
             <p className="text-sm text-gray-600 mb-6">
-              Are you sure you want to remove the role{' '}
-              <strong>&quot;{deleteConfirmRole.role_name}&quot;</strong> from this user?
+              {t('removeRoleConfirm', { roleName: deleteConfirmRole.role_name })}
             </p>
-            <div className="flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 rtl:space-x-reverse">
               <button
                 onClick={() => setDeleteConfirmRole(null)}
                 disabled={saving}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                Cancel
+                {tCommon('cancel')}
               </button>
               <button
                 onClick={handleRemoveRole}
@@ -542,7 +542,7 @@ export default function UserDetailPage() {
                 {saving && (
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                 )}
-                Remove
+                {t('remove')}
               </button>
             </div>
           </div>

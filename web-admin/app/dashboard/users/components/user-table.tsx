@@ -8,6 +8,7 @@
  * No Supabase imports.
  */
 
+import { useLocale, useTranslations } from 'next-intl'
 import { useState } from 'react'
 import Link from 'next/link'
 import { activateUser, deactivateUser } from '@/lib/api/users'
@@ -44,6 +45,11 @@ export default function UserTable({
   onRefresh,
   accessToken = '',
 }: UserTableProps) {
+  const t = useTranslations('users.table')
+  const tCommon = useTranslations('common')
+  const tSettings = useTranslations('settings')
+  const tPagination = useTranslations('users.pagination')
+  const locale = useLocale()
   const { currentTenant, user: currentUser } = useAuth()
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
@@ -62,8 +68,8 @@ export default function UserTable({
   }
 
   const formatDate = (date: string | null) => {
-    if (!date) return 'Never'
-    return new Date(date).toLocaleDateString('en-US', {
+    if (!date) return t('never')
+    return new Date(date).toLocaleDateString(locale, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -100,7 +106,7 @@ export default function UserTable({
 
   const handleDeactivate = async (user: TenantUser) => {
     if (!currentTenant) return
-    if (!confirm(`Are you sure you want to deactivate ${user.email}?`)) return
+    if (!confirm(t('confirmDeactivate', { email: user.email }))) return
 
     setActionLoading(user.user_id)
     const result = await deactivateUser(currentTenant.tenant_id, user.user_id, accessToken)
@@ -116,6 +122,7 @@ export default function UserTable({
       <div className="bg-white shadow rounded-lg p-8">
         <div className="flex justify-center items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <span className="ml-3 rtl:ml-0 rtl:mr-3">{tCommon('loading')}</span>
         </div>
       </div>
     )
@@ -124,7 +131,7 @@ export default function UserTable({
   if (users.length === 0) {
     return (
       <div className="bg-white shadow rounded-lg p-8 text-center">
-        <p className="text-gray-500">No users found</p>
+        <p className="text-gray-500">{t('noUsers')}</p>
       </div>
     )
   }
@@ -142,20 +149,20 @@ export default function UserTable({
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              User
+            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {tSettings('user')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Role
+            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {tSettings('role')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
+            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {tCommon('status')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Last Login
+            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {t('lastLogin')}
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Actions
+            <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              {tCommon('actions')}
             </th>
           </tr>
         </thead>
@@ -180,9 +187,9 @@ export default function UserTable({
                       </span>
                     </div>
                   </div>
-                  <div className="ml-4">
+                  <div className="ml-4 rtl:ml-0 rtl:mr-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {user.display_name || 'No name'}
+                      {user.display_name || t('noName')}
                     </div>
                     <div className="text-sm text-gray-500">{user.email}</div>
                   </div>
@@ -205,7 +212,7 @@ export default function UserTable({
                       : 'bg-red-100 text-red-800'
                   }`}
                 >
-                  {user.is_active ? 'Active' : 'Inactive'}
+                  {user.is_active ? tCommon('active') : tCommon('inactive')}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -215,20 +222,20 @@ export default function UserTable({
                 {actionLoading === user.user_id ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                 ) : (
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 rtl:space-x-reverse">
                     {/* View Details link */}
                     <Link
                       href={`/dashboard/users/${user.user_id}`}
                       className="text-indigo-600 hover:text-indigo-900"
                     >
-                      Details
+                      {t('details')}
                     </Link>
                     <button
                       onClick={() => onEditUser(user)}
                       className="text-blue-600 hover:text-blue-900"
                       disabled={user.user_id === currentUser?.id}
                     >
-                      Edit
+                      {tCommon('edit')}
                     </button>
                     {user.is_active ? (
                       <button
@@ -236,14 +243,14 @@ export default function UserTable({
                         className="text-red-600 hover:text-red-900"
                         disabled={user.user_id === currentUser?.id}
                       >
-                        Deactivate
+                        {t('deactivate')}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleActivate(user)}
                         className="text-green-600 hover:text-green-900"
                       >
-                        Activate
+                        {t('activate')}
                       </button>
                     )}
                   </div>
@@ -263,28 +270,24 @@ export default function UserTable({
               disabled={pagination.page === 1}
               className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             >
-              Previous
+              {tCommon('previous')}
             </button>
             <button
               onClick={() => onPageChange(pagination.page + 1)}
               disabled={pagination.page === pagination.totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              className="ml-3 rtl:ml-0 rtl:mr-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
             >
-              Next
+              {tCommon('next')}
             </button>
           </div>
           <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
             <div>
               <p className="text-sm text-gray-700">
-                Showing{' '}
-                <span className="font-medium">
-                  {(pagination.page - 1) * pagination.limit + 1}
-                </span>{' '}
-                to{' '}
-                <span className="font-medium">
-                  {Math.min(pagination.page * pagination.limit, pagination.total)}
-                </span>{' '}
-                of <span className="font-medium">{pagination.total}</span> results
+                {tPagination('showing', {
+                  from: (pagination.page - 1) * pagination.limit + 1,
+                  to: Math.min(pagination.page * pagination.limit, pagination.total),
+                  total: pagination.total,
+                })}
               </p>
             </div>
             <div>
@@ -292,9 +295,9 @@ export default function UserTable({
                 <button
                   onClick={() => onPageChange(pagination.page - 1)}
                   disabled={pagination.page === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md rtl:rounded-l-none rtl:rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Previous
+                  {tCommon('previous')}
                 </button>
                 {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((page) => (
                   <button
@@ -312,9 +315,9 @@ export default function UserTable({
                 <button
                   onClick={() => onPageChange(pagination.page + 1)}
                   disabled={pagination.page === pagination.totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md rtl:rounded-r-none rtl:rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
                 >
-                  Next
+                  {tCommon('next')}
                 </button>
               </nav>
             </div>

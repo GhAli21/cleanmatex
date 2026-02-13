@@ -396,8 +396,9 @@ export async function fetchUserStats(
       total: response.total || users.length,
       active: users.filter((u) => u.is_active).length,
       inactive: users.filter((u) => !u.is_active).length,
+      //u.role === 'admin' || u.role === 'tenant_admin'
       admins: users.filter((u) =>
-        u.role === 'admin' || u.role === 'tenant_admin'
+        /admin/i.test(u.role || '')
       ).length,
       operators: users.filter((u) => u.role === 'operator').length,
       viewers: users.filter((u) => u.role === 'viewer').length,

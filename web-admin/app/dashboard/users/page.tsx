@@ -13,6 +13,7 @@
  * - Bulk actions
  */
 
+import { useTranslations } from 'next-intl'
 import { useState, useEffect } from 'react'
 import { withAdminRole } from '@/lib/auth/with-role'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -26,6 +27,7 @@ import UserStatsCards from './components/user-stats-cards'
 import UserModal from './components/user-modal'
 
 function UsersPage() {
+  const t = useTranslations('users')
   const { currentTenant, session } = useAuth()
   const accessToken = session?.access_token ?? ''
 
@@ -160,16 +162,14 @@ function UsersPage() {
           <div className="md:flex md:items-center md:justify-between">
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                User Management
+                {t('title')}
               </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                Manage users, roles, and permissions for your organization
-              </p>
+              <p className="mt-1 text-sm text-gray-500">{t('subtitle')}</p>
             </div>
-            <div className="mt-4 flex md:mt-0 md:ml-4">
+            <div className="mt-4 flex md:mt-0 md:ml-4 rtl:md:ml-0 rtl:md:mr-4">
               <button
                 onClick={handleAddUser}
-                className="ml-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="ml-3 rtl:ml-0 rtl:mr-3 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <svg
                   className="-ml-1 mr-2 h-5 w-5"
@@ -184,7 +184,7 @@ function UsersPage() {
                     d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                   />
                 </svg>
-                Add User
+                {t('addUser')}
               </button>
             </div>
           </div>

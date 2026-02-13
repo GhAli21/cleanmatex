@@ -1380,6 +1380,102 @@
     "upgradePlan": "ترقية الخطة",
     "manageSubscription": "إدارة الاشتراك"
   },
+  "users": {
+    "title": "إدارة المستخدمين",
+    "subtitle": "إدارة المستخدمين والأدوار والصلاحيات لمنظمتك",
+    "addUser": "إضافة مستخدم",
+    "stats": {
+      "totalUsers": "إجمالي المستخدمين",
+      "administrators": "المسؤولون",
+      "recentLogins": "آخر تسجيلات الدخول",
+      "operatorsCount": "{count} مشغّلون",
+      "viewersCount": "{count} مُشاهدون",
+      "last7Days": "آخر 7 أيام"
+    },
+    "filters": {
+      "searchPlaceholder": "بحث بالاسم أو البريد الإلكتروني...",
+      "allRoles": "جميع الأدوار",
+      "allStatus": "جميع الحالات",
+    "sortBy": "ترتيب حسب",
+    "dateCreated": "تاريخ الإنشاء",
+    "lastLogin": "آخر تسجيل دخول",
+    "activeFilters": "الفلاتر النشطة:",
+    "selectedCount": "{count, plural, one {# مستخدم محدد} other {# مستخدمون محددون}}",
+    "processing": "جاري المعالجة..."
+  },
+  "table": {
+      "lastLogin": "آخر تسجيل دخول",
+      "details": "التفاصيل",
+      "deactivate": "إلغاء التفعيل",
+      "activate": "تفعيل",
+    "noUsers": "لا يوجد مستخدمون",
+    "noName": "لا اسم",
+    "never": "أبداً",
+    "confirmDeactivate": "هل أنت متأكد من إلغاء تفعيل {email}؟"
+  },
+    "pagination": {
+      "showing": "عرض {from} إلى {to} من {total} نتيجة"
+    },
+    "modal": {
+      "addTitle": "إضافة مستخدم جديد",
+      "editTitle": "تعديل المستخدم",
+      "emailLabel": "البريد الإلكتروني",
+      "emailReadOnly": "لا يمكن تغيير البريد الإلكتروني",
+      "passwordLabel": "كلمة المرور",
+      "confirmPasswordLabel": "تأكيد كلمة المرور *",
+      "passwordPlaceholder": "8 أحرف على الأقل",
+      "passwordHint": "يجب أن تتضمن حرفاً كبيراً وصغيراً ورقماً",
+      "confirmPasswordPlaceholder": "أعد إدخال كلمة المرور",
+      "displayNameLabel": "اسم العرض *",
+      "displayNamePlaceholder": "أحمد محمد",
+      "roleLabel": "الدور *",
+      "createUser": "إنشاء المستخدم",
+      "updateUser": "تحديث المستخدم",
+      "roles": {
+        "viewer": "مشاهد",
+        "viewerDesc": "الوصول للقراءة فقط لعرض البيانات",
+        "operator": "مشغّل",
+        "operatorDesc": "يمكنه إدارة الطلبات والعملاء",
+        "admin": "مسؤول",
+        "adminDesc": "وصول كامل بما فيها إدارة المستخدمين"
+      }
+    },
+    "validation": {
+      "passwordRequired": "كلمة المرور مطلوبة",
+      "passwordsMismatch": "كلمات المرور غير متطابقة",
+      "displayNameRequired": "اسم العرض مطلوب",
+      "operationFailed": "فشلت العملية"
+    },
+    "detail": {
+      "backToUsers": "العودة للمستخدمين",
+      "rolesTab": "الأدوار",
+      "permissionsTab": "الصلاحيات",
+      "userNotFound": "المستخدم غير موجود.",
+      "loadFailed": "فشل تحميل بيانات المستخدم",
+      "assignFailed": "فشل تعيين الأدوار",
+      "removeFailed": "فشل إزالة الدور",
+      "lastLogin": "آخر تسجيل دخول:",
+      "loginCount": "عدد تسجيلات الدخول:",
+      "memberSince": "عضو منذ:",
+      "phone": "الهاتف:",
+      "assignedRoles": "الأدوار المعينة",
+      "assignRole": "تعيين دور",
+      "effectivePermissions": "الصلاحيات الفعالة",
+      "computedFromRoles": "محسوبة من جميع الأدوار المعينة",
+      "noEffectivePermissions": "لا توجد صلاحيات فعالة. عيّن أدواراً لمنح الصلاحيات.",
+      "noRolesAssigned": "لا توجد أدوار معينة. انقر \"تعيين دور\" لإضافة أدوار.",
+      "role": "الدور",
+      "type": "النوع",
+      "assignedAt": "تعيين في",
+      "system": "نظام",
+      "custom": "مخصص",
+      "remove": "إزالة",
+      "assignRolesTitle": "تعيين الأدوار",
+      "assignRolesHint": "اختر جميع الأدوار لتعيينها لهذا المستخدم. إلغاء تحديد الدور سيزيله.",
+      "removeRoleTitle": "إزالة الدور",
+      "removeRoleConfirm": "هل أنت متأكد من إزالة الدور \"{roleName}\" من هذا المستخدم؟"
+    }
+  },
   "notifications": {
     "title": "الإشعارات",
     "markAllRead": "تحديد الكل كمقروء",

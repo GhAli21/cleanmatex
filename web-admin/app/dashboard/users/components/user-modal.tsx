@@ -8,6 +8,7 @@
  * No Supabase imports.
  */
 
+import { useTranslations } from 'next-intl'
 import { useState, FormEvent } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { createUser, updateUser } from '@/lib/api/users'
@@ -22,6 +23,9 @@ interface UserModalProps {
 }
 
 export default function UserModal({ user, onClose, onSaved, accessToken }: UserModalProps) {
+  const t = useTranslations('users.modal')
+  const tValidation = useTranslations('users.validation')
+  const tCommon = useTranslations('common')
   const { currentTenant } = useAuth()
   const isEditMode = !!user
 
@@ -51,7 +55,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
       }
 
       if (!formData.password) {
-        newErrors.password = 'Password is required'
+        newErrors.password = tValidation('passwordRequired')
       } else {
         const passwordStrength = validatePassword(formData.password)
         if (!passwordStrength.isValid) {
@@ -60,13 +64,13 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
       }
 
       if (formData.password !== formData.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match'
+        newErrors.confirmPassword = tValidation('passwordsMismatch')
       }
     }
 
     // Display name validation
     if (!formData.display_name || formData.display_name.trim().length === 0) {
-      newErrors.display_name = 'Display name is required'
+      newErrors.display_name = tValidation('displayNameRequired')
     }
 
     setErrors(newErrors)
@@ -104,7 +108,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
       if (result.success) {
         onSaved()
       } else {
-        setErrors({ general: result.error || result.message || 'Operation failed' })
+        setErrors({ general: result.error || result.message || tValidation('operationFailed') })
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'An error occurred'
@@ -116,21 +120,9 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
   }
 
   const roleOptions = [
-    {
-      value: 'viewer',
-      label: 'Viewer',
-      description: 'Read-only access to view data',
-    },
-    {
-      value: 'operator',
-      label: 'Operator',
-      description: 'Can manage orders and customers',
-    },
-    {
-      value: 'admin',
-      label: 'Administrator',
-      description: 'Full access including user management',
-    },
+    { value: 'viewer', labelKey: 'viewer', descKey: 'viewerDesc' },
+    { value: 'operator', labelKey: 'operator', descKey: 'operatorDesc' },
+    { value: 'admin', labelKey: 'admin', descKey: 'adminDesc' },
   ]
 
   return (
@@ -171,7 +163,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
           {!isEditMode && (
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address *
+                {t('emailLabel')} *
               </label>
               <input
                 type="email"
@@ -196,10 +188,10 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
           {isEditMode && (
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Email Address
+                {t('emailLabel')}
               </label>
               <p className="mt-1 text-sm text-gray-900">{user.email}</p>
-              <p className="mt-1 text-xs text-gray-500">Email cannot be changed</p>
+              <p className="mt-1 text-xs text-gray-500">{t('emailReadOnly')}</p>
             </div>
           )}
 
@@ -208,7 +200,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
             <>
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password *
+                  {t('passwordLabel')} *
                 </label>
                 <div className="relative mt-1">
                   <input
@@ -222,7 +214,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
                         : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                     }`}
-                    placeholder="At least 8 characters"
+                    placeholder={t('passwordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -244,14 +236,12 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                 {errors.password && (
                   <p className="mt-1 text-sm text-red-600">{errors.password}</p>
                 )}
-                <p className="mt-1 text-xs text-gray-500">
-                  Must include uppercase, lowercase, and number
-                </p>
+                <p className="mt-1 text-xs text-gray-500">{t('passwordHint')}</p>
               </div>
 
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                  Confirm Password *
+                  {t('confirmPasswordLabel')}
                 </label>
                 <div className="relative mt-1">
                   <input
@@ -265,7 +255,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                         ? 'border-red-300 focus:border-red-500 focus:ring-red-500'
                         : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'
                     }`}
-                    placeholder="Re-enter password"
+                    placeholder={t('confirmPasswordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -294,7 +284,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
           {/* Display Name */}
           <div>
             <label htmlFor="display_name" className="block text-sm font-medium text-gray-700">
-              Display Name *
+              {t('displayNameLabel')}
             </label>
             <input
               type="text"
@@ -317,7 +307,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
           {/* Role */}
           <div>
             <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
-              Role *
+              {t('roleLabel')}
             </label>
             <div className="space-y-2">
               {roleOptions.map((option) => (
@@ -337,12 +327,12 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                     className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
-                  <span className="ml-3 flex flex-col">
+                  <span className="ml-3 rtl:ml-0 rtl:mr-3 flex flex-col">
                     <span className="block text-sm font-medium text-gray-900">
-                      {option.label}
+                      {t(`roles.${option.labelKey}`)}
                     </span>
                     <span className="block text-sm text-gray-500">
-                      {option.description}
+                      {t(`roles.${option.descKey}`)}
                     </span>
                   </span>
                 </label>
@@ -352,14 +342,14 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3 rtl:space-x-reverse">
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
             className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
           >
-            Cancel
+            {tCommon('cancel')}
           </button>
           <button
             onClick={handleSubmit}
@@ -387,7 +377,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                 />
               </svg>
             )}
-            {loading ? 'Saving...' : isEditMode ? 'Update User' : 'Create User'}
+            {loading ? tCommon('saving') : isEditMode ? t('updateUser') : t('createUser')}
           </button>
         </div>
       </div>

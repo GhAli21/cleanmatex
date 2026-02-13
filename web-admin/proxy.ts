@@ -159,15 +159,13 @@ export async function proxy(request: NextRequest) {
   // 4. If admin route, check user role
   if (isAdminRoute) {
     try {
-      // Get user role from database
-      const { data: userRole, error } = await supabase
-        .from('org_users_mst')
-        .select('role, tenant_org_id')
-        .eq('user_id', user.id)
-        .single()
-
-      if (error || !userRole) {
-        console.error('Error fetching user role:', error)
+      // Use get_user_tenants RPC (same source as UI, SECURITY DEFINER, handles multi-tenant)
+      const { data: tenants, error } = await supabase.rpc('get_user_tenants')
+      console.log('Jh In proxy.ts [ 1 ] :   tenants :', tenants,
+         'user_role :', tenants[0].user_role);
+      console.log('Jh In proxy.ts [ 2 ] : error :', error);
+      if (error || !tenants?.length) {
+        console.error('Jh In proxy.ts [ 3 ] : Error fetching user tenants/role:', error)
         // Redirect to dashboard if can't verify role
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = DEFAULT_REDIRECT
@@ -175,9 +173,14 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
       }
 
-      // Check if user is admin
-      if (!['admin', 'super_admin', 'tenant_admin'].includes(userRole.role)) {
-      //if (userRole.role !== 'admin') {
+      // Check if user has admin role in ANY tenant (case-insensitive)
+      const adminRoles = ['admin', 'super_admin', 'tenant_admin']
+      const hasAdminRole = tenants.some(
+        (t: { user_role?: string }) =>
+          adminRoles.includes((t.user_role || '').toLowerCase().trim())
+      )
+
+      if (!hasAdminRole) {
         // Redirect to dashboard with error message
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = DEFAULT_REDIRECT
@@ -185,9 +188,14 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(redirectUrl)
       }
 
-      // Add tenant context to response headers for downstream use
-      response.headers.set('X-Tenant-ID', userRole.tenant_org_id)
-      response.headers.set('X-User-Role', userRole.role)
+      // Add tenant context from first admin tenant for downstream use
+      const adminTenant = tenants.find((t: { user_role?: string }) =>
+        adminRoles.includes((t.user_role || '').toLowerCase().trim())
+      )
+      if (adminTenant) {
+        response.headers.set('X-Tenant-ID', adminTenant.tenant_id)
+        response.headers.set('X-User-Role', adminTenant.user_role)
+      }
     } catch (error) {
       console.error('Proxy error checking admin access:', error)
       // Redirect to dashboard on error (fail closed for security)

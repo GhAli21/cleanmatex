@@ -6,6 +6,7 @@
  * Displays user statistics in card format
  */
 
+import { useTranslations } from 'next-intl'
 import type { UserStats } from '@/lib/api/users'
 
 interface UserStatsCardsProps {
@@ -13,9 +14,14 @@ interface UserStatsCardsProps {
 }
 
 export default function UserStatsCards({ stats }: UserStatsCardsProps) {
+  const t = useTranslations('users.stats')
+  const tCommon = useTranslations('common')
+  const tSettings = useTranslations('settings')
+
   const cards = [
     {
-      label: 'Total Users',
+      id: 'total',
+      label: t('totalUsers'),
       value: stats.total,
       icon: (
         <svg
@@ -37,7 +43,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       lightBg: 'bg-blue-50',
     },
     {
-      label: 'Active Users',
+      id: 'active',
+      label: tSettings('activeUsers'),
       value: stats.active,
       icon: (
         <svg
@@ -57,10 +64,11 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       color: 'green',
       bgColor: 'bg-green-500',
       lightBg: 'bg-green-50',
-      subtext: stats.inactive > 0 ? `${stats.inactive} inactive` : null,
+      subtext: stats.inactive > 0 ? `${stats.inactive} ${tCommon('inactive')}` : null,
     },
     {
-      label: 'Administrators',
+      id: 'admins',
+      label: t('administrators'),
       value: stats.admins,
       icon: (
         <svg
@@ -80,10 +88,11 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       color: 'purple',
       bgColor: 'bg-purple-500',
       lightBg: 'bg-purple-50',
-      subtext: `${stats.operators} operators, ${stats.viewers} viewers`,
+      subtext: `${t('operatorsCount', { count: stats.operators })}, ${t('viewersCount', { count: stats.viewers })}`,
     },
     {
-      label: 'Recent Logins',
+      id: 'recent',
+      label: t('recentLogins'),
       value: stats.recentLogins,
       icon: (
         <svg
@@ -103,7 +112,7 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
       color: 'indigo',
       bgColor: 'bg-indigo-500',
       lightBg: 'bg-indigo-50',
-      subtext: 'Last 7 days',
+      subtext: t('last7Days'),
     },
   ]
 
@@ -111,18 +120,18 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
       {cards.map((card) => (
         <div
-          key={card.label}
+          key={card.id}
           className="relative bg-white pt-5 px-4 pb-4 sm:pt-6 sm:px-6 shadow rounded-lg overflow-hidden"
         >
           <dt>
             <div className={`absolute ${card.lightBg} rounded-md p-3`}>
               {card.icon}
             </div>
-            <p className="ml-16 text-sm font-medium text-gray-500 truncate">
+            <p className="ml-16 rtl:ml-0 rtl:mr-16 text-sm font-medium text-gray-500 truncate">
               {card.label}
             </p>
           </dt>
-          <dd className="ml-16 pb-2 flex items-baseline">
+          <dd className="ml-16 rtl:ml-0 rtl:mr-16 pb-2 flex items-baseline">
             <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
             {card.subtext && (
               <p className="ml-2 flex items-baseline text-xs text-gray-500">
@@ -132,8 +141,8 @@ export default function UserStatsCards({ stats }: UserStatsCardsProps) {
           </dd>
 
           {/* Optional progress bar for active vs total */}
-          {card.label === 'Active Users' && stats.total > 0 && (
-            <div className="mt-1 ml-16">
+          {card.id === 'active' && stats.total > 0 && (
+            <div className="mt-1 ml-16 rtl:ml-0 rtl:mr-16">
               <div className="w-full bg-gray-200 rounded-full h-1.5">
                 <div
                   className={`${card.bgColor} h-1.5 rounded-full`}

@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from './auth-context'
 import { supabase } from '@/lib/supabase/client'
 
-type UserRole = 'admin' | 'operator' | 'viewer'
+type UserRole = 'admin' | 'super_admin' | 'tenant_admin' | 'operator' | 'viewer'
 
 interface WithRoleOptions {
   requiredRole: UserRole | UserRole[]
@@ -68,12 +68,14 @@ export function withRole<P extends object>(
 
           if (error) throw error
 
-          const role = data.role as UserRole
-          setUserRole(role)
+          const role = (data.role || '').toString().trim() as UserRole
+          setUserRole(role as UserRole)
 
-          // Check if user has required role
-          const requiredRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole]
-          setHasAccess(requiredRoles.includes(role))
+          // Check if user has required role (case-insensitive)
+          const requiredRoles = (Array.isArray(requiredRole) ? requiredRole : [requiredRole]).map(
+            (r) => (r || '').toString().toLowerCase()
+          )
+          setHasAccess(requiredRoles.includes(role.toLowerCase()))
         } catch (error) {
           console.error('Error fetching user role:', error)
           setHasAccess(false)
@@ -145,7 +147,7 @@ export function withAdminRole<P extends object>(
   fallbackComponent?: React.ComponentType
 ) {
   return withRole(Component, {
-    requiredRole: 'admin',
+    requiredRole: ['admin', 'super_admin', 'tenant_admin'],
     fallbackComponent,
   })
 }

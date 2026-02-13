@@ -1380,6 +1380,102 @@
     "upgradePlan": "Upgrade Plan",
     "manageSubscription": "Manage Subscription"
   },
+  "users": {
+    "title": "User Management",
+    "subtitle": "Manage users, roles, and permissions for your organization",
+    "addUser": "Add User",
+    "stats": {
+      "totalUsers": "Total Users",
+      "administrators": "Administrators",
+      "recentLogins": "Recent Logins",
+      "operatorsCount": "{count} operators",
+      "viewersCount": "{count} viewers",
+      "last7Days": "Last 7 days"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by name or email...",
+      "allRoles": "All Roles",
+      "allStatus": "All Status",
+    "sortBy": "Sort By",
+    "dateCreated": "Date Created",
+    "lastLogin": "Last Login",
+    "activeFilters": "Active filters:",
+    "selectedCount": "{count, plural, one {# user selected} other {# users selected}}",
+    "processing": "Processing..."
+  },
+  "table": {
+      "lastLogin": "Last Login",
+      "details": "Details",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+    "noUsers": "No users found",
+    "noName": "No name",
+    "never": "Never",
+    "confirmDeactivate": "Are you sure you want to deactivate {email}?"
+  },
+    "pagination": {
+      "showing": "Showing {from} to {to} of {total} results"
+    },
+    "modal": {
+      "addTitle": "Add New User",
+      "editTitle": "Edit User",
+      "emailLabel": "Email Address",
+      "emailReadOnly": "Email cannot be changed",
+      "passwordLabel": "Password",
+      "confirmPasswordLabel": "Confirm Password *",
+      "passwordPlaceholder": "At least 8 characters",
+      "passwordHint": "Must include uppercase, lowercase, and number",
+      "confirmPasswordPlaceholder": "Re-enter password",
+      "displayNameLabel": "Display Name *",
+      "displayNamePlaceholder": "John Doe",
+      "roleLabel": "Role *",
+      "createUser": "Create User",
+      "updateUser": "Update User",
+      "roles": {
+        "viewer": "Viewer",
+        "viewerDesc": "Read-only access to view data",
+        "operator": "Operator",
+        "operatorDesc": "Can manage orders and customers",
+        "admin": "Administrator",
+        "adminDesc": "Full access including user management"
+      }
+    },
+    "validation": {
+      "passwordRequired": "Password is required",
+      "passwordsMismatch": "Passwords do not match",
+      "displayNameRequired": "Display name is required",
+      "operationFailed": "Operation failed"
+    },
+    "detail": {
+      "backToUsers": "Back to Users",
+      "rolesTab": "Roles",
+      "permissionsTab": "Permissions",
+      "userNotFound": "User not found.",
+      "loadFailed": "Failed to load user data",
+      "assignFailed": "Failed to assign roles",
+      "removeFailed": "Failed to remove role",
+      "lastLogin": "Last Login:",
+      "loginCount": "Login Count:",
+      "memberSince": "Member Since:",
+      "phone": "Phone:",
+      "assignedRoles": "Assigned Roles",
+      "assignRole": "Assign Role",
+      "effectivePermissions": "Effective Permissions",
+      "computedFromRoles": "Computed from all assigned roles",
+      "noEffectivePermissions": "No effective permissions. Assign roles to grant permissions.",
+      "noRolesAssigned": "No roles assigned. Click \"Assign Role\" to add roles.",
+      "role": "Role",
+      "type": "Type",
+      "assignedAt": "Assigned At",
+      "system": "System",
+      "custom": "Custom",
+      "remove": "Remove",
+      "assignRolesTitle": "Assign Roles",
+      "assignRolesHint": "Select all roles to assign to this user. Unchecking a role will remove it.",
+      "removeRoleTitle": "Remove Role",
+      "removeRoleConfirm": "Are you sure you want to remove the role \"{roleName}\" from this user?"
+    }
+  },
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",

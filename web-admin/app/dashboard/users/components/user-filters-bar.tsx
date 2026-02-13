@@ -7,6 +7,7 @@
  * No Supabase imports.
  */
 
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import type { UserFilters } from '@/lib/api/users'
 
@@ -26,6 +27,10 @@ export default function UserFiltersBar({
   onBulkActionComplete,
   availableRoles,
 }: UserFiltersBarProps) {
+  const t = useTranslations('users.filters')
+  const tTable = useTranslations('users.table')
+  const tCommon = useTranslations('common')
+  const tSettings = useTranslations('settings')
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -69,13 +74,14 @@ export default function UserFiltersBar({
 
   const hasActiveFilters = filters.search || filters.role !== 'all' || filters.status !== 'all'
 
+  const tModal = useTranslations('users.modal.roles')
   // Use dynamic roles if provided, fall back to hardcoded defaults
   const roleOptions = availableRoles
     ? availableRoles.map((r) => ({ value: r.code, label: r.name }))
     : [
-        { value: 'admin', label: 'Admin' },
-        { value: 'operator', label: 'Operator' },
-        { value: 'viewer', label: 'Viewer' },
+        { value: 'admin', label: tModal('admin') },
+        { value: 'operator', label: tModal('operator') },
+        { value: 'viewer', label: tModal('viewer') },
       ]
 
   return (
@@ -101,7 +107,7 @@ export default function UserFiltersBar({
           </div>
           <input
             type="text"
-            placeholder="Search by name or email..."
+            placeholder={t('searchPlaceholder')}
             value={filters.search || ''}
             onChange={handleSearch}
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
@@ -113,7 +119,7 @@ export default function UserFiltersBar({
           {/* Role Filter */}
           <div>
             <label htmlFor="role-filter" className="block text-sm font-medium text-gray-700 mb-1">
-              Role
+              {tSettings('role')}
             </label>
             <select
               id="role-filter"
@@ -121,7 +127,7 @@ export default function UserFiltersBar({
               onChange={handleRoleFilter}
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
-              <option value="all">All Roles</option>
+              <option value="all">{t('allRoles')}</option>
               {roleOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
@@ -133,7 +139,7 @@ export default function UserFiltersBar({
           {/* Status Filter */}
           <div>
             <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-1">
-              Status
+              {tCommon('status')}
             </label>
             <select
               id="status-filter"
@@ -141,16 +147,16 @@ export default function UserFiltersBar({
               onChange={handleStatusFilter}
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="all">{t('allStatus')}</option>
+              <option value="active">{tCommon('active')}</option>
+              <option value="inactive">{tCommon('inactive')}</option>
             </select>
           </div>
 
           {/* Sort By */}
           <div>
             <label htmlFor="sort-filter" className="block text-sm font-medium text-gray-700 mb-1">
-              Sort By
+              {t('sortBy')}
             </label>
             <select
               id="sort-filter"
@@ -158,11 +164,11 @@ export default function UserFiltersBar({
               onChange={handleSortChange}
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
-              <option value="created_at">Date Created</option>
-              <option value="email">Email</option>
-              <option value="name">Name</option>
-              <option value="role">Role</option>
-              <option value="last_login">Last Login</option>
+              <option value="created_at">{t('dateCreated')}</option>
+              <option value="email">{tSettings('email')}</option>
+              <option value="name">{tCommon('name')}</option>
+              <option value="role">{tSettings('role')}</option>
+              <option value="last_login">{t('lastLogin')}</option>
             </select>
           </div>
 
@@ -173,7 +179,7 @@ export default function UserFiltersBar({
               disabled={!hasActiveFilters}
               className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Clear Filters
+              {tCommon('clearFilters')}
             </button>
           </div>
         </div>
@@ -198,15 +204,15 @@ export default function UserFiltersBar({
                 />
               </svg>
               <span className="text-sm font-medium text-blue-900">
-                {selectedCount} user{selectedCount !== 1 ? 's' : ''} selected
+                {t('selectedCount', { count: selectedCount })}
               </span>
             </div>
 
-            <div className="flex space-x-3">
+            <div className="flex space-x-3 rtl:space-x-reverse">
               {bulkActionLoading ? (
                 <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-2"></div>
-                  <span className="text-sm text-blue-900">Processing...</span>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mr-2 rtl:ml-2 rtl:mr-0"></div>
+                  <span className="text-sm text-blue-900">{t('processing')}</span>
                 </div>
               ) : (
                 <>
@@ -214,19 +220,19 @@ export default function UserFiltersBar({
                     onClick={() => handleBulkAction('activate')}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                   >
-                    Activate
+                    {tTable('activate')}
                   </button>
                   <button
                     onClick={() => handleBulkAction('deactivate')}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                   >
-                    Deactivate
+                    {tTable('deactivate')}
                   </button>
                   <button
                     onClick={() => handleBulkAction('delete')}
                     className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                   >
-                    Delete
+                    {tCommon('delete')}
                   </button>
                 </>
               )}
@@ -239,10 +245,10 @@ export default function UserFiltersBar({
       {hasActiveFilters && (
         <div className="bg-gray-50 border-t border-gray-200 px-4 py-2">
           <div className="flex items-center flex-wrap gap-2">
-            <span className="text-xs font-medium text-gray-500">Active filters:</span>
+            <span className="text-xs font-medium text-gray-500">{t('activeFilters')}</span>
             {filters.search && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                Search: &quot;{filters.search}&quot;
+                {tCommon('search')}: &quot;{filters.search}&quot;
                 <button
                   onClick={() => onFilterChange({ search: '' })}
                   className="ml-1 inline-flex items-center"
@@ -259,7 +265,7 @@ export default function UserFiltersBar({
             )}
             {filters.role && filters.role !== 'all' && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                Role: {filters.role}
+                {tSettings('role')}: {filters.role}
                 <button
                   onClick={() => onFilterChange({ role: 'all' })}
                   className="ml-1 inline-flex items-center"
@@ -276,7 +282,7 @@ export default function UserFiltersBar({
             )}
             {filters.status && filters.status !== 'all' && (
               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                Status: {filters.status}
+                {tCommon('status')}: {filters.status}
                 <button
                   onClick={() => onFilterChange({ status: 'all' })}
                   className="ml-1 inline-flex items-center"
