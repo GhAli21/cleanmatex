@@ -36,7 +36,7 @@ import type {
   PaymentStats,
   PaymentListResult,
 } from '../types/payment';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 
 // ============================================================================
 // Payment Method Management
@@ -632,7 +632,6 @@ export async function recordPaymentTransaction(
   }
 
   const db = tx ?? prisma;
-  const tPayments = useTranslations('payments');
 
   return withTenantContext(tenantId, async () => {
     // Currency: passed > order > tenant settings
@@ -700,7 +699,7 @@ export async function recordPaymentTransaction(
 
     // Trans description: Payment for invoice {invoice_id} or order {order_id} or customer {customer_id}
     let vTransDesc = '';
-    const tPayments = useTranslations('payments.paymentForTransDescDefault');
+    const tPayments = await getTranslations('payments.table.columns');
     if (input.trans_desc) {
       vTransDesc = input.trans_desc;
     } else {  
