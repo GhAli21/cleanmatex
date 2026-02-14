@@ -11,20 +11,21 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, AlertCircle, X, Shield, Check } from 'lucide-react'
+import { ArrowLeft, AlertCircle, X, Shield, Check, ShieldOff } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
   fetchUser,
   getUserRoles,
   getEffectivePermissions,
+  getUserPermissionOverrides,
   assignRolesToUser,
   removeRoleFromUser,
 } from '@/lib/api/users'
-import { getAllRoles } from '@/lib/api/roles'
-import type { TenantUser, UserRoleAssignment } from '@/lib/api/users'
+import { getAllRoles, getRoleByCode } from '@/lib/api/roles'
+import type { TenantUser, UserRoleAssignment, UserPermissionOverridesResponse } from '@/lib/api/users'
 import type { TenantRole } from '@/lib/api/roles'
 
-type ActiveTab = 'roles' | 'permissions'
+type ActiveTab = 'roles' | 'permissions' | 'overrides'
 
 export default function UserDetailPage() {
   const params = useParams()
@@ -40,7 +41,12 @@ export default function UserDetailPage() {
   const [user, setUser] = useState<TenantUser | null>(null)
   const [userRoles, setUserRoles] = useState<UserRoleAssignment[]>([])
   const [effectivePermissions, setEffectivePermissions] = useState<string[]>([])
+  const [permissionOverrides, setPermissionOverrides] = useState<UserPermissionOverridesResponse>({
+    global_overrides: [],
+    resource_overrides: [],
+  })
   const [allRoles, setAllRoles] = useState<TenantRole[]>([])
+  const [mainRoleDetails, setMainRoleDetails] = useState<TenantRole | null>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('roles')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,17 +72,31 @@ export default function UserDetailPage() {
     setLoading(true)
     setError(null)
     try {
-      const [userData, rolesData, permsData, allRolesData] = await Promise.all([
+      const [userData, rolesData, permsData, allRolesData, overridesData] = await Promise.all([
         fetchUser(tenantId, userId, accessToken),
         getUserRoles(tenantId, userId, accessToken),
         getEffectivePermissions(tenantId, userId, accessToken),
         getAllRoles(accessToken),
+        getUserPermissionOverrides(tenantId, userId, accessToken),
       ])
 
       setUser(userData)
       setUserRoles(rolesData)
       setEffectivePermissions(permsData.permissions)
       setAllRoles(allRolesData)
+      setPermissionOverrides(overridesData)
+
+      // Fetch main role details (GET /api/hq/v1/tenant-api/roles/:roleCode)
+      if (userData?.role) {
+        try {
+          const role = await getRoleByCode(userData.role, accessToken)
+          setMainRoleDetails(role)
+        } catch {
+          setMainRoleDetails(null)
+        }
+      } else {
+        setMainRoleDetails(null)
+      }
     } catch (err) {
       console.error('Error loading user data:', err)
       setError(err instanceof Error ? err.message : t('loadFailed'))
@@ -308,14 +328,38 @@ export default function UserDetailPage() {
           >
             {t('effectivePermissions')} ({effectivePermissions.length})
           </button>
+          <button
+            onClick={() => setActiveTab('overrides')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'overrides'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            {t('permissionOverrides')} ({permissionOverrides.global_overrides.length + permissionOverrides.resource_overrides.length})
+          </button>
         </nav>
       </div>
 
       {/* Roles Tab */}
       {activeTab === 'roles' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className="text-lg font-medium text-gray-900">{t('assignedRoles')}</h2>
+          <div className="flex justify-between items-center flex-wrap gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-lg font-medium text-gray-900">{t('additionalAssignedRoles')}</h2>
+              <span className="text-sm text-gray-500">
+                ({t('mainRole')}:{' '}
+                <span className="px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                  {user.role}
+                </span>
+                {mainRoleDetails?.permissions && mainRoleDetails.permissions.length > 0 && (
+                  <span className="rtl:mr-1 rtl:ml-0 ml-1">
+                    — {mainRoleDetails.permissions.length} {t('permissionsFromRole')}
+                  </span>
+                )}
+                )
+              </span>
+            </div>
             <button
               onClick={handleOpenAssignModal}
               className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
@@ -324,6 +368,28 @@ export default function UserDetailPage() {
               {t('assignRole')}
             </button>
           </div>
+
+          {mainRoleDetails?.permissions && mainRoleDetails.permissions.length > 0 && (
+            <div className="bg-purple-50 border border-purple-100 rounded-lg p-4">
+              <h3 className="text-sm font-medium text-purple-800 mb-2">
+                {t('mainRolePermissions', { role: user.role })}
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {mainRoleDetails.permissions.map((p, idx) => {
+                  const code = typeof p === 'string' ? p : (p as { code: string }).code
+                  return (
+                    <span
+                      key={code || `perm-${idx}`}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-mono bg-purple-100 text-purple-700"
+                    >
+                      <Check className="h-3 w-3" />
+                      {code}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white shadow overflow-hidden rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
@@ -347,7 +413,7 @@ export default function UserDetailPage() {
                 {userRoles.length === 0 ? (
                   <tr>
                     <td colSpan={4} className="px-6 py-10 text-center text-gray-500">
-                      {t('noRolesAssigned')}
+                      {t('noAdditionalRolesAssigned')}
                     </td>
                   </tr>
                 ) : (
@@ -439,6 +505,150 @@ export default function UserDetailPage() {
                 ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Permission Overrides Tab */}
+      {activeTab === 'overrides' && (
+        <div className="space-y-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-lg font-medium text-gray-900">{t('permissionOverrides')}</h2>
+              <p className="text-sm text-gray-500 mt-0.5">{t('overridesDescription')}</p>
+            </div>
+          </div>
+
+          {/* Global Overrides */}
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+              <Shield className="h-4 w-4 text-gray-500" />
+              <h3 className="text-sm font-semibold text-gray-700">
+                {t('globalOverrides')} ({permissionOverrides.global_overrides.length})
+              </h3>
+            </div>
+            {permissionOverrides.global_overrides.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-sm">
+                {t('noGlobalOverrides')}
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('permissionCode')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('overrideType')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('createdBy')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('createdAt')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {permissionOverrides.global_overrides.map((override, idx) => (
+                    <tr key={`${override.permission_code}-${idx}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-mono text-sm text-gray-800">{override.permission_code}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {override.allow ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            <Check className="h-3 w-3" />
+                            {t('allowOverride')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                            <ShieldOff className="h-3 w-3" />
+                            {t('denyOverride')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {override.created_by ?? '—'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {override.created_at ? formatDate(override.created_at) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Resource-Scoped Overrides */}
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center gap-2">
+              <ShieldOff className="h-4 w-4 text-gray-500" />
+              <h3 className="text-sm font-semibold text-gray-700">
+                {t('resourceOverrides')} ({permissionOverrides.resource_overrides.length})
+              </h3>
+            </div>
+            {permissionOverrides.resource_overrides.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 text-sm">
+                {t('noResourceOverrides')}
+              </div>
+            ) : (
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('permissionCode')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('overrideType')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('resourceType')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('resourceId')}
+                    </th>
+                    <th className="px-6 py-3 text-left rtl:text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      {t('createdBy')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {permissionOverrides.resource_overrides.map((override, idx) => (
+                    <tr key={`${override.permission_code}-${override.resource_type}-${override.resource_id}-${idx}`} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="font-mono text-sm text-gray-800">{override.permission_code}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {override.allow ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                            <Check className="h-3 w-3" />
+                            {t('allowOverride')}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
+                            <ShieldOff className="h-3 w-3" />
+                            {t('denyOverride')}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-0.5 rounded bg-gray-100 text-xs font-mono text-gray-700">
+                          {override.resource_type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-gray-500 max-w-[160px] truncate">
+                        {override.resource_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {override.created_by ?? '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       )}
 

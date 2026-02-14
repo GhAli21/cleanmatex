@@ -56,6 +56,17 @@ export interface CreateUserData {
   last_name?: string
   phone?: string
   is_active?: boolean
+  /** Full name (English) */
+  name?: string
+  /** Full name (Arabic) */
+  name2?: string
+  /** User type: employee, manager, admin */
+  type?: string
+  address?: string
+  area?: string
+  building?: string
+  floor?: string
+  main_branch_id?: string | null
 }
 
 export interface UpdateUserData {
@@ -77,6 +88,27 @@ export interface UserRoleAssignment {
 export interface EffectivePermissionsResponse {
   permissions: string[]
   computed_at?: string
+}
+
+export interface PermissionOverride {
+  permission_code: string
+  allow: boolean
+  created_at?: string
+  created_by?: string
+}
+
+export interface ResourcePermissionOverride {
+  permission_code: string
+  allow: boolean
+  resource_type: string
+  resource_id: string
+  created_at?: string
+  created_by?: string
+}
+
+export interface UserPermissionOverridesResponse {
+  global_overrides: PermissionOverride[]
+  resource_overrides: ResourcePermissionOverride[]
 }
 
 export interface UserStats {
@@ -375,6 +407,30 @@ export async function getEffectivePermissions(
   if (Array.isArray(response)) return { permissions: response }
   if (response && 'permissions' in response) return response as EffectivePermissionsResponse
   return { permissions: [] }
+}
+
+/**
+ * Get global and resource-scoped permission overrides for a user.
+ * GET /tenants/:tenantId/users/:userId/permissions
+ */
+export async function getUserPermissionOverrides(
+  tenantId: string,
+  userId: string,
+  accessToken: string = ''
+): Promise<UserPermissionOverridesResponse> {
+  try {
+    const response = await rbacFetch<UserPermissionOverridesResponse>(
+      `/tenants/${encodeURIComponent(tenantId)}/users/${encodeURIComponent(userId)}/permissions`,
+      accessToken
+    )
+    return response ?? { global_overrides: [], resource_overrides: [] }
+  } catch (err) {
+    console.error(
+      '[getUserPermissionOverrides]',
+      { tenantId, userId, error: err instanceof Error ? err.message : err }
+    )
+    return { global_overrides: [], resource_overrides: [] }
+  }
 }
 
 /**

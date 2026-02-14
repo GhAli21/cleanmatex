@@ -5,6 +5,7 @@
  *
  * Modal for adding new users or editing existing users.
  * All API calls go through platform-api via lib/api/users.
+ * Uses roles from sys_auth_roles (via getAllRoles) when available.
  * No Supabase imports.
  */
 
@@ -14,20 +15,54 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { createUser, updateUser } from '@/lib/api/users'
 import { validateEmail, validatePassword } from '@/lib/auth/validation'
 import type { TenantUser, CreateUserData, UpdateUserData } from '@/lib/api/users'
+import type { TenantRole } from '@/lib/api/roles'
 
 interface UserModalProps {
   user: TenantUser | null
   onClose: () => void
   onSaved: () => void
   accessToken: string
+  /** Roles from sys_auth_roles (getAllRoles). When provided, used instead of hardcoded list. */
+  availableRoles?: TenantRole[]
 }
 
-export default function UserModal({ user, onClose, onSaved, accessToken }: UserModalProps) {
+// Fallback role options when API roles not available (must match sys_auth_roles codes)
+const FALLBACK_ROLE_OPTIONS = [
+  { value: 'viewer', labelKey: 'viewer', descKey: 'viewerDesc' },
+  { value: 'operator', labelKey: 'operator', descKey: 'operatorDesc' },
+  { value: 'tenant_admin', labelKey: 'tenant_admin', descKey: 'tenant_adminDesc' },
+  { value: 'branch_manager', labelKey: 'branch_manager', descKey: 'branch_managerDesc' },
+] as const
+
+export default function UserModal({ user, onClose, onSaved, accessToken, availableRoles }: UserModalProps) {
   const t = useTranslations('users.modal')
   const tValidation = useTranslations('users.validation')
   const tCommon = useTranslations('common')
   const { currentTenant } = useAuth()
   const isEditMode = !!user
+
+  // Build role options: use API roles when available, else fallback
+  const roleOptions: { value: string; label: string; desc: string }[] = (() => {
+    if (availableRoles?.length) {
+      return availableRoles
+        .filter((r) => r.is_active && r.code !== 'super_admin')
+        .map((r) => ({
+          value: r.code,
+          label: r.name || r.code,
+          desc: r.description || '',
+        }))
+    }
+    return FALLBACK_ROLE_OPTIONS.map((opt) => ({
+      value: opt.value,
+      label: t(`roles.${opt.labelKey}`),
+      desc: t(`roles.${opt.descKey}`),
+    }))
+  })()
+
+  const defaultRole = roleOptions.length ? roleOptions[0].value : 'viewer'
+  const effectiveUserRole = user?.role === 'admin' ? 'tenant_admin' : user?.role
+  const initialRole =
+    effectiveUserRole && roleOptions.some((o) => o.value === effectiveUserRole) ? effectiveUserRole : defaultRole
 
   // Form state
   const [formData, setFormData] = useState({
@@ -35,7 +70,7 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
     password: '',
     confirmPassword: '',
     display_name: user?.display_name || '',
-    role: user?.role || 'viewer',
+    role: initialRole,
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -118,12 +153,6 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
       setLoading(false)
     }
   }
-
-  const roleOptions = [
-    { value: 'viewer', labelKey: 'viewer', descKey: 'viewerDesc' },
-    { value: 'operator', labelKey: 'operator', descKey: 'operatorDesc' },
-    { value: 'admin', labelKey: 'admin', descKey: 'adminDesc' },
-  ]
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
@@ -328,12 +357,10 @@ export default function UserModal({ user, onClose, onSaved, accessToken }: UserM
                     className="mt-0.5 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                   />
                   <span className="ml-3 rtl:ml-0 rtl:mr-3 flex flex-col">
-                    <span className="block text-sm font-medium text-gray-900">
-                      {t(`roles.${option.labelKey}`)}
-                    </span>
-                    <span className="block text-sm text-gray-500">
-                      {t(`roles.${option.descKey}`)}
-                    </span>
+                    <span className="block text-sm font-medium text-gray-900">{option.label}</span>
+                    {option.desc && (
+                      <span className="block text-sm text-gray-500">{option.desc}</span>
+                    )}
                   </span>
                 </label>
               ))}
