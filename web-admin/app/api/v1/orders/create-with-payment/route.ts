@@ -243,6 +243,8 @@ export async function POST(request: NextRequest) {
           data: {
             paid_amount: serverTotals.finalTotal,
             payment_status: 'paid',
+            paid_at: new Date(),
+            paid_by: userId,
             updated_at: new Date(),
             updated_by: userId,
           },

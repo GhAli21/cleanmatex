@@ -349,6 +349,9 @@ export class OrderService {
         is_retail: isRetailOnlyOrder,
         customer_notes: customerNotes,
         internal_notes: internalNotes,
+        created_by: userId,
+        created_info: null,
+        rec_status: 1,
       };
 
       if (currencyCode != null) {

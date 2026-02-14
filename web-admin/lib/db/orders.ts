@@ -81,6 +81,8 @@ export async function createOrder(
       tax: 0,
       total: 0,
       payment_status: 'pending',
+      created_by: input.createdBy ?? undefined,
+      rec_status: 1,
     },
   });
 
@@ -334,6 +336,8 @@ export async function addOrderItems(
       subtotal: orderTotals.subtotalAfterDiscount,
       tax: orderTotals.tax,
       total: orderTotals.total,
+      updated_at: new Date(),
+      ...(currentUserId && { updated_by: currentUserId }),
     },
   });
 
@@ -402,6 +406,8 @@ export async function completePreparation(
       ready_by_override: input.readyByOverride || null,
       status: 'processing',
       internal_notes: input.internalNotes || order.internal_notes,
+      updated_at: new Date(),
+      updated_by: userId,
     },
   });
 
@@ -718,7 +724,8 @@ export async function updateOrderStatus(
   tenantOrgId: string,
   orderId: string,
   status: string,
-  notes?: string
+  notes?: string,
+  userId?: string
 ): Promise<Order> {
   const updatedOrder = await prisma.org_orders_mst.update({
     where: {
@@ -729,6 +736,7 @@ export async function updateOrderStatus(
       status,
       internal_notes: notes,
       updated_at: new Date(),
+      ...(userId && { updated_by: userId }),
     },
   });
 
@@ -760,7 +768,8 @@ export async function deleteOrderItem(
  */
 async function recalculateOrderTotals(
   tenantOrgId: string,
-  orderId: string
+  orderId: string,
+  userId?: string
 ): Promise<void> {
   const items = await prisma.org_order_items_dtl.findMany({
     where: {
@@ -784,6 +793,8 @@ async function recalculateOrderTotals(
       tax,
       total,
       total_items: totalItems,
+      updated_at: new Date(),
+      ...(userId && { updated_by: userId }),
     },
   });
 }

@@ -54,6 +54,7 @@ export const createOrderSchema = z.object({
   customerNotes: z.string().max(1000, 'Customer notes too long').optional(),
   internalNotes: z.string().max(1000, 'Internal notes too long').optional(),
   photoUrls: z.array(z.string().url('Invalid photo URL')).max(10, 'Maximum 10 photos allowed').optional(),
+  createdBy: z.string().uuid('Invalid createdBy format').optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

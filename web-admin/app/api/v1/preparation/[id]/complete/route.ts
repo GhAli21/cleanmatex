@@ -64,7 +64,11 @@ export async function POST(
     await withTenantContext(tenantId, async () => {
       await prisma.org_orders_mst.update({
         where: { id: orderId },
-        data: { status: 'sorting' },
+        data: {
+          status: 'sorting',
+          updated_at: new Date(),
+          updated_by: userId,
+        },
       });
     });
 

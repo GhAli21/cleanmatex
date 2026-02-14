@@ -231,7 +231,8 @@ export async function processPayment(
             await updateOrderPaymentStatus(
               input.order_id,
               newPaid >= total ? 'paid' : 'partial',
-              newPaid
+              newPaid,
+              input.processed_by
             );
           }
         }
@@ -356,7 +357,7 @@ export async function processPayment(
               const newOrderPaid = currentOrderPaid + totalApplied;
               orderRemaining = Math.max(0, orderTotal - newOrderPaid);
               const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-              await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid);
+              await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by);
             }
           }
 
@@ -516,7 +517,7 @@ export async function processPayment(
           const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
           const newOrderPaid = currentOrderPaid + amountToPay;
           const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-          await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid);
+          await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by);
         }
       }
 
@@ -1057,6 +1058,7 @@ export async function applyPaymentToInvoice(
             payment_status: orderPaid >= orderTotal ? 'paid' : 'partial',
             paid_at: orderPaid >= orderTotal ? new Date() : undefined,
             updated_at: new Date(),
+            updated_by: updatedBy ?? undefined,
           },
         });
       }
@@ -1205,7 +1207,8 @@ export async function validatePaymentData(
 async function updateOrderPaymentStatus(
   orderId: string,
   status: string,
-  paidAmount: number
+  paidAmount: number,
+  userId?: string
 ): Promise<void> {
   // Middleware adds tenant_org_id automatically since we're within tenant context
   await prisma.org_orders_mst.update({
@@ -1215,6 +1218,7 @@ async function updateOrderPaymentStatus(
       paid_amount: paidAmount,
       paid_at: status === 'paid' ? new Date() : undefined,
       updated_at: new Date(),
+      ...(userId && { updated_by: userId }),
     },
   });
 }
@@ -1413,10 +1417,11 @@ export async function refundPayment(
                   : 'partial';
             await tx.org_orders_mst.update({
               where: { id: order.id },
-              data: { 
+              data: {
                 paid_amount: newOrderPaid,
                 payment_status: newPaymentStatus,
-                //updated_at: new Date(),
+                updated_at: new Date(),
+                updated_by: input.processed_by ?? undefined,
               },
             });
           }
@@ -2079,6 +2084,7 @@ export async function cancelPayment(
                 paid_amount: newOrderPaid,
                 payment_status: newPaymentStatus,
                 updated_at: new Date(),
+                updated_by: cancelledBy,
               },
             });
           }

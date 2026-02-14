@@ -11,6 +11,7 @@ import { revalidatePath } from 'next/cache';
 import { createOrderSchema } from '@/lib/validations/order-schema';
 import { createOrder as createOrderDb } from '@/lib/db/orders';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { createClient } from '@/lib/supabase/server';
 import type { Order } from '@/types/order';
 
 interface CreateOrderResult {
@@ -75,8 +76,13 @@ export async function createOrder(
       };
     }
 
+    // Get user ID for created_by audit
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const createdBy = user?.id;
+
     // Create order in database
-    const order = await createOrderDb(tenantId, validation.data);
+    const order = await createOrderDb(tenantId, { ...validation.data, createdBy });
 
     // Revalidate orders list
     revalidatePath('/dashboard/orders');
