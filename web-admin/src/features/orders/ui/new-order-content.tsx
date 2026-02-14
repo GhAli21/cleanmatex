@@ -60,7 +60,7 @@ export function NewOrderContent() {
     const state = useNewOrderStateWithDispatch();
     const { submitOrder, isSubmitting } = useOrderSubmission();
     const totals = useOrderTotals();
-    const { warnings, hasErrors } = useOrderWarnings();
+    const { warnings, hasErrors } = useOrderWarnings({ hasBranches: branches.length > 0 });
     const { calculateReadyBy } = useReadyByEstimation();
 
     // Notes persistence
@@ -373,16 +373,18 @@ export function NewOrderContent() {
                         {branches.length > 0 && (
                             <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                                 <label htmlFor="new-order-branch" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                    {tCommon('branch')}
+                                    {tCommon('branch')} <span className="text-red-500">*</span>
                                 </label>
                                 <select
                                     id="new-order-branch"
                                     value={state.state.branchId ?? ''}
                                     onChange={(e) => state.setBranchId(e.target.value || null)}
-                                    className={`flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                                    className={`flex-1 max-w-xs px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!state.state.branchId ? 'border-red-400 bg-red-50/50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
                                     dir={isRTL ? 'rtl' : 'ltr'}
+                                    required
+                                    aria-required="true"
                                 >
-                                    <option value="">{tCommon('allBranches')}</option>
+                                    <option value="">{tCommon('selectBranch')}</option>
                                     {branches.map((b) => (
                                         <option key={b.id} value={b.id}>
                                             {isRTL ? (b.name2 || b.name) : b.name}

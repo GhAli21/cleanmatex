@@ -80,10 +80,20 @@ export async function POST(request: NextRequest) {
   const input = parsed.data as CreateWithPaymentRequest;
   const { clientTotals } = input;
 
+  // Resolve branchId: use provided value, or default to tenant's main branch when none selected
+  let branchId: string | undefined = input.branchId;
+  if (!branchId) {
+    const mainBranch = await prisma.org_branches_mst.findFirst({
+      where: { tenant_org_id: tenantId, is_main: true },
+      select: { id: true },
+    });
+    branchId = mainBranch?.id ?? undefined;
+  }
+
   try {
     const serverTotals = await calculateOrderTotals({
       tenantId,
-      branchId: input.branchId,
+      branchId,
       items: input.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       customerId: input.customerId,
       isExpress: input.express ?? false,
@@ -137,7 +147,7 @@ export async function POST(request: NextRequest) {
       userId,
       userName: userName ?? 'User',
       customerId: input.customerId,
-      branchId: input.branchId,
+      branchId,
       orderTypeId: input.orderTypeId,
       items: input.items.map((i) => ({
         ...i,
@@ -209,7 +219,7 @@ export async function POST(request: NextRequest) {
               payment_method_code: paymentMethodCode,
               payment_type_code: getPaymentTypeFromMethod(input.paymentMethod),
               paid_by: userId,
-              branch_id: input.branchId,
+              branch_id: branchId,
               subtotal: serverTotals.subtotal,
               manual_discount_amount: serverTotals.manualDiscount,
               promo_discount_amount: serverTotals.promoDiscount,

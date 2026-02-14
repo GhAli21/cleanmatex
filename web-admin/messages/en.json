@@ -46,6 +46,7 @@
     "dateTo": "To Date",
     "branch": "Branch",
     "allBranches": "All Branches",
+    "selectBranch": "Select branch",
     "status": "Status",
     "priority": "Priority",
     "area": "Area",
@@ -2485,6 +2486,7 @@
     },
     "errors": {
       "selectCustomer": "Please select a customer",
+      "selectBranch": "Please select a branch before submitting the order.",
       "addItems": "Please add at least one item to the order",
       "mixedRetailServices": "Orders cannot mix retail items and service items. Please add only one type per order.",
       "retailPayOnCollection": "Retail orders must be paid at POS. Please select Cash or Card.",
