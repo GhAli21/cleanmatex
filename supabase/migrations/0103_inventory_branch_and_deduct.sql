@@ -54,11 +54,13 @@ CREATE INDEX IF NOT EXISTS idx_inv_stock_branch_branch
 
 ALTER TABLE org_inv_stock_by_branch ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS tenant_isolation_org_inv_stock_by_branch ON org_inv_stock_by_branch;
 CREATE POLICY tenant_isolation_org_inv_stock_by_branch ON org_inv_stock_by_branch
   FOR ALL
   USING (tenant_org_id IN (SELECT tenant_id FROM get_user_tenants()))
   WITH CHECK (tenant_org_id IN (SELECT tenant_id FROM get_user_tenants()));
 
+DROP POLICY IF EXISTS service_role_org_inv_stock_by_branch ON org_inv_stock_by_branch;
 CREATE POLICY service_role_org_inv_stock_by_branch ON org_inv_stock_by_branch
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role');

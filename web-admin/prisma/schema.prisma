@@ -388,11 +388,14 @@ model org_branches_mst {
   is_main                     Boolean?                      @default(false)
   org_asm_locations_mst       org_asm_locations_mst[]
   org_fin_vouchers_mst        org_fin_vouchers_mst[]
+  org_gift_card_transactions   org_gift_card_transactions[]
   org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
   org_dlv_routes_mst          org_dlv_routes_mst[]
   org_dlv_slots_mst           org_dlv_slots_mst[]
   org_invoice_mst             org_invoice_mst[]
   org_orders_mst              org_orders_mst[]
+  org_payments_dtl_tr         org_payments_dtl_tr[]
+  org_rcpt_receipts_mst       org_rcpt_receipts_mst[]
   org_stng_audit_log_tr       org_stng_audit_log_tr[]
   org_stng_effective_cache_cf org_stng_effective_cache_cf[]
 
@@ -825,6 +828,8 @@ model org_payments_dtl_tr {
   check_date               DateTime?             @db.Date
   payment_channel          String?               @default("web_admin") @db.VarChar(30)
   trans_desc               String?               @db.VarChar(500)
+  branch_id                String?               @db.Uuid
+  org_branches_mst         org_branches_mst?     @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payment_branch")
   org_invoice_mst          org_invoice_mst?      @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_invoice")
   org_tenants_mst          org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_tenant")
   sys_payment_method_cd    sys_payment_method_cd @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction, map: "fk_org_payments_payment_method")
@@ -838,6 +843,7 @@ model org_payments_dtl_tr {
 
   @@index([invoice_id], map: "idx_org_payments_invoice")
   @@index([tenant_org_id], map: "idx_org_payments_tenant")
+  @@index([tenant_org_id, branch_id], map: "idx_org_payments_branch")
   @@index([voucher_id], map: "idx_org_payments_voucher")
   org_payment_audit_log    org_payment_audit_log[]
   @@schema("public")
@@ -1782,10 +1788,13 @@ model org_gift_card_transactions {
   transaction_date   DateTime           @default(now()) @db.Timestamptz(6)
   processed_by       String?            @db.VarChar(120)
   metadata           Json?
+  branch_id          String?            @db.Uuid
+  org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_gift_card_trans_branch")
   org_gift_cards_mst org_gift_cards_mst @relation(fields: [gift_card_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_card_fk")
   org_tenants_mst    org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_tenant_fk")
 
   @@index([tenant_org_id, gift_card_id], map: "idx_gift_card_trans_card")
+  @@index([tenant_org_id, branch_id], map: "idx_gift_card_trans_branch")
   @@index([tenant_org_id, transaction_date(sort: Desc)], map: "idx_gift_card_trans_date")
   @@index([tenant_org_id, order_id], map: "idx_gift_card_trans_order")
   @@index([tenant_org_id], map: "idx_gift_card_trans_tenant")
@@ -4332,10 +4341,13 @@ model org_rcpt_receipts_mst {
   updated_at            DateTime?       @db.Timestamp(6)
   updated_by            String?         @db.VarChar(120)
   updated_info          String?
+  branch_id             String?         @db.Uuid
+  org_branches_mst      org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_rcpt_receipt_branch")
   org_fin_vouchers_mst  org_fin_vouchers_mst? @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_rcpt_receipts_voucher")
   org_orders_mst        org_orders_mst? @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_order")
   org_tenants_mst       org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_rcpt_receipt_tenant")
 
+  @@index([tenant_org_id, branch_id], map: "idx_rcpt_receipts_branch")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_rcpt_receipts_created")
   @@index([tenant_org_id, delivery_status_code, created_at], map: "idx_rcpt_receipts_delivery_status")
   @@index([order_id], map: "idx_rcpt_receipts_order")

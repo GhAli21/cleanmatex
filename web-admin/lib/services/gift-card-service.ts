@@ -234,11 +234,22 @@ export async function applyGiftCard(
       const balanceBefore = currentBalance;
       const balanceAfter = currentBalance - input.amount;
 
+      // Derive branch_id from order when available
+      let branchId: string | undefined;
+      if (input.order_id) {
+        const order = await tx.org_orders_mst.findUnique({
+          where: { id: input.order_id },
+          select: { branch_id: true },
+        });
+        branchId = order?.branch_id ?? undefined;
+      }
+
       // Record transaction
       await tx.org_gift_card_transactions.create({
         data: {
           tenant_org_id: giftCard.tenant_org_id,
           gift_card_id: giftCard.id,
+          branch_id: branchId,
           transaction_type: 'redemption',
           amount: input.amount,
           balance_before: balanceBefore,
@@ -324,11 +335,20 @@ export async function refundToGiftCard(
       const newBalance = Math.min(currentBalance + amount, originalAmount);
       const actualRefund = newBalance - currentBalance;
 
+      // Derive branch_id from order
+      let branchId: string | undefined;
+      const order = await tx.org_orders_mst.findUnique({
+        where: { id: orderId },
+        select: { branch_id: true },
+      });
+      branchId = order?.branch_id ?? undefined;
+
       // Record transaction
       await tx.org_gift_card_transactions.create({
         data: {
           tenant_org_id: giftCard.tenant_org_id,
           gift_card_id: giftCard.id,
+          branch_id: branchId,
           transaction_type: 'refund',
           amount: actualRefund,
           balance_before: currentBalance,

@@ -735,6 +735,7 @@ export async function recordPaymentTransaction(
     const transaction = await db.org_payments_dtl_tr.create({
       data: {
         tenant_org_id: tenantId,
+        branch_id: input.branch_id ?? undefined,
         voucher_id,
         invoice_id: input.invoice_id ?? undefined,
         order_id: input.order_id ?? undefined,
@@ -792,6 +793,7 @@ function mapTransactionToType(transaction: {
   id: string;
   invoice_id: string | null;
   tenant_org_id: string;
+  branch_id?: string | null;
   order_id: string | null;
   customer_id: string | null;
   currency_code: string;
@@ -817,6 +819,7 @@ function mapTransactionToType(transaction: {
     id: transaction.id,
     invoice_id: transaction.invoice_id ?? undefined,
     tenant_org_id: transaction.tenant_org_id,
+    branch_id: transaction.branch_id ?? undefined,
     order_id: transaction.order_id ?? undefined,
     customer_id: transaction.customer_id ?? undefined,
     currency_code: transaction.currency_code,
@@ -1357,6 +1360,7 @@ export async function refundPayment(
         const refundTransaction = await tx.org_payments_dtl_tr.create({
           data: {
             tenant_org_id: tenantId,
+            branch_id: transaction.branch_id ?? undefined,
             invoice_id: transaction.invoice_id ?? undefined,
             order_id: transaction.order_id ?? undefined,
             customer_id: transaction.customer_id ?? undefined,
@@ -1752,6 +1756,7 @@ function mapPaymentToListItem(payment: {
   id: string;
   invoice_id: string | null;
   tenant_org_id: string;
+  branch_id?: string | null;
   order_id: string | null;
   customer_id: string | null;
   currency_code: string;
@@ -1795,6 +1800,7 @@ function mapPaymentToListItem(payment: {
     id: payment.id,
     invoice_id: payment.invoice_id ?? undefined,
     tenant_org_id: payment.tenant_org_id,
+    branch_id: payment.branch_id ?? undefined,
     order_id: payment.order_id ?? undefined,
     customer_id: payment.customer_id ?? undefined,
     currency_code: payment.currency_code,

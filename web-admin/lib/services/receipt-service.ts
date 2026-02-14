@@ -166,10 +166,12 @@ export class ReceiptService {
       const qrCode = await this.generateQRCode(order.order_no, tenantId);
 
       // Create receipt record
+      const orderWithBranch = order as { branch_id?: string | null };
       const { data: receipt, error: receiptError } = await supabase
         .from('org_rcpt_receipts_mst')
         .insert({
           tenant_org_id: tenantId,
+          branch_id: orderWithBranch.branch_id ?? null,
           order_id: orderId,
           receipt_type_code: receiptTypeCode,
           delivery_channel_code: 'app', // Default, will be updated on send
@@ -177,8 +179,8 @@ export class ReceiptService {
           content_text: contentText,
           content_html: contentHtml,
           qr_code: qrCode,
-          recipient_phone: (order.customer as any)?.phone || null,
-          recipient_email: (order.customer as any)?.email || null,
+          recipient_phone: (order.customer as { phone?: string })?.phone || null,
+          recipient_email: (order.customer as { email?: string })?.email || null,
         })
         .select('id')
         .single();
