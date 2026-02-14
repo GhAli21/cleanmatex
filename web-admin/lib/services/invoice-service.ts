@@ -55,10 +55,13 @@ export async function createInvoice(
 
     const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
 
+    const vatAmount = input.vatAmount ?? Number(order.vat_amount ?? 0);
+    const additionalTax = input.tax ?? 0;
     const total = calculateInvoiceTotal({
       subtotal: input.subtotal,
       discount: input.discount || 0,
-      tax: input.tax || 0,
+      vatAmount,
+      additionalTax,
     });
 
     const now = new Date();
@@ -72,8 +75,9 @@ export async function createInvoice(
         invoice_date: now,
         subtotal: input.subtotal,
         discount: input.discount || 0,
-        tax: input.tax || 0,
+        tax: additionalTax,
         tax_rate: order.tax_rate ?? undefined,
+        vat_amount: vatAmount,
         total,
         status: 'pending',
         due_date: input.due_date ? new Date(input.due_date) : undefined,
@@ -85,7 +89,6 @@ export async function createInvoice(
         gift_card_id: order.gift_card_id ?? undefined,
         gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
         vat_rate: order.vat_rate ?? undefined,
-        vat_amount: order.vat_amount ?? undefined,
         metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
         rec_notes: input.rec_notes,
         created_at: now,
@@ -450,15 +453,17 @@ export async function markInvoiceAsPaid(
 // ============================================================================
 
 /**
- * Calculate invoice total
+ * Calculate invoice total.
+ * VAT and additional tax are kept separate.
  */
 export function calculateInvoiceTotal(params: {
   subtotal: number;
   discount: number;
-  tax: number;
+  vatAmount?: number;
+  additionalTax?: number;
 }): number {
-  const { subtotal, discount, tax } = params;
-  return subtotal - discount + tax;
+  const { subtotal, discount, vatAmount = 0, additionalTax = 0 } = params;
+  return subtotal - discount + vatAmount + additionalTax;
 }
 
 /**
@@ -512,7 +517,8 @@ export async function applyDiscountToInvoice(
     const newTotal = calculateInvoiceTotal({
       subtotal: Number(invoice.subtotal),
       discount: Number(invoice.discount) + discountAmount,
-      tax: Number(invoice.tax),
+      vatAmount: Number(invoice.vat_amount ?? 0),
+      additionalTax: Number(invoice.tax ?? 0),
     });
 
     // Update metadata to track discount reason

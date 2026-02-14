@@ -96,6 +96,8 @@ export function useOrderSubmission() {
                     orderTypeId: 'POS',
                     items: state.state.items.map((item) => ({
                         productId: item.productId,
+                        productName: item.productName ?? undefined,
+                        productName2: item.productName2 ?? undefined,
                         quantity: item.quantity,
                         pricePerUnit: item.pricePerUnit ?? 0,
                         totalPrice: item.totalPrice ?? 0,
@@ -137,7 +139,9 @@ export function useOrderSubmission() {
                     checkNumber: paymentData.checkNumber ? sanitizeInput(paymentData.checkNumber) : undefined,
                     checkBank: paymentData.checkBank ? sanitizeInput(paymentData.checkBank) : undefined,
                     checkDate: paymentData.checkDate,
-                    branchId: undefined,
+                    branchId: state.state.branchId || undefined,
+                    ...((payload.totals.taxRate != null && payload.totals.taxRate > 0) && { additionalTaxRate: payload.totals.taxRate }),
+                    ...((payload.totals.taxAmount != null && payload.totals.taxAmount > 0) && { additionalTaxAmount: payload.totals.taxAmount }),
                     clientTotals: {
                         subtotal: payload.totals.subtotal,
                         manualDiscount: payload.totals.manualDiscount ?? 0,

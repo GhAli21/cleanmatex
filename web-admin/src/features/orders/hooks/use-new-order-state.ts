@@ -13,6 +13,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   state: NewOrderState;
   dispatch: ReturnType<typeof useNewOrderContext>['dispatch'];
   setCustomer: (customer: MinimalCustomer | null, customerName: string) => void;
+  setBranchId: (branchId: string | null) => void;
   addItem: (item: OrderItem) => void;
   removeItem: (productId: string) => void;
   updateItemQuantity: (productId: string, quantity: number) => void;
@@ -51,6 +52,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
         type: 'SET_CUSTOMER',
         payload: { customer, customerName },
       });
+    },
+
+    setBranchId: (branchId: string | null) => {
+      dispatch({ type: 'SET_BRANCH_ID', payload: branchId });
     },
 
     addItem: (item: typeof state.items[0]) => {

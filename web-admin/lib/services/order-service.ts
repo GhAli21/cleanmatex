@@ -35,6 +35,8 @@ export interface CreateOrderParams {
   orderTypeId: string;
   items: Array<{
     productId: string;
+    productName?: string | null;
+    productName2?: string | null;
     quantity: number;
     pricePerUnit: number;
     totalPrice: number;
@@ -57,7 +59,7 @@ export interface CreateOrderParams {
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
-  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number };
+  totals?: { subtotal: number; discount?: number; tax?: number; total: number; vatRate?: number; vatAmount?: number; taxRate?: number };
   discountRate?: number;
   discountType?: string;
   promoCodeId?: string;
@@ -650,6 +652,7 @@ export class OrderService {
       internalNotes,
       paymentMethod,
       userId,
+      readyByAt,
       totals,
       discountRate,
       discountType,
@@ -700,6 +703,7 @@ export class OrderService {
     const total = totals?.total ?? subtotal - discount + tax;
     const vatRate = totals?.vatRate;
     const vatAmount = totals?.vatAmount;
+    const taxRate = totals?.taxRate;
     const currencyCode = passedCurrencyCode;
     const currencyExRate = passedCurrencyExRate ?? 1;
     const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
@@ -747,7 +751,20 @@ export class OrderService {
         ...(currencyCode && { currency_code: currencyCode, currency_ex_rate: currencyExRate }),
         ...(vatRate != null && { vat_rate: vatRate }),
         ...(vatAmount != null && { vat_amount: vatAmount }),
+        ...(taxRate != null && { tax_rate: taxRate }),
         ...(discountRate != null && { discount_rate: discountRate }),
+        ...((() => {
+          if (!readyByAt) return {};
+          try {
+            const d = new Date(readyByAt);
+            if (!Number.isNaN(d.getTime())) {
+              return { ready_by: d, ready_by_at_new: d };
+            }
+          } catch {
+            // ignore invalid date
+          }
+          return {};
+        })(),
         ...(discountType != null && { discount_type: discountType }),
         ...(promoCodeId != null && { promo_code_id: promoCodeId }),
         ...(giftCardId != null && { gift_card_id: giftCardId }),
@@ -770,6 +787,8 @@ export class OrderService {
             service_category_code: item.serviceCategoryCode,
             order_item_srno: `${orderNo}-${index + 1}`,
             product_id: item.productId,
+            product_name: item.productName ?? null,
+            product_name2: item.productName2 ?? null,
             quantity: item.quantity,
             price_per_unit: item.pricePerUnit,
             total_price: item.totalPrice,

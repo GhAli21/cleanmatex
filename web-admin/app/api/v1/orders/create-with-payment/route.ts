@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
       promoCode: input.promoCode,
       promoCodeId: input.promoCodeId,
       giftCardNumber: input.giftCardNumber,
+      additionalTaxRate: input.additionalTaxRate,
+      additionalTaxAmount: input.additionalTaxAmount,
     });
 
     const differences = buildDifferences(
@@ -137,7 +139,11 @@ export async function POST(request: NextRequest) {
       customerId: input.customerId,
       branchId: input.branchId,
       orderTypeId: input.orderTypeId,
-      items: input.items,
+      items: input.items.map((i) => ({
+        ...i,
+        productName: i.productName ?? null,
+        productName2: i.productName2 ?? null,
+      })),
       isQuickDrop: input.isQuickDrop,
       quickDropQuantity: input.quickDropQuantity,
       express: input.express,
@@ -147,10 +153,13 @@ export async function POST(request: NextRequest) {
       totals: {
         subtotal: serverTotals.subtotal,
         discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
-        tax: serverTotals.taxAmount,
+        tax: serverTotals.additionalTaxAmount ?? 0,
         total: serverTotals.finalTotal,
         vatRate: serverTotals.vatTaxPercent,
         vatAmount: serverTotals.vatValue,
+        taxRate: input.additionalTaxRate ?? (input.additionalTaxAmount != null && serverTotals.afterDiscounts > 0
+          ? (serverTotals.additionalTaxAmount / serverTotals.afterDiscounts) * 100
+          : undefined),
       },
       discountRate: input.percentDiscount ?? 0,
       promoCodeId: input.promoCodeId,
@@ -177,7 +186,8 @@ export async function POST(request: NextRequest) {
             order_id: orderId,
             subtotal: serverTotals.subtotal,
             discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
-            tax: serverTotals.vatValue,
+            vatAmount: serverTotals.vatValue,
+            tax: serverTotals.additionalTaxAmount ?? 0,
             payment_method_code: input.paymentMethod,
           },
           tx

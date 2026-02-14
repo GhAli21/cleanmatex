@@ -27,6 +27,10 @@ export interface OrderCalculationParams {
   promoCodeId?: string;
   giftCardNumber?: string;
   serviceCategories?: string[];
+  /** Additional tax (order tax) rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
+  additionalTaxRate?: number;
+  /** Additional tax amount. If provided, overrides additionalTaxRate. Applied on top of base total. */
+  additionalTaxAmount?: number;
 }
 
 export interface OrderCalculationResult {
@@ -36,6 +40,8 @@ export interface OrderCalculationResult {
   afterDiscounts: number;
   taxRate: number;
   taxAmount: number;
+  /** Additional (order) tax amount applied on top of base (VAT-inclusive) total. */
+  additionalTaxAmount: number;
   vatTaxPercent: number;
   vatValue: number;
   giftCardApplied: number;
@@ -66,6 +72,8 @@ export async function calculateOrderTotals(
     promoCode,
     giftCardNumber,
     serviceCategories,
+    additionalTaxRate,
+    additionalTaxAmount: additionalTaxAmountParam,
   } = params;
 
   const currencyConfig = await tenantSettingsService.getCurrencyConfig(
@@ -83,6 +91,7 @@ export async function calculateOrderTotals(
       afterDiscounts: 0,
       taxRate: 0,
       taxAmount: 0,
+      additionalTaxAmount: 0,
       vatTaxPercent: 0,
       vatValue: 0,
       giftCardApplied: 0,
@@ -155,7 +164,20 @@ export async function calculateOrderTotals(
   const vatValue = round(afterDiscounts * vatRate, decimalPlaces);
   const taxAmount = vatValue;
 
-  const amountBeforeGiftCard = round(afterDiscounts + vatValue, decimalPlaces);
+  let additionalTaxAmount = 0;
+  if (additionalTaxAmountParam != null && additionalTaxAmountParam > 0) {
+    additionalTaxAmount = round(additionalTaxAmountParam, decimalPlaces);
+  } else if (additionalTaxRate != null && additionalTaxRate > 0) {
+    additionalTaxAmount = round(
+      (afterDiscounts * additionalTaxRate) / 100,
+      decimalPlaces
+    );
+  }
+
+  const amountBeforeGiftCard = round(
+    afterDiscounts + vatValue + additionalTaxAmount,
+    decimalPlaces
+  );
 
   let giftCardApplied = 0;
   if (giftCardNumber?.trim()) {
@@ -186,6 +208,7 @@ export async function calculateOrderTotals(
     afterDiscounts,
     taxRate: vatRate,
     taxAmount,
+    additionalTaxAmount,
     vatTaxPercent,
     vatValue,
     giftCardApplied,

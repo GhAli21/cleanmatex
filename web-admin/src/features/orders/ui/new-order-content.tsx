@@ -23,6 +23,8 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
+import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
+import type { BranchOption } from '@/lib/services/inventory-service';
 // Temporary imports - will move to feature folder later
 // Using @ alias to access app folder components
 import { CategoryTabs } from '@/app/dashboard/orders/new/components/category-tabs';
@@ -53,6 +55,8 @@ export function NewOrderContent() {
     } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details'>('select');
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const [branches, setBranches] = useState<BranchOption[]>([]);
+    const [branchesLoading, setBranchesLoading] = useState(true);
     const state = useNewOrderStateWithDispatch();
     const { submitOrder, isSubmitting } = useOrderSubmission();
     const totals = useOrderTotals();
@@ -101,6 +105,13 @@ export function NewOrderContent() {
     useEffect(() => {
         resetMetrics();
     }, [resetMetrics]);
+
+    // Fetch branches for branch selector
+    useEffect(() => {
+        getBranchesAction().then((r) => {
+            if (r.success && r.data) setBranches(r.data);
+        }).finally(() => setBranchesLoading(false));
+    }, []);
 
     // Load categories and products
     const categoriesQuery = useCategories();
@@ -356,8 +367,33 @@ export function NewOrderContent() {
             <div className={`h-full min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Left/Center Panel - Primary Content Area: categories fixed, Select Items scrollable */}
                 <div className="flex-1 min-h-0 flex flex-col">
-                    {/* Fixed at top: categories first, then step tabs */}
+                    {/* Fixed at top: branch selector, then categories, then step tabs */}
                     <div className="flex-shrink-0 p-6 space-y-4">
+                        {/* Branch Selector - at top */}
+                        {branches.length > 0 && (
+                            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <label htmlFor="new-order-branch" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                    {tCommon('branch')}
+                                </label>
+                                <select
+                                    id="new-order-branch"
+                                    value={state.state.branchId ?? ''}
+                                    onChange={(e) => state.setBranchId(e.target.value || null)}
+                                    className={`flex-1 max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+                                    dir={isRTL ? 'rtl' : 'ltr'}
+                                >
+                                    <option value="">{tCommon('allBranches')}</option>
+                                    {branches.map((b) => (
+                                        <option key={b.id} value={b.id}>
+                                            {isRTL ? (b.name2 || b.name) : b.name}
+                                        </option>
+                                    ))}
+                                </select>
+                                {branchesLoading && (
+                                    <span className="text-xs text-gray-500">{tCommon('loading') || 'Loading...'}</span>
+                                )}
+                            </div>
+                        )}
                         {/* Category Tabs - fixed at top when on Select Items */}
                         {activeTab === 'select' && (
                             <>

@@ -22,6 +22,7 @@ export const initialState: NewOrderState = {
   items: [],
 
   // Order Settings
+  branchId: null,
   isQuickDrop: false,
   quickDropQuantity: 0,
   express: false,
@@ -69,6 +70,12 @@ export function newOrderReducer(
         ...state,
         customer: action.payload.customer,
         customerName: action.payload.customerName,
+      };
+
+    case 'SET_BRANCH_ID':
+      return {
+        ...state,
+        branchId: action.payload,
       };
 
     case 'SET_ITEMS': {
@@ -354,6 +361,7 @@ export function newOrderReducer(
     case 'RESET_ORDER':
       return {
         ...initialState,
+        branchId: state.branchId,
         categories: state.categories,
         products: state.products,
         selectedCategory: state.selectedCategory,

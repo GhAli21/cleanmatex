@@ -263,6 +263,7 @@ export function NewOrderModals() {
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
+          branchId={state.state.branchId ?? undefined}
           serviceCategories={serviceCategories}
           isRetailOnlyOrder={isRetailOnlyOrder}
           loading={state.state.loading}

@@ -138,6 +138,7 @@ export interface NewOrderState {
   items: OrderItem[];
 
   // Order Settings
+  branchId: string | null;
   isQuickDrop: boolean;
   quickDropQuantity: number;
   express: boolean;
@@ -173,6 +174,7 @@ export interface NewOrderState {
  */
 export type NewOrderAction =
   | { type: 'SET_CUSTOMER'; payload: { customer: MinimalCustomer | null; customerName: string } }
+  | { type: 'SET_BRANCH_ID'; payload: string | null }
   | { type: 'SET_ITEMS'; payload: OrderItem[] }
   | { type: 'ADD_ITEM'; payload: OrderItem }
   | { type: 'REMOVE_ITEM'; payload: string } // productId
