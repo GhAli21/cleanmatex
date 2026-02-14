@@ -718,6 +718,18 @@ export class OrderService {
     });
     const v_workflowTemplateId = template?.template_id ?? null;
 
+    let readyByFields: { ready_by?: Date; ready_by_at_new?: Date } = {};
+    if (readyByAt) {
+      try {
+        const d = new Date(readyByAt);
+        if (!Number.isNaN(d.getTime())) {
+          readyByFields = { ready_by: d, ready_by_at_new: d };
+        }
+      } catch {
+        // ignore invalid date
+      }
+    }
+
     const order = await tx.org_orders_mst.create({
       data: {
         tenant_org_id: tenantId,
@@ -753,18 +765,7 @@ export class OrderService {
         ...(vatAmount != null && { vat_amount: vatAmount }),
         ...(taxRate != null && { tax_rate: taxRate }),
         ...(discountRate != null && { discount_rate: discountRate }),
-        ...((() => {
-          if (!readyByAt) return {};
-          try {
-            const d = new Date(readyByAt);
-            if (!Number.isNaN(d.getTime())) {
-              return { ready_by: d, ready_by_at_new: d };
-            }
-          } catch {
-            // ignore invalid date
-          }
-          return {};
-        })(),
+        ...readyByFields,
         ...(discountType != null && { discount_type: discountType }),
         ...(promoCodeId != null && { promo_code_id: promoCodeId }),
         ...(giftCardId != null && { gift_card_id: giftCardId }),
