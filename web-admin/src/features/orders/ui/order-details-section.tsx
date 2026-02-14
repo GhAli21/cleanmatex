@@ -9,6 +9,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import type { PreSubmissionPiece } from '../model/new-order-types';
@@ -35,6 +36,15 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
   const tNewOrder = useTranslations('newOrder');
   const tItems = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
+  const getBilingual = useBilingual();
+
+  const categoryNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const c of state.categories) {
+      map.set(c.service_category_code, getBilingual(c.ctg_name, c.ctg_name2) || c.service_category_code);
+    }
+    return map;
+  }, [state.categories, getBilingual]);
 
   const [expandedPiecesItems, setExpandedPiecesItems] = useState<Set<string>>(
     () => new Set(),
@@ -170,6 +180,9 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                 {tItems('itemName') || tItems('addItem') || 'Item'}
               </th>
               <th className="px-3 py-2 font-semibold">
+                {tItems('serviceCategory') || 'Service Category'}
+              </th>
+              <th className="px-3 py-2 font-semibold">
                 {tItems('qtyLabel') || 'Qty'}
               </th>
               <th className="px-3 py-2 font-semibold">
@@ -238,6 +251,17 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                         )}
                       </button>
                     )}
+                  </td>
+                  <td className="px-3 py-2 align-top">
+                    <div
+                      className={`text-xs text-gray-700 ${isRTL ? 'text-right' : 'text-left'
+                        }`}
+                    >
+                      {item.serviceCategoryCode
+                        ? categoryNameMap.get(item.serviceCategoryCode) ||
+                          item.serviceCategoryCode
+                        : '—'}
+                    </div>
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div
@@ -320,7 +344,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                   expandedPiecesItems.has(item.productId) &&
                   (item.pieces ?? []).map((piece) => (
                     <tr key={piece.id} className="bg-gray-50 border-t border-gray-100">
-                      <td className="px-6 py-2 align-top" colSpan={6}>
+                      <td className="px-6 py-2 align-top" colSpan={7}>
                         <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2 shadow-xs">
                           {/* Top row: piece label + main fields */}
                           <div
@@ -441,7 +465,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                   <tr className="bg-gray-50 border-t border-gray-100">
                     <td
                       className="px-6 py-2 text-[11px] text-blue-700 cursor-pointer"
-                      colSpan={6}
+                      colSpan={7}
                     >
                       <button
                         type="button"

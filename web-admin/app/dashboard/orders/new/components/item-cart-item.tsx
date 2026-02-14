@@ -26,6 +26,9 @@ interface ItemCartItemProps {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  serviceCategoryCode?: string;
+  serviceCategoryName?: string;
+  serviceCategoryName2?: string;
   onPiecesChange?: (pieces: PreSubmissionPiece[]) => void;
   trackByPiece?: boolean;
   onEdit?: () => void;
@@ -47,6 +50,9 @@ function ItemCartItemComponent({
   hasDamage = false,
   notes,
   pieces = [],
+  serviceCategoryCode,
+  serviceCategoryName,
+  serviceCategoryName2,
   onPiecesChange,
   trackByPiece = false,
   onEdit,
@@ -60,6 +66,7 @@ function ItemCartItemComponent({
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const displayName = getBilingual(productName, productName2) || 'Unknown Product';
+  const displayCategory = getBilingual(serviceCategoryName, serviceCategoryName2) || serviceCategoryCode;
   const [piecesExpanded, setPiecesExpanded] = useState(false);
 
   const hasIssues = hasStain || hasDamage || conditions.length > 0;
@@ -76,9 +83,16 @@ function ItemCartItemComponent({
       <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
         {/* Product Name */}
         <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <h4 className={`font-medium text-gray-900 text-sm line-clamp-1 flex-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {displayName}
-          </h4>
+          <div className="flex-1 min-w-0">
+            <h4 className={`font-medium text-gray-900 text-sm line-clamp-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {displayName}
+            </h4>
+            {displayCategory && (
+              <p className={`text-xs text-gray-500 mt-0.5 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {displayCategory}
+              </p>
+            )}
+          </div>
 
           {/* Actions - Show on hover or always on mobile */}
           <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100 ${isRTL ? 'flex-row-reverse' : ''}`}>

@@ -271,18 +271,28 @@ export function NewOrderContent() {
     // Memoized order items for OrderSummaryPanel
     const memoizedOrderItems = useMemo(
         () =>
-            state.state.items.map((item) => ({
-                id: item.productId,
-                productId: item.productId,
-                productName: item.productName || 'Unknown Product',
-                productName2: item.productName2 || undefined,
-                quantity: item.quantity,
-                pricePerUnit: item.pricePerUnit,
-                totalPrice: item.totalPrice,
-                notes: item.notes,
-                pieces: item.pieces,
-            })),
-        [state.state.items]
+            state.state.items.map((item) => {
+                const cat = state.state.categories.find(
+                    (c) => c.service_category_code === item.serviceCategoryCode
+                );
+                return {
+                    id: item.productId,
+                    productId: item.productId,
+                    productName: item.productName || 'Unknown Product',
+                    productName2: item.productName2 || undefined,
+                    quantity: item.quantity,
+                    pricePerUnit: item.pricePerUnit,
+                    totalPrice: item.totalPrice,
+                    notes: item.notes,
+                    pieces: item.pieces,
+                    serviceCategoryCode: item.serviceCategoryCode,
+                    serviceCategoryName: cat?.ctg_name ?? item.serviceCategoryCode ?? undefined,
+                    serviceCategoryName2: cat?.ctg_name2 ?? undefined,
+                    priceOverride: item.priceOverride,
+                    overrideReason: item.overrideReason,
+                };
+            }),
+        [state.state.items, state.state.categories]
     );
 
     // Get unique service categories from items

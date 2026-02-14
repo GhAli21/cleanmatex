@@ -26,6 +26,9 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  serviceCategoryCode?: string;
+  serviceCategoryName?: string;
+  serviceCategoryName2?: string;
 }
 
 interface ItemCartListProps {
@@ -93,6 +96,9 @@ function ItemCartListComponent({
             hasDamage={item.hasDamage}
             notes={item.notes}
             pieces={item.pieces}
+            serviceCategoryCode={item.serviceCategoryCode}
+            serviceCategoryName={item.serviceCategoryName}
+            serviceCategoryName2={item.serviceCategoryName2}
             onPiecesChange={onPiecesChange ? (pieces) => onPiecesChange(item.id, pieces) : undefined}
             trackByPiece={trackByPiece}
             onEdit={onEditItem ? () => onEditItem(item.id) : undefined}

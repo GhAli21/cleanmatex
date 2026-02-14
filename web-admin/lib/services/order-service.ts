@@ -5,12 +5,17 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db/prisma';
 import { WorkflowService } from './workflow-service';
 import { OrderPieceService } from './order-piece-service';
 import { TenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
+import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
+
+/** Prisma transaction client for use inside $transaction */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export interface CreateOrderPieceData {
   pieceSeq: number;
@@ -621,6 +626,204 @@ export class OrderService {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+  }
+
+  /**
+   * Create order within a Prisma transaction (for atomic create-with-payment flow).
+   * All operations use tx - if any step fails, the whole transaction rolls back.
+   */
+  static async createOrderInTransaction(
+    tx: PrismaTx,
+    params: CreateOrderParams
+  ): Promise<CreateOrderResult> {
+    const {
+      tenantId,
+      customerId,
+      branchId,
+      orderTypeId,
+      items,
+      isQuickDrop,
+      quickDropQuantity,
+      priority,
+      express,
+      customerNotes,
+      internalNotes,
+      paymentMethod,
+      userId,
+      totals,
+      discountRate,
+      discountType,
+      promoCodeId,
+      giftCardId,
+      promoDiscountAmount,
+      giftCardDiscountAmount,
+      paymentTypeCode,
+      currencyCode: passedCurrencyCode,
+      currencyExRate: passedCurrencyExRate,
+    } = params;
+
+    const isRetailOnlyOrder =
+      items.length > 0 &&
+      items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+
+    let v_initialStatus: string;
+    let v_transitionFrom: string;
+    let v_orderStatus: string;
+    let v_current_status: string;
+    let v_current_stage: string;
+
+    if (isRetailOnlyOrder) {
+      v_initialStatus = RETAIL_TERMINAL_STATUS;
+      v_transitionFrom = RETAIL_TERMINAL_STATUS;
+      v_orderStatus = RETAIL_TERMINAL_STATUS;
+      v_current_status = RETAIL_TERMINAL_STATUS;
+      v_current_stage = RETAIL_TERMINAL_STATUS;
+    } else if (isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)) {
+      v_initialStatus = 'preparing';
+      v_transitionFrom = 'intake';
+      v_orderStatus = 'preparing';
+      v_current_status = 'preparing';
+      v_current_stage = 'intake';
+    } else {
+      v_initialStatus = 'processing';
+      v_transitionFrom = 'intake';
+      v_orderStatus = 'processing';
+      v_current_status = 'processing';
+      v_current_stage = 'intake';
+    }
+
+    const orderNo = await generateOrderNumberWithTx(tx, tenantId);
+
+    const subtotal = totals?.subtotal ?? items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const discount = totals?.discount ?? 0;
+    const tax = totals?.tax ?? 0;
+    const total = totals?.total ?? subtotal - discount + tax;
+    const vatRate = totals?.vatRate;
+    const vatAmount = totals?.vatAmount;
+    const currencyCode = passedCurrencyCode;
+    const currencyExRate = passedCurrencyExRate ?? 1;
+    const primaryServiceCategory = items[0]?.serviceCategoryCode || null;
+
+    const template = await tx.org_tenant_workflow_templates_cf.findFirst({
+      where: {
+        tenant_org_id: tenantId,
+        is_default: true,
+        is_active: true,
+      },
+      select: { template_id: true },
+    });
+    const v_workflowTemplateId = template?.template_id ?? null;
+
+    const order = await tx.org_orders_mst.create({
+      data: {
+        tenant_org_id: tenantId,
+        branch_id: branchId,
+        customer_id: customerId,
+        order_type_id: orderTypeId,
+        order_no: orderNo,
+        status: v_orderStatus,
+        workflow_template_id: v_workflowTemplateId,
+        current_status: v_current_status,
+        current_stage: v_current_stage,
+        priority: priority || 'normal',
+        priority_multiplier: express ? 0.5 : 1.0,
+        total_items: items.length > 0 ? items.length : quickDropQuantity ?? 0,
+        subtotal,
+        discount,
+        tax,
+        total,
+        payment_status: paymentMethod ? 'partial' : 'pending',
+        payment_method_code: paymentMethod,
+        paid_amount: 0,
+        service_category_code: primaryServiceCategory,
+        is_order_quick_drop: isQuickDrop ?? false,
+        quick_drop_quantity: quickDropQuantity,
+        is_retail: isRetailOnlyOrder,
+        customer_notes: customerNotes,
+        internal_notes: internalNotes,
+        created_by: userId,
+        created_info: null,
+        rec_status: 1,
+        ...(currencyCode && { currency_code: currencyCode, currency_ex_rate: currencyExRate }),
+        ...(vatRate != null && { vat_rate: vatRate }),
+        ...(vatAmount != null && { vat_amount: vatAmount }),
+        ...(discountRate != null && { discount_rate: discountRate }),
+        ...(discountType != null && { discount_type: discountType }),
+        ...(promoCodeId != null && { promo_code_id: promoCodeId }),
+        ...(giftCardId != null && { gift_card_id: giftCardId }),
+        ...(promoDiscountAmount != null && { promo_discount_amount: promoDiscountAmount }),
+        ...(giftCardDiscountAmount != null && { gift_card_discount_amount: giftCardDiscountAmount }),
+        ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
+      },
+    });
+
+    if (items.length > 0) {
+      const tenantSettingsService = new TenantSettingsService();
+      const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(tenantId, 'USE_TRACK_BY_PIECE');
+
+      for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const createdItem = await tx.org_order_items_dtl.create({
+          data: {
+            order_id: order.id,
+            tenant_org_id: tenantId,
+            service_category_code: item.serviceCategoryCode,
+            order_item_srno: `${orderNo}-${index + 1}`,
+            product_id: item.productId,
+            quantity: item.quantity,
+            price_per_unit: item.pricePerUnit,
+            total_price: item.totalPrice,
+            status: 'pending',
+            item_status: v_initialStatus,
+            item_stage: v_transitionFrom,
+            notes: item.notes,
+            has_stain: item.hasStain,
+            has_damage: item.hasDamage,
+            stain_notes: item.stainNotes,
+            damage_notes: item.damageNotes,
+          },
+        });
+
+        if (trackByPiece && item.quantity > 0) {
+          const pricePerPiece = item.totalPrice / item.quantity;
+          const piecesData = Array.from({ length: item.quantity }, (_, i) => ({
+            tenant_org_id: tenantId,
+            order_id: order.id,
+            order_item_id: createdItem.id,
+            piece_seq: i + 1,
+            service_category_code: item.serviceCategoryCode,
+            product_id: item.productId,
+            scan_state: 'expected',
+            quantity: 1,
+            price_per_unit: pricePerPiece,
+            total_price: pricePerPiece,
+            piece_status: 'processing',
+            is_rejected: false,
+            is_ready: false,
+          }));
+          await tx.org_order_item_pieces_dtl.createMany({ data: piecesData });
+        }
+      }
+
+      if (isRetailOnlyOrder) {
+        await tx.$executeRawUnsafe(
+          `SELECT deduct_retail_stock_for_order($1::uuid, $2::uuid, $3::uuid)`,
+          order.id,
+          tenantId,
+          order.branch_id ?? null
+        );
+      }
+    }
+
+    return {
+      success: true,
+      order: {
+        id: order.id,
+        orderNo: order.order_no,
+        currentStatus: order.current_status ?? v_orderStatus,
+        readyByAt: '',
+      },
+    };
   }
 
   /**

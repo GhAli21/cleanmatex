@@ -13,6 +13,9 @@
 
 import { prisma } from '@/lib/db/prisma';
 
+/** Prisma transaction client type for use inside $transaction */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
 export interface OrderNumberResult {
   orderNumber: string;
   date: string;
@@ -55,6 +58,32 @@ export async function generateOrderNumber(tenantOrgId: string): Promise<string> 
     console.error('[generateOrderNumber] Error:', error);
     throw new Error(`Failed to generate order number: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
+}
+
+/**
+ * Generate order number within a Prisma transaction.
+ * Use when order creation must be atomic with other operations.
+ */
+export async function generateOrderNumberWithTx(
+  tx: PrismaTx,
+  tenantOrgId: string
+): Promise<string> {
+  const result = await tx.$queryRawUnsafe<[{ generate_order_number: string }]>(
+    `SELECT generate_order_number($1::uuid) as generate_order_number`,
+    tenantOrgId
+  );
+
+  if (!result || result.length === 0) {
+    throw new Error('Failed to generate order number: No result from database');
+  }
+
+  const orderNumber = result[0].generate_order_number;
+
+  if (!orderNumber || !isValidOrderNumber(orderNumber)) {
+    throw new Error(`Invalid order number generated: ${orderNumber}`);
+  }
+
+  return orderNumber;
 }
 
 /**

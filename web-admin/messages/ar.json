@@ -2360,6 +2360,7 @@
       "customGarmentPlaceholder": "مثال: قطعة مخصصة",
       "noItemsAdded": "لم تتم إضافة عناصر بعد",
       "itemName": "اسم العنصر",
+      "serviceCategory": "فئة الخدمة",
       "actions": "الإجراءات",
       "removeItem": "إزالة العنصر",
       "selectItemsFromGrid": "اختر العناصر من الشبكة للبدء",

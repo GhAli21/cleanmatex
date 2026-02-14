@@ -240,13 +240,51 @@ export function PaymentModalEnhanced02({
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
   const formatAmount = (n: number) => n.toFixed(decimalPlaces);
 
+  /** Base amount for additional tax (after discounts, before VAT). Used for rate⇄amount sync. */
+  const afterDiscountsForTax = useMemo(() => {
+    if (serverTotals) return serverTotals.afterDiscounts;
+    const subtotal = total;
+    const manualDiscount =
+      percentDiscount > 0
+        ? Math.min((subtotal * percentDiscount) / 100, subtotal)
+        : Math.min(amountDiscount, subtotal);
+    const promoDiscount = appliedPromoCode?.discount || 0;
+    return Math.max(0, subtotal - manualDiscount - promoDiscount);
+  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
+
+  const handleOrderTaxRateChange = useCallback(
+    (newRate: number) => {
+      setOrderTaxRate(newRate);
+      const amount = parseFloat((afterDiscountsForTax * (newRate / 100)).toFixed(decimalPlaces));
+      setOrderTaxAmount(amount);
+    },
+    [afterDiscountsForTax, decimalPlaces]
+  );
+
+  const handleOrderTaxAmountChange = useCallback(
+    (newAmount: number) => {
+      setOrderTaxAmount(newAmount);
+      if (afterDiscountsForTax > 0) {
+        const rate = parseFloat(((newAmount / afterDiscountsForTax) * 100).toFixed(2));
+        setOrderTaxRate(rate);
+      }
+    },
+    [afterDiscountsForTax]
+  );
+
   const totals = useMemo(() => {
     if (serverTotals) {
+      const additionalTaxAmount =
+        orderTaxAmount > 0
+          ? orderTaxAmount
+          : parseFloat((afterDiscountsForTax * (orderTaxRate / 100)).toFixed(decimalPlaces));
+      const finalTotalWithExtra = serverTotals.finalTotal + additionalTaxAmount;
       return {
         ...serverTotals,
-        taxRate: 0,
-        taxAmount: 0,
-        totalSavings: serverTotals.subtotal + serverTotals.vatValue - serverTotals.finalTotal,
+        taxRate: orderTaxRate,
+        taxAmount: additionalTaxAmount,
+        finalTotal: finalTotalWithExtra,
+        totalSavings: serverTotals.subtotal + serverTotals.vatValue - finalTotalWithExtra,
       };
     }
     const subtotal = total;
@@ -256,7 +294,7 @@ export function PaymentModalEnhanced02({
         : Math.min(amountDiscount, subtotal);
     const promoDiscount = appliedPromoCode?.discount || 0;
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
-    const taxAmount = orderTaxAmount > 0 ? orderTaxAmount : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(3));
+    const taxAmount = orderTaxAmount > 0 ? orderTaxAmount : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(decimalPlaces));
     const afterTax = afterDiscounts + taxAmount;
     const vatValue = parseFloat((afterTax * taxRate).toFixed(3));
     const giftCardApplied = appliedGiftCard?.amount || 0;
@@ -274,7 +312,7 @@ export function PaymentModalEnhanced02({
       finalTotal,
       totalSavings: subtotal + taxAmount + vatValue - finalTotal,
     };
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount]);
+  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount, afterDiscountsForTax, decimalPlaces]);
 
   const handleValidatePromoCode = async () => {
     if (!promoCode?.trim()) return;
@@ -464,7 +502,7 @@ export function PaymentModalEnhanced02({
                     max={100}
                     step={0.01}
                     value={orderTaxRate}
-                    onChange={(e) => setOrderTaxRate(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleOrderTaxRateChange(parseFloat(e.target.value) || 0)}
                     className="w-14 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-right"
                   />
                   <span className="text-xs">%</span>
@@ -478,7 +516,7 @@ export function PaymentModalEnhanced02({
                     min={0}
                     step={0.001}
                     value={orderTaxAmount > 0 ? orderTaxAmount : ''}
-                    onChange={(e) => setOrderTaxAmount(parseFloat(e.target.value) || 0)}
+                    onChange={(e) => handleOrderTaxAmountChange(parseFloat(e.target.value) || 0)}
                     placeholder={formatAmount(totals.taxAmount ?? 0)}
                     className="w-20 rounded border border-gray-300 px-1.5 py-0.5 text-sm text-right"
                   />

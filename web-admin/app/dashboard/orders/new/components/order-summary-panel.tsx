@@ -26,6 +26,9 @@ interface CartItem {
   hasDamage?: boolean;
   notes?: string;
   pieces?: PreSubmissionPiece[];
+  serviceCategoryCode?: string;
+  serviceCategoryName?: string;
+  serviceCategoryName2?: string;
   priceOverride?: number | null;
   overrideReason?: string | null;
 }

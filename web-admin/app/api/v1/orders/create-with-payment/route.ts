@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { createInvoice } from '@/lib/services/invoice-service';
@@ -122,10 +123,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const orderResult = await OrderService.createOrder({
+    const isInvoiceOnly = input.paymentMethod === PAYMENT_METHODS.INVOICE || input.paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION;
+    const hasImmediatePayment = !isInvoiceOnly && (
+      input.paymentMethod === PAYMENT_METHODS.CASH ||
+      input.paymentMethod === PAYMENT_METHODS.CARD ||
+      input.paymentMethod === PAYMENT_METHODS.CHECK
+    );
+
+    const createOrderParams = {
       tenantId,
       userId,
-      userName,
+      userName: userName ?? 'User',
       customerId: input.customerId,
       branchId: input.branchId,
       orderTypeId: input.orderTypeId,
@@ -152,113 +160,105 @@ export async function POST(request: NextRequest) {
       paymentTypeCode: getPaymentTypeFromMethod(input.paymentMethod),
       currencyCode: serverTotals.currencyCode,
       useOldWfCodeOrNew: false,
-    });
+    };
 
-    if (!orderResult.success || !orderResult.order) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: orderResult.error ?? 'Order creation failed',
-        },
-        { status: 500 }
-      );
-    }
+    const result = await withTenantContext(tenantId, async () =>
+      prisma.$transaction(async (tx) => {
+        const orderResult = await OrderService.createOrderInTransaction(tx, createOrderParams);
+        if (!orderResult.success || !orderResult.order) {
+          throw new Error(orderResult.error ?? 'Order creation failed');
+        }
 
-    const orderId = orderResult.order.id;
-    const orderNo = orderResult.order.orderNo;
+        const orderId = orderResult.order.id;
+        const orderNo = orderResult.order.orderNo;
 
-    const isInvoiceOnly = input.paymentMethod === PAYMENT_METHODS.INVOICE || input.paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION;
-    const hasImmediatePayment = !isInvoiceOnly && (
-      input.paymentMethod === PAYMENT_METHODS.CASH ||
-      input.paymentMethod === PAYMENT_METHODS.CARD ||
-      input.paymentMethod === PAYMENT_METHODS.CHECK
-    );
-
-    await prisma.$transaction(async (tx) => {
-      const invoice = await createInvoice(
-        {
-          order_id: orderId,
-          subtotal: serverTotals.subtotal,
-          discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
-          tax: serverTotals.vatValue,
-          payment_method_code: input.paymentMethod,
-        },
-        tx
-      );
-
-      if (hasImmediatePayment && serverTotals.finalTotal > 0) {
-        const paymentMethodCode = input.paymentMethod === PAYMENT_METHODS.CASH
-          ? 'CASH'
-          : input.paymentMethod === PAYMENT_METHODS.CARD
-            ? 'CARD'
-            : 'CHECK';
-
-        await recordPaymentTransaction(
+        const invoice = await createInvoice(
           {
-            invoice_id: invoice.id,
             order_id: orderId,
-            customer_id: input.customerId ?? undefined,
-            paid_amount: serverTotals.finalTotal,
-            payment_method_code: paymentMethodCode,
-            payment_type_code: getPaymentTypeFromMethod(input.paymentMethod),
-            paid_by: userId,
-            branch_id: input.branchId,
             subtotal: serverTotals.subtotal,
-            manual_discount_amount: serverTotals.manualDiscount,
-            promo_discount_amount: serverTotals.promoDiscount,
-            gift_card_applied_amount: serverTotals.giftCardApplied,
-            vat_rate: serverTotals.vatTaxPercent,
-            vat_amount: serverTotals.vatValue,
-            currency_code: serverTotals.currencyCode,
-            check_number: input.checkNumber,
-            check_bank: input.checkBank,
-            check_date: input.checkDate ? new Date(input.checkDate) : undefined,
-            promo_code_id: input.promoCodeId,
-            gift_card_id: input.giftCardId,
-            metadata: {
-              promo_code: input.promoCode,
-              gift_card_number: input.giftCardNumber,
-              gift_card_amount: input.giftCardAmount,
-            },
-            payment_channel: 'web_admin',
+            discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
+            tax: serverTotals.vatValue,
+            payment_method_code: input.paymentMethod,
           },
           tx
         );
 
-        await tx.org_invoice_mst.update({
-          where: { id: invoice.id },
-          data: {
-            paid_amount: serverTotals.finalTotal,
-            status: 'paid',
-            paid_at: new Date(),
-            paid_by: userId,
-            payment_method_code: paymentMethodCode,
-            updated_at: new Date(),
-            updated_by: userId,
-          },
-        });
+        if (hasImmediatePayment && serverTotals.finalTotal > 0) {
+          const paymentMethodCode = input.paymentMethod === PAYMENT_METHODS.CASH
+            ? 'CASH'
+            : input.paymentMethod === PAYMENT_METHODS.CARD
+              ? 'CARD'
+              : 'CHECK';
 
-        await tx.org_orders_mst.update({
-          where: { id: orderId },
-          data: {
-            paid_amount: serverTotals.finalTotal,
-            payment_status: 'paid',
-            paid_at: new Date(),
-            paid_by: userId,
-            updated_at: new Date(),
-            updated_by: userId,
-          },
-        });
-      }
-    });
+          await recordPaymentTransaction(
+            {
+              invoice_id: invoice.id,
+              order_id: orderId,
+              customer_id: input.customerId ?? undefined,
+              paid_amount: serverTotals.finalTotal,
+              payment_method_code: paymentMethodCode,
+              payment_type_code: getPaymentTypeFromMethod(input.paymentMethod),
+              paid_by: userId,
+              branch_id: input.branchId,
+              subtotal: serverTotals.subtotal,
+              manual_discount_amount: serverTotals.manualDiscount,
+              promo_discount_amount: serverTotals.promoDiscount,
+              gift_card_applied_amount: serverTotals.giftCardApplied,
+              vat_rate: serverTotals.vatTaxPercent,
+              vat_amount: serverTotals.vatValue,
+              currency_code: serverTotals.currencyCode,
+              check_number: input.checkNumber,
+              check_bank: input.checkBank,
+              check_date: input.checkDate ? new Date(input.checkDate) : undefined,
+              promo_code_id: input.promoCodeId,
+              gift_card_id: input.giftCardId,
+              metadata: {
+                promo_code: input.promoCode,
+                gift_card_number: input.giftCardNumber,
+                gift_card_amount: input.giftCardAmount,
+              },
+              payment_channel: 'web_admin',
+            },
+            tx
+          );
+
+          await tx.org_invoice_mst.update({
+            where: { id: invoice.id },
+            data: {
+              paid_amount: serverTotals.finalTotal,
+              status: 'paid',
+              paid_at: new Date(),
+              paid_by: userId,
+              payment_method_code: paymentMethodCode,
+              updated_at: new Date(),
+              updated_by: userId,
+            },
+          });
+
+          await tx.org_orders_mst.update({
+            where: { id: orderId },
+            data: {
+              paid_amount: serverTotals.finalTotal,
+              payment_status: 'paid',
+              paid_at: new Date(),
+              paid_by: userId,
+              updated_at: new Date(),
+              updated_by: userId,
+            },
+          });
+        }
+
+        return { orderId, orderNo, currentStatus: orderResult.order.currentStatus };
+      })
+    );
 
     return NextResponse.json({
       success: true,
       data: {
-        id: orderId,
-        orderId,
-        orderNo,
-        currentStatus: orderResult.order.currentStatus,
+        id: result.orderId,
+        orderId: result.orderId,
+        orderNo: result.orderNo,
+        currentStatus: result.currentStatus,
       },
     });
   } catch (error) {

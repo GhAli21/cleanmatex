@@ -2360,6 +2360,7 @@
       "customGarmentPlaceholder": "e.g., Custom Garment",
       "noItemsAdded": "No items added yet",
       "itemName": "Item Name",
+      "serviceCategory": "Service Category",
       "actions": "Actions",
       "removeItem": "Remove item",
       "selectItemsFromGrid": "Select items from the grid to start",
