@@ -143,7 +143,10 @@ export const createWithPaymentRequestSchema = z.object({
   checkNumber: z.string().optional(),
   checkBank: z.string().optional(),
   checkDate: z.string().optional(),
-  branchId: z.string().uuid().optional(),
+  branchId: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().uuid().optional()
+  ),
   clientTotals: clientTotalsSchema,
 });
 

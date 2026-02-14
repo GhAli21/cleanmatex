@@ -139,7 +139,7 @@ export function useOrderSubmission() {
                     checkNumber: paymentData.checkNumber ? sanitizeInput(paymentData.checkNumber) : undefined,
                     checkBank: paymentData.checkBank ? sanitizeInput(paymentData.checkBank) : undefined,
                     checkDate: paymentData.checkDate,
-                    branchId: state.state.branchId || undefined,
+                    ...(state.state.branchId && { branchId: state.state.branchId }),
                     ...((payload.totals.taxRate != null && payload.totals.taxRate > 0) && { additionalTaxRate: payload.totals.taxRate }),
                     ...((payload.totals.taxAmount != null && payload.totals.taxAmount > 0) && { additionalTaxAmount: payload.totals.taxAmount }),
                     clientTotals: {
