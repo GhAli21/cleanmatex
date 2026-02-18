@@ -185,7 +185,7 @@ export interface StockTransaction {
   id: string;
   tenant_org_id: string;
   product_id: string;
-  branch_id?: string | null;
+  branch_id: string;
   transaction_no: string | null;
   transaction_date: string;
   transaction_type: TransactionType;
@@ -216,6 +216,7 @@ export interface StockAdjustmentAudit {
 
 /**
  * Stock adjustment request (UI action)
+ * branch_id is required — all stock transactions must be scoped to a branch.
  */
 export interface StockAdjustmentRequest {
   product_id: string;
@@ -224,7 +225,7 @@ export interface StockAdjustmentRequest {
   reason: string;
   notes?: string;
   unit_cost?: number;
-  branch_id?: string;
+  branch_id: string;
   processed_by?: string | null;
   created_by?: string | null;
   created_info?: string | null;

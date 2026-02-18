@@ -15,11 +15,13 @@ import {
 import { TRANSACTION_TYPES, REFERENCE_TYPES } from '@/lib/constants/inventory';
 import { searchStockTransactionsAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, StockTransaction } from '@/lib/types/inventory';
+import type { BranchOption } from '@/lib/services/inventory-service';
 
 interface StockHistoryModalProps {
   item: InventoryItemListItem;
   onClose: () => void;
   branchId?: string;
+  branches?: BranchOption[];
 }
 
 function getSourceLabel(refType: string | null, t: (k: string) => string): string {
@@ -36,7 +38,7 @@ function getSourceLabel(refType: string | null, t: (k: string) => string): strin
   }
 }
 
-export default function StockHistoryModal({ item, onClose, branchId }: StockHistoryModalProps) {
+export default function StockHistoryModal({ item, onClose, branchId, branches = [] }: StockHistoryModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
 
@@ -44,6 +46,12 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
   const [transactions, setTransactions] = useState<StockTransaction[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+
+  const getBranchName = useCallback((txBranchId: string | null | undefined): string => {
+    if (!txBranchId) return '-';
+    const branch = branches.find((b) => b.id === txBranchId);
+    return branch ? `${branch.name}${branch.is_main ? ' ★' : ''}` : txBranchId.slice(0, 8) + '…';
+  }, [branches]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,11 +88,16 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="w-full max-w-2xl mx-4">
+      <DialogContent className="w-full max-w-3xl mx-4">
         <DialogHeader>
           <DialogTitle>{t('actions.history')}</DialogTitle>
           <p className="text-sm text-gray-500 mt-1">
             {item.product_name} ({item.product_code})
+            {branchId && branches.length > 0 && (
+              <span className="ml-2 text-blue-600">
+                — {getBranchName(branchId)}
+              </span>
+            )}
           </p>
         </DialogHeader>
 
@@ -99,6 +112,7 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
                 <thead>
                   <tr className="bg-gray-50 text-left">
                     <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.date')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('filters.branch')}</th>
                     <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.type')}</th>
                     <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.quantity')}</th>
                     <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.before')}</th>
@@ -114,6 +128,9 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
                     <tr key={tx.id} className="border-t">
                       <td className="px-3 py-2 text-xs">
                         {new Date(tx.transaction_date).toLocaleDateString()}
+                      </td>
+                      <td className="px-3 py-2 text-xs text-gray-600 whitespace-nowrap">
+                        {getBranchName(tx.branch_id)}
                       </td>
                       <td className="px-3 py-2">{getTypeBadge(tx.transaction_type)}</td>
                       <td className="px-3 py-2 font-mono">

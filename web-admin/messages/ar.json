@@ -2894,7 +2894,8 @@
       "searchPlaceholder": "بحث بالاسم أو الرمز أو SKU...",
       "allStatuses": "جميع الحالات",
       "branch": "الفرع",
-      "allBranches": "جميع الفروع"
+      "allBranches": "جميع الفروع",
+      "selectBranch": "اختر الفرع..."
     },
     "pagination": {
       "showing": "عرض {count} من {total}"
@@ -2909,7 +2910,8 @@
       "createFailed": "فشل في إنشاء الصنف",
       "updateFailed": "فشل في تحديث الصنف",
       "deleteFailed": "فشل في حذف الصنف",
-      "adjustFailed": "فشل في تعديل المخزون"
+      "adjustFailed": "فشل في تعديل المخزون",
+      "branchRequired": "يرجى اختيار الفرع لتعديل المخزون"
     },
     "placeholders": {
       "reason": "مثال: إعادة تخزين من المورد، بضائع تالفة..."

@@ -390,6 +390,7 @@ export default function StockPage() {
           item={historyItem}
           onClose={() => setHistoryItem(null)}
           branchId={branchId || undefined}
+          branches={branches}
         />
       )}
     </div>

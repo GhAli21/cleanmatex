@@ -2894,7 +2894,8 @@
       "searchPlaceholder": "Search by name, code, or SKU...",
       "allStatuses": "All Statuses",
       "branch": "Branch",
-      "allBranches": "All Branches"
+      "allBranches": "All Branches",
+      "selectBranch": "Select branch..."
     },
     "pagination": {
       "showing": "Showing {count} of {total}"
@@ -2909,7 +2910,8 @@
       "createFailed": "Failed to create item",
       "updateFailed": "Failed to update item",
       "deleteFailed": "Failed to delete item",
-      "adjustFailed": "Failed to adjust stock"
+      "adjustFailed": "Failed to adjust stock",
+      "branchRequired": "Please select a branch to adjust stock"
     },
     "placeholders": {
       "reason": "e.g. Restocked from supplier, damaged goods..."

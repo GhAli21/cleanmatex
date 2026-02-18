@@ -483,13 +483,18 @@ async function generateTransactionNo(): Promise<string> {
 }
 
 /**
- * Adjust stock for an item (increase, decrease, or set)
- * Creates a transaction and updates qty_on_hand atomically.
- * When branch_id provided: updates org_inv_stock_by_branch. When null: updates org_product_data_mst.qty_on_hand (legacy).
+ * Adjust stock for an item (increase, decrease, or set).
+ * Creates a transaction in org_inv_stock_tr and updates qty in org_inv_stock_by_branch.
+ * branch_id is required — all stock transactions must be branch-scoped.
  */
 export async function adjustStock(
   request: StockAdjustmentRequest
 ): Promise<StockTransaction> {
+  // Enforce branch_id at service level
+  if (!request.branch_id) {
+    throw new Error('branch_id is required for stock adjustments. All stock transactions must be scoped to a branch.');
+  }
+
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
@@ -507,19 +512,17 @@ export async function adjustStock(
     throw new Error('Inventory item not found');
   }
 
-  let qtyBefore: number;
-  if (request.branch_id) {
-    const { data: branchRow } = await supabase
-      .from('org_inv_stock_by_branch')
-      .select('qty_on_hand')
-      .eq('tenant_org_id', tenantId)
-      .eq('product_id', request.product_id)
-      .eq('branch_id', request.branch_id)
-      .maybeSingle();
-    qtyBefore = branchRow ? Number(branchRow.qty_on_hand) || 0 : 0;
-  } else {
-    qtyBefore = Number(item.qty_on_hand) || 0;
-  }
+  // Get current branch-level quantity
+  const { data: branchRow } = await supabase
+    .from('org_inv_stock_by_branch')
+    .select('qty_on_hand')
+    .eq('tenant_org_id', tenantId)
+    .eq('product_id', request.product_id)
+    .eq('branch_id', request.branch_id)
+    .maybeSingle();
+
+  const qtyBefore = branchRow ? Number(branchRow.qty_on_hand) || 0 : 0;
+
   let quantity: number;
   let qtyAfter: number;
   let transactionType: string;
@@ -550,7 +553,7 @@ export async function adjustStock(
   const insertPayload: Record<string, unknown> = {
     tenant_org_id: tenantId,
     product_id: request.product_id,
-    branch_id: request.branch_id || null,
+    branch_id: request.branch_id,
     transaction_no: transactionNo,
     transaction_type: transactionType,
     quantity,
@@ -579,46 +582,31 @@ export async function adjustStock(
     throw new Error('Failed to create stock transaction');
   }
 
-  // Update qty: branch-level or org_product_data_mst
-  if (request.branch_id) {
-    const { error: upsertError } = await supabase
-      .from('org_inv_stock_by_branch')
-      .upsert(
-        {
-          tenant_org_id: tenantId,
-          product_id: request.product_id,
-          branch_id: request.branch_id,
-          qty_on_hand: qtyAfter,
-          reorder_point: item.reorder_point ?? 0,
-          min_stock_level: item.min_stock_level ?? 0,
-          max_stock_level: item.max_stock_level ?? null,
-          last_purchase_cost: item.last_purchase_cost ?? null,
-          storage_location: item.storage_location ?? null,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'tenant_org_id,product_id,branch_id',
-          ignoreDuplicates: false,
-        }
-      );
-    if (upsertError) {
-      console.error('Error updating branch stock:', upsertError);
-      throw new Error('Failed to update stock quantity');
-    }
-  } else {
-    const { error: updateError } = await supabase
-      .from('org_product_data_mst')
-      .update({
+  // Update branch-level stock in org_inv_stock_by_branch
+  const { error: upsertError } = await supabase
+    .from('org_inv_stock_by_branch')
+    .upsert(
+      {
+        tenant_org_id: tenantId,
+        product_id: request.product_id,
+        branch_id: request.branch_id,
         qty_on_hand: qtyAfter,
+        reorder_point: item.reorder_point ?? 0,
+        min_stock_level: item.min_stock_level ?? 0,
+        max_stock_level: item.max_stock_level ?? null,
+        last_purchase_cost: item.last_purchase_cost ?? null,
+        storage_location: item.storage_location ?? null,
         updated_at: new Date().toISOString(),
-      })
-      .eq('tenant_org_id', tenantId)
-      .eq('id', request.product_id);
+      },
+      {
+        onConflict: 'tenant_org_id,product_id,branch_id',
+        ignoreDuplicates: false,
+      }
+    );
 
-    if (updateError) {
-      console.error('Error updating qty_on_hand:', updateError);
-      throw new Error('Failed to update stock quantity');
-    }
+  if (upsertError) {
+    console.error('Error updating branch stock:', upsertError);
+    throw new Error('Failed to update stock quantity');
   }
 
   return transaction as unknown as StockTransaction;
