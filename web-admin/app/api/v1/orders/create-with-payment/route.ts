@@ -102,8 +102,21 @@ export async function POST(request: NextRequest) {
   const input = parsed.data as CreateWithPaymentRequest;
   const { clientTotals } = input;
 
-  // Resolve branchId: use provided value, or default to tenant's main branch when none selected
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
+
+  // Resolve branchId: use provided value if valid UUID and exists for tenant; otherwise main branch
   let branchId: string | undefined = input.branchId;
+  if (branchId && !UUID_REGEX_V2.test(branchId.trim())) {
+    branchId = undefined;
+  }
+  if (branchId) {
+    const branch = await prisma.org_branches_mst.findFirst({
+      where: { id: branchId, tenant_org_id: tenantId },
+      select: { id: true },
+    });
+    if (!branch) branchId = undefined;
+  }
   if (!branchId) {
     const mainBranch = await prisma.org_branches_mst.findFirst({
       where: { tenant_org_id: tenantId, is_main: true },
