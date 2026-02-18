@@ -183,6 +183,20 @@ export default function StockPage() {
         </Card>
       )}
 
+      {/* Branch context banner */}
+      {branchId && hasBranches && (
+        <Card className="border-blue-100 bg-blue-50/50 p-3">
+          <p className="text-sm text-blue-800">
+            {t('messages.viewingBranchContext', {
+              branch:
+                isRtl
+                  ? branches.find((b) => b.id === branchId)?.name2
+                  : branches.find((b) => b.id === branchId)?.name ?? t('filters.branch'),
+            })}
+          </p>
+        </Card>
+      )}
+
       {/* Stats */}
       {stats && (
         <StatsCards
@@ -201,7 +215,7 @@ export default function StockPage() {
       <Card className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
           <Select
-            label={t('filters.branch')}
+            label={`${t('filters.branch')}`}
             value={branchId}
             onChange={(e) => {
               setBranchId(e.target.value);
@@ -387,6 +401,13 @@ export default function StockPage() {
         <EditItemModal
           item={editItem}
           branchId={branchId || undefined}
+          branchName={
+            branchId
+              ? (isRtl
+                  ? branches.find((b) => b.id === branchId)?.name2
+                  : branches.find((b) => b.id === branchId)?.name) ?? undefined
+              : undefined
+          }
           onClose={() => setEditItem(null)}
           onSuccess={handleAfterMutation}
         />

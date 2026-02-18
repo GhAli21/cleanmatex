@@ -2912,13 +2912,18 @@
       "updateFailed": "فشل في تحديث الصنف",
       "deleteFailed": "فشل في حذف الصنف",
       "adjustFailed": "فشل في تعديل المخزون",
-      "branchRequired": "يرجى اختيار الفرع لتعديل المخزون"
+      "branchRequired": "يرجى اختيار الفرع لتعديل المخزون",
+      "viewingBranchContext": "عرض المخزون لـ {branch}. القيم الخاصة بالفرع (رمز SKU، موقع التخزين) تتجاوز الإعدادات الافتراضية للمنتج.",
+      "productMasterDescription": "هذه الحقول تنطبق على المنتج عالمياً عبر جميع الفروع.",
+      "branchStockDescription": "تجاوزات خاصة بالفرع. اتركها فارغة لاستخدام إعدادات المنتج الافتراضية."
     },
     "placeholders": {
       "reason": "مثال: إعادة تخزين من المورد، بضائع تالفة..."
     },
     "sections": {
-      "optional": "حقول إضافية"
+      "optional": "حقول إضافية",
+      "productMaster": "سجل المنتج الرئيسي",
+      "branchStock": "مخزون الفرع"
     },
     "validation": {
       "nameRequired": "اسم الصنف مطلوب",

@@ -123,16 +123,27 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
     label: t(`units.${u}`),
   }));
 
+  const selectedBranch = branchId ? branches.find((b) => b.id === branchId) : null;
+
   return (
     <Dialog open onOpenChange={() => onClose()}>
       <DialogContent className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t('actions.addItem')}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {t('actions.addItem')}
+            {selectedBranch && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                + {t('sections.branchStock')}: {selectedBranch.name}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
           <div className="space-y-6 px-6 py-4">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && (
+              <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">{error}</div>
+            )}
 
             {/* Read-only defaults */}
             <div className="rounded-md border border-gray-200 bg-gray-50 p-3 text-sm text-gray-600">
@@ -141,9 +152,14 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
               <span className="font-medium">{t('labels.isRetailItem')}:</span> {tc('yes')}
             </div>
 
-            {/* Core */}
+            {/* Product Master */}
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('labels.itemName')}</h3>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-700">
+                  {t('sections.productMaster')}
+                </h3>
+                <p className="mt-0.5 text-xs text-gray-500">{t('messages.productMasterDescription')}</p>
+              </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label={t('labels.itemCode')}
@@ -221,9 +237,20 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
               </div>
             </div>
 
-            {/* Inventory */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-700">{t('labels.quantity')} / {t('labels.storageLocation')}</h3>
+            {/* Inventory / Branch Stock */}
+            <div
+              className={`space-y-4 rounded-lg p-4 ${
+                branchId ? 'border border-blue-100 bg-blue-50/30' : ''
+              }`}
+            >
+              <div className="flex flex-col gap-1">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  {branchId ? t('sections.branchStock') : t('labels.quantity') + ' / ' + t('labels.storageLocation')}
+                </h3>
+                {branchId && (
+                  <p className="text-xs text-gray-500">{t('messages.branchStockDescription')}</p>
+                )}
+              </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <Input
                   label={t('labels.initialQty')}

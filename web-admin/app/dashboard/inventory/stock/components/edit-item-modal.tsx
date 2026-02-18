@@ -11,7 +11,10 @@ import {
   Button,
   Input,
   Select,
+  Tabs,
+  Card,
 } from '@/components/ui';
+import { Package, MapPin } from 'lucide-react';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
 import {
   updateInventoryItemAction,
@@ -23,6 +26,7 @@ import type { InventoryItemListItem } from '@/lib/types/inventory';
 interface EditItemModalProps {
   item: InventoryItemListItem;
   branchId?: string;
+  branchName?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -30,6 +34,7 @@ interface EditItemModalProps {
 export default function EditItemModal({
   item,
   branchId,
+  branchName,
   onClose,
   onSuccess,
 }: EditItemModalProps) {
@@ -141,151 +146,193 @@ export default function EditItemModal({
     label: t(`units.${u}`),
   }));
 
+  const productFields = (
+    <div className="space-y-4">
+      <p className="text-xs text-gray-500">{t('messages.productMasterDescription')}</p>
+      <Input
+        label={t('labels.itemName') + ' (EN)'}
+        value={productName}
+        onChange={(e) => setProductName(e.target.value)}
+        required
+      />
+      <Input
+        label={t('labels.itemName') + ' (AR)'}
+        value={productName2}
+        onChange={(e) => setProductName2(e.target.value)}
+        dir="rtl"
+      />
+      <div className="grid grid-cols-2 gap-4">
+        <Select
+          label={t('labels.unit')}
+          value={productUnit}
+          onChange={(e) => setProductUnit(e.target.value)}
+          options={unitOptions}
+        />
+        <Input
+          label={t('labels.unitCost')}
+          type="number"
+          step="0.01"
+          min="0"
+          value={productCost}
+          onChange={(e) => setProductCost(e.target.value)}
+        />
+      </div>
+      <Input
+        label={t('labels.sellPrice')}
+        type="number"
+        step="0.01"
+        min="0"
+        value={sellPrice}
+        onChange={(e) => setSellPrice(e.target.value)}
+      />
+      {!branchId && (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={t('labels.reorderPoint')}
+              type="number"
+              step="0.01"
+              min="0"
+              value={reorderPoint}
+              onChange={(e) => setReorderPoint(e.target.value)}
+            />
+            <Input
+              label={t('labels.sku')}
+              value={skuValue}
+              onChange={(e) => setSkuValue(e.target.value)}
+            />
+          </div>
+          <Input
+            label={t('labels.storageLocation')}
+            value={storageLocation}
+            onChange={(e) => setStorageLocation(e.target.value)}
+          />
+        </>
+      )}
+    </div>
+  );
+
+  const branchFields = (
+    <div className="space-y-4">
+      <p className="text-xs text-gray-500">{t('messages.branchStockDescription')}</p>
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label={t('labels.sku')}
+          value={skuValue}
+          onChange={(e) => setSkuValue(e.target.value)}
+          placeholder="-"
+        />
+        <Input
+          label={t('labels.storageLocation')}
+          value={storageLocation}
+          onChange={(e) => setStorageLocation(e.target.value)}
+          placeholder="-"
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label={t('labels.reorderPoint')}
+          type="number"
+          step="0.01"
+          min="0"
+          value={reorderPoint}
+          onChange={(e) => setReorderPoint(e.target.value)}
+        />
+        <Input
+          label={t('labels.minStockLevel')}
+          type="number"
+          step="0.01"
+          min="0"
+          value={minStockLevel}
+          onChange={(e) => setMinStockLevel(e.target.value)}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label={t('labels.maxStockLevel')}
+          type="number"
+          step="0.01"
+          min="0"
+          value={maxStockLevel}
+          onChange={(e) => setMaxStockLevel(e.target.value)}
+          placeholder="-"
+        />
+        <Input
+          label={t('labels.lastPurchaseCost')}
+          type="number"
+          step="0.01"
+          min="0"
+          value={lastPurchaseCost}
+          onChange={(e) => setLastPurchaseCost(e.target.value)}
+          placeholder="-"
+        />
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="w-full max-w-lg mx-4">
+      <DialogContent
+        className={`mx-4 w-full overflow-y-auto ${branchId ? 'max-w-2xl' : 'max-w-lg'}`}
+      >
         <DialogHeader>
-          <DialogTitle>{t('actions.editItem')} — {item.product_code}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {t('actions.editItem')} — {item.product_code}
+            {branchId && branchName && (
+              <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                {branchName}
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="px-6 py-4 space-y-4">
-            {error && <p className="text-sm text-red-600">{error}</p>}
+          <div className="px-0 py-4">
+            {error && (
+              <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {error}
+              </div>
+            )}
 
-            <Input
-              label={t('labels.itemName') + ' (EN)'}
-              value={productName}
-              onChange={(e) => setProductName(e.target.value)}
-              required
-            />
-            <Input
-              label={t('labels.itemName') + ' (AR)'}
-              value={productName2}
-              onChange={(e) => setProductName2(e.target.value)}
-              dir="rtl"
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <Select
-                label={t('labels.unit')}
-                value={productUnit}
-                onChange={(e) => setProductUnit(e.target.value)}
-                options={unitOptions}
+            {branchId ? (
+              <Tabs
+                tabs={[
+                  {
+                    id: 'product',
+                    label: t('sections.productMaster'),
+                    icon: <Package className="h-4 w-4" />,
+                    content: <Card className="p-4">{productFields}</Card>,
+                  },
+                  {
+                    id: 'branch',
+                    label: t('sections.branchStock'),
+                    icon: <MapPin className="h-4 w-4" />,
+                    content: <Card className="p-4">{branchFields}</Card>,
+                  },
+                ]}
+                defaultTab="product"
               />
-              {!branchId && (
-                <Input
-                  label={t('labels.sku')}
-                  value={skuValue}
-                  onChange={(e) => setSkuValue(e.target.value)}
-                />
-              )}
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              {!branchId && (
-                <Input
-                  label={t('labels.reorderPoint')}
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={reorderPoint}
-                  onChange={(e) => setReorderPoint(e.target.value)}
-                />
-              )}
-              <Input
-                label={t('labels.unitCost')}
-                type="number"
-                step="0.01"
-                min="0"
-                value={productCost}
-                onChange={(e) => setProductCost(e.target.value)}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <Input
-                label={t('labels.sellPrice')}
-                type="number"
-                step="0.01"
-                min="0"
-                value={sellPrice}
-                onChange={(e) => setSellPrice(e.target.value)}
-              />
-              {!branchId && (
-                <Input
-                  label={t('labels.storageLocation')}
-                  value={storageLocation}
-                  onChange={(e) => setStorageLocation(e.target.value)}
-                />
-              )}
-            </div>
-            {branchId && (
-              <>
-                <p className="text-sm font-medium text-gray-700 pt-2 border-t">
-                  {t('actions.editBranchStock')}
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label={t('labels.sku')}
-                    value={skuValue}
-                    onChange={(e) => setSkuValue(e.target.value)}
-                  />
-                  <Input
-                    label={t('labels.storageLocation')}
-                    value={storageLocation}
-                    onChange={(e) => setStorageLocation(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label={t('labels.reorderPoint')}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={reorderPoint}
-                    onChange={(e) => setReorderPoint(e.target.value)}
-                  />
-                  <Input
-                    label={t('labels.minStockLevel')}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={minStockLevel}
-                    onChange={(e) => setMinStockLevel(e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label={t('labels.maxStockLevel')}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={maxStockLevel}
-                    onChange={(e) => setMaxStockLevel(e.target.value)}
-                    placeholder="-"
-                  />
-                  <Input
-                    label={t('labels.lastPurchaseCost')}
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={lastPurchaseCost}
-                    onChange={(e) => setLastPurchaseCost(e.target.value)}
-                    placeholder="-"
-                  />
-                </div>
-              </>
+            ) : (
+              <Card className="p-4">{productFields}</Card>
             )}
           </div>
 
           <DialogFooter>
             <Button
               type="button"
-              variant="destructive"
+              variant="danger"
               onClick={handleDelete}
               disabled={saving || deleting}
             >
               {deleting ? tc('deleting') : tc('delete')}
             </Button>
             <div className="flex-1" />
-            <Button type="button" variant="secondary" onClick={onClose} disabled={saving || deleting}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={saving || deleting}
+            >
               {tc('cancel')}
             </Button>
             <Button type="submit" disabled={saving || deleting}>
