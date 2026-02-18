@@ -45,6 +45,7 @@ export const STOCK_STATUS = {
   LOW_STOCK: 'low_stock',
   OUT_OF_STOCK: 'out_of_stock',
   OVERSTOCK: 'overstock',
+  NEGATIVE_STOCK: 'negative_stock',
 } as const;
 
 export type StockStatus = (typeof STOCK_STATUS)[keyof typeof STOCK_STATUS];
@@ -75,6 +76,7 @@ export function getStockStatus(
   reorderPoint: number,
   maxStockLevel?: number | null
 ): StockStatus {
+  if (qtyOnHand < 0) return STOCK_STATUS.NEGATIVE_STOCK;
   if (qtyOnHand <= 0) return STOCK_STATUS.OUT_OF_STOCK;
   if (qtyOnHand <= reorderPoint) return STOCK_STATUS.LOW_STOCK;
   if (maxStockLevel && qtyOnHand > maxStockLevel) return STOCK_STATUS.OVERSTOCK;

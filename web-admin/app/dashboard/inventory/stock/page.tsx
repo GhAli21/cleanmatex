@@ -23,6 +23,8 @@ import EditItemModal from './components/edit-item-modal';
 import AdjustStockModal from './components/adjust-stock-modal';
 import StockHistoryModal from './components/stock-history-modal';
 
+const BRANCH_STORAGE_KEY = 'inventory_stock_branch_id';
+
 interface Pagination {
   page: number;
   limit: number;
@@ -49,6 +51,8 @@ export default function StockPage() {
   const [activeFilter, setActiveFilter] = useState<string>('active');
   const [branchId, setBranchId] = useState<string>('');
   const [branches, setBranches] = useState<BranchOption[]>([]);
+
+  const hasBranches = branches.length > 0;
 
   // Modals
   const [showAdd, setShowAdd] = useState(false);
@@ -109,10 +113,28 @@ export default function StockPage() {
   useEffect(() => {
     if (currentTenant) {
       getBranchesAction().then((r) => {
-        if (r.success && r.data) setBranches(r.data);
+        if (r.success && r.data) {
+          const brs = r.data;
+          setBranches(brs);
+          setBranchId((prev) => {
+            if (prev && brs.some((b) => b.id === prev)) return prev; // Keep valid user selection
+            const stored =
+              typeof window !== 'undefined' ? sessionStorage.getItem(BRANCH_STORAGE_KEY) : null;
+            if (stored && brs.some((b) => b.id === stored)) return stored;
+            if (brs.length === 1) return brs[0].id;
+            const main = brs.find((b) => b.is_main);
+            return main?.id ?? brs[0]?.id ?? '';
+          });
+        }
       });
     }
   }, [currentTenant]);
+
+  useEffect(() => {
+    if (branchId && typeof window !== 'undefined') {
+      sessionStorage.setItem(BRANCH_STORAGE_KEY, branchId);
+    }
+  }, [branchId]);
 
   function onSearchSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,6 +155,7 @@ export default function StockPage() {
       [STOCK_STATUS.LOW_STOCK]: { variant: 'warning', label: t('statuses.lowStock') },
       [STOCK_STATUS.OUT_OF_STOCK]: { variant: 'destructive', label: t('statuses.outOfStock') },
       [STOCK_STATUS.OVERSTOCK]: { variant: 'info', label: t('statuses.overstock') },
+      [STOCK_STATUS.NEGATIVE_STOCK]: { variant: 'destructive', label: t('statuses.negativeStock') },
     };
     const { variant, label } = map[status] || { variant: 'default' as const, label: status };
     return <Badge variant={variant}>{label}</Badge>;
@@ -147,36 +170,57 @@ export default function StockPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <Button onClick={() => setShowAdd(true)}>{t('actions.addItem')}</Button>
+        <Button onClick={() => setShowAdd(true)} disabled={!hasBranches}>
+          {t('actions.addItem')}
+        </Button>
       </div>
 
+      {/* No branches configured */}
+      {!loading && !hasBranches && (
+        <Card className="p-6 bg-amber-50 border-amber-200">
+          <p className="text-amber-800 text-sm">{t('messages.noBranchConfigured')}</p>
+          <p className="text-amber-600 text-xs mt-1">{t('messages.selectBranch')}</p>
+        </Card>
+      )}
+
       {/* Stats */}
-      {stats && <StatsCards stats={stats} />}
+      {stats && (
+        <StatsCards
+          stats={stats}
+          branchName={
+            branchId
+              ? (isRtl
+                ? branches.find((b) => b.id === branchId)?.name2
+                : branches.find((b) => b.id === branchId)?.name) ?? undefined
+              : undefined
+          }
+        />
+      )}
 
       {/* Filters */}
       <Card className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
+          <Select
+            label={t('filters.branch')}
+            value={branchId}
+            onChange={(e) => {
+              setBranchId(e.target.value);
+              setPagination((p) => ({ ...p, page: 1 }));
+            }}
+            options={[
+              { value: '', label: t('filters.allBranches') },
+              ...branches.map((b) => ({
+                value: b.id,
+                label: isRtl ? b.name2 || b.name : b.name,
+              })),
+            ]}
+            aria-label={t('filters.branch')}
+          />
           <Input
             placeholder={t('filters.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          {branches.length > 1 && (
-            <Select
-              value={branchId}
-              onChange={(e) => {
-                setBranchId(e.target.value);
-                setPagination((p) => ({ ...p, page: 1 }));
-              }}
-              options={[
-                { value: '', label: t('filters.allBranches') },
-                ...branches.map((b) => ({
-                  value: b.id,
-                  label: isRtl ? b.name2 || b.name : b.name,
-                })),
-              ]}
-            />
-          )}
           <Select
             value={stockStatus}
             onChange={(e) => { setStockStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
@@ -186,6 +230,7 @@ export default function StockPage() {
               { value: STOCK_STATUS.LOW_STOCK, label: t('statuses.lowStock') },
               { value: STOCK_STATUS.OUT_OF_STOCK, label: t('statuses.outOfStock') },
               { value: STOCK_STATUS.OVERSTOCK, label: t('statuses.overstock') },
+              { value: STOCK_STATUS.NEGATIVE_STOCK, label: t('statuses.negativeStock') },
             ]}
           />
           <Select
@@ -241,14 +286,32 @@ export default function StockPage() {
                     <td className="px-4 py-3">
                       {isRtl ? item.product_name2 || item.product_name : item.product_name}
                     </td>
-                    <td className="px-4 py-3 font-medium">{item.qty_on_hand}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {branchId &&
+                      item.qty_on_hand === 0 &&
+                      item.has_branch_record === false ? (
+                        <span
+                          title={t('messages.notStockedAtBranch')}
+                          className="cursor-help border-b border-dashed border-gray-400"
+                        >
+                          0
+                        </span>
+                      ) : (
+                        item.qty_on_hand
+                      )}
+                    </td>
                     <td className="px-4 py-3">{item.product_unit || '-'}</td>
                     <td className="px-4 py-3">{item.product_cost?.toFixed(2) ?? '-'}</td>
                     <td className="px-4 py-3 font-medium">{item.stock_value.toFixed(2)}</td>
                     <td className="px-4 py-3">{getStatusBadge(item.stock_status)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <Button size="sm" variant="secondary" onClick={() => setAdjustItem(item)}>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setAdjustItem(item)}
+                          disabled={!hasBranches}
+                        >
                           {t('actions.adjust')}
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => setEditItem(item)}>

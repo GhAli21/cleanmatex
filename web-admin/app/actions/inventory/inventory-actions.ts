@@ -11,6 +11,8 @@ import {
   getBranchesForCurrentTenant,
 } from '@/lib/services/inventory-service';
 
+import { getServerAuditContext } from '@/lib/utils/request-audit';
+
 import type {
   CreateInventoryItemRequest,
   UpdateInventoryItemRequest,
@@ -61,7 +63,24 @@ export async function searchInventoryItemsAction(params: InventorySearchParams) 
 
 export async function adjustStockAction(request: StockAdjustmentRequest) {
   try {
-    const transaction = await adjustStock(request);
+    const audit = await getServerAuditContext();
+    const createdInfo =
+      audit.userAgent != null || audit.userIp != null
+        ? JSON.stringify({
+            user_info: audit.userName,
+            user_agent: audit.userAgent,
+            user_ip: audit.userIp,
+          })
+        : null;
+
+    const enrichedRequest: StockAdjustmentRequest = {
+      ...request,
+      processed_by: audit.userId ?? null,
+      created_by: audit.userName ?? null,
+      created_info: createdInfo,
+    };
+
+    const transaction = await adjustStock(enrichedRequest);
     return { success: true, data: transaction };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to adjust stock';

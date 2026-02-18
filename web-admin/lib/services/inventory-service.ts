@@ -304,7 +304,9 @@ export async function getInventoryItemById(id: string): Promise<InventoryItem> {
 }
 
 /**
- * Search inventory items with filters and pagination
+ * Search inventory items with filters and pagination.
+ * When branch_id set: qty from org_inv_stock_by_branch for that branch.
+ * When branch_id empty ("All Branches"): aggregate sum from org_inv_stock_by_branch per product.
  */
 export async function searchInventoryItems(
   params: InventorySearchParams
@@ -361,12 +363,12 @@ export async function searchInventoryItems(
   }
 
   const total = count || 0;
+  const productIds = (data || []).map((r: Record<string, unknown>) => r.id as string);
 
-  // When branch_id provided, fetch qty from org_inv_stock_by_branch and override
+  // Build branchQtyMap: single branch or aggregated across all branches
   let branchQtyMap: Record<string, number> = {};
-  if (params.branch_id) {
-    const productIds = (data || []).map((r: Record<string, unknown>) => r.id as string);
-    if (productIds.length > 0) {
+  if (productIds.length > 0) {
+    if (params.branch_id) {
       const { data: branchData } = await supabase
         .from('org_inv_stock_by_branch')
         .select('product_id, qty_on_hand')
@@ -380,21 +382,38 @@ export async function searchInventoryItems(
         },
         {} as Record<string, number>
       );
+    } else {
+      // All Branches: aggregate sum per product
+      const { data: branchData } = await supabase
+        .from('org_inv_stock_by_branch')
+        .select('product_id, qty_on_hand')
+        .eq('tenant_org_id', tenantId)
+        .in('product_id', productIds);
+      branchQtyMap = (branchData || []).reduce(
+        (acc, row) => {
+          const id = row.product_id;
+          acc[id] = (acc[id] ?? 0) + (Number(row.qty_on_hand) || 0);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
     }
   }
 
   // Map to list items with computed fields
   const items: InventoryItemListItem[] = (data || []).map((row: Record<string, unknown>) => {
-    const baseQty = Number(row.qty_on_hand) || 0;
-    const qtyOnHand = params.branch_id
-      ? (branchQtyMap[row.id as string] ?? 0)
-      : baseQty;
+    const productId = row.id as string;
+    const qtyOnHand = branchQtyMap[productId] ?? 0;
     const reorderPoint = Number(row.reorder_point) || 0;
     const maxStockLevel = row.max_stock_level != null ? Number(row.max_stock_level) : null;
     const productCost = Number(row.product_cost) || 0;
+    const hasBranchRecord =
+      params.branch_id !== undefined && params.branch_id !== null && params.branch_id !== ''
+        ? productId in branchQtyMap
+        : undefined;
 
     return {
-      id: row.id as string,
+      id: productId,
       product_code: row.product_code as string,
       product_name: row.product_name as string | null,
       product_name2: row.product_name2 as string | null,
@@ -411,6 +430,7 @@ export async function searchInventoryItems(
       created_at: row.created_at as string,
       stock_status: getStockStatus(qtyOnHand, reorderPoint, maxStockLevel),
       stock_value: qtyOnHand * productCost,
+      has_branch_record: hasBranchRecord,
     };
   });
 
@@ -513,7 +533,6 @@ export async function adjustStock(
     case ADJUSTMENT_ACTIONS.DECREASE:
       quantity = -Math.abs(request.quantity);
       qtyAfter = qtyBefore + quantity;
-      if (qtyAfter < 0) qtyAfter = 0;
       transactionType = TRANSACTION_TYPES.STOCK_OUT;
       break;
     case ADJUSTMENT_ACTIONS.SET:
@@ -528,26 +547,30 @@ export async function adjustStock(
   const transactionNo = await generateTransactionNo();
   const unitCost = request.unit_cost ?? Number(item.product_cost) ?? 0;
 
-  // Create transaction (with branch_id)
+  const insertPayload: Record<string, unknown> = {
+    tenant_org_id: tenantId,
+    product_id: request.product_id,
+    branch_id: request.branch_id || null,
+    transaction_no: transactionNo,
+    transaction_type: transactionType,
+    quantity,
+    unit_cost: unitCost,
+    total_cost: Math.abs(quantity) * unitCost,
+    qty_before: qtyBefore,
+    qty_after: qtyAfter,
+    reference_type: 'MANUAL',
+    reason: request.reason,
+    notes: request.notes || null,
+    is_active: true,
+    rec_status: 1,
+  };
+  if (request.processed_by != null) insertPayload.processed_by = request.processed_by;
+  if (request.created_by != null) insertPayload.created_by = request.created_by;
+  if (request.created_info != null) insertPayload.created_info = request.created_info;
+
   const { data: transaction, error: txError } = await supabase
     .from('org_inv_stock_tr')
-    .insert({
-      tenant_org_id: tenantId,
-      product_id: request.product_id,
-      branch_id: request.branch_id || null,
-      transaction_no: transactionNo,
-      transaction_type: transactionType,
-      quantity,
-      unit_cost: unitCost,
-      total_cost: Math.abs(quantity) * unitCost,
-      qty_before: qtyBefore,
-      qty_after: qtyAfter,
-      reference_type: 'MANUAL',
-      reason: request.reason,
-      notes: request.notes || null,
-      is_active: true,
-      rec_status: 1,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
@@ -655,7 +678,8 @@ export async function searchStockTransactions(
 
 /**
  * Get inventory statistics (totals, low stock, out of stock, value).
- * When branch_id provided: stats from org_inv_stock_by_branch. When null: from org_product_data_mst.
+ * When branch_id set: stats from org_inv_stock_by_branch for that branch.
+ * When branch_id empty ("All Branches"): aggregate sum from org_inv_stock_by_branch per product.
  */
 export async function getInventoryStatistics(params?: {
   branch_id?: string;
@@ -663,88 +687,64 @@ export async function getInventoryStatistics(params?: {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  if (params?.branch_id) {
-    const { data: products } = await supabase
-      .from('org_product_data_mst')
-      .select('id, product_cost, reorder_point, max_stock_level')
-      .eq('tenant_org_id', tenantId)
-      .eq('service_category_code', 'RETAIL_ITEMS')
-      .eq('is_retail_item', true)
-      .eq('is_active', true);
-
-    const productIds = (products || []).map((p) => p.id);
-    const { data: branchData } =
-      productIds.length > 0
-        ? await supabase
-            .from('org_inv_stock_by_branch')
-            .select('product_id, qty_on_hand')
-            .eq('tenant_org_id', tenantId)
-            .eq('branch_id', params.branch_id)
-            .in('product_id', productIds)
-        : { data: [] };
-
-    const qtyMap = (branchData || []).reduce(
-      (acc, row) => {
-        acc[row.product_id] = Number(row.qty_on_hand) || 0;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
-
-    let totalItems = 0;
-    let lowStockCount = 0;
-    let outOfStockCount = 0;
-    let totalStockValue = 0;
-
-    for (const prod of products || []) {
-      const qty = qtyMap[prod.id] ?? 0;
-      const reorder = Number(prod.reorder_point) || 0;
-      const cost = Number(prod.product_cost) || 0;
-      totalItems++;
-      if (qty <= 0) outOfStockCount++;
-      else if (qty <= reorder) lowStockCount++;
-      totalStockValue += qty * cost;
-    }
-
-    return {
-      totalItems,
-      lowStockCount,
-      outOfStockCount,
-      totalStockValue,
-    };
-  }
-
-  const { data, error } = await supabase
+  const { data: products } = await supabase
     .from('org_product_data_mst')
-    .select('qty_on_hand, reorder_point, product_cost')
+    .select('id, product_cost, reorder_point, max_stock_level')
     .eq('tenant_org_id', tenantId)
     .eq('service_category_code', 'RETAIL_ITEMS')
     .eq('is_retail_item', true)
     .eq('is_active', true);
 
-  if (error) {
-    console.error('Error fetching inventory statistics:', error);
-    throw new Error('Failed to fetch inventory statistics');
+  const productIds = (products || []).map((p) => p.id);
+  let qtyMap: Record<string, number> = {};
+
+  if (productIds.length > 0) {
+    let branchQuery = supabase
+      .from('org_inv_stock_by_branch')
+      .select('product_id, qty_on_hand')
+      .eq('tenant_org_id', tenantId)
+      .in('product_id', productIds);
+
+    if (params?.branch_id) {
+      branchQuery = branchQuery.eq('branch_id', params.branch_id);
+    }
+
+    const { data: branchData } = await branchQuery;
+
+    if (params?.branch_id) {
+      qtyMap = (branchData || []).reduce(
+        (acc, row) => {
+          acc[row.product_id] = Number(row.qty_on_hand) || 0;
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+    } else {
+      qtyMap = (branchData || []).reduce(
+        (acc, row) => {
+          const id = row.product_id;
+          acc[id] = (acc[id] ?? 0) + (Number(row.qty_on_hand) || 0);
+          return acc;
+        },
+        {} as Record<string, number>
+      );
+    }
   }
 
-  const items = data || [];
   let totalItems = 0;
   let lowStockCount = 0;
   let outOfStockCount = 0;
+  let negativeStockCount = 0;
   let totalStockValue = 0;
 
-  for (const item of items) {
+  for (const prod of products || []) {
+    const qty = qtyMap[prod.id] ?? 0;
+    const reorder = Number(prod.reorder_point) || 0;
+    const cost = Number(prod.product_cost) || 0;
     totalItems++;
-    const qty = Number(item.qty_on_hand) || 0;
-    const reorder = Number(item.reorder_point) || 0;
-    const cost = Number(item.product_cost) || 0;
-
-    if (qty <= 0) {
-      outOfStockCount++;
-    } else if (qty <= reorder) {
-      lowStockCount++;
-    }
-
+    if (qty < 0) negativeStockCount++;
+    else if (qty <= 0) outOfStockCount++;
+    else if (qty <= reorder) lowStockCount++;
     totalStockValue += qty * cost;
   }
 
@@ -752,6 +752,7 @@ export async function getInventoryStatistics(params?: {
     totalItems,
     lowStockCount,
     outOfStockCount,
+    negativeStockCount,
     totalStockValue,
   };
 }

@@ -81,6 +81,8 @@ export interface InventoryItemListItem {
   // Computed
   stock_status: StockStatus;
   stock_value: number;
+  /** When branch_id set: true if product has row in org_inv_stock_by_branch, false otherwise */
+  has_branch_record?: boolean;
 }
 
 /**
@@ -204,6 +206,15 @@ export interface StockTransaction {
 }
 
 /**
+ * Audit context for stock adjustments (passed from server action)
+ */
+export interface StockAdjustmentAudit {
+  processed_by?: string | null;
+  created_by?: string | null;
+  created_info?: string | null;
+}
+
+/**
  * Stock adjustment request (UI action)
  */
 export interface StockAdjustmentRequest {
@@ -214,6 +225,9 @@ export interface StockAdjustmentRequest {
   notes?: string;
   unit_cost?: number;
   branch_id?: string;
+  processed_by?: string | null;
+  created_by?: string | null;
+  created_info?: string | null;
 }
 
 // ==================================================================
@@ -264,5 +278,6 @@ export interface InventoryStatistics {
   totalItems: number;
   lowStockCount: number;
   outOfStockCount: number;
+  negativeStockCount: number;
   totalStockValue: number;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   Dialog,
@@ -11,7 +12,7 @@ import {
   Button,
   Badge,
 } from '@/components/ui';
-import { TRANSACTION_TYPES } from '@/lib/constants/inventory';
+import { TRANSACTION_TYPES, REFERENCE_TYPES } from '@/lib/constants/inventory';
 import { searchStockTransactionsAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, StockTransaction } from '@/lib/types/inventory';
 
@@ -19,6 +20,20 @@ interface StockHistoryModalProps {
   item: InventoryItemListItem;
   onClose: () => void;
   branchId?: string;
+}
+
+function getSourceLabel(refType: string | null, t: (k: string) => string): string {
+  if (!refType) return '-';
+  switch (refType) {
+    case REFERENCE_TYPES.ORDER:
+      return t('referenceTypes.order');
+    case REFERENCE_TYPES.MANUAL:
+      return t('referenceTypes.manual');
+    case REFERENCE_TYPES.PURCHASE:
+      return t('referenceTypes.purchase');
+    default:
+      return refType;
+  }
 }
 
 export default function StockHistoryModal({ item, onClose, branchId }: StockHistoryModalProps) {
@@ -79,16 +94,19 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
           ) : transactions.length === 0 ? (
             <div className="p-8 text-center text-gray-500">{t('messages.noTransactions')}</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" role="region" aria-label={t('labels.historyTable')}>
               <table className="min-w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 text-left">
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.date')}</th>
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.type')}</th>
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.quantity')}</th>
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.before')}</th>
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.after')}</th>
-                    <th className="px-3 py-2 font-medium text-gray-600">{t('labels.reason')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.date')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.type')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.quantity')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.before')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.after')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.performedBy')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.reference')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.source')}</th>
+                    <th scope="col" className="px-3 py-2 font-medium text-gray-600">{t('labels.reason')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -105,6 +123,24 @@ export default function StockHistoryModal({ item, onClose, branchId }: StockHist
                       </td>
                       <td className="px-3 py-2">{tx.qty_before ?? '-'}</td>
                       <td className="px-3 py-2 font-medium">{tx.qty_after ?? '-'}</td>
+                      <td className="px-3 py-2 text-gray-500 truncate max-w-[120px]">
+                        {tx.created_by ?? tx.processed_by ?? '-'}
+                      </td>
+                      <td className="px-3 py-2">
+                        {tx.reference_type === REFERENCE_TYPES.ORDER && tx.reference_id ? (
+                          <Link
+                            href={`/dashboard/orders/${tx.reference_id}`}
+                            className="text-blue-600 hover:underline truncate max-w-[100px] block"
+                          >
+                            {tx.reference_no ?? tx.reference_id}
+                          </Link>
+                        ) : (
+                          <span className="text-gray-500 truncate max-w-[100px] block">
+                            {tx.reference_no ?? '-'}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-gray-500">{getSourceLabel(tx.reference_type, t)}</td>
                       <td className="px-3 py-2 text-gray-500 max-w-[200px] truncate">{tx.reason || '-'}</td>
                     </tr>
                   ))}

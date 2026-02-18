@@ -2808,6 +2808,10 @@
       "type": "النوع",
       "before": "قبل",
       "after": "بعد",
+      "performedBy": "المنفذ",
+      "reference": "المرجع",
+      "source": "المصدر",
+      "historyTable": "سجل معاملات المخزون",
       "hintText": "نص التلميح",
       "serviceCategoryCode": "الفئة",
       "isRetailItem": "صنف تجزئة",
@@ -2841,7 +2845,8 @@
       "inStock": "متوفر",
       "lowStock": "مخزون منخفض",
       "outOfStock": "نفد المخزون",
-      "overstock": "مخزون زائد"
+      "overstock": "مخزون زائد",
+      "negativeStock": "مخزون سالب"
     },
     "units": {
       "piece": "قطعة",
@@ -2871,11 +2876,19 @@
       "stockOut": "إخراج مخزون",
       "adjustment": "تسوية"
     },
+    "referenceTypes": {
+      "order": "طلب",
+      "manual": "يدوي",
+      "purchase": "شراء"
+    },
     "stats": {
       "totalItems": "إجمالي الأصناف",
       "lowStock": "مخزون منخفض",
       "outOfStock": "نفد المخزون",
-      "totalStockValue": "إجمالي قيمة المخزون"
+      "negativeStock": "مخزون سالب",
+      "totalStockValue": "إجمالي قيمة المخزون",
+      "atBranch": "في {branch}",
+      "allBranches": "جميع الفروع"
     },
     "filters": {
       "searchPlaceholder": "بحث بالاسم أو الرمز أو SKU...",
@@ -2889,6 +2902,9 @@
     "messages": {
       "noItems": "لا توجد أصناف في المخزون",
       "noTransactions": "لا توجد حركات",
+      "selectBranch": "اختر فرعاً لعرض المخزون",
+      "noBranchConfigured": "لم يتم تكوين فرع. أضف فرعاً في الإعدادات لإدارة المخزون.",
+      "notStockedAtBranch": "غير مخزّن في هذا الفرع",
       "confirmDelete": "هل أنت متأكد من حذف هذا الصنف؟",
       "createFailed": "فشل في إنشاء الصنف",
       "updateFailed": "فشل في تحديث الصنف",

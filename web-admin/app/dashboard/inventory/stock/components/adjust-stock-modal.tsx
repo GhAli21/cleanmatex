@@ -12,6 +12,7 @@ import {
   Input,
 } from '@/components/ui';
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
+import { stockAdjustmentSchema } from '@/lib/validations/inventory-schemas';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, AdjustmentAction } from '@/lib/types/inventory';
 import type { BranchOption } from '@/lib/services/inventory-service';
@@ -30,6 +31,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId, b
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ quantity?: string; reason?: string }>({});
 
   const [action, setAction] = useState<AdjustmentAction>(ADJUSTMENT_ACTIONS.INCREASE);
   const [quantity, setQuantity] = useState('');
@@ -38,24 +40,31 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId, b
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const qty = parseFloat(quantity);
-    if (!qty || qty <= 0) {
-      setError(t('validation.quantityRequired'));
-      return;
-    }
-    if (!reason.trim()) {
-      setError(t('validation.reasonRequired'));
+    const parsed = stockAdjustmentSchema.safeParse({
+      action,
+      quantity: quantity === '' ? 0 : quantity,
+      reason: reason.trim(),
+    });
+
+    if (!parsed.success) {
+      const issues = parsed.error.flatten();
+      setFieldErrors({
+        quantity: issues.fieldErrors.quantity?.[0],
+        reason: issues.fieldErrors.reason?.[0],
+      });
+      setError(issues.formErrors?.[0] ?? issues.fieldErrors.quantity?.[0] ?? issues.fieldErrors.reason?.[0] ?? null);
       return;
     }
 
-    setSaving(true);
+    setFieldErrors({});
     setError(null);
+    setSaving(true);
 
     const result = await adjustStockAction({
       product_id: item.id,
-      action,
-      quantity: qty,
-      reason: reason.trim(),
+      action: parsed.data.action,
+      quantity: parsed.data.quantity,
+      reason: parsed.data.reason,
       branch_id: branchId || undefined,
     });
 
@@ -119,9 +128,10 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId, b
               label={t('labels.quantity')}
               type="number"
               step="0.01"
-              min="0"
+              min={action === ADJUSTMENT_ACTIONS.SET ? undefined : '0'}
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
+              error={fieldErrors.quantity}
               required
             />
 
@@ -130,6 +140,7 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId, b
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               placeholder={t('placeholders.reason')}
+              error={fieldErrors.reason}
               required
             />
           </div>

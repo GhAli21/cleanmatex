@@ -2,15 +2,17 @@
 
 import { useTranslations } from 'next-intl';
 import { Card } from '@/components/ui';
-import { Package, AlertTriangle, XCircle, DollarSign } from 'lucide-react';
+import { Package, AlertTriangle, XCircle, TrendingDown, DollarSign } from 'lucide-react';
 import type { InventoryStatistics } from '@/lib/types/inventory';
 
 interface StatsCardsProps {
   stats: InventoryStatistics;
+  branchName?: string;
 }
 
-export default function StatsCards({ stats }: StatsCardsProps) {
+export default function StatsCards({ stats, branchName }: StatsCardsProps) {
   const t = useTranslations('inventory.stats');
+  const atBranch = branchName ? t('atBranch', { branch: branchName }) : t('allBranches');
 
   const cards = [
     {
@@ -32,6 +34,12 @@ export default function StatsCards({ stats }: StatsCardsProps) {
       color: 'text-red-600 bg-red-50',
     },
     {
+      label: t('negativeStock'),
+      value: stats.negativeStockCount,
+      icon: TrendingDown,
+      color: 'text-orange-600 bg-orange-50',
+    },
+    {
       label: t('totalStockValue'),
       value: stats.totalStockValue.toFixed(2),
       icon: DollarSign,
@@ -49,6 +57,7 @@ export default function StatsCards({ stats }: StatsCardsProps) {
             </div>
             <div>
               <p className="text-sm text-gray-500">{card.label}</p>
+              <p className="text-xs text-gray-400">{atBranch}</p>
               <p className="text-xl font-semibold">{card.value}</p>
             </div>
           </div>
