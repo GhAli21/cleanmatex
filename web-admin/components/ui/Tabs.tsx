@@ -49,6 +49,7 @@ export const Tabs: React.FC<TabsProps> = ({
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => !isDisabled && handleTabChange(tab.id)}
                 disabled={isDisabled}
                 className={`

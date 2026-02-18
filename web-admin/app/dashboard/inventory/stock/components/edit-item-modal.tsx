@@ -15,6 +15,7 @@ import {
   Card,
 } from '@/components/ui';
 import { Package, MapPin } from 'lucide-react';
+import { cmxMessage } from '@ui/feedback';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
 import {
   updateInventoryItemAction,
@@ -125,7 +126,14 @@ export default function EditItemModal({
   }
 
   async function handleDelete() {
-    if (!confirm(t('messages.confirmDelete'))) return;
+    const confirmed = await cmxMessage.confirm({
+      title: t('actions.deleteItem'),
+      message: t('messages.confirmDelete'),
+      variant: 'destructive',
+      confirmLabel: tc('delete'),
+      cancelLabel: tc('cancel'),
+    });
+    if (!confirmed) return;
 
     setDeleting(true);
     setError(null);
@@ -333,7 +341,7 @@ export default function EditItemModal({
               onClick={onClose}
               disabled={saving || deleting}
             >
-              {tc('cancel')}
+              {tc('cancel')} 
             </Button>
             <Button type="submit" disabled={saving || deleting}>
               {saving ? tc('saving') : tc('save')}
