@@ -109,13 +109,29 @@ export function NewOrderContent() {
     // Fetch branches for branch selector
     useEffect(() => {
         getBranchesAction().then((r) => {
-            if (r.success && r.data) setBranches(r.data);
+            if (r.success && r.data) {
+                setBranches(r.data);
+                // Auto-select when only one branch exists
+                if (r.data.length === 1) {
+                    state.setBranchId(r.data[0].id);
+                }
+            }
         }).finally(() => setBranchesLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- init only, setBranchId is stable
     }, []);
 
     // Load categories and products
     const categoriesQuery = useCategories();
     const productsQuery = useProducts(state.state.selectedCategory);
+
+    // Auto-select first service category when categories load
+    useEffect(() => {
+        const { categories, selectedCategory } = state.state;
+        const firstCode = categories[0]?.service_category_code;
+        if (categories.length > 0 && !selectedCategory && firstCode) {
+            state.setSelectedCategory(firstCode);
+        }
+    }, [state.state.categories, state.state.selectedCategory, state]);
 
     // Handle category selection
     const handleSelectCategory = useCallback(
@@ -371,28 +387,36 @@ export function NewOrderContent() {
                     <div className="flex-shrink-0 p-6 space-y-4">
                         {/* Branch Selector - at top */}
                         {branches.length > 0 && (
-                            <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                <label htmlFor="new-order-branch" className="text-sm font-medium text-gray-700 whitespace-nowrap">
-                                    {tCommon('branch')} <span className="text-red-500">*</span>
-                                </label>
-                                <select
-                                    id="new-order-branch"
-                                    value={state.state.branchId ?? ''}
-                                    onChange={(e) => state.setBranchId(e.target.value || null)}
-                                    className={`flex-1 max-w-xs px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!state.state.branchId ? 'border-red-400 bg-red-50/50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
-                                    dir={isRTL ? 'rtl' : 'ltr'}
-                                    required
-                                    aria-required="true"
-                                >
-                                    <option value="">{tCommon('selectBranch')}</option>
-                                    {branches.map((b) => (
-                                        <option key={b.id} value={b.id}>
-                                            {isRTL ? (b.name2 || b.name) : b.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                {branchesLoading && (
-                                    <span className="text-xs text-gray-500">{tCommon('loading') || 'Loading...'}</span>
+                            <div className={`flex flex-col gap-1 ${isRTL ? 'items-end' : 'items-start'}`}>
+                                <div className={`flex items-center gap-3 w-full ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                    <label htmlFor="new-order-branch" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                                        {tCommon('branch')} <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        id="new-order-branch"
+                                        value={state.state.branchId ?? ''}
+                                        onChange={(e) => state.setBranchId(e.target.value || null)}
+                                        className={`flex-1 max-w-xs px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!state.state.branchId && branches.length > 1 ? 'border-red-400 bg-red-50/50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
+                                        dir={isRTL ? 'rtl' : 'ltr'}
+                                        required
+                                        aria-required="true"
+                                        aria-invalid={!state.state.branchId && branches.length > 1}
+                                    >
+                                        <option value="">{tCommon('selectBranch')}</option>
+                                        {branches.map((b) => (
+                                            <option key={b.id} value={b.id}>
+                                                {isRTL ? (b.name2 || b.name) : b.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {branchesLoading && (
+                                        <span className="text-xs text-gray-500">{tCommon('loading') || 'Loading...'}</span>
+                                    )}
+                                </div>
+                                {branches.length > 1 && !state.state.branchId && (
+                                    <p className="text-sm text-red-600" role="alert">
+                                        {t('chooseBranch')}
+                                    </p>
                                 )}
                             </div>
                         )}

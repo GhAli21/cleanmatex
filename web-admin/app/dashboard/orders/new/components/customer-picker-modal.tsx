@@ -2,18 +2,26 @@
  * Customer Picker Modal Component
  * Search and select customer with progressive search
  * PRD-010: New Order UI
+ * Refactored for fast search, React Query caching, keyboard nav, best UX
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import {
+  useCustomerSearch,
+  CUSTOMER_SEARCH_MIN_CHARS,
+} from '@/lib/hooks/use-customer-search';
+import { searchCustomersForPicker } from '@/lib/api/customers';
+import { CmxInput } from '@ui/primitives/cmx-input';
 import { CustomerCreateModal } from './customer-create-modal';
 import type { Customer as CustomerType } from '@/lib/types/customer';
+import type { CustomerSearchItem } from '@/lib/api/customers';
 
 interface Customer {
-  id: string; 
+  id: string;
   name?: string;
   name2?: string;
   displayName?: string;
@@ -21,12 +29,29 @@ interface Customer {
   lastName?: string;
   phone?: string;
   email?: string;
-  // Progressive search metadata
   source?: 'current_tenant' | 'sys_global' | 'other_tenant';
   belongsToCurrentTenant?: boolean;
   originalTenantId?: string;
-  customerId?: string; // sys_customers_mst.id if linked to global customer
-  orgCustomerId?: string; // org_customers_mst.id (for other tenant source)
+  customerId?: string;
+  orgCustomerId?: string;
+}
+
+function mapSearchItemToCustomer(c: CustomerSearchItem): Customer {
+  return {
+    id: c.id,
+    name: c.displayName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || undefined,
+    name2: undefined,
+    displayName: c.displayName ?? undefined,
+    firstName: c.firstName,
+    lastName: c.lastName ?? undefined,
+    phone: c.phone ?? undefined,
+    email: c.email ?? undefined,
+    source: c.source,
+    belongsToCurrentTenant: c.belongsToCurrentTenant,
+    originalTenantId: c.originalTenantId,
+    customerId: c.customerId,
+    orgCustomerId: c.orgCustomerId,
+  };
 }
 
 interface CustomerPickerModalProps {
@@ -41,181 +66,119 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
   const isRTL = useRTL();
   const [search, setSearch] = useState('');
   const [searchAllOptions, setSearchAllOptions] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [linkingCustomer, setLinkingCustomer] = useState<Customer | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [linkLoading, setLinkLoading] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  const { customers: rawCustomers, isLoading, isFetching, error, isReady } = useCustomerSearch({
+    search,
+    searchAllOptions,
+    limit: 10,
+    minChars: CUSTOMER_SEARCH_MIN_CHARS,
+  });
+
+  const customers = rawCustomers.map(mapSearchItemToCustomer);
+
+  // Reset focused index when customers change
   useEffect(() => {
-    // AbortController to cancel previous requests
-    const abortController = new AbortController();
+    setFocusedIndex(0);
+  }, [customers.length]);
 
-    const loadCustomers = async () => {
-      if (!search || search.length < 2) {
-        setCustomers([]);
-        setLoading(false);
+  // Focus input when modal opens
+  useEffect(() => {
+    if (open) {
+      setSearch('');
+      setCreateError(null);
+      setTimeout(() => inputRef.current?.focus(), 0);
+    }
+  }, [open]);
+
+  const handleCustomerClick = useCallback(
+    (customer: Customer) => {
+      if (customer.source === 'current_tenant' || customer.belongsToCurrentTenant) {
+        onSelectCustomer(customer);
+        setSearch('');
         return;
       }
+      setLinkingCustomer(customer);
+      setShowConfirmDialog(true);
+    },
+    [onSelectCustomer]
+  );
 
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(
-          `/api/v1/customers?search=${encodeURIComponent(search)}&limit=10&searchAllOptions=${searchAllOptions}`,
-          { signal: abortController.signal }
-        );
-        
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({}));
-          throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
-        }
-
-        const json = await res.json();
-        
-        if (json.success && json.data?.customers) {
-          // Map CustomerListItem to Customer interface with source metadata
-          const mappedCustomers = json.data.customers.map((c: {
-            id: string;
-            displayName?: string;
-            firstName?: string;
-            lastName?: string;
-            phone?: string;
-            email?: string;
-            source?: 'current_tenant' | 'sys_global' | 'other_tenant';
-            belongsToCurrentTenant?: boolean;
-            originalTenantId?: string;
-            customerId?: string;
-            orgCustomerId?: string;
-          }) => ({
-            id: c.id,
-            name: c.displayName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || undefined,
-            name2: undefined, // CustomerListItem doesn't have name2
-            displayName: c.displayName,
-            firstName: c.firstName,
-            lastName: c.lastName,
-            phone: c.phone,
-            email: c.email,
-            source: c.source,
-            belongsToCurrentTenant: c.belongsToCurrentTenant,
-            originalTenantId: c.originalTenantId,
-            customerId: c.customerId,
-            orgCustomerId: c.orgCustomerId,
-          }));
-          setCustomers(mappedCustomers);
-          setError(null);
-        } else if (json.data && Array.isArray(json.data)) {
-          // Fallback: handle case where data is directly an array
-          const mappedCustomers = json.data.map((c: {
-            id: string;
-            displayName?: string;
-            firstName?: string;
-            lastName?: string;
-            phone?: string;
-            email?: string;
-            source?: 'current_tenant' | 'sys_global' | 'other_tenant';
-            belongsToCurrentTenant?: boolean;
-            originalTenantId?: string;
-            customerId?: string;
-            orgCustomerId?: string;
-          }) => ({
-            id: c.id,
-            name: c.displayName || `${c.firstName || ''} ${c.lastName || ''}`.trim() || undefined,
-            name2: undefined,
-            displayName: c.displayName,
-            firstName: c.firstName,
-            lastName: c.lastName,
-            phone: c.phone,
-            email: c.email,
-            source: c.source,
-            belongsToCurrentTenant: c.belongsToCurrentTenant,
-            originalTenantId: c.originalTenantId,
-            customerId: c.customerId,
-            orgCustomerId: c.orgCustomerId,
-          }));
-          setCustomers(mappedCustomers);
-          setError(null);
-        } else {
-          setCustomers([]);
-          if (!json.success && json.error) {
-            setError(json.error);
-          }
-        }
-      } catch (err: unknown) {
-        // Ignore abort errors (expected when canceling requests)
-        if (err instanceof Error && err.name !== 'AbortError') {
-          console.error('Failed to load customers:', err);
-          setCustomers([]);
-          setError(err.message || 'Failed to load customers');
-        } else if (!(err instanceof Error) || err.name !== 'AbortError') {
-          setCustomers([]);
-          setError('Failed to load customers');
-        }
-      } finally {
-        setLoading(false);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (customers.length === 0) return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setFocusedIndex((i) => Math.min(i + 1, customers.length - 1));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setFocusedIndex((i) => Math.max(i - 1, 0));
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const customer = customers[focusedIndex];
+        if (customer) handleCustomerClick(customer);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
       }
-    };
-
-    // Debounce search with 500ms delay to reduce API calls
-    const timeoutId = setTimeout(loadCustomers, 500);
-
-    // Cleanup: cancel timeout and abort request
-    return () => {
-      clearTimeout(timeoutId);
-      abortController.abort();
-    };
-  }, [search, searchAllOptions]);
+    },
+    [customers, focusedIndex, handleCustomerClick, onClose]
+  );
 
   const handleLinkCustomer = async () => {
     if (!linkingCustomer) return;
 
     setLinkLoading(true);
-    setError(null); // Clear any previous errors
+    setCreateError(null);
     try {
       const isSysGlobal = linkingCustomer.source === 'sys_global';
       const isOtherTenant = linkingCustomer.source === 'other_tenant';
-      
+
       const body: {
         customerId: string;
         sourceType: 'sys' | 'org_other_tenant';
         originalTenantId?: string;
       } = {
-        customerId: isSysGlobal 
-          ? (linkingCustomer.customerId || linkingCustomer.id) 
+        customerId: isSysGlobal
+          ? (linkingCustomer.customerId || linkingCustomer.id)
           : (linkingCustomer.orgCustomerId || linkingCustomer.id),
         sourceType: isSysGlobal ? 'sys' : 'org_other_tenant',
       };
 
-      // For other_tenant source, originalTenantId is required
       if (isOtherTenant) {
         if (!linkingCustomer.originalTenantId) {
           throw new Error('Missing tenant information for customer linking');
         }
         body.originalTenantId = linkingCustomer.originalTenantId;
       }
-      
-      // Validate customerId is present
+
       if (!body.customerId) {
         throw new Error('Invalid customer ID');
       }
 
       const res = await fetch('/api/v1/customers/link', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      const json = await res.json() as { success: boolean; data?: { orgCustomerId: string; customerId: string }; error?: string };
+      const json = (await res.json()) as {
+        success: boolean;
+        data?: { orgCustomerId: string; customerId: string };
+        error?: string;
+      };
 
       if (!res.ok || !json.success) {
         throw new Error(json.error || 'Failed to link customer');
       }
 
-      // Select the customer using the new orgCustomerId
       if (!json.data) {
         throw new Error('Invalid response from server');
       }
@@ -231,107 +194,185 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
       setShowConfirmDialog(false);
       setLinkingCustomer(null);
       setSearch('');
-      setCustomers([]);
     } catch (err: unknown) {
       console.error('Failed to link customer:', err);
-      setError(err instanceof Error ? err.message : 'Failed to link customer');
+      setCreateError(err instanceof Error ? err.message : 'Failed to link customer');
     } finally {
       setLinkLoading(false);
     }
   };
 
-  const handleCustomerClick = (customer: Customer) => {
-    // If customer belongs to current tenant, select immediately
-    if (customer.source === 'current_tenant' || customer.belongsToCurrentTenant) {
-      onSelectCustomer(customer);
-      setSearch('');
-      setCustomers([]);
-      return;
-    }
+  const handleClose = useCallback(() => {
+    onClose();
+    setSearch('');
+    setShowConfirmDialog(false);
+    setLinkingCustomer(null);
+    setCreateError(null);
+  }, [onClose]);
 
-    // Otherwise, show confirmation dialog
-    setLinkingCustomer(customer);
-    setShowConfirmDialog(true);
-  };
+  const displayError = error?.message ?? createError;
+  const canSearch = search.trim().length >= CUSTOMER_SEARCH_MIN_CHARS;
+  const showResults = canSearch && isReady && !displayError;
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="customer-picker-title"
+      aria-describedby="customer-picker-desc"
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-gray-200"
+        onKeyDown={handleKeyDown}
+      >
         {/* Header */}
-        <div className="p-6 border-b border-gray-200">
-          <h2 className={`text-2xl font-bold ${isRTL ? 'text-right' : 'text-left'}`}>{t('title')}</h2>
-          <p className={`text-gray-600 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t('description')}</p>
+        <div className="p-6 border-b border-gray-100">
+          <h2
+            id="customer-picker-title"
+            className={`text-xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
+          >
+            {t('title')}
+          </h2>
+          <p
+            id="customer-picker-desc"
+            className={`text-gray-600 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
+          >
+            {t('description')}
+          </p>
         </div>
 
         {/* Search */}
-        <div className="p-6 border-b border-gray-200 space-y-3">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            dir={isRTL ? 'rtl' : 'ltr'}
-            placeholder={t('searchPlaceholder')}
-            className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
-            autoFocus
-          />
-          <label className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className="p-6 border-b border-gray-100 space-y-3">
+          <div className="relative">
+            <CmxInput
+              ref={inputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              dir={isRTL ? 'rtl' : 'ltr'}
+              placeholder={t('searchPlaceholder')}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                isRTL ? 'text-right' : 'text-left'
+              }`}
+              autoComplete="off"
+              aria-label={t('searchPlaceholder')}
+              aria-describedby="customer-search-hint"
+              aria-controls="customer-results-list"
+              aria-expanded={customers.length > 0}
+            />
+            {isFetching && (
+              <div
+                className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'}`}
+                aria-hidden="true"
+              >
+                <svg
+                  className="animate-spin h-5 w-5 text-blue-500"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+              </div>
+            )}
+          </div>
+          <p id="customer-search-hint" className="text-xs text-gray-500">
+            {t('searchHint')}
+          </p>
+          <label
+            className={`flex items-center gap-2 cursor-pointer select-none ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
             <input
               type="checkbox"
               checked={searchAllOptions}
               onChange={(e) => setSearchAllOptions(e.target.checked)}
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              aria-describedby="customer-search-hint"
             />
-            <span className="text-sm text-gray-700">
-              {t('searchAllOptions') || 'Search all options'}
-            </span>
+            <span className="text-sm text-gray-700">{t('searchAllOptions')}</span>
           </label>
-        </div> 
+        </div>
 
         {/* Results */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
-            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-gray-500`}>{tCommon('loading')}</div>
-          ) : error ? (
-            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-red-500`}>
-              {t('error') || 'Error'}: {error}
+        <div
+          ref={resultsRef}
+          id="customer-results-list"
+          className="flex-1 overflow-y-auto p-6 min-h-[200px]"
+          role="listbox"
+          aria-label={t('title')}
+        >
+          {displayError ? (
+            <div
+              className={`py-8 text-red-600 text-sm ${isRTL ? 'text-right' : 'text-center'}`}
+              role="alert"
+            >
+              {t('error')}: {displayError}
             </div>
-          ) : search.length < 2 ? (
-            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-gray-500`}>
-              {t('searchHint') || 'Type at least 2 characters to search'}
+          ) : !canSearch ? (
+            <div
+              className={`py-8 text-gray-500 text-sm ${isRTL ? 'text-right' : 'text-center'}`}
+              id="customer-search-empty"
+            >
+              {t('searchHint')}
             </div>
-          ) : customers.length === 0 ? (
-            <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 space-y-4`}>
-              <div className="text-gray-500">{t('noCustomersFound')}</div>
+          ) : customers.length === 0 && !isLoading ? (
+            <div className={`py-8 space-y-4 ${isRTL ? 'text-right' : 'text-center'}`}>
+              <p className="text-gray-500 text-sm">{t('noCustomersFound')}</p>
               <button
+                type="button"
                 onClick={() => setCreateModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
-                {t('createNewCustomer') || 'Create New Customer'}
+                {t('createNewCustomer')}
               </button>
             </div>
           ) : (
-            <div className="space-y-2">
-              {customers.map((customer) => (
+            <div className="space-y-2" role="group" aria-live="polite" aria-atomic="true">
+              {customers.map((customer, idx) => (
                 <button
                   key={customer.id}
+                  type="button"
+                  role="option"
+                  aria-selected={idx === focusedIndex}
                   onClick={() => handleCustomerClick(customer)}
                   className={`w-full ${isRTL ? 'text-right' : 'text-left'} p-4 border rounded-lg transition-all ${
+                    idx === focusedIndex ? 'ring-2 ring-blue-500 ring-offset-1 border-blue-500' : ''
+                  } ${
                     customer.source === 'current_tenant'
-                      ? 'border-gray-200 hover:bg-blue-50 hover:border-blue-500'
+                      ? 'border-gray-200 hover:bg-blue-50/80 hover:border-blue-300'
                       : customer.source === 'sys_global'
-                      ? 'border-yellow-200 bg-yellow-50 hover:bg-yellow-100 hover:border-yellow-300'
-                      : 'border-purple-200 bg-purple-50 hover:bg-purple-100 hover:border-purple-300'
+                        ? 'border-amber-200 bg-amber-50/80 hover:bg-amber-100 hover:border-amber-300'
+                        : 'border-violet-200 bg-violet-50/80 hover:bg-violet-100 hover:border-violet-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {customer.name || customer.name2 || customer.displayName || `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || t('unnamed')}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium text-gray-900 truncate">
+                        {customer.name ||
+                          customer.name2 ||
+                          customer.displayName ||
+                          `${customer.firstName || ''} ${customer.lastName || ''}`.trim() ||
+                          t('unnamed')}
                       </div>
                       {(customer.phone || customer.email) && (
-                        <div className={`text-sm text-gray-600 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <div
+                          className={`text-sm text-gray-600 mt-0.5 truncate ${isRTL ? 'text-right' : 'text-left'}`}
+                        >
                           {customer.phone && <span>{customer.phone}</span>}
                           {customer.phone && customer.email && <span> • </span>}
                           {customer.email && <span>{customer.email}</span>}
@@ -339,13 +380,13 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
                       )}
                     </div>
                     {customer.source === 'sys_global' && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-yellow-200 text-yellow-800 rounded">
-                        {t('global') || 'Global'}
+                      <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-amber-200 text-amber-800 rounded">
+                        {t('global')}
                       </span>
                     )}
                     {customer.source === 'other_tenant' && (
-                      <span className="ml-2 px-2 py-1 text-xs font-medium bg-purple-200 text-purple-800 rounded">
-                        {t('otherTenant') || 'Other Tenant'}
+                      <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-violet-200 text-violet-800 rounded">
+                        {t('otherTenant')}
                       </span>
                     )}
                   </div>
@@ -356,16 +397,13 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
         </div>
 
         {/* Footer */}
-        <div className={`p-6 border-t border-gray-200 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+        <div
+          className={`p-4 border-t border-gray-100 flex ${isRTL ? 'justify-start' : 'justify-end'}`}
+        >
           <button
-            onClick={() => {
-              onClose();
-              setSearch('');
-              setCustomers([]);
-              setShowConfirmDialog(false);
-              setLinkingCustomer(null);
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            type="button"
+            onClick={handleClose}
+            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
           >
             {tCommon('cancel')}
           </button>
@@ -374,37 +412,43 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && linkingCustomer && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className={`text-xl font-bold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('confirmLink') || 'Link Customer'}
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4"
+          role="alertdialog"
+          aria-modal="true"
+        >
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-gray-200">
+            <h3 className={`text-lg font-semibold mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('confirmLink')}
             </h3>
-            <p className={`text-gray-600 mb-6 ${isRTL ? 'text-right' : 'text-left'}`}>
+            <p className={`text-gray-600 mb-6 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
               {linkingCustomer.source === 'sys_global'
-                ? t('confirmLinkGlobal') || 'This customer is from the global database. Link them to your tenant?'
-                : t('confirmLinkOtherTenant') || 'This customer belongs to another tenant. Copy and link them to your tenant?'}
+                ? t('confirmLinkGlobal')
+                : t('confirmLinkOtherTenant')}
             </p>
             <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <button
+                type="button"
                 onClick={() => {
                   setShowConfirmDialog(false);
                   setLinkingCustomer(null);
                 }}
                 disabled={linkLoading}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 text-sm font-medium"
               >
                 {tCommon('cancel')}
               </button>
               <button
+                type="button"
                 onClick={handleLinkCustomer}
                 disabled={linkLoading}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
               >
                 {linkLoading
-                  ? (t('linking') || 'Linking...')
+                  ? t('linking')
                   : linkingCustomer.source === 'sys_global'
-                  ? (t('linkCustomer') || 'Link Customer')
-                  : (t('copyCustomer') || 'Copy Customer')}
+                    ? t('linkCustomer')
+                    : t('copyCustomer')}
               </button>
             </div>
           </div>
@@ -414,88 +458,59 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
       {/* Customer Create Modal */}
       <CustomerCreateModal
         open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
+        onClose={() => {
+          setCreateModalOpen(false);
+          setCreateError(null);
+        }}
         onSuccess={async (createdCustomer: CustomerType) => {
-          // After customer creation, search for the org customer to get org_customers_mst.id
           try {
-            // Use phone number if available, otherwise use name
             const searchTerm = createdCustomer.phone || createdCustomer.firstName || '';
-            
+
             if (!searchTerm) {
-              console.error('Cannot search for customer without phone or name');
-              setError('Failed to find created customer. Please search manually.');
+              setCreateError('Failed to find created customer. Please search manually.');
               setCreateModalOpen(false);
               return;
             }
 
-            // Add a small delay to ensure database transaction is committed
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, 400));
 
-            // Search for the customer to get org_customers_mst record with retry logic
             let orgCustomer: Customer | null = null;
-            let attempts = 0;
-            const maxAttempts = 3;
+            for (let attempt = 0; attempt < 3; attempt++) {
+              const results = await searchCustomersForPicker({
+                search: searchTerm,
+                searchAllOptions: false,
+                limit: 10,
+              });
 
-            while (!orgCustomer && attempts < maxAttempts) {
-              attempts++;
-              
-              const searchResponse = await fetch(
-                `/api/v1/customers?search=${encodeURIComponent(searchTerm)}&limit=10&searchAllOptions=false`
-              );
+              const found = results.find((c) => {
+                if (createdCustomer.phone) return c.phone === createdCustomer.phone;
+                return c.firstName === createdCustomer.firstName;
+              });
 
-              if (!searchResponse.ok) {
-                if (attempts === maxAttempts) {
-                  throw new Error('Failed to search for created customer');
-                }
-                await new Promise(resolve => setTimeout(resolve, 500));
-                continue;
+              if (found) {
+                orgCustomer = mapSearchItemToCustomer(found);
+                break;
               }
-
-              const searchData = await searchResponse.json();
-              
-              if (searchData.success && searchData.data?.customers && searchData.data.customers.length > 0) {
-                // Find the customer we just created (match by phone or firstName)
-                orgCustomer = searchData.data.customers.find((c: Customer) => {
-                  if (createdCustomer.phone) {
-                    return c.phone === createdCustomer.phone;
-                  }
-                  return c.firstName === createdCustomer.firstName;
-                });
-              }
-
-              if (!orgCustomer && attempts < maxAttempts) {
-                // Wait before retrying
-                await new Promise(resolve => setTimeout(resolve, 500));
-              }
+              await new Promise((resolve) => setTimeout(resolve, 500));
             }
 
             if (!orgCustomer) {
-              throw new Error('Created customer not found in search results. Please try searching manually.');
+              throw new Error('Created customer not found. Please search manually.');
             }
 
-            // Format customer for picker
-            const formattedCustomer: Customer = {
-              id: orgCustomer.id, // This is org_customers_mst.id
-              name: orgCustomer.displayName || `${orgCustomer.firstName || ''} ${orgCustomer.lastName || ''}`.trim() || undefined,
-              name2: orgCustomer.name2 || undefined,
-              displayName: orgCustomer.displayName,
-              firstName: orgCustomer.firstName,
-              lastName: orgCustomer.lastName,
-              phone: orgCustomer.phone,
-              email: orgCustomer.email,
+            const formatted: Customer = {
+              ...orgCustomer,
               source: 'current_tenant',
               belongsToCurrentTenant: true,
             };
 
-            // Select the customer and close modals
-            onSelectCustomer(formattedCustomer);
+            onSelectCustomer(formatted);
             setCreateModalOpen(false);
             setSearch('');
-            setCustomers([]);
-            setError(null);
+            setCreateError(null);
           } catch (err) {
             console.error('Failed to find created customer:', err);
-            setError(err instanceof Error ? err.message : 'Failed to find created customer. Please search manually.');
+            setCreateError(err instanceof Error ? err.message : 'Failed to find created customer.');
             setCreateModalOpen(false);
           }
         }}
@@ -503,4 +518,3 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
     </div>
   );
 }
-

@@ -638,19 +638,22 @@ export async function searchCustomers(
  * Step 3: If still not found and searchAllOptions=true, search other tenants' org_customers_mst
  */
 export async function searchCustomersProgressive(
-  params: CustomerSearchParams & { searchAllOptions?: boolean }
+  params: CustomerSearchParams & { searchAllOptions?: boolean; skipCount?: boolean }
 ): Promise<{ customers: CustomerListItem[]; total: number }> {
   const supabase = await createClient();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
   const searchAllOptions = params.searchAllOptions ?? false;
+  const skipCount = params.skipCount ?? false;
   const searchTerm = params.search?.trim() || '';
   const limit = params.limit || 100;
 
   // Step 1: Search current tenant's org_customers_mst
+  // skipCount=true for picker mode (limit<=15): avoids expensive count query for faster fetch
+  const selectOpts = skipCount ? {} : { count: 'exact' as const };
   let query = supabase
     .from('org_customers_mst')
-    .select('id, customer_id, first_name, last_name, display_name, name, name2, phone, email, type, loyalty_points, created_at, tenant_org_id', { count: 'exact' })
+    .select('id, customer_id, first_name, last_name, display_name, name, name2, phone, email, type, loyalty_points, created_at, tenant_org_id', selectOpts)
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true);
   

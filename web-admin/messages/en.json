@@ -2337,6 +2337,7 @@
       "empty": "No categories found",
       "showAll": "Show all"
     },
+    "chooseBranch": "Please choose a branch",
     "itemsGrid": {
       "title": "Items",
       "qtyLabel": "Qty",
@@ -2493,6 +2494,7 @@
       "failedToCalculateReadyBy": "Failed to calculate ready-by date. Please try again.",
       "invalidCustomer": "Invalid customer selected. Please select a customer again.",
       "invalidProductIds": "Some products have invalid IDs. Please refresh the page and try again.",
+      "invalidBranchId": "Invalid branch selected. Wrong branchId: \"{branchId}\". Please choose a branch again.",
       "orderCreationFailed": "Failed to create order",
       "unknownError": "An error occurred",
       "failedToLoadCategories": "Failed to load categories. Please refresh the page.",

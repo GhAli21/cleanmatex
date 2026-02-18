@@ -126,6 +126,7 @@ export function CmxAlertDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const dialogId = `cmx-alert-dialog-${React.useId()}`;
 
   // Handle visibility animation
   useEffect(() => {
@@ -247,7 +248,6 @@ export function CmxAlertDialog({
   const iconColorClass = variantStyles[variant].icon;
   const confirmButtonVariant = variantStyles[variant].confirmButton;
 
-  const dialogId = `cmx-alert-dialog-${React.useId()}`;
   const titleId = `${dialogId}-title`;
   const descriptionId = `${dialogId}-description`;
 

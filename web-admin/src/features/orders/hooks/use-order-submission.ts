@@ -20,6 +20,13 @@ import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
+
+function isValidBranchId(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
+}
+
 /**
  * Hook to handle order submission
  */
@@ -89,6 +96,34 @@ export function useOrderSubmission() {
                     setIsSubmitting(false);
                     state.setLoading(false);
                     return;
+                }
+
+                // Validate branchId when present: must be a valid UUID
+                if (state.state.branchId) {
+                    if (!isValidBranchId(state.state.branchId)) {
+                        const rawBranchId = state.state.branchId;
+                        const debugContext = {
+                            invalidBranchId: rawBranchId,
+                            branchIdType: typeof rawBranchId,
+                            branchIdLength: rawBranchId != null ? String(rawBranchId).length : undefined,
+                            stack: new Error().stack,
+                            context: {
+                                customerId: state.state.customer?.id ?? null,
+                                itemsCount: state.state.items.length,
+                                paymentMethod: paymentData.paymentMethod,
+                            },
+                        };
+                        console.error('[order-submission] Invalid branchId validation failed', debugContext);
+                        cmxMessage.error(
+                            t('errors.invalidBranchId', {
+                                branchId: rawBranchId,
+                                default: `Invalid branch selected. Wrong branchId: "${state.state.branchId}". Please choose a branch again.`,
+                            })
+                        );
+                        setIsSubmitting(false);
+                        state.setLoading(false);
+                        return;
+                    }
                 }
 
                 const createWithPaymentBody = {

@@ -25,6 +25,58 @@ import type {
 const API_BASE = '/api/v1/customers';
 
 // ==================================================================
+// CUSTOMER SEARCH (Picker / Fast fetch)
+// ==================================================================
+
+/** Params for fast customer search (picker, autocomplete) */
+export interface CustomerSearchPickerParams {
+  search: string;
+  searchAllOptions?: boolean;
+  limit?: number;
+}
+
+/** Customer item from search API (picker format) */
+export interface CustomerSearchItem {
+  id: string;
+  displayName?: string | null;
+  firstName?: string;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  source?: 'current_tenant' | 'sys_global' | 'other_tenant';
+  belongsToCurrentTenant?: boolean;
+  originalTenantId?: string;
+  customerId?: string;
+  orgCustomerId?: string;
+}
+
+/**
+ * Fast customer search for picker/autocomplete.
+ * Uses limit=10 and skipCount on server for quick response.
+ */
+export async function searchCustomersForPicker(
+  params: CustomerSearchPickerParams
+): Promise<CustomerSearchItem[]> {
+  const { search, searchAllOptions = false, limit = 10 } = params;
+  const queryParams = new URLSearchParams({
+    search: search.trim(),
+    limit: String(limit),
+    searchAllOptions: String(searchAllOptions),
+  });
+
+  const response = await fetch(`${API_BASE}?${queryParams.toString()}`);
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to search customers');
+  }
+
+  const data = await response.json();
+  const customers = Array.isArray(data.data) ? data.data : data.data?.customers ?? [];
+  return customers;
+}
+
+// ==================================================================
 // CUSTOMER CRUD OPERATIONS
 // ==================================================================
 

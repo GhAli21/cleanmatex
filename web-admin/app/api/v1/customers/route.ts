@@ -202,6 +202,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const rawLimit = parseInt(searchParams.get('limit') || '20', 10);
     const limit = Math.min(100, Math.max(1, Number.isNaN(rawLimit) ? 20 : rawLimit));
+    const skipCount = limit <= 15 && searchParams.get('search')?.trim().length ? true : false;
     const search = searchParams.get('search') || '';
     const typeParam = searchParams.get('type');
     const type = typeParam && ['guest', 'stub', 'walk_in', 'full'].includes(typeParam) ? typeParam : undefined;
@@ -212,12 +213,13 @@ export async function GET(request: NextRequest) {
     const sortOrderParam = searchParams.get('sortOrder');
     const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc';
 
-    // Use progressive search
+    // Use progressive search (skipCount=true for picker: faster when limit<=15)
     const result = await searchCustomersProgressive({
       page,
       limit,
       search,
       searchAllOptions,
+      skipCount,
       type,
       status,
       sortBy,

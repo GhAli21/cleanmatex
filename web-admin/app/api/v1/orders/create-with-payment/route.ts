@@ -18,6 +18,7 @@ import {
   type CreateWithPaymentRequest,
 } from '@/lib/validations/new-order-payment-schemas';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
+import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 
 const TOLERANCE = 0.001;
@@ -67,6 +68,27 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = createWithPaymentRequestSchema.safeParse(body);
   if (!parsed.success) {
+    const rawBranchId = body && typeof body === 'object' && 'branchId' in body ? body.branchId : undefined;
+    logger.error(
+      '[create-with-payment] Request body validation failed',
+      undefined,
+      {
+        feature: 'orders',
+        action: 'create-with-payment',
+        zodIssues: parsed.error.issues,
+        branchId: {
+          value: rawBranchId,
+          type: typeof rawBranchId,
+          length: rawBranchId != null ? String(rawBranchId).length : undefined,
+        },
+        payloadSummary: body && typeof body === 'object'
+          ? {
+              itemsCount: Array.isArray((body as { items?: unknown[] }).items) ? (body as { items: unknown[] }).items.length : undefined,
+              paymentMethod: 'paymentMethod' in body ? (body as { paymentMethod?: unknown }).paymentMethod : undefined,
+            }
+          : { rawBodyType: body === null ? 'null' : typeof body },
+      }
+    );
     return NextResponse.json(
       {
         success: false,
