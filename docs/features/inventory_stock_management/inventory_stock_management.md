@@ -1,10 +1,12 @@
 ---
-version: v1.0.0
-last_updated: 2026-02-07
+version: v1.2.0
+last_updated: 2026-02-18
 author: CleanMateX AI Assistant
 feature_id: PRD-032
 status: Implemented
 ---
+
+> **v1.2.0 Branch-Wise Enhancement:** Quantity and stats are sourced from `org_inv_stock_by_branch`. See [Branch-Wise Enhancement](./branch-wise-enhancement.md) for details.
 
 # Inventory Stock Management
 
@@ -322,6 +324,7 @@ export const STOCK_STATUS = {
   LOW_STOCK: 'low_stock',
   OUT_OF_STOCK: 'out_of_stock',
   OVERSTOCK: 'overstock',
+  NEGATIVE_STOCK: 'negative_stock',  // v1.2.0: qtyOnHand < 0
 } as const;
 
 // Reference types for stock transactions
@@ -347,6 +350,7 @@ export function getStockStatus(
   reorderPoint: number,
   maxStockLevel?: number | null
 ): StockStatus {
+  if (qtyOnHand < 0) return STOCK_STATUS.NEGATIVE_STOCK;   // v1.2.0
   if (qtyOnHand <= 0) return STOCK_STATUS.OUT_OF_STOCK;
   if (qtyOnHand <= reorderPoint) return STOCK_STATUS.LOW_STOCK;
   if (maxStockLevel && qtyOnHand > maxStockLevel) return STOCK_STATUS.OVERSTOCK;
@@ -370,7 +374,7 @@ export function getStockStatus(
 | `InventorySearchResponse` | Paginated response with `items[]`, `total`, `page`, `limit`, `totalPages` |
 | `StockTransactionSearchParams` | Pagination + filters for transaction history |
 | `StockTransactionSearchResponse` | Paginated response with `transactions[]` |
-| `InventoryStatistics` | Aggregate stats: `totalItems`, `lowStockCount`, `outOfStockCount`, `totalStockValue` |
+| `InventoryStatistics` | Aggregate stats: `totalItems`, `lowStockCount`, `outOfStockCount`, `negativeStockCount`, `totalStockValue` |
 
 **Key type: `InventoryItemListItem`**
 

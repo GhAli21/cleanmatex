@@ -1,12 +1,14 @@
 ---
-version: v1.0.0
-last_updated: 2026-02-07
+version: v1.2.0
+last_updated: 2026-02-18
 author: CleanMateX AI Assistant
 ---
 
 # Inventory Stock Management -- Developer Flow Diagrams
 
-## Stock Adjustment Flow
+> **v1.2.0:** Quantity and stats use `org_inv_stock_by_branch` (branch-specific or aggregated). Adjust flow includes audit context and Zod validation. See [Branch-Wise Enhancement](./branch-wise-enhancement.md).
+
+## Stock Adjustment Flow (v1.2.0)
 
 ```mermaid
 sequenceDiagram
@@ -15,23 +17,27 @@ sequenceDiagram
     participant SVC as adjustStock()
     participant DB as Supabase / PostgreSQL
 
-    UI->>SA: { product_id, action, quantity, reason }
-    SA->>SVC: adjustStock(request)
+    UI->>UI: Zod validate (stockAdjustmentSchema)
+    UI->>SA: { product_id, action, quantity, reason, branch_id }
+    SA->>SA: getServerAuditContext() --> userId, userName, userAgent, userIp
+    SA->>SVC: adjustStock(request + audit)
     SVC->>SVC: getTenantIdFromSession()
-    SVC->>DB: SELECT qty_on_hand FROM org_product_data_mst<br/>WHERE tenant_org_id = ? AND id = ?
-    DB-->>SVC: { qty_on_hand: 50 }
-    SVC->>SVC: Compute qtyAfter based on action<br/>(increase: 50+qty, decrease: max(0, 50-qty), set: qty)
-    SVC->>SVC: generateTransactionNo() --> STK-20260207-0001
-    SVC->>DB: INSERT INTO org_inv_stock_tr<br/>(tenant_org_id, product_id, transaction_type,<br/>quantity, qty_before, qty_after, reason, ...)
-    DB-->>SVC: transaction record
-    SVC->>DB: UPDATE org_product_data_mst<br/>SET qty_on_hand = qtyAfter<br/>WHERE tenant_org_id = ? AND id = ?
-    DB-->>SVC: OK
+    alt branch_id set
+        SVC->>DB: SELECT qty_on_hand FROM org_inv_stock_by_branch<br/>WHERE tenant_org_id, product_id, branch_id
+        DB-->>SVC: qty_before (or 0 if no row)
+    else branch_id null (legacy)
+        SVC->>DB: SELECT qty_on_hand FROM org_product_data_mst
+        DB-->>SVC: qty_before
+    end
+    SVC->>SVC: Compute qtyAfter (allow negative)
+    SVC->>DB: INSERT org_inv_stock_tr<br/>(+ processed_by, created_by, created_info)
+    SVC->>DB: UPSERT org_inv_stock_by_branch (or UPDATE org_product_data_mst)
     SVC-->>SA: StockTransaction
-    SA-->>UI: { success: true, data: StockTransaction }
+    SA-->>UI: { success: true }
     UI->>UI: onSuccess() --> refresh list
 ```
 
-## Inventory Search Flow
+## Inventory Search Flow (v1.2.0)
 
 ```mermaid
 sequenceDiagram
@@ -40,13 +46,17 @@ sequenceDiagram
     participant SVC as searchInventoryItems()
     participant DB as Supabase / PostgreSQL
 
-    UI->>SA: { page, limit, search, stock_status, is_active }
+    UI->>SA: { page, limit, search, stock_status, is_active, branch_id }
     SA->>SVC: searchInventoryItems(params)
-    SVC->>SVC: getTenantIdFromSession()
-    SVC->>DB: SELECT *, count(*)<br/>FROM org_product_data_mst<br/>WHERE tenant_org_id = ?<br/>AND is_retail_item = true<br/>AND (filters...)<br/>ORDER BY ... LIMIT/OFFSET
-    DB-->>SVC: rows[] + count
-    SVC->>SVC: Map rows to InventoryItemListItem[]<br/>Compute stock_status via getStockStatus()<br/>Compute stock_value = qty * cost
-    SVC->>SVC: If stock_status filter: filter in memory
+    SVC->>DB: SELECT * FROM org_product_data_mst (retail items)
+    DB-->>SVC: rows[]
+    alt branch_id set
+        SVC->>DB: SELECT product_id, qty_on_hand FROM org_inv_stock_by_branch<br/>WHERE branch_id = ?
+    else branch_id empty (All Branches)
+        SVC->>DB: SELECT product_id, qty_on_hand FROM org_inv_stock_by_branch<br/>SUM per product
+    end
+    SVC->>SVC: Build branchQtyMap; has_branch_record when branch set
+    SVC->>SVC: Map to InventoryItemListItem; getStockStatus; stock_value
     SVC-->>SA: InventorySearchResponse
     SA-->>UI: { success: true, data: { items, total, page, ... } }
 ```

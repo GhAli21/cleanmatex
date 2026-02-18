@@ -271,8 +271,16 @@ export default function StockPage() {
                 <tr className="bg-gray-50 text-left">
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.itemCode')}</th>
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.itemName')}</th>
+                  {branchId && (
+                    <th className="px-4 py-3 font-medium text-gray-600">{t('labels.sku')}</th>
+                  )}
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.quantity')}</th>
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.unit')}</th>
+                  {branchId && (
+                    <th className="px-4 py-3 font-medium text-gray-600">
+                      {t('labels.storageLocation')}
+                    </th>
+                  )}
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.unitCost')}</th>
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.stockValue')}</th>
                   <th className="px-4 py-3 font-medium text-gray-600">{t('labels.status')}</th>
@@ -286,6 +294,9 @@ export default function StockPage() {
                     <td className="px-4 py-3">
                       {isRtl ? item.product_name2 || item.product_name : item.product_name}
                     </td>
+                    {branchId && (
+                      <td className="px-4 py-3 font-mono text-xs">{item.id_sku || '-'}</td>
+                    )}
                     <td className="px-4 py-3 font-medium">
                       {branchId &&
                       item.qty_on_hand === 0 &&
@@ -301,6 +312,9 @@ export default function StockPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">{item.product_unit || '-'}</td>
+                    {branchId && (
+                      <td className="px-4 py-3 text-gray-600">{item.storage_location || '-'}</td>
+                    )}
                     <td className="px-4 py-3">{item.product_cost?.toFixed(2) ?? '-'}</td>
                     <td className="px-4 py-3 font-medium">{item.stock_value.toFixed(2)}</td>
                     <td className="px-4 py-3">{getStatusBadge(item.stock_status)}</td>
@@ -372,6 +386,7 @@ export default function StockPage() {
       {editItem && (
         <EditItemModal
           item={editItem}
+          branchId={branchId || undefined}
           onClose={() => setEditItem(null)}
           onSuccess={handleAfterMutation}
         />

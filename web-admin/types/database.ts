@@ -2357,6 +2357,7 @@ export type Database = {
           branch_id: string
           created_at: string | null
           created_by: string | null
+          id_sku: string | null
           last_purchase_cost: number | null
           max_stock_level: number | null
           min_stock_level: number | null
@@ -2372,6 +2373,7 @@ export type Database = {
           branch_id: string
           created_at?: string | null
           created_by?: string | null
+          id_sku?: string | null
           last_purchase_cost?: number | null
           max_stock_level?: number | null
           min_stock_level?: number | null
@@ -2387,6 +2389,7 @@ export type Database = {
           branch_id?: string
           created_at?: string | null
           created_by?: string | null
+          id_sku?: string | null
           last_purchase_cost?: number | null
           max_stock_level?: number | null
           min_stock_level?: number | null
@@ -2424,7 +2427,7 @@ export type Database = {
       }
       org_inv_stock_tr: {
         Row: {
-          branch_id: string | null
+          branch_id: string
           created_at: string | null
           created_by: string | null
           created_info: string | null
@@ -2452,7 +2455,7 @@ export type Database = {
           updated_info: string | null
         }
         Insert: {
-          branch_id?: string | null
+          branch_id: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -2480,7 +2483,7 @@ export type Database = {
           updated_info?: string | null
         }
         Update: {
-          branch_id?: string | null
+          branch_id?: string
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null

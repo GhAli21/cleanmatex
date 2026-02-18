@@ -1,14 +1,14 @@
 ---
-version: v1.1.0
-last_updated: 2026-02-19
+version: v1.2.0
+last_updated: 2026-02-18
 author: CleanMateX AI Assistant
 ---
 
 # Current Status -- Inventory Stock Management
 
-## Implementation State: Complete (Phase 1 + Branch Enforcement)
+## Implementation State: Complete (Phase 1 + Branch-Wise Enhancement v1.2.0)
 
-All Phase 1 deliverables are implemented and functional. Branch enforcement has been added in v1.1.0.
+All Phase 1 deliverables are implemented and functional. Branch-wise quantity, negative stock, and audit enhancements are complete in v1.2.0.
 
 ### Completed
 
@@ -23,12 +23,20 @@ All Phase 1 deliverables are implemented and functional. Branch enforcement has 
 - [x] Transaction history view with branch column
 - [x] i18n support (EN + AR)
 - [x] Feature documentation
-- [x] **Branch enforcement on all stock transactions** (v1.1.0)
-  - `org_inv_stock_tr.branch_id` is now NOT NULL (migration 0109)
-  - `StockAdjustmentRequest.branch_id` is now required (TypeScript)
-  - `adjustStock()` service throws if branch_id missing
-  - Adjust modal shows read-only branch info when pre-selected
-  - History modal shows Branch column for each transaction
+- [x] **Branch-wise quantity everywhere** (v1.2.0)
+  - Branch selector always visible; first in filter row
+  - When branch selected: quantity from `org_inv_stock_by_branch` for that branch
+  - When "All Branches": aggregated sum per product from `org_inv_stock_by_branch`
+  - Default branch: main or first; sessionStorage persistence for last selection
+  - No-branches empty state with disabled Add/Adjust
+- [x] **Negative stock support**
+  - `NEGATIVE_STOCK` status and badge; negative quantities allowed in `adjustStock`
+  - `negativeStockCount` in stats
+- [x] **Audit in adjustments**
+  - `processed_by`, `created_by`, `created_info` in `org_inv_stock_tr` via `getServerAuditContext()`
+- [x] **Zod validation in Adjust modal**
+- [x] **Stock History modal** — Performed By, Reference, Source columns; order link
+- [x] **"Never Stocked at Branch"** tooltip when qty 0 and no branch row
 
 ### Pending (Future Phases)
 
@@ -43,22 +51,21 @@ All Phase 1 deliverables are implemented and functional. Branch enforcement has 
 
 ### Known Limitations
 
-1. **Stock status filtering is client-side:** When filtering by stock status (low_stock, out_of_stock, overstock), all matching rows are loaded first and filtered in memory. This works fine for typical inventory sizes (< 1000 items) but may need DB-level optimization for larger datasets.
+1. **Stock status filtering is client-side:** When filtering by stock status (low_stock, out_of_stock, overstock, negative_stock), all matching rows are loaded first and filtered in memory. This works fine for typical inventory sizes (< 1000 items) but may need DB-level optimization for larger datasets.
 
 2. **Non-atomic stock adjustments:** The `adjustStock` function performs two sequential Supabase calls (insert transaction, then upsert branch stock). If the second call fails, the transaction record exists but `qty_on_hand` is not updated. This should be addressed with a database function in a future iteration.
 
 3. **No concurrent adjustment protection:** Two users adjusting stock simultaneously for the same item could see stale `qty_before` values. Optimistic locking or DB-level serialization should be considered for high-concurrency environments.
 
-### Branch Enforcement Rules (v1.1.0)
+### Branch-Wise Rules (v1.2.0)
 
-- **All stock transactions require a branch_id** — this is enforced at 3 levels:
-  1. **DB level**: `branch_id NOT NULL` on `org_inv_stock_tr`
-  2. **Service level**: `adjustStock()` throws if `branch_id` is not provided
-  3. **UI level**: Adjust modal requires branch selection; Submit button disabled without branch
+| branch_id      | Quantity source                                                                 |
+|----------------|----------------------------------------------------------------------------------|
+| Set (UUID)     | `org_inv_stock_by_branch` for that branch                                       |
+| Empty          | Sum of `org_inv_stock_by_branch` per product across all branches ("All Branches")|
 
-- **Branch display in Adjust modal**:
-  - When branch pre-selected on stock page: shown as read-only info box (blue card)
-  - When "All Branches" selected: dropdown shown, selection required before submit
+- **Adjust**: Uses selected branch when available; disabled when no branches configured.
+- **Add Item**: Disabled when no branches.
 
 ### Blockers
 

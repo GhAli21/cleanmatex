@@ -35,3 +35,17 @@ export const stockAdjustmentSchema = z
   });
 
 export type StockAdjustmentFormData = z.infer<typeof stockAdjustmentSchema>;
+
+/** Schema for update branch stock request */
+export const updateBranchStockSchema = z.object({
+  product_id: z.string().uuid(),
+  branch_id: z.string().uuid(),
+  reorder_point: z.number().min(0).optional(),
+  min_stock_level: z.number().min(0).optional(),
+  max_stock_level: z.number().min(0).nullable().optional(),
+  last_purchase_cost: z.number().min(0).nullable().optional(),
+  storage_location: z.string().max(100).nullable().optional(),
+  id_sku: z.string().max(50).nullable().optional(),
+});
+
+export type UpdateBranchStockFormData = z.infer<typeof updateBranchStockSchema>;

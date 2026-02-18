@@ -1,24 +1,16 @@
 -- ==================================================================
--- 0108_enhance_deduct_retail_stock_for_order.sql
--- Purpose: Enhance deduct_retail_stock_for_order to:
---   1. Insert into org_inv_stock_by_branch when no row exists
---   2. Allow negative stock (user adjusts later)
---   3. Add optional audit/reference parameters for org_inv_stock_tr
--- Dependencies: 0103_inventory_branch_and_deduct.sql
+-- 0111_deduct_copy_branch_stock_fields.sql
+-- Purpose: Enhance deduct_retail_stock_for_order to copy full product
+--          stock fields when inserting new org_inv_stock_by_branch rows
+-- Dependencies: 0108_enhance_deduct_retail_stock_for_order.sql,
+--               0110_add_id_sku_to_org_inv_stock_by_branch.sql
 -- ==================================================================
 
 BEGIN;
 
--- ==================================================================
--- DROP OLD FUNCTION SIGNATURES
--- ==================================================================
-
-DROP FUNCTION IF EXISTS deduct_retail_stock_for_order(UUID, UUID);
-DROP FUNCTION IF EXISTS deduct_retail_stock_for_order(UUID, UUID, UUID);
-
--- ==================================================================
--- CREATE ENHANCED deduct_retail_stock_for_order
--- ==================================================================
+-- Drop current function (matches 0108 signature)
+-- Drop 0108 version (full 15-param signature)
+DROP FUNCTION IF EXISTS deduct_retail_stock_for_order(UUID, UUID, UUID, TEXT, UUID, TEXT, UUID, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT);
 
 CREATE OR REPLACE FUNCTION deduct_retail_stock_for_order(
   p_order_id       UUID,
@@ -63,20 +55,29 @@ BEGIN
       AND oi.product_id IS NOT NULL
       AND p.is_retail_item = true
       AND p.service_category_code = 'RETAIL_ITEMS'
-	  AND oi.service_category_code = 'RETAIL_ITEMS'
-	  
+      AND oi.service_category_code = 'RETAIL_ITEMS'
   ) LOOP
     v_qty_to_deduct := r.quantity;
 
     IF p_branch_id IS NOT NULL THEN
-      -- Branch-level: ensure row exists, then deduct from org_inv_stock_by_branch
+      -- Branch-level: ensure row exists with full product fields, then deduct
       INSERT INTO org_inv_stock_by_branch (
         tenant_org_id, product_id, branch_id,
-        qty_on_hand, reorder_point, min_stock_level
-      ) VALUES (
-        p_tenant_org_id, r.product_id, p_branch_id,
-        0, 0, 0
+        qty_on_hand, reorder_point, min_stock_level, max_stock_level,
+        last_purchase_cost, storage_location, id_sku
       )
+      SELECT
+        p_tenant_org_id, r.product_id, p_branch_id,
+        0,
+        COALESCE(p.reorder_point, 0),
+        COALESCE(p.min_stock_level, 0),
+        p.max_stock_level,
+        p.last_purchase_cost,
+        p.storage_location,
+        p.id_sku
+      FROM org_product_data_mst p
+      WHERE p.id = r.product_id
+        AND p.tenant_org_id = p_tenant_org_id
       ON CONFLICT (tenant_org_id, product_id, branch_id) DO NOTHING;
 
       SELECT qty_on_hand INTO v_qty_before
@@ -158,6 +159,6 @@ END;
 $$;
 
 COMMENT ON FUNCTION deduct_retail_stock_for_order IS
-  'Deduct stock for retail items in an order. When p_branch_id provided: deduct from org_inv_stock_by_branch (inserts row if missing, allows negative). When NULL: deduct from org_product_data_mst.qty_on_hand (legacy). Accepts optional audit params for org_inv_stock_tr.';
+  'Deduct stock for retail items in an order. When p_branch_id provided: deduct from org_inv_stock_by_branch (inserts row with full product fields if missing, allows negative). When NULL: deduct from org_product_data_mst.qty_on_hand (legacy).';
 
 COMMIT;

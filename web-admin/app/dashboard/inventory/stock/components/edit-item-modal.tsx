@@ -13,16 +13,26 @@ import {
   Select,
 } from '@/components/ui';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
-import { updateInventoryItemAction, deleteInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
+import {
+  updateInventoryItemAction,
+  updateBranchStockAction,
+  deleteInventoryItemAction,
+} from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem } from '@/lib/types/inventory';
 
 interface EditItemModalProps {
   item: InventoryItemListItem;
+  branchId?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function EditItemModal({ item, onClose, onSuccess }: EditItemModalProps) {
+export default function EditItemModal({
+  item,
+  branchId,
+  onClose,
+  onSuccess,
+}: EditItemModalProps) {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
 
@@ -38,6 +48,15 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
   const [sellPrice, setSellPrice] = useState(String(item.default_sell_price || 0));
   const [skuValue, setSkuValue] = useState(item.id_sku || '');
   const [storageLocation, setStorageLocation] = useState(item.storage_location || '');
+  const [minStockLevel, setMinStockLevel] = useState(
+    String(item.min_stock_level ?? 0)
+  );
+  const [maxStockLevel, setMaxStockLevel] = useState(
+    String(item.max_stock_level ?? '')
+  );
+  const [lastPurchaseCost, setLastPurchaseCost] = useState(
+    String(item.last_purchase_cost ?? '')
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,17 +68,46 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
     setSaving(true);
     setError(null);
 
-    const result = await updateInventoryItemAction({
+    const productPayload = {
       id: item.id,
       product_name: productName.trim(),
       product_name2: productName2.trim() || undefined,
       product_unit: productUnit,
-      reorder_point: parseFloat(reorderPoint) || 0,
       product_cost: parseFloat(productCost) || 0,
       default_sell_price: parseFloat(sellPrice) || 0,
-      id_sku: skuValue.trim() || undefined,
-      storage_location: storageLocation.trim() || undefined,
-    });
+    };
+
+    if (!branchId) {
+      (productPayload as Record<string, unknown>).reorder_point =
+        parseFloat(reorderPoint) || 0;
+      (productPayload as Record<string, unknown>).id_sku =
+        skuValue.trim() || undefined;
+      (productPayload as Record<string, unknown>).storage_location =
+        storageLocation.trim() || undefined;
+    }
+
+    const result = await updateInventoryItemAction(productPayload);
+
+    if (result.success && branchId) {
+      const branchResult = await updateBranchStockAction({
+        product_id: item.id,
+        branch_id: branchId,
+        reorder_point: parseFloat(reorderPoint) || 0,
+        min_stock_level: parseFloat(minStockLevel) || 0,
+        max_stock_level: maxStockLevel.trim() ? parseFloat(maxStockLevel) : null,
+        last_purchase_cost: lastPurchaseCost.trim()
+          ? parseFloat(lastPurchaseCost)
+          : null,
+        storage_location: storageLocation.trim() || null,
+        id_sku: skuValue.trim() || null,
+      });
+
+      if (!branchResult.success) {
+        setError(branchResult.error || t('messages.updateFailed'));
+        setSaving(false);
+        return;
+      }
+    }
 
     setSaving(false);
 
@@ -123,21 +171,25 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
                 onChange={(e) => setProductUnit(e.target.value)}
                 options={unitOptions}
               />
-              <Input
-                label={t('labels.sku')}
-                value={skuValue}
-                onChange={(e) => setSkuValue(e.target.value)}
-              />
+              {!branchId && (
+                <Input
+                  label={t('labels.sku')}
+                  value={skuValue}
+                  onChange={(e) => setSkuValue(e.target.value)}
+                />
+              )}
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <Input
-                label={t('labels.reorderPoint')}
-                type="number"
-                step="0.01"
-                min="0"
-                value={reorderPoint}
-                onChange={(e) => setReorderPoint(e.target.value)}
-              />
+              {!branchId && (
+                <Input
+                  label={t('labels.reorderPoint')}
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={reorderPoint}
+                  onChange={(e) => setReorderPoint(e.target.value)}
+                />
+              )}
               <Input
                 label={t('labels.unitCost')}
                 type="number"
@@ -156,12 +208,71 @@ export default function EditItemModal({ item, onClose, onSuccess }: EditItemModa
                 value={sellPrice}
                 onChange={(e) => setSellPrice(e.target.value)}
               />
-              <Input
-                label={t('labels.storageLocation')}
-                value={storageLocation}
-                onChange={(e) => setStorageLocation(e.target.value)}
-              />
+              {!branchId && (
+                <Input
+                  label={t('labels.storageLocation')}
+                  value={storageLocation}
+                  onChange={(e) => setStorageLocation(e.target.value)}
+                />
+              )}
             </div>
+            {branchId && (
+              <>
+                <p className="text-sm font-medium text-gray-700 pt-2 border-t">
+                  {t('actions.editBranchStock')}
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label={t('labels.sku')}
+                    value={skuValue}
+                    onChange={(e) => setSkuValue(e.target.value)}
+                  />
+                  <Input
+                    label={t('labels.storageLocation')}
+                    value={storageLocation}
+                    onChange={(e) => setStorageLocation(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label={t('labels.reorderPoint')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={reorderPoint}
+                    onChange={(e) => setReorderPoint(e.target.value)}
+                  />
+                  <Input
+                    label={t('labels.minStockLevel')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={minStockLevel}
+                    onChange={(e) => setMinStockLevel(e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label={t('labels.maxStockLevel')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={maxStockLevel}
+                    onChange={(e) => setMaxStockLevel(e.target.value)}
+                    placeholder="-"
+                  />
+                  <Input
+                    label={t('labels.lastPurchaseCost')}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={lastPurchaseCost}
+                    onChange={(e) => setLastPurchaseCost(e.target.value)}
+                    placeholder="-"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <DialogFooter>

@@ -2861,6 +2861,7 @@
     "actions": {
       "addItem": "Add Item",
       "editItem": "Edit Item",
+      "editBranchStock": "Branch Stock",
       "adjust": "Adjust",
       "adjustStock": "Adjust Stock",
       "history": "History",

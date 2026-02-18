@@ -2861,6 +2861,7 @@
     "actions": {
       "addItem": "إضافة صنف",
       "editItem": "تعديل صنف",
+      "editBranchStock": "مخزون الفرع",
       "adjust": "تعديل",
       "adjustStock": "تعديل المخزون",
       "history": "السجل",

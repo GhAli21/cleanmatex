@@ -83,6 +83,37 @@ export interface InventoryItemListItem {
   stock_value: number;
   /** When branch_id set: true if product has row in org_inv_stock_by_branch, false otherwise */
   has_branch_record?: boolean;
+  /** Branch-level only: for edit UI when branch selected */
+  min_stock_level?: number;
+  last_purchase_cost?: number | null;
+}
+
+/** Branch-level stock record (org_inv_stock_by_branch row) */
+export interface BranchStockRecord {
+  tenant_org_id: string;
+  product_id: string;
+  branch_id: string;
+  qty_on_hand: number;
+  reorder_point: number;
+  min_stock_level: number;
+  max_stock_level: number | null;
+  last_purchase_cost: number | null;
+  storage_location: string | null;
+  id_sku: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/** Request to update branch-level stock fields */
+export interface UpdateBranchStockRequest {
+  product_id: string;
+  branch_id: string;
+  reorder_point?: number;
+  min_stock_level?: number;
+  max_stock_level?: number | null;
+  last_purchase_cost?: number | null;
+  storage_location?: string | null;
+  id_sku?: string | null;
 }
 
 /**

@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-02-07
+version: v1.2.0
+last_updated: 2026-02-18
 author: CleanMateX AI Assistant
 ---
 
@@ -10,18 +10,22 @@ Real-time tracking of retail and consumable items for laundry operations.
 
 ## Quick Links
 
-- [Full Feature Documentation](./inventory_stock_management.md) -- comprehensive technical and user-facing documentation
-- [Changelog](./CHANGELOG.md) -- version history
-- [Current Status](./current_status.md) -- implementation state
+- [Full Feature Documentation](./inventory_stock_management.md) — comprehensive technical and user-facing documentation
+- [Changelog](./CHANGELOG.md) — version history
+- [Current Status](./current_status.md) — implementation state
+- [Branch-Wise Enhancement](./branch-wise-enhancement.md) — branch-wise quantity, negative stock, audit (v1.2.0)
 
 ## What It Does
 
 - Track stock levels for detergents, hangers, bags, packaging, and other consumables
-- 4 KPI dashboard cards: Total Items, Low Stock alerts, Out of Stock alerts, Total Stock Value
+- **Branch-wise quantity** — view by branch or aggregated "All Branches"; quantity from `org_inv_stock_by_branch`
+- 5 KPI dashboard cards: Total Items, Low Stock, Out of Stock, Negative Stock (when > 0), Total Stock Value
 - Add, edit, and soft-delete inventory items with bilingual names (EN/AR)
-- Adjust stock quantities (increase, decrease, or set) with mandatory reason logging
-- View per-item transaction history with before/after snapshots
-- Search by name, code, or SKU with filters for stock status and active state
+- Adjust stock quantities (increase, decrease, or set) with Zod validation and audit trail
+- Negative stock allowed — user can adjust later
+- View per-item transaction history with Performed By, Reference, Source; link to order when applicable
+- Search by name, code, or SKU with filters for stock status (including Negative Stock) and active state
+- **"Never Stocked at Branch"** — tooltip when product has no row at selected branch
 
 ## Access
 

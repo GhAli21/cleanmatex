@@ -6,6 +6,7 @@ import {
   deleteInventoryItem,
   searchInventoryItems,
   adjustStock,
+  updateBranchStock,
   searchStockTransactions,
   getInventoryStatistics,
   getBranchesForCurrentTenant,
@@ -16,6 +17,7 @@ import { getServerAuditContext } from '@/lib/utils/request-audit';
 import type {
   CreateInventoryItemRequest,
   UpdateInventoryItemRequest,
+  UpdateBranchStockRequest,
   InventorySearchParams,
   StockAdjustmentRequest,
   StockTransactionSearchParams,
@@ -57,6 +59,17 @@ export async function searchInventoryItemsAction(params: InventorySearchParams) 
     return { success: true, data: result };
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to search inventory items';
+    return { success: false, error: message };
+  }
+}
+
+export async function updateBranchStockAction(request: UpdateBranchStockRequest) {
+  try {
+    await updateBranchStock(request);
+    return { success: true };
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : 'Failed to update branch stock';
     return { success: false, error: message };
   }
 }

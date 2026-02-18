@@ -12,6 +12,7 @@ import type {
   InventoryItemListItem,
   CreateInventoryItemRequest,
   UpdateInventoryItemRequest,
+  UpdateBranchStockRequest,
   InventorySearchParams,
   InventorySearchResponse,
   StockTransaction,
@@ -179,6 +180,7 @@ export async function createInventoryItem(
         max_stock_level: request.max_stock_level ?? null,
         last_purchase_cost: request.last_purchase_cost ?? null,
         storage_location: request.storage_location ?? null,
+        id_sku: request.id_sku ?? null,
       },
       { onConflict: 'tenant_org_id,product_id,branch_id' }
     );
@@ -365,25 +367,44 @@ export async function searchInventoryItems(
   const total = count || 0;
   const productIds = (data || []).map((r: Record<string, unknown>) => r.id as string);
 
-  // Build branchQtyMap: single branch or aggregated across all branches
+  // Build branchQtyMap and branchFieldsMap (when branch_id set, branchFieldsMap has full branch rows)
   let branchQtyMap: Record<string, number> = {};
+  let branchFieldsMap: Record<
+    string,
+    {
+      reorder_point: number;
+      min_stock_level: number;
+      max_stock_level: number | null;
+      last_purchase_cost: number | null;
+      storage_location: string | null;
+      id_sku: string | null;
+    }
+  > = {};
   if (productIds.length > 0) {
     if (params.branch_id) {
       const { data: branchData } = await supabase
         .from('org_inv_stock_by_branch')
-        .select('product_id, qty_on_hand')
+        .select(
+          'product_id, qty_on_hand, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location, id_sku'
+        )
         .eq('tenant_org_id', tenantId)
         .eq('branch_id', params.branch_id)
         .in('product_id', productIds);
-      branchQtyMap = (branchData || []).reduce(
-        (acc, row) => {
-          acc[row.product_id] = Number(row.qty_on_hand) || 0;
-          return acc;
-        },
-        {} as Record<string, number>
-      );
+      for (const row of branchData || []) {
+        const pid = row.product_id;
+        branchQtyMap[pid] = Number(row.qty_on_hand) || 0;
+        branchFieldsMap[pid] = {
+          reorder_point: Number(row.reorder_point) || 0,
+          min_stock_level: Number(row.min_stock_level) || 0,
+          max_stock_level: row.max_stock_level != null ? Number(row.max_stock_level) : null,
+          last_purchase_cost:
+            row.last_purchase_cost != null ? Number(row.last_purchase_cost) : null,
+          storage_location: (row.storage_location as string) ?? null,
+          id_sku: (row.id_sku as string) ?? null,
+        };
+      }
     } else {
-      // All Branches: aggregate sum per product
+      // All Branches: aggregate sum per product (no branch-level fields)
       const { data: branchData } = await supabase
         .from('org_inv_stock_by_branch')
         .select('product_id, qty_on_hand')
@@ -400,12 +421,27 @@ export async function searchInventoryItems(
     }
   }
 
-  // Map to list items with computed fields
+  // Map to list items with computed fields (branch values override product when branch_id set)
   const items: InventoryItemListItem[] = (data || []).map((row: Record<string, unknown>) => {
     const productId = row.id as string;
     const qtyOnHand = branchQtyMap[productId] ?? 0;
-    const reorderPoint = Number(row.reorder_point) || 0;
-    const maxStockLevel = row.max_stock_level != null ? Number(row.max_stock_level) : null;
+    const branchRow = branchFieldsMap[productId];
+    const productReorder = Number(row.reorder_point) || 0;
+    const productMaxStock = row.max_stock_level != null ? Number(row.max_stock_level) : null;
+    const productStorage = row.storage_location as string | null;
+    const productSku = row.id_sku as string | null;
+    const productMinStock = Number(row.min_stock_level) || 0;
+    const productLastCost =
+      row.last_purchase_cost != null ? Number(row.last_purchase_cost) : null;
+    const reorderPoint = branchRow ? branchRow.reorder_point : productReorder;
+    const maxStockLevel =
+      branchRow ? (branchRow.max_stock_level ?? productMaxStock) : productMaxStock;
+    const storageLocation =
+      branchRow ? (branchRow.storage_location ?? productStorage) : productStorage;
+    const idSku = branchRow ? (branchRow.id_sku ?? productSku) : productSku;
+    const minStockLevel = branchRow ? branchRow.min_stock_level : productMinStock;
+    const lastPurchaseCost =
+      branchRow ? (branchRow.last_purchase_cost ?? productLastCost) : productLastCost;
     const productCost = Number(row.product_cost) || 0;
     const hasBranchRecord =
       params.branch_id !== undefined && params.branch_id !== null && params.branch_id !== ''
@@ -421,14 +457,16 @@ export async function searchInventoryItems(
       product_unit: row.product_unit as string | null,
       product_cost: productCost,
       default_sell_price: row.default_sell_price != null ? Number(row.default_sell_price) : null,
-      id_sku: row.id_sku as string | null,
+      id_sku: idSku,
       qty_on_hand: qtyOnHand,
       reorder_point: reorderPoint,
       max_stock_level: maxStockLevel,
-      storage_location: row.storage_location as string | null,
+      storage_location: storageLocation,
+      min_stock_level: branchRow ? minStockLevel : undefined,
+      last_purchase_cost: branchRow ? lastPurchaseCost : undefined,
       is_active: row.is_active as boolean,
       created_at: row.created_at as string,
-      stock_status: getStockStatus(qtyOnHand, reorderPoint, maxStockLevel),
+      stock_status: getStockStatus(qtyOnHand, reorderPoint, maxStockLevel ?? undefined),
       stock_value: qtyOnHand * productCost,
       has_branch_record: hasBranchRecord,
     };
@@ -447,6 +485,74 @@ export async function searchInventoryItems(
     limit,
     totalPages: Math.ceil((params.stock_status ? filteredItems.length : total) / limit),
   };
+}
+
+/**
+ * Update branch-level stock fields (reorder_point, min/max_stock_level, etc.)
+ * Row must exist; uses upsert when row might not exist.
+ */
+export async function updateBranchStock(request: UpdateBranchStockRequest): Promise<void> {
+  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (request.reorder_point !== undefined) updateData.reorder_point = request.reorder_point;
+  if (request.min_stock_level !== undefined)
+    updateData.min_stock_level = request.min_stock_level;
+  if (request.max_stock_level !== undefined)
+    updateData.max_stock_level = request.max_stock_level;
+  if (request.last_purchase_cost !== undefined)
+    updateData.last_purchase_cost = request.last_purchase_cost;
+  if (request.storage_location !== undefined)
+    updateData.storage_location = request.storage_location;
+  if (request.id_sku !== undefined) updateData.id_sku = request.id_sku;
+
+  const { data: existing } = await supabase
+    .from('org_inv_stock_by_branch')
+    .select('product_id')
+    .eq('tenant_org_id', tenantId)
+    .eq('product_id', request.product_id)
+    .eq('branch_id', request.branch_id)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from('org_inv_stock_by_branch')
+      .update(updateData)
+      .eq('tenant_org_id', tenantId)
+      .eq('product_id', request.product_id)
+      .eq('branch_id', request.branch_id);
+
+    if (error) {
+      console.error('Error updating branch stock:', error);
+      throw new Error('Failed to update branch stock');
+    }
+  } else {
+    // Upsert: insert new row with provided fields (product-level defaults for the rest come from caller or we need product fetch)
+    const { error } = await supabase.from('org_inv_stock_by_branch').upsert(
+      {
+        tenant_org_id: tenantId,
+        product_id: request.product_id,
+        branch_id: request.branch_id,
+        qty_on_hand: 0,
+        reorder_point: request.reorder_point ?? 0,
+        min_stock_level: request.min_stock_level ?? 0,
+        max_stock_level: request.max_stock_level ?? null,
+        last_purchase_cost: request.last_purchase_cost ?? null,
+        storage_location: request.storage_location ?? null,
+        id_sku: request.id_sku ?? null,
+        ...updateData,
+      },
+      { onConflict: 'tenant_org_id,product_id,branch_id' }
+    );
+
+    if (error) {
+      console.error('Error upserting branch stock:', error);
+      throw new Error('Failed to update branch stock');
+    }
+  }
 }
 
 // ==================================================================
@@ -501,7 +607,7 @@ export async function adjustStock(
   // Get current item for product_cost and branch upsert fields
   const { data: item, error: itemError } = await supabase
     .from('org_product_data_mst')
-    .select('id, qty_on_hand, product_cost, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location')
+    .select('id, qty_on_hand, product_cost, reorder_point, min_stock_level, max_stock_level, last_purchase_cost, storage_location, id_sku')
     .eq('tenant_org_id', tenantId)
     .eq('id', request.product_id)
     .eq('service_category_code', 'RETAIL_ITEMS')
@@ -582,31 +688,38 @@ export async function adjustStock(
     throw new Error('Failed to create stock transaction');
   }
 
-  // Update branch-level stock in org_inv_stock_by_branch
-  const { error: upsertError } = await supabase
-    .from('org_inv_stock_by_branch')
-    .upsert(
-      {
-        tenant_org_id: tenantId,
-        product_id: request.product_id,
-        branch_id: request.branch_id,
-        qty_on_hand: qtyAfter,
-        reorder_point: item.reorder_point ?? 0,
-        min_stock_level: item.min_stock_level ?? 0,
-        max_stock_level: item.max_stock_level ?? null,
-        last_purchase_cost: item.last_purchase_cost ?? null,
-        storage_location: item.storage_location ?? null,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'tenant_org_id,product_id,branch_id',
-        ignoreDuplicates: false,
-      }
-    );
+  // Update branch-level stock: preserve branch fields when row exists, copy from product when inserting
+  if (branchRow) {
+    const { error: updateError } = await supabase
+      .from('org_inv_stock_by_branch')
+      .update({ qty_on_hand: qtyAfter, updated_at: new Date().toISOString() })
+      .eq('tenant_org_id', tenantId)
+      .eq('product_id', request.product_id)
+      .eq('branch_id', request.branch_id);
 
-  if (upsertError) {
-    console.error('Error updating branch stock:', upsertError);
-    throw new Error('Failed to update stock quantity');
+    if (updateError) {
+      console.error('Error updating branch stock:', updateError);
+      throw new Error('Failed to update stock quantity');
+    }
+  } else {
+    const { error: insertError } = await supabase.from('org_inv_stock_by_branch').insert({
+      tenant_org_id: tenantId,
+      product_id: request.product_id,
+      branch_id: request.branch_id,
+      qty_on_hand: qtyAfter,
+      reorder_point: item.reorder_point ?? 0,
+      min_stock_level: item.min_stock_level ?? 0,
+      max_stock_level: item.max_stock_level ?? null,
+      last_purchase_cost: item.last_purchase_cost ?? null,
+      storage_location: item.storage_location ?? null,
+      id_sku: item.id_sku ?? null,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (insertError) {
+      console.error('Error inserting branch stock:', insertError);
+      throw new Error('Failed to update stock quantity');
+    }
   }
 
   return transaction as unknown as StockTransaction;
