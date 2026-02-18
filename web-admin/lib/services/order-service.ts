@@ -6,6 +6,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
+import { Prisma } from '@prisma/client';
 import { WorkflowService } from './workflow-service';
 import { OrderPieceService } from './order-piece-service';
 import { TenantSettingsService } from './tenant-settings.service';
@@ -69,6 +70,21 @@ export interface CreateOrderParams {
   paymentTypeCode?: string;
   currencyCode?: string;
   currencyExRate?: number;
+  /** Optional audit context for stock deduction (org_inv_stock_tr) */
+  stockDeductionAudit?: {
+    referenceType?: string;
+    referenceId?: string;
+    referenceNo?: string;
+    userId?: string;
+    userName?: string;
+    userInfo?: string;
+    userAgent?: string;
+    userDevice?: string;
+    userBrowser?: string;
+    userOs?: string;
+    userIp?: string;
+    reason?: string;
+  };
 }
 
 export interface CreateOrderResult {
@@ -522,6 +538,20 @@ export class OrderService {
               p_order_id: order.id,
               p_tenant_org_id: tenantId,
               p_branch_id: order.branch_id ?? null,
+              ...(params.stockDeductionAudit && {
+                p_reference_type: params.stockDeductionAudit.referenceType ?? 'ORDER',
+                p_reference_id: params.stockDeductionAudit.referenceId ?? order.id,
+                p_reference_no: params.stockDeductionAudit.referenceNo,
+                p_user_id: params.stockDeductionAudit.userId ?? params.userId,
+                p_user_name: params.stockDeductionAudit.userName ?? params.userName,
+                p_user_info: params.stockDeductionAudit.userInfo,
+                p_user_agent: params.stockDeductionAudit.userAgent,
+                p_user_device: params.stockDeductionAudit.userDevice,
+                p_user_browser: params.stockDeductionAudit.userBrowser,
+                p_user_os: params.stockDeductionAudit.userOs,
+                p_user_ip: params.stockDeductionAudit.userIp,
+                p_reason: params.stockDeductionAudit.reason,
+              }),
             });
             if (deductError) {
               const errMsg = deductError.message || 'Insufficient stock';
@@ -826,11 +856,25 @@ export class OrderService {
       }
 
       if (isRetailOnlyOrder) {
-        await tx.$executeRawUnsafe(
-          `SELECT deduct_retail_stock_for_order($1::uuid, $2::uuid, $3::uuid)`,
-          order.id,
-          tenantId,
-          order.branch_id ?? null
+        const audit = params.stockDeductionAudit ?? {};
+        await tx.$executeRaw(
+          Prisma.sql`SELECT deduct_retail_stock_for_order(
+            ${order.id}::uuid,
+            ${tenantId}::uuid,
+            ${order.branch_id}::uuid,
+            ${audit.referenceType ?? 'ORDER'},
+            ${audit.referenceId ?? order.id}::uuid,
+            ${audit.referenceNo ?? order.order_no},
+            ${params.userId ?? null}::uuid,
+            ${params.userName ?? null},
+            ${audit.userInfo ?? null},
+            ${audit.userAgent ?? null},
+            ${audit.userDevice ?? null},
+            ${audit.userBrowser ?? null},
+            ${audit.userOs ?? null},
+            ${audit.userIp ?? null},
+            ${audit.reason ?? 'Order sale deduction'}
+          )`
         );
       }
     }

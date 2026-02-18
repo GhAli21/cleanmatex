@@ -97,6 +97,8 @@ CREATE INDEX IF NOT EXISTS idx_inv_stock_tr_branch
 
 DROP FUNCTION IF EXISTS deduct_retail_stock_for_order(UUID, UUID);
 
+DROP FUNCTION IF EXISTS deduct_retail_stock_for_order(UUID, UUID, UUID);
+
 -- ==================================================================
 -- PART 4: CREATE deduct_retail_stock_for_order (3-arg with p_branch_id)
 -- ==================================================================

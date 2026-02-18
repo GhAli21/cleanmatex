@@ -20,6 +20,7 @@ import {
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
+import { getRequestAuditContext } from '@/lib/utils/request-audit';
 
 const TOLERANCE = 0.001;
 
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
     return authCheck;
   }
   const { tenantId, userId, userName } = authCheck;
+  const requestAudit = getRequestAuditContext(request);
 
   const body = await request.json().catch(() => null);
   const parsed = createWithPaymentRequestSchema.safeParse(body);
@@ -214,6 +216,14 @@ export async function POST(request: NextRequest) {
       paymentTypeCode: getPaymentTypeFromMethod(input.paymentMethod),
       currencyCode: serverTotals.currencyCode,
       useOldWfCodeOrNew: false,
+      stockDeductionAudit: {
+        referenceType: 'ORDER',
+        userId,
+        userName: userName ?? 'User',
+        userAgent: requestAudit.userAgent,
+        userIp: requestAudit.userIp,
+        reason: 'Order sale deduction',
+      },
     };
 
     const result = await withTenantContext(tenantId, async () =>

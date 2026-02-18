@@ -11,6 +11,7 @@ import { getAuthContext, requirePermission } from '@/lib/middleware/require-perm
 import { checkAPIRateLimitTenant, checkAPIRateLimitUser } from '@/lib/middleware/rate-limit';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
+import { getRequestAuditContext } from '@/lib/utils/request-audit';
 
 /**
  * POST /api/v1/orders
@@ -31,6 +32,7 @@ export async function POST(request: NextRequest) {
       return authCheck; // Permission denied 
     }
     const { tenantId, userId, userName } = authCheck;
+    const requestAudit = getRequestAuditContext(request);
 
     // Apply rate limiting (per tenant)
     const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
@@ -119,6 +121,14 @@ export async function POST(request: NextRequest) {
       userName,
       ...parsed.data,
       useOldWfCodeOrNew,
+      stockDeductionAudit: {
+        referenceType: 'ORDER',
+        userId,
+        userName,
+        userAgent: requestAudit.userAgent,
+        userIp: requestAudit.userIp,
+        reason: 'Order sale deduction',
+      },
     });
 
     if (!result.success) {
