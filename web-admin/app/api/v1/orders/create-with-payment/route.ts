@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
   const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
 
   // Resolve branchId: use provided value if valid UUID and exists for tenant; otherwise main branch
-  let branchId: string | undefined = input.branchId;
+  let branchId: string | undefined = input.branchId; 
   if (branchId && !UUID_REGEX_V2.test(branchId.trim())) {
     branchId = undefined;
   }
