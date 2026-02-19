@@ -845,9 +845,11 @@
         "invoices": "الفواتير",
         "vouchers": "إيصالات الاستلام",
         "payments": "المدفوعات",
+        "actions": "الإجراءات",
         "stock": "حركات المخزون",
         "receipts": "إرسال الإيصالات"
       },
+      "orderSummary": "ملخص الطلب",
       "viewPayments": "عرض المدفوعات",
       "viewReceiptVouchers": "عرض إيصالات الاستلام",
       "emptyInvoices": "لا توجد فواتير لهذا الطلب",

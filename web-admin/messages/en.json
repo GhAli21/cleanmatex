@@ -844,9 +844,11 @@
         "invoices": "Invoices",
         "vouchers": "Receipt Vouchers",
         "payments": "Payments",
+        "actions": "Actions",
         "stock": "Stock Transactions",
         "receipts": "Receipt Sending"
       },
+      "orderSummary": "Order Summary",
       "viewPayments": "View payments",
       "viewReceiptVouchers": "View receipt vouchers",
       "emptyInvoices": "No invoices for this order",

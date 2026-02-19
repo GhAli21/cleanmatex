@@ -24,7 +24,7 @@ import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
-const TAB_IDS = ['items', 'history', 'invoices', 'vouchers', 'payments', 'stock', 'receipts'] as const;
+const TAB_IDS = ['items', 'history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -283,6 +283,61 @@ export function OrderDetailsFullClient({
       label: t.tabsPayments ?? 'Payments',
       content: (
         <div className="space-y-6">
+          {/* Payment Summary - moved from sidebar for better UX */}
+          <div className="bg-gray-50 rounded-lg border border-gray-200 p-6">
+            <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.paymentDetails}
+            </h3>
+            <div className="space-y-3">
+              <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                <span className="text-gray-600">{t.subtotal}</span>
+                <span className="font-medium">{parseFloat(String(order.subtotal ?? 0)).toFixed(3)} OMR</span>
+              </div>
+              {order.discount && parseFloat(String(order.discount)) > 0 && (
+                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                  <span className="text-gray-600">{t.discount}</span>
+                  <span className="font-medium text-red-600">-{parseFloat(String(order.discount)).toFixed(3)} OMR</span>
+                </div>
+              )}
+              {order.tax && parseFloat(String(order.tax)) > 0 && (
+                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                  <span className="text-gray-600">{t.tax}</span>
+                  <span className="font-medium">{parseFloat(String(order.tax)).toFixed(3)} OMR</span>
+                </div>
+              )}
+              <div className="pt-3 border-t border-gray-200">
+                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+                  <span className="text-base font-semibold">{t.total}</span>
+                  <span className="text-base font-bold">{parseFloat(String(order.total ?? 0)).toFixed(3)} OMR</span>
+                </div>
+              </div>
+              {order.paid_amount != null && parseFloat(String(order.paid_amount)) > 0 && (
+                <>
+                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                    <span className="text-gray-600">{t.paidAmount}</span>
+                    <span className="font-medium text-green-600">
+                      {parseFloat(String(order.paid_amount)).toFixed(3)} OMR
+                    </span>
+                  </div>
+                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                    <span className="text-gray-600">{t.balance}</span>
+                    <span
+                      className={`font-medium ${
+                        parseFloat(String(order.total ?? 0)) - parseFloat(String(order.paid_amount ?? 0)) >= 0
+                          ? 'text-orange-600'
+                          : 'text-green-600'
+                      }`}
+                    >
+                      {(
+                        parseFloat(String(order.total ?? 0)) - parseFloat(String(order.paid_amount ?? 0))
+                      ).toFixed(3)}{' '}
+                      OMR
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
           {/* Unapplied payments + Record deposit - only when not closed */}
           {!isTerminalStatus && (
             <>
@@ -404,6 +459,22 @@ export function OrderDetailsFullClient({
               translations={tabTranslations}
             />
           </div>
+        </div>
+      ),
+    },
+    {
+      id: 'actions',
+      label: t.tabsActions ?? 'Actions',
+      content: (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t.quickActions}
+          </h3>
+          {isTerminalStatus ? (
+            <p className="text-sm text-gray-500">{t.noActionsForClosedOrder}</p>
+          ) : (
+            <OrderActions order={order as { id: string; status: string; tenant_org_id: string }} />
+          )}
         </div>
       ),
     },
@@ -648,68 +719,92 @@ export function OrderDetailsFullClient({
         </div>
 
         <div className="space-y-6">
+          {/* Order Summary - compact card with key dates and preparation status */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.orderTimeline}
-            </h2>
-            <OrderTimeline orderId={order.id as string} currentStatus={order.status as string} />
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.quickActions}
-            </h2>
-            {isTerminalStatus ? (
-              <p className="text-sm text-gray-500">{t.noActionsForClosedOrder}</p>
-            ) : (
-              <OrderActions order={order as { id: string; status: string; tenant_org_id: string }} />
-            )}
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.paymentDetails}
+              {t.orderSummary ?? 'Order Summary'}
             </h2>
             <div className="space-y-3">
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                <span className="text-gray-600">{t.subtotal}</span>
-                <span className="font-medium">{parseFloat(String(order.subtotal ?? 0)).toFixed(3)} OMR</span>
+              <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Clock className="w-4 h-4 text-gray-500 shrink-0" />
+                <span className="text-gray-600">{t.received}:</span>
+                <span className="font-medium text-gray-900">
+                  {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
+                    locale === 'ar' ? 'ar-OM' : 'en-OM',
+                    { dateStyle: 'medium', timeStyle: 'short' }
+                  )}
+                </span>
               </div>
-              {order.discount && parseFloat(String(order.discount)) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.discount}</span>
-                  <span className="font-medium text-red-600">-{parseFloat(String(order.discount)).toFixed(3)} OMR</span>
+              {order.ready_by && (
+                <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Package className="w-4 h-4 text-gray-500 shrink-0" />
+                  <span className="text-gray-600">{t.readyBy}:</span>
+                  <span className="font-medium text-gray-900">
+                    {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    })}
+                  </span>
                 </div>
               )}
-              {order.tax && parseFloat(String(order.tax)) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.tax}</span>
-                  <span className="font-medium">{parseFloat(String(order.tax)).toFixed(3)} OMR</span>
-                </div>
-              )}
-              <div className="pt-3 border-t border-gray-200">
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-                  <span className="text-base font-semibold">{t.total}</span>
-                  <span className="text-base font-bold">{parseFloat(String(order.total ?? 0)).toFixed(3)} OMR</span>
-                </div>
-              </div>
-              {order.paid_amount != null && parseFloat(String(order.paid_amount)) > 0 && (
-                <>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.paidAmount}</span>
-                    <span className="font-medium text-green-600">
-                      {parseFloat(String(order.paid_amount)).toFixed(3)} OMR
+              {order.preparation_status && (
+                <div className="pt-3 border-t border-gray-200">
+                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+                    <span className="text-sm text-gray-600">{t.preparationStatus}:</span>
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded ${
+                        preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
+                      }`}
+                    >
+                      {String(order.preparation_status).replace('_', ' ').toUpperCase()}
                     </span>
                   </div>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.balance}</span>
-                    <span className="font-medium text-orange-600">
-                      {(
-                        parseFloat(String(order.total ?? 0)) - parseFloat(String(order.paid_amount ?? 0))
-                      ).toFixed(3)}{' '}
-                      OMR
-                    </span>
-                  </div>
-                </>
+                  {isPreparationEnabled() &&
+                    (order.preparation_status === 'pending' || order.preparation_status === 'in_progress') && (
+                    <Link
+                      href={`/dashboard/preparation/${order.id}`}
+                      className={`inline-block mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-right' : 'text-left'}`}
+                    >
+                      {isRTL ? '← ' : ''}
+                      {order.preparation_status === 'pending' ? t.startPreparation : t.continuePreparation}
+                      {isRTL ? '' : ' →'}
+                    </Link>
+                  )}
+                </div>
               )}
+              <div className="pt-3 border-t border-gray-200 space-y-2">
+                <p className={`text-xs text-gray-500 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.viewFullDetails}
+                </p>
+                <div className={`flex flex-col gap-2 ${isRTL ? 'items-end' : 'items-start'}`}>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('payments')}
+                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    {t.paymentDetails}
+                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('history')}
+                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    {t.tabsHistory ?? 'Order History'}
+                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  </button>
+                  {!isTerminalStatus && (
+                    <button
+                      type="button"
+                      onClick={() => handleTabChange('actions')}
+                      className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                    >
+                      {t.quickActions}
+                      <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -172,6 +172,8 @@ async function OrderDetailsFullContent({
         tabsPayments: tFull('tabs.payments'),
         tabsStock: tFull('tabs.stock'),
         tabsReceipts: tFull('tabs.receipts'),
+        tabsActions: tFull('tabs.actions'),
+        orderSummary: tFull('orderSummary'),
         viewPayments: tFull('viewPayments'),
         viewReceiptVouchers: tFull('viewReceiptVouchers'),
         emptyInvoices: tFull('emptyInvoices'),
