@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@/components/ui/Badge';
 import { TRANSACTION_TYPES } from '@/lib/constants/inventory';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
