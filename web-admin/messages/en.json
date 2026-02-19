@@ -831,7 +831,33 @@
       "noUnappliedPayments": "No unapplied payments",
       "recordDepositPos": "Record deposit / POS",
       "selectInvoiceToApply": "Select invoice to apply payment to",
-      "paymentKind": "Payment kind"
+      "paymentKind": "Payment kind",
+      "viewFullDetails": "View full details"
+    },
+    "detailFull": {
+      "viewFullDetails": "View full details",
+      "backToSimpleView": "Back to order",
+      "noActionsForClosedOrder": "No actions available for closed orders",
+      "tabs": {
+        "items": "Items & Pieces",
+        "history": "Order History",
+        "invoices": "Invoices",
+        "vouchers": "Receipt Vouchers",
+        "payments": "Payments",
+        "stock": "Stock Transactions",
+        "receipts": "Receipt Sending"
+      },
+      "viewPayments": "View payments",
+      "viewReceiptVouchers": "View receipt vouchers",
+      "emptyInvoices": "No invoices for this order",
+      "emptyVouchers": "No receipt vouchers for this order",
+      "emptyPayments": "No payments for this order",
+      "emptyStock": "No stock transactions for this order",
+      "emptyReceipts": "No receipt sending records for this order",
+      "searchByInvoiceId": "Search by invoice ID",
+      "searchByVoucherId": "Search by voucher ID",
+      "invoiceNo": "Invoice #",
+      "voucherNo": "Voucher #"
     },
     "statuses": {
       "intake": "Intake",

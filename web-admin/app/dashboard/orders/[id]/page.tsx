@@ -139,6 +139,8 @@ async function OrderDetailContent({
         recordDepositPos: t('recordDepositPos'),
         selectInvoiceToApply: t('selectInvoiceToApply'),
         paymentKind: t('paymentKind'),
+        viewFullDetails: t('viewFullDetails'),
+        publicTrackingLink: t('publicTrackingLink'),
         kindDeposit: tInvoices('history.kind_deposit'),
         kindPos: tInvoices('history.kind_pos'),
         recordPaymentTitle: tInvoices('recordPayment.title'),

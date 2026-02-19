@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
+import { ChevronLeft, Edit, Clock, Package, Link2, Copy, LayoutList } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
@@ -84,6 +84,8 @@ interface OrderDetailClientProps {
     recordDepositPos: string;
     selectInvoiceToApply: string;
     paymentKind: string;
+    viewFullDetails?: string;
+    publicTrackingLink?: string;
     kindDeposit: string;
     kindPos: string;
     recordPaymentTitle: string;
@@ -236,6 +238,13 @@ export function OrderDetailClient({
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <PrintLabelButton order={order} />
+          <Link
+            href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent(`/dashboard/orders/${order.id}`)}${returnLabel ? `&returnLabel=${encodeURIComponent(returnLabel)}` : ''}`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 ${isRTL ? 'flex-row-reverse' : ''}`}
+          >
+            <LayoutList className="w-4 h-4" />
+            {t.viewFullDetails ?? 'View full details'}
+          </Link>
           <Link
             href={`/dashboard/orders/${order.id}/edit`}
             className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}

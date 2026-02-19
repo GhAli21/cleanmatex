@@ -726,6 +726,77 @@ export async function adjustStock(
 }
 
 /**
+ * Stock transaction with product info (for order detail display)
+ */
+export interface StockTransactionWithProduct extends StockTransaction {
+  product_name?: string | null;
+  product_name2?: string | null;
+  product_code?: string | null;
+  branch_name?: string | null;
+}
+
+/**
+ * Get stock transactions for an order (reference_type='ORDER', reference_id=orderId).
+ */
+export async function getStockTransactionsForOrder(
+  orderId: string
+): Promise<StockTransactionWithProduct[]> {
+  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) return [];
+
+  const { data: txRows, error } = await supabase
+    .from('org_inv_stock_tr')
+    .select('*')
+    .eq('tenant_org_id', tenantId)
+    .eq('reference_type', 'ORDER')
+    .eq('reference_id', orderId)
+    .eq('is_active', true)
+    .eq('rec_status', 1)
+    .order('transaction_date', { ascending: false });
+
+  if (error || !txRows?.length) {
+    if (error) console.error('Error fetching stock transactions for order:', error);
+    return [];
+  }
+
+  const productIds = [...new Set((txRows as { product_id: string }[]).map((r) => r.product_id))];
+  const branchIds = [...new Set((txRows as { branch_id: string }[]).map((r) => r.branch_id))];
+
+  const [productsRes, branchesRes] = await Promise.all([
+    productIds.length
+      ? supabase
+          .from('org_product_data_mst')
+          .select('id, product_name, product_name2, product_code')
+          .eq('tenant_org_id', tenantId)
+          .in('id', productIds)
+      : { data: [] },
+    branchIds.length
+      ? supabase.from('org_branches_mst').select('id, name, name2').in('id', branchIds)
+      : { data: [] },
+  ]);
+
+  const productMap = new Map(
+    (productsRes.data || []).map((p: { id: string; product_name?: string; product_name2?: string; product_code?: string }) => [p.id, p])
+  );
+  const branchMap = new Map(
+    (branchesRes.data || []).map((b: { id: string; name?: string; name2?: string }) => [b.id, b])
+  );
+
+  return txRows.map((row: Record<string, unknown>) => {
+    const product = productMap.get(row.product_id as string);
+    const branch = branchMap.get(row.branch_id as string);
+    return {
+      ...row,
+      product_name: product?.product_name ?? null,
+      product_name2: product?.product_name2 ?? null,
+      product_code: product?.product_code ?? null,
+      branch_name: branch?.name ?? null,
+    } as unknown as StockTransactionWithProduct;
+  });
+}
+
+/**
  * Search stock transactions for an item
  */
 export async function searchStockTransactions(

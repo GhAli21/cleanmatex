@@ -232,6 +232,25 @@ export async function getVoucherDataByPaymentId(
   });
 }
 
+/**
+ * Get all vouchers for an order (org_fin_vouchers_mst where order_id = orderId).
+ */
+export async function getVouchersForOrder(orderId: string): Promise<VoucherData[]> {
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) return [];
+
+  return withTenantContext(tenantId, async () => {
+    const rows = await prisma.org_fin_vouchers_mst.findMany({
+      where: { order_id: orderId, tenant_org_id: tenantId },
+      include: {
+        org_invoice_mst: { select: { invoice_no: true } },
+      },
+      orderBy: { created_at: 'desc' },
+    });
+    return rows.map((row) => mapRowToVoucherData(row));
+  });
+}
+
 function mapRowToVoucherData(row: {
   id: string;
   tenant_org_id: string;

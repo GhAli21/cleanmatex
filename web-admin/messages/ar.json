@@ -832,7 +832,33 @@
       "noUnappliedPayments": "لا توجد مدفوعات غير مطبقة",
       "recordDepositPos": "تسجيل عربون / نقاط بيع",
       "selectInvoiceToApply": "اختر الفاتورة لتطبيق الدفعة عليها",
-      "paymentKind": "نوع الدفع"
+      "paymentKind": "نوع الدفع",
+      "viewFullDetails": "عرض التفاصيل الكاملة"
+    },
+    "detailFull": {
+      "viewFullDetails": "عرض التفاصيل الكاملة",
+      "backToSimpleView": "العودة للطلب",
+      "noActionsForClosedOrder": "لا توجد إجراءات متاحة للطلبات المغلقة",
+      "tabs": {
+        "items": "العناصر والقطع",
+        "history": "سجل الطلب",
+        "invoices": "الفواتير",
+        "vouchers": "إيصالات الاستلام",
+        "payments": "المدفوعات",
+        "stock": "حركات المخزون",
+        "receipts": "إرسال الإيصالات"
+      },
+      "viewPayments": "عرض المدفوعات",
+      "viewReceiptVouchers": "عرض إيصالات الاستلام",
+      "emptyInvoices": "لا توجد فواتير لهذا الطلب",
+      "emptyVouchers": "لا توجد إيصالات استلام لهذا الطلب",
+      "emptyPayments": "لا توجد مدفوعات لهذا الطلب",
+      "emptyStock": "لا توجد حركات مخزون لهذا الطلب",
+      "emptyReceipts": "لا توجد سجلات إرسال إيصالات لهذا الطلب",
+      "searchByInvoiceId": "البحث برقم الفاتورة",
+      "searchByVoucherId": "البحث برقم الإيصال",
+      "invoiceNo": "فاتورة #",
+      "voucherNo": "إيصال #"
     },
     "statuses": {
       "intake": "الاستلام",
