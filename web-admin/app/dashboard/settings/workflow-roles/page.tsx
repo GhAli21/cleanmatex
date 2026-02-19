@@ -19,7 +19,7 @@ import {
   removeWorkflowRoleFromUser,
 } from '@/lib/api/workflow-roles'
 import type { UserWithWorkflowRoles, User } from '@/lib/api/workflow-roles'
-import { RequirePermission } from '@/components/auth/RequirePermission'
+import { RequirePermission } from '@features/auth/ui/RequirePermission'
 import { useAuth } from '@/lib/auth/auth-context'
 
 const WORKFLOW_ROLES = [

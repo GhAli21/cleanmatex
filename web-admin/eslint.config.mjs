@@ -22,6 +22,13 @@ const eslintConfig = [
   },
   {
     rules: {
+      // Migrated: prefer @ui/* over legacy @/components (Phase 6)
+      'no-restricted-imports': ['warn', {
+        patterns: [{
+          group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
+          message: 'Prefer @ui/compat or @ui Cmx components. See docs/dev/ui-migration-guide.md',
+        }],
+      }],
       // Minimum rules - all turned off to allow build to succeed
       '@typescript-eslint/interface-name-prefix': 'off',
       '@typescript-eslint/explicit-function-return-type': 'off',

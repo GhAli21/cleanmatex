@@ -3,7 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { Receipt, CreditCard } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@ui/compat';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import type { VoucherData } from '@/lib/types/voucher';
 
 interface OrdersVouchersTabRprtProps {
@@ -14,6 +15,8 @@ interface OrdersVouchersTabRprtProps {
     emptyVouchers: string;
     viewPayments: string;
     voucherNo: string;
+    voucherId?: string;
+    invoiceId?: string;
   };
 }
 
@@ -53,13 +56,22 @@ export function OrdersVouchersTabRprt({
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.voucherId ?? 'ID'}
+            </th>
+            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t.voucherNo}
+            </th>
+            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.invoiceId ?? 'Invoice ID'}
             </th>
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               Total
             </th>
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               Status
+            </th>
+            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              Issued
             </th>
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               Actions
@@ -69,15 +81,22 @@ export function OrdersVouchersTabRprt({
         <tbody>
           {filtered.map((v) => (
             <tr key={v.id} className="border-b border-gray-100 hover:bg-gray-50">
-              <td className="px-4 py-3 font-medium text-gray-900">{v.voucher_no}</td>
-              <td className="px-4 py-3 text-gray-700">
-                {Number(v.total_amount ?? 0).toFixed(3)} OMR
-              </td>
-              <td className="px-4 py-3">
+              <CmxCopyableCell value={v.id} maxLength={8} align={isRTL ? 'right' : 'left'} />
+              <CmxCopyableCell value={v.voucher_no} align={isRTL ? 'right' : 'left'} />
+              <CmxCopyableCell value={v.invoice_id ?? undefined} maxLength={8} align={isRTL ? 'right' : 'left'} />
+              <CmxCopyableCell
+                value={`${Number(v.total_amount ?? 0).toFixed(3)} OMR`}
+                align={isRTL ? 'right' : 'left'}
+              />
+              <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
                   {v.status ?? '—'}
                 </span>
               </td>
+              <CmxCopyableCell
+                value={v.issued_at ? new Date(v.issued_at).toLocaleString() : v.created_at ? new Date(v.created_at).toLocaleString() : null}
+                align={isRTL ? 'right' : 'left'}
+              />
               <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <Button
                   variant="outline"

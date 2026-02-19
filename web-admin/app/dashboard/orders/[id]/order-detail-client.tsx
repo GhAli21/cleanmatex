@@ -7,10 +7,10 @@ import { ChevronLeft, Edit, Clock, Package, Link2, Copy, LayoutList } from 'luci
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { OrderTimeline } from '../components/order-timeline';
-import { OrderItemsList } from '../components/order-items-list';
-import { OrderActions } from '../components/order-actions';
-import { PrintLabelButton } from '../components/print-label-button';
+import { OrderTimeline } from '@features/orders/ui/order-timeline';
+import { OrderItemsList } from '@features/orders/ui/order-items-list';
+import { OrderActions } from '@features/orders/ui/order-actions';
+import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { isPreparationEnabled } from '@/lib/config/features';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';

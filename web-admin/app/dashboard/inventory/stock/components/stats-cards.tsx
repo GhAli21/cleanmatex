@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Card } from '@/components/ui';
+import { Card } from '@ui/compat';
 import { Package, AlertTriangle, XCircle, TrendingDown, DollarSign } from 'lucide-react';
 import type { InventoryStatistics } from '@/lib/types/inventory';
 

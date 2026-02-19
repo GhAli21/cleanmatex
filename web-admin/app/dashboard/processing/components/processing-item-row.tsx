@@ -10,7 +10,7 @@
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@ui/compat';
 import { ChevronDown, ChevronUp, Package, AlertTriangle } from 'lucide-react';
 import type { OrderItem, ItemPiece, ProcessingStepConfig } from '@/types/order';
 import { ProcessingPieceRow } from './processing-piece-row';

@@ -6,8 +6,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { format, subDays } from 'date-fns';
 import { fetchRevenueBreakdown } from '@/app/actions/reports/report-actions';
 import type { RevenueBreakdownData } from '@/lib/types/report-types';
-import ReportFiltersBar from '../components/report-filters-bar-rprt';
-import RevenueBreakdownCharts from '../components/revenue-breakdown-charts-rprt';
+import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
+import RevenueBreakdownCharts from '@features/reports/ui/revenue-breakdown-charts-rprt';
 
 const BASE_PATH = '/dashboard/reports/revenue';
 

@@ -13,7 +13,7 @@ import {
   Select,
   Tabs,
   Card,
-} from '@/components/ui';
+} from '@ui/compat';
 import { Package, MapPin } from 'lucide-react';
 import { cmxMessage } from '@ui/feedback';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';

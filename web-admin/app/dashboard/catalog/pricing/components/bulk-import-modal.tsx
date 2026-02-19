@@ -7,8 +7,14 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/Button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+} from '@ui/compat'
 import { Download, Upload, X } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
 

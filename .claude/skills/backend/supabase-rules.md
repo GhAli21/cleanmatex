@@ -19,9 +19,10 @@ author: CleanMateX Team
 ```sql
 -- ✅ Good: Enable RLS
 CREATE TABLE org_orders_mst (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID DEFAULT gen_random_uuid(),
   tenant_org_id UUID NOT NULL REFERENCES org_tenants_mst(id),
   -- ... other columns
+  constraint PK_org_orders_mst primary key (id, tenant_org_id)
 );
 
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
@@ -38,6 +39,16 @@ CREATE TABLE org_orders_mst (
 
 ```sql
 -- Standard tenant isolation policy
+DROP POLICY IF EXISTS tenant_isolation_org_orders ON org_orders_mst;
+CREATE POLICY tenant_isolation_org_orders ON org_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+COMMENT ON POLICY tenant_isolation_org_orders ON org_orders_mst IS 
+  'Allow users to access orders for their current tenant';
+
+-- Or this if previous way have errors
 CREATE POLICY tenant_isolation ON org_orders_mst
   FOR ALL
   USING (
@@ -48,7 +59,7 @@ CREATE POLICY tenant_isolation ON org_orders_mst
     )
   );
 
--- Or using JWT claims (if tenant_org_id is in JWT)
+-- Don't do this even if using JWT claims (if tenant_org_id is in JWT)
 CREATE POLICY tenant_isolation_jwt ON org_orders_mst
   FOR ALL
   USING (
@@ -67,7 +78,7 @@ CREATE POLICY admin_full_access ON org_orders_mst
       SELECT tenant_org_id
       FROM org_users_mst
       WHERE user_id = auth.uid()
-      AND role = 'admin'
+      AND role like '%admin%'
     )
   );
 
@@ -197,19 +208,19 @@ for (const order of orders) {
 ### Migration Naming Convention
 
 ```
-YYYYMMDDHHMMSS_description.sql
+last sequance +1_description.sql
 
 Examples:
-20250116103000_create_orders_table.sql
-20250116104500_add_order_status_index.sql
-20250116110000_add_rls_policies.sql
+0012_create_orders_table.sql
+0013_add_order_status_index.sql
+0014_add_rls_policies.sql
 ```
 
 ### Migration Best Practices
 
 ```sql
 -- ✅ Good: One logical change per migration
--- Migration: 20250116103000_create_orders_table.sql
+-- Migration: 0012_create_orders_table.sql
 
 BEGIN;
 
@@ -269,7 +280,7 @@ COMMIT;
 
 ```sql
 -- ✅ Good: Use PostgreSQL functions for complex logic
-CREATE OR REPLACE FUNCTION calculate_order_total(order_id UUID)
+CREATE OR REPLACE FUNCTION fn_calculate_order_total(order_id UUID)
 RETURNS DECIMAL(10,2) AS $$
 DECLARE
   total DECIMAL(10,2);
@@ -292,7 +303,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 ```typescript
 // Call PostgreSQL function via Supabase RPC
-const { data, error } = await supabase.rpc("calculate_order_total", {
+const { data, error } = await supabase.rpc("fn_calculate_order_total", {
   order_id: orderId,
 });
 ```
@@ -301,7 +312,7 @@ const { data, error } = await supabase.rpc("calculate_order_total", {
 
 ```sql
 -- ✅ Good: Use SECURITY DEFINER only when necessary
-CREATE FUNCTION admin_function()
+CREATE FUNCTION fn_admin_function()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER -- Only if function needs elevated privileges
@@ -313,7 +324,7 @@ END;
 $$;
 
 -- ✅ Good: Default SECURITY INVOKER (safer)
-CREATE FUNCTION user_function()
+CREATE FUNCTION fn_user_function()
 RETURNS void
 LANGUAGE plpgsql
 SECURITY INVOKER -- Uses caller's privileges

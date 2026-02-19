@@ -8,10 +8,16 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/textarea'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  Button,
+  Input,
+  Textarea,
+} from '@ui/compat'
 import { AlertCircle, Info } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
 

@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin } from 'lucide-react'
-import { BusinessHoursEditor } from '@/components/settings/BusinessHoursEditor'
+import { BusinessHoursEditor } from '@features/settings/ui/BusinessHoursEditor'
 
 interface GeneralSettings {
   businessName: string

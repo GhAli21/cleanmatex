@@ -66,7 +66,8 @@
     "of": "من",
     "showing": "عرض",
     "itemCount": "{count, plural, one {# عنصر} other {# عناصر}}",
-    "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}"
+    "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}",
+    "copied": "تم النسخ"
   },
   "amountMismatch": {
     "title": "تم اكتشاف عدم تطابق في المبالغ",
@@ -860,7 +861,13 @@
       "searchByInvoiceId": "البحث برقم الفاتورة",
       "searchByVoucherId": "البحث برقم الإيصال",
       "invoiceNo": "فاتورة #",
-      "voucherNo": "إيصال #"
+      "voucherNo": "إيصال #",
+      "paymentId": "المعرّف",
+      "invoiceId": "معرّف الفاتورة",
+      "voucherId": "معرّف الإيصال",
+      "transactionId": "معرّف المعاملة",
+      "gateway": "بوابة الدفع",
+      "notes": "ملاحظات"
     },
     "statuses": {
       "intake": "الاستلام",

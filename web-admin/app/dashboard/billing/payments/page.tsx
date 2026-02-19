@@ -11,9 +11,9 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { listPayments, getPaymentStats } from '@/app/actions/payments/payment-list-actions';
-import PaymentStatsCards from './components/payment-stats-cards';
-import PaymentFiltersBar from './components/payment-filters-bar';
-import PaymentsTable from './components/payments-table';
+import PaymentStatsCards from '@features/billing/ui/payment-stats-cards';
+import PaymentFiltersBar from '@features/billing/ui/payment-filters-bar';
+import PaymentsTable from '@features/billing/ui/payments-table';
 
 type PaymentsSearchParams = {
   page?: string;

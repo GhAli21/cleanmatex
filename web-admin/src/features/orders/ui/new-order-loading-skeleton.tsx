@@ -6,7 +6,7 @@
 'use client';
 
 // Temporary import - will move to feature folder later
-import { CategoryTabsSkeleton, ProductGridSkeleton } from '@/app/dashboard/orders/new/components/loading-skeletons';
+import { CategoryTabsSkeleton, ProductGridSkeleton } from './loading-skeletons';
 
 /**
  * New Order Loading Skeleton Component

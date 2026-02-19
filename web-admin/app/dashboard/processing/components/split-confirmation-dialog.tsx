@@ -16,10 +16,8 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+} from '@ui/compat';
+import { Button, Label, Textarea } from '@ui/compat';
 import { Loader2, AlertTriangle } from 'lucide-react';
 
 interface SplitConfirmationDialogProps {

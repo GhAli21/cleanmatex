@@ -10,9 +10,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Globe, Palette, Clock, Bell } from 'lucide-react';
-import { Card, Button, Select, Input } from '@/components/ui';
+import { Card, Button, Select, Input } from '@ui/compat';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
-import { EnhancedSettingField } from '@/components/settings/enhanced-setting-field';
+import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
 export default function UserPreferencesPage() {
   const [effectiveSettings, setEffectiveSettings] = useState<ResolvedSetting[]>([]);

@@ -20,14 +20,14 @@ import {
   Alert,
   Badge,
   Button,
-} from '@/components/ui';
+} from '@ui/compat';
 import { Info, HelpCircle } from 'lucide-react';
 import type { Tenant } from '@/lib/types/tenant';
-import { GeneralSettings } from './components/GeneralSettings';
-import { BrandingSettings } from './components/BrandingSettings';
-import { BusinessHoursSettings } from './components/BusinessHoursSettings';
-import { SubscriptionSettings } from './components/SubscriptionSettings';
-import { ProfileInfoCard } from '@/components/settings/profile-info-card';
+import { GeneralSettings } from '@features/settings/ui/GeneralSettings';
+import { BrandingSettings } from '@features/settings/ui/BrandingSettings';
+import { BusinessHoursSettings } from '@features/settings/ui/BusinessHoursSettings';
+import { SubscriptionSettings } from '@features/settings/ui/SubscriptionSettings';
+import { ProfileInfoCard } from '@features/settings/ui/profile-info-card';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
 
 export default function SettingsPage() {

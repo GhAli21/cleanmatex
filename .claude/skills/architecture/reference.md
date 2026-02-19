@@ -15,7 +15,7 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 - **ORM:** Prisma (server-side library, NOT a service) + Supabase Client (client-side) - Hybrid approach
 - **Web Admin:** Next.js 15, React 19, TS 5, Tailwind v4, React Query + Zustand, next-intl
 - **Mobile (planned):** Flutter apps for customer, driver, store; Riverpod, Dio, Hive
-- **Backend (planned):** NestJS with Prisma, Redis, BullMQ
+- **cmx-api Backend (planned):** NestJS with Prisma, Redis, BullMQ
 - **Infra:** Supabase Local (includes Postgres on port 54322), Docker Compose for Redis & MinIO only
 
 **Note:** We do NOT use a separate Docker Postgres container. Supabase Local includes PostgreSQL.
@@ -193,7 +193,7 @@ const orders = await prisma.org_orders_mst.findMany()
 
 ### Backend API 
 - **Framework**: NestJS (REST + GraphQL)
-- **Location**: `backend/`
+- **Location**: `cmx-api/`
 - **Cache**: Redis 7+
 - **Queue**: BullMQ for background jobs
 - **Purpose**: Complex business logic, integrations

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import JwtViewerJhTest from '@/components/jhtest/JwtViewerJhTest';
-import UserContextViewer from '@/components/jhtest/UserContextViewer';
-import AuthContextViewer from '@/components/jhtest/AuthContextViewer';
+import JwtViewerJhTest from './components/JwtViewerJhTest';
+import UserContextViewer from './components/UserContextViewer';
+import AuthContextViewer from './components/AuthContextViewer';
 import { Key, Bug, Database, Zap, TestTube2 } from 'lucide-react';
 
 export default function JhTestUiPage() {

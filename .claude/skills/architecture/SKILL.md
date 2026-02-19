@@ -17,7 +17,7 @@ user-invocable: true
 - **ORM**: Prisma + Supabase Client (Hybrid)
 - **Web Admin**: Next.js 15, React 19, TypeScript 5, Tailwind v4
 - **Mobile (planned)**: Flutter
-- **Backend (planned)**: NestJS
+- **cmx-api Backend (planned)**: NestJS
 
 ## Data Access Strategy
 
@@ -41,7 +41,7 @@ user-invocable: true
 cleanmatex/
 ├── supabase/              # Database & Auth (PostgreSQL + RLS)
 ├── web-admin/             # Next.js Admin Dashboard (Active)
-├── backend/               # NestJS API (Phase 2)
+├── cmx-api/               # NestJS API client api (Phase 2)
 ├── mobile-apps/
 │   ├── customer-app/      # Flutter Customer App (Future)
 │   ├── driver-app/        # Flutter Driver App (Future)

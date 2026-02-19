@@ -7,10 +7,10 @@ import { Users, UserPlus, UserCheck, DollarSign } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { fetchCustomerReport } from '@/app/actions/reports/report-actions';
 import type { CustomerReportData } from '@/lib/types/report-types';
-import ReportFiltersBar from '../components/report-filters-bar-rprt';
-import KPICards, { type KPICardData } from '../components/kpi-cards-rprt';
-import CustomerReportCharts from '../components/customer-report-charts-rprt';
-import CustomerReportTable from '../components/customer-report-table-rprt';
+import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
+import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt';
+import CustomerReportCharts from '@features/reports/ui/customer-report-charts-rprt';
+import CustomerReportTable from '@features/reports/ui/customer-report-table-rprt';
 
 const BASE_PATH = '/dashboard/reports/customers';
 

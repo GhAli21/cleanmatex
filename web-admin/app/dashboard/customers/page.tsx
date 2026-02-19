@@ -29,10 +29,10 @@ import type {
   CustomerSearchParams,
   CustomerStatistics,
 } from '@/lib/types/customer'
-import CustomerTable from './components/customer-table'
-import CustomerFiltersBar from './components/customer-filters-bar'
-import CustomerStatsCards from './components/customer-stats-cards'
-import CustomerCreateModal from './components/customer-create-modal'
+import CustomerTable from '@features/customers/ui/customer-table'
+import CustomerFiltersBar from '@features/customers/ui/customer-filters-bar'
+import CustomerStatsCards from '@features/customers/ui/customer-stats-cards'
+import CustomerCreateModal from '@features/customers/ui/customer-create-modal'
 
 export default function CustomersPage() {
   const { currentTenant } = useAuth()

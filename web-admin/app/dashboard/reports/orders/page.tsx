@@ -7,10 +7,10 @@ import { DollarSign, Package, TrendingUp, Users } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { fetchOrdersReport } from '@/app/actions/reports/report-actions';
 import type { OrdersReportData } from '@/lib/types/report-types';
-import ReportFiltersBar from '../components/report-filters-bar-rprt';
-import KPICards, { type KPICardData } from '../components/kpi-cards-rprt';
-import OrdersReportCharts from '../components/orders-report-charts-rprt';
-import OrdersReportTable from '../components/orders-report-table-rprt';
+import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
+import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt';
+import OrdersReportCharts from '@features/reports/ui/orders-report-charts-rprt';
+import OrdersReportTable from '@features/reports/ui/orders-report-table-rprt';
 
 const ORDER_STATUSES = ['intake', 'pending', 'preparing', 'processing', 'ready', 'delivered', 'completed', 'cancelled'];
 const BASE_PATH = '/dashboard/reports/orders';

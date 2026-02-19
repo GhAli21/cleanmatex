@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Select, Card, CardHeader, Alert } from '@/components/ui';
+import { Button, Input, Select, Card, CardHeader, Alert } from '@ui/compat';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
 
 type Step = 1 | 2 | 3;

@@ -24,7 +24,7 @@ import {
   updateCustomRole,
   deleteCustomRole,
 } from '@/lib/api/roles'
-import PermissionAssignmentModal from '@/components/permissions/PermissionAssignmentModal'
+import PermissionAssignmentModal from '@features/auth/ui/PermissionAssignmentModal'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { TenantRole } from '@/lib/api/roles'
 

@@ -6,7 +6,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardFooter, Button, Alert } from '@/components/ui';
+import { Card, CardHeader, CardFooter, Button, Alert } from '@ui/compat';
 import type { Tenant } from '@/lib/types/tenant';
 import type { ResolvedSetting } from '@/lib/api/settings-client';
 

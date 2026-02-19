@@ -18,11 +18,8 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Label } from '@/components/ui/label';
-import { SummaryMessage } from '@/components/ui/summary-message';
+} from '@ui/compat';
+import { Button, Input, Label, SummaryMessage } from '@ui/compat';
 import { Loader2, AlertCircle, Package, RefreshCw, User, Phone, Calendar } from 'lucide-react';
 import { CmxProgressIndicator } from '@/src/ui/feedback/cmx-progress-indicator';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';

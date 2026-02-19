@@ -9,10 +9,7 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/Button';
+import { Checkbox, Input, Textarea, Button } from '@ui/compat';
 import { X, Package, AlertTriangle } from 'lucide-react';
 import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
 import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';

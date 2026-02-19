@@ -10,8 +10,8 @@ import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { listInvoices, getInvoiceStats } from '@/lib/services/invoice-service';
-import InvoiceFiltersBar from './components/invoice-filters-bar';
-import InvoicesTable from './components/invoices-table';
+import InvoiceFiltersBar from '@features/billing/ui/invoice-filters-bar';
+import InvoicesTable from '@features/billing/ui/invoices-table';
 
 type InvoicesSearchParams = {
   page?: string;

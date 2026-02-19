@@ -11,7 +11,7 @@ import {
   Button,
   Input,
   Select,
-} from '@/components/ui';
+} from '@ui/compat';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
 import { createInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';

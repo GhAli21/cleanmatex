@@ -13,9 +13,7 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import type { PreSubmissionPiece } from '../model/new-order-types';
-import { Input } from '@/components/ui/Input';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Input, Textarea, Checkbox } from '@ui/compat';
 
 const VIRTUALIZED_ITEM_LIMIT = 100;
 

@@ -11,7 +11,7 @@ import {
   DialogFooter,
   Button,
   Badge,
-} from '@/components/ui';
+} from '@ui/compat';
 import { TRANSACTION_TYPES, REFERENCE_TYPES } from '@/lib/constants/inventory';
 import { searchStockTransactionsAction } from '@/app/actions/inventory/inventory-actions';
 import type { InventoryItemListItem, StockTransaction } from '@/lib/types/inventory';

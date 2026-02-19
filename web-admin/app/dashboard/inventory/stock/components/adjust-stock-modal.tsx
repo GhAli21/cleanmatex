@@ -10,7 +10,7 @@ import {
   DialogFooter,
   Button,
   Input,
-} from '@/components/ui';
+} from '@ui/compat';
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { stockAdjustmentSchema } from '@/lib/validations/inventory-schemas';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';

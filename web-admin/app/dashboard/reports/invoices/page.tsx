@@ -7,10 +7,10 @@ import { FileText, DollarSign, TrendingDown, AlertTriangle } from 'lucide-react'
 import { format, subDays } from 'date-fns';
 import { fetchInvoicesReport } from '@/app/actions/reports/report-actions';
 import type { InvoicesReportData } from '@/lib/types/report-types';
-import ReportFiltersBar from '../components/report-filters-bar-rprt';
-import KPICards, { type KPICardData } from '../components/kpi-cards-rprt';
-import InvoicesReportCharts from '../components/invoices-report-charts-rprt';
-import InvoicesReportTable from '../components/invoices-report-table-rprt';
+import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
+import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt';
+import InvoicesReportCharts from '@features/reports/ui/invoices-report-charts-rprt';
+import InvoicesReportTable from '@features/reports/ui/invoices-report-table-rprt';
 
 const INVOICE_STATUSES = ['pending', 'paid', 'partial', 'overdue', 'draft', 'cancelled'];
 const BASE_PATH = '/dashboard/reports/invoices';

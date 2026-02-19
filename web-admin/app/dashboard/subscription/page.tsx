@@ -15,7 +15,7 @@ import {
   ProgressBar,
   Select,
   Input,
-} from '@/components/ui';
+} from '@ui/compat';
 import type {
   PlanComparison,
   UsageMetrics,

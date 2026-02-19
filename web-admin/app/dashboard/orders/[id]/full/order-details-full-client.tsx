@@ -7,17 +7,17 @@ import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
-import { OrderTimeline } from '../../components/order-timeline';
-import { OrderItemsList } from '../../components/order-items-list';
-import { OrderActions } from '../../components/order-actions';
-import { PrintLabelButton } from '../../components/print-label-button';
-import { Tabs } from '@/components/ui/Tabs';
+import { OrderTimeline } from '@features/orders/ui/order-timeline';
+import { OrderItemsList } from '@features/orders/ui/order-items-list';
+import { OrderActions } from '@features/orders/ui/order-actions';
+import { PrintLabelButton } from '@features/orders/ui/print-label-button';
+import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
 import { isPreparationEnabled } from '@/lib/config/features';
-import { OrdersInvoicesTabRprt } from './components/orders-invoices-tab-rprt';
-import { OrdersVouchersTabRprt } from './components/orders-vouchers-tab-rprt';
-import { OrdersPaymentsTabRprt } from './components/orders-payments-tab-rprt';
-import { OrdersStockTabRprt } from './components/orders-stock-tab-rprt';
-import { OrdersReceiptsTabRprt } from './components/orders-receipts-tab-rprt';
+import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
+import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
+import { OrdersPaymentsTabRprt } from '@features/orders/ui/orders-payments-tab-rprt';
+import { OrdersStockTabRprt } from '@features/orders/ui/orders-stock-tab-rprt';
+import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-rprt';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
@@ -124,7 +124,7 @@ export function OrderDetailsFullClient({
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', tabId);
-    router.replace(`${window.location.pathname}?${params.toString()}`);
+    router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
   };
 
   const handleApplyToInvoice = () => {
@@ -224,6 +224,12 @@ export function OrderDetailsFullClient({
     searchByVoucherId: t.searchByVoucherId ?? 'Voucher ID',
     invoiceNo: t.invoiceNo ?? 'Invoice #',
     voucherNo: t.voucherNo ?? 'Voucher #',
+    paymentId: t.paymentId ?? 'ID',
+    invoiceId: t.invoiceId ?? 'Invoice ID',
+    voucherId: t.voucherId ?? 'Voucher ID',
+    transactionId: t.transactionId ?? 'Transaction ID',
+    gateway: t.gateway ?? 'Gateway',
+    notes: t.notes ?? 'Notes',
   };
 
   const tabs = [
@@ -812,7 +818,7 @@ export function OrderDetailsFullClient({
 
       {/* Tabs */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <Tabs tabs={tabs} value={activeTab} onChange={handleTabChange} />
+        <CmxTabsPanel tabs={tabs} value={activeTab} onChange={handleTabChange} />
       </div>
 
       {/* Apply to invoice modal */}

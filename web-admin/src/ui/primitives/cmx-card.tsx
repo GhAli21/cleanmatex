@@ -85,3 +85,22 @@ export const CmxCardContent = React.forwardRef<HTMLDivElement, CmxCardContentPro
 )
 
 CmxCardContent.displayName = 'CmxCardContent'
+
+export type CmxCardFooterProps = React.HTMLAttributes<HTMLDivElement>
+
+export const CmxCardFooter = React.forwardRef<HTMLDivElement, CmxCardFooterProps>(
+  ({ className, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          'flex items-center p-4 md:p-5 pt-0 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))]',
+          className
+        )}
+        {...props}
+      />
+    )
+  },
+)
+
+CmxCardFooter.displayName = 'CmxCardFooter'

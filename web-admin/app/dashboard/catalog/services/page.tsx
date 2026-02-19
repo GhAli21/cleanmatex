@@ -3,13 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { Badge } from '@/components/ui'
-import ImportModal from './components/import-modal'
-import ExportModal from './components/export-modal'
+import { Card, Button, Input, Select, Badge } from '@ui/compat'
+import ImportModal from '@features/catalog/ui/import-modal'
+import ExportModal from '@features/catalog/ui/export-modal'
 
 interface ProductListItem {
   id: string

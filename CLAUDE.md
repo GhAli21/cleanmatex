@@ -75,9 +75,10 @@ npm run build                     # Build (run after changes)
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
 - Run `npm run check:i18n` after translation changes
-- When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
+- When building/Implementing A New report then put at the beginning the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
 
 **See:** `/i18n` skill for complete i18n rules
+**See:** `/frontend` skill for frontend developing rules
 
 ## Skills (Auto-loaded on demand)
 
@@ -85,7 +86,7 @@ npm run build                     # Build (run after changes)
 
 - `/multitenancy` - **CRITICAL** - Tenant isolation, RLS policies
 - `/database` - Schema conventions, migrations, naming
-- `/frontend` - Next.js 15, React 19, Cmx Design System
+- `/frontend` - for frontend developing rules, Next.js 15, React 19, Cmx Design System
 - `/backend` - API routes, service layer, Supabase patterns
 - `/i18n` - Bilingual support (EN/AR), RTL layout
 
@@ -121,6 +122,7 @@ docs/         # All documentation
 ## Key Documentation
 
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
+- **UI Migration Guide:** `docs/dev/ui-migration-guide.md` — `@/components/ui` → `@ui` gradual migration
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
 - **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details

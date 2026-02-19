@@ -14,8 +14,7 @@
 
 import { ReactNode, useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import Sidebar from '@/components/layout/Sidebar'
-import TopBar from '@/components/layout/TopBar'
+import { CmxSidebar, CmxTopBar } from '@ui/navigation'
 import { useRTL } from '@/lib/hooks/useRTL'
  
 /** True when current route is the ready-order print preview (receipt or order-details). */
@@ -36,9 +35,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       {!isPrintRoute && (
         <>
-          <Sidebar />
+          <CmxSidebar />
           <div className={isRTL ? 'lg:pr-64' : 'lg:pl-64'}>
-            <TopBar />
+            <CmxTopBar />
             <main className="py-6 px-4 sm:px-6 lg:px-8">{children}</main>
           </div>
         </>

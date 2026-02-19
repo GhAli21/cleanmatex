@@ -160,7 +160,7 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
 export async function getCurrentFeatureFlags(): Promise<FeatureFlags> {
   const supabase = await createClient();
 
-  const {
+  const { 
     data: { user },
   } = await supabase.auth.getUser();
 

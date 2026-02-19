@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader, Badge, Button, ProgressBar } from '@/components/ui';
+import { Card, CardHeader, Badge, Button, ProgressBar } from '@ui/compat';
 import type { Tenant } from '@/lib/types/tenant';
 
 interface SubscriptionSettingsProps {

@@ -31,3 +31,5 @@ export * from './cmx-toast';
 export * from './cmx-confirm-dialog';
 export * from './cmx-status-badge';
 export * from './cmx-progress-indicator';
+export * from './cmx-progress-bar';
+export * from './cmx-summary-message';

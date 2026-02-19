@@ -9,7 +9,7 @@ import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import { getCashUpData } from '@/app/actions/billing/cashup-actions';
-import CashUpContent from './components/cashup-content';
+import CashUpContent from '@features/billing/ui/cashup-content';
 
 type CashUpSearchParams = {
   date?: string;

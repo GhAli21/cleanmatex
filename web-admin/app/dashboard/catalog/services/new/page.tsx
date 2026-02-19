@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import ProductForm from '../components/product-form'
+import ProductForm from '@features/catalog/ui/product-form'
 
 export default function NewProductPage() {
   const router = useRouter()

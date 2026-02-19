@@ -8,7 +8,7 @@
  */
 
 import { withAdminRole } from '@/lib/auth/with-role'
-import CreateUserScreen from '../components/create-user-screen'
+import CreateUserScreen from '@features/users/ui/create-user-screen'
 
 function CreateUserPage() {
   return <CreateUserScreen />

@@ -2,10 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Input } from '@/components/ui/Input'
-import { Textarea } from '@/components/ui/textarea'
+import { Button, Card, Input, Textarea } from '@ui/compat'
 
 interface ImportResult {
   success: boolean

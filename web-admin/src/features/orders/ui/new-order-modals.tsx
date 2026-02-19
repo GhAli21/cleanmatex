@@ -9,7 +9,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import { useOrderSubmission } from '../hooks/use-order-submission';
-import { AmountMismatchDialog } from '@/app/dashboard/orders/new/components/amount-mismatch-dialog';
+import { AmountMismatchDialog } from './amount-mismatch-dialog';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useHasPermission } from '@/lib/hooks/use-has-permission';
@@ -21,13 +21,13 @@ import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { CustomItemModal } from './components/custom-item-modal';
 import { PhotoCaptureModal } from './components/photo-capture-modal';
-import { ReadyDatePickerModal } from '@/app/dashboard/orders/new/components/ready-date-picker-modal';
+import { ReadyDatePickerModal } from './ready-date-picker-modal';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 
 // Lazy load heavy modals for code splitting
 const CustomerPickerModal = dynamic(
-  () => import('@/app/dashboard/orders/new/components/customer-picker-modal').then(mod => ({ default: mod.CustomerPickerModal })),
+  () => import('@features/orders/ui/customer-picker-modal').then(mod => ({ default: mod.CustomerPickerModal })),
   {
     ssr: false,
     loading: () => null // Modals handle their own loading states
@@ -35,7 +35,7 @@ const CustomerPickerModal = dynamic(
 );
 
 const CustomerEditModal = dynamic(
-  () => import('@/app/dashboard/orders/new/components/customer-edit-modal').then(mod => ({ default: mod.CustomerEditModal })),
+  () => import('@features/orders/ui/customer-edit-modal').then(mod => ({ default: mod.CustomerEditModal })),
   {
     ssr: false,
     loading: () => null
@@ -43,7 +43,7 @@ const CustomerEditModal = dynamic(
 );
 
 const PaymentModalEnhanced02 = dynamic(
-  () => import('@/app/dashboard/orders/new/components/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
+  () => import('@features/orders/ui/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
   {
     ssr: false,
     loading: () => null
@@ -51,7 +51,7 @@ const PaymentModalEnhanced02 = dynamic(
 );
 
 const PriceOverrideModal = dynamic(
-  () => import('@/app/dashboard/orders/new/components/price-override-modal').then(mod => ({ default: mod.PriceOverrideModal })),
+  () => import('@features/orders/ui/price-override-modal').then(mod => ({ default: mod.PriceOverrideModal })),
   {
     ssr: false,
     loading: () => null

@@ -2,9 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Button } from '@/components/ui/Button'
-import { Card } from '@/components/ui/Card'
-import { Select } from '@/components/ui/Select'
+import { Button, Card, Select } from '@ui/compat'
 
 interface ExportModalProps {
   onClose: () => void

@@ -792,6 +792,7 @@ export async function recordPaymentTransaction(
 function mapTransactionToType(transaction: {
   id: string;
   invoice_id: string | null;
+  voucher_id?: string | null;
   tenant_org_id: string;
   branch_id?: string | null;
   order_id: string | null;
@@ -818,6 +819,7 @@ function mapTransactionToType(transaction: {
   return {
     id: transaction.id,
     invoice_id: transaction.invoice_id ?? undefined,
+    voucher_id: transaction.voucher_id ?? undefined,
     tenant_org_id: transaction.tenant_org_id,
     branch_id: transaction.branch_id ?? undefined,
     order_id: transaction.order_id ?? undefined,
@@ -910,6 +912,7 @@ export async function getPaymentsForOrder(
   const paymentSelect = {
     id: true,
     invoice_id: true,
+    voucher_id: true,
     tenant_org_id: true,
     order_id: true,
     customer_id: true,

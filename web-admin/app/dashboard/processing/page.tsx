@@ -23,11 +23,11 @@ import type {
   SortField,
   SortDirection,
 } from '@/types/processing';
-import { ProcessingHeader } from './components/processing-header';
-import { ProcessingStatsCards } from './components/processing-stats-cards';
-import { ProcessingFiltersBar } from './components/processing-filters-bar';
-import { ProcessingTable } from './components/processing-table';
-import { ProcessingModal } from './components/processing-modal';
+import { ProcessingHeader } from '@features/workflow/ui/processing-header';
+import { ProcessingStatsCards } from '@features/workflow/ui/processing-stats-cards';
+import { ProcessingFiltersBar } from '@features/workflow/ui/processing-filters-bar';
+import { ProcessingTable } from '@features/workflow/ui/processing-table';
+import { ProcessingModal } from '@features/workflow/ui/processing-modal';
 
 export default function ProcessingPage() {
   const t = useTranslations('processing');

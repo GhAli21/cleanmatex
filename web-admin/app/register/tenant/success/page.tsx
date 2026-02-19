@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Alert } from '@/components/ui';
+import { Button, Card, Alert } from '@ui/compat';
 
 export default function RegistrationSuccessPage() {
   const router = useRouter();

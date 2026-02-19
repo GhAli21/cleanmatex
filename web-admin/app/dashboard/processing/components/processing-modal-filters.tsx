@@ -9,17 +9,16 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/Input';
+import { Checkbox, Input } from '@ui/compat';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select-dropdown';
+} from '@ui/compat/select-dropdown';
 import { Search, X, Filter } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@ui/compat';
 import type { ProcessingStep } from '@/types/order';
 
 export interface ProcessingModalFiltersState {
@@ -218,3 +217,4 @@ export function ProcessingModalFilters({
     </div>
   );
 }
+

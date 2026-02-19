@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Card, Button, Input, Select, Badge } from '@/components/ui';
+import { Card, Button, Input, Select, Badge } from '@ui/compat';
 import { STOCK_STATUS } from '@/lib/constants/inventory';
 import type {
   InventoryItemListItem,
@@ -17,11 +17,11 @@ import {
   getBranchesAction,
 } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';
-import StatsCards from './components/stats-cards';
-import AddItemModal from './components/add-item-modal';
-import EditItemModal from './components/edit-item-modal';
-import AdjustStockModal from './components/adjust-stock-modal';
-import StockHistoryModal from './components/stock-history-modal';
+import StatsCards from '@features/inventory/ui/stats-cards';
+import AddItemModal from '@features/inventory/ui/add-item-modal';
+import EditItemModal from '@features/inventory/ui/edit-item-modal';
+import AdjustStockModal from '@features/inventory/ui/adjust-stock-modal';
+import StockHistoryModal from '@features/inventory/ui/stock-history-modal';
 
 const BRANCH_STORAGE_KEY = 'inventory_stock_branch_id';
 

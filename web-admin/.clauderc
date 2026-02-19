@@ -7,7 +7,7 @@ context: "Next.js Admin Dashboard for CleanMateX Laundry SaaS"
 important_files:
   - "app/[locale]/layout.tsx"           # Root layout
   - "lib/api/client.ts"                 # API client
-  - "components/ui/*"                   # UI components
+  - "src/ui/*"                         # UI design system (@ui)
   - "messages/*.json"                   # i18n translations
   - "middleware.ts"                     # Next.js middleware
   - "next.config.js"                    # Next.js configuration
@@ -131,13 +131,13 @@ templates:
       );
     }
 
-# UI Components (shadcn/ui)
+# UI Components (@ui design system)
 ui_components:
-  button: "import { Button } from '@/components/ui/button'"
-  input: "import { Input } from '@/components/ui/input'"
-  dialog: "import { Dialog } from '@/components/ui/dialog'"
-  table: "import { Table } from '@/components/ui/table'"
-  card: "import { Card } from '@/components/ui/card'"
+  button: "import { Button } from '@ui/compat'"
+  input: "import { Input } from '@ui/compat'"
+  dialog: "import { Dialog } from '@ui/compat'"
+  table: "import { Table } from '@ui/compat'"
+  card: "import { Card } from '@ui/compat'"
 
 # Best Practices
 best_practices:

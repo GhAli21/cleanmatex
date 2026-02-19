@@ -14,15 +14,19 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Card, Button, Input } from '@ui/compat'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+  CmxDialogFooter,
+} from '@ui/overlays'
 import { ArrowLeft, Plus, Download, Upload, Edit, Trash2, Save, X, Package } from 'lucide-react'
 import type { PriceListWithItems, PriceListItem, PriceListType } from '@/lib/types/catalog'
-import { PriceListItemModal } from '../components/price-list-item-modal'
-import { BulkImportModal } from '../components/bulk-import-modal'
-import { PriceHistoryTimeline } from './components/price-history-timeline'
+import { PriceListItemModal } from '@features/catalog/ui/price-list-item-modal'
+import { BulkImportModal } from '@features/catalog/ui/bulk-import-modal'
+import { PriceHistoryTimeline } from '@features/catalog/ui/price-history-timeline'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
 
 type TabId = 'items' | 'settings' | 'history'

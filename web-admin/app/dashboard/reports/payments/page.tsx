@@ -7,10 +7,10 @@ import { CreditCard, DollarSign, TrendingUp, RefreshCw } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { fetchPaymentsReport } from '@/app/actions/reports/report-actions';
 import type { PaymentsReportData } from '@/lib/types/report-types';
-import ReportFiltersBar from '../components/report-filters-bar-rprt';
-import KPICards, { type KPICardData } from '../components/kpi-cards-rprt';
-import PaymentsReportCharts from '../components/payments-report-charts-rprt';
-import PaymentsReportTable from '../components/payments-report-table-rprt';
+import ReportFiltersBar from '@features/reports/ui/report-filters-bar-rprt';
+import KPICards, { type KPICardData } from '@features/reports/ui/kpi-cards-rprt';
+import PaymentsReportCharts from '@features/reports/ui/payments-report-charts-rprt';
+import PaymentsReportTable from '@features/reports/ui/payments-report-table-rprt';
 
 const PAYMENT_STATUSES = ['completed', 'pending', 'cancelled', 'refunded'];
 const BASE_PATH = '/dashboard/reports/payments';

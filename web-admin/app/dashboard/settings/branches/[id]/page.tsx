@@ -11,9 +11,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2 } from 'lucide-react';
-import { Card, Button, Tabs, Alert } from '@/components/ui';
+import { Card, Button, Tabs, Alert } from '@ui/compat';
 import { settingsClient, type ResolvedSetting, type SettingDefinition } from '@/lib/api/settings-client';
-import { EnhancedSettingField } from '@/components/settings/enhanced-setting-field';
+import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
 export default function BranchSettingsPage() {
   const params = useParams();

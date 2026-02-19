@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { Package } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Badge } from '@/components/ui/Badge';
+import { Badge } from '@ui/compat';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { TRANSACTION_TYPES } from '@/lib/constants/inventory';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
@@ -52,7 +53,13 @@ export function OrdersStockTabRprt({
         <thead>
           <tr className="border-b border-gray-200 bg-gray-50">
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              ID
+            </th>
+            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               Product
+            </th>
+            <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+              Product ID
             </th>
             <th className={`px-4 py-3 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
               Type
@@ -74,6 +81,7 @@ export function OrdersStockTabRprt({
         <tbody>
           {transactions.map((tx) => (
             <tr key={tx.id} className="border-b border-gray-100 hover:bg-gray-50">
+              <CmxCopyableCell value={tx.id} maxLength={8} align={isRTL ? 'right' : 'left'} />
               <td className="px-4 py-3">
                 <Link
                   href={`/dashboard/inventory/stock?product=${tx.product_id}`}
@@ -82,13 +90,18 @@ export function OrdersStockTabRprt({
                   {tx.product_name ?? tx.product_code ?? tx.product_id?.slice(0, 8) ?? '—'}
                 </Link>
               </td>
-              <td className="px-4 py-3">{getTypeBadge(tx.transaction_type ?? '')}</td>
-              <td className="px-4 py-3 font-medium">{tx.quantity}</td>
-              <td className="px-4 py-3 text-gray-700">{tx.branch_name ?? '—'}</td>
-              <td className="px-4 py-3 text-gray-700">
-                {tx.transaction_date ? new Date(tx.transaction_date).toLocaleString() : '—'}
-              </td>
-              <td className="px-4 py-3 text-gray-700">{tx.reference_no ?? tx.reference_id ?? '—'}</td>
+              <CmxCopyableCell value={tx.product_id} maxLength={8} align={isRTL ? 'right' : 'left'} />
+              <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>{getTypeBadge(tx.transaction_type ?? '')}</td>
+              <td className={`px-4 py-3 font-medium ${isRTL ? 'text-right' : 'text-left'}`}>{tx.quantity}</td>
+              <CmxCopyableCell value={tx.branch_name ?? undefined} align={isRTL ? 'right' : 'left'} />
+              <CmxCopyableCell
+                value={tx.transaction_date ? new Date(tx.transaction_date).toLocaleString() : null}
+                align={isRTL ? 'right' : 'left'}
+              />
+              <CmxCopyableCell
+                value={tx.reference_no ?? tx.reference_id ?? undefined}
+                align={isRTL ? 'right' : 'left'}
+              />
             </tr>
           ))}
         </tbody>

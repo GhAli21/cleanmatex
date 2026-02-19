@@ -10,8 +10,8 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getReceiptVoucherDataByPaymentIdAction } from '@/app/actions/payments/voucher-actions';
 import { getPaymentAction } from '@/app/actions/payments/payment-crud-actions';
-import { BillingReceiptVoucherPrintRprt } from '@/app/dashboard/billing/components/billing-receipt-voucher-print-rprt';
-import type { BillingReceiptVoucherPrintRprtData } from '@/app/dashboard/billing/components/billing-receipt-voucher-print-rprt';
+import { BillingReceiptVoucherPrintRprt } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
+import type { BillingReceiptVoucherPrintRprtData } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
 
 export default function ReceiptVoucherPrintPage() {
   const params = useParams<{ id: string }>();

@@ -5,7 +5,7 @@ import { ChevronLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getOrderForPrep } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { FastItemizer } from '../components/FastItemizer';
+import { FastItemizer } from '@features/workflow/ui/FastItemizer';
 
 interface PreparationPageProps {
   params: Promise<{ orderId: string }>;

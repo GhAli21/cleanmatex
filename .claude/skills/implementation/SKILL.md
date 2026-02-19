@@ -12,6 +12,7 @@ user-invocable: true
 2. **Review architecture**: Use `/architecture` skill
 3. **Understand multi-tenancy**: Use `/multitenancy` skill
 4. **Review database conventions**: Use `/database` skill
+5. **for frontend rules follow**: Use `/frontend` skill
 
 ## Implementation Checklist
 

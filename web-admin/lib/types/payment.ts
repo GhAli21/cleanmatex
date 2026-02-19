@@ -179,6 +179,7 @@ export interface UpdateInvoiceInput {
 export interface PaymentTransaction {
   id: string;
   invoice_id?: string;
+  voucher_id?: string;
   tenant_org_id: string;
   branch_id?: string;
   order_id?: string;

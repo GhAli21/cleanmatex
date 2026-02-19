@@ -5,7 +5,7 @@ This document demonstrates how to use the Project UI Layer components.
 ## CmxButton
 
 ```tsx
-import { CmxButton } from '@/components/ui'
+import { CmxButton } from '@ui'
 import { Plus, Save } from 'lucide-react'
 
 // Basic usage
@@ -27,7 +27,7 @@ import { Plus, Save } from 'lucide-react'
 ## CmxInput
 
 ```tsx
-import { CmxInput } from '@/components/ui'
+import { CmxInput } from '@ui'
 
 // Basic usage
 <CmxInput placeholder="Enter text..." />
@@ -48,7 +48,7 @@ import { CmxInput } from '@/components/ui'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { CmxForm, CmxFormField, CmxInput, CmxButton } from '@/components/ui'
+import { CmxForm, CmxFormField, CmxInput, CmxButton } from '@ui'
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -98,7 +98,7 @@ export function MyForm() {
 ```tsx
 'use client'
 
-import { CmxDataTable } from '@/components/ui'
+import { CmxDataTable } from '@ui'
 import type { ColumnDef } from '@tanstack/react-table'
 
 interface User {
@@ -128,7 +128,7 @@ export function UsersTable({ users }: { users: User[] }) {
 ```tsx
 'use client'
 
-import { CmxChart } from '@/components/ui'
+import { CmxChart } from '@ui'
 
 const data = [
   { month: 'Jan', revenue: 4000 },
@@ -153,7 +153,7 @@ export function RevenueChart() {
 ```tsx
 'use client'
 
-import { showSuccessToast, showErrorToast, showInfoToast } from '@/components/ui'
+import { showSuccessToast, showErrorToast, showInfoToast } from '@ui'
 
 function handleSuccess() {
   showSuccessToast('Operation successful!', {
@@ -189,7 +189,7 @@ import {
   CmxButton,
   showSuccessToast,
   showErrorToast
-} from '@/components/ui'
+} from '@ui'
 import { Save } from 'lucide-react'
 
 const userSchema = z.object({
@@ -282,8 +282,8 @@ import {
   showSuccessToast,
   showErrorToast,
   showInfoToast
-} from '@/components/ui'
+} from '@ui'
 
 // ❌ Bad: Don't import individual files
-import { CmxButton } from '@/components/ui/cmx-button'
+import { CmxButton } from '@ui/components/cmx-button'
 ```

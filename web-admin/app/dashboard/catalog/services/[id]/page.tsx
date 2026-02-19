@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import ProductForm, { type ProductFormValues } from '../components/product-form'
-import { Card } from '@/components/ui/Card'
+import ProductForm, { type ProductFormValues } from '@features/catalog/ui/product-form'
+import { Card } from '@ui/compat'
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>()

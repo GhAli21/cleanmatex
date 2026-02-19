@@ -18,9 +18,8 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+} from '@ui/compat';
+import { Button, Input } from '@ui/compat';
 import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
 
 interface ProcessingTableProps {

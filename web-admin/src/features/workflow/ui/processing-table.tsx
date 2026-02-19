@@ -1,0 +1,816 @@
+/**
+ * Processing Table Component
+ * Dense, sortable data table with all order details
+ */
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { ArrowUpDown, SquarePen, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
+import { cmxMessage } from '@ui/feedback/cmx-message';
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+  CmxDialogFooter,
+  CmxDialogDescription,
+} from '@ui/overlays';
+import { CmxButton, CmxInput, Label } from '@ui/primitives';
+import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
+
+interface ProcessingTableProps {
+  orders: ProcessingOrder[];
+  sortField: SortField;
+  sortDirection: SortDirection;
+  onSort: (field: SortField) => void;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
+  selectedOrderId?: string | null; // Current/selected order ID for highlighting
+}
+
+export function ProcessingTable({
+  orders,
+  sortField,
+  onSort,
+  onRefresh,
+  onEditClick,
+  selectedOrderId,
+}: ProcessingTableProps) {
+  const t = useTranslations('processing.table');
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear().toString().slice(-2);
+    const hours = date.getHours();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    const hour12 = hours % 12 || 12;
+    return `${day}/${month}/${year} ${hour12}${ampm}`;
+  };
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-2">
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
+            }`}
+        />
+      </div>
+    </th>
+  );
+
+  if (orders.length === 0) {
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+        <p className="text-gray-600 text-lg">{t('noOrders')}</p>
+        <Link
+          href="/dashboard/orders/new"
+          className="inline-block mt-4 text-blue-600 hover:text-blue-700 font-medium"
+        >
+          {t('createNew')}
+        </Link>
+      </div>
+    );
+  }
+
+  // ✅ Mobile card view
+  if (isMobile) {
+    return (
+      <>
+        <div className="space-y-4">
+          {orders.map((order, index) => (
+            <ProcessingOrderCard
+              key={order.id}
+              order={order}
+              formatDate={formatDate}
+              onRefresh={onRefresh}
+              onEditClick={onEditClick}
+              index={index}
+              selectedOrderId={selectedOrderId}
+            />
+          ))}
+        </div>
+        {/* Render dialogs */}
+        {orders.map((order) => (
+          <OrderRowDialog
+            key={`dialog-${order.id}`}
+            order={order}
+            onRefresh={onRefresh}
+          />
+        ))}
+      </>
+    );
+  }
+
+  // Desktop table view
+  return (
+    <ProcessingTableDesktop
+      orders={orders}
+      sortField={sortField}
+      onSort={onSort}
+      onRefresh={onRefresh}
+      onEditClick={onEditClick}
+      formatDate={formatDate}
+      selectedOrderId={selectedOrderId}
+    />
+  );
+}
+
+interface OrderRowProps {
+  order: ProcessingOrder;
+  formatDate: (date: string) => string;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void; // NEW: Callback for edit button
+  index: number; // ✅ NEW: For alternating row colors
+  selectedOrderId?: string | null; // Current/selected order ID for highlighting
+}
+
+function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOrderId }: OrderRowProps) {
+  const router = useRouter();
+  const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
+  const isPaid = order.payment_status === 'paid';
+  const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+  const isSelected = selectedOrderId === order.id;
+
+  // State for loading and success message
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);  // ✅ NEW
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Determine row highlight color
+  const rowHighlight = isUrgent ? 'border-l-4 border-l-pink-500' : 'border-l-4 border-l-blue-200';
+
+  // ✅ Visual hierarchy: Alternating row colors with green for selected row
+  const rowBgColor = isSelected
+    ? 'bg-green-50'
+    : index % 2 === 0
+      ? 'bg-white'
+      : 'bg-gray-50/50';
+  const hoverColor = isSelected ? 'hover:bg-green-100' : 'hover:bg-blue-50/50';
+
+  const handleStatusToggleClick = () => {
+    // Dispatch custom event to open dialog
+    window.dispatchEvent(new CustomEvent(`open-confirm-dialog-${order.id}`, {
+      detail: { orderId: order.id }
+    }));
+  };
+
+  // Listen for loading and success events
+  useEffect(() => {
+    const handleLoadingStart = () => setIsLoading(true);
+    const handleLoadingEnd = () => setIsLoading(false);
+    const handleSuccess = () => {
+      setSuccessMessage(t('markReadySuccess') || 'Order marked as ready successfully');
+      setTimeout(() => {
+        onRefresh();
+        setSuccessMessage(null);
+      }, 1500);
+    };
+
+    window.addEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
+    window.addEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
+    window.addEventListener(`mark-ready-success-${order.id}`, handleSuccess);
+
+    return () => {
+      window.removeEventListener(`mark-ready-loading-start-${order.id}`, handleLoadingStart);
+      window.removeEventListener(`mark-ready-loading-end-${order.id}`, handleLoadingEnd);
+      window.removeEventListener(`mark-ready-success-${order.id}`, handleSuccess);
+    };
+  }, [order.id, onRefresh, t]);
+
+
+  const handleEdit = () => {
+    console.log('[OrderRow] Edit clicked for order:', order.id);
+    setIsLoadingEdit(true);
+
+    if (onEditClick) {
+      onEditClick(order.id);
+      // Reset loading after modal should open
+      setTimeout(() => setIsLoadingEdit(false), 500);
+    } else {
+      router.push(`/dashboard/processing/${order.id}`);
+    }
+  };
+
+  return (
+    <React.Fragment>
+      <tr className={`${rowBgColor} ${hoverColor} transition-colors duration-150 ${rowHighlight}`}>
+        {/* ID */}
+        <td className="px-4 py-4">
+          <div className="font-medium text-blue-600">{order.order_no}</div>
+        </td>
+
+        {/* READY BY */}
+        <td className="px-4 py-4">
+          <div className="text-sm">{formatDate(order.ready_by_at)}</div>
+        </td>
+
+        {/* CUSTOMER */}
+        <td className="px-4 py-4">
+          <div className="font-medium">{order.customer_name}</div>
+          {order.customer_name2 && (
+            <div className="text-sm text-gray-500">{order.customer_name2}</div>
+          )}
+        </td>
+
+        {/* ORDER - Multi-line items with details */}
+        <td className="px-4 py-4">
+          <div className="space-y-2 max-w-xs">
+            {order.items.slice(0, 3).map((item, idx) => (
+              <div key={idx} className="text-sm space-y-1">
+                <div className="font-medium">
+                  {item.product_name} x {item.quantity}
+                </div>
+                {/* Item Details: Color, Brand */}
+                {(item.color || item.brand) && (
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                    {item.color && (
+                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                        {t('color') || 'Color'}: {item.color}
+                      </span>
+                    )}
+                    {item.brand && (
+                      <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                        {t('brand') || 'Brand'}: {item.brand}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {/* Condition Flags: Stain, Damage */}
+                {(item.has_stain || item.has_damage) && (
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {item.has_stain && (
+                      <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded border border-yellow-200">
+                        {t('stain') || 'Stain'}
+                      </span>
+                    )}
+                    {item.has_damage && (
+                      <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded border border-red-200">
+                        {t('damage') || 'Damage'}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+            {order.items.length > 3 && (
+              <div className="text-sm text-gray-500">
+                +{order.items.length - 3} {t('moreItems')}
+              </div>
+            )}
+            <Link
+              href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
+              className="inline-block mt-2 text-xs text-blue-600 hover:text-blue-700"
+            >
+              {t('details')} →
+            </Link>
+          </div>
+        </td>
+
+        {/* PCS */}
+        <td className="px-4 py-4 text-right">
+          <div className="font-medium">{order.total_items}</div>
+        </td>
+
+        {/* ✅ PROGRESS - NEW */}
+        <td className="px-4 py-4">
+          <div className="w-24">
+            {(() => {
+              const progressPercent = order.total_items > 0
+                ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
+                : 0;
+
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-gray-700">
+                      {tProcessing('progress')}: {progressPercent}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+                        }`}
+                      style={{ width: `${Math.min(100, progressPercent)}%` }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </td>
+
+        {/* NOTES */}
+        <td className="px-4 py-4">
+          <div className="text-sm text-gray-600 max-w-xs truncate">
+            {order.notes || '—'}
+          </div>
+        </td>
+
+        {/* TOTAL */}
+        <td className="px-4 py-4 text-right">
+          <div className="font-semibold">OMR {order.total.toFixed(3)}</div>
+        </td>
+
+        {/* STATUS - Action Icons */}
+        <td className="px-4 py-4">
+          <div className="flex items-center gap-3 justify-end">
+            {/* Payment/Priority Tag */}
+            {!isPaid && (
+              <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                1st
+              </span>
+            )}
+
+            {/* ✅ Edit Icon with Loading State */}
+            <button
+              onClick={handleEdit}
+              disabled={isLoadingEdit}
+              className="p-2 hover:bg-gray-100 rounded transition-colors disabled:opacity-50 disabled:cursor-wait"
+              title={isLoadingEdit ? (t('opening') || 'Opening...') : (t('edit') || 'Edit')}
+              aria-label={t('edit') || 'Edit'}
+            >
+              {isLoadingEdit ? (
+                <Loader2 className="h-4 w-4 text-gray-600 animate-spin" />
+              ) : (
+                <SquarePen className="h-4 w-4 text-gray-600" />
+              )}
+            </button>
+
+            {/* Status Toggle Icon */}
+            <button
+              onClick={handleStatusToggleClick}
+              disabled={isLoading}
+              className="p-2 hover:bg-green-100 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed relative"
+              title={isLoading ? (t('processing') || 'Processing...') : t('complete')}
+              aria-label={t('complete')}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 text-green-600 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              )}
+            </button>
+
+            {/* Current Status Badge */}
+            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+              {order.current_status}
+            </span>
+          </div>
+        </td>
+
+      </tr>
+
+      {/* Success Message Row */}
+      {successMessage && (
+        <tr>
+          <td colSpan={9} className="px-4 py-3 bg-green-50 border-t border-green-200">
+            <div className="flex items-center gap-2 text-green-800">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-sm font-medium">{successMessage}</span>
+            </div>
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+}
+
+// Separate component for Dialog to render outside table structure
+function OrderRowDialog({ order, onRefresh }: { order: ProcessingOrder; onRefresh: () => void }) {
+  const t = useTranslations('processing.table');
+  const tDetail = useTranslations('processing.detail');
+  const tCommon = useTranslations('common');
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [rackLocation, setRackLocation] = useState('');
+  const [rackLocationError, setRackLocationError] = useState('');
+
+  // Listen for dialog open events from the row
+  useEffect(() => {
+    const handleOpenDialog = (event: CustomEvent) => {
+      if (event.detail.orderId === order.id) {
+        setShowConfirmDialog(true);
+      }
+    };
+
+    window.addEventListener(`open-confirm-dialog-${order.id}`, handleOpenDialog as EventListener);
+    return () => {
+      window.removeEventListener(`open-confirm-dialog-${order.id}`, handleOpenDialog as EventListener);
+    };
+  }, [order.id]);
+
+  const handleConfirm = async () => {
+    // Validate rack location
+    if (!rackLocation.trim()) {
+      setRackLocationError(tDetail('validation.rackLocationRequired') || 'Rack location is required');
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent(`mark-ready-loading-start-${order.id}`));
+    setShowConfirmDialog(false);
+
+    try {
+      const res = await fetch(`/api/v1/orders/${order.id}/transition`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toStatus: 'ready', //JhTodo: Change to 'ready' when ready status is implemented
+          notes: 'Processing completed via quick action',
+          metadata: {
+            rack_location: rackLocation.trim()
+          }
+        }),
+      });
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          // Reset rack location state
+          setRackLocation('');
+          setRackLocationError('');
+          // Dispatch success event
+          window.dispatchEvent(new CustomEvent(`mark-ready-success-${order.id}`));
+        } else {
+          window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
+          cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+            description: json.error,
+            duration: 5000,
+          });
+        }
+      } else {
+        window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
+        const error = await res.json().catch(() => ({ error: t('markReadyError') || 'Failed to update order status' }));
+        cmxMessage.error(t('markReadyError') || 'Failed to update order status', {
+          description: error.error,
+          duration: 5000,
+        });
+      }
+    } catch (error) {
+      setIsLoading(false);
+      window.dispatchEvent(new CustomEvent(`mark-ready-loading-end-${order.id}`));
+      console.error('Error updating order:', error);
+      cmxMessage.error(t('markReadyError') || 'Error updating order status', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+        duration: 5000,
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    setShowConfirmDialog(false);
+    // Reset rack location state
+    setRackLocation('');
+    setRackLocationError('');
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setShowConfirmDialog(open);
+    if (!open) {
+      // Reset rack location state when dialog closes
+      setRackLocation('');
+      setRackLocationError('');
+    }
+  };
+
+  return (
+    <CmxDialog open={showConfirmDialog} onOpenChange={handleOpenChange}>
+      <CmxDialogContent className="max-w-md">
+        <CmxDialogHeader>
+          <CmxDialogTitle className="flex items-center gap-2">
+            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            {t('confirmMarkReady') || 'Confirm Mark as Ready'}
+          </CmxDialogTitle>
+          <CmxDialogDescription>
+            {t('confirmMarkReadyMessage') || `Are you sure you want to mark order ${order.order_no} as ready?`}
+          </CmxDialogDescription>
+        </CmxDialogHeader>
+
+        <div className="py-4 space-y-2">
+          <Label htmlFor="rack-location" className="block text-sm font-medium text-gray-700">
+            {t('rackLocation') || tDetail('rackLocation') || 'Rack Location'}
+            <span className="text-red-500 ml-1">*</span>
+          </Label>
+          <CmxInput
+            id="rack-location"
+            value={rackLocation}
+            onChange={(e) => {
+              setRackLocation(e.target.value);
+              setRackLocationError('');
+            }}
+            placeholder={tDetail('rackLocationPlaceholder') || 'e.g., Rack A-12'}
+            aria-invalid={!!rackLocationError}
+            required
+          />
+          {rackLocationError && (
+            <p className="text-sm text-red-600">{rackLocationError}</p>
+          )}
+          <p className="text-xs text-gray-500">
+            {tDetail('rackLocationHelp') || 'Enter the rack location where this order is stored'}
+          </p>
+        </div>
+
+        <CmxDialogFooter>
+          <CmxButton
+            variant="secondary"
+            onClick={handleCancel}
+            disabled={isLoading}
+          >
+            {tCommon('cancel') || 'Cancel'}
+          </CmxButton>
+          <CmxButton
+            variant="primary"
+            onClick={handleConfirm}
+            disabled={isLoading || !rackLocation.trim()}
+            loading={isLoading}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t('processing') || 'Processing...'}
+              </>
+            ) : (
+              t('confirmReady') || 'Confirm Ready'
+            )}
+          </CmxButton>
+        </CmxDialogFooter>
+      </CmxDialogContent>
+    </CmxDialog>
+  );
+}
+
+// ✅ Mobile Card View Component
+function ProcessingOrderCard({
+  order,
+  formatDate,
+  onRefresh,
+  onEditClick,
+  index,
+  selectedOrderId,
+}: {
+  order: ProcessingOrder;
+  formatDate: (date: string) => string;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void;
+  index: number;
+  selectedOrderId?: string | null;
+}) {
+  const router = useRouter();
+  const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing');
+  const isPaid = order.payment_status === 'paid';
+  const isUrgent = order.priority === 'urgent' || order.priority === 'express';
+  const isSelected = selectedOrderId === order.id;
+  const [isLoadingEdit, setIsLoadingEdit] = useState(false);
+
+  const handleEdit = () => {
+    setIsLoadingEdit(true);
+    if (onEditClick) {
+      onEditClick(order.id);
+      setTimeout(() => setIsLoadingEdit(false), 500);
+    } else {
+      router.push(`/dashboard/processing/${order.id}`);
+    }
+  };
+
+  const progressPercent = order.total_items > 0
+    ? Math.round((order.quantity_ready || 0) / order.total_items * 100)
+    : 0;
+
+  return (
+    <div className={`rounded-lg border-2 p-4 ${isSelected
+      ? 'bg-green-50 border-green-300'
+      : isUrgent
+        ? 'bg-white border-l-4 border-l-pink-500'
+        : 'bg-white border-gray-200'
+      }`}>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-bold text-blue-600 text-lg">{order.order_no}</h3>
+            {!isPaid && (
+              <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                1st
+              </span>
+            )}
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+              {order.current_status}
+            </span>
+          </div>
+          <p className="text-sm text-gray-600">{order.customer_name}</p>
+          <p className="text-xs text-gray-500">{formatDate(order.ready_by_at)}</p>
+        </div>
+      </div>
+
+      {/* Items */}
+      <div className="mb-3 space-y-2">
+        {order.items.slice(0, 2).map((item, idx) => (
+          <div key={idx} className="text-sm space-y-1">
+            <div className="font-medium text-gray-700">
+              {item.product_name} x {item.quantity}
+            </div>
+            {/* Item Details: Color, Brand */}
+            {(item.color || item.brand) && (
+              <div className="flex items-center gap-2 flex-wrap text-xs text-gray-600">
+                {item.color && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                    {t('color') || 'Color'}: {item.color}
+                  </span>
+                )}
+                {item.brand && (
+                  <span className="px-1.5 py-0.5 bg-gray-100 rounded">
+                    {t('brand') || 'Brand'}: {item.brand}
+                  </span>
+                )}
+              </div>
+            )}
+            {/* Condition Flags: Stain, Damage */}
+            {(item.has_stain || item.has_damage) && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {item.has_stain && (
+                  <span className="px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded border border-yellow-200">
+                    {t('stain') || 'Stain'}
+                  </span>
+                )}
+                {item.has_damage && (
+                  <span className="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded border border-red-200">
+                    {t('damage') || 'Damage'}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+        {order.items.length > 2 && (
+          <div className="text-xs text-gray-500">
+            +{order.items.length - 2} {t('moreItems')}
+          </div>
+        )}
+      </div>
+
+      {/* Progress */}
+      <div className="mb-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-xs font-medium text-gray-700">{tProcessing('progress')}</span>
+          <span className="text-xs font-medium text-gray-700">{progressPercent}%</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className={`h-2 rounded-full transition-all duration-300 ${progressPercent === 100 ? 'bg-green-600' : 'bg-blue-600'
+              }`}
+            style={{ width: `${Math.min(100, progressPercent)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 gap-2 mb-3 text-sm">
+        <div>
+          <span className="text-gray-600">{t('pcs')}: </span>
+          <span className="font-medium">{order.total_items}</span>
+        </div>
+        <div className="text-right">
+          <span className="text-gray-600">{t('total')}: </span>
+          <span className="font-semibold">OMR {order.total.toFixed(3)}</span>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex flex-col gap-2 pt-3 border-t border-gray-200">
+        <Link
+          href={`/dashboard/orders/${order.id}?returnUrl=${encodeURIComponent('/dashboard/processing')}&returnLabel=${encodeURIComponent(tProcessing('backToProcessing') || 'Back to Processing')}`}
+          className="text-xs text-blue-600 hover:text-blue-700 text-center py-1"
+        >
+          {t('details')} →
+        </Link>
+        <button
+          onClick={handleEdit}
+          disabled={isLoadingEdit}
+          className="w-full px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-wait text-sm font-medium flex items-center justify-center gap-2"
+        >
+          {isLoadingEdit ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('opening') || 'Opening...'}
+            </>
+          ) : (
+            <>
+              <SquarePen className="h-4 w-4" />
+              {t('edit') || 'Edit'}
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ✅ Desktop Table Component (extracted for clarity)
+function ProcessingTableDesktop({
+  orders,
+  sortField,
+  onSort,
+  onRefresh,
+  onEditClick,
+  formatDate,
+  selectedOrderId,
+}: {
+  orders: ProcessingOrder[];
+  sortField: SortField;
+  onSort: (field: SortField) => void;
+  onRefresh: () => void;
+  onEditClick?: (orderId: string) => void;
+  formatDate: (date: string) => string;
+  selectedOrderId?: string | null;
+}) {
+  const t = useTranslations('processing.table');
+  const tProcessing = useTranslations('processing'); // ✅ For progress
+
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <th
+      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right"
+      onClick={() => onSort(field)}
+    >
+      <div className="flex items-center gap-2">
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
+            }`}
+        />
+      </div>
+    </th>
+  );
+
+  return (
+    <>
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <SortableHeader field="id">{t('id')}</SortableHeader>
+                <SortableHeader field="ready_by_at">{t('readyBy')}</SortableHeader>
+                <SortableHeader field="customer_name">{t('customer')}</SortableHeader>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                  {t('order')}
+                </th>
+                <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
+                  {tProcessing('progress')}
+                </th>
+                <SortableHeader field="notes">{t('notes')}</SortableHeader>
+                <SortableHeader field="total">{t('total')}</SortableHeader>
+                <SortableHeader field="status">{t('status')}</SortableHeader>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {orders.map((order, index) => (
+                <OrderRow
+                  key={order.id}
+                  order={order}
+                  formatDate={formatDate}
+                  onRefresh={onRefresh}
+                  onEditClick={onEditClick}
+                  index={index}
+                  selectedOrderId={selectedOrderId}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Render dialogs outside the table */}
+      {orders.map((order) => (
+        <OrderRowDialog
+          key={`dialog-${order.id}`}
+          order={order}
+          onRefresh={onRefresh}
+        />
+      ))}
+    </>
+  );
+}

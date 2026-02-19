@@ -13,9 +13,9 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { listOrders, getStats } from '@/app/actions/orders/list-orders';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { OrderStatsCards } from './components/order-stats-cards';
-import { OrderFiltersBar } from './components/order-filters-bar';
-import { OrdersSimpleTable } from './components/orders-simple-table';
+import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
+import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
+import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
 
 type OrdersSearchParams = {
   page?: string;

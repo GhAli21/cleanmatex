@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import type { ReactNode } from 'react';
-import ExportDropdown from './components/export-dropdown-rprt';
+import ExportDropdown from '@features/reports/ui/export-dropdown-rprt';
 import {
   generateCSV,
   downloadCSV,

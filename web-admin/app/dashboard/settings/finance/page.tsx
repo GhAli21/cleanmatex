@@ -20,9 +20,7 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { Save, DollarSign, Info, AlertCircle } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Card, Button, Input } from '@ui/compat'
 
 interface TaxSettings {
   taxRate: number

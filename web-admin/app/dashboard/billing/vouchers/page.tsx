@@ -10,8 +10,8 @@ import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { listVouchersAction } from '@/app/actions/payments/voucher-list-actions';
-import VoucherFiltersBar from './components/voucher-filters-bar';
-import VouchersTable from './components/vouchers-table';
+import VoucherFiltersBar from '@features/billing/ui/voucher-filters-bar';
+import VouchersTable from '@features/billing/ui/vouchers-table';
 
 type VouchersSearchParams = {
   page?: string;

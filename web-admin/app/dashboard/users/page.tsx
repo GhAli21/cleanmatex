@@ -22,10 +22,10 @@ import { fetchUsers, fetchUserStats } from '@/lib/api/users'
 import { getAllRoles } from '@/lib/api/roles'
 import type { TenantUser, UserFilters, UserStats } from '@/lib/api/users'
 import type { TenantRole } from '@/lib/api/roles'
-import UserTable from './components/user-table'
-import UserFiltersBar from './components/user-filters-bar'
-import UserStatsCards from './components/user-stats-cards'
-import UserModal from './components/user-modal'
+import UserTable from '@features/users/ui/user-table'
+import UserFiltersBar from '@features/users/ui/user-filters-bar'
+import UserStatsCards from '@features/users/ui/user-stats-cards'
+import UserModal from '@features/users/ui/user-modal'
 
 function UsersPage() {
   const t = useTranslations('users')

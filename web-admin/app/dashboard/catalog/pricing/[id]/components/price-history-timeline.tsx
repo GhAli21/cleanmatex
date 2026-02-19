@@ -8,9 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
+import { Card, Button, Input } from '@ui/compat'
 import { Calendar, Filter, Download, Clock, User, DollarSign } from 'lucide-react'
 
 interface PriceHistoryEntry {

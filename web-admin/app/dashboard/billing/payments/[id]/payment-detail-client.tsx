@@ -11,9 +11,9 @@ import {
   updatePaymentNotesAction,
   cancelPaymentAction,
 } from '@/app/actions/payments/payment-crud-actions';
-import { RequirePermission } from '@/components/auth/RequirePermission';
-import CancelPaymentDialog from '../components/cancel-payment-dialog';
-import RefundPaymentDialog from '../components/refund-payment-dialog';
+import { RequirePermission } from '@features/auth/ui/RequirePermission';
+import CancelPaymentDialog from '@features/billing/ui/cancel-payment-dialog';
+import RefundPaymentDialog from '@features/billing/ui/refund-payment-dialog';
 
 interface PaymentDetailClientProps {
   payment: PaymentListItem;

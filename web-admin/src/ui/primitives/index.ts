@@ -10,8 +10,9 @@ export * from './cmx-textarea'
 export * from './cmx-card'
 export * from './cmx-spinner'
 export * from './cmx-checkbox'
-export * from './cmx-select'
-export * from './tabs'
+export * from './cmx-select';
+export * from './cmx-switch';
+export * from './tabs';
 
 // ===== Legacy shadcn/ui primitives (for backward compatibility) =====
 // These are being phased out - prefer Cmx* components above

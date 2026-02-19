@@ -6,7 +6,7 @@
 
 'use client';
 
-import { Badge } from '@/components/ui';
+import { Badge } from '@ui/compat';
 import { cn } from '@/lib/utils';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META } from '@/lib/types/workflow';

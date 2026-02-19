@@ -25,8 +25,15 @@ export * from './feedback'
 // ===== Layer 7: Navigation =====
 export * from './navigation'
 
-// ===== Layer 8: Patterns =====
+// ===== Layer 8: Overlays =====
+export * from './overlays'
+
+// ===== Layer 9: Patterns =====
 export * from './patterns'
+
+// ===== Compatibility Layer (legacy API, use @ui/compat) =====
+// Re-exports for backward compatibility - migrate to Cmx components when possible
+export * from './compat'
 
 // ===== Legacy Components (for backward compatibility) =====
 // These wrap shadcn/ui - will be phased out

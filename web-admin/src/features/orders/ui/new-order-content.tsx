@@ -27,10 +27,10 @@ import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';
 // Temporary imports - will move to feature folder later
 // Using @ alias to access app folder components
-import { CategoryTabs } from '@/app/dashboard/orders/new/components/category-tabs';
-import { ProductGrid } from '@/app/dashboard/orders/new/components/product-grid';
-import { OrderSummaryPanel } from '@/app/dashboard/orders/new/components/order-summary-panel';
-import { CategoryTabsSkeleton, ProductGridSkeleton } from '@/app/dashboard/orders/new/components/loading-skeletons';
+import { CategoryTabs } from './category-tabs';
+import { ProductGrid } from './product-grid';
+import { OrderSummaryPanel } from './order-summary-panel';
+import { CategoryTabsSkeleton, ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
