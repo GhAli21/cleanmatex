@@ -8,10 +8,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkPasswordResetRateLimit } from '@/lib/middleware/rate-limit';
+import {
+  getCSRFTokenFromHeader,
+  getCSRFTokenFromRequest,
+  validateCSRFToken,
+} from '@/lib/security/csrf';
 import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF validation
+    const headerToken = getCSRFTokenFromHeader(request.headers);
+    const cookieToken = getCSRFTokenFromRequest(request);
+    if (!validateCSRFToken(headerToken, cookieToken)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token. Please refresh the page and try again.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { email } = body;
 

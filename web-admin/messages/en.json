@@ -651,7 +651,8 @@
         "markAsReady": "Mark as Ready",
         "outForDelivery": "Out for Delivery",
         "markAsDelivered": "Mark as Delivered",
-        "cancelOrder": "Cancel Order"
+        "cancelOrder": "Cancel Order",
+        "fixOrderData": "Fix order data"
       },
       "success": {
         "statusUpdated": "Order status updated to {status}"
@@ -666,6 +667,31 @@
         "notesPlaceholder": "Add any notes about this status change...",
         "confirmChange": "Confirm Change"
       }
+    },
+    "fixOrderDataModal": {
+      "title": "Fix order data",
+      "description": "Run one or more fixes for this order. Corrects data issues without changing workflow status.",
+      "stepsLabel": "Fixes to run",
+      "stepCompleteOrderItemPieces": "Complete order item pieces — add or remove piece rows so each item has the correct number of pieces.",
+      "runButton": "Run fix",
+      "running": "Running fix…",
+      "successTitle": "Fix completed",
+      "successNoChanges": "No changes were needed.",
+      "successWithChanges": "Done. Items adjusted: {items}. Pieces added: {added}. Pieces removed: {removed}.",
+      "errorTitle": "Fix failed",
+      "errorMessage": "Something went wrong. Please try again or contact support.",
+      "close": "Close",
+      "refreshPage": "Refresh page",
+      "resultSectionTitle": "Result",
+      "stepStatusSuccess": "Success",
+      "stepStatusError": "Error",
+      "stepStatusSkipped": "Skipped",
+      "stepNoChanges": "No changes needed.",
+      "stepDetailsLabel": "Details",
+      "stepItemAdjusted": "Item {srno}: {action} ({count})",
+      "stepActionAdded": "added pieces",
+      "stepActionRemoved": "removed pieces",
+      "stepActionAdjusted": "adjusted"
     },
     "search": "Search by order #, customer name, or phone...",
     "filterByStatus": "Filter by status",
@@ -2820,6 +2846,8 @@
     }
   },
   "auth": {
+    "sessionExpired": "Your session has expired. Please sign in again.",
+    "rememberMe": "Remember me",
     "logout": {
       "signingOut": "Signing out...",
       "pleaseWait": "Please wait while we sign you out",

@@ -16,6 +16,7 @@ import {
   Loader2,
   ArrowRight,
   AlertCircle,
+  Wrench,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -34,6 +35,7 @@ import {
   CmxDialogTitle,
 } from '@ui/overlays';
 import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
+import { FixOrderDataModal } from './fix-order-data-modal';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
 
@@ -66,6 +68,7 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
   const [notes, setNotes] = useState('');
   const [allowedTransitions, setAllowedTransitions] = useState<OrderStatus[]>([]);
   const [blockers, setBlockers] = useState<string[]>([]);
+  const [showFixOrderDataModal, setShowFixOrderDataModal] = useState(false);
 
   // Fetch allowed transitions on mount
   useEffect(() => {
@@ -228,7 +231,29 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
               {t('buttons.cancelOrder')}
             </CmxButton>
           )}
+
+        {/* Fix order data - opens modal */}
+        <CmxButton
+          variant="outline"
+          onClick={() => setShowFixOrderDataModal(true)}
+          disabled={loading}
+          className={`w-full border-gray-300 text-gray-700 hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+          size="lg"
+        >
+          <Wrench className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          {t('buttons.fixOrderData')}
+        </CmxButton>
       </div>
+
+      <FixOrderDataModal
+        orderId={order.id}
+        open={showFixOrderDataModal}
+        onOpenChange={setShowFixOrderDataModal}
+        onSuccess={() => {
+          router.refresh();
+          setShowFixOrderDataModal(false);
+        }}
+      />
 
       {/* Status Change Confirmation Dialog */}
       <CmxDialog open={showDialog} onOpenChange={setShowDialog}>

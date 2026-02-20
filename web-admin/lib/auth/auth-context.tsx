@@ -30,6 +30,7 @@ import type {
   UserRole,
 } from '@/types/auth'
 import { trackLogout, type LogoutReason } from '@/lib/auth/logout-tracker'
+import { getCSRFToken } from '@/lib/utils/csrf-token'
 
 // Create the context
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -61,6 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const currentTenantRef = useRef<UserTenant | null>(null)
   const refreshPermissionsRef = useRef<(() => Promise<void>) | null>(null)
   const refreshTenantsRef = useRef<(() => Promise<void>) | null>(null)
+  // Track user-initiated signOut so we don't redirect to session_expired on normal logout
+  const isSigningOutRef = useRef(false)
 
   /**
    * Fetch available tenants for current user
@@ -181,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sign in with email and password
    */
-  const signIn = useCallback(async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string, rememberMe = true) => {
     // Prevent multiple simultaneous login attempts
     if (isLoggingInRef.current) {
       throw new Error('Login already in progress')
@@ -190,27 +193,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoggingInRef.current = true
     setIsLoading(true)
     try {
-      // Use API route with rate limiting
+      const csrfToken = await getCSRFToken()
       const loginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, remember_me: rememberMe }),
       })
 
       const loginData = await loginResponse.json()
 
       if (!loginResponse.ok) {
-        // Handle rate limiting error
+        if (loginResponse.status === 403) {
+          throw new Error(loginData.error || 'Invalid or missing CSRF token. Please refresh the page and try again.')
+        }
         if (loginResponse.status === 429) {
           throw new Error(loginData.message || 'Too many login attempts. Please try again later.')
         }
-        // Handle account locked error
         if (loginResponse.status === 423) {
           throw new Error(loginData.error || 'Account is temporarily locked.')
         }
-        // Handle other errors
         throw new Error(loginData.error || 'Invalid email or password')
       }
 
@@ -274,11 +278,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ) => {
     setIsLoading(true)
     try {
-      // Use API route with rate limiting
+      const csrfToken = await getCSRFToken()
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
         body: JSON.stringify({ email, password, displayName }),
       })
@@ -286,7 +291,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (!response.ok) {
-        // Handle rate limiting error
+        if (response.status === 403) {
+          throw new Error(data.error || 'Invalid or missing CSRF token. Please refresh the page and try again.')
+        }
         if (response.status === 429) {
           throw new Error(data.message || 'Too many registration attempts. Please try again later.')
         }
@@ -307,6 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Sign out
    */
   const signOut = useCallback(async (reason: LogoutReason = 'user') => {
+    isSigningOutRef.current = true
     setIsLoading(true)
     try {
       // Call server-side logout API for cache invalidation
@@ -356,6 +364,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error
     } finally {
       setIsLoading(false)
+      isSigningOutRef.current = false
     }
   }, [router, user, currentTenant])
 
@@ -364,11 +373,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    */
   const resetPassword = useCallback(async (email: string) => {
     try {
-      // Use API route with rate limiting
+      const csrfToken = await getCSRFToken()
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
         },
         body: JSON.stringify({ email }),
       })
@@ -376,7 +386,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (!response.ok) {
-        // Handle rate limiting error
+        if (response.status === 403) {
+          throw new Error(data.error || 'Invalid or missing CSRF token. Please refresh the page and try again.')
+        }
         if (response.status === 429) {
           throw new Error(data.message || 'Too many password reset requests. Please try again later.')
         }
@@ -589,9 +601,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAvailableTenants([])
           setPermissions([])
           setWorkflowRoles([])
-          // Clear browser storage and cache
           invalidatePermissionCache()
           sessionStorage.clear()
+          // Redirect to logout page with reason when session expired (not user-initiated)
+          if (!isSigningOutRef.current) {
+            router.push('/logout?reason=session_expired')
+          }
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession({
             user: currentSession.user as AuthUser,

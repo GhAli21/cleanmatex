@@ -83,6 +83,48 @@ export async function createServerSupabaseClient() {
 }
 
 /**
+ * Create a Supabase client for the login API route with optional session-only cookies.
+ * When rememberMe is false, auth cookies are set without maxAge/expires so they are
+ * session cookies (browser drops them when the browser is closed).
+ *
+ * @param rememberMe - If false, auth cookies are session-only; if true, use default persistence
+ * @returns Promise<SupabaseClient>
+ */
+export async function createServerSupabaseClientForLogin(rememberMe: boolean) {
+  const cookieStore = await cookies()
+  const { url, anonKey } = getSupabaseEnv()
+
+  return createServerClient<Database>(
+    url,
+    anonKey,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: Record<string, unknown>) {
+          try {
+            const cookieOptions = rememberMe
+              ? options
+              : { ...options, maxAge: undefined, expires: undefined }
+            cookieStore.set({ name, value, ...cookieOptions } as Parameters<typeof cookieStore.set>[0])
+          } catch (error) {
+            // Handle cases where cookies can't be set (e.g., middleware)
+          }
+        },
+        remove(name: string, options: Record<string, unknown>) {
+          try {
+            cookieStore.set({ name, value: '', ...options } as Parameters<typeof cookieStore.set>[0])
+          } catch (error) {
+            // Handle cases where cookies can't be removed
+          }
+        },
+      },
+    }
+  )
+}
+
+/**
  * Create an admin Supabase client (bypasses RLS)
  *
  * ⚠️ WARNING: This client has full database access

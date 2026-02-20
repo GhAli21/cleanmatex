@@ -7,24 +7,27 @@
  */
 
 import { useState, FormEvent } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateLoginForm } from '@/lib/auth/validation'
 import type { FormErrors } from '@/types/auth'
 
 export default function LoginPage() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const { signIn, isLoading } = useAuth()
+  const t = useTranslations('auth')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<FormErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [rememberMe, setRememberMe] = useState(true)
 
   const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const isSessionExpired = searchParams.get('reason') === 'session_expired'
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -45,7 +48,7 @@ export default function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await signIn(email, password)
+      await signIn(email, password, rememberMe)
       // AuthContext handles redirect to dashboard
       // Don't reset isSubmitting here - let redirect happen
     } catch (error: any) {
@@ -72,6 +75,14 @@ export default function LoginPage() {
 
         {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          {/* Session expired notice */}
+          {isSessionExpired && (
+            <div className="rounded-md bg-amber-50 p-4 border border-amber-200">
+              <p className="text-sm font-medium text-amber-800">
+                {t('sessionExpired')}
+              </p>
+            </div>
+          )}
           {/* General Error */}
           {errors.general && (
             <div className="rounded-md bg-red-50 p-4">
@@ -169,10 +180,12 @@ export default function LoginPage() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
+                {t('rememberMe')}
               </label>
             </div>
 

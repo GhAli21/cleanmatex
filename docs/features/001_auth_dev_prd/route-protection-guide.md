@@ -29,11 +29,15 @@ web-admin/
 
 ### 1. Next.js Proxy (`proxy.ts`)
 
+**Note:** Next.js 16 uses `proxy.ts` (not `middleware.ts`) for the network boundary. Route protection is enforced here and in the dashboard layout; see [Session Management Guide](/docs/dev/session-management-guide.md) for the full session lifecycle.
+
 **Capabilities:**
 - ✅ Automatic authentication checks on all routes
-- ✅ Public route exemptions
+- ✅ Session refresh (`getUser()`) on each request
+- ✅ Public route exemptions (including `/` and auth pages)
+- ✅ CSRF cookie set for page requests when missing (so login/register get a token)
 - ✅ Authenticated user redirects from auth pages
-- ✅ Protected route redirects to login
+- ✅ Protected route redirects to login with `?redirect=`
 - ✅ Role-based access control for admin routes
 - ✅ Tenant context injection via headers
 - ✅ Return URL preservation for login redirects

@@ -651,7 +651,8 @@
         "markAsReady": "تحديد كجاهز",
         "outForDelivery": "خارج للتسليم",
         "markAsDelivered": "تحديد كمسلم",
-        "cancelOrder": "إلغاء الطلب"
+        "cancelOrder": "إلغاء الطلب",
+        "fixOrderData": "إصلاح بيانات الطلب"
       },
       "success": {
         "statusUpdated": "تم تحديث حالة الطلب إلى {status}"
@@ -666,6 +667,31 @@
         "notesPlaceholder": "أضف أي ملاحظات حول تغيير الحالة هذا...",
         "confirmChange": "تأكيد التغيير"
       }
+    },
+    "fixOrderDataModal": {
+      "title": "إصلاح بيانات الطلب",
+      "description": "تشغيل إصلاح واحد أو أكثر لهذا الطلب. يصحح مشاكل البيانات دون تغيير حالة سير العمل.",
+      "stepsLabel": "الإصلاحات المطلوب تشغيلها",
+      "stepCompleteOrderItemPieces": "إكمال قطع عناصر الطلب — إضافة أو حذف صفوف القطع بحيث يكون لكل عنصر العدد الصحيح من القطع.",
+      "runButton": "تشغيل الإصلاح",
+      "running": "جاري تشغيل الإصلاح…",
+      "successTitle": "تم الإصلاح",
+      "successNoChanges": "لم تكن هناك حاجة لأي تغييرات.",
+      "successWithChanges": "تم. العناصر المعدلة: {items}. القطع المضافة: {added}. القطع المحذوفة: {removed}.",
+      "errorTitle": "فشل الإصلاح",
+      "errorMessage": "حدث خطأ. يرجى المحاولة مرة أخرى أو الاتصال بالدعم.",
+      "close": "إغلاق",
+      "refreshPage": "تحديث الصفحة",
+      "resultSectionTitle": "النتيجة",
+      "stepStatusSuccess": "نجح",
+      "stepStatusError": "خطأ",
+      "stepStatusSkipped": "تم تخطيه",
+      "stepNoChanges": "لم تكن هناك حاجة لأي تغييرات.",
+      "stepDetailsLabel": "التفاصيل",
+      "stepItemAdjusted": "العنصر {srno}: {action} ({count})",
+      "stepActionAdded": "إضافة قطع",
+      "stepActionRemoved": "حذف قطع",
+      "stepActionAdjusted": "تم تعديله"
     },
     "search": "البحث برقم الطلب أو اسم العميل أو الهاتف...",
     "filterByStatus": "تصفية حسب الحالة",
@@ -2820,6 +2846,8 @@
     }
   },
   "auth": {
+    "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
+    "rememberMe": "تذكرني",
     "logout": {
       "signingOut": "جاري تسجيل الخروج...",
       "pleaseWait": "يرجى الانتظار أثناء تسجيل الخروج",

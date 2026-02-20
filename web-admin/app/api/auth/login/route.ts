@@ -6,13 +6,28 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerSupabaseClientForLogin } from '@/lib/supabase/server';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
 import { ensureTenantInUserMetadata } from '@/lib/auth/jwt-tenant-manager';
+import {
+  getCSRFTokenFromHeader,
+  getCSRFTokenFromRequest,
+  validateCSRFToken,
+} from '@/lib/security/csrf';
 import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
   try {
+    // CSRF validation
+    const headerToken = getCSRFTokenFromHeader(request.headers);
+    const cookieToken = getCSRFTokenFromRequest(request);
+    if (!validateCSRFToken(headerToken, cookieToken)) {
+      return NextResponse.json(
+        { error: 'Invalid or missing CSRF token. Please refresh the page and try again.' },
+        { status: 403 }
+      );
+    }
+
     // Apply rate limiting
     const rateLimitResponse = await checkLoginRateLimit(request);
     if (rateLimitResponse) {
@@ -20,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password } = body;
+    const { email, password, remember_me: rememberMe = true } = body;
 
     if (!email || !password) {
       return NextResponse.json(
@@ -29,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = await createServerSupabaseClientForLogin(Boolean(rememberMe));
 
     // Check if account is locked
     try {

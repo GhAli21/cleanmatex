@@ -131,6 +131,16 @@ This document summarizes the implementation of security hardening measures for t
 
 - `web-admin/app/api/auth/login/route.ts` - Added tenant metadata sync
 
+### Session management (post-hardening)
+
+**Reference:** [Session Management Guide](../dev/session-management-guide.md)
+
+- **Proxy** (`web-admin/proxy.ts`): Session refresh, protected-path redirect, CSRF cookie set for all page requests (including login). Next.js 16 uses `proxy.ts` (not `middleware.ts`).
+- **CSRF on auth endpoints**: Login, register, and reset-password APIs validate `X-CSRF-Token`; auth context sends the token from `getCSRFToken()`.
+- **Session-expiry UX**: On `SIGNED_OUT` (not user-initiated), redirect to `/logout?reason=session_expired`; login page shows a message when `?reason=session_expired`.
+- **Remember me**: Login API uses `createServerSupabaseClientForLogin(rememberMe)` so unchecked = session-only cookies (log out when browser closes); checked = persistent cookies.
+- **Dashboard layout**: Client guard redirects to login when unauthenticated (defence in depth).
+
 ## Security Improvements Summary
 
 ### Before Implementation

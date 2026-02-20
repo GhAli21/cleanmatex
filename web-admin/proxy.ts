@@ -124,7 +124,8 @@ export async function proxy(request: NextRequest) {
 
   // Check route types
   const isApiRoute = pathname.startsWith('/api')
-  const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
+  const isPublicRoute =
+    pathname === '/' || PUBLIC_ROUTES.some((route) => pathname.startsWith(route))
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route))
   const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route))
 
@@ -161,11 +162,7 @@ export async function proxy(request: NextRequest) {
     try {
       // Use get_user_tenants RPC (same source as UI, SECURITY DEFINER, handles multi-tenant)
       const { data: tenants, error } = await supabase.rpc('get_user_tenants')
-      console.log('Jh In proxy.ts [ 1 ] :   tenants :', tenants,
-         'user_role :', tenants[0].user_role);
-      console.log('Jh In proxy.ts [ 2 ] : error :', error);
       if (error || !tenants?.length) {
-        console.error('Jh In proxy.ts [ 3 ] : Error fetching user tenants/role:', error)
         // Redirect to dashboard if can't verify role
         const redirectUrl = request.nextUrl.clone()
         redirectUrl.pathname = DEFAULT_REDIRECT
@@ -206,23 +203,22 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // 5. Generate and set CSRF token for authenticated users
-  if (user) {
-    // Check if CSRF token already exists
-    let csrfToken = getCSRFTokenFromRequest(request);
-    
-    // Generate new token if it doesn't exist
+  // 5. Set CSRF cookie for page requests when missing (needed for login/register before auth)
+  if (!isApiRoute) {
+    let csrfToken = getCSRFTokenFromRequest(request)
     if (!csrfToken) {
-      csrfToken = generateCSRFToken();
-      setCSRFTokenInResponse(response, csrfToken);
+      csrfToken = generateCSRFToken()
+      setCSRFTokenInResponse(response, csrfToken)
     }
-    
-    // Add user info to headers for server components
+  }
+
+  // 6. Add user info to headers for server components when authenticated
+  if (user) {
     response.headers.set('X-User-ID', user.id)
     response.headers.set('X-User-Email', user.email || '')
   }
 
-  // 6. Set locale for next-intl (from cookie or Accept-Language)
+  // 7. Set locale for next-intl (from cookie or Accept-Language)
   const localeCookie = request.cookies.get('NEXT_LOCALE')?.value
   const locale =
     localeCookie && ['en', 'ar'].includes(localeCookie)

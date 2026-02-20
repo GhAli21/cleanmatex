@@ -61,7 +61,7 @@ export interface AuthState {
  */
 export interface AuthContextType extends AuthState {
   // Authentication methods
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<void>
   signUp: (email: string, password: string, displayName: string) => Promise<void>
   signOut: (reason?: LogoutReason) => Promise<void>
   resetPassword: (email: string) => Promise<void>
