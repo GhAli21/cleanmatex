@@ -11,7 +11,7 @@
 export interface TenantProcessingSettings {
   splitOrderEnabled: boolean;      // USING_SPLIT_ORDER - Allow splitting orders into sub-orders
   rejectEnabled: boolean;           // USE_REJECT_TO_SOLVE - Enable reject/resolve workflow
-  trackByPiece: boolean;            // USE_TRACK_BY_PIECE - Track individual pieces instead of items
+  trackByPiece: boolean;            // Always true; pieces are always used (legacy key kept for API compatibility)
   rejectColor: string;              // REJECT_ROW_COLOR - Background color for rejected items (hex)
 }
 

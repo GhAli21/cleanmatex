@@ -2583,6 +2583,17 @@
       "validation": {
         "discountExceedsTotal": "Discount cannot exceed order total"
       },
+      "partialPayment": {
+        "payInFull": "Pay in full",
+        "payPartial": "Pay partial amount",
+        "amountToPayNow": "Amount to pay now",
+        "remainingDue": "Remaining due",
+        "hint": "Pay some now, rest at pickup or later",
+        "validation": {
+          "amountMustBePositive": "Amount to pay must be greater than 0",
+          "amountExceedsTotal": "Amount cannot exceed total"
+        }
+      },
       "manualDiscount": {
         "title": "Apply Discount",
         "percent": "% Discount",

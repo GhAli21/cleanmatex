@@ -2,7 +2,7 @@
  * Processing Modal Component
  *
  * Main modal for editing order items in processing.
- * Shows items with expandable piece-level details (if USE_TRACK_BY_PIECE enabled).
+ * Shows items with expandable piece-level details.
  * Supports batch updates, split orders, and rack location management.
  */
 
@@ -52,8 +52,7 @@ interface ProcessingModalProps {
 
 /**
  * Generate pieces from an order item
- * Only used when trackByPiece is disabled (legacy mode)
- * When trackByPiece is enabled, pieces are loaded directly from DB
+ * Fallback when pieces are not yet loaded from DB; normally pieces are loaded from DB
  */
 function generatePieces(item: OrderItem): ItemPiece[] {
   const pieces: ItemPiece[] = [];

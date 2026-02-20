@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the complete implementation of order item pieces functionality, which allows granular tracking of individual pieces within order items when the `USE_TRACK_BY_PIECE` tenant setting is enabled.
+This document describes the complete implementation of order item pieces functionality. **Pieces are always used**: every order item has corresponding rows in `org_order_item_pieces_dtl`. The former tenant setting `USE_TRACK_BY_PIECE` no longer gates piece creation or display.
 
 ## Architecture
 
@@ -62,8 +62,7 @@ Core methods:
 - Error handling
 
 ### Phase 2: Auto-create Pieces ✅
-- Automatic piece creation when items are created
-- Respects `USE_TRACK_BY_PIECE` setting
+- Automatic piece creation when items are created (always; no setting gate)
 - Calculates price per piece automatically
 
 ### Phase 3: Reusable UI Components ✅
@@ -74,8 +73,7 @@ Core methods:
 
 ### Phase 4: Integration ✅
 - Integrated into ProcessingModal
-- Backward compatible with item-level tracking
-- Conditional rendering based on settings
+- Piece-level tracking is always shown; item-level view is fallback when pieces are loading
 
 ### Phase 5: Advanced Features ✅
 - Batch operations
@@ -113,8 +111,7 @@ Core methods:
 
 ### Phase 13: Integration Updates ✅
 - Updated batch-update endpoint
-- Works with pieces table when enabled
-- Maintains backward compatibility
+- Always uses pieces table for updates
 
 ## Usage
 
@@ -147,7 +144,7 @@ import { PiecesErrorBoundary } from '@/components/orders';
 
 ### Tenant Settings
 
-- `USE_TRACK_BY_PIECE` - Enable/disable piece-level tracking
+- **Pieces:** Always used; no tenant setting gates piece creation or display. (The former `USE_TRACK_BY_PIECE` setting is no longer checked.)
 - `USE_REJECT_TO_SOLVE` - Enable rejection features
 - `USING_SPLIT_ORDER` - Enable split order features
 - `REJECT_ROW_COLOR` - Color for rejected items/pieces

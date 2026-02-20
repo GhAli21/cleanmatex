@@ -204,7 +204,7 @@ export interface OrderItem {
 
 /**
  * Order Item Piece (org_order_item_pieces_dtl)
- * Database entity for piece-level tracking when USE_TRACK_BY_PIECE is enabled
+ * Database entity for order item piece-level tracking
  */
 export interface OrderItemPiece {
   // Primary key
@@ -447,7 +447,7 @@ export interface OrderListItem {
   priority: Priority;
   is_retail?: boolean;
   total_items: number;
-  total_pieces?: number | null; // Total pieces count (when trackByPiece is enabled)
+  total_pieces?: number | null; // Total pieces count across order items
   total: number;
   received_at: Date;
   ready_by: Date | null;

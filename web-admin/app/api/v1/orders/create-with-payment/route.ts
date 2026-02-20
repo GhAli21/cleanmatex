@@ -179,6 +179,26 @@ export async function POST(request: NextRequest) {
       input.paymentMethod === PAYMENT_METHODS.CHECK
     );
 
+    const amountToCharge = input.amountToCharge ?? clientTotals.finalTotal;
+    if (amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Amount to charge must be between 0 and the order total.',
+        },
+        { status: 400 }
+      );
+    }
+    if (hasImmediatePayment && amountToCharge <= 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Amount to charge must be greater than 0 for immediate payment methods.',
+        },
+        { status: 400 }
+      );
+    }
+
     const createOrderParams = {
       tenantId,
       userId,
@@ -248,19 +268,21 @@ export async function POST(request: NextRequest) {
           tx
         );
 
-        if (hasImmediatePayment && serverTotals.finalTotal > 0) {
+        if (hasImmediatePayment && amountToCharge > 0) {
           const paymentMethodCode = input.paymentMethod === PAYMENT_METHODS.CASH
             ? 'CASH'
             : input.paymentMethod === PAYMENT_METHODS.CARD
               ? 'CARD'
               : 'CHECK';
 
+          const isFullyPaid = amountToCharge >= serverTotals.finalTotal - TOLERANCE;
+
           await recordPaymentTransaction(
             {
               invoice_id: invoice.id,
               order_id: orderId,
               customer_id: input.customerId ?? undefined,
-              paid_amount: serverTotals.finalTotal,
+              paid_amount: amountToCharge,
               payment_method_code: paymentMethodCode,
               payment_type_code: getPaymentTypeFromMethod(input.paymentMethod),
               paid_by: userId,
@@ -290,8 +312,8 @@ export async function POST(request: NextRequest) {
           await tx.org_invoice_mst.update({
             where: { id: invoice.id },
             data: {
-              paid_amount: serverTotals.finalTotal,
-              status: 'paid',
+              paid_amount: amountToCharge,
+              status: isFullyPaid ? 'paid' : 'partial',
               paid_at: new Date(),
               paid_by: userId,
               payment_method_code: paymentMethodCode,
@@ -303,8 +325,8 @@ export async function POST(request: NextRequest) {
           await tx.org_orders_mst.update({
             where: { id: orderId },
             data: {
-              paid_amount: serverTotals.finalTotal,
-              payment_status: 'paid',
+              paid_amount: amountToCharge,
+              payment_status: isFullyPaid ? 'paid' : 'partial',
               paid_at: new Date(),
               paid_by: userId,
               updated_at: new Date(),

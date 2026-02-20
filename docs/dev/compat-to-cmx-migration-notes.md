@@ -150,11 +150,23 @@ The following gaps were identified and addressed after the migration:
 | **Barrel: CmxDataTable conflict** | `CmxDataTable` was exported from both `data-display` and `components`. Removed export from `components/index.ts` so the barrel has a single source (`data-display`). |
 | **Legacy docs (ui-migration-guide_phase4.md)** | Left as historical; references compat. For current state use [ui-migration-guide.md](ui-migration-guide.md) and this notes doc. |
 
-**Remaining (optional follow-up):**
+**Permanently fixed:**
 
-- **Legacy `src/ui/components` barrel:** Still re-exports CmxButton, CmxChart, CmxForm, CmxInput, CmxToast. These overlap with primitives. Consider explicit re-exports from the main index (excluding primitives overlap) or phasing out `export * from './components'` to avoid future "already exported" errors.
-- **select-dropdown:** No remaining app usage; CmxSelectDropdown is in `@ui/forms` for any future composable select needs.
+- **Legacy `src/ui/components` barrel:** `export * from './components'` was **removed** from `src/ui/index.ts`. The main `@ui` barrel no longer re-exports the components layer, so there is no overlap with primitives/forms/feedback and no risk of "already exported" errors. **Canonical paths:** CmxButton, CmxInput, CmxCard, Alert, Badge → `@ui/primitives`; CmxForm, CmxSelectDropdown → `@ui/forms`; CmxToast / toast helpers → `@ui/feedback`; CmxChart (if needed) → `@ui/components` only.
+- **select-dropdown:** Legacy compat select-dropdown usage was removed. Composable dropdowns use **CmxSelectDropdown** from `@ui/forms` (e.g. PieceBulkOperations, PieceCard, processing-modal-filters). No further migration needed.
 
 ---
 
-*Last updated from compat-to-Cmx migration implementation (Phases 1–7), CmxDataTable barrel fix, and documentation gap fixes.*
+## 11. Ensuring Cursor/Claude Follow the Rules
+
+To maximize the chance that Cursor and Claude Code follow the UI/Cmx rules:
+
+1. **Always-applied rules:** `.cursor/rules/web-admin-ui-imports.mdc` has `alwaysApply: true` and states: use Cmx only, no `@ui/compat`, use import snippets from `web-admin/.clauderc` → `ui_components`, run `npm run build` after UI changes.
+2. **CLAUDE.md:** The repo root `CLAUDE.md` includes a mandatory UI Quick Rule (Cmx only, .clauderc snippets) and a section "How to Make Cursor/Claude Follow the Rules" describing always-applied rules, skills, build-time enforcement, and .clauderc.
+3. **Build-time enforcement:** ESLint `no-restricted-imports` forbids `@ui/compat` and `@/components/ui`. Invalid imports fail TypeScript. Running `npm run build` in web-admin catches violations even if the AI suggested wrong imports.
+4. **.clauderc:** Keep `ui_components` in sync with `web-admin/src/ui` so generated code uses correct Cmx paths.
+5. **Explicit prompts:** When you need a rule followed, state it (e.g. "Use Cmx components only and import from .clauderc").
+
+---
+
+*Last updated: Phases 1–7, CmxDataTable barrel fix, docs gap fixes, rule-adherence section, permanent removal of `export * from './components'` from main barrel.*

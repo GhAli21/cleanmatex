@@ -1,8 +1,8 @@
 # New Order Page - Quick Reference Guide
 
 **For Developers**  
-**Last Updated**: 2026-02-12  
-**Payment flow**: Server-side calculation (preview + create-with-payment APIs)
+**Last Updated**: 2026-02-20  
+**Payment flow**: Server-side calculation (preview + create-with-payment APIs); supports partial payment for CASH/CARD/CHECK
 
 ---
 
@@ -124,6 +124,11 @@ t('newOrder.customer.label')
 t('newOrder.itemsGrid.addItem')
 t('newOrder.orderSummary.total')
 t('newOrder.payment.title')
+// Partial payment (CASH/CARD/CHECK)
+t('newOrder.payment.partialPayment.payInFull')
+t('newOrder.payment.partialPayment.payPartial')
+t('newOrder.payment.partialPayment.amountToPayNow')
+t('newOrder.payment.partialPayment.remainingDue')
 t('newOrder.customItem.title')
 t('newOrder.photoCapture.title')
 
@@ -156,7 +161,7 @@ t('amountMismatch.refreshPage')
 | `/api/v1/orders/create-with-payment` | POST | Create order + invoice + payment in one transaction |
 
 - **Preview**: Used by payment modal to display totals; debounced refetch on input change
-- **Create-with-payment**: Single API call; on `AMOUNT_MISMATCH` (400), shows `AmountMismatchDialog`
+- **Create-with-payment**: Single API call; accepts optional `amountToCharge` for partial payment; on `AMOUNT_MISMATCH` (400), shows `AmountMismatchDialog`
 
 ---
 

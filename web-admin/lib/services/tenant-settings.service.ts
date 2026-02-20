@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 export interface TenantProcessingSettings {
   splitOrderEnabled: boolean;      // USING_SPLIT_ORDER
   rejectEnabled: boolean;           // USE_REJECT_TO_SOLVE
-  trackByPiece: boolean;            // USE_TRACK_BY_PIECE
+  trackByPiece: boolean;            // Always true in UI; pieces are always used (setting no longer gates behavior)
   rejectColor: string;              // REJECT_ROW_COLOR
 }
 

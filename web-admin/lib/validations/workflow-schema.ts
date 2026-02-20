@@ -186,7 +186,7 @@ export const CreateOrderRequestSchema = z.object({
     hasDamage: z.boolean().optional(),
     stainNotes: z.string().optional(),
     damageNotes: z.string().optional(),
-    pieces: z.array(CreateOrderPieceDataSchema).optional(), // Piece-level data when USE_TRACK_BY_PIECE is enabled
+    pieces: z.array(CreateOrderPieceDataSchema).optional(), // Optional piece-level data for order items
   })),
   isQuickDrop: z.boolean().optional(),
   quickDropQuantity: z.number().positive().optional(),

@@ -111,7 +111,11 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
   - **Advance balance** section: shows total unapplied advance payments (where `customer_id` matches and `invoice_id` is null) via `getPaymentsForCustomer`; optional list and count.
   - **Record advance** form: records payment with `payment_kind` `advance`, `customer_id` set; calls `processPayment` without `invoiceId`.
 
-> **New Order Flow (Server-Side Payment Calculation):** The new order page uses `PaymentModalEnhanced02`, which fetches totals from `POST /api/v1/orders/preview-payment` and submits via `POST /api/v1/orders/create-with-payment`. This single API creates order + invoice + payment (and receipt voucher when CASH/CARD/CHECK) in one transaction. On amount mismatch, the API returns `AMOUNT_MISMATCH` (400) with differences; nothing is persisted; the client shows `AmountMismatchDialog`. This flow **replaces** the previous sequential `createOrder` → `createInvoiceAction` → `processPayment` for new orders. The invoice detail payment form is for counter staff updating existing invoices; order and customer pages support non-invoice payments (deposit, advance, POS) and apply-to-invoice flow.
+> **New Order Flow (Server-Side Payment Calculation):** The new order page uses `PaymentModalEnhanced02`, which fetches totals from `POST /api/v1/orders/preview-payment` and submits via `POST /api/v1/orders/create-with-payment`. This single API creates order + invoice + payment (and receipt voucher when CASH/CARD/CHECK) in one transaction. On amount mismatch, the API returns `AMOUNT_MISMATCH` (400) with differences; nothing is persisted; the client shows `AmountMismatchDialog`. This flow **replaces** the previous sequential `createOrder` → `createInvoiceAction` → `processPayment` for new orders.
+>
+> **Partial Payment at Order Creation:** When the customer selects an immediate payment method (CASH, CARD, or CHECK), the modal offers "Pay in full" or "Pay partial amount". If partial is selected, the user can enter the amount to charge now (0 to final total). The `amountToCharge` is passed to the API; the invoice and order get `paid_amount` set to that value and `status`/`payment_status` set to `partial` when paid < total, or `paid` when paid >= total. The remaining balance can be collected later via the invoice detail or order payment form.
+>
+> The invoice detail payment form is for counter staff updating existing invoices; order and customer pages support non-invoice payments (deposit, advance, POS) and apply-to-invoice flow.
 
 ---
 
@@ -138,6 +142,7 @@ For API-level or UI-level gating of future features (e.g., PDF export, B2B billi
 - **Partial Payments**
   - Multiple `org_payments_dtl_tr` rows per invoice are supported; `paid_amount` on the invoice is updated as the sum of completed payments.
   - Remaining balance = `total - paid_amount` (calculated in service/UI, not stored).
+  - **New Order:** `PaymentModalEnhanced02` supports partial payment via toggle "Pay partial amount" for CASH/CARD/CHECK; the `create-with-payment` API accepts optional `amountToCharge` (defaults to `clientTotals.finalTotal`).
 
 - **Payment Methods (current scope)**
   - UI restricts invoice-detail payments to `CASH` and `CARD` (in-branch POS).

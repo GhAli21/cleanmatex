@@ -22,7 +22,6 @@ import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
-import { TenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { taxService } from '@/lib/services/tax.service';
 
 // ==================================================================
@@ -259,14 +258,8 @@ export async function addOrderItems(
     return items;
   });
 
-  // Check if USE_TRACK_BY_PIECE is enabled and auto-create pieces
-  const tenantSettingsService = new TenantSettingsService();
-  const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(
-    tenantOrgId,
-    'USE_TRACK_BY_PIECE'
-  );
-
-  if (trackByPiece && createdItems.length > 0) {
+  // Always create pieces for each order item
+  if (createdItems.length > 0) {
     // Create pieces for each item
     const piecesErrors: Array<{ itemId: string; error: string }> = [];
 

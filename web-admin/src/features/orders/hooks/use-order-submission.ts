@@ -184,6 +184,7 @@ export function useOrderSubmission() {
                         vatValue: payload.totals.vatValue,
                         finalTotal: payload.totals.finalTotal,
                     },
+                    amountToCharge: payload.amountToCharge,
                 };
 
                 const headers: Record<string, string> = {

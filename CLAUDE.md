@@ -1,6 +1,8 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
+**Last Update** 20-02-2026
+**Last Update Description** added 74-web-admin 83-see cursor 140-148-How to Make Cursor/Claude Follow the Rules
 
 ## CRITICAL RULES
 
@@ -71,6 +73,7 @@ npm run build                     # Build (run after changes)
 
 ## UI Quick Rules
 
+- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** → `ui_components` when generating buttons, inputs, cards, dialogs, alerts, selects, etc.
 - Search existing message keys before adding new
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
@@ -79,6 +82,7 @@ npm run build                     # Build (run after changes)
 
 **See:** `/i18n` skill for complete i18n rules
 **See:** `/frontend` skill for frontend developing rules
+**See:** `.cursor/rules/web-admin-ui-imports.mdc` (always-applied), `.cursor/rules/frontendstandards.mdc`, `docs/dev/ui-migration-guide.md`
 
 ## Skills (Auto-loaded on demand)
 
@@ -134,6 +138,15 @@ docs/         # All documentation
 - **Performance:** Indexes, avoid N+1 queries, paginate results
 - **Testing:** Cover business logic and tenant isolation
 - **Validation:** Validate all inputs at system boundaries
+
+## How to Make Cursor/Claude Follow the Rules
+
+1. **Always-applied rules:** `.cursor/rules/*.mdc` with `alwaysApply: true` (e.g. `uiuxrules.mdc`, `report-implement-or-build.mdc`, `web-admin-ui-imports.mdc`) are loaded into context automatically. Keep critical, short rules there.
+2. **CLAUDE.md:** This file is at repo root and is a primary source for CRITICAL RULES and quick rules. Any rule that must be followed should be stated here or referenced here.
+3. **Skills:** Use `/frontend`, `/i18n`, `/database`, etc. when working in that area so the detailed skill is loaded. CLAUDE.md points to the right skill per topic.
+4. **Enforcement at build time:** ESLint (`no-restricted-imports`) forbids `@ui/compat` and `@/components/ui`. TypeScript fails on invalid paths. Running `npm run build` in web-admin catches violations. So even if the AI suggests wrong imports, the build fails and the developer (or next edit) can fix.
+5. **.clauderc:** Keeps AI import suggestions aligned with the project; update it when adding or changing shared UI so generated code uses the right snippets.
+6. **Explicit prompts:** When you want a rule followed, say it (e.g. "Use Cmx components only and import from .clauderc" or "Follow frontendstandards.mdc").
 
 ## Supabase MCPs
 

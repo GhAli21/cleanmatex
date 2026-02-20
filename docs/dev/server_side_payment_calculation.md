@@ -1,7 +1,7 @@
 # Server-Side Payment Calculation
 
 **Status**: ✅ Implemented  
-**Last Updated**: 2026-02-12
+**Last Updated**: 2026-02-20
 
 ---
 
@@ -59,7 +59,7 @@ Client                          Server
 
 | File | Purpose |
 |------|---------|
-| `payment-modal-enhanced-02.tsx` | Fetches preview on open; debounced refetch on input change; displays server totals only |
+| `payment-modal-enhanced-02.tsx` | Fetches preview on open; debounced refetch on input change; displays server totals only; partial payment toggle for CASH/CARD/CHECK |
 | `amount-mismatch-dialog.tsx` | Shows Field \| Your Value \| Server Value; Refresh Page / Cancel |
 
 ### Hook
@@ -80,12 +80,13 @@ Client                          Server
 
 ### Create-with-Payment API
 
-- **Input**: Full order payload + payment fields + `clientTotals` (from preview)
+- **Input**: Full order payload + payment fields + `clientTotals` (from preview) + optional `amountToCharge` (for partial payment; defaults to `clientTotals.finalTotal`)
 - **Logic**:
   1. Recalculate totals via `calculateOrderTotals()`
   2. Compare with `clientTotals` (tolerance `0.001`)
   3. If mismatch → return `{ success: false, errorCode: 'AMOUNT_MISMATCH', error, differences }` (400)
-  4. If match → `prisma.$transaction`: create order (OrderService), create invoice, create receipt voucher + payment (CASH/CARD/CHECK)
+  4. Resolve `amountToCharge` = `input.amountToCharge ?? clientTotals.finalTotal`; validate 0 ≤ amount ≤ server total
+  5. If match → `prisma.$transaction`: create order (OrderService), create invoice, create receipt voucher + payment (CASH/CARD/CHECK when `amountToCharge > 0`); use `amountToCharge` for `paid_amount`; set invoice/order status to `partial` when amount < total, `paid` when amount ≥ total
 - **Output**: `{ success: true, data: { id, orderId, orderNo, currentStatus } }`
 
 ### Amount Mismatch

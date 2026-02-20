@@ -73,12 +73,16 @@ export function useTenantSettingsWithDefaults(tenantId: string) {
     error
   });
 
-  // Return defaults while loading or on error
-  const settings: TenantProcessingSettings = data || {
+  // Return defaults while loading or on error. Pieces are always used (trackByPiece forced true).
+  const base = data || {
     splitOrderEnabled: true,
     rejectEnabled: true,
     trackByPiece: true,
     rejectColor: '#10B981',
+  };
+  const settings: TenantProcessingSettings = {
+    ...base,
+    trackByPiece: true, // Always use order item pieces; no longer gated by USE_TRACK_BY_PIECE
   };
 
   console.log('[useTenantSettingsWithDefaults] Final settings:', settings);

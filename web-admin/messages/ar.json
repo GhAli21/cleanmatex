@@ -2583,6 +2583,17 @@
       "validation": {
         "discountExceedsTotal": "الخصم لا يمكن أن يتجاوز إجمالي الطلب"
       },
+      "partialPayment": {
+        "payInFull": "الدفع كاملاً",
+        "payPartial": "الدفع جزئياً",
+        "amountToPayNow": "المبلغ المطلوب دفعه الآن",
+        "remainingDue": "المبلغ المتبقي",
+        "hint": "ادفع جزءاً الآن والباقي عند الاستلام أو لاحقاً",
+        "validation": {
+          "amountMustBePositive": "يجب أن يكون المبلغ المطلوب دفعه أكبر من صفر",
+          "amountExceedsTotal": "المبلغ لا يمكن أن يتجاوز الإجمالي"
+        }
+      },
       "manualDiscount": {
         "title": "تطبيق الخصم",
         "percent": "نسبة الخصم %",

@@ -31,9 +31,9 @@ export * from './overlays'
 // ===== Layer 9: Patterns =====
 export * from './patterns'
 
-// ===== Legacy Components (for backward compatibility) =====
-// These wrap shadcn/ui - will be phased out
-export * from './components'
+// NOTE: CmxChart and legacy wrappers live in ./components; not re-exported here to avoid
+// overlap with primitives/forms/feedback. Use @ui/primitives, @ui/forms, @ui/feedback, etc.
+// If needed: import { CmxChart } from '@ui/components'
 
 // ===== Utils =====
 export { cn } from '@/lib/utils'

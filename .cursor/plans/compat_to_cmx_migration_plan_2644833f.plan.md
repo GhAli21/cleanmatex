@@ -134,10 +134,10 @@ Migrate all `@ui/compat` usage to Cmx design system components. The compat layer
 
 ### 8. Select (simple vs composable)
 
-| Compat                         | Cmx                                    | Use Case                 |
-| ------------------------------ | -------------------------------------- | ------------------------ |
-| `Select` (simple)              | `CmxSelect` from `@ui/primitives`      | Simple dropdown          |
-| `select-dropdown` (composable) | `CmxSelectDropdown`\* from `@ui/forms` | Custom-trigger dropdowns |
+| Compat                         | Cmx                                  | Use Case                 |
+| ------------------------------ | ------------------------------------ | ------------------------ |
+| `Select` (simple)              | `CmxSelect` from `@ui/primitives`    | Simple dropdown          |
+| `select-dropdown` (composable) | `CmxSelectDropdown` from `@ui/forms` | Custom-trigger dropdowns |
 
 **Select-dropdown consumer:** [web-admin/app/dashboard/processing/components/processing-modal-filters.tsx](web-admin/app/dashboard/processing/components/processing-modal-filters.tsx)
 
@@ -291,7 +291,7 @@ export function CmxCardWithHeader({
 - Label + error → `FormInput` from `@ui/primitives/form-input` (`helperText` not `helpText`)
 - Bare input → `CmxInput`
 
-**Select:** Simple `Select` → `CmxSelect`; composable dropdown → `CmxSelectDropdown`\* (Phase 6).
+**Select:** Simple `Select` → `CmxSelect`; composable dropdown → `CmxSelectDropdown` (Phase 6).
 
 ---
 
@@ -368,9 +368,9 @@ export function CmxCardWithHeader({
 
 ## Duplicate Components Audit (Completed 2026-02-20)
 
-**Status:** Cleanup done. Unused duplicate components under `app/dashboard/**/components/` were removed. `src/features/*` is the single source of truth.
+**Status:** Cleanup done. Unused duplicate components under `app/dashboard/**/components/` were removed. `src/features/` is the single source of truth.
 
-Previously, some `app/dashboard/.../components/` files duplicated `src/features/.../ui/`. Pages import from `@features/*`, so the app versions were unused and have been deleted.
+Previously, some `app/dashboard/.../components/` files duplicated `src/features/.../ui/`. Pages import from `@features/`, so the app versions were unused and have been deleted.
 
 **Kept:** `app/dashboard/jhtestui/components/` (dev tools), `app/dashboard/components/` (workflow-stats-widget, overdue-orders-widget – no features equivalent).
 
@@ -388,12 +388,12 @@ After all phases:
 
 ## File Inventory Summary
 
-**Note:** Settings, inventory, processing pages import from `@features/`_ (src/features). The `app/dashboard/_/components/`\* versions may be duplicates. See Duplicate Components Audit above.
+**Note:** Settings, inventory, processing pages import from `@features/`_ (src/features). The `app/dashboard/_/components/` versions may be duplicates. See Duplicate Components Audit above.
 
 | Area         | Files (src/features or app/dashboard)                                                                                                                   |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Settings     | BrandingSettings, GeneralSettings, BusinessHoursSettings, SubscriptionSettings (src/features), preferences, finance, branches, page                     |
-| Orders       | order-actions, pre-submission-pieces-manager, order-details-section, order-status-badge, orders-\*-tab-rprt                                             |
+| Orders       | order-actions, pre-submission-pieces-manager, order-details-section, order-status-badge, orders--tab-rprt                                               |
 | Catalog      | product-form, export-modal, import-modal, price-history-timeline, bulk-import, price-list-item, pricing/[id] (mixed), pricing/categories/services pages |
 | Processing   | processing-table, processing-modal, processing-modal-filters, processing-piece-row, processing-item-row, split-confirmation-dialog                      |
 | Inventory    | stats-cards, add-item, edit-item, adjust-stock, stock-history modals (src/features used), stock page                                                    |

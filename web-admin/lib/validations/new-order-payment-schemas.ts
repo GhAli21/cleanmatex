@@ -148,6 +148,8 @@ export const createWithPaymentRequestSchema = z.object({
     z.string().optional() // z.string().uuid().optional()
   ),
   clientTotals: clientTotalsSchema,
+  /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
+  amountToCharge: z.number().min(0).optional(),
 });
 
 export type CreateWithPaymentRequest = z.infer<typeof createWithPaymentRequestSchema>;

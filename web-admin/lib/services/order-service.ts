@@ -47,7 +47,7 @@ export interface CreateOrderParams {
     hasDamage?: boolean;
     stainNotes?: string;
     damageNotes?: string;
-    pieces?: CreateOrderPieceData[]; // Piece-level data when USE_TRACK_BY_PIECE is enabled
+    pieces?: CreateOrderPieceData[]; // Optional piece-level data for new orders
   }>;
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
@@ -435,16 +435,8 @@ export class OrderService {
           console.error('Failed to create order items:', itemsError);
           // Continue anyway - items can be added later in preparation
         } else if (createdItems && createdItems.length > 0) {
-          // Check if USE_TRACK_BY_PIECE is enabled
-          const tenantSettingsService = new TenantSettingsService();
-          const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(
-            tenantId,
-            'USE_TRACK_BY_PIECE'
-          );
-
-          // Auto-create pieces for each item if tracking by piece is enabled
-          if (trackByPiece) {
-            const piecesErrors: Array<{ itemId: string; error: string }> = [];
+          // Always create pieces for each order item
+          const piecesErrors: Array<{ itemId: string; error: string }> = [];
 
             for (let i = 0; i < createdItems.length; i++) {
               const createdItem = createdItems[i];
@@ -495,8 +487,8 @@ export class OrderService {
               }
             }
 
-            // If any pieces creation failed, rollback order and items
-            if (piecesErrors.length > 0) {
+          // If any pieces creation failed, rollback order and items
+          if (piecesErrors.length > 0) {
               const errorMessage = `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`;
               logger.error('Failed to create pieces for order items, rolling back order', new Error(errorMessage), {
                 tenantId,
@@ -527,7 +519,6 @@ export class OrderService {
                 error: `Failed to create pieces: ${piecesErrors.map(e => e.error).join('; ')}`,
               };
             }
-          }
         }
 
         // Stock deduction for retail items
@@ -806,9 +797,6 @@ export class OrderService {
     });
 
     if (items.length > 0) {
-      const tenantSettingsService = new TenantSettingsService();
-      const trackByPiece = await tenantSettingsService.checkIfSettingAllowed(tenantId, 'USE_TRACK_BY_PIECE');
-
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         const createdItem = await tx.org_order_items_dtl.create({
@@ -834,7 +822,8 @@ export class OrderService {
           },
         });
 
-        if (trackByPiece && item.quantity > 0) {
+        // Always create pieces for each order item
+        if (item.quantity > 0) {
           const pricePerPiece = item.totalPrice / item.quantity;
           const piecesData = Array.from({ length: item.quantity }, (_, i) => ({
             tenant_org_id: tenantId,

@@ -118,6 +118,12 @@ export function PaymentModalEnhanced02({
   const [orderTaxRate, setOrderTaxRate] = useState<number>(0);
   const [orderTaxAmount, setOrderTaxAmount] = useState<number>(0);
 
+  const isImmediatePayment = paymentMethod === PAYMENT_METHODS.CASH ||
+    paymentMethod === PAYMENT_METHODS.CARD ||
+    paymentMethod === PAYMENT_METHODS.CHECK;
+  const [payPartial, setPayPartial] = useState(false);
+  const [partialAmount, setPartialAmount] = useState<number>(0);
+
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
     manualDiscount: number;
@@ -231,10 +237,19 @@ export function PaymentModalEnhanced02({
       setPromoCodeResult(null);
       setAppliedPromoCode(null);
       setGiftCardResult(null);
-      setAppliedGiftCard(null); 
+      setAppliedGiftCard(null);
       setCouponOpen(false);
+      setPayPartial(false);
+      setPartialAmount(0);
     }
   }, [open, reset, isRetailOnlyOrder]);
+
+  useEffect(() => {
+    if (!isImmediatePayment) {
+      setPayPartial(false);
+      setPartialAmount(0);
+    }
+  }, [isImmediatePayment]);
 
   const currencyCode = currencyConfig?.currencyCode ?? 'USD';
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
@@ -314,6 +329,12 @@ export function PaymentModalEnhanced02({
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount, afterDiscountsForTax, decimalPlaces]);
 
+  const effectiveAmountToCharge = useMemo(() => {
+    if (!payPartial || !isImmediatePayment) return totals.finalTotal;
+    const clamped = Math.max(0, Math.min(totals.finalTotal, partialAmount));
+    return parseFloat(clamped.toFixed(decimalPlaces));
+  }, [payPartial, isImmediatePayment, totals.finalTotal, partialAmount, decimalPlaces]);
+
   const handleValidatePromoCode = async () => {
     if (!promoCode?.trim()) return;
     setPromoCodeValidating(true);
@@ -392,7 +413,7 @@ export function PaymentModalEnhanced02({
 
   const onSubmitForm = (data: PaymentFormData) => {
     const payload = {
-      amountToCharge: totals.finalTotal,
+      amountToCharge: effectiveAmountToCharge,
       totals: {
         subtotal: totals.subtotal,
         manualDiscount: totals.manualDiscount,
@@ -414,6 +435,10 @@ export function PaymentModalEnhanced02({
     if (!parsed.success) {
       const first = parsed.error.issues[0];
       cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
+      return;
+    }
+    if (isImmediatePayment && effectiveAmountToCharge <= 0) {
+      cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
     onSubmit(data, parsed.data);
@@ -589,6 +614,65 @@ export function PaymentModalEnhanced02({
                 )}
               />
             </div>
+
+            {/* Partial Payment Section - only for CASH/CARD/CHECK */}
+            {isImmediatePayment && (
+              <div className={`bg-amber-50 p-3 rounded-lg border border-amber-200 space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <p className="text-xs text-amber-800 mb-2">{t('partialPayment.hint')}</p>
+                <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <button
+                    type="button"
+                    onClick={() => setPayPartial(false)}
+                    className={`flex-1 min-h-[36px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${!payPartial ? 'border-amber-600 bg-amber-100 text-amber-900' : 'border-amber-200 bg-white text-gray-700 hover:border-amber-300'}`}
+                  >
+                    {t('partialPayment.payInFull')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPayPartial(true);
+                      setPartialAmount(totals.finalTotal);
+                    }}
+                    className={`flex-1 min-h-[36px] px-3 py-2 rounded-lg border text-sm font-medium transition-all ${payPartial ? 'border-amber-600 bg-amber-100 text-amber-900' : 'border-amber-200 bg-white text-gray-700 hover:border-amber-300'}`}
+                  >
+                    {t('partialPayment.payPartial')}
+                  </button>
+                </div>
+                {payPartial && (
+                  <div className="mt-2 space-y-1">
+                    <label className={`block text-sm font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('partialPayment.amountToPayNow')}
+                    </label>
+                    <div className={`flex items-center border border-gray-300 rounded-lg overflow-hidden ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className={`px-2 text-gray-500 text-sm bg-gray-50 ${isRTL ? 'order-2' : ''}`}>{currencyCode}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={totals.finalTotal}
+                        step={Math.pow(10, -decimalPlaces)}
+                        value={partialAmount > 0 ? partialAmount : ''}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!Number.isNaN(val)) {
+                            setPartialAmount(Math.max(0, Math.min(totals.finalTotal, val)));
+                          } else {
+                            setPartialAmount(0);
+                          }
+                        }}
+                        placeholder={formatAmount(totals.finalTotal)}
+                        dir="ltr"
+                        className="flex-1 min-w-0 px-3 py-2 text-sm border-0 focus:ring-0"
+                      />
+                    </div>
+                    {effectiveAmountToCharge < totals.finalTotal && effectiveAmountToCharge > 0 && (
+                      <p className={`text-sm font-medium text-amber-800 ${isRTL ? 'text-right' : 'text-left'}`}>
+                        {t('partialPayment.remainingDue')}: {currencyCode} {formatAmount(totals.finalTotal - effectiveAmountToCharge)}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Inline Discount Row */}
             <div>
@@ -861,7 +945,7 @@ export function PaymentModalEnhanced02({
             )}
             <button
               type="submit"
-              disabled={loading || totalsLoading || (paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim())}
+              disabled={loading || totalsLoading || (paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim()) || (payPartial && isImmediatePayment && effectiveAmountToCharge <= 0)}
               className={`w-full min-h-[44px] px-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-lg transition-all flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
             >
               {loading ? (
@@ -870,7 +954,7 @@ export function PaymentModalEnhanced02({
                   {t('actions.processing')}
                 </>
               ) : (
-                `${t('actions.submit')} - ${currencyCode} ${formatAmount(totals.finalTotal)}`
+                `${t('actions.submit')} - ${currencyCode} ${formatAmount(effectiveAmountToCharge)}`
               )}
             </button>
             {paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim() && (

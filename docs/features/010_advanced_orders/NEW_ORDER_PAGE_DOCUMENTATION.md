@@ -1,7 +1,7 @@
 # New Order Page - Complete Documentation
 
-**Version**: 1.2.0  
-**Last Updated**: 2026-02-12  
+**Version**: 1.2.1  
+**Last Updated**: 2026-02-20  
 **Status**: ✅ Production Ready
 
 ---
@@ -35,7 +35,7 @@ The New Order Page is a comprehensive, production-ready order creation interface
 - Quick drop orders
 - Custom items
 - Photo capture
-- Payment processing
+- Payment processing (including partial payment at order creation)
 - Bilingual support (EN/AR + RTL)
 - **Retail vs Services separation**: Orders contain either retail items or service items, never both
 - **Retail order payment**: Retail-only orders must be paid at POS (Cash or Card); Pay-on-Collection disabled
@@ -210,7 +210,7 @@ Container for all modals:
 - AmountMismatchDialog (server vs client totals mismatch)
 - CustomerPickerModal
 - CustomerEditModal
-- PaymentModalEnhanced02 (server totals, preview API)
+- PaymentModalEnhanced02 (server totals, preview API, partial payment for CASH/CARD/CHECK)
 - CustomItemModal
 - PhotoCaptureModal
 
@@ -553,9 +553,11 @@ Fetches server-calculated totals for an order (before it exists in DB). Used by 
 
 Creates order + invoice + payment in a single transaction. Replaces sequential create order → create invoice → process payment.
 
-**Request body:** Order data + payment data + `clientTotals` (from preview).
+**Request body:** Order data + payment data + `clientTotals` (from preview) + optional `amountToCharge` (for partial payment; defaults to `clientTotals.finalTotal`).
 
-**Flow:** Server recalculates totals; compares with `clientTotals` (tolerance 0.001). If mismatch → returns `AMOUNT_MISMATCH` (400) with `differences`; nothing persisted. If match → creates order, invoice, and (for CASH/CARD/CHECK) receipt voucher + payment in one transaction.
+**Flow:** Server recalculates totals; compares with `clientTotals` (tolerance 0.001). If mismatch → returns `AMOUNT_MISMATCH` (400) with `differences`; nothing persisted. If match → creates order, invoice, and (for CASH/CARD/CHECK when `amountToCharge > 0`) receipt voucher + payment in one transaction. Uses `amountToCharge` for `paid_amount`; sets invoice/order status to `partial` when amount < total, `paid` when amount ≥ total.
+
+**Partial payment:** The payment modal (`PaymentModalEnhanced02`) offers "Pay in full" or "Pay partial amount" when CASH/CARD/CHECK is selected. The user can enter the amount to charge now; the API records that amount and the remaining balance can be collected later.
 
 **Success response:** `{ success: true, data: { id, orderId, orderNo, currentStatus } }`
 

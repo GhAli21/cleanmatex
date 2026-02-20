@@ -41,11 +41,12 @@ Feature UI lives in `src/features/<name>/ui/` and is imported via `@features/*`.
 
 | Import Path        | Resolves To             | Notes                      |
 | ------------------ | ----------------------- | -------------------------- |
-| `@ui`              | `src/ui/index.ts`       | Design system barrel       |
-| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, Alert, CmxCard, etc. |
-| `@ui/forms`        | `src/ui/forms/`         | CmxSelectDropdown, etc.   |
-| `@ui/feedback`     | `src/ui/feedback/`      | CmxSummaryMessage, CmxProgressBar, etc. |
-| `@ui/overlays`     | `src/ui/overlays/`      | CmxDialog, etc.           |
+| `@ui`              | `src/ui/index.ts`       | Design system barrel (primitives, forms, feedback, overlays, etc.). Does **not** re-export `./components`. |
+| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, Alert, CmxCard, Badge, etc. |
+| `@ui/forms`        | `src/ui/forms/`         | CmxForm, CmxSelectDropdown, etc. |
+| `@ui/feedback`     | `src/ui/feedback/`      | CmxToast, CmxSummaryMessage, CmxProgressBar, etc. |
+| `@ui/overlays`     | `src/ui/overlays/`      | CmxDialog, etc. |
+| `@ui/components`  | `src/ui/components/`    | Legacy wrappers (e.g. CmxChart). Prefer primitives/forms/feedback; use only when needed. |
 
 
 ---

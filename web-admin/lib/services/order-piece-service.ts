@@ -68,7 +68,7 @@ export interface BatchUpdatePiecesParams {
 export class OrderPieceService {
   /**
    * Create pieces for an order item
-   * Auto-creates pieces 1..quantity when USE_TRACK_BY_PIECE is enabled
+   * Auto-creates pieces 1..quantity for order items (pieces are always used)
    * @param piecesData - Optional array of piece-level data. If provided, must match quantity.
    *                     If not provided, uses baseData for all pieces uniformly.
    */

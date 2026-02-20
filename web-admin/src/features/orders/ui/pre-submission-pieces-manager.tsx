@@ -1,7 +1,7 @@
 /**
  * Pre-Submission Pieces Manager Component
  * Manages pieces in local state before order submission
- * Used when USE_TRACK_BY_PIECE is enabled
+ * Manages pre-submission piece data for order items (pieces are always used)
  */
 
 'use client';

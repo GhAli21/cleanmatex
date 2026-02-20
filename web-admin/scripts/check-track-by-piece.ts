@@ -1,3 +1,10 @@
+/**
+ * @deprecated Pieces are always used as of the "always use pieces" change.
+ * This script previously checked/enabled USE_TRACK_BY_PIECE; that setting
+ * is no longer used to gate piece creation or display.
+ *
+ * You can delete this file or keep it for reference.
+ */
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -6,8 +13,9 @@ const supabase = createClient(
 );
 
 async function checkAndEnableSetting() {
+  console.log('ℹ Order item pieces are always used. USE_TRACK_BY_PIECE is no longer checked.');
+  console.log('  This script is deprecated. No action needed.');
   try {
-    // Get first tenant
     const { data: tenant, error: tenantError } = await supabase
       .from('org_tenants_mst')
       .select('id, name')
@@ -18,39 +26,7 @@ async function checkAndEnableSetting() {
       console.error('Error fetching tenant:', tenantError);
       return;
     }
-
-    console.log('✓ Tenant:', tenant.name, '(', tenant.id, ')');
-
-    // Check current setting
-    const { data: isEnabled, error: checkError } = await supabase.rpc('fn_is_setting_allowed', {
-      p_tenant_org_id: tenant.id,
-      p_setting_code: 'USE_TRACK_BY_PIECE'
-    });
-
-    console.log('\nCurrent USE_TRACK_BY_PIECE setting:', isEnabled ? '✓ ENABLED' : '✗ DISABLED');
-
-    if (!isEnabled) {
-      console.log('\n⚠ Enabling USE_TRACK_BY_PIECE...');
-
-      // Enable the setting
-      const { error: updateError } = await supabase
-        .from('org_settings_cf')
-        .update({ is_allowed: true })
-        .eq('tenant_org_id', tenant.id)
-        .eq('setting_code', 'USE_TRACK_BY_PIECE');
-
-      if (updateError) {
-        console.error('Error enabling setting:', updateError);
-      } else {
-        console.log('✓ USE_TRACK_BY_PIECE has been ENABLED!');
-        console.log('\nℹ Please refresh your browser to see the checkboxes.');
-      }
-    } else {
-      console.log('\n✓ Setting is already enabled. Checkboxes should be visible.');
-      console.log('\nℹ If you don\'t see checkboxes:');
-      console.log('  1. Refresh the browser');
-      console.log('  2. Click the "Pieces" button to expand items');
-    }
+    console.log('✓ Tenant:', tenant?.name, '(', tenant?.id, ')');
   } catch (err) {
     console.error('Error:', err);
   }
