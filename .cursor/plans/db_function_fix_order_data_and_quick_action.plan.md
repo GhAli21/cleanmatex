@@ -144,14 +144,14 @@ Quick Action button (in `orders.actions.buttons`):
 
 ### Summary
 
-| Item            | Detail                                                                                |
-| --------------- | ------------------------------------------------------------------------------------- |
-| Quick Action    | Single button "Fix order data" in Order details Quick Actions                         |
-| Modal component | **fix-order-data-modal** (`FixOrderDataModal`) in `web-admin/src/features/orders/ui/` |
-| Modal content   | Title, description, steps list, Run button, **per-step result blocks** (status, summary, details, errors), Close / Refresh |
+| Item            | Detail                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Quick Action    | Single button "Fix order data" in Order details Quick Actions                                                                         |
+| Modal component | **fix-order-data-modal** (`FixOrderDataModal`) in `web-admin/src/features/orders/ui/`                                                 |
+| Modal content   | Title, description, steps list, Run button, **per-step result blocks** (status, summary, details, errors), Close / Refresh            |
 | DB return       | Full details: `overall`, `steps[]` with `step_id`, `status`, `summary`, `details` (counts + optional `item_results`), `error_message` |
-| API             | `POST /api/v1/orders/[id]/fix-order-data`; response `data` matches DB return shape    |
-| DB              | `fix_order_data(p_tenant_org_id, p_steps, p_order_id)` with `p_order_id = order.id`     |
+| API             | `POST /api/v1/orders/[id]/fix-order-data`; response `data` matches DB return shape                                                    |
+| DB              | `fix_order_data(p_tenant_org_id, p_steps, p_order_id)` with `p_order_id = order.id`                                                   |
 
 This keeps the Quick Action lightweight (open modal) and puts the action and **clear per-step results** inside the **fix-order-data-modal**.
 

@@ -349,10 +349,10 @@ export async function processPayment(
           if (totalApplied > 0 && input.order_id) {
             const orderRow = await prisma.org_orders_mst.findUnique({
               where: { id: input.order_id },
-              select: { total: true, total_amount: true, paid_amount: true },
+              select: { total: true, paid_amount: true },
             });
             if (orderRow) {
-              const orderTotal = Number(orderRow.total ?? orderRow.total_amount ?? 0);
+              const orderTotal = Number(orderRow.total ?? 0);
               const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
               const newOrderPaid = currentOrderPaid + totalApplied;
               orderRemaining = Math.max(0, orderTotal - newOrderPaid);
@@ -510,10 +510,10 @@ export async function processPayment(
       if (input.order_id) {
         const orderRow = await prisma.org_orders_mst.findUnique({
           where: { id: input.order_id },
-          select: { total: true, total_amount: true, paid_amount: true },
+          select: { total: true, paid_amount: true },
         });
         if (orderRow) {
-          const orderTotal = Number(orderRow.total ?? orderRow.total_amount ?? 0);
+          const orderTotal = Number(orderRow.total ?? 0);
           const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
           const newOrderPaid = currentOrderPaid + amountToPay;
           const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
@@ -1257,8 +1257,8 @@ export async function getPaymentStatus(orderId: string): Promise<{
       throw new Error('Order not found');
     }
 
-    const total = Number(order.total_amount || 0);
-    const paid = Number(order.paid_amount || 0);
+    const total = Number(order.total ?? 0);
+    const paid = Number(order.paid_amount ?? 0);
     const remaining = total - paid;
 
     return {
@@ -2214,4 +2214,16 @@ async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
  */
 export function formatOMR(amount: number): string {
   return `OMR ${amount.toFixed(3)}`;
+}
+/**
+ * Format amount to SAR currency
+ */
+export function formatSAR(amount: number): string {
+  return `SAR ${amount.toFixed(2)}`;
+}
+/**
+ * Format amount to USD currency
+ */
+export function formatUSD(amount: number): string {
+  return `USD ${amount.toFixed(2)}`;
 }

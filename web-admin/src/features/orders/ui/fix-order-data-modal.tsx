@@ -158,12 +158,12 @@ export function FixOrderDataModal({
           </CmxDialogDescription>
         </CmxDialogHeader>
 
-        <div className={`space-y-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`space-y-5 ${isRTL ? 'text-right' : 'text-left'}`}>
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               {t('stepsLabel')}
             </p>
-            <ul className={`space-y-1 text-sm text-gray-600 dark:text-gray-400 ${isRTL ? 'list-none' : ''}`}>
+            <ul className={`space-y-1.5 text-sm text-gray-600 dark:text-gray-400 ${isRTL ? 'list-none' : ''}`}>
               {STEP_IDS.map((s) => (
                 <li key={s.id} className={isRTL ? 'flex flex-row-reverse gap-2' : ''}>
                   {t(s.labelKey)}
@@ -173,42 +173,58 @@ export function FixOrderDataModal({
           </div>
 
           {!result && !apiError && (
-            <div className={`space-y-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className={`space-y-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 {t('actionsLabel')}
               </p>
-              <div className={`flex flex-col gap-2 ${isRTL ? 'items-stretch' : ''}`}>
-                <CmxButton
-                  variant="outline"
-                  onClick={handleCheck}
-                  disabled={running || checking}
-                  className="w-full"
-                  size="lg"
-                >
-                  {checking ? (
-                    <>
-                      <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                      {t('checking')}
-                    </>
-                  ) : (
-                    t('checkButton')
-                  )}
-                </CmxButton>
-                <CmxButton
-                  onClick={handleRun}
-                  disabled={running || checking}
-                  className="w-full"
-                  size="lg"
-                >
-                  {running ? (
-                    <>
-                      <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                      {t('running')}
-                    </>
-                  ) : (
-                    t('runButton')
-                  )}
-                </CmxButton>
+              <div className={`flex flex-col gap-3 ${isRTL ? 'items-stretch' : ''}`}>
+                <div className="space-y-1">
+                  <CmxButton
+                    variant="outline"
+                    onClick={handleCheck}
+                    disabled={running || checking}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {checking ? (
+                      <>
+                        <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                        {t('checking')}
+                      </>
+                    ) : (
+                      t('checkButton')
+                    )}
+                  </CmxButton>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-1">
+                    {t('checkHint')}
+                  </p>
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-0 right-0 border-t border-gray-200 dark:border-gray-600" />
+                  <span className={`bg-gray-50 dark:bg-gray-900/40 px-2 text-xs text-gray-500 dark:text-gray-400 ${isRTL ? 'mr-auto' : 'ml-auto'}`}>
+                    {t('orLabel')}
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  <CmxButton
+                    onClick={handleRun}
+                    disabled={running || checking}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {running ? (
+                      <>
+                        <Loader2 className={`h-4 w-4 animate-spin shrink-0 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                        {t('running')}
+                      </>
+                    ) : (
+                      t('runButton')
+                    )}
+                  </CmxButton>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 px-1">
+                    {t('runHint')}
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -360,7 +376,7 @@ export function FixOrderDataModal({
                       {t('running')}
                     </>
                   ) : (
-                    t('runButton')
+                    t('applyFixButton')
                   )}
                 </CmxButton>
               ) : (

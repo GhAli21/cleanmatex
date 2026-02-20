@@ -603,9 +603,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setWorkflowRoles([])
           invalidatePermissionCache()
           sessionStorage.clear()
-          // Redirect to logout page with reason when session expired (not user-initiated)
+          // Redirect to login with reason when session expired (not user-initiated)
           if (!isSigningOutRef.current) {
-            router.push('/logout?reason=session_expired')
+            router.push('/login?reason=session_expired')
           }
         } else if (event === 'TOKEN_REFRESHED' && currentSession) {
           setSession({
