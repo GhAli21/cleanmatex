@@ -9,7 +9,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { Input, Textarea, Checkbox, Button } from '@ui/compat';
+import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 
 export interface PreSubmissionPiece {
@@ -93,7 +93,7 @@ export function PreSubmissionPiecesManager({
           {t('pieces')} ({pieces.length})
         </h4>
         {!readOnly && (
-          <Button
+          <CmxButton
             variant="outline"
             size="sm"
             onClick={handleAddPiece}
@@ -101,7 +101,7 @@ export function PreSubmissionPiecesManager({
           >
             <Plus className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
             {t('addPiece')}
-          </Button>
+          </CmxButton>
         )}
       </div>
 
@@ -119,14 +119,14 @@ export function PreSubmissionPiecesManager({
                 </span>
               </div>
               {!readOnly && (
-                <Button
+                <CmxButton
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemovePiece(piece.id)}
                   className="text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="w-4 h-4" />
-                </Button>
+                </CmxButton>
               )}
             </div>
 
@@ -141,7 +141,7 @@ export function PreSubmissionPiecesManager({
                     {piece.color || t('notSet')}
                   </div>
                 ) : (
-                  <Input
+                  <CmxInput
                     value={piece.color || ''}
                     onChange={(e) => handlePieceUpdate(piece.id, { color: e.target.value })}
                     placeholder={t('colorPlaceholder')}
@@ -160,7 +160,7 @@ export function PreSubmissionPiecesManager({
                     {piece.brand || t('notSet')}
                   </div>
                 ) : (
-                  <Input
+                  <CmxInput
                     value={piece.brand || ''}
                     onChange={(e) => handlePieceUpdate(piece.id, { brand: e.target.value })}
                     placeholder={t('brandPlaceholder')}
@@ -171,10 +171,10 @@ export function PreSubmissionPiecesManager({
 
               {/* Has Stain */}
               <div className="flex items-end pb-1">
-                <Checkbox
+                <CmxCheckbox
                   checked={piece.hasStain || false}
-                  onCheckedChange={(checked) =>
-                    handlePieceUpdate(piece.id, { hasStain: checked as boolean })
+                  onChange={(e) =>
+                    handlePieceUpdate(piece.id, { hasStain: e.target.checked })
                   }
                   label={t('hasStain')}
                   disabled={readOnly}
@@ -183,10 +183,10 @@ export function PreSubmissionPiecesManager({
 
               {/* Has Damage */}
               <div className="flex items-end pb-1">
-                <Checkbox
+                <CmxCheckbox
                   checked={piece.hasDamage || false}
-                  onCheckedChange={(checked) =>
-                    handlePieceUpdate(piece.id, { hasDamage: checked as boolean })
+                  onChange={(e) =>
+                    handlePieceUpdate(piece.id, { hasDamage: e.target.checked })
                   }
                   label={t('hasDamage')}
                   disabled={readOnly}
@@ -203,11 +203,11 @@ export function PreSubmissionPiecesManager({
                     {piece.notes || t('noNotes')}
                   </div>
                 ) : (
-                  <Textarea
+                  <CmxTextarea
                     value={piece.notes || ''}
                     onChange={(e) => handlePieceUpdate(piece.id, { notes: e.target.value })}
                     placeholder={t('notesPlaceholder')}
-                    className="h-8 resize-none text-sm"
+                    className="h-8 resize-none text-sm min-h-[32px]"
                     rows={1}
                   />
                 )}
@@ -223,7 +223,7 @@ export function PreSubmissionPiecesManager({
                     {piece.rackLocation || t('notSet')}
                   </div>
                 ) : (
-                  <Input
+                  <CmxInput
                     value={piece.rackLocation || ''}
                     onChange={(e) => handlePieceUpdate(piece.id, { rackLocation: e.target.value })}
                     placeholder={t('rackLocationPlaceholder')}

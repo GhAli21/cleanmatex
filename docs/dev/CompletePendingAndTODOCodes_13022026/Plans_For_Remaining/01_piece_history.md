@@ -6,7 +6,7 @@ Implement the piece history feature that displays an audit trail for piece statu
 
 ## Current State
 
-- **File:** `web-admin/components/orders/PieceHistory.tsx`
+- **File:** `web-admin/src/features/orders/ui/PieceHistory.tsx`
 - **Issue:** `loadHistory()` is a stub; sets `history` to empty array
 - **TODO:** "Implement history API endpoint when piece_history table is created"
 - **Data model:** `PieceHistoryEntry` expects: id, action, fromValue, toValue, doneBy, doneAt, notes
@@ -76,5 +76,5 @@ Implement the piece history feature that displays an audit trail for piece statu
 
 ## References
 
-- web-admin/components/orders/PieceHistory.tsx
+- web-admin/src/features/orders/ui/PieceHistory.tsx
 - web-admin/lib/services/order-piece-service.ts

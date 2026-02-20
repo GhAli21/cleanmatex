@@ -54,3 +54,7 @@ alwaysApply: true
 - Document all components in Storybook (React) or Widgetbook (Flutter).
 - Include usage examples, props, and accessibility notes.
 - Sync design tokens with Figma via plugin or JSON export.
+
+## UI Imports & AI Hints (web-admin)
+- Use **Cmx design system** only: import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do not use `@ui/compat` (removed).
+- **web-admin/.clauderc** holds recommended import snippets for AI-generated code (`ui_components`). Keep it in sync with `src/ui` when adding or changing shared components. See `.cursor/rules/frontendstandards.mdc` (section "web-admin/.clauderc (AI Hints)") and `docs/dev/ui-migration-guide.md`.

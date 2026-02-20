@@ -33,14 +33,11 @@ flowchart TB
     app_comp --> src_feat
 ```
 
-
-
 ---
 
 ## Phase 1: Fill Gaps in src/ui Design System
 
 Ensure every primitive and pattern used by `components/ui` has a Cmx equivalent in `src/ui`. Components that need creation or enhancement:
-
 
 | components/ui       | src/ui status                         | Action                                                                                                                                      |
 | ------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -51,7 +48,6 @@ Ensure every primitive and pattern used by `components/ui` has a Cmx equivalent 
 | select-dropdown.tsx | Custom                                | Move to `src/ui/forms/cmx-select-dropdown.tsx` as CmxSelectDropdown                                                                         |
 | select-simple.tsx   | CmxSelect exists                      | Audit; keep or merge into CmxSelect                                                                                                         |
 | summary-message.tsx | Missing                               | Move to `src/ui/feedback/cmx-summary-message.tsx`                                                                                           |
-
 
 **Button, Input, Card, Badge, Alert, Textarea, Label, Checkbox, Select:**  
 `src/ui` already has `CmxButton`, `CmxInput`, `CmxCard`, `cmx-checkbox`, etc. Map `components/ui` exports to these and update any API differences (e.g. `Button` vs `CmxButton` props).
@@ -66,7 +62,6 @@ Ensure every primitive and pattern used by `components/ui` has a Cmx equivalent 
 
 ## Phase 2: Migrate components/ Root-Level Modules
 
-
 | Source                                                          | Destination                                                        | Rationale                                                     |
 | --------------------------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------- |
 | `components/ui/*`                                               | Eliminate                                                          | Replaced by Phase 1 and existing `src/ui`                     |
@@ -79,7 +74,6 @@ Ensure every primitive and pattern used by `components/ui` has a Cmx equivalent 
 | `components/permissions/PermissionAssignmentModal`              | `src/features/auth/ui/` or `src/features/settings/ui/`             | Auth/settings-related                                         |
 | `components/providers/*`                                        | `lib/providers/`                                                   | Shared infrastructure                                         |
 | `components/jhtest/*`                                           | `app/dashboard/jhtest/components/` or `src/features/dev-tools/ui/` | Dev tooling; keep co-located or in dev feature                |
-
 
 **Steps:**
 
@@ -95,7 +89,6 @@ Ensure every primitive and pattern used by `components/ui` has a Cmx equivalent 
 
 Map each route area to a feature and move components:
 
-
 | Route area                                                        | Feature      | Target path                                     |
 | ----------------------------------------------------------------- | ------------ | ----------------------------------------------- |
 | orders/                                                           | orders       | `src/features/orders/ui/`                       |
@@ -103,13 +96,12 @@ Map each route area to a feature and move components:
 | billing/                                                          | billing      | `src/features/billing/ui/`                      |
 | catalog/                                                          | catalog      | `src/features/catalog/ui/`                      |
 | inventory/                                                        | inventory    | `src/features/inventory/ui/`                    |
-| processing/*, preparation/*, packing/*, assembly/*, qa/*, ready/* | workflow     | `src/features/workflow/ui/` (or split by stage) |
+| processing/_, preparation/_, packing/_, assembly/_, qa/_, ready/_ | workflow     | `src/features/workflow/ui/` (or split by stage) |
 | delivery/                                                         | delivery     | `src/features/delivery/ui/` (exists)            |
 | reports/                                                          | reports      | `src/features/reports/ui/`                      |
 | settings/                                                         | settings     | `src/features/settings/ui/`                     |
 | users/                                                            | users        | `src/features/users/ui/`                        |
 | subscription/                                                     | subscription | `src/features/subscription/ui/`                 |
-
 
 **Convention for reports:** Keep `*-rprt.tsx` naming per project rules.
 
@@ -127,7 +119,6 @@ Map each route area to a feature and move components:
 
 Replace all `@/components/*` imports across the codebase:
 
-
 | Old import                               | New import                               |
 | ---------------------------------------- | ---------------------------------------- |
 | `@/components/ui/Button`                 | `@ui/primitives/cmx-button`              |
@@ -140,7 +131,6 @@ Replace all `@/components/*` imports across the codebase:
 | `@/components/dashboard/*`               | `@features/dashboard/ui/*`               |
 | `@/components/settings/*`                | `@features/settings/ui/*`                |
 | `@/components/providers/AppProviders`    | `@lib/providers/AppProviders`            |
-
 
 **Execution:**
 
@@ -183,7 +173,6 @@ Replace all `@/components/*` imports across the codebase:
 
 ## File Count Summary
 
-
 | Phase   | Scope                                                                               |
 | ------- | ----------------------------------------------------------------------------------- |
 | Phase 1 | 6–8 new Cmx components in `src/ui`                                                  |
@@ -191,7 +180,6 @@ Replace all `@/components/*` imports across the codebase:
 | Phase 3 | ~100+ files from `app/dashboard/**/components/`                                     |
 | Phase 4 | ~95 files with import updates                                                       |
 | Phase 5 | Remove entire `components/` directory                                               |
-
 
 ---
 

@@ -116,8 +116,8 @@ Replace `t('clearFilters')`, `t('cancel')`, `t('loading')`, `t('create')`, `t('i
 | [order-tracking-page.tsx](web-admin/src/features/orders/public/order-tracking-page.tsx)                      | `t('loading')` → `tCommon('loading')`                                     |
 | [customer-picker-modal.tsx](web-admin/app/dashboard/orders/new/components/customer-picker-modal.tsx)         | `t('loading')` → `tCommon('loading')`                                     |
 | [processing/page.tsx](web-admin/app/dashboard/processing/page.tsx)                                           | `t('loading')` fallback → `tCommon('loading')`                            |
-| [OrderPiecesManager.tsx](web-admin/components/orders/OrderPiecesManager.tsx)                                 | `t('loading')` → `tCommon('loading')`                                     |
-| [PieceHistory.tsx](web-admin/components/orders/PieceHistory.tsx)                                             | `t('loading')` → `tCommon('loading')`                                     |
+| [OrderPiecesManager.tsx](web-admin/src/features/orders/ui/OrderPiecesManager.tsx)                           | `t('loading')` → `tCommon('loading')`                                     |
+| [PieceHistory.tsx](web-admin/src/features/orders/ui/PieceHistory.tsx)                                       | `t('loading')` → `tCommon('loading')`                                     |
 | [product-form.tsx](web-admin/app/dashboard/catalog/services/components/product-form.tsx)                     | `t('loading')`, `t('create')` → `tCommon('loading')`, `tCommon('create')` |
 | [catalog/services/page.tsx](web-admin/app/dashboard/catalog/services/page.tsx)                               | `t('clearFilters')`, `t('loading')` → `tCommon(...)`                      |
 | [catalog/categories/page.tsx](web-admin/app/dashboard/catalog/categories/page.tsx)                           | `t('loading')` → `tCommon('loading')`                                     |
@@ -125,7 +125,7 @@ Replace `t('clearFilters')`, `t('cancel')`, `t('loading')`, `t('create')`, `t('i
 | [import-modal.tsx](web-admin/app/dashboard/catalog/services/components/import-modal.tsx)                     | `t('loading')`, `t('import')` → `tCommon(...)`                            |
 | [order-timeline.tsx](web-admin/app/dashboard/orders/components/order-timeline.tsx)                           | `t('loading')` → `tCommon('loading')`                                     |
 | [customer-edit-modal.tsx](web-admin/app/dashboard/orders/new/components/customer-edit-modal.tsx)             | `t('loading')` → `tCommon('loading')`                                     |
-| [GlobalFiltersBar.tsx](web-admin/components/dashboard/GlobalFiltersBar.tsx)                                  | Already uses `t` from `common` — no change needed                         |
+| [GlobalFiltersBar.tsx](web-admin/src/features/dashboard/ui/GlobalFiltersBar.tsx)                              | Already uses `t` from `common` — no change needed                         |
 | [catalog/services/[id]/page.tsx](web-admin/app/dashboard/catalog/services/[id]/page.tsx)                     | `t('loading')` → `tCommon('loading')`                                     |
 
 For each file: add `const tCommon = useTranslations('common')` (or `getTranslations`) if not present, then replace the feature-specific calls with `tCommon(...)`.
@@ -176,7 +176,7 @@ Fix components with hardcoded `count === 1 ? 'X' : 'Xs'` patterns:
 | ------------------------------------------------------------------------------------------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
 | [order-summary-panel.tsx](web-admin/app/dashboard/orders/new/components/order-summary-panel.tsx) | `items.length === 1 ? 'item' : 'items'`          | Add `common.itemCount` or `newOrder.orderSummary.itemCount`: `{count, plural, one {# item} other {# items}}` |
 | [catalog/pricing/[id]/page.tsx](web-admin/app/dashboard/catalog/pricing/[id]/page.tsx)           | `items.length === 1 ? 'item' : 'items'`          | Same pattern                                                                                                 |
-| [UsageWidget.tsx](web-admin/components/dashboard/UsageWidget.tsx)                                | `warnings.length === 1 ? 'Warning' : 'Warnings'` | Add `common.warningCount`: `{count, plural, one {# Warning} other {# Warnings}}`                             |
+| [UsageWidget.tsx](web-admin/src/features/dashboard/ui/UsageWidget.tsx)                          | `warnings.length === 1 ? 'Warning' : 'Warnings'` | Add `common.warningCount`: `{count, plural, one {# Warning} other {# Warnings}}`                             |
 
 ### 3.3 Arabic Plural Rules
 

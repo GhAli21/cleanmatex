@@ -88,9 +88,9 @@ Complete list of files created or modified during implementation of the i18n enh
 
 | # | File Path |
 |---|-----------|
-| 37 | `web-admin/components/orders/OrderPiecesManager.tsx` |
-| 38 | `web-admin/components/orders/PieceHistory.tsx` |
-| 39 | `web-admin/components/dashboard/UsageWidget.tsx` |
+| 37 | `web-admin/src/features/orders/ui/OrderPiecesManager.tsx` |
+| 38 | `web-admin/src/features/orders/ui/PieceHistory.tsx` |
+| 39 | `web-admin/src/features/dashboard/ui/UsageWidget.tsx` |
 
 ### Features (Public)
 

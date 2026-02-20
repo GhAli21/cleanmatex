@@ -7,7 +7,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Card, Alert } from '@ui/compat';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { CmxButton, Alert } from '@ui/primitives';
 
 export default function RegistrationSuccessPage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function RegistrationSuccessPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full">
-        <Card padding="lg">
+        <CmxCard className="p-8">
           {/* Success Icon */}
           <div className="text-center">
             <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100">
@@ -75,13 +76,12 @@ export default function RegistrationSuccessPage() {
           </div>
 
           {/* Action Button */}
-          <Button
-            fullWidth
-            className="mt-8"
+          <CmxButton
+            className="mt-8 w-full"
             onClick={() => router.push('/dashboard')}
           >
             Go to Dashboard
-          </Button>
+          </CmxButton>
 
           {/* Support Link */}
           <p className="mt-4 text-center text-sm text-gray-500">
@@ -90,7 +90,7 @@ export default function RegistrationSuccessPage() {
               View documentation
             </a>
           </p>
-        </Card>
+        </CmxCard>
       </div>
     </div>
   );

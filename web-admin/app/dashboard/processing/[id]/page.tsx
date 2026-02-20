@@ -13,7 +13,11 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronLeft, CheckCircle2, Circle, Loader2, AlertCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
-import { Card, CardHeader, Button, Badge, Input } from '@ui/compat';
+import { Badge } from '@ui/primitives/badge';
+import { CmxInput } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives';
+import { LoadingButton } from '@ui/primitives/loading-button';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
@@ -221,7 +225,7 @@ export default function ProcessingDetailPage() {
   if (!order) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <Card variant="bordered" padding="md">
+        <CmxCard className="border border-gray-200 p-6">
           <div className="flex items-start gap-4">
             <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -231,16 +235,16 @@ export default function ProcessingDetailPage() {
               <p className="text-red-700 mb-4">
                 {t('error.orderNotFoundDesc') || 'The order you are looking for could not be found.'}
               </p>
-              <Button
+              <LoadingButton
                 variant="secondary"
                 onClick={() => router.push('/dashboard/processing')}
                 leftIcon={<ChevronLeft className="w-4 h-4" />}
               >
                 {t('backToProcessing') || 'Back to Processing'}
-              </Button>
+              </LoadingButton>
             </div>
           </div>
-        </Card>
+        </CmxCard>
       </div>
     );
   }
@@ -248,10 +252,10 @@ export default function ProcessingDetailPage() {
   return (
     <div className="max-w-6xl mx-auto p-4 sm:p-6 space-y-6">
       {/* Header Section */}
-      <Card variant="bordered" padding="md">
+      <CmxCard className="border border-gray-200 p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex-1">
-            <Button
+            <LoadingButton
               variant="ghost"
               size="sm"
               onClick={() => router.push('/dashboard/processing')}
@@ -259,14 +263,14 @@ export default function ProcessingDetailPage() {
               className="mb-4"
             >
               {t('backToProcessing') || 'Back to Processing'}
-            </Button>
+            </LoadingButton>
             
             <div className="flex flex-wrap items-center gap-3 mb-3">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 {t('title')} - {order.order_no}
               </h1>
               {order.status && (
-                <Badge variant="info" size="md">
+                <Badge variant="info">
                   {order.status.replace('_', ' ').toUpperCase()}
                 </Badge>
               )}
@@ -284,26 +288,26 @@ export default function ProcessingDetailPage() {
             </div>
           </div>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Error Alert */}
       {error && (
-        <Card variant="bordered" padding="md" className="bg-red-50 border-red-200">
+        <CmxCard className="border border-gray-200 p-6 bg-red-50 border-red-200">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-red-800 font-medium">{error}</p>
-              <Button
+              <CmxButton
                 variant="ghost"
                 size="sm"
                 onClick={loadOrder}
                 className="mt-2 text-red-700 hover:text-red-900"
               >
                 {tCommon('refresh') || 'Retry'}
-              </Button>
+              </CmxButton>
             </div>
           </div>
-        </Card>
+        </CmxCard>
       )}
 
       {/* Main Content */}
@@ -315,11 +319,11 @@ export default function ProcessingDetailPage() {
           </h2>
           
           {order.items.length === 0 ? (
-            <Card variant="bordered" padding="lg">
+            <CmxCard className="border border-gray-200 p-8">
               <div className="text-center py-8 text-gray-500">
                 {t('noItems') || 'No items found in this order'}
               </div>
-            </Card>
+            </CmxCard>
           ) : (
             order.items.map((item) => {
               const currentStepIndex = PROCESSING_STEPS.findIndex(s => s.code === item.item_last_step);
@@ -327,8 +331,8 @@ export default function ProcessingDetailPage() {
               const progressPercentage = (completedSteps / PROCESSING_STEPS.length) * 100;
 
               return (
-                <Card key={item.id} variant="bordered" padding="md" className="hover:shadow-md transition-shadow">
-                  <CardHeader>
+                <CmxCard key={item.id} className="border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                  <CmxCardHeader>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -340,15 +344,14 @@ export default function ProcessingDetailPage() {
                             {item.quantity}
                           </span>
                           <Badge 
-                            variant={item.item_status === 'ready' ? 'success' : 'info'} 
-                            size="sm"
+                            variant={item.item_status === 'ready' ? 'success' : 'info'}
                           >
                             {item.item_status || t('status.processing') || 'Processing'}
                           </Badge>
                         </div>
                       </div>
                     </div>
-                  </CardHeader>
+                  </CmxCardHeader>
 
                   {/* Progress Bar */}
                   <div className="mb-4">
@@ -467,7 +470,7 @@ export default function ProcessingDetailPage() {
                       )}
                     </div>
                   )}
-                </Card>
+                </CmxCard>
               );
             })
           )}
@@ -479,54 +482,61 @@ export default function ProcessingDetailPage() {
             {t('orderActions') || 'Order Actions'}
           </h2>
           
-          <Card variant="bordered" padding="md">
-            <CardHeader
-              title={t('completeOrder') || 'Complete Order'}
-              subtitle={t('completeOrderDesc') || 'Mark this order as ready for pickup'}
-            />
-
+          <CmxCard className="border border-gray-200 p-6">
+            <CmxCardHeader>
+              <div>
+                <CmxCardTitle>{t('completeOrder') || 'Complete Order'}</CmxCardTitle>
+                <CmxCardDescription>{t('completeOrderDesc') || 'Mark this order as ready for pickup'}</CmxCardDescription>
+              </div>
+            </CmxCardHeader>
+            <CmxCardContent>
             {/* Rack Location Input */}
             <div className="mb-6">
-              <Input
-                label={t('rackLocationOrder') || 'Rack Location'}
-                value={rackLocation}
-                onChange={(e) => {
-                  setRackLocation(e.target.value);
-                  setRackLocationError('');
-                }}
-                placeholder={t('rackLocationPlaceholder') || 'e.g., Rack A-12'}
-                error={rackLocationError}
-                required
-                leftIcon={<MapPin className="w-4 h-4" />}
-                helpText={t('rackLocationHelp') || 'Enter the rack location where this order is stored'}
-              />
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {t('rackLocationOrder') || 'Rack Location'}
+                <span className="text-red-500 ml-1">*</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                <CmxInput
+                  className="pl-10 w-full"
+                  value={rackLocation}
+                  onChange={(e) => {
+                    setRackLocation(e.target.value);
+                    setRackLocationError('');
+                  }}
+                  placeholder={t('rackLocationPlaceholder') || 'e.g., Rack A-12'}
+                  required
+                />
+              </div>
+              {rackLocationError && (
+                <p className="mt-1 text-sm text-red-600">{rackLocationError}</p>
+              )}
+              <p className="mt-1 text-xs text-gray-500">
+                {t('rackLocationHelp') || 'Enter the rack location where this order is stored'}
+              </p>
             </div>
 
             {/* Mark Ready Button */}
-            <Button
+            <LoadingButton
               variant="primary"
               size="lg"
               onClick={handleMarkReady}
               disabled={submitting || !rackLocation.trim()}
-              isLoading={submitting}
+              loading={submitting}
               fullWidth
+              loadingText={t('processing') || 'Processing...'}
               className="bg-green-600 hover:bg-green-700"
             >
-              {submitting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t('processing') || 'Processing...'}
-                </>
-              ) : (
-                t('markOrderReady') || 'Mark Order Ready'
-              )}
-            </Button>
+              {t('markOrderReady') || 'Mark Order Ready'}
+            </LoadingButton>
 
             {/* Info Text */}
             <p className="mt-4 text-xs text-gray-500 text-center">
               {t('markReadyInfo') || 'This will move the order to the ready status and make it available for pickup.'}
             </p>
-          </Card>
+            </CmxCardContent>
+          </CmxCard>
         </div>
       </div>
     </div>

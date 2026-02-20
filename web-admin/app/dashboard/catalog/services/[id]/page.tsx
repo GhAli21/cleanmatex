@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import ProductForm, { type ProductFormValues } from '@features/catalog/ui/product-form'
-import { Card } from '@ui/compat'
+import { CmxCard } from '@ui/primitives/cmx-card'
 
 export default function EditProductPage() {
   const params = useParams<{ id: string }>()
@@ -56,13 +56,13 @@ export default function EditProductPage() {
 
   if (loading) {
     return (
-      <Card className="p-4 text-gray-500">{tCommon('loading')}</Card>
+      <CmxCard className="p-4 text-gray-500">{tCommon('loading')}</CmxCard>
     )
   }
 
   if (error) {
     return (
-      <Card className="p-4 text-red-700">{error}</Card>
+      <CmxCard className="p-4 text-red-700">{error}</CmxCard>
     )
   }
 

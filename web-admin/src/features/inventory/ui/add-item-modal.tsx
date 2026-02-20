@@ -10,7 +10,6 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays';
 import { CmxButton, CmxInput, CmxSelect, Label } from '@ui/primitives';
-import { Input, Select } from '@ui/compat';
 import { UNITS_OF_MEASURE } from '@/lib/constants/inventory';
 import { createInventoryItemAction } from '@/app/actions/inventory/inventory-actions';
 import type { BranchOption } from '@/lib/services/inventory-service';
@@ -160,36 +159,36 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                 <p className="mt-0.5 text-xs text-gray-500">{t('messages.productMasterDescription')}</p>
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <CmxInput
                   label={t('labels.itemCode')}
                   value={productCode}
                   onChange={(e) => setProductCode(e.target.value)}
                   placeholder="INV-00001 (auto if empty)"
                 />
-                <Input
+                <CmxInput
                   label={t('labels.itemName') + ' (EN)'}
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   required
                 />
-                <Input
+                <CmxInput
                   label={t('labels.itemName') + ' (AR)'}
                   value={productName2}
                   onChange={(e) => setProductName2(e.target.value)}
                   dir="rtl"
                 />
-                <Input
+                <CmxInput
                   label={t('labels.hintText')}
                   value={hintText}
                   onChange={(e) => setHintText(e.target.value)}
                 />
-                <Select
+                <CmxSelect
                   label={t('labels.unit')}
                   value={productUnit}
                   onChange={(e) => setProductUnit(e.target.value)}
                   options={unitOptions}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.sku')}
                   value={sku}
                   onChange={(e) => setSku(e.target.value)}
@@ -201,7 +200,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">{t('labels.sellPrice')} / {t('labels.unitCost')}</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <CmxInput
                   label={t('labels.unitCost')}
                   type="number"
                   step="0.01"
@@ -209,7 +208,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={productCost}
                   onChange={(e) => setProductCost(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.sellPrice')}
                   type="number"
                   step="0.01"
@@ -217,7 +216,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={sellPrice}
                   onChange={(e) => setSellPrice(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.defaultExpressSellPrice')}
                   type="number"
                   step="0.01"
@@ -225,7 +224,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={expressSellPrice}
                   onChange={(e) => setExpressSellPrice(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.minSellPrice')}
                   type="number"
                   step="0.01"
@@ -251,7 +250,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                 )}
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <CmxInput
                   label={t('labels.initialQty')}
                   type="number"
                   step="0.01"
@@ -259,7 +258,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={qtyOnHand}
                   onChange={(e) => setQtyOnHand(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.reorderPoint')}
                   type="number"
                   step="0.01"
@@ -267,7 +266,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={reorderPoint}
                   onChange={(e) => setReorderPoint(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.minStockLevel')}
                   type="number"
                   step="0.01"
@@ -275,7 +274,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={minStockLevel}
                   onChange={(e) => setMinStockLevel(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.maxStockLevel')}
                   type="number"
                   step="0.01"
@@ -283,7 +282,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={maxStockLevel}
                   onChange={(e) => setMaxStockLevel(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.lastPurchaseCost')}
                   type="number"
                   step="0.01"
@@ -291,7 +290,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={lastPurchaseCost}
                   onChange={(e) => setLastPurchaseCost(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.storageLocation')}
                   value={storageLocation}
                   onChange={(e) => setStorageLocation(e.target.value)}
@@ -303,36 +302,36 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-700">{t('sections.optional')}</h3>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <CmxInput
                   label={t('labels.productGroup1')}
                   value={productGroup1}
                   onChange={(e) => setProductGroup1(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.productGroup2')}
                   value={productGroup2}
                   onChange={(e) => setProductGroup2(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.productGroup3')}
                   value={productGroup3}
                   onChange={(e) => setProductGroup3(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.minQuantity')}
                   type="number"
                   min="0"
                   value={minQuantity}
                   onChange={(e) => setMinQuantity(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.piecesPerProduct')}
                   type="number"
                   min="0"
                   value={piecesPerProduct}
                   onChange={(e) => setPiecesPerProduct(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.turnaroundHh')}
                   type="number"
                   step="0.01"
@@ -340,7 +339,7 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={turnaroundHh}
                   onChange={(e) => setTurnaroundHh(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.turnaroundHhExpress')}
                   type="number"
                   step="0.01"
@@ -348,14 +347,14 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={turnaroundHhExpress}
                   onChange={(e) => setTurnaroundHhExpress(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.extraDays')}
                   type="number"
                   min="0"
                   value={extraDays}
                   onChange={(e) => setExtraDays(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.multiplierExpress')}
                   type="number"
                   step="0.01"
@@ -363,14 +362,14 @@ export default function AddItemModal({ onClose, onSuccess, branchId, branches = 
                   value={multiplierExpress}
                   onChange={(e) => setMultiplierExpress(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.productOrder')}
                   type="number"
                   min="0"
                   value={productOrder}
                   onChange={(e) => setProductOrder(e.target.value)}
                 />
-                <Input
+                <CmxInput
                   label={t('labels.recNotes')}
                   value={recNotes}
                   onChange={(e) => setRecNotes(e.target.value)}

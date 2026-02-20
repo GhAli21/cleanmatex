@@ -24,16 +24,16 @@ import { useMessage } from '@ui/feedback';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useScreenContract } from '@/lib/hooks/use-screen-contract';
-import { Button } from '@ui/compat';
+import { CmxButton } from '@ui/primitives/cmx-button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@ui/compat';
-import { Textarea, Label, Alert, AlertDescription } from '@ui/compat';
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogDescription,
+  CmxDialogFooter,
+  CmxDialogHeader,
+  CmxDialogTitle,
+} from '@ui/overlays';
+import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
 
@@ -201,7 +201,7 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
     <>
       <div className="space-y-2">
         {actionButtons.map(({ label, status, color, icon: Icon }) => (
-          <Button
+          <CmxButton
             key={status}
             onClick={() => handleStatusClick(status)}
             disabled={loading}
@@ -210,14 +210,14 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           >
             <Icon className="w-4 h-4 mr-2" />
             {label}
-          </Button>
+          </CmxButton>
         ))}
 
         {/* Cancel Order - Always available if not already cancelled/closed */}
         {currentStatus !== 'cancelled' &&
           currentStatus !== 'closed' &&
           canMoveTo('cancelled') && (
-            <Button
+            <CmxButton
               onClick={() => handleStatusClick('cancelled')}
               disabled={loading}
               variant="outline"
@@ -226,25 +226,25 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
             >
               <XCircle className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
               {t('buttons.cancelOrder')}
-            </Button>
+            </CmxButton>
           )}
       </div>
 
       {/* Status Change Confirmation Dialog */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className={isRTL ? 'text-right' : 'text-left'}>
-          <DialogHeader className={isRTL ? 'text-right' : 'text-left'}>
-            <DialogTitle className={isRTL ? 'text-right' : 'text-left'}>
+      <CmxDialog open={showDialog} onOpenChange={setShowDialog}>
+        <CmxDialogContent className={isRTL ? 'text-right' : 'text-left'}>
+          <CmxDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
+            <CmxDialogTitle className={isRTL ? 'text-right' : 'text-left'}>
               {selectedStatus && t('dialog.changeStatusTo', { 
                 status: locale === 'ar' 
                   ? STATUS_META[selectedStatus].labelAr 
                   : STATUS_META[selectedStatus].label 
               })}
-            </DialogTitle>
-            <DialogDescription className={isRTL ? 'text-right' : 'text-left'}>
+            </CmxDialogTitle>
+            <CmxDialogDescription className={isRTL ? 'text-right' : 'text-left'}>
               {selectedStatus && STATUS_META[selectedStatus].description}
-            </DialogDescription>
-          </DialogHeader>
+            </CmxDialogDescription>
+          </CmxDialogHeader>
 
           {blockers.length > 0 && (
             <Alert variant="destructive" className={isRTL ? 'text-right' : 'text-left'}>
@@ -265,37 +265,37 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
               <Label htmlFor="notes" className={isRTL ? 'text-right' : 'text-left'}>
                 {t('dialog.notes')} ({tCommon('optional')})
               </Label>
-              <Textarea
+              <CmxTextarea
                 id="notes"
                 placeholder={t('dialog.notesPlaceholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 dir={isRTL ? 'rtl' : 'ltr'}
-                className={`mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                className={`mt-1 w-full ${isRTL ? 'text-right' : 'text-left'}`}
               />
             </div>
           </div>
 
-          <DialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
-            <Button
+          <CmxDialogFooter className={isRTL ? 'flex-row-reverse' : ''}>
+            <CmxButton
               variant="outline"
               onClick={handleCancel}
               disabled={loading}
             >
               {tCommon('cancel')}
-            </Button>
-            <Button
+            </CmxButton>
+            <CmxButton
               onClick={handleConfirmChange}
               disabled={loading || blockers.length > 0}
               className={isRTL ? 'flex-row-reverse' : ''}
+              loading={loading}
             >
-              {loading && <Loader2 className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'} animate-spin`} />}
               {t('dialog.confirmChange')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </>
   );
 }

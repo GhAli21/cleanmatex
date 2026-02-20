@@ -7,10 +7,10 @@ Implemented real Supabase queries in dashboard service and wired widgets to use 
 ## Files Affected
 
 - `web-admin/lib/services/dashboard.service.ts`
-- `web-admin/components/dashboard/widgets/OrdersTodayWidget.tsx`
-- `web-admin/components/dashboard/widgets/RevenueWidget.tsx`
-- `web-admin/components/dashboard/RecentOrdersList.tsx` (new)
-- `web-admin/components/dashboard/DashboardContent.tsx`
+- `web-admin/src/features/dashboard/ui/OrdersTodayWidget.tsx`
+- `web-admin/src/features/dashboard/ui/RevenueWidget.tsx`
+- `web-admin/src/features/dashboard/ui/RecentOrdersList.tsx` (new)
+- `web-admin/src/features/dashboard/ui/DashboardContent.tsx`
 
 ## Changes
 

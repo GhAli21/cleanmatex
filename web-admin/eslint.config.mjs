@@ -24,10 +24,16 @@ const eslintConfig = [
     rules: {
       // Migrated: prefer @ui/* over legacy @/components (Phase 6)
       'no-restricted-imports': ['warn', {
-        patterns: [{
-          group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
-          message: 'Prefer @ui/compat or @ui Cmx components. See docs/dev/ui-migration-guide.md',
-        }],
+        patterns: [
+          {
+            group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
+            message: 'Use @ui Cmx components (e.g. @ui/primitives, @ui/feedback, @ui/overlays). See docs/dev/ui-migration-guide.md',
+          },
+          {
+            group: ['@ui/compat', '**/ui/compat', '**/ui/compat/*'],
+            message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
+          },
+        ],
       }],
       // Minimum rules - all turned off to allow build to succeed
       '@typescript-eslint/interface-name-prefix': 'off',

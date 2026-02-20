@@ -154,7 +154,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   }
 
   return (
-    <Card className="p-4">
+    <CmxCard className="p-4">
       {error && (
         <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>
       )}
@@ -179,19 +179,19 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         {/* Code */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('productCode')}</label>
-          <Input value={values.product_code || ''} onChange={(e) => setField('product_code', e.target.value)} placeholder="PROD-00001" />
+          <CmxInput value={values.product_code || ''} onChange={(e) => setField('product_code', e.target.value)} placeholder="PROD-00001" />
         </div>
 
         {/* Name EN */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('productName')}</label>
-          <Input value={values.product_name} onChange={(e) => setField('product_name', e.target.value)} />
+          <CmxInput value={values.product_name} onChange={(e) => setField('product_name', e.target.value)} />
         </div>
 
         {/* Name AR */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('productNameAr')}</label>
-          <Input value={values.product_name2 || ''} onChange={(e) => setField('product_name2', e.target.value)} />
+          <CmxInput value={values.product_name2 || ''} onChange={(e) => setField('product_name2', e.target.value)} />
         </div>
 
         {/* Unit */}
@@ -207,37 +207,37 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         {/* Prices */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('priceRegular')}</label>
-          <Input type="number" step="0.001" value={values.default_sell_price} onChange={(e) => setField('default_sell_price', Number(e.target.value))} />
+          <CmxInput type="number" step="0.001" value={values.default_sell_price} onChange={(e) => setField('default_sell_price', Number(e.target.value))} />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">{t('priceExpress')}</label>
-          <Input type="number" step="0.001" value={values.default_express_sell_price ?? ''} onChange={(e) => setField('default_express_sell_price', e.target.value === '' ? undefined : Number(e.target.value))} />
+          <CmxInput type="number" step="0.001" value={values.default_express_sell_price ?? ''} onChange={(e) => setField('default_express_sell_price', e.target.value === '' ? undefined : Number(e.target.value))} />
         </div>
 
         {/* Min Qty */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('minQuantity')}</label>
-          <Input type="number" value={values.min_quantity ?? ''} onChange={(e) => setField('min_quantity', e.target.value === '' ? undefined : Number(e.target.value))} />
+          <CmxInput type="number" value={values.min_quantity ?? ''} onChange={(e) => setField('min_quantity', e.target.value === '' ? undefined : Number(e.target.value))} />
         </div>
 
         {/* Turnaround */}
         <div>
           <label className="mb-1 block text-sm font-medium">{t('turnaround')}</label>
           <div className="grid grid-cols-2 gap-2">
-            <Input type="number" step="0.1" placeholder={t('turnaroundHours')} value={values.turnaround_hh ?? ''} onChange={(e) => setField('turnaround_hh', e.target.value === '' ? undefined : Number(e.target.value))} />
-            <Input type="number" step="0.1" placeholder={t('priceExpress')} value={values.turnaround_hh_express ?? ''} onChange={(e) => setField('turnaround_hh_express', e.target.value === '' ? undefined : Number(e.target.value))} />
+            <CmxInput type="number" step="0.1" placeholder={t('turnaroundHours')} value={values.turnaround_hh ?? ''} onChange={(e) => setField('turnaround_hh', e.target.value === '' ? undefined : Number(e.target.value))} />
+            <CmxInput type="number" step="0.1" placeholder={t('priceExpress')} value={values.turnaround_hh_express ?? ''} onChange={(e) => setField('turnaround_hh_express', e.target.value === '' ? undefined : Number(e.target.value))} />
           </div>
         </div>
 
         {/* Status */}
         <div className="flex items-end gap-2">
-          <Button type="submit" disabled={saving}>{saving ? tCommon('loading') : mode === 'create' ? tCommon('create') : tCommon('update')}</Button>
+          <CmxButton type="submit" disabled={saving}>{saving ? tCommon('loading') : mode === 'create' ? tCommon('create') : tCommon('update')}</CmxButton>
           {values.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}
-          <Button type="button" variant="secondary" onClick={() => setField('is_active', !values.is_active)}>
+          <CmxButton type="button" variant="outline" onClick={() => setField('is_active', !values.is_active)}>
             {values.is_active ? t('disableCategories') : t('enableCategories')}
-          </Button>
+          </CmxButton>
         </div>
       </form>
-    </Card>
+    </CmxCard>
   )
 }

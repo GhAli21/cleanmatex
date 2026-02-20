@@ -442,7 +442,7 @@ export async function POST(request: NextRequest) {
 
 ### 5. Add Logout Confirmation Dialog Component
 
-**File**: `web-admin/components/auth/logout-confirmation-dialog.tsx` (NEW - Optional, if not using CmxAlertDialog)**Note**: We'll use existing `CmxAlertDialog` component, but this file can be created if custom styling is needed.
+**File**: `web-admin/src/features/auth/ui/logout-confirmation-dialog.tsx` (NEW - Optional, if not using CmxAlertDialog) **Note**: We'll use existing `CmxAlertDialog` component, but this file can be created if custom styling is needed.
 
 ### 6. Add Logout Reason Tracking
 

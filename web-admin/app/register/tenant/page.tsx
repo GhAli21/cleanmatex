@@ -8,7 +8,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button, Input, Select, Card, CardHeader, Alert } from '@ui/compat';
+import { CmxButton, CmxInput, CmxSelect, Alert } from '@ui/primitives';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
 
 type Step = 1 | 2 | 3;
@@ -241,192 +241,225 @@ export default function TenantRegisterPage() {
         )}
 
         {/* Form Card */}
-        <Card>
-          <CardHeader
-            title={
-              step === 1
-                ? 'Business Information'
-                : step === 2
-                ? 'Regional Preferences'
-                : 'Admin Account'
-            }
-            subtitle={
-              step === 1
-                ? 'Tell us about your laundry business'
-                : step === 2
-                ? 'Configure your regional settings'
-                : 'Create your administrator account'
-            }
-          />
-
+        <CmxCard>
+          <CmxCardHeader>
+            <div>
+              <CmxCardTitle>
+                {step === 1
+                  ? 'Business Information'
+                  : step === 2
+                  ? 'Regional Preferences'
+                  : 'Admin Account'}
+              </CmxCardTitle>
+              <CmxCardDescription>
+                {step === 1
+                  ? 'Tell us about your laundry business'
+                  : step === 2
+                  ? 'Configure your regional settings'
+                  : 'Create your administrator account'}
+              </CmxCardDescription>
+            </div>
+          </CmxCardHeader>
+          <CmxCardContent>
           {/* Step 1: Business Info */}
           {step === 1 && (
             <div className="space-y-4">
-              <Input
-                label="Business Name"
-                value={formData.businessName}
-                onChange={(e) => handleBusinessNameChange(e.target.value)}
-                error={errors.businessName}
-                placeholder="e.g., Fresh Clean Laundry"
-                required
-              />
-
-              <Input
-                label="Business Name (Arabic)"
-                value={formData.businessNameAr || ''}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, businessNameAr: e.target.value }))
-                }
-                placeholder="e.g., مغسلة فريش كلين"
-                helpText="Optional: Arabic name for bilingual support"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name <span className="text-red-500">*</span></label>
+                <CmxInput
+                  value={formData.businessName}
+                  onChange={(e) => handleBusinessNameChange(e.target.value)}
+                  placeholder="e.g., Fresh Clean Laundry"
+                  required
+                  className="w-full"
+                />
+                {errors.businessName && <p className="mt-1 text-sm text-red-600">{errors.businessName}</p>}
+              </div>
 
               <div>
-                <Input
-                  label="Slug (URL Identifier)"
-                  value={formData.slug}
-                  onChange={(e) => {
-                    setFormData((prev) => ({ ...prev, slug: e.target.value }));
-                    setSlugAvailable(null);
-                    setSlugAvailable(null);
-                  }}
-                  onBlur={() => checkSlugAvailability(formData.slug)}
-                  error={errors.slug}
-                  placeholder="e.g., fresh-clean"
-                  required
-                  helpText="Will be used in your URL: app.cleanmatex.com/fresh-clean"
-                  rightIcon={
-                    slugChecking ? (
+                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (Arabic)</label>
+                <CmxInput
+                  value={formData.businessNameAr || ''}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, businessNameAr: e.target.value }))
+                  }
+                  placeholder="e.g., مغسلة فريش كلين"
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-gray-500">Optional: Arabic name for bilingual support</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Slug (URL Identifier) <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <CmxInput
+                    value={formData.slug}
+                    onChange={(e) => {
+                      setFormData((prev) => ({ ...prev, slug: e.target.value }));
+                      setSlugAvailable(null);
+                    }}
+                    onBlur={() => checkSlugAvailability(formData.slug)}
+                    placeholder="e.g., fresh-clean"
+                    required
+                    className="w-full pr-20"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm">
+                    {slugChecking ? (
                       <span className="text-gray-400">Checking...</span>
                     ) : slugAvailable === true ? (
                       <span className="text-green-500">✓</span>
                     ) : slugAvailable === false ? (
                       <span className="text-red-500">✗</span>
-                    ) : null
-                  }
-                />
+                    ) : null}
+                  </div>
+                </div>
+                {errors.slug && <p className="mt-1 text-sm text-red-600">{errors.slug}</p>}
+                <p className="mt-1 text-xs text-gray-500">Will be used in your URL: app.cleanmatex.com/fresh-clean</p>
               </div>
 
-              <Input
-                label="Business Email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                error={errors.email}
-                placeholder="admin@freshclean.com"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Business Email <span className="text-red-500">*</span></label>
+                <CmxInput
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  }
+                  placeholder="admin@freshclean.com"
+                  required
+                  className="w-full"
+                />
+                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+              </div>
 
-              <Input
-                label="Phone Number"
-                type="tel"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, phone: e.target.value }))
-                }
-                error={errors.phone}
-                placeholder="+968 9012 3456"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                <CmxInput
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, phone: e.target.value }))
+                  }
+                  placeholder="+968 9012 3456"
+                  required
+                  className="w-full"
+                />
+                {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+              </div>
             </div>
           )}
 
           {/* Step 2: Preferences */}
           {step === 2 && (
             <div className="space-y-4">
-              <Select
-                label="Country"
-                value={formData.country}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, country: e.target.value }))
-                }
-                options={COUNTRIES}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Country <span className="text-red-500">*</span></label>
+                <CmxSelect
+                  value={formData.country}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, country: e.target.value }))
+                  }
+                  options={COUNTRIES}
+                  required
+                />
+              </div>
 
-              <Select
-                label="Currency"
-                value={formData.currency}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, currency: e.target.value }))
-                }
-                options={CURRENCIES}
-                required
-                helpText="Used for invoices and pricing"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Currency <span className="text-red-500">*</span></label>
+                <CmxSelect
+                  value={formData.currency}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, currency: e.target.value }))
+                  }
+                  options={CURRENCIES}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">Used for invoices and pricing</p>
+              </div>
 
-              <Select
-                label="Timezone"
-                value={formData.timezone}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, timezone: e.target.value }))
-                }
-                options={TIMEZONES}
-                required
-                helpText="For scheduling and timestamps"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Timezone <span className="text-red-500">*</span></label>
+                <CmxSelect
+                  value={formData.timezone}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, timezone: e.target.value }))
+                  }
+                  options={TIMEZONES}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500">For scheduling and timestamps</p>
+              </div>
 
-              <Select
-                label="Default Language"
-                value={formData.language}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, language: e.target.value }))
-                }
-                options={LANGUAGES}
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Default Language <span className="text-red-500">*</span></label>
+                <CmxSelect
+                  value={formData.language}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, language: e.target.value }))
+                  }
+                  options={LANGUAGES}
+                  required
+                />
+              </div>
             </div>
           )}
 
           {/* Step 3: Admin Account */}
           {step === 3 && (
             <div className="space-y-4">
-              <Input
-                label="Admin Email"
-                type="email"
-                value={formData.adminUser.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    adminUser: { ...prev.adminUser, email: e.target.value },
-                  }))
-                }
-                error={errors.adminEmail}
-                placeholder="admin@freshclean.com"
-                required
-                helpText="You'll use this email to log in"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email <span className="text-red-500">*</span></label>
+                <CmxInput
+                  type="email"
+                  value={formData.adminUser.email}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adminUser: { ...prev.adminUser, email: e.target.value },
+                    }))
+                  }
+                  placeholder="admin@freshclean.com"
+                  required
+                  className="w-full"
+                />
+                {errors.adminEmail && <p className="mt-1 text-sm text-red-600">{errors.adminEmail}</p>}
+                <p className="mt-1 text-xs text-gray-500">You'll use this email to log in</p>
+              </div>
 
-              <Input
-                label="Password"
-                type="password"
-                value={formData.adminUser.password}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    adminUser: { ...prev.adminUser, password: e.target.value },
-                  }))
-                }
-                error={errors.adminPassword}
-                required
-                helpText="Min 8 characters with uppercase, number, and special character"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password <span className="text-red-500">*</span></label>
+                <CmxInput
+                  type="password"
+                  value={formData.adminUser.password}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adminUser: { ...prev.adminUser, password: e.target.value },
+                    }))
+                  }
+                  required
+                  className="w-full"
+                />
+                {errors.adminPassword && <p className="mt-1 text-sm text-red-600">{errors.adminPassword}</p>}
+                <p className="mt-1 text-xs text-gray-500">Min 8 characters with uppercase, number, and special character</p>
+              </div>
 
-              <Input
-                label="Display Name"
-                value={formData.adminUser.displayName}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    adminUser: { ...prev.adminUser, displayName: e.target.value },
-                  }))
-                }
-                error={errors.adminDisplayName}
-                placeholder="John Admin"
-                required
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name <span className="text-red-500">*</span></label>
+                <CmxInput
+                  value={formData.adminUser.displayName}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adminUser: { ...prev.adminUser, displayName: e.target.value },
+                    }))
+                  }
+                  placeholder="John Admin"
+                  required
+                  className="w-full"
+                />
+                {errors.adminDisplayName && <p className="mt-1 text-sm text-red-600">{errors.adminDisplayName}</p>}
+              </div>
 
               <Alert
                 variant="info"
@@ -437,23 +470,24 @@ export default function TenantRegisterPage() {
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            <Button
+            <CmxButton
               variant="outline"
               onClick={handleBack}
               disabled={step === 1}
             >
               Back
-            </Button>
+            </CmxButton>
 
             {step < 3 ? (
-              <Button onClick={handleNext}>Next</Button>
+              <CmxButton onClick={handleNext}>Next</CmxButton>
             ) : (
-              <Button onClick={handleSubmit} isLoading={isLoading}>
+              <CmxButton onClick={handleSubmit} loading={isLoading}>
                 Create Account
-              </Button>
+              </CmxButton>
             )}
           </div>
-        </Card>
+          </CmxCardContent>
+        </CmxCard>
 
         {/* Login Link */}
         <p className="mt-6 text-center text-sm text-gray-600">

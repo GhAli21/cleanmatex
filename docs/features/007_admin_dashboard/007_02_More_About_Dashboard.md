@@ -16,7 +16,7 @@ Sidebar collapse on <1024px breakpoint
 Persistent sidebar state across routes
 Keyboard navigation support (Tab + arrows)
 1.2 Sidebar Navigation Component
-File: web-admin/components/layout/Sidebar.tsx
+File: web-admin/src/ui/navigation/cmx-sidebar.tsx
 Dynamic menu generation from config JSON
 Role-based menu filtering (admin/staff/driver)
 Feature flag integration (hide disabled features)
@@ -25,7 +25,7 @@ Icon mapping from Lucide React
 Collapsible sections
 Mobile drawer variant
 1.3 Top Bar Component
-File: web-admin/components/layout/TopBar.tsx
+File: web-admin/src/ui/navigation/cmx-top-bar.tsx
 Tenant switcher (multi-tenant support)
 Notifications panel (right drawer)
 User profile dropdown
@@ -64,8 +64,8 @@ Feature flag enforcement
 Redirect to /unauthorized if blocked
 2.3 UI Component Guards
 Files:
-web-admin/components/auth/RequireRole.tsx - Component wrapper
-web-admin/components/auth/RequireFeature.tsx - Feature flag wrapper
+web-admin/src/features/auth/ui/RequireRole.tsx - Component wrapper
+web-admin/src/features/auth/ui/RequireFeature.tsx - Feature flag wrapper
 <RequireRole roles={["admin"]}>
   <AdminOnlyContent />
 </RequireRole>

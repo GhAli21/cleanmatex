@@ -45,7 +45,7 @@ todos:
 - [`web-admin/app/dashboard/orders/new/components/order-header-nav.tsx`](web-admin/app/dashboard/orders/new/components/order-header-nav.tsx)
 - [`web-admin/app/dashboard/orders/new/components/order-summary-panel.tsx`](web-admin/app/dashboard/orders/new/components/order-summary-panel.tsx)
 - Order state & hooks: [`web-admin/src/features/orders/ui/context/new-order-context.tsx`](web-admin/src/features/orders/ui/context/new-order-context.tsx), [`web-admin/src/features/orders/ui/context/new-order-reducer.ts`](web-admin/src/features/orders/ui/context/new-order-reducer.ts), [`web-admin/src/features/orders/hooks/use-new-order-state.ts`](web-admin/src/features/orders/hooks/use-new-order-state.ts).
-- Existing order pieces list/table components if reusable: e.g. [`web-admin/app/dashboard/orders/components/order-items-list.tsx`](web-admin/app/dashboard/orders/components/order-items-list.tsx), [`web-admin/components/orders/OrderPiecesManager.tsx`](web-admin/components/orders/OrderPiecesManager.tsx).
+- Existing order pieces list/table components if reusable: e.g. [`web-admin/app/dashboard/orders/components/order-items-list.tsx`](web-admin/app/dashboard/orders/components/order-items-list.tsx), [`web-admin/src/features/orders/ui/OrderPiecesManager.tsx`](web-admin/src/features/orders/ui/OrderPiecesManager.tsx).
 
 ## High-Level Design
 

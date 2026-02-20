@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
-import { Card, Button, Input, Select, Badge } from '@ui/compat'
+import { CmxInput, CmxSelect } from '@ui/primitives'
+import { CmxCard } from '@ui/primitives/cmx-card'
+import { Badge } from '@ui/primitives/badge'
+import { CmxButton } from '@ui/primitives'
 import ImportModal from '@features/catalog/ui/import-modal'
 import ExportModal from '@features/catalog/ui/export-modal'
 
@@ -100,24 +103,24 @@ export default function ServicesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('products')}</h1>
         <div className="flex items-center gap-2">
-          <Button onClick={() => window.location.assign('/dashboard/catalog/services/new')}>{t('newProduct')}</Button>
-          <Button variant="secondary" onClick={() => setShowExport(true)}>
+          <CmxButton onClick={() => window.location.assign('/dashboard/catalog/services/new')}>{t('newProduct')}</CmxButton>
+          <CmxButton variant="secondary" onClick={() => setShowExport(true)}>
             {t('export')}
-          </Button>
-          <Button variant="secondary" onClick={() => setShowImport(true)}>
+          </CmxButton>
+          <CmxButton variant="secondary" onClick={() => setShowImport(true)}>
             {tCommon('import')}
-          </Button>
+          </CmxButton>
         </div>
       </div>
 
-      <Card className="p-4">
+      <CmxCard className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <Input
+          <CmxInput
             placeholder={t('productName')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Select
+          <CmxSelect
             value={status}
             onChange={(e) => setStatus(e.target.value as any)}
             options={[
@@ -126,21 +129,21 @@ export default function ServicesPage() {
               { value: 'inactive', label: t('disableCategories') }
             ]}
           />
-          <Input
+          <CmxInput
             placeholder={t('category')}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
           <div className="flex gap-2">
-            <Button type="submit">{t('search')}</Button>
-            <Button type="button" variant="secondary" onClick={onClearFilters}>
+            <CmxButton type="submit">{t('search')}</CmxButton>
+            <CmxButton type="button" variant="secondary" onClick={onClearFilters}>
               {tCommon('clearFilters')}
-            </Button>
+            </CmxButton>
           </div>
         </form>
-      </Card>
+      </CmxCard>
 
-      <Card className="p-0 overflow-hidden">
+      <CmxCard className="p-0 overflow-hidden">
         {loading ? (
           <div className="p-4 text-gray-500">{tCommon('loading')}</div>
         ) : products.length === 0 ? (
@@ -170,9 +173,9 @@ export default function ServicesPage() {
                     <td className="px-4 py-2">{p.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}</td>
                     <td className="px-4 py-2">
                       <div className="flex gap-2">
-                        <Button size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/services/${p.id}`)}>
+                        <CmxButton size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/services/${p.id}`)}>
                           {t('editProduct')}
-                        </Button>
+                        </CmxButton>
                       </div>
                     </td>
                   </tr>
@@ -187,23 +190,23 @@ export default function ServicesPage() {
             {pagination.total} / {pagination.totalPages}
           </div>
           <div className="flex gap-2">
-            <Button
+            <CmxButton
               variant="secondary"
               disabled={pagination.page <= 1}
               onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
             >
               {t('previous')}
-            </Button>
-            <Button
+            </CmxButton>
+            <CmxButton
               variant="secondary"
               disabled={pagination.page >= pagination.totalPages}
               onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
             >
               {t('next')}
-            </Button>
+            </CmxButton>
           </div>
         </div>
-      </Card>
+      </CmxCard>
 
       {showImport && <ImportModal onClose={() => { setShowImport(false); load() }} />}
       {showExport && <ExportModal onClose={() => setShowExport(false)} />}

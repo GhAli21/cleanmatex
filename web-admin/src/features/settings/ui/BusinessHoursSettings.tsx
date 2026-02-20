@@ -6,8 +6,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardFooter, Alert } from '@ui/compat';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, Alert } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card';
 import type { Tenant, BusinessHours, DayHours } from '@/lib/types/tenant';
 import type { ResolvedSetting } from '@/lib/api/settings-client';
 
@@ -83,12 +83,14 @@ export function BusinessHoursSettings({ tenant, onUpdate, effectiveSettings }: B
 
   return (
     <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader
-          title="Business Hours"
-          subtitle="Set your weekly operating hours"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Business Hours</CmxCardTitle>
+            <CmxCardDescription>Set your weekly operating hours</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         {success && (
           <Alert variant="success" message={success} onClose={() => setSuccess('')} className="mb-4" />
         )}
@@ -146,8 +148,8 @@ export function BusinessHoursSettings({ tenant, onUpdate, effectiveSettings }: B
             );
           })}
         </div>
-
-        <CardFooter>
+        </CmxCardContent>
+        <CmxCardFooter>
           <div className="flex justify-end gap-3">
             <CmxButton
               type="button"
@@ -160,8 +162,8 @@ export function BusinessHoursSettings({ tenant, onUpdate, effectiveSettings }: B
               Save Hours
             </CmxButton>
           </div>
-        </CardFooter>
-      </Card>
+        </CmxCardFooter>
+      </CmxCard>
     </form>
   );
 }

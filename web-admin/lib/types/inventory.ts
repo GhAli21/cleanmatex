@@ -270,6 +270,7 @@ export interface InventorySearchParams {
   page?: number;
   limit?: number;
   search?: string;
+  product_id?: string;
   item_type_code?: string;
   stock_status?: StockStatus;
   is_active?: boolean;

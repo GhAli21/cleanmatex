@@ -11,7 +11,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Building2 } from 'lucide-react';
-import { Card, Button, Tabs, Alert } from '@ui/compat';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { CmxButton, Alert } from '@ui/primitives';
+import { CmxTabsPanel } from '@ui/navigation';
 import { settingsClient, type ResolvedSetting, type SettingDefinition } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
@@ -149,7 +151,7 @@ export default function BranchSettingsPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-6">
-        <Button
+        <CmxButton
           variant="ghost"
           size="sm"
           onClick={() => router.back()}
@@ -157,7 +159,7 @@ export default function BranchSettingsPage() {
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Settings
-        </Button>
+        </CmxButton>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -172,21 +174,21 @@ export default function BranchSettingsPage() {
             </div>
           </div>
 
-          <Button variant="outline" onClick={handleResetAll}>
+          <CmxButton variant="outline" onClick={handleResetAll}>
             Reset All Overrides
-          </Button>
+          </CmxButton>
         </div>
       </div>
 
       {/* Info Banner */}
-      <Card className="mb-6 p-4 bg-purple-50 border-purple-200">
+      <CmxCard className="mb-6 p-4 bg-purple-50 border-purple-200">
         <p className="text-sm text-purple-800">
           Branch-level overrides apply to all users in this branch and take precedence over tenant-level settings.
         </p>
-      </Card>
+      </CmxCard>
 
       {/* Settings Tabs */}
-      <Tabs tabs={tabs} defaultTab={tabs[0]?.id} />
+      <CmxTabsPanel tabs={tabs} defaultTab={tabs[0]?.id} />
     </div>
   );
 }

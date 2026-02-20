@@ -64,7 +64,7 @@ web-admin/app/dashboard/orders/[id]/
 
 ## 3. Tabbed Layout for Order-Related Data (Full Page)
 
-Use the existing `[Tabs](web-admin/components/ui/Tabs.tsx)` component with URL-synced active tab via `?tab=<tabId>`.
+Use the existing `[Tabs](web-admin/src/ui/compat/Tabs.tsx)` component with URL-synced active tab via `?tab=<tabId>`.
 
 **Tab structure (below the order header):**
 
@@ -237,7 +237,7 @@ Search `en.json` / `ar.json` for existing keys. Add as needed:
 | `web-admin/app/dashboard/orders/[id]/full/page.tsx`                      | **New** — Full page server component                                           |
 | `web-admin/app/dashboard/orders/[id]/full/order-details-full-client.tsx` | **New** — Full client with tabs, status control                                |
 | `web-admin/app/dashboard/orders/[id]/full/components/`                   | **New** — order-detail-tabs.tsx, orders--tab-rprt.tsx                          |
-| `web-admin/components/ui/Tabs.tsx`                                       | Add optional controlled mode (`value`, `onChange`)                             |
+| `web-admin/src/ui/compat/Tabs.tsx`                                       | Add optional controlled mode (`value`, `onChange`)                             |
 | `web-admin/messages/en.json`, `ar.json`                                  | Add tab labels, buttons, empty states, "View full details"                     |
 | `web-admin/app/actions/`                                                 | Optional: server actions for getVouchersForOrder, getStockTransactionsForOrder |
 

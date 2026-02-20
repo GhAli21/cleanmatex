@@ -14,13 +14,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Tabs,
-  Card,
-  Alert,
-  Badge,
-  Button,
-} from '@ui/compat';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { Badge } from '@ui/primitives/badge';
+import { CmxButton, Alert } from '@ui/primitives';
+import { CmxTabsPanel } from '@ui/navigation';
 import { Info, HelpCircle } from 'lucide-react';
 import type { Tenant } from '@/lib/types/tenant';
 import { GeneralSettings } from '@features/settings/ui/GeneralSettings';
@@ -97,7 +94,7 @@ export default function SettingsPage() {
     {
       id: 'general',
       label: 'General',
-      icon: '⚙️',
+      icon: <span>⚙️</span>,
       content: (
         <GeneralSettings
           tenant={tenant}
@@ -109,7 +106,7 @@ export default function SettingsPage() {
     {
       id: 'branding',
       label: 'Branding',
-      icon: '🎨',
+      icon: <span>🎨</span>,
       content: (
         <BrandingSettings
           tenant={tenant}
@@ -121,7 +118,7 @@ export default function SettingsPage() {
     {
       id: 'hours',
       label: 'Business Hours',
-      icon: '🕒',
+      icon: <span>🕒</span>,
       content: (
         <BusinessHoursSettings
           tenant={tenant}
@@ -133,7 +130,7 @@ export default function SettingsPage() {
     {
       id: 'subscription',
       label: 'Subscription',
-      icon: '💳',
+      icon: <span>💳</span>,
       content: <SubscriptionSettings tenant={tenant} />,
     },
   ];
@@ -162,7 +159,7 @@ export default function SettingsPage() {
 
       {/* Info Banner */}
       <div className="mb-6">
-        <Card className="bg-blue-50 border-blue-200">
+        <CmxCard className="bg-blue-50 border-blue-200">
           <div className="p-4 flex items-start gap-3">
             <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
@@ -173,21 +170,21 @@ export default function SettingsPage() {
                 Settings are resolved through 7 layers: System Default → Profile → Plan → Feature Flags → Tenant → Branch → User.
                 Look for source badges next to each setting to see where the value comes from.
               </p>
-              <Button
-                variant="link"
+              <CmxButton
+                variant="ghost"
                 size="sm"
                 className="mt-2 text-blue-700 hover:text-blue-900 p-0 h-auto"
               >
                 <HelpCircle className="h-4 w-4 mr-1" />
                 Learn more about settings resolution
-              </Button>
+              </CmxButton>
             </div>
           </div>
-        </Card>
+        </CmxCard>
       </div>
 
       {/* Tabs */}
-      <Tabs tabs={tabs} defaultTab="general" />
+      <CmxTabsPanel tabs={tabs} defaultTab="general" />
     </div>
   );
 }

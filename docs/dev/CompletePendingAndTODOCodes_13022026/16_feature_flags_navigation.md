@@ -6,8 +6,8 @@ RequireFeature and useFeature now fetch from `/api/feature-flags` instead of moc
 
 ## Files Affected
 
-- `web-admin/components/auth/RequireFeature.tsx`
-- `web-admin/components/layout/TopBar.tsx`
+- `web-admin/src/features/auth/ui/RequireFeature.tsx`
+- `web-admin/src/ui/navigation/cmx-top-bar.tsx`
 
 ## Code Before
 

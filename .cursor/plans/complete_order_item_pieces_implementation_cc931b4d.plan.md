@@ -87,7 +87,7 @@ This plan covers all remaining work to fully implement and polish the order item
 
 ### 7.1 Create Error Boundary Component
 
-**File:** `web-admin/components/orders/PiecesErrorBoundary.tsx`**Features:**
+**File:** `web-admin/src/features/orders/ui/PiecesErrorBoundary.tsx` **Features:**
 
 - Wrap OrderPiecesManager and related components
 - Display user-friendly error messages

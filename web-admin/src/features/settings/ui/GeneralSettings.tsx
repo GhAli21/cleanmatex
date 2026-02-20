@@ -6,8 +6,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardHeader, CardFooter, Input, Select, Alert } from '@ui/compat';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxInput, Alert } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card';
 import type { Tenant, TenantUpdateRequest } from '@/lib/types/tenant';
 import type { ResolvedSetting } from '@/lib/api/settings-client';
 
@@ -95,12 +95,14 @@ export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: General
 
   return (
     <form onSubmit={handleSubmit}>
-      <Card>
-        <CardHeader
-          title="General Information"
-          subtitle="Update your business name, contact details, and regional settings"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>General Information</CmxCardTitle>
+            <CmxCardDescription>Update your business name, contact details, and regional settings</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         {success && (
           <Alert
             variant="success"
@@ -117,55 +119,73 @@ export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: General
         <div className="space-y-6">
           {/* Business Name */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Business Name (English)"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (English) <span className="text-red-500">*</span></label>
+              <CmxInput
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                required
+                className="w-full"
+              />
+            </div>
 
-            <Input
-              label="Business Name (Arabic)"
-              value={formData.name2}
-              onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
-              placeholder="Optional"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Business Name (Arabic)</label>
+              <CmxInput
+                value={formData.name2}
+                onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
+                placeholder="Optional"
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Contact Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Email"
-              type="email"
-              value={tenant.email}
-              disabled
-              helpText="Contact support to change email"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <CmxInput
+                type="email"
+                value={tenant.email}
+                disabled
+                className="w-full"
+              />
+              <p className="mt-1 text-xs text-gray-500">Contact support to change email</p>
+            </div>
 
-            <Input
-              label="Phone Number"
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+              <CmxInput
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                required
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Address */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Address"
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              placeholder="Building number, street name"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
+              <CmxInput
+                value={formData.address}
+                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                placeholder="Building number, street name"
+                className="w-full"
+              />
+            </div>
 
-            <Input
-              label="City"
-              value={formData.city}
-              onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-              placeholder="e.g., Muscat"
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+              <CmxInput
+                value={formData.city}
+                onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                placeholder="e.g., Muscat"
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Regional Settings */}
@@ -223,8 +243,9 @@ export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: General
             </div>
           </div>
         </div>
+        </CmxCardContent>
 
-        <CardFooter>
+        <CmxCardFooter>
           <div className="flex justify-end gap-3">
             <CmxButton
               type="button"
@@ -243,8 +264,8 @@ export function GeneralSettings({ tenant, onUpdate, effectiveSettings }: General
               Save Changes
             </CmxButton>
           </div>
-        </CardFooter>
-      </Card>
+        </CmxCardFooter>
+      </CmxCard>
     </form>
   );
 }

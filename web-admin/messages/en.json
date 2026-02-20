@@ -2950,7 +2950,9 @@
       "branchRequired": "Please select a branch to adjust stock",
       "viewingBranchContext": "Viewing stock for {branch}. Branch-specific values (SKU, Storage Location) override product defaults.",
       "productMasterDescription": "These fields apply globally to the product across all branches.",
-      "branchStockDescription": "Branch-specific overrides. Leave empty to use product defaults."
+      "branchStockDescription": "Branch-specific overrides. Leave empty to use product defaults.",
+      "viewingProductFromOrder": "Viewing stock for product from order.",
+      "showAllItems": "Show all items"
     },
     "placeholders": {
       "reason": "e.g. Restocked from supplier, damaged goods..."

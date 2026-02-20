@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Switch, Button, Card, Badge } from '@ui/compat';
+import { CmxSwitch } from '@ui/primitives';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { Badge } from '@ui/primitives/badge';
+import { CmxButton } from '@ui/primitives';
 import { useAuth } from "@/lib/auth/auth-context";
 
 interface ServiceCategory {
@@ -99,9 +102,9 @@ export default function CategoriesPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t("categories")}</h1>
         <div className="flex items-center gap-2">
-          <Button onClick={onSave} disabled={saving || loading}>
+          <CmxButton onClick={onSave} disabled={saving || loading} loading={saving}>
             {saving ? tCommon("loading") : t("saveCategories")}
-          </Button>
+          </CmxButton>
         </div>
       </div>
 
@@ -116,7 +119,7 @@ export default function CategoriesPage() {
         </div>
       )}
 
-      <Card className="p-4">
+      <CmxCard className="p-4">
         {loading ? (
           <div className="text-gray-500">{tCommon("loading")}</div>
         ) : categories.length === 0 ? (
@@ -147,7 +150,7 @@ export default function CategoriesPage() {
                     <p className="text-xs text-gray-400">{ctg.service_category_code}</p>
                   </div>
 
-                  <Switch
+                  <CmxSwitch
                     checked={enabled}
                     onCheckedChange={() => toggleCategory(ctg.service_category_code)}
                   />
@@ -156,7 +159,7 @@ export default function CategoriesPage() {
             })}
           </div>
         )}
-      </Card>
+      </CmxCard>
     </div>
   );
 }

@@ -16,7 +16,7 @@ Sidebar collapse on <1024px breakpoint
 Persistent sidebar state across routes
 Keyboard navigation support (Tab + arrows)
 1.2 Sidebar Navigation Component
-File: web-admin/components/layout/Sidebar.tsx
+File: web-admin/src/ui/navigation/cmx-sidebar.tsx
 Dynamic menu generation from config JSON
 Role-based menu filtering (admin/staff/driver)
 Feature flag integration (hide disabled features)
@@ -25,7 +25,7 @@ Icon mapping from Lucide React
 Collapsible sections
 Mobile drawer variant
 1.3 Top Bar Component
-File: web-admin/components/layout/TopBar.tsx
+File: web-admin/src/ui/navigation/cmx-top-bar.tsx
 Tenant switcher (multi-tenant support)
 Notifications panel (right drawer)
 User profile dropdown
@@ -64,8 +64,8 @@ Feature flag enforcement
 Redirect to /unauthorized if blocked
 2.3 UI Component Guards
 Files:
-web-admin/components/auth/RequireRole.tsx - Component wrapper
-web-admin/components/auth/RequireFeature.tsx - Feature flag wrapper
+web-admin/src/features/auth/ui/RequireRole.tsx - Component wrapper
+web-admin/src/features/auth/ui/RequireFeature.tsx - Feature flag wrapper
 <RequireRole roles={["admin"]}>
   <AdminOnlyContent />
 </RequireRole>
@@ -75,14 +75,14 @@ web-admin/components/auth/RequireFeature.tsx - Feature flag wrapper
 </RequireFeature>
 Phase 3: Dashboard Widgets & KPIs
 3.1 Widget Framework
-File: web-admin/components/dashboard/Widget.tsx
+File: web-admin/src/features/dashboard/ui/Widget.tsx
 Lazy-loading widget container
 Skeleton loading states
 Error boundaries
 Auto-refresh capability (default 60s)
 Role/feature flag visibility
 3.2 KPI Widgets (from PRD-007)
-Files: web-admin/components/dashboard/widgets/
+Files: web-admin/src/features/dashboard/ui/
 OrdersToday.tsx - Today's order count + Δ vs last week
 OrderStatus.tsx - In-Process/Ready/Out-for-Delivery counts
 Revenue.tsx - Today, MTD, Last 30d revenue
@@ -101,12 +101,12 @@ Tenant-scoped queries
 Performance monitoring (p50<300ms, p95<800ms)
 Phase 4: Quick Actions & Filters
 4.1 Quick Actions Strip
-File: web-admin/components/dashboard/QuickActions.tsx
+File: web-admin/src/features/dashboard/ui/QuickActions.tsx
 Sticky action bar at top of content
 Buttons: "New Order", "Receive Bag", "Assign Driver", "Cash Up", "Generate Invoice", "Send WhatsApp Update"
 Feature flag visibility (e.g., PDF invoices, printing)
 4.2 Global Filters Bar
-File: web-admin/components/dashboard/GlobalFilters.tsx
+File: web-admin/src/features/dashboard/ui/GlobalFilters.tsx
 Branch selector (multi-branch support)
 Date range (Today, 7d, 30d, custom)
 Order source (POS, Mobile, Marketplace, Internal)
@@ -115,7 +115,7 @@ B2C/B2B toggle
 Filter state synced to URL query params
 Phase 5: Notifications Panel
 5.1 Notifications Drawer
-File: web-admin/components/layout/NotificationsPanel.tsx
+File: web-admin/src/ui/navigation/NotificationsPanel.tsx
 Right-side drawer overlay
 Real-time updates via Supabase Realtime
 Notification types:
@@ -223,7 +223,7 @@ web-admin/lib/auth/auth-context.tsx - Add role helpers
 web-admin/middleware.ts - Add route guards
 web-admin/app/dashboard/page.tsx - Replace with widget grid
 web-admin/lib/services/feature-flags.service.ts - Add UI integration
-web-admin/components/ui/index.ts - Export new components
+web-admin/src/ui/index.ts - Export new components
 Acceptance Criteria
  Dashboard renders <1s above-the-fold
  All KPIs correct vs SQL baselines

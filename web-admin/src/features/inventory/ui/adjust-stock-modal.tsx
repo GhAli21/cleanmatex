@@ -10,7 +10,7 @@ import {
   CmxDialogFooter,
 } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
-import { Input } from '@ui/compat';
+import { CmxInput } from '@ui/primitives';
 import { ADJUSTMENT_ACTIONS } from '@/lib/constants/inventory';
 import { stockAdjustmentSchema } from '@/lib/validations/inventory-schemas';
 import { adjustStockAction } from '@/app/actions/inventory/inventory-actions';
@@ -172,25 +172,31 @@ export default function AdjustStockModal({ item, onClose, onSuccess, branchId: i
               </div>
             </div>
 
-            <Input
-              label={t('labels.quantity')}
-              type="number"
-              step="0.01"
-              min={action === ADJUSTMENT_ACTIONS.SET ? undefined : '0'}
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              error={fieldErrors.quantity}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.quantity')} <span className="text-red-500">*</span></label>
+              <CmxInput
+                type="number"
+                step="0.01"
+                min={action === ADJUSTMENT_ACTIONS.SET ? undefined : '0'}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                required
+                className="w-full"
+              />
+              {fieldErrors.quantity && <p className="mt-1 text-sm text-red-600">{fieldErrors.quantity}</p>}
+            </div>
 
-            <Input
-              label={t('labels.reason')}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder={t('placeholders.reason')}
-              error={fieldErrors.reason}
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('labels.reason')} <span className="text-red-500">*</span></label>
+              <CmxInput
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder={t('placeholders.reason')}
+                required
+                className="w-full"
+              />
+              {fieldErrors.reason && <p className="mt-1 text-sm text-red-600">{fieldErrors.reason}</p>}
+            </div>
           </div>
 
           <CmxDialogFooter>

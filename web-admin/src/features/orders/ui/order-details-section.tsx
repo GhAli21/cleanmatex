@@ -13,7 +13,7 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import type { PreSubmissionPiece } from '../model/new-order-types';
-import { Input, Textarea, Checkbox } from '@ui/compat';
+import { CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 
 const VIRTUALIZED_ITEM_LIMIT = 100;
 
@@ -362,7 +362,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                               <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
                                 {tPieces('color')}
                               </label>
-                              <Input
+                              <CmxInput
                                 value={piece.color || ''}
                                 onChange={(event) =>
                                   handlePieceUpdate(item.productId, piece.id, {
@@ -378,7 +378,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                               <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
                                 {tPieces('brand')}
                               </label>
-                              <Input
+                              <CmxInput
                                 value={piece.brand || ''}
                                 onChange={(event) =>
                                   handlePieceUpdate(item.productId, piece.id, {
@@ -394,7 +394,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                               <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
                                 {tPieces('rackLocation')}
                               </label>
-                              <Input
+                              <CmxInput
                                 value={piece.rackLocation || ''}
                                 onChange={(event) =>
                                   handlePieceUpdate(item.productId, piece.id, {
@@ -407,20 +407,20 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                             </div>
 
                             <div className="flex items-center gap-3">
-                              <Checkbox
+                              <CmxCheckbox
                                 checked={piece.hasStain || false}
-                                onCheckedChange={(checked) =>
+                                onChange={(e) =>
                                   handlePieceUpdate(item.productId, piece.id, {
-                                    hasStain: Boolean(checked),
+                                    hasStain: e.target.checked,
                                   })
                                 }
                                 label={tPieces('hasStain')}
                               />
-                              <Checkbox
+                              <CmxCheckbox
                                 checked={piece.hasDamage || false}
-                                onCheckedChange={(checked) =>
+                                onChange={(e) =>
                                   handlePieceUpdate(item.productId, piece.id, {
-                                    hasDamage: Boolean(checked),
+                                    hasDamage: e.target.checked,
                                   })
                                 }
                                 label={tPieces('hasDamage')}
@@ -442,7 +442,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                             <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
                               {tPieces('notes')}
                             </label>
-                            <Textarea
+                            <CmxTextarea
                               value={piece.notes || ''}
                               onChange={(event) =>
                                 handlePieceUpdate(item.productId, piece.id, {
@@ -450,7 +450,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                                 })
                               }
                               placeholder={tPieces('notesPlaceholder')}
-                              className="h-16 text-[11px] resize-none"
+                              className="h-16 text-[11px] resize-none w-full"
                             />
                           </div>
                         </div>

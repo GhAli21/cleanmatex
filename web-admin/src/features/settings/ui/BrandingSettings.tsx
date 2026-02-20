@@ -6,8 +6,8 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Card, CardHeader, CardFooter, Alert } from '@ui/compat';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, Alert } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card';
 import type { Tenant } from '@/lib/types/tenant';
 import type { ResolvedSetting } from '@/lib/api/settings-client';
 
@@ -138,12 +138,14 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
   return (
     <div className="space-y-6">
       {/* Logo Upload */}
-      <Card>
-        <CardHeader
-          title="Logo"
-          subtitle="Upload your business logo (max 2MB, PNG/JPG/SVG)"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Logo</CmxCardTitle>
+            <CmxCardDescription>Upload your business logo (max 2MB, PNG/JPG/SVG)</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         {success && (
           <Alert
             variant="success"
@@ -212,7 +214,7 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
                 <CmxButton
                   type="button"
                   onClick={handleUploadLogo}
-                  isLoading={isLoading}
+                  loading={isLoading}
                 >
                   Upload
                 </CmxButton>
@@ -220,9 +222,9 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
               {logoPreview && !logoFile && (
                 <CmxButton
                   type="button"
-                  variant="danger"
+                  variant="destructive"
                   onClick={handleRemoveLogo}
-                  isLoading={isLoading}
+                  loading={isLoading}
                 >
                   Remove Logo
                 </CmxButton>
@@ -235,15 +237,18 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
             )}
           </div>
         </div>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
 
       {/* Brand Colors */}
-      <Card>
-        <CardHeader
-          title="Brand Colors"
-          subtitle="Customize your brand colors (used in receipts and invoices)"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Brand Colors</CmxCardTitle>
+            <CmxCardDescription>Customize your brand colors (used in receipts and invoices)</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         <div className="space-y-4">
           {/* Primary Color */}
           <div>
@@ -299,8 +304,8 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
             </div>
           </div>
         </div>
-
-        <CardFooter>
+        </CmxCardContent>
+        <CmxCardFooter>
           <div className="flex justify-end gap-3">
             <CmxButton
               type="button"
@@ -315,18 +320,23 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
             <CmxButton
               type="button"
               onClick={handleSaveColors}
-              isLoading={isLoading}
+              loading={isLoading}
             >
               Save Colors
             </CmxButton>
           </div>
-        </CardFooter>
-      </Card>
+        </CmxCardFooter>
+      </CmxCard>
 
       {/* Preview */}
-      <Card>
-        <CardHeader title="Preview" subtitle="See how your branding looks" />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Preview</CmxCardTitle>
+            <CmxCardDescription>See how your branding looks</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         <div className="p-6 bg-gray-50 rounded-lg">
           <div className="bg-white p-6 rounded-lg shadow">
             {logoPreview && (
@@ -349,7 +359,8 @@ export function BrandingSettings({ tenant, onUpdate, effectiveSettings }: Brandi
             </div>
           </div>
         </div>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
     </div>
   );
 }

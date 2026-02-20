@@ -211,7 +211,7 @@ This plan implements all recommended enhancements to `cmxMessage` (Phase 0) befo
 
 ### 1.1 Add AlertDialogProvider to App Root
 
-- **File**: `web-admin/components/providers/AppProviders.tsx`
+- **File**: `web-admin/lib/providers/AppProviders.tsx`
 - **Action**: Import and add `AlertDialogProvider` wrapper
 - **Implementation**:
   ```typescript
@@ -240,7 +240,7 @@ This plan implements all recommended enhancements to `cmxMessage` (Phase 0) befo
 
 ### 1.2 Verify Sonner Configuration
 
-- **File**: `web-admin/components/providers/AppProviders.tsx`
+- **File**: `web-admin/lib/providers/AppProviders.tsx`
 - **Action**: Ensure Sonner Toaster is properly configured (already present)
 - **Verify**: RTL support, position, richColors, accessibility
 

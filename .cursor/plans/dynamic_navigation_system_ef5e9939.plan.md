@@ -247,7 +247,7 @@ Result:
 
 ### 1. Update Sidebar Component
 
-**File**: `web-admin/components/layout/Sidebar.tsx`
+**File**: `web-admin/src/ui/navigation/cmx-sidebar.tsx`
 
 **Changes**:
 
@@ -381,7 +381,7 @@ export function useNavigation() {
 
 **Modified Files**:
 
-1. `web-admin/components/layout/Sidebar.tsx` - Use API instead of import
+1. `web-admin/src/ui/navigation/cmx-sidebar.tsx` - Use API instead of import (was components/layout/Sidebar.tsx)
 2. `web-admin/config/navigation.ts` - Keep as fallback, add helper functions
 3. `web-admin/lib/cache/permission-cache-client.ts` - Add navigation caching
 

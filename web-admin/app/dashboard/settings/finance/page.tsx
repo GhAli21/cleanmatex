@@ -20,7 +20,9 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { Save, DollarSign, Info, AlertCircle } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
-import { Card, Button, Input } from '@ui/compat'
+import { CmxInput } from '@ui/primitives'
+import { CmxCard } from '@ui/primitives/cmx-card'
+import { CmxButton } from '@ui/primitives'
 
 interface TaxSettings {
   taxRate: number
@@ -132,7 +134,7 @@ export default function FinanceSettingsPage() {
 
   return (
     <div className="max-w-4xl">
-      <Card className="p-6">
+      <CmxCard className="p-6">
         <div className={`flex items-center gap-3 mb-6 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <div className="p-2 bg-blue-50 rounded-lg">
             <DollarSign className="h-6 w-6 text-blue-600" />
@@ -182,7 +184,7 @@ export default function FinanceSettingsPage() {
               Tax Rate (Decimal)
             </label>
             <div className="relative">
-              <Input
+              <CmxInput
                 type="number"
                 step="0.001"
                 min="0"
@@ -246,17 +248,17 @@ export default function FinanceSettingsPage() {
 
           {/* Save Button */}
           <div className={`flex items-center justify-end gap-3 pt-4 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Button
+            <CmxButton
               type="submit"
               disabled={saving}
               className="flex items-center gap-2"
             >
               <Save className="w-4 h-4" />
               {saving ? 'Saving...' : 'Save Tax Settings'}
-            </Button>
+            </CmxButton>
           </div>
         </form>
-      </Card>
+      </CmxCard>
     </div>
   )
 }

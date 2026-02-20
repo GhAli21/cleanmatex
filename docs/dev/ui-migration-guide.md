@@ -2,33 +2,50 @@
 
 This guide supports the migration from `@/components/ui` (legacy, **removed**) to the new `@ui` design system.
 
-**Status:** Phase 5 complete. Legacy `components/` folder removed. All imports use `@ui/*` or `@features/*`.
+**Status:** Phase 7 complete. Legacy `components/` and compat layer removed. All imports use @ui Cmx components (`@ui/primitives`, `@ui/feedback`, `@ui/overlays`, etc.) or `@features/*`.
+
+**Implementation notes:** See [compat-to-cmx-migration-notes.md](compat-to-cmx-migration-notes.md) for gotchas, Cmx upgrades (CmxInput/CmxSelect/Alert), barrel conflict fix (CmxDataTable), and suggestions for future work.
 
 ---
 
 ## Current Architecture
 
-### Architecture (Post–Phase 5)
+### Architecture (Post–Phase 7)
 
 ```
-@ui/*  ──►  src/ui/*  (design system + compat)
+@ui/*  ──►  src/ui/*  (design system: primitives, feedback, overlays, forms, etc.)
 @features/*  ──►  src/features/*/ui/*  (feature modules)
 ```
 
-- `**src/ui/compat/**` – Legacy component implementations (Button, Input, Card, etc.) – use `@ui/compat`
-- `**@ui** barrel** – Exports compat plus Cmx components (`CmxButton`, `CmxDialog`, etc.)
+- **Compat layer** – Removed in Phase 7. Use Cmx components from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, etc.
 - **Legacy `components/`** – Removed in Phase 5
+
+### Architecture: features vs app/dashboard
+
+Feature UI lives in `src/features/<name>/ui/` and is imported via `@features/*`. The `app/dashboard` directory holds only:
+
+- **Route pages** (`page.tsx`, `layout.tsx`) – thin shells that compose feature screens
+- **Route-specific client wrappers** – when a page needs a client component that is not part of a feature (e.g. `record-payment-client.tsx`)
+- **Dev tools** – e.g. `jhtestui/components/` for JWT/viewer utilities
+
+**Rule:** Components that duplicate `src/features/*/ui/*` must not exist under `app/dashboard/**/components/`. All feature UI is the single source of truth in `src/features/*`.
+
+| Location | Purpose |
+|----------|---------|
+| `src/features/<name>/ui/*` | Canonical feature components – import via `@features/<name>/ui/*` |
+| `app/dashboard/<area>/page.tsx` | Route shell – imports from `@features/*` |
+| `app/dashboard/<area>/components/*` | Avoid – use feature modules instead |
 
 ### Import Paths
 
 
 | Import Path        | Resolves To             | Notes                      |
 | ------------------ | ----------------------- | -------------------------- |
-| `@ui`              | `src/ui/index.ts`       | Design system + compat     |
-| `@ui/compat`       | `src/ui/compat/index.ts`| Button, Input, Card, etc.  |
-| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, etc.  |
-| `@ui/forms`        | `src/ui/forms/`         | CmxSelectDropdown, etc.     |
-| `@ui/feedback`     | `src/ui/feedback/`      | CmxSummaryMessage, etc.    |
+| `@ui`              | `src/ui/index.ts`       | Design system barrel       |
+| `@ui/primitives`   | `src/ui/primitives/`    | CmxButton, CmxInput, Alert, CmxCard, etc. |
+| `@ui/forms`        | `src/ui/forms/`         | CmxSelectDropdown, etc.   |
+| `@ui/feedback`     | `src/ui/feedback/`      | CmxSummaryMessage, CmxProgressBar, etc. |
+| `@ui/overlays`     | `src/ui/overlays/`      | CmxDialog, etc.           |
 
 
 ---
@@ -81,19 +98,19 @@ import { CmxButton } from "@ui/primitives";
 
 | Legacy                             | Cmx Replacement  | Notes                                                         |
 | ---------------------------------- | ---------------- | ------------------------------------------------------------- |
-| `Card`, `CardHeader`, `CardFooter` | `CmxCard` family | `@ui/data-display`                                            |
-| `Badge`                            | `CmxBadge`       | `@ui/data-display`                                            |
+| `Card`, `CardHeader`, `CardFooter` | `CmxCard` family | `@ui/primitives` or `@ui/primitives/cmx-card`                 |
+| `Badge`                            | `Badge`          | `@ui/primitives` or `@ui/primitives/badge`                    |
 | `Tabs`                             | `CmxTabsPanel`   | `@ui/navigation`; different API (tabs array, value, onChange) |
 
 
 ### Feedback
 
 
-| Legacy                      | Cmx Replacement     | Notes                          |
-| --------------------------- | ------------------- | ------------------------------ |
-| `Alert`, `AlertDescription` | `CmxAlert`          | `@ui/feedback`                 |
-| `ProgressBar`               | `CmxProgressBar`    | `@ui/feedback`; API compatible |
-| `SummaryMessage`            | `CmxSummaryMessage` | `@ui/feedback`; API compatible |
+| Legacy                      | Cmx Replacement     | Notes                                              |
+| --------------------------- | ------------------- | -------------------------------------------------- |
+| `Alert`, `AlertDescription` | `Alert`, `AlertDescription` | `@ui/primitives`; supports `message`, `destructive` variant |
+| `ProgressBar`               | `CmxProgressBar`    | `@ui/feedback`; API compatible                     |
+| `SummaryMessage`            | `CmxSummaryMessage` | `@ui/feedback`; API compatible                     |
 
 
 ### Overlays
@@ -108,38 +125,15 @@ import { CmxButton } from "@ui/primitives";
 
 ## Step-by-Step Migration for Call Sites
 
-### Option A: Keep Legacy Import (No Change)
+**Note:** The compat layer (`@ui/compat`) has been removed (Phase 7). Use Cmx components only.
 
-Continue using `@/components/ui/*`. No code changes needed; imports resolve to the compat layer.
-
-### Option B: Switch to @ui/compat (Intermediate)
-
-Same API, new path. Useful for preparing a later switch to Cmx.
-
-```tsx
-// Before
-import { Button, Card } from "@/components/ui";
-
-// After (intermediate)
-import { Button, Card } from "@ui/compat";
-// or specific paths:
-import { Button } from "@ui/compat/Button";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@ui/compat/select-dropdown";
-```
-
-### Option C: Migrate to Cmx Components (Target)
+### Migrate to Cmx Components
 
 Use the Cmx design system components with theme tokens and updated APIs.
 
 1. **Identify the component** – See mapping table above.
 2. **Check API differences** – Variant names, prop names (e.g. `danger` → `destructive`, `isLoading` → `loading`).
-3. **Update import** – From `@/components/ui` or `@ui/compat` to `@ui/<layer>` (e.g. `@ui/primitives`, `@ui/forms`).
+3. **Update import** – Use `@ui/<layer>` (e.g. `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`).
 4. **Adjust JSX** – Apply any prop renames or structural changes.
 5. **Verify styling** – Cmx uses theme tokens; visual changes should be minimal but worth a quick check.
 
@@ -287,10 +281,9 @@ import { CmxButton } from "@ui/primitives";
 
 ---
 
-## Gradual Migration Checklist
+## Migration Checklist
 
-- Prefer `@ui/compat` over `@/components/ui` for new code (intermediate step).
-- Migrate high-traffic or frequently changed screens first.
+- Use Cmx components from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms` only; `@ui/compat` has been removed.
 - One component type per PR (e.g. all Buttons in one file, or all Selects).
 - Run `npm run build` after changes.
 - Run `npm run check:i18n` if translations are affected.
@@ -300,60 +293,32 @@ import { CmxButton } from "@ui/primitives";
 
 ## Call Site Inventory
 
-To find remaining legacy imports:
+To find legacy or invalid imports:
 
 ```bash
-# All @/components/ui usages
+# @/components/ui (legacy - should be empty or minimal)
 rg "from ['\"]@/components/ui" web-admin --type ts --type tsx -l
 
-# Specific component
-rg "SummaryMessage|SelectTrigger|SelectContent" web-admin --type ts --type tsx -l
+# @ui/compat (removed - should be empty in app code; only eslint rule references it)
+rg "@ui/compat" web-admin --glob "*.{tsx,ts}" -l
 ```
-
-As of the Phase 4 completion, main consumers include:
-
-- `src/features/workflow/ui/` (SummaryMessage, select-dropdown)
-- `src/features/orders/ui/` (select-dropdown, Button, Card, Badge, etc.)
-- `src/features/catalog/ui/`
-- `src/features/settings/ui/`
-- `src/features/inventory/ui/`
 
 ---
 
-## Phase 5/6 Verification (Completed)
+## Phase 7 Verification (Completed)
 
 - Build passes (`npm run build`)
 - i18n parity check passes (`npm run check:i18n`)
 - tsconfig paths: `@ui/*`, `@features/*`, `@/*` (lib via `@/lib`)
-- Circular dependency check: `npx madge --circular src` (run when needed)
-- Optional ESLint rule to warn on `@/components/ui` in new code (Phase 6)
-
-### Optional ESLint Rule (Phase 6)
-
-To encourage migration, add to `eslint.config.js`:
-
-```js
-// Warn when importing from legacy @/components/ui in new files
-{
-  files: ['**/*.tsx', '**/*.ts'],
-  rules: {
-    'no-restricted-imports': ['warn', {
-      patterns: [{
-        group: ['@/components/ui', '@/components/ui/*'],
-        message: 'Prefer @ui/compat or @ui Cmx components. See docs/dev/ui-migration-guide.md',
-      }],
-    }],
-  },
-}
-```
-
-Apply only after team agrees; can start as `warn` then upgrade to `error` when ready.
+- No `@ui/compat` imports in app/feature code (compat layer removed)
+- ESLint: `@/components/ui` and `@ui/compat` are restricted; message directs to Cmx components
 
 ---
 
 ## References
 
-- **Plan:** `.cursor/plans/ui_architecture_migration_6ad78d7c.plan.md`
+- **Migration plan:** `.cursor/plans/compat_to_cmx_migration_plan_2644833f.plan.md`
+- **Implementation notes:** [compat-to-cmx-migration-notes.md](compat-to-cmx-migration-notes.md)
 - **Cmx usage examples:** `web-admin/src/ui/USAGE_EXAMPLES.md`
 - **CmxSummaryMessage guide:** `web-admin/src/ui/feedback/cmxMessage_developer_guide.md`
 

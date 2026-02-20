@@ -7,15 +7,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Card,
-  Button,
-  Alert,
-  Badge,
-  ProgressBar,
-  Select,
-  Input,
-} from '@ui/compat';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { CmxButton, Alert, Badge, CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxProgressBar } from '@ui/feedback';
 import type {
   PlanComparison,
   UsageMetrics,
@@ -262,7 +256,7 @@ export default function SubscriptionPage() {
           message={`You have ${tenant?.status === 'trial' && usage ? getDaysRemaining(usage.currentPeriod.end) : 0} days remaining in your free trial. Upgrade now to unlock all features!`}
           className="mb-6"
         >
-          <Button
+          <CmxButton
             variant="primary"
             size="sm"
             onClick={() => {
@@ -272,12 +266,12 @@ export default function SubscriptionPage() {
             className="mt-2"
           >
             Upgrade Now
-          </Button>
+          </CmxButton>
         </Alert>
       )}
 
       {/* Current Plan Card */}
-      <Card className="mb-8">
+      <CmxCard className="mb-8">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">Current Plan</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -303,11 +297,11 @@ export default function SubscriptionPage() {
             </div>
           </div>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Usage Metrics Section */}
       {usage && (
-        <Card className="mb-8">
+        <CmxCard className="mb-8">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold">Usage & Limits</h2>
@@ -327,7 +321,7 @@ export default function SubscriptionPage() {
                     {usage.usage.ordersCount} / {usage.limits.ordersLimit}
                   </span>
                 </div>
-                <ProgressBar
+                <CmxProgressBar
                   value={usage.usage.ordersPercentage}
                   max={100}
                   variant={getProgressVariant(usage.usage.ordersPercentage)}
@@ -347,7 +341,7 @@ export default function SubscriptionPage() {
                     {usage.usage.usersCount} / {usage.limits.usersLimit}
                   </span>
                 </div>
-                <ProgressBar
+                <CmxProgressBar
                   value={usage.usage.usersPercentage}
                   max={100}
                   variant={getProgressVariant(usage.usage.usersPercentage)}
@@ -367,7 +361,7 @@ export default function SubscriptionPage() {
                     {usage.usage.branchesCount} / {usage.limits.branchesLimit}
                   </span>
                 </div>
-                <ProgressBar
+                <CmxProgressBar
                   value={usage.usage.branchesPercentage}
                   max={100}
                   variant={getProgressVariant(usage.usage.branchesPercentage)}
@@ -387,7 +381,7 @@ export default function SubscriptionPage() {
                     {usage.usage.storageMb} MB / {usage.limits.storageMbLimit} MB
                   </span>
                 </div>
-                <ProgressBar
+                <CmxProgressBar
                   value={usage.usage.storagePercentage}
                   max={100}
                   variant={getProgressVariant(usage.usage.storagePercentage)}
@@ -417,11 +411,11 @@ export default function SubscriptionPage() {
               </div>
             )}
           </div>
-        </Card>
+        </CmxCard>
       )}
 
       {/* Plan Comparison Table */}
-      <Card className="mb-8">
+      <CmxCard className="mb-8">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold">Available Plans</h2>
@@ -541,23 +535,23 @@ export default function SubscriptionPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {plan.isCurrentPlan ? (
-                          <Button variant="secondary" size="sm" disabled>
+                          <CmxButton variant="secondary" size="sm" disabled>
                             Current Plan
-                          </Button>
+                          </CmxButton>
                         ) : plan.display_order && currentPlan &&
                            plans.find(p => p.plan_code === currentPlan)?.display_order &&
                            plan.display_order > plans.find(p => p.plan_code === currentPlan)!.display_order! ? (
-                          <Button
+                          <CmxButton
                             variant="primary"
                             size="sm"
                             onClick={() => handleUpgradeClick(plan)}
                           >
                             Upgrade
-                          </Button>
+                          </CmxButton>
                         ) : (
-                          <Button variant="secondary" size="sm" disabled>
+                          <CmxButton variant="secondary" size="sm" disabled>
                             Downgrade
-                          </Button>
+                          </CmxButton>
                         )}
                       </td>
                     </tr>
@@ -567,18 +561,18 @@ export default function SubscriptionPage() {
             </table>
           </div>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Cancel Subscription Button */}
       {isPaidPlan && tenant?.status !== 'canceled' && (
         <div className="flex justify-end">
-          <Button
+          <CmxButton
             variant="danger"
             size="md"
             onClick={handleCancelClick}
           >
             Cancel Subscription
-          </Button>
+          </CmxButton>
         </div>
       )}
 
@@ -675,7 +669,7 @@ export default function SubscriptionPage() {
               </div>
 
               <div className="flex space-x-4">
-                <Button
+                <CmxButton
                   variant="secondary"
                   size="md"
                   onClick={() => setShowUpgradeModal(false)}
@@ -683,8 +677,8 @@ export default function SubscriptionPage() {
                   className="flex-1"
                 >
                   Cancel
-                </Button>
-                <Button
+                </CmxButton>
+                <CmxButton
                   variant="primary"
                   size="md"
                   onClick={handleUpgrade}
@@ -692,7 +686,7 @@ export default function SubscriptionPage() {
                   className="flex-1"
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Upgrade'}
-                </Button>
+                </CmxButton>
               </div>
             </div>
           </div>
@@ -728,7 +722,7 @@ export default function SubscriptionPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Reason for Cancellation *
                 </label>
-                <Select
+                <CmxSelect
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
                   disabled={isProcessing}
@@ -769,7 +763,7 @@ export default function SubscriptionPage() {
               </div>
 
               <div className="flex space-x-4">
-                <Button
+                <CmxButton
                   variant="secondary"
                   size="md"
                   onClick={() => setShowCancelModal(false)}
@@ -777,8 +771,8 @@ export default function SubscriptionPage() {
                   className="flex-1"
                 >
                   Keep Subscription
-                </Button>
-                <Button
+                </CmxButton>
+                <CmxButton
                   variant="danger"
                   size="md"
                   onClick={handleCancel}
@@ -786,7 +780,7 @@ export default function SubscriptionPage() {
                   className="flex-1"
                 >
                   {isProcessing ? 'Processing...' : 'Confirm Cancellation'}
-                </Button>
+                </CmxButton>
               </div>
             </div>
           </div>

@@ -620,7 +620,7 @@ export function getNavigationForRole(
 ### Usage in Sidebar
 
 ```typescript
-// web-admin/components/layout/Sidebar.tsx
+// web-admin/src/ui/navigation/cmx-sidebar.tsx
 const { currentTenant } = useAuth();
 const userRole = (currentTenant?.user_role?.toLowerCase() as UserRole) || 'viewer';
 const navigation = getNavigationForRole(userRole, featureFlags);

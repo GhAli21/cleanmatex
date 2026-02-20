@@ -1,15 +1,26 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
+export type AlertVariant = "info" | "success" | "warning" | "error" | "destructive"
+
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "info" | "success" | "warning" | "error"
+  variant?: AlertVariant
   title?: string
+  /** Short message; rendered as content when no children provided (compat with compat Alert) */
+  message?: string
   onClose?: () => void
 }
 
+const errorIcon = (
+  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+  </svg>
+)
+
 const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
-  ({ className, variant = "info", title, children, onClose, ...props }, ref) => {
-    const variants = {
+  ({ className, variant: variantProp = "info", title, message, children, onClose, ...props }, ref) => {
+    const variant = variantProp === "destructive" ? "error" : variantProp
+    const variants: Record<Exclude<AlertVariant, "destructive">, { container: string; icon: React.ReactNode }> = {
       info: {
         container: "bg-blue-50 border-blue-200 text-blue-800",
         icon: (
@@ -36,11 +47,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       },
       error: {
         container: "bg-red-50 border-red-200 text-red-800",
-        icon: (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-          </svg>
-        ),
+        icon: errorIcon,
       },
     }
 
@@ -61,7 +68,9 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 
         <div className="flex-1 space-y-1">
           {title && <h5 className="font-semibold">{title}</h5>}
-          {children && <div className="text-sm">{children}</div>}
+          {(message ?? children) && (
+            <div className="text-sm">{message ?? children}</div>
+          )}
         </div>
 
         {onClose && (
@@ -82,5 +91,17 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
 )
 
 Alert.displayName = "Alert"
+
+export interface AlertDescriptionProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode
+}
+
+export function AlertDescription({ children, className, ...props }: AlertDescriptionProps) {
+  return (
+    <div className={cn("text-sm", className)} {...props}>
+      {children}
+    </div>
+  )
+}
 
 export { Alert }

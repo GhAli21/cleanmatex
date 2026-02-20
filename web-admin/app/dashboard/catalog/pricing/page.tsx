@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Card, Button, Input, Select } from '@ui/compat'
+import { CmxInput } from '@ui/primitives'
+import { CmxCard } from '@ui/primitives/cmx-card'
+import { CmxButton } from '@ui/primitives'
 
 interface PriceList {
   id: string
@@ -94,10 +96,10 @@ export default function PricingPage() {
       )}
 
       {/* Create form */}
-      <Card className="p-4">
+      <CmxCard className="p-4">
         <form onSubmit={onCreate} className="grid grid-cols-1 gap-3 md:grid-cols-4">
-          <Input placeholder={t('priceListName')} value={name} onChange={(e) => setName(e.target.value)} />
-          <Input placeholder={t('priceListNameAr')} value={name2} onChange={(e) => setName2(e.target.value)} />
+          <CmxInput placeholder={t('priceListName')} value={name} onChange={(e) => setName(e.target.value)} />
+          <CmxInput placeholder={t('priceListNameAr')} value={name2} onChange={(e) => setName2(e.target.value)} />
           <select value={type} onChange={(e) => setType(e.target.value as any)}>
             <option value="standard">{t('standard')}</option>
             <option value="express">{t('express')}</option>
@@ -107,22 +109,22 @@ export default function PricingPage() {
             <option value="promotional">{t('promotional')}</option>
           </select>
           <div className="grid grid-cols-2 gap-2">
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <CmxInput type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <CmxInput type="date" value={to} onChange={(e) => setTo(e.target.value)} />
           </div>
-          <Input type="number" placeholder="Priority" value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
+          <CmxInput type="number" placeholder="Priority" value={priority} onChange={(e) => setPriority(Number(e.target.value))} />
           <select value={isDefault ? 'yes' : 'no'} onChange={(e) => setIsDefault(e.target.value === 'yes')}>
             <option value="no">{t('no')}</option>
             <option value="yes">{t('yes')}</option>
           </select>
           <div className="flex gap-2">
-            <Button type="submit" disabled={creating}>{creating ? tCommon('loading') : tCommon('create')}</Button>
+            <CmxButton type="submit" disabled={creating} loading={creating}>{creating ? tCommon('loading') : tCommon('create')}</CmxButton>
           </div>
         </form>
-      </Card>
+      </CmxCard>
 
       {/* List */}
-      <Card className="p-0 overflow-hidden">
+      <CmxCard className="p-0 overflow-hidden">
         {loading ? (
           <div className="p-4 text-gray-500">{tCommon('loading')}</div>
         ) : lists.length === 0 ? (
@@ -149,9 +151,9 @@ export default function PricingPage() {
                     <td className="px-4 py-2">{pl.effective_to ?? '-'}</td>
                     <td className="px-4 py-2">{pl.item_count ?? 0}</td>
                     <td className="px-4 py-2">
-                      <Button size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/pricing/${pl.id}`)}>
+                      <CmxButton size="sm" variant="secondary" onClick={() => window.location.assign(`/dashboard/catalog/pricing/${pl.id}`)}>
                         Edit
-                      </Button>
+                      </CmxButton>
                     </td>
                   </tr>
                 ))}
@@ -159,7 +161,7 @@ export default function PricingPage() {
             </table>
           </div>
         )}
-      </Card>
+      </CmxCard>
     </div>
   )
 }

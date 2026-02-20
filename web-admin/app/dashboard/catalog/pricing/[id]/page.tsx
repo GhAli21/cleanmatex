@@ -14,7 +14,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { Card, Button, Input } from '@ui/compat'
+import { CmxInput } from '@ui/primitives'
+import { CmxCard } from '@ui/primitives/cmx-card'
+import { CmxButton } from '@ui/primitives'
 import {
   CmxDialog,
   CmxDialogContent,
@@ -224,9 +226,9 @@ export default function PriceListDetailPage() {
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-red-700">
           {error}
         </div>
-        <Button onClick={() => router.push('/dashboard/catalog/pricing')} className="mt-4">
+        <CmxButton onClick={() => router.push('/dashboard/catalog/pricing')} className="mt-4">
           Back to Price Lists
-        </Button>
+        </CmxButton>
       </div>
     )
   }
@@ -240,13 +242,13 @@ export default function PriceListDetailPage() {
       {/* Header */}
       <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Button
+          <CmxButton
             variant="ghost"
             size="sm"
             onClick={() => router.push('/dashboard/catalog/pricing')}
           >
             <ArrowLeft className="w-4 h-4" />
-          </Button>
+          </CmxButton>
           <div>
             <h1 className="text-2xl font-semibold">{priceList.name}</h1>
             {priceList.name2 && (
@@ -264,10 +266,10 @@ export default function PriceListDetailPage() {
           </span>
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Button variant="outline" size="sm" onClick={handleExport}>
+          <CmxButton variant="outline" size="sm" onClick={handleExport}>
             <Download className="w-4 h-4 mr-2" />
             Export
-          </Button>
+          </CmxButton>
         </div>
       </div>
 
@@ -278,7 +280,7 @@ export default function PriceListDetailPage() {
       )}
 
       {/* Tabs */}
-      <Card className="p-0 overflow-hidden">
+      <CmxCard className="p-0 overflow-hidden">
         {/* Tab Navigation */}
         <div className="border-b border-gray-200">
           <nav className={`flex ${isRTL ? 'flex-row-reverse' : ''} -mb-px`}>
@@ -343,7 +345,7 @@ export default function PriceListDetailPage() {
             <PriceHistoryTimeline priceListId={priceListId} />
           )}
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Modals */}
       {itemModalOpen && (
@@ -454,26 +456,26 @@ function ItemsTab({
       {/* Actions */}
       <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Button onClick={onAddItem}>
+          <CmxButton onClick={onAddItem}>
             <Plus className="w-4 h-4 mr-2" />
             Add Item
-          </Button>
-          <Button
+          </CmxButton>
+          <CmxButton
             variant="outline"
             onClick={() => setShowImportConfirm(true)}
             title="Import all active products with their default prices"
           >
             <Package className="w-4 h-4 mr-2" />
             Import All Products
-          </Button>
-          <Button variant="outline" onClick={onBulkImport}>
+          </CmxButton>
+          <CmxButton variant="outline" onClick={onBulkImport}>
             <Upload className="w-4 h-4 mr-2" />
             Import CSV
-          </Button>
-          <Button variant="outline" onClick={onExport}>
+          </CmxButton>
+          <CmxButton variant="outline" onClick={onExport}>
             <Download className="w-4 h-4 mr-2" />
             Export CSV
-          </Button>
+          </CmxButton>
         </div>
         <div className="text-sm text-gray-500">
           {tCommon('itemCount', { count: items.length })}
@@ -520,12 +522,12 @@ function ItemsTab({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowImportConfirm(false)}>
+            <CmxButton type="button" variant="outline" onClick={() => setShowImportConfirm(false)}>
               Cancel
-            </Button>
-            <Button onClick={handleImportAllProducts} disabled={importingAll}>
+            </CmxButton>
+            <CmxButton onClick={handleImportAllProducts} disabled={importingAll}>
               {importingAll ? 'Importing...' : 'Import All Products'}
-            </Button>
+            </CmxButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -534,9 +536,9 @@ function ItemsTab({
       {items.length === 0 ? (
         <div className="text-center py-12 text-gray-500">
           <p>No items in this price list</p>
-          <Button onClick={onAddItem} className="mt-4">
+          <CmxButton onClick={onAddItem} className="mt-4">
             Add First Item
-          </Button>
+          </CmxButton>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -578,20 +580,20 @@ function ItemsTab({
                   </td>
                   <td className="px-4 py-3">
                     <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Button
+                      <CmxButton
                         size="sm"
                         variant="ghost"
                         onClick={() => onEditItem(item)}
                       >
                         <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
+                      </CmxButton>
+                      <CmxButton
                         size="sm"
                         variant="ghost"
                         onClick={() => onDeleteItem(item.id)}
                       >
                         <Trash2 className="w-4 h-4 text-red-600" />
-                      </Button>
+                      </CmxButton>
                     </div>
                   </td>
                 </tr>
@@ -632,20 +634,20 @@ function SettingsTab({
       <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
         <h2 className="text-lg font-semibold">Price List Settings</h2>
         {!editing ? (
-          <Button onClick={() => setEditing(true)}>
+          <CmxButton onClick={() => setEditing(true)}>
             <Edit className="w-4 h-4 mr-2" />
             Edit
-          </Button>
+          </CmxButton>
         ) : (
           <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <Button onClick={onSave} disabled={saving}>
+            <CmxButton onClick={onSave} disabled={saving}>
               <Save className="w-4 h-4 mr-2" />
               {saving ? 'Saving...' : 'Save'}
-            </Button>
-            <Button variant="outline" onClick={() => setEditing(false)}>
+            </CmxButton>
+            <CmxButton variant="outline" onClick={() => setEditing(false)}>
               <X className="w-4 h-4 mr-2" />
               Cancel
-            </Button>
+            </CmxButton>
           </div>
         )}
       </div>
@@ -653,7 +655,7 @@ function SettingsTab({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Name (EN) *</label>
-          <Input
+          <CmxInput
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             disabled={!editing}
@@ -662,7 +664,7 @@ function SettingsTab({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Name (AR)</label>
-          <Input
+          <CmxInput
             value={formData.name2}
             onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
             disabled={!editing}
@@ -709,7 +711,7 @@ function SettingsTab({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Priority</label>
-          <Input
+          <CmxInput
             type="number"
             value={formData.priority}
             onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) || 0 })}
@@ -718,7 +720,7 @@ function SettingsTab({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Effective From</label>
-          <Input
+          <CmxInput
             type="date"
             value={formData.effective_from}
             onChange={(e) => setFormData({ ...formData, effective_from: e.target.value })}
@@ -727,7 +729,7 @@ function SettingsTab({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Effective To</label>
-          <Input
+          <CmxInput
             type="date"
             value={formData.effective_to}
             onChange={(e) => setFormData({ ...formData, effective_to: e.target.value })}

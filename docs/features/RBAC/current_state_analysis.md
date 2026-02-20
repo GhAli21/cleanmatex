@@ -170,7 +170,7 @@ export default withRole(StaffPage, { requiredRole: ['admin', 'operator'] });
 
 **Component Protection:**
 ```typescript
-// web-admin/components/auth/RequireRole.tsx
+// web-admin/src/features/auth/ui/RequireRole.tsx
 <RequireRole roles="admin">
   <AdminOnlyFeature />
 </RequireRole>

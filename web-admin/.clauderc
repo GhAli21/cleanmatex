@@ -131,15 +131,28 @@ templates:
       );
     }
 
-# UI Components (@ui design system)
+# UI Components (@ui design system - Cmx components)
+# Keep in sync with web-admin/src/ui. Used by AI for import suggestions. Do not use @ui/compat (removed).
+# See docs/dev/ui-migration-guide.md and docs/dev/compat-to-cmx-migration-notes.md
 ui_components:
-  button: "import { Button } from '@ui/compat'"
-  input: "import { Input } from '@ui/compat'"
-  dialog: "import { Dialog } from '@ui/compat'"
-  table: "import { Table } from '@ui/compat'"
-  card: "import { Card } from '@ui/compat'"
+  button: "import { CmxButton } from '@ui/primitives'"
+  input: "import { CmxInput } from '@ui/primitives'"
+  textarea: "import { CmxTextarea } from '@ui/primitives'"
+  select: "import { CmxSelect } from '@ui/primitives'"
+  checkbox: "import { CmxCheckbox } from '@ui/primitives'"
+  switch: "import { CmxSwitch } from '@ui/primitives'"
+  label: "import { Label } from '@ui/primitives'"
+  card: "import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'"
+  badge: "import { Badge } from '@ui/primitives/badge'"
+  alert: "import { Alert, AlertDescription } from '@ui/primitives'"
+  dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"
+  tabs: "import { CmxTabsPanel } from '@ui/navigation'"
+  progress: "import { CmxProgressBar } from '@ui/feedback'"
+  summary_message: "import { CmxSummaryMessage } from '@ui/feedback'"
+  select_dropdown: "import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'"
+  data_table: "import { CmxDataTable } from '@ui/data-display'"
 
-# Best Practices
+# Best Practices 
 best_practices:
   - "Use TypeScript for all files"
   - "Implement loading and error states"

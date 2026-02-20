@@ -7,8 +7,8 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardHeader } from '@ui/compat';
 import { Badge, CmxButton } from '@ui/primitives';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardDescription, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxProgressBar } from '@ui/feedback';
 import type { Tenant } from '@/lib/types/tenant';
 
@@ -26,9 +26,11 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
 
   if (!subscription) {
     return (
-      <Card>
-        <p className="text-gray-600">Loading subscription information...</p>
-      </Card>
+      <CmxCard>
+        <CmxCardContent>
+          <p className="text-gray-600">Loading subscription information...</p>
+        </CmxCardContent>
+      </CmxCard>
     );
   }
 
@@ -43,19 +45,19 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
   return (
     <div className="space-y-6">
       {/* Current Plan */}
-      <Card>
-        <CardHeader
-          title="Current Plan"
-          subtitle="Your subscription details and features"
-          actions={
-            <Button
-              onClick={() => router.push('/dashboard/subscription')}
-            >
-              Manage Subscription
-            </Button>
-          }
-        />
-
+      <CmxCard>
+        <CmxCardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CmxCardTitle>Current Plan</CmxCardTitle>
+            <CmxCardDescription>Your subscription details and features</CmxCardDescription>
+          </div>
+          <CmxButton
+            onClick={() => router.push('/dashboard/subscription')}
+          >
+            Manage Subscription
+          </CmxButton>
+        </CmxCardHeader>
+        <CmxCardContent>
         <div className="space-y-4">
           {/* Plan Info */}
           <div className="flex items-center justify-between">
@@ -114,15 +116,18 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
             </div>
           )}
         </div>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
 
       {/* Feature Flags */}
-      <Card>
-        <CardHeader
-          title="Enabled Features"
-          subtitle="Features available on your current plan"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Enabled Features</CmxCardTitle>
+            <CmxCardDescription>Features available on your current plan</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {tenant.feature_flags && Object.entries(tenant.feature_flags).map(([key, enabled]) => (
             <div
@@ -140,15 +145,18 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
             </div>
           ))}
         </div>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
 
       {/* Actions */}
-      <Card>
-        <CardHeader
-          title="Subscription Actions"
-          subtitle="Manage your subscription plan"
-        />
-
+      <CmxCard>
+        <CmxCardHeader>
+          <div>
+            <CmxCardTitle>Subscription Actions</CmxCardTitle>
+            <CmxCardDescription>Manage your subscription plan</CmxCardDescription>
+          </div>
+        </CmxCardHeader>
+        <CmxCardContent>
         <div className="flex flex-col sm:flex-row gap-3">
           <CmxButton
             className="w-full"
@@ -166,7 +174,8 @@ export function SubscriptionSettings({ tenant }: SubscriptionSettingsProps) {
             </CmxButton>
           )}
         </div>
-      </Card>
+        </CmxCardContent>
+      </CmxCard>
     </div>
   );
 }

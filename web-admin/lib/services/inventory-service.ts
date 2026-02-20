@@ -328,6 +328,11 @@ export async function searchInventoryItems(
     query = query.eq('is_active', params.is_active);
   }
 
+  // Filter: product ID (e.g. from order details "Full in Stock" link)
+  if (params.product_id) {
+    query = query.eq('id', params.product_id);
+  }
+
   // Filter: item type code
   if (params.item_type_code) {
     query = query.eq('item_type_code', params.item_type_code);

@@ -1,9 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { Card, Button, Input, Select, Badge } from '@ui/compat';
+import { CmxInput, CmxSelect } from '@ui/primitives';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { Badge } from '@ui/primitives/badge';
+import { CmxButton } from '@ui/primitives';
 import { STOCK_STATUS } from '@/lib/constants/inventory';
 import type {
   InventoryItemListItem,
@@ -36,7 +40,13 @@ export default function StockPage() {
   const t = useTranslations('inventory');
   const tc = useTranslations('common');
   const { currentTenant } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const isRtl = useMemo(() => typeof document !== 'undefined' && document.dir === 'rtl', []);
+
+  // Product filter from URL (when navigating from Order details "Full in Stock" tab)
+  const productIdFromUrl = searchParams.get('product') ?? '';
 
   // State
   const [loading, setLoading] = useState(true);
@@ -72,6 +82,7 @@ export default function StockPage() {
         page: pagination.page,
         limit: pagination.limit,
         search: search || undefined,
+        product_id: productIdFromUrl || undefined,
         stock_status: stockStatus !== 'all' ? (stockStatus as StockStatus) : undefined,
         is_active: activeFilter === 'all' ? undefined : activeFilter === 'active',
         branch_id: branchId || undefined,
@@ -104,7 +115,7 @@ export default function StockPage() {
     } finally {
       setLoading(false);
     }
-  }, [currentTenant, pagination.page, pagination.limit, search, stockStatus, activeFilter, branchId]);
+  }, [currentTenant, pagination.page, pagination.limit, search, productIdFromUrl, stockStatus, activeFilter, branchId]);
 
   useEffect(() => {
     loadData();
@@ -147,6 +158,13 @@ export default function StockPage() {
     setActiveFilter('active');
     setBranchId('');
     setPagination((p) => ({ ...p, page: 1 }));
+    // Remove product filter from URL when coming from order details
+    if (productIdFromUrl) {
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('product');
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname);
+    }
   }
 
   function getStatusBadge(status: StockStatus) {
@@ -170,22 +188,37 @@ export default function StockPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <Button onClick={() => setShowAdd(true)} disabled={!hasBranches}>
+        <CmxButton onClick={() => setShowAdd(true)} disabled={!hasBranches}>
           {t('actions.addItem')}
-        </Button>
+        </CmxButton>
       </div>
 
       {/* No branches configured */}
       {!loading && !hasBranches && (
-        <Card className="p-6 bg-amber-50 border-amber-200">
+        <CmxCard className="p-6 bg-amber-50 border-amber-200">
           <p className="text-amber-800 text-sm">{t('messages.noBranchConfigured')}</p>
           <p className="text-amber-600 text-xs mt-1">{t('messages.selectBranch')}</p>
-        </Card>
+        </CmxCard>
+      )}
+
+      {/* Product filter banner (from Order details) */}
+      {productIdFromUrl && (
+        <CmxCard className="border-indigo-100 bg-indigo-50/50 p-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-indigo-800">{t('messages.viewingProductFromOrder')}</p>
+          <CmxButton
+            variant="secondary"
+            size="sm"
+            onClick={onClearFilters}
+            aria-label={t('messages.showAllItems')}
+          >
+            {t('messages.showAllItems')}
+          </CmxButton>
+        </CmxCard>
       )}
 
       {/* Branch context banner */}
       {branchId && hasBranches && (
-        <Card className="border-blue-100 bg-blue-50/50 p-3">
+        <CmxCard className="border-blue-100 bg-blue-50/50 p-3">
           <p className="text-sm text-blue-800">
             {t('messages.viewingBranchContext', {
               branch:
@@ -194,7 +227,7 @@ export default function StockPage() {
                   : branches.find((b) => b.id === branchId)?.name ?? t('filters.branch'),
             })}
           </p>
-        </Card>
+        </CmxCard>
       )}
 
       {/* Stats */}
@@ -212,30 +245,32 @@ export default function StockPage() {
       )}
 
       {/* Filters */}
-      <Card className="p-4">
+      <CmxCard className="p-4">
         <form onSubmit={onSearchSubmit} className="grid grid-cols-1 gap-3 md:grid-cols-5">
-          <Select
-            label={`${t('filters.branch')}`}
-            value={branchId}
-            onChange={(e) => {
-              setBranchId(e.target.value);
-              setPagination((p) => ({ ...p, page: 1 }));
-            }}
-            options={[
-              { value: '', label: t('filters.allBranches') },
-              ...branches.map((b) => ({
-                value: b.id,
-                label: isRtl ? b.name2 || b.name : b.name,
-              })),
-            ]}
-            aria-label={t('filters.branch')}
-          />
-          <Input
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('filters.branch')}</label>
+            <CmxSelect
+              value={branchId}
+              onChange={(e) => {
+                setBranchId(e.target.value);
+                setPagination((p) => ({ ...p, page: 1 }));
+              }}
+              options={[
+                { value: '', label: t('filters.allBranches') },
+                ...branches.map((b) => ({
+                  value: b.id,
+                  label: isRtl ? b.name2 || b.name : b.name,
+                })),
+              ]}
+              aria-label={t('filters.branch')}
+            />
+          </div>
+          <CmxInput
             placeholder={t('filters.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <Select
+          <CmxSelect
             value={stockStatus}
             onChange={(e) => { setStockStatus(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
             options={[
@@ -247,7 +282,7 @@ export default function StockPage() {
               { value: STOCK_STATUS.NEGATIVE_STOCK, label: t('statuses.negativeStock') },
             ]}
           />
-          <Select
+          <CmxSelect
             value={activeFilter}
             onChange={(e) => { setActiveFilter(e.target.value); setPagination((p) => ({ ...p, page: 1 })); }}
             options={[
@@ -257,23 +292,23 @@ export default function StockPage() {
             ]}
           />
           <div className="flex gap-2">
-            <Button type="submit">{tc('search')}</Button>
-            <Button type="button" variant="secondary" onClick={onClearFilters}>
+            <CmxButton type="submit">{tc('search')}</CmxButton>
+            <CmxButton type="button" variant="secondary" onClick={onClearFilters}>
               {tc('clear')}
-            </Button>
+            </CmxButton>
           </div>
         </form>
-      </Card>
+      </CmxCard>
 
       {/* Error */}
       {error && (
-        <Card className="p-4 bg-red-50 border-red-200">
+        <CmxCard className="p-4 bg-red-50 border-red-200">
           <p className="text-red-600 text-sm">{error}</p>
-        </Card>
+        </CmxCard>
       )}
 
       {/* Table */}
-      <Card className="p-0 overflow-hidden">
+      <CmxCard className="p-0 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-500">{tc('loading')}</div>
         ) : items.length === 0 ? (
@@ -334,20 +369,20 @@ export default function StockPage() {
                     <td className="px-4 py-3">{getStatusBadge(item.stock_status)}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        <Button
+                        <CmxButton
                           size="sm"
                           variant="secondary"
                           onClick={() => setAdjustItem(item)}
                           disabled={!hasBranches}
                         >
                           {t('actions.adjust')}
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={() => setEditItem(item)}>
+                        </CmxButton>
+                        <CmxButton size="sm" variant="secondary" onClick={() => setEditItem(item)}>
                           {tc('edit')}
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={() => setHistoryItem(item)}>
+                        </CmxButton>
+                        <CmxButton size="sm" variant="secondary" onClick={() => setHistoryItem(item)}>
                           {t('actions.history')}
-                        </Button>
+                        </CmxButton>
                       </div>
                     </td>
                   </tr>
@@ -364,29 +399,29 @@ export default function StockPage() {
               {t('pagination.showing', { count: items.length, total: pagination.total })}
             </div>
             <div className="flex gap-2">
-              <Button
+              <CmxButton
                 variant="secondary"
                 size="sm"
                 disabled={pagination.page <= 1}
                 onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
               >
                 {tc('previous')}
-              </Button>
+              </CmxButton>
               <span className="flex items-center px-3 text-sm text-gray-600">
                 {pagination.page} / {pagination.totalPages}
               </span>
-              <Button
+              <CmxButton
                 variant="secondary"
                 size="sm"
                 disabled={pagination.page >= pagination.totalPages}
                 onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
               >
                 {tc('next')}
-              </Button>
+              </CmxButton>
             </div>
           </div>
         )}
-      </Card>
+      </CmxCard>
 
       {/* Modals */}
       {showAdd && (

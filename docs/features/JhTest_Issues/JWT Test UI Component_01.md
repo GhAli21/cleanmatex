@@ -1,6 +1,6 @@
 JWT Test UI Component - Complete
 Files Created:
-JWT Viewer Component - web-admin/components/jhtest/JwtViewerJhTest.tsx
+JWT Viewer Component - web-admin/app/dashboard/jhtestui/components/JwtViewerJhTest.tsx
 Fully functional JWT decoder and viewer
 Decodes Supabase authentication tokens
 Displays all JWT claims in organized sections

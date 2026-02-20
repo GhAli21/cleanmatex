@@ -89,5 +89,5 @@ Six dashboard widgets currently use placeholder or partial data. Each needs real
 ## References
 
 - web-admin/lib/services/dashboard.service.ts
-- web-admin/components/dashboard/widgets/
+- web-admin/src/features/dashboard/ui/
 - docs/features/Dashboard_Feature/DASHBOARD_CONTINUATION_GUIDE.md

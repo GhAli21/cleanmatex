@@ -10,7 +10,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, Globe, Palette, Clock, Bell } from 'lucide-react';
-import { Card, Button, Select, Input } from '@ui/compat';
+import { CmxCard } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
 import { EnhancedSettingField } from '@features/settings/ui/enhanced-setting-field';
 
@@ -74,19 +75,19 @@ export default function UserPreferencesPage() {
   if (error) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="p-6 border-red-200 bg-red-50">
+        <CmxCard className="p-6 border-red-200 bg-red-50">
           <div className="flex items-start gap-3">
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-red-900 mb-2">
                 Error Loading Preferences
               </h2>
               <p className="text-red-800 mb-4">{error}</p>
-              <Button onClick={fetchSettings} variant="outline">
+              <CmxButton onClick={fetchSettings} variant="outline">
                 Try Again
-              </Button>
+              </CmxButton>
             </div>
           </div>
-        </Card>
+        </CmxCard>
       </div>
     );
   }
@@ -111,7 +112,7 @@ export default function UserPreferencesPage() {
       </div>
 
       {/* Language & Localization */}
-      <Card className="mb-6 p-6">
+      <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Globe className="h-5 w-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-900">
@@ -127,10 +128,10 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <Select>
+            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
               <option value="en">English</option>
               <option value="ar">Arabic</option>
-            </Select>
+            </select>
           </UserPreference>
 
           <UserPreference
@@ -140,11 +141,11 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <Select>
+            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
               <option value="Asia/Muscat">Asia/Muscat (Oman)</option>
               <option value="Asia/Riyadh">Asia/Riyadh (Saudi Arabia)</option>
               <option value="Asia/Dubai">Asia/Dubai (UAE)</option>
-            </Select>
+            </select>
           </UserPreference>
 
           <UserPreference
@@ -154,17 +155,17 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <Select>
+            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
               <option value="DD/MM/YYYY">DD/MM/YYYY</option>
               <option value="MM/DD/YYYY">MM/DD/YYYY</option>
               <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            </Select>
+            </select>
           </UserPreference>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Theme & Appearance */}
-      <Card className="mb-6 p-6">
+      <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Palette className="h-5 w-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-900">
@@ -180,11 +181,11 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <Select>
+            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
               <option value="light">Light</option>
               <option value="dark">Dark</option>
               <option value="system">System</option>
-            </Select>
+            </select>
           </UserPreference>
 
           <UserPreference
@@ -194,17 +195,17 @@ export default function UserPreferencesPage() {
             effectiveSettings={effectiveSettings}
             onSave={handleSave}
           >
-            <Select>
+            <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
               <option value="compact">Compact</option>
               <option value="comfortable">Comfortable</option>
               <option value="spacious">Spacious</option>
-            </Select>
+            </select>
           </UserPreference>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Notifications */}
-      <Card className="mb-6 p-6">
+      <CmxCard className="mb-6 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Bell className="h-5 w-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-900">
@@ -246,10 +247,10 @@ export default function UserPreferencesPage() {
             <input type="checkbox" className="rounded border-gray-300" />
           </UserPreference>
         </div>
-      </Card>
+      </CmxCard>
 
       {/* Default Branch */}
-      <Card className="p-6">
+      <CmxCard className="p-6">
         <div className="flex items-center gap-2 mb-4">
           <Clock className="h-5 w-5 text-gray-600" />
           <h2 className="text-lg font-semibold text-gray-900">
@@ -264,12 +265,12 @@ export default function UserPreferencesPage() {
           effectiveSettings={effectiveSettings}
           onSave={handleSave}
         >
-          <Select>
+          <select className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white">
             <option value="">Select branch...</option>
             {/* Branch options would be loaded dynamically */}
-          </Select>
+          </select>
         </UserPreference>
-      </Card>
+      </CmxCard>
     </div>
   );
 }

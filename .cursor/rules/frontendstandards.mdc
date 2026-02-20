@@ -39,6 +39,24 @@ All standards below MUST respect this structure.
 
 ---
 
+## web-admin/.clauderc (AI Hints)
+
+**What it is:** A project-level config file in `web-admin/.clauderc` that Cursor/Claude can use when generating or suggesting code. It is **not** read by the app at build or runtime; it only guides AI output so imports and patterns match project conventions.
+
+**Why it matters:** The `ui_components` section lists **recommended import lines** for common UI pieces (button, input, dialog, card, alert, select, etc.). When the AI suggests a Button or Card, it should use these snippets so imports point at the correct Cmx modules.
+
+**Rules:**
+
+1. **Keep `ui_components` in sync with `src/ui`.** When you add or change a shared Cmx component or its export path, update the matching entry in `web-admin/.clauderc` so suggestions stay correct.
+2. **Use Cmx components only.** Do not reference `@ui/compat` (removed). Imports must use `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation` as appropriate.
+3. **Comment the section.** The `ui_components` block has a short comment explaining that it is for AI import suggestions and should stay in sync with `src/ui`. See also `docs/dev/ui-migration-guide.md` and `docs/dev/compat-to-cmx-migration-notes.md`.
+4. **Version control.** Keep `.clauderc` in git so the whole team (and the AI) uses the same conventions.
+5. **Don’t rely on it for correctness.** The app does not read `.clauderc`. Linting, TypeScript, and tests are the source of truth; `.clauderc` only improves AI-suggested code.
+
+**Current snippet keys:** `button`, `input`, `textarea`, `select`, `checkbox`, `switch`, `label`, `card`, `badge`, `alert`, `dialog`, `tabs`, `progress`, `summary_message`, `select_dropdown`, `data_table`. Add or adjust keys when new shared UI is introduced.
+
+---
+
 ## 1. Tech Stack & Core Principles
 
 - **Framework:** Next.js (App Router)

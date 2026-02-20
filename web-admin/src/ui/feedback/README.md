@@ -259,7 +259,7 @@ cmxMessage.success("Order created", {
 
 ```typescript
 import { useMessage } from "@ui/feedback";
-import { SummaryMessage } from "@ui/compat";
+import { CmxSummaryMessage } from "@ui/feedback";
 import { useState, useEffect } from "react";
 
 function MyComponent() {
