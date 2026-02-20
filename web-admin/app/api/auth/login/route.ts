@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { email, password, remember_me: rememberMe = true } = body;
+    const { email, password, remember_me: rememberMe = false } = body;
 
     if (!email || !password) {
       return NextResponse.json(

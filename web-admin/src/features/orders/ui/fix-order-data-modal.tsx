@@ -28,6 +28,7 @@ export interface FixOrderDataStepResult {
     items_adjusted?: number;
     pieces_added?: number;
     pieces_removed?: number;
+    dry_run?: boolean;
     item_results?: Array<{
       order_item_id: string;
       order_item_srno: string;
@@ -41,6 +42,7 @@ export interface FixOrderDataStepResult {
 export interface FixOrderDataResult {
   overall: 'success' | 'partial' | 'error';
   steps: FixOrderDataStepResult[];
+  dry_run?: boolean;
 }
 
 interface FixOrderDataModalProps {
@@ -64,35 +66,57 @@ export function FixOrderDataModal({
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [running, setRunning] = useState(false);
+  const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<FixOrderDataResult | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  const callApi = useCallback(
+    async (dryRun: boolean) => {
+      const res = await fetch(`/api/v1/orders/${orderId}/fix-order-data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          steps: ['complete_order_item_pieces'],
+          dryRun,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setApiError(json.error ?? t('errorMessage'));
+        return null;
+      }
+      if (json.success && json.data) {
+        setResult(json.data as FixOrderDataResult);
+        setApiError(null);
+        return json.data as FixOrderDataResult;
+      }
+      setApiError(json.error ?? t('errorMessage'));
+      return null;
+    },
+    [orderId, t]
+  );
+
+  const handleCheck = useCallback(async () => {
+    setChecking(true);
+    setResult(null);
+    setApiError(null);
+    try {
+      await callApi(true);
+    } finally {
+      setChecking(false);
+    }
+  }, [callApi]);
 
   const handleRun = useCallback(async () => {
     setRunning(true);
     setResult(null);
     setApiError(null);
     try {
-      const res = await fetch(`/api/v1/orders/${orderId}/fix-order-data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ steps: ['complete_order_item_pieces'] }),
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        setApiError(json.error ?? t('errorMessage'));
-        return;
-      }
-      if (json.success && json.data) {
-        setResult(json.data as FixOrderDataResult);
-      } else {
-        setApiError(json.error ?? t('errorMessage'));
-      }
-    } catch (err) {
-      setApiError(err instanceof Error ? err.message : t('errorMessage'));
+      await callApi(false);
     } finally {
       setRunning(false);
     }
-  }, [orderId, t]);
+  }, [callApi]);
 
   const handleClose = useCallback(() => {
     onOpenChange(false);
@@ -147,21 +171,39 @@ export function FixOrderDataModal({
           </div>
 
           {!result && !apiError && (
-            <CmxButton
-              onClick={handleRun}
-              disabled={running}
-              className="w-full"
-              size="lg"
-            >
-              {running ? (
-                <>
-                  <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
-                  {t('running')}
-                </>
-              ) : (
-                t('runButton')
-              )}
-            </CmxButton>
+            <div className={`flex flex-col gap-2 ${isRTL ? 'items-end' : ''}`}>
+              <CmxButton
+                variant="outline"
+                onClick={handleCheck}
+                disabled={running || checking}
+                className="w-full"
+                size="lg"
+              >
+                {checking ? (
+                  <>
+                    <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    {t('checking')}
+                  </>
+                ) : (
+                  t('checkButton')
+                )}
+              </CmxButton>
+              <CmxButton
+                onClick={handleRun}
+                disabled={running || checking}
+                className="w-full"
+                size="lg"
+              >
+                {running ? (
+                  <>
+                    <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                    {t('running')}
+                  </>
+                ) : (
+                  t('runButton')
+                )}
+              </CmxButton>
+            </div>
           )}
 
           {apiError && (
@@ -176,9 +218,16 @@ export function FixOrderDataModal({
 
           {result && (
             <div className="space-y-3">
-              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
-                {t('resultSectionTitle')}
-              </p>
+              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                  {t('resultSectionTitle')}
+                </p>
+                {result.dry_run && (
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 rounded">
+                    {t('checkResultBadge')}
+                  </span>
+                )}
+              </div>
               {result.overall === 'error' && (
                 <Alert variant="destructive" className={isRTL ? 'text-right' : 'text-left'}>
                   <AlertCircle className="h-4 w-4" />
@@ -238,11 +287,23 @@ export function FixOrderDataModal({
                         <p className="text-xs text-gray-600 dark:text-gray-400">
                           {[
                             step.details.items_adjusted != null &&
-                              `Items adjusted: ${step.details.items_adjusted}`,
+                              (step.details.dry_run
+                                ? t('detailsItemsWouldBeAdjusted', {
+                                    count: step.details.items_adjusted,
+                                  })
+                                : `Items adjusted: ${step.details.items_adjusted}`),
                             step.details.pieces_added != null &&
-                              `Pieces added: ${step.details.pieces_added}`,
+                              (step.details.dry_run
+                                ? t('detailsPiecesWouldBeAdded', {
+                                    count: step.details.pieces_added,
+                                  })
+                                : `Pieces added: ${step.details.pieces_added}`),
                             step.details.pieces_removed != null &&
-                              `Pieces removed: ${step.details.pieces_removed}`,
+                              (step.details.dry_run
+                                ? t('detailsPiecesWouldBeRemoved', {
+                                    count: step.details.pieces_removed,
+                                  })
+                                : `Pieces removed: ${step.details.pieces_removed}`),
                           ]
                             .filter(Boolean)
                             .join('. ')}
@@ -280,10 +341,27 @@ export function FixOrderDataModal({
               <CmxButton variant="outline" onClick={handleClose}>
                 {t('close')}
               </CmxButton>
-              <CmxButton onClick={handleRefresh}>{t('refreshPage')}</CmxButton>
+              {result.dry_run ? (
+                <CmxButton
+                  onClick={handleRun}
+                  disabled={running}
+                  className={isRTL ? 'flex-row-reverse' : ''}
+                >
+                  {running ? (
+                    <>
+                      <Loader2 className={`h-4 w-4 animate-spin ${isRTL ? 'ml-2' : 'mr-2'}`} />
+                      {t('running')}
+                    </>
+                  ) : (
+                    t('runButton')
+                  )}
+                </CmxButton>
+              ) : (
+                <CmxButton onClick={handleRefresh}>{t('refreshPage')}</CmxButton>
+              )}
             </>
           ) : (
-            <CmxButton variant="outline" onClick={handleClose} disabled={running}>
+            <CmxButton variant="outline" onClick={handleClose} disabled={running || checking}>
               {tCommon('close')}
             </CmxButton>
           )}

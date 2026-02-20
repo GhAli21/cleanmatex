@@ -24,7 +24,7 @@ export default function LoginPage() {
   const [errors, setErrors] = useState<FormErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [rememberMe, setRememberMe] = useState(true)
+  const [rememberMe, setRememberMe] = useState(false)
 
   const redirectTo = searchParams.get('redirect') || '/dashboard'
   const isSessionExpired = searchParams.get('reason') === 'session_expired'

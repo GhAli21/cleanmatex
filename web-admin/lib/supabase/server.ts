@@ -82,12 +82,16 @@ export async function createServerSupabaseClient() {
   )
 }
 
+/** Default max age for "Remember me" cookies: 1 day (in seconds). */
+const REMEMBER_ME_COOKIE_MAX_AGE = 60 * 60 * 24
+
 /**
  * Create a Supabase client for the login API route with optional session-only cookies.
  * When rememberMe is false, auth cookies are set without maxAge/expires so they are
  * session cookies (browser drops them when the browser is closed).
+ * When rememberMe is true, auth cookies use an explicit maxAge (1 day).
  *
- * @param rememberMe - If false, auth cookies are session-only; if true, use default persistence
+ * @param rememberMe - If false, auth cookies are session-only; if true, set maxAge (1 day)
  * @returns Promise<SupabaseClient>
  */
 export async function createServerSupabaseClientForLogin(rememberMe: boolean) {
@@ -105,7 +109,7 @@ export async function createServerSupabaseClientForLogin(rememberMe: boolean) {
         set(name: string, value: string, options: Record<string, unknown>) {
           try {
             const cookieOptions = rememberMe
-              ? options
+              ? { ...options, maxAge: REMEMBER_ME_COOKIE_MAX_AGE, expires: undefined }
               : { ...options, maxAge: undefined, expires: undefined }
             cookieStore.set({ name, value, ...cookieOptions } as Parameters<typeof cookieStore.set>[0])
           } catch (error) {

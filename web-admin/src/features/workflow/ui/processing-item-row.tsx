@@ -168,7 +168,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
 
           {/* Pieces Button - Only show if trackByPiece is enabled */}
           {trackByPiece && (
-            <Button
+            <CmxButton
               variant="ghost"
               size="sm"
               onClick={() => onToggleExpand(item.id)}
@@ -183,7 +183,7 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
               ) : (
                 <ChevronDown className="ml-2 h-4 w-4" aria-hidden="true" />
               )}
-            </Button>
+            </CmxButton>
           )}
         </div>
       </CardHeader>

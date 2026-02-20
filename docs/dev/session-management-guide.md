@@ -64,15 +64,15 @@ This guide describes the full session lifecycle, route protection, CSRF, and Rem
 ## Remember me
 
 - **Meaning**  
-  - Checkbox on the login page: **checked** = persistent auth cookies (stay logged in after closing the browser); **unchecked** = session-only cookies (logged out when the browser is closed).
+  - Checkbox on the login page: **checked** = persistent auth cookies with explicit maxAge (1 day); **unchecked** = session-only cookies (logged out when the browser is closed). Default is **unchecked** (session-only).
 
 - **Where it is applied**  
-  - Login API reads `remember_me` from the body (default `true`).  
-  - It uses `createServerSupabaseClientForLogin(rememberMe)` so that when `remember_me === false`, auth cookies are set without `maxAge`/`expires` (session cookies).  
-  - Only the login response sets this; middleware and other routes use the same cookies afterward until they expire or the browser session ends.
+  - Login API reads `remember_me` from the body (default `false`).  
+  - It uses `createServerSupabaseClientForLogin(rememberMe)` so that when `remember_me === false`, auth cookies are set without `maxAge`/`expires` (session cookies). When `remember_me === true`, auth cookies use an explicit `maxAge` of 1 day.  
+  - Only the login response sets this; proxy and other routes use the same cookies afterward until they expire or the browser session ends.
 
 - **Login page**  
-  - State `rememberMe` (default `true`) is bound to the “Remember me” checkbox; `signIn(email, password, rememberMe)` sends `remember_me` in the body.
+  - State `rememberMe` (default `false`) is bound to the “Remember me” checkbox; `signIn(email, password, rememberMe)` sends `remember_me` in the body.
 
 ---
 

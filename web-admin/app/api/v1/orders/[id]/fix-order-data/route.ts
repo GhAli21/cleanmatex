@@ -36,11 +36,13 @@ export async function POST(
     const steps: string[] = Array.isArray(body.steps)
       ? body.steps
       : ['complete_order_item_pieces'];
+    const dryRun = Boolean(body.dryRun);
 
     const { data: fixResult, error: rpcError } = await supabase.rpc('fix_order_data', {
       p_tenant_org_id: tenantId,
       p_steps: steps,
       p_order_id: orderId,
+      p_dry_run: dryRun,
     });
 
     if (rpcError) {

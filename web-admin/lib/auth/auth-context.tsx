@@ -184,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   /**
    * Sign in with email and password
    */
-  const signIn = useCallback(async (email: string, password: string, rememberMe = true) => {
+  const signIn = useCallback(async (email: string, password: string, rememberMe = false) => {
     // Prevent multiple simultaneous login attempts
     if (isLoggingInRef.current) {
       throw new Error('Login already in progress')
