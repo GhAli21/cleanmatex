@@ -90,6 +90,15 @@ export default function LogoutPage() {
     }
   }, [isAuthenticated, authLoading, showConfirmDialog, handleLogout, router])
 
+  // Safety redirect: if still on this page after 5s (e.g. signOut/redirect failed), force redirect to login
+  useEffect(() => {
+    const safetyMs = 5000
+    const timeoutId = setTimeout(() => {
+      router.replace('/login')
+    }, safetyMs)
+    return () => clearTimeout(timeoutId)
+  }, [router])
+
   // Confirmation dialog handlers
   const handleConfirm = useCallback(() => {
     setShowConfirmDialog(false)
