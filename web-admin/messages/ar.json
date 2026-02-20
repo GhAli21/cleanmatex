@@ -707,7 +707,9 @@
     },
     "search": "البحث برقم الطلب أو اسم العميل أو الهاتف...",
     "filterByStatus": "تصفية حسب الحالة",
+    "filterByPrepStatus": "تصفية حسب حالة التحضير",
     "filterByPriority": "تصفية حسب الأولوية",
+    "filterByOrderType": "تصفية حسب نوع الطلب",
     "retail": "بيع مباشر",
     "retailOnly": "بيع بالتجزئة فقط",
     "servicesOnly": "الخدمات فقط",
@@ -879,6 +881,7 @@
       "backToSimpleView": "العودة للطلب",
       "noActionsForClosedOrder": "لا توجد إجراءات متاحة للطلبات المغلقة",
       "tabs": {
+        "master": "بيانات الطلب الرئيسية",
         "items": "العناصر والقطع",
         "history": "سجل الطلب",
         "invoices": "الفواتير",

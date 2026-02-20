@@ -24,7 +24,7 @@ import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
-const TAB_IDS = ['items', 'history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
+const TAB_IDS = ['master', 'items', 'history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -232,7 +232,69 @@ export function OrderDetailsFullClient({
     notes: t.notes ?? 'Notes',
   };
 
+  /** Order master fields to show in Master tab (excludes nested relations/arrays) */
+  const orderMasterKeys = Object.keys(order).filter(
+    (k) =>
+      k !== 'items' &&
+      k !== 'org_order_items_dtl' &&
+      k !== 'org_customers_mst' &&
+      typeof (order as Record<string, unknown>)[k] !== 'object'
+  );
+  const formatMasterValue = (key: string, value: unknown): string => {
+    if (value == null) return '—';
+    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (value instanceof Date) return value.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM');
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}/.test(value)) {
+      try {
+        return new Date(value).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM');
+      } catch {
+        return String(value);
+      }
+    }
+    return String(value);
+  };
+
   const tabs = [
+    {
+      id: 'master',
+      label: t.tabsMaster ?? 'Order Master Data',
+      content: (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t.tabsMaster ?? 'Order Master Data'}
+          </h3>
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+            {orderMasterKeys.map((key) => {
+              const val = (order as Record<string, unknown>)[key];
+              const displayKey = key.replace(/_/g, ' ');
+              return (
+                <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2`}>
+                  <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">{displayKey}</dt>
+                  <dd className="text-sm text-gray-900 break-all">{formatMasterValue(key, val)}</dd>
+                </div>
+              );
+            })}
+          </dl>
+          {/* Nested: customer summary */}
+          {order.org_customers_mst != null && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <h4 className={`text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                Customer (org_customers_mst)
+              </h4>
+              <pre className="text-xs bg-gray-50 rounded p-3 overflow-x-auto max-h-40 overflow-y-auto">
+                {JSON.stringify(order.org_customers_mst, null, 2)}
+              </pre>
+            </div>
+          )}
+          {/* Nested: items count */}
+          {(order.items ?? order.org_order_items_dtl) != null && (
+            <div className={`mt-4 text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+              Items / org_order_items_dtl: {Array.isArray(order.items) ? order.items.length : Array.isArray(order.org_order_items_dtl) ? order.org_order_items_dtl.length : 0} line(s)
+            </div>
+          )}
+        </div>
+      ),
+    },
     {
       id: 'items',
       label: t.tabsItems ?? 'Items & Pieces',
@@ -827,13 +889,15 @@ export function OrderDetailsFullClient({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
           role="dialog"
           aria-modal="true"
+          aria-labelledby="apply-invoice-dialog-title"
         >
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">{t.selectInvoiceToApply}</h3>
+            <h3 id="apply-invoice-dialog-title" className="text-lg font-semibold text-gray-900 mb-4">{t.selectInvoiceToApply}</h3>
             <select
               value={applyModalInvoiceId}
               onChange={(e) => setApplyModalInvoiceId(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              aria-label={t.selectInvoiceToApply}
             >
               <option value="">—</option>
               {orderInvoices.map((inv) => (

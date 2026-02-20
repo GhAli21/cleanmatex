@@ -56,6 +56,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
             onChange={(e) => setSearch(e.target.value)}
             className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 ${isRTL ? 'text-right' : 'text-left'}`}
             dir={isRTL ? 'rtl' : 'ltr'}
+            aria-label={t('search')}
           />
         </form>
 
@@ -65,6 +66,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           onChange={(e) => handleFilterChange('status', e.target.value)}
           className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
           dir={isRTL ? 'rtl' : 'ltr'}
+          aria-label={t('filterByStatus')}
         >
           <option value="">{t('allStatuses')}</option>
           <option value="intake">{t('statuses.intake')}</option>
@@ -94,6 +96,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           onChange={(e) => handleFilterChange('priority', e.target.value)}
           className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
           dir={isRTL ? 'rtl' : 'ltr'}
+          aria-label={t('filterByPriority')}
         >
           <option value="">{t('allPriorities')}</option>
           <option value="normal">{t('priorities.normal')}</option>
@@ -107,6 +110,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           onChange={(e) => handleFilterChange('isRetail', e.target.value)}
           className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
           dir={isRTL ? 'rtl' : 'ltr'}
+          aria-label={t('filterByOrderType')}
         >
           <option value="">{t('allOrders')}</option>
           <option value="true">{t('retailOnly')}</option>

@@ -624,6 +624,7 @@ export function OrderDetailClient({
                   value={applyModalInvoiceId}
                   onChange={(e) => setApplyModalInvoiceId(e.target.value)}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  aria-label={t.selectInvoiceToApply}
                 >
                   <option value="">—</option>
                   {orderInvoices.map((inv) => (

@@ -707,7 +707,9 @@
     },
     "search": "Search by order #, customer name, or phone...",
     "filterByStatus": "Filter by status",
+    "filterByPrepStatus": "Filter by preparation status",
     "filterByPriority": "Filter by priority",
+    "filterByOrderType": "Filter by order type",
     "retail": "Retail",
     "retailOnly": "Retail only",
     "servicesOnly": "Services only",
@@ -878,6 +880,7 @@
       "backToSimpleView": "Back to order",
       "noActionsForClosedOrder": "No actions available for closed orders",
       "tabs": {
+        "master": "Order Master Data",
         "items": "Items & Pieces",
         "history": "Order History",
         "invoices": "Invoices",

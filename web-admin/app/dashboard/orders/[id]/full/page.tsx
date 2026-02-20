@@ -165,6 +165,7 @@ async function OrderDetailsFullContent({
         viewFullDetails: tFull('viewFullDetails'),
         backToSimpleView: tFull('backToSimpleView'),
         noActionsForClosedOrder: tFull('noActionsForClosedOrder'),
+        tabsMaster: tFull('tabs.master'),
         tabsItems: tFull('tabs.items'),
         tabsHistory: tFull('tabs.history'),
         tabsInvoices: tFull('tabs.invoices'),
