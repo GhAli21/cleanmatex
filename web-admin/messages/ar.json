@@ -908,7 +908,19 @@
       "voucherId": "معرّف الإيصال",
       "transactionId": "معرّف المعاملة",
       "gateway": "بوابة الدفع",
-      "notes": "ملاحظات"
+      "notes": "ملاحظات",
+      "masterSections": {
+        "orderIdentity": "هوية الطلب",
+        "customerReference": "العميل والمرجع",
+        "financial": "المبالغ والمجاميع",
+        "payment": "الدفع",
+        "datesAndTimeline": "التواريخ والجدول الزمني",
+        "preparationAndWorkflow": "التحضير وسير العمل",
+        "notes": "ملاحظات",
+        "other": "أخرى"
+      },
+      "masterCustomerData": "بيانات العميل",
+      "masterItemsCount": "عدد الأصناف"
     },
     "statuses": {
       "intake": "الاستلام",

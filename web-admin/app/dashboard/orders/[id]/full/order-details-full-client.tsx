@@ -12,6 +12,7 @@ import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
@@ -232,14 +233,116 @@ export function OrderDetailsFullClient({
     notes: t.notes ?? 'Notes',
   };
 
-  /** Order master fields to show in Master tab (excludes nested relations/arrays) */
-  const orderMasterKeys = Object.keys(order).filter(
-    (k) =>
-      k !== 'items' &&
-      k !== 'org_order_items_dtl' &&
-      k !== 'org_customers_mst' &&
-      typeof (order as Record<string, unknown>)[k] !== 'object'
-  );
+  /** Order master field categories for UI grouping (keys that exist on order are shown) */
+  const MASTER_CATEGORIES: { sectionKey: string; keys: string[] }[] = [
+    {
+      sectionKey: 'orderIdentity',
+      keys: [
+        'id',
+        'order_no',
+        'tenant_org_id',
+        'branch_id',
+        'order_type_id',
+        'service_category_code',
+        'status',
+        'priority',
+        'total_items',
+        'rec_status',
+      ],
+    },
+    {
+      sectionKey: 'customerReference',
+      keys: ['customer_id'],
+    },
+    {
+      sectionKey: 'financial',
+      keys: [
+        'subtotal',
+        'discount',
+        'tax',
+        'total',
+        'vat_rate',
+        'vat_amount',
+        'discount_rate',
+        'discount_type',
+        'promo_discount_amount',
+        'gift_card_discount_amount',
+        'service_charge',
+        'service_charge_type',
+        'currency_code',
+        'currency_ex_rate',
+      ],
+    },
+    {
+      sectionKey: 'payment',
+      keys: [
+        'payment_status',
+        'payment_method_code',
+        'paid_amount',
+        'paid_at',
+        'paid_by',
+        'payment_notes',
+        'payment_type_code',
+        'payment_terms',
+        'payment_due_date',
+      ],
+    },
+    {
+      sectionKey: 'datesAndTimeline',
+      keys: [
+        'received_at',
+        'ready_by',
+        'ready_by_override',
+        'ready_at',
+        'delivered_at',
+        'created_at',
+        'updated_at',
+        'prepared_at',
+        'last_transition_at',
+      ],
+    },
+    {
+      sectionKey: 'preparationAndWorkflow',
+      keys: [
+        'preparation_status',
+        'prepared_by',
+        'priority_multiplier',
+        'workflow_template_id',
+        'current_status',
+        'current_stage',
+        'parent_order_id',
+        'order_subtype',
+        'has_split',
+        'is_rejected',
+        'rejected_from_stage',
+        'issue_id',
+        'has_issue',
+        'ready_by_at_new',
+        'last_transition_by',
+        'is_order_quick_drop',
+        'quick_drop_quantity',
+        'rack_location',
+        'is_retail',
+      ],
+    },
+    {
+      sectionKey: 'notes',
+      keys: ['customer_notes', 'internal_notes'],
+    },
+    {
+      sectionKey: 'other',
+      keys: [
+        'bag_count',
+        'created_by',
+        'updated_by',
+        'created_info',
+        'updated_info',
+        'promo_code_id',
+        'gift_card_id',
+      ],
+    },
+  ];
+
   const formatMasterValue = (key: string, value: unknown): string => {
     if (value == null) return '—';
     if (typeof value === 'boolean') return value ? 'Yes' : 'No';
@@ -251,7 +354,50 @@ export function OrderDetailsFullClient({
         return String(value);
       }
     }
+    const amountKeys = [
+      'subtotal',
+      'discount',
+      'tax',
+      'total',
+      'paid_amount',
+      'vat_amount',
+      'promo_discount_amount',
+      'gift_card_discount_amount',
+      'service_charge',
+    ];
+    if (amountKeys.includes(key) && (typeof value === 'number' || (typeof value === 'string' && /^-?\d*\.?\d+$/.test(value)))) {
+      const num = typeof value === 'number' ? value : parseFloat(value as string);
+      const currency = typeof order.currency_code === 'string' ? order.currency_code : 'OMR';
+      return `${Number.isNaN(num) ? String(value) : num.toFixed(3)} ${currency}`;
+    }
     return String(value);
+  };
+
+  const renderMasterSection = (sectionKey: string, title: string, keys: string[]) => {
+    const o = order as Record<string, unknown>;
+    const presentKeys = keys.filter((k) => k in o && typeof o[k] !== 'object');
+    if (presentKeys.length === 0) return null;
+    return (
+      <CmxCard key={sectionKey}>
+        <CmxCardHeader>
+          <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>{title}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent className="pt-0">
+          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+            {presentKeys.map((key) => {
+              const val = o[key];
+              const displayKey = key.replace(/_/g, ' ');
+              return (
+                <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
+                  <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
+                  <dd className="text-sm text-gray-900 break-all">{formatMasterValue(key, val)}</dd>
+                </div>
+              );
+            })}
+          </dl>
+        </CmxCardContent>
+      </CmxCard>
+    );
   };
 
   const tabs = [
@@ -259,38 +405,71 @@ export function OrderDetailsFullClient({
       id: 'master',
       label: t.tabsMaster ?? 'Order Master Data',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-            {t.tabsMaster ?? 'Order Master Data'}
-          </h3>
-          <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
-            {orderMasterKeys.map((key) => {
-              const val = (order as Record<string, unknown>)[key];
-              const displayKey = key.replace(/_/g, ' ');
-              return (
-                <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2`}>
-                  <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">{displayKey}</dt>
-                  <dd className="text-sm text-gray-900 break-all">{formatMasterValue(key, val)}</dd>
-                </div>
-              );
-            })}
-          </dl>
-          {/* Nested: customer summary */}
-          {order.org_customers_mst != null && (
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <h4 className={`text-sm font-semibold text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                Customer (org_customers_mst)
-              </h4>
-              <pre className="text-xs bg-gray-50 rounded p-3 overflow-x-auto max-h-40 overflow-y-auto">
-                {JSON.stringify(order.org_customers_mst, null, 2)}
-              </pre>
-            </div>
+        <div className="space-y-6">
+          {/* Top row: Order identity + Customer reference (two columns) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderMasterSection(
+              'orderIdentity',
+              t.masterSectionOrderIdentity ?? 'Order identity',
+              MASTER_CATEGORIES[0].keys
+            )}
+            {renderMasterSection(
+              'customerReference',
+              t.masterSectionCustomerReference ?? 'Customer & reference',
+              MASTER_CATEGORIES[1].keys
+            )}
+          </div>
+          {/* Full width: Amounts & totals */}
+          {renderMasterSection(
+            'financial',
+            t.masterSectionFinancial ?? 'Amounts & totals',
+            MASTER_CATEGORIES[2].keys
           )}
-          {/* Nested: items count */}
+          {/* Full width: Payment */}
+          {renderMasterSection(
+            'payment',
+            t.masterSectionPayment ?? 'Payment',
+            MASTER_CATEGORIES[3].keys
+          )}
+          {/* Full width: Dates & timeline */}
+          {renderMasterSection(
+            'datesAndTimeline',
+            t.masterSectionDatesAndTimeline ?? 'Dates & timeline',
+            MASTER_CATEGORIES[4].keys
+          )}
+          {/* Full width: Preparation & workflow */}
+          {renderMasterSection(
+            'preparationAndWorkflow',
+            t.masterSectionPreparationAndWorkflow ?? 'Preparation & workflow',
+            MASTER_CATEGORIES[5].keys
+          )}
+          {/* Notes + Other: two columns on large screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {renderMasterSection('notes', t.masterSectionNotes ?? 'Notes', MASTER_CATEGORIES[6].keys)}
+            {renderMasterSection('other', t.masterSectionOther ?? 'Other', MASTER_CATEGORIES[7].keys)}
+          </div>
+          {/* Customer data (nested object) */}
+          {order.org_customers_mst != null && (
+            <CmxCard>
+              <CmxCardHeader>
+                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.masterCustomerData ?? 'Customer data'}
+                </CmxCardTitle>
+              </CmxCardHeader>
+              <CmxCardContent className="pt-0">
+                <pre className="text-xs bg-gray-50 rounded-lg p-4 overflow-x-auto max-h-48 overflow-y-auto border border-gray-100">
+                  {JSON.stringify(order.org_customers_mst, null, 2)}
+                </pre>
+              </CmxCardContent>
+            </CmxCard>
+          )}
+          {/* Items count */}
           {(order.items ?? order.org_order_items_dtl) != null && (
-            <div className={`mt-4 text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-              Items / org_order_items_dtl: {Array.isArray(order.items) ? order.items.length : Array.isArray(order.org_order_items_dtl) ? order.org_order_items_dtl.length : 0} line(s)
-            </div>
+            <p className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.masterItemsCount ?? 'Items count'}:{' '}
+              {Array.isArray(order.items) ? order.items.length : Array.isArray(order.org_order_items_dtl) ? order.org_order_items_dtl.length : 0}{' '}
+              line(s)
+            </p>
           )}
         </div>
       ),

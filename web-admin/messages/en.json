@@ -907,7 +907,19 @@
       "voucherId": "Voucher ID",
       "transactionId": "Transaction ID",
       "gateway": "Gateway",
-      "notes": "Notes"
+      "notes": "Notes",
+      "masterSections": {
+        "orderIdentity": "Order identity",
+        "customerReference": "Customer & reference",
+        "financial": "Amounts & totals",
+        "payment": "Payment",
+        "datesAndTimeline": "Dates & timeline",
+        "preparationAndWorkflow": "Preparation & workflow",
+        "notes": "Notes",
+        "other": "Other"
+      },
+      "masterCustomerData": "Customer data",
+      "masterItemsCount": "Items count"
     },
     "statuses": {
       "intake": "Intake",

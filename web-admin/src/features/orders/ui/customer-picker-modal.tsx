@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
@@ -75,8 +75,10 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
   const resultsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Defer search term used for API/list so input stays responsive (fixes INP)
+  const deferredSearch = useDeferredValue(search);
   const { customers: rawCustomers, isLoading, isFetching, error, isReady } = useCustomerSearch({
-    search,
+    search: deferredSearch,
     searchAllOptions,
     limit: 10,
     minChars: CUSTOMER_SEARCH_MIN_CHARS,
