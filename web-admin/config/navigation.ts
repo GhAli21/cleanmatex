@@ -65,7 +65,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard',
     roles: ['super_admin', 'admin', 'operator'],
   },
-  /*
+  
   {
     key: 'orders',
     label: 'Orders',
@@ -379,7 +379,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/jhtestui',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
   },
-*/
+
 ] 
 
 /**
@@ -410,8 +410,10 @@ export function getNavigationForRole(
       return false
     }
 
-    // Check role permission (if roles specified)
-    if (hasRoleRequirement && !section.roles!.includes(role)) {
+    // super_admin: allow all sections that have any role requirement (full menu)
+    const isSuperAdmin = role === 'super_admin'
+    // Check role permission (if roles specified); super_admin bypasses role check
+    if (hasRoleRequirement && !isSuperAdmin && !section.roles!.includes(role)) {
       return false
     }
 
@@ -443,8 +445,8 @@ export function getNavigationForRole(
           return false
         }
 
-        // Check child role permission
-        if (childHasRoleRequirement && !child.roles!.includes(role)) {
+        // Check child role permission; super_admin bypasses role check
+        if (childHasRoleRequirement && !isSuperAdmin && !child.roles!.includes(role)) {
           return false
         }
 

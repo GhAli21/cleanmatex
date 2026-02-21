@@ -81,7 +81,17 @@ export async function getNavigationFromDatabase(
   featureFlags: Record<string, boolean> = {}
 ): Promise<NavigationSection[]> {
   try {
-    
+    // super_admin: skip DB and use config fallback so they always get the full menu.
+    // The DB (sys_components_cd / get_navigation_with_parents_jh) often returns only one
+    // or few rows for super_admin, so we bypass it and use NAVIGATION_SECTIONS filtering.
+    if (userRole === 'super_admin') {
+      const fallback = getSystemNavigationFallback('super_admin', userPermissions, featureFlags)
+      if (fallback.length > 0) {
+        return fallback
+      }
+      return getBasicNavigationForSuperAdmin()
+    }
+
     console.log('Jh In getNavigationFromDatabase() [ 3 ] : userRole', userRole);
     console.log('Jh In getNavigationFromDatabase() [ 4 ] : userPermissions length', userPermissions.length);
     console.log('Jh In getNavigationFromDatabase() [ 5 ] : featureFlags length', Object.keys(featureFlags).length);
@@ -122,12 +132,7 @@ export async function getNavigationFromDatabase(
     
     if (error) {
       console.error('Error in Jh In getNavigationFromDatabase() [ 11 ] : Error fetching navigation from database:', error)
-      // Return empty array if error (no default fallback)
       const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
-      // Ensure super_admin always gets navigation items
-      if (fallback.length === 0 && userRole === 'super_admin') {
-        return getBasicNavigationForSuperAdmin()
-      }
       return fallback
     }
 
@@ -136,17 +141,8 @@ export async function getNavigationFromDatabase(
         userRole,
         permissionsCount: userPermissions.length,
       })
-      // Use fallback navigation when database returns empty
       const fallback = getSystemNavigationFallback(userRole || null, userPermissions, featureFlags)
       console.log('Fallback navigation returned:', fallback.length, 'sections')
-      
-      // Ensure super_admin always gets navigation items
-      if (fallback.length === 0 && userRole === 'super_admin') {
-        console.error('CRITICAL: Fallback returned empty for super_admin! This should never happen.')
-        // Return basic navigation as last resort
-        return getBasicNavigationForSuperAdmin()
-      }
-      
       return fallback
     }
 
