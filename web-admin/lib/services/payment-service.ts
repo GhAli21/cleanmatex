@@ -276,90 +276,108 @@ export async function processPayment(
           .filter((inv) => inv.remaining > 0);
 
         if (withBalance.length > 0) {
+          const totalRemaining = withBalance.reduce((sum, inv) => sum + inv.remaining, 0);
+          if (amountToPay > totalRemaining) {
+            return {
+              success: false,
+              invoice_id: '',
+              payment_status: 'failed',
+              amount_paid: 0,
+              remaining_balance: totalRemaining,
+              error: 'Payment amount exceeds total remaining balance across invoices',
+              errorCode: 'AMOUNT_EXCEEDS_BALANCE',
+            };
+          }
+
           const paymentResult = await processPaymentByMethod(input);
           if (!paymentResult.success) return paymentResult;
 
           let amountLeft = amountToPay;
           let totalApplied = 0;
           let lastInvoiceId: string | null = null;
-
-          for (const inv of withBalance) {
-            if (amountLeft <= 0) break;
-            const apply = Math.min(inv.remaining, amountLeft);
-            if (apply <= 0) continue;
-
-            await recordPaymentTransaction({
-              invoice_id: inv.id,
-              order_id: input.order_id,
-              customer_id: input.customer_id,
-              paid_amount: apply,
-              payment_method_code: input.payment_method_code,
-              payment_type_code: input.payment_type_code,
-              paid_by: input.processed_by,
-              branch_id: input.branch_id,
-              subtotal: input.subtotal,
-              discount_rate: input.discount_rate,
-              discount_amount: input.discount_amount,
-              manual_discount_amount: input.manual_discount_amount,
-              promo_discount_amount: input.promo_discount_amount,
-              gift_card_applied_amount: input.gift_card_applied_amount,
-              vat_rate: input.vat_rate,
-              vat_amount: input.vat_amount,
-              tax_rate: input.tax_rate,
-              tax_amount: input.tax_amount,
-              currency_code: input.currency_code,
-              currency_ex_rate: input.currency_ex_rate,
-              check_number: input.check_number,
-              check_bank: input.check_bank,
-              check_date: input.check_date,
-              promo_code_id: input.promo_code_id,
-              gift_card_id: input.gift_card_id,
-              metadata: {
-                check_number: input.check_number,
-                gateway_token: input.gateway_token,
-                promo_code: input.promo_code,
-                gift_card_number: input.gift_card_number,
-                gift_card_amount: input.gift_card_amount,
-              },
-              rec_notes: input.notes,
-              trans_desc: input.trans_desc,
-              payment_channel: input.payment_channel ?? 'web_admin',
-            });
-
-            const newPaid = inv.paid_amount + apply;
-            const newStatus = newPaid >= inv.total ? 'paid' : 'partial';
-            await prisma.org_invoice_mst.update({
-              where: { id: inv.id },
-              data: {
-                paid_amount: newPaid,
-                status: newStatus,
-                paid_at: newStatus === 'paid' ? new Date() : undefined,
-                paid_by: input.processed_by,
-                updated_at: new Date(),
-                updated_by: input.processed_by,
-              },
-            });
-
-            amountLeft -= apply;
-            totalApplied += apply;
-            lastInvoiceId = inv.id;
-          }
-
           let orderRemaining = 0;
-          if (totalApplied > 0 && input.order_id) {
-            const orderRow = await prisma.org_orders_mst.findUnique({
-              where: { id: input.order_id },
-              select: { total: true, paid_amount: true },
-            });
-            if (orderRow) {
-              const orderTotal = Number(orderRow.total ?? 0);
-              const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
-              const newOrderPaid = currentOrderPaid + totalApplied;
-              orderRemaining = Math.max(0, orderTotal - newOrderPaid);
-              const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-              await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by);
+
+          await prisma.$transaction(async (dbTx) => {
+            for (const inv of withBalance) {
+              if (amountLeft <= 0) break;
+              const apply = Math.min(inv.remaining, amountLeft);
+              if (apply <= 0) continue;
+
+              await recordPaymentTransaction(
+                {
+                  invoice_id: inv.id,
+                  order_id: input.order_id,
+                  customer_id: input.customer_id,
+                  paid_amount: apply,
+                  payment_method_code: input.payment_method_code,
+                  payment_type_code: input.payment_type_code,
+                  paid_by: input.processed_by,
+                  branch_id: input.branch_id,
+                  subtotal: input.subtotal,
+                  discount_rate: input.discount_rate,
+                  discount_amount: input.discount_amount,
+                  manual_discount_amount: input.manual_discount_amount,
+                  promo_discount_amount: input.promo_discount_amount,
+                  gift_card_applied_amount: input.gift_card_applied_amount,
+                  vat_rate: input.vat_rate,
+                  vat_amount: input.vat_amount,
+                  tax_rate: input.tax_rate,
+                  tax_amount: input.tax_amount,
+                  currency_code: input.currency_code,
+                  currency_ex_rate: input.currency_ex_rate,
+                  check_number: input.check_number,
+                  check_bank: input.check_bank,
+                  check_date: input.check_date,
+                  promo_code_id: input.promo_code_id,
+                  gift_card_id: input.gift_card_id,
+                  metadata: {
+                    check_number: input.check_number,
+                    gateway_token: input.gateway_token,
+                    promo_code: input.promo_code,
+                    gift_card_number: input.gift_card_number,
+                    gift_card_amount: input.gift_card_amount,
+                  },
+                  rec_notes: input.notes,
+                  trans_desc: input.trans_desc,
+                  payment_channel: input.payment_channel ?? 'web_admin',
+                },
+                dbTx
+              );
+
+              const newPaid = inv.paid_amount + apply;
+              const newStatus = newPaid >= inv.total ? 'paid' : 'partial';
+              await dbTx.org_invoice_mst.update({
+                where: { id: inv.id },
+                data: {
+                  paid_amount: newPaid,
+                  status: newStatus,
+                  paid_at: newStatus === 'paid' ? new Date() : undefined,
+                  paid_by: input.processed_by,
+                  updated_at: new Date(),
+                  updated_by: input.processed_by,
+                },
+              });
+
+              amountLeft -= apply;
+              totalApplied += apply;
+              lastInvoiceId = inv.id;
             }
-          }
+
+            if (totalApplied > 0 && input.order_id) {
+              const orderRow = await dbTx.org_orders_mst.findUnique({
+                where: { id: input.order_id },
+                select: { total: true, paid_amount: true },
+              });
+              if (orderRow) {
+                const orderTotal = Number(orderRow.total ?? 0);
+                const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
+                const newOrderPaid = currentOrderPaid + totalApplied;
+                orderRemaining = Math.max(0, orderTotal - newOrderPaid);
+                const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
+                await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx);
+              }
+            }
+          });
 
           return {
             success: true,
@@ -439,8 +457,8 @@ export async function processPayment(
           vCustomerid = customer.customer_id;
         }
       }
-       
-      const transaction = await recordPaymentTransaction({
+
+      const paymentPayload = {
         invoice_id: invoiceId,
         order_id: input.order_id,
         customer_id: vCustomerid,
@@ -476,50 +494,56 @@ export async function processPayment(
         rec_notes: input.notes,
         trans_desc: input.trans_desc,
         payment_channel: input.payment_channel ?? 'web_admin',
-      });
-
-      const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
-      const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
-
-      const existingInvoiceMetadata =
-        invoice.metadata && typeof invoice.metadata === 'object'
-          ? (invoice.metadata as Record<string, unknown>)
-          : {};
-      const paymentMetadata = {
-        ...existingInvoiceMetadata,
-        last_payment_transaction_id: transaction.id,
-        last_payment_at: new Date().toISOString(),
-        last_payment_method: input.payment_method_code,
-        last_payment_amount: amountToPay,
       };
 
-      await prisma.org_invoice_mst.update({
-        where: { id: invoiceId },
-        data: {
-          paid_amount: updatedPaidAmount,
-          status: newStatus,
-          paid_at: newStatus === 'paid' ? new Date() : undefined,
-          paid_by: input.processed_by,
-          payment_method_code: input.payment_method_code,
-          updated_at: new Date(),
-          updated_by: input.processed_by,
-          metadata: paymentMetadata as object,
-        },
-      });
+      const transaction = await prisma.$transaction(async (dbTx) => {
+        const txn = await recordPaymentTransaction(paymentPayload, dbTx);
 
-      if (input.order_id) {
-        const orderRow = await prisma.org_orders_mst.findUnique({
-          where: { id: input.order_id },
-          select: { total: true, paid_amount: true },
+        const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
+        const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+
+        const existingInvoiceMetadata =
+          invoice.metadata && typeof invoice.metadata === 'object'
+            ? (invoice.metadata as Record<string, unknown>)
+            : {};
+        const paymentMetadata = {
+          ...existingInvoiceMetadata,
+          last_payment_transaction_id: txn.id,
+          last_payment_at: new Date().toISOString(),
+          last_payment_method: input.payment_method_code,
+          last_payment_amount: amountToPay,
+        };
+
+        await dbTx.org_invoice_mst.update({
+          where: { id: invoiceId },
+          data: {
+            paid_amount: updatedPaidAmount,
+            status: newStatus,
+            paid_at: newStatus === 'paid' ? new Date() : undefined,
+            paid_by: input.processed_by,
+            payment_method_code: input.payment_method_code,
+            updated_at: new Date(),
+            updated_by: input.processed_by,
+            metadata: paymentMetadata as object,
+          },
         });
-        if (orderRow) {
-          const orderTotal = Number(orderRow.total ?? 0);
-          const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
-          const newOrderPaid = currentOrderPaid + amountToPay;
-          const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-          await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by);
+
+        if (input.order_id) {
+          const orderRow = await dbTx.org_orders_mst.findUnique({
+            where: { id: input.order_id },
+            select: { total: true, paid_amount: true },
+          });
+          if (orderRow) {
+            const orderTotal = Number(orderRow.total ?? 0);
+            const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
+            const newOrderPaid = currentOrderPaid + amountToPay;
+            const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
+            await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx);
+          }
         }
-      }
+
+        return txn;
+      });
 
       return {
         success: true,
@@ -1193,6 +1217,23 @@ export async function validatePaymentData(
           });
         }
       }
+      // When paying against a specific invoice, amount must not exceed remaining balance
+      if (input.invoice_id && input.amount > 0) {
+        const inv = await prisma.org_invoice_mst.findUnique({
+          where: { id: input.invoice_id },
+          select: { total: true, paid_amount: true },
+        });
+        if (inv) {
+          const remaining = Math.max(0, Number(inv.total) - Number(inv.paid_amount ?? 0));
+          if (input.amount > remaining) {
+            errors.push({
+              field: 'amount',
+              message: `Payment amount must not exceed remaining balance (${remaining.toFixed(3)} OMR)`,
+              code: 'AMOUNT_EXCEEDS_BALANCE',
+            });
+          }
+        }
+      }
     }
 
     return {
@@ -1207,17 +1248,19 @@ export async function validatePaymentData(
 // ============================================================================
 
 /**
- * Update order payment status
- * Note: This function is called within tenant context, so middleware applies automatically
+ * Update order payment status.
+ * Only updates payment-related fields: payment_status, paid_amount, paid_at, updated_at, updated_by.
+ * Must NOT update order total, subtotal, vat, or other financial totals (those are set at order creation/edit).
  */
 async function updateOrderPaymentStatus(
   orderId: string,
   status: string,
   paidAmount: number,
-  userId?: string
+  userId?: string,
+  tx?: PrismaTx
 ): Promise<void> {
-  // Middleware adds tenant_org_id automatically since we're within tenant context
-  await prisma.org_orders_mst.update({
+  const db = tx ?? prisma;
+  await db.org_orders_mst.update({
     where: { id: orderId },
     data: {
       payment_status: status,

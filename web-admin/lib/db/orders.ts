@@ -757,7 +757,16 @@ export async function deleteOrderItem(
 }
 
 /**
- * Recalculate order totals
+ * Recalculate order totals after item add/delete.
+ *
+ * Order master financial fields (org_orders_mst): subtotal, total, discount, tax, vat_rate,
+ * vat_amount, discount_rate, discount_type, promo_code_id, promo_discount_amount, gift_card_id,
+ * gift_card_discount_amount, service_charge, tax_rate (additional tax). This recalc only updates
+ * item-derived fields (subtotal, total, tax, vat_amount, vat_rate); discount, promotion, gift,
+ * additional tax and service_charge are left unchanged (set at order create/edit).
+ *
+ * Item total_price in DB is line total (subtotal + tax per item), so sum(total_price) = order
+ * total from items. We derive subtotal and tax from that using order vat_rate (no double tax).
  */
 async function recalculateOrderTotals(
   tenantOrgId: string,
@@ -771,20 +780,46 @@ async function recalculateOrderTotals(
     },
   });
 
-  const subtotal = items.reduce((sum, item) => sum + Number(item.total_price), 0);
-  const tax = subtotal * 0.05; // Should come from tenant settings
-  const total = subtotal + tax;
   const totalItems = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
+  const round3 = (n: number) => parseFloat(Number(n).toFixed(3));
 
+  if (items.length === 0) {
+    await prisma.org_orders_mst.update({
+      where: { id: orderId, tenant_org_id: tenantOrgId },
+      data: {
+        subtotal: 0,
+        tax: 0,
+        total: 0,
+        vat_amount: 0,
+        total_items: 0,
+        updated_at: new Date(),
+        ...(userId && { updated_by: userId }),
+      },
+    });
+    return;
+  }
+
+  // total_price per item is line total (incl. tax) from pricing-calculator; sum = order total
+  const total = round3(items.reduce((sum, item) => sum + Number(item.total_price), 0));
+
+  const order = await prisma.org_orders_mst.findUnique({
+    where: { id: orderId, tenant_org_id: tenantOrgId },
+    select: { vat_rate: true },
+  });
+  const vatRate = order?.vat_rate != null ? Number(order.vat_rate) : 0.05;
+
+  const subtotal = round3(total / (1 + vatRate));
+  const tax = round3(total - subtotal);
+
+  // Only update item-derived totals; do not overwrite discount, promo, gift, service_charge, tax_rate
   await prisma.org_orders_mst.update({
-    where: {
-      id: orderId,
-      tenant_org_id: tenantOrgId,
-    },
+    where: { id: orderId, tenant_org_id: tenantOrgId },
     data: {
       subtotal,
       tax,
       total,
+      vat_amount: tax,
+      vat_rate: vatRate,
       total_items: totalItems,
       updated_at: new Date(),
       ...(userId && { updated_by: userId }),
