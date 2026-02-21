@@ -919,7 +919,44 @@
         "other": "Other"
       },
       "masterCustomerData": "Customer data",
-      "masterItemsCount": "Items count"
+      "masterItemsCount": "Items count",
+      "masterFields": {
+        "id": "ID",
+        "order_no": "Order number",
+        "tenant_org_id": "Tenant",
+        "branch_id": "Branch",
+        "customer_id": "Customer",
+        "order_type_id": "Order type",
+        "service_category_code": "Service category",
+        "status": "Status",
+        "priority": "Priority",
+        "total_items": "Total items",
+        "rec_status": "Record status",
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "tax": "Tax",
+        "total": "Total",
+        "payment_status": "Payment status",
+        "payment_method_code": "Payment method",
+        "paid_amount": "Paid amount",
+        "paid_at": "Paid at",
+        "paid_by": "Paid by",
+        "payment_notes": "Payment notes",
+        "received_at": "Received at",
+        "ready_by": "Ready by",
+        "ready_at": "Ready at",
+        "delivered_at": "Delivered at",
+        "created_at": "Created at",
+        "updated_at": "Updated at",
+        "customer_notes": "Customer notes",
+        "internal_notes": "Internal notes",
+        "preparation_status": "Preparation status",
+        "prepared_at": "Prepared at",
+        "prepared_by": "Prepared by",
+        "currency_code": "Currency",
+        "bag_count": "Bag count",
+        "is_retail": "Retail"
+      }
     },
     "statuses": {
       "intake": "Intake",
@@ -928,6 +965,7 @@
       "ready": "Ready",
       "outForDelivery": "Out for Delivery",
       "delivered": "Delivered",
+      "closed": "Closed",
       "cancelled": "Cancelled"
     },
     "priorities": {

@@ -40,6 +40,8 @@ async function OrderDetailsFullContent({
   const { tenantId, userId } = await getAuthContext();
   const t = await getTranslations('orders.detail');
   const tFull = await getTranslations('orders.detailFull');
+  const tOrders = await getTranslations('orders');
+  const tCommon = await getTranslations('common');
   const locale = await getLocale();
 
   const { processPayment } = await import('@/app/actions/payments/process-payment');
@@ -202,6 +204,32 @@ async function OrderDetailsFullContent({
         masterSectionOther: tFull('masterSections.other'),
         masterCustomerData: tFull('masterCustomerData'),
         masterItemsCount: tFull('masterItemsCount'),
+        ...Object.fromEntries(
+          [
+            'id', 'order_no', 'tenant_org_id', 'branch_id', 'customer_id', 'order_type_id', 'service_category_code',
+            'status', 'priority', 'total_items', 'rec_status', 'subtotal', 'discount', 'tax', 'total',
+            'payment_status', 'payment_method_code', 'paid_amount', 'paid_at', 'paid_by', 'payment_notes',
+            'received_at', 'ready_by', 'ready_at', 'delivered_at', 'created_at', 'updated_at',
+            'customer_notes', 'internal_notes', 'preparation_status', 'prepared_at', 'prepared_by',
+            'currency_code', 'bag_count', 'is_retail',
+          ].map((k) => [`masterField_${k}`, tFull(`masterFields.${k}`)])
+        ),
+        status_intake: tOrders('statuses.intake'),
+        status_preparation: tOrders('statuses.preparation'),
+        status_processing: tOrders('statuses.processing'),
+        status_ready: tOrders('statuses.ready'),
+        status_outForDelivery: tOrders('statuses.outForDelivery'),
+        status_delivered: tOrders('statuses.delivered'),
+        status_closed: tOrders('statuses.closed'),
+        status_cancelled: tOrders('statuses.cancelled'),
+        priority_normal: tOrders('priorities.normal'),
+        priority_urgent: tOrders('priorities.urgent'),
+        priority_express: tOrders('priorities.express'),
+        prepStatus_pending: tOrders('prepStatuses.pending'),
+        prepStatus_in_progress: tOrders('prepStatuses.in_progress'),
+        prepStatus_completed: tOrders('prepStatuses.completed'),
+        commonYes: tCommon('yes'),
+        commonNo: tCommon('no'),
         kindDeposit: tInvoices('history.kind_deposit'),
         kindPos: tInvoices('history.kind_pos'),
         recordPaymentTitle: tInvoices('recordPayment.title'),

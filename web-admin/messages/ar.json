@@ -920,7 +920,44 @@
         "other": "أخرى"
       },
       "masterCustomerData": "بيانات العميل",
-      "masterItemsCount": "عدد الأصناف"
+      "masterItemsCount": "عدد الأصناف",
+      "masterFields": {
+        "id": "المعرّف",
+        "order_no": "رقم الطلب",
+        "tenant_org_id": "المؤسسة",
+        "branch_id": "الفرع",
+        "customer_id": "العميل",
+        "order_type_id": "نوع الطلب",
+        "service_category_code": "فئة الخدمة",
+        "status": "الحالة",
+        "priority": "الأولوية",
+        "total_items": "إجمالي القطع",
+        "rec_status": "حالة السجل",
+        "subtotal": "المجموع الفرعي",
+        "discount": "الخصم",
+        "tax": "الضريبة",
+        "total": "الإجمالي",
+        "payment_status": "حالة الدفع",
+        "payment_method_code": "طريقة الدفع",
+        "paid_amount": "المبلغ المدفوع",
+        "paid_at": "تاريخ الدفع",
+        "paid_by": "دفع بواسطة",
+        "payment_notes": "ملاحظات الدفع",
+        "received_at": "تاريخ الاستلام",
+        "ready_by": "جاهز قبل",
+        "ready_at": "جاهز في",
+        "delivered_at": "تاريخ التسليم",
+        "created_at": "تاريخ الإنشاء",
+        "updated_at": "تاريخ التحديث",
+        "customer_notes": "ملاحظات العميل",
+        "internal_notes": "ملاحظات داخلية",
+        "preparation_status": "حالة التحضير",
+        "prepared_at": "تم التحضير في",
+        "prepared_by": "حضّر بواسطة",
+        "currency_code": "العملة",
+        "bag_count": "عدد الأكياس",
+        "is_retail": "تجزئة"
+      }
     },
     "statuses": {
       "intake": "الاستلام",
@@ -929,6 +966,7 @@
       "ready": "جاهز",
       "outForDelivery": "في الطريق للتوصيل",
       "delivered": "تم التسليم",
+      "closed": "مغلق",
       "cancelled": "ملغى"
     },
     "priorities": {

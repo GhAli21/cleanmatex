@@ -345,7 +345,7 @@ export function OrderDetailsFullClient({
 
   const formatMasterValue = (key: string, value: unknown): string => {
     if (value == null) return '—';
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+    if (typeof value === 'boolean') return value ? (t.commonYes ?? 'Yes') : (t.commonNo ?? 'No');
     if (value instanceof Date) return value.toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM');
     if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T?\d{0,2}/.test(value)) {
       try {
@@ -354,6 +354,10 @@ export function OrderDetailsFullClient({
         return String(value);
       }
     }
+    const tRecord = t as Record<string, string>;
+    if (key === 'status' && typeof value === 'string') return tRecord[`status_${value}`] ?? String(value);
+    if (key === 'priority' && typeof value === 'string') return tRecord[`priority_${value}`] ?? String(value);
+    if (key === 'preparation_status' && typeof value === 'string') return tRecord[`prepStatus_${value}`] ?? String(value);
     const amountKeys = [
       'subtotal',
       'discount',
@@ -386,7 +390,7 @@ export function OrderDetailsFullClient({
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
             {presentKeys.map((key) => {
               const val = o[key];
-              const displayKey = key.replace(/_/g, ' ');
+              const displayKey = (t as Record<string, string>)[`masterField_${key}`] ?? key.replace(/_/g, ' ');
               return (
                 <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
                   <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
@@ -677,7 +681,7 @@ export function OrderDetailsFullClient({
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Notes</label>
+                    <label className="block text-sm font-medium text-gray-700">{t.notes}</label>
                     <textarea
                       value={depositNotes}
                       onChange={(e) => setDepositNotes(e.target.value)}
@@ -796,14 +800,14 @@ export function OrderDetailsFullClient({
                   statusColors[String(order.status)] ?? statusColors.intake
                 }`}
               >
-                {String(order.status).replace('_', ' ').toUpperCase()}
+                {t[`status_${String(order.status)}` as keyof typeof t] ?? String(order.status).replace(/_/g, ' ')}
               </span>
               <span
                 className={`px-3 py-1 text-xs font-medium rounded-full ${
                   priorityColors[String(order.priority)] ?? priorityColors.normal
                 }`}
               >
-                {String(order.priority ?? 'normal').toUpperCase()}
+                {t[`priority_${String(order.priority ?? 'normal')}` as keyof typeof t] ?? String(order.priority ?? 'normal')}
               </span>
               {order.is_retail && (
                 <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
@@ -869,7 +873,7 @@ export function OrderDetailsFullClient({
                     preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
                   }`}
                 >
-                  {String(order.preparation_status).replace('_', ' ').toUpperCase()}
+                  {t[`prepStatus_${String(order.preparation_status)}` as keyof typeof t] ?? String(order.preparation_status).replace(/_/g, ' ')}
                 </span>
               </div>
               {isPreparationEnabled() &&
@@ -1003,7 +1007,7 @@ export function OrderDetailsFullClient({
                         preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
                       }`}
                     >
-                      {String(order.preparation_status).replace('_', ' ').toUpperCase()}
+                      {t[`prepStatus_${String(order.preparation_status)}` as keyof typeof t] ?? String(order.preparation_status).replace(/_/g, ' ')}
                     </span>
                   </div>
                   {isPreparationEnabled() &&
