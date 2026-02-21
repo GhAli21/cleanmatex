@@ -65,6 +65,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard',
     roles: ['super_admin', 'admin', 'operator'],
   },
+  /*
   {
     key: 'orders',
     label: 'Orders',
@@ -128,13 +129,16 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
       },
     ],
   }, 
+  
   {
     key: 'assembly',
     label: 'AssemblyJh',
     icon: ScanBarcode,
     path: '/dashboard/assembly',
-    roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    //roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    roles: ['none'],
   },
+  
   {
     key: 'drivers',
     label: 'Drivers & Routes',
@@ -164,7 +168,8 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: 'Delivery',
     icon: Truck,
     path: '/dashboard/delivery',
-    roles: ['admin', 'operator'],
+    roles: ['none'],
+    //roles: ['admin', 'operator'],
   },
   {
     key: 'users',
@@ -374,7 +379,8 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/jhtestui',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
   },
-]
+*/
+] 
 
 /**
  * Get navigation items for a specific role and permissions

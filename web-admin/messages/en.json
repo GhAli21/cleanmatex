@@ -131,6 +131,8 @@
     "assembly": "Assembly",
     "qualityCheck": "Quality Check",
     "ready": "Ready",
+    "packing": "Packing",
+    "delivery": "Delivery",
     "driversAndRoutes": "Drivers & Routes",
     "allDrivers": "All Drivers",
     "routes": "Routes",

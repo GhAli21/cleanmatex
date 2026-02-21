@@ -24,6 +24,7 @@ import {
   getCachedFeatureFlags,
   setCachedFeatureFlags,
 } from '@/lib/cache/permission-cache-client'
+import { getIcon } from '@/lib/utils/icon-registry'
 
 export default function CmxSidebar() {
   const pathname = usePathname()
@@ -57,7 +58,12 @@ export default function CmxSidebar() {
 
   const getNavLabel = (key: string, fallback: string): string => {
     const translationKeyMap: Record<string, string> = {
-      'home': 'dashboard', 'assembly': 'assembly', 'drivers': 'driversAndRoutes',
+      'home': 'dashboard',
+      'orders': 'orders', 'orders_list': 'allOrders', 'orders_new': 'newOrder',
+      'orders_preparation': 'preparation', 'orders_processing': 'processing',
+      'orders_assembly': 'assembly', 'orders_qa': 'qualityCheck', 'orders_ready': 'ready',
+      'orders_packing': 'packing', 'orders_delivery': 'delivery',
+      'assembly': 'assembly', 'drivers': 'driversAndRoutes',
       'drivers_list': 'allDrivers', 'drivers_routes': 'routes', 'customers': 'customers',
       'catalog': 'catalog', 'catalog_services': 'services', 'catalog_pricing': 'pricing',
       'catalog_addons': 'addons', 'billing': 'invoicesAndPayments', 'billing_invoices': 'invoices',
@@ -67,6 +73,10 @@ export default function CmxSidebar() {
       'settings_users': 'teamMembers', 'settings_roles': 'rolesAndPermissions',
       'settings_workflow_roles': 'workflowRoles', 'settings_branding': 'branding',
       'settings_subscription': 'subscription', 'help': 'help', 'jhtestui': 'jwtTest',
+      'delivery': 'delivery', 'users': 'users', 'users_list': 'teamMembers',
+      'reports_orders': 'reportsAndAnalytics', 'reports_payments': 'payments', 'reports_invoices': 'invoices',
+      'reports_revenue': 'reportsAndAnalytics', 'reports_customers': 'customers',
+      'settings_permissions': 'rolesAndPermissions',
     }
     const translationKey = translationKeyMap[key]
     if (translationKey) {
@@ -200,11 +210,17 @@ export default function CmxSidebar() {
                         }`}
                       >
                         <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          {typeof section.icon === 'function' ? (
-                            <section.icon className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0`} />
-                          ) : (
-                            <span className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0`}>📁</span>
-                          )}
+                          {(() => {
+                            const IconComponent =
+                              typeof section.icon === 'function'
+                                ? section.icon
+                                : getIcon(typeof section.icon === 'string' ? section.icon : undefined)
+                            return (
+                              <IconComponent
+                                className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0 text-gray-600`}
+                              />
+                            )
+                          })()}
                           <span>{getNavLabel(section.key, section.label)}</span>
                         </div>
                         {expandedSections.has(section.key) ? (
@@ -237,11 +253,17 @@ export default function CmxSidebar() {
                         isPathActive(pathname, section.path) ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                       }`}
                     >
-                      {typeof section.icon === 'function' ? (
-                        <section.icon className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0`} />
-                      ) : (
-                        <span className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0`}>📁</span>
-                      )}
+                      {(() => {
+                        const IconComponent =
+                          typeof section.icon === 'function'
+                            ? section.icon
+                            : getIcon(typeof section.icon === 'string' ? section.icon : undefined)
+                        return (
+                          <IconComponent
+                            className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0 text-gray-600`}
+                          />
+                        )
+                      })()}
                       <span>{getNavLabel(section.key, section.label)}</span>
                       {section.badge && (
                         <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800`}>
