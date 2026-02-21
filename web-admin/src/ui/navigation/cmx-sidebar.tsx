@@ -18,13 +18,67 @@ import {
   isPathActive,
   type NavigationSection,
   type UserRole,
-  NAVIGATION_SECTIONS,
 } from '@/config/navigation'
 import {
   getCachedFeatureFlags,
   setCachedFeatureFlags,
 } from '@/lib/cache/permission-cache-client'
 import { getIcon } from '@/lib/utils/icon-registry'
+
+/** Section key → icon name when API/DB does not provide a valid icon */
+const SECTION_ICON_FALLBACK: Record<string, string> = {
+  home: 'Home',
+  orders: 'PackageSearch',
+  assembly: 'ScanBarcode',
+  drivers: 'Truck',
+  delivery: 'Truck',
+  users: 'Users',
+  customers: 'Users',
+  catalog: 'Tags',
+  billing: 'Receipt',
+  reports: 'BarChart3',
+  inventory: 'Boxes',
+  settings: 'Settings',
+  help: 'LifeBuoy',
+  jhtestui: 'Bug',
+}
+
+/** Child key → icon name for sub-menu items */
+const CHILD_ICON_FALLBACK: Record<string, string> = {
+  orders_list: 'ClipboardList',
+  orders_new: 'PlusCircle',
+  orders_preparation: 'List',
+  orders_processing: 'Loader2',
+  orders_assembly: 'ScanBarcode',
+  orders_qa: 'CheckCircle',
+  orders_ready: 'CircleCheck',
+  orders_packing: 'Box',
+  orders_delivery: 'Truck',
+  drivers_list: 'Users',
+  drivers_routes: 'Truck',
+  catalog_services: 'Tags',
+  catalog_pricing: 'Tags',
+  catalog_addons: 'Tags',
+  billing_invoices: 'Receipt',
+  billing_vouchers: 'Receipt',
+  billing_payments: 'Receipt',
+  billing_cashup: 'Receipt',
+  reports_orders: 'BarChart3',
+  reports_payments: 'Receipt',
+  reports_invoices: 'Receipt',
+  reports_revenue: 'BarChart3',
+  reports_customers: 'Users',
+  inventory_stock: 'Boxes',
+  inventory_machines: 'Boxes',
+  settings_general: 'Settings',
+  settings_users: 'Users',
+  settings_roles: 'Settings2',
+  settings_permissions: 'Settings2',
+  settings_workflow_roles: 'ClipboardCheck',
+  settings_branding: 'Settings',
+  settings_subscription: 'Receipt',
+  users_list: 'Users',
+}
 
 export default function CmxSidebar() {
   const pathname = usePathname()
@@ -55,6 +109,23 @@ export default function CmxSidebar() {
     }
     loadFeatureFlags()
   }, [currentTenant])
+
+  const getSectionIcon = (section: NavigationSection) => {
+    const fromApi =
+      typeof section.icon === 'function'
+        ? section.icon
+        : typeof section.icon === 'string'
+          ? getIcon(section.icon)
+          : null
+    if (fromApi && typeof fromApi === 'function') return fromApi
+    const fallbackName = SECTION_ICON_FALLBACK[section.key] ?? 'Home'
+    return getIcon(fallbackName)
+  }
+
+  const getChildIcon = (childKey: string) => {
+    const name = CHILD_ICON_FALLBACK[childKey]
+    return name ? getIcon(name) : getIcon('List')
+  }
 
   const getNavLabel = (key: string, fallback: string): string => {
     const translationKeyMap: Record<string, string> = {
@@ -162,15 +233,15 @@ export default function CmxSidebar() {
 
       <aside
         className={`
-          fixed top-0 bottom-0 z-40 w-64 bg-white border-gray-200
-          transition-transform duration-300 ease-in-out flex flex-col
+          fixed top-0 bottom-0 z-40 w-64 bg-gray-50 border-gray-200
+          transition-transform duration-300 ease-in-out flex flex-col shadow-sm
           ${isRTL ? 'right-0 border-l' : 'left-0 border-r'}
           lg:translate-x-0
           ${isMobileOpen ? 'translate-x-0' : (isRTL ? 'translate-x-full' : '-translate-x-full')}
         `}
         style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div className={`h-16 flex items-center px-6 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`h-16 flex items-center px-6 border-b border-gray-200 bg-white ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link href="/dashboard" className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}>
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-lg">C</span>
@@ -180,14 +251,14 @@ export default function CmxSidebar() {
         </div>
 
         {currentTenant && (
-          <div className="px-4 py-3 bg-blue-50 border-b border-gray-200">
+          <div className="px-4 py-3 bg-white border-b border-gray-200">
             <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">{t('currentTenant')}</div>
             <div className="mt-1 text-sm font-semibold text-gray-900 line-clamp-1 break-words">{currentTenant.tenant_name}</div>
             <div className="mt-0.5 text-xs text-gray-600">{t('role')}: {currentTenant.user_role}</div>
           </div>
         )}
 
-        <nav className="flex-1 overflow-y-auto min-h-0 px-3 py-4">
+        <nav className="flex-1 overflow-y-auto min-h-0 px-2 py-3">
           {navigationLoading ? (
             <div className="px-3 py-4">
               <div className="space-y-2">
@@ -197,83 +268,78 @@ export default function CmxSidebar() {
               </div>
             </div>
           ) : (
-            <ul className="space-y-1">
-              {filteredNavigation.map((section) => (
-                <li key={section.key}>
-                  {section.children && section.children.length > 0 ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => toggleSection(section.key)}
-                        className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                          isPathActive(pathname, section.path) ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                        }`}
-                      >
-                        <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          {(() => {
-                            const IconComponent =
-                              typeof section.icon === 'function'
-                                ? section.icon
-                                : getIcon(typeof section.icon === 'string' ? section.icon : undefined)
-                            return (
-                              <IconComponent
-                                className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0 text-gray-600`}
-                              />
-                            )
-                          })()}
-                          <span>{getNavLabel(section.key, section.label)}</span>
-                        </div>
-                        {expandedSections.has(section.key) ? (
-                          <ChevronDown className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
-                        ) : (
-                          <ChevronRight className={`h-4 w-4 ${isRTL ? 'rotate-180' : ''}`} />
+            <ul className="space-y-0.5">
+              {filteredNavigation.map((section) => {
+                const SectionIcon = getSectionIcon(section)
+                const isActive = isPathActive(pathname, section.path)
+                return (
+                  <li key={section.key}>
+                    {section.children && section.children.length > 0 ? (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => toggleSection(section.key)}
+                          className={`w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 gap-2 ${
+                            isActive
+                              ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                              : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                          } ${isRTL ? 'flex-row-reverse' : ''}`}
+                        >
+                          <div className={`flex items-center min-w-0 gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
+                            <span className="truncate">{getNavLabel(section.key, section.label)}</span>
+                          </div>
+                          {expandedSections.has(section.key) ? (
+                            <ChevronDown className={`h-4 w-4 flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+                          ) : (
+                            <ChevronRight className={`h-4 w-4 flex-shrink-0 ${isRTL ? 'rotate-180' : ''}`} />
+                          )}
+                        </button>
+                        {expandedSections.has(section.key) && (
+                          <ul className="mt-0.5 ms-2 space-y-0.5 border-s border-gray-200 ps-2">
+                            {section.children.map((child) => {
+                              const ChildIcon = getChildIcon(child.key)
+                              const childActive = pathname === child.path
+                              return (
+                                <li key={child.key}>
+                                  <Link
+                                    href={child.path}
+                                    className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors duration-150 ${
+                                      childActive
+                                        ? 'bg-blue-100 text-blue-800 font-medium border border-blue-200'
+                                        : 'text-gray-600 hover:bg-white hover:shadow-sm border border-transparent'
+                                    } ${isRTL ? 'flex-row-reverse' : ''}`}
+                                  >
+                                    <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
+                                    <span className="truncate">{getNavLabel(child.key, child.label)}</span>
+                                  </Link>
+                                </li>
+                              )
+                            })}
+                          </ul>
                         )}
-                      </button>
-                      {expandedSections.has(section.key) && (
-                        <ul className={`mt-1 ${isRTL ? 'mr-9' : 'ml-9'} space-y-1`}>
-                          {section.children.map((child) => (
-                            <li key={child.key}>
-                              <Link
-                                href={child.path}
-                                className={`block px-3 py-2 text-sm rounded-md transition-colors duration-150 ${
-                                  pathname === child.path ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                }`}
-                              >
-                                {getNavLabel(child.key, child.label)}
-                              </Link>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  ) : (
-                    <Link
-                      href={section.path}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150 ${
-                        isPathActive(pathname, section.path) ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                      }`}
-                    >
-                      {(() => {
-                        const IconComponent =
-                          typeof section.icon === 'function'
-                            ? section.icon
-                            : getIcon(typeof section.icon === 'string' ? section.icon : undefined)
-                        return (
-                          <IconComponent
-                            className={`h-5 w-5 ${isRTL ? 'ml-3' : 'mr-3'} flex-shrink-0 text-gray-600`}
-                          />
-                        )
-                      })()}
-                      <span>{getNavLabel(section.key, section.label)}</span>
-                      {section.badge && (
-                        <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800`}>
-                          {section.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-                </li>
-              ))}
+                      </div>
+                    ) : (
+                      <Link
+                        href={section.path}
+                        className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
+                          isActive
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : 'text-gray-700 hover:bg-white hover:shadow-sm border border-transparent'
+                        } ${isRTL ? 'flex-row-reverse' : ''}`}
+                      >
+                        <SectionIcon className="h-5 w-5 flex-shrink-0 text-current opacity-90" />
+                        <span className="truncate flex-1">{getNavLabel(section.key, section.label)}</span>
+                        {section.badge && (
+                          <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-800`}>
+                            {section.badge}
+                          </span>
+                        )}
+                      </Link>
+                    )}
+                  </li>
+                )
+              })}
             </ul>
           )}
         </nav>

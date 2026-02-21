@@ -23,6 +23,12 @@ import {
   CheckCircle,
   CircleCheck,
   Bug,
+  List,
+  ClipboardList,
+  PlusCircle,
+  Package,
+  Box,
+  Loader2,
 } from 'lucide-react'
 
 /**
@@ -45,6 +51,12 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   CheckCircle,
   CircleCheck,
   Bug,
+  List,
+  ClipboardList,
+  PlusCircle,
+  Package,
+  Box,
+  Loader2,
 }
 
 /**
