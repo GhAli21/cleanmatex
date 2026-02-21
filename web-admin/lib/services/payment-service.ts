@@ -545,6 +545,9 @@ export async function processPayment(
         return txn;
       });
 
+      const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
+      const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+
       return {
         success: true,
         invoice_id: invoiceId,
