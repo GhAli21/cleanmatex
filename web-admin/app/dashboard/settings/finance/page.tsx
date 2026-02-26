@@ -44,7 +44,7 @@ export default function FinanceSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<TaxSettings>({
-    taxRate: 0.05,
+    taxRate: 0.06,
     taxType: 'VAT',
   })
   const [error, setError] = useState<string | null>(null)
@@ -62,15 +62,20 @@ export default function FinanceSettingsPage() {
       const res = await fetch('/api/settings/tenants/me/effective')
       const json = await res.json()
 
-      if (!res.ok) throw new Error(json?.error || 'Failed to load tax settings')
+      if (!res.ok) {
+        const summary = json?.error || 'Failed to load tax settings'
+        const details = json?.details
+        const message = details ? `${summary}: ${details}` : summary
+        throw new Error(message)
+      }
 
       // Find TAX_RATE setting
       const taxRateSetting = json.data?.find((s: any) => s.stngCode === 'TAX_RATE')
 
       if (taxRateSetting) {
-        const rate = parseFloat(taxRateSetting.stngValue || '0.05')
+        const rate = parseFloat(taxRateSetting.stngValue || '0.06')
         setSettings({
-          taxRate: isNaN(rate) ? 0.05 : rate,
+          taxRate: isNaN(rate) ? 0.06 : rate,
           taxType: 'VAT', // Default, can be extended later
           lastUpdated: taxRateSetting.computedAt,
           lastUpdatedBy: taxRateSetting.stngSourceId,
@@ -92,7 +97,7 @@ export default function FinanceSettingsPage() {
     try {
       // Validate tax rate
       if (settings.taxRate < 0 || settings.taxRate > 1) {
-        throw new Error('Tax rate must be between 0 and 1 (e.g., 0.05 for 5%)')
+        throw new Error('Tax rate must be between 0 and 1 (e.g., 0.06 for 5%)')
       }
 
       // Update tax rate setting
@@ -107,7 +112,10 @@ export default function FinanceSettingsPage() {
       })
 
       const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Failed to update tax rate')
+      if (!res.ok) {
+        const message = json?.details || json?.error || 'Failed to update tax rate'
+        throw new Error(message)
+      }
 
       showSuccessToast('Tax settings updated successfully')
 
@@ -148,9 +156,9 @@ export default function FinanceSettingsPage() {
         {error && (
           <div className={`mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">Error</p>
-              <p className="text-sm text-red-700">{error}</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-red-800 mb-1">Error</p>
+              <p className="text-sm text-red-700 whitespace-pre-wrap break-words">{error}</p>
             </div>
           </div>
         )}
@@ -197,7 +205,7 @@ export default function FinanceSettingsPage() {
                   }
                 }}
                 className="w-full"
-                placeholder="0.05"
+                placeholder="0.06"
                 required
               />
               <div className={`absolute top-0 ${isRTL ? 'left-0' : 'right-0'} h-full flex items-center px-3 pointer-events-none`}>
@@ -207,7 +215,7 @@ export default function FinanceSettingsPage() {
               </div>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Enter as decimal (e.g., 0.05 for 5% VAT). Range: 0.000 to 1.000
+              Enter as decimal (e.g., 0.06 for 6% VAT). Range: 0.000 to 1.000
             </p>
           </div>
 

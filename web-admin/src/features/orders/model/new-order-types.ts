@@ -52,6 +52,8 @@ export interface Product {
   default_express_sell_price: number | null;
   service_category_code: string | null;
   is_retail_item?: boolean;
+  product_image?: string | null;
+  product_icon?: string | null;
 }
 
 // ==================================================================

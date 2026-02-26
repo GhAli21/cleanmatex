@@ -43,7 +43,7 @@ export async function GET(
       } = await supabase.auth.getUser();
       if (!user) {
         return NextResponse.json(
-          { error: 'Unauthorized: No authenticated user' },
+          { error: 'Unauthorized', details: 'No authenticated user' },
           { status: 401 }
         );
       }
@@ -65,25 +65,26 @@ export async function GET(
 
     return NextResponse.json({ data: resolvedSettings });
   } catch (error) {
+    const details = error instanceof Error ? error.message : String(error ?? 'Unknown error');
     console.error('Error in effective settings endpoint:', error);
 
     // Handle authentication errors
     if (error instanceof Error && error.message.includes('No authentication token')) {
       return NextResponse.json(
-        { error: 'Authentication required', details: error.message },
+        { error: 'Authentication required', details },
         { status: 401 }
       );
     }
 
     // Handle unauthorized errors from HQ API
     if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized', details }, { status: 401 });
     }
 
     // Handle forbidden errors
     if (error instanceof Error && (error.message.includes('Forbidden') || error.message.includes('403'))) {
       return NextResponse.json(
-        { error: 'Access denied' },
+        { error: 'Access denied', details },
         { status: 403 }
       );
     }
@@ -91,7 +92,7 @@ export async function GET(
     // Handle not found errors
     if (error instanceof Error && (error.message.includes('Not found') || error.message.includes('404'))) {
       return NextResponse.json(
-        { error: 'Tenant or settings not found' },
+        { error: 'Tenant or settings not found', details },
         { status: 404 }
       );
     }
@@ -99,7 +100,7 @@ export async function GET(
     // Handle tenant access errors
     if (error instanceof Error && error.message.includes('No tenant access')) {
       return NextResponse.json(
-        { error: 'No tenant access found' },
+        { error: 'No tenant access found', details },
         { status: 403 }
       );
     }
@@ -108,7 +109,7 @@ export async function GET(
     return NextResponse.json(
       {
         error: 'Failed to fetch effective settings',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details,
       },
       { status: 500 }
     );

@@ -39,6 +39,8 @@ export default function EditProductPage() {
             turnaround_hh: p.turnaround_hh,
             turnaround_hh_express: p.turnaround_hh_express,
             is_active: p.is_active,
+            product_image: p.product_image ?? null,
+            product_icon: p.product_icon ?? null,
           }
           setData(values)
         }
