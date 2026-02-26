@@ -1892,7 +1892,14 @@
     "close": "Close",
     "download": "Download",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "productImageIconTitle": "Image & Icon",
+    "productImage": "Product Image",
+    "uploadImage": "Upload Image",
+    "removeImage": "Remove Image",
+    "imageHint": "JPEG / PNG / WebP, max 5 MB. Displayed on the order screen.",
+    "productIcon": "Product Icon (Emoji)",
+    "iconHint": "Used as fallback when no image is uploaded. Example: 👔"
   },
   "validation": {
     "required": "This field is required",

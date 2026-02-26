@@ -328,24 +328,18 @@ export async function getCurrentTenant(): Promise<Tenant> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log('Herrrrrrrr Jh');
-  if (!user) { 
+  if (!user) {
     throw new Error('No authenticated user');
   }
-  //console.log('Herrrrrrrr Jh user', user);
-  // Get user's tenants using the same function as frontend
+
   const { data: tenants, error } = await supabase.rpc('get_user_tenants');
 
-  //console.log('Herrrrrrrr Jh tenants', tenants);
   if (error || !tenants || tenants.length === 0) {
     throw new Error('No tenant access found');
   }
-  return(tenants[0] as UserTenant);
-  //console.log('Herrrrrrrr Jh tenants[0].tenant_id', tenants[0].tenant_id);
-  // Use the first tenant (current tenant)
-  const tenant = await getTenant(tenants[0].tenant_id);
-  //console.log('Herrrrrrrr Jh tenant', tenant);
-  return tenant;
+
+  const first = tenants[0] as { tenant_id: string };
+  return getTenant(first.tenant_id);
 }
 
 /**

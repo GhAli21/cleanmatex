@@ -42,39 +42,14 @@ HQ_SERVICE_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI1YmQxYTk3Yy1mMG
 
 ### Option 2: Generate Long-Lived Service Token (For Production)
 
-Create a script to generate a service token that doesn't expire (or has very long expiration):
-
-**File: `platform-api/scripts/generate-service-token.ts`**
-
-```typescript
-import * as jwt from "jsonwebtoken";
-
-const JWT_SECRET = process.env.JWT_SECRET || "your-jwt-secret-here";
-const SERVICE_USER_ID = "service-account-user-id"; // Create a service account user in hq_users
-
-const payload = {
-  sub: SERVICE_USER_ID,
-  email: "service@cleanmatex.com",
-  role: "service_account",
-  permissions: ["settings:read", "settings:resolve"],
-};
-
-// Generate token with 1 year expiration (or no expiration)
-const token = jwt.sign(payload, JWT_SECRET, {
-  expiresIn: "365d", // 1 year
-  // Or use: expiresIn: false for no expiration (not recommended)
-});
-
-console.log("Service Token:");
-console.log(token);
-```
-
-Run:
+Use the script in **cleanmatexsaas/platform-api** to generate a token (same JWT_SECRET as the API, so it is accepted):
 
 ```bash
-cd platform-api
-ts-node scripts/generate-service-token.ts
+cd cleanmatexsaas/platform-api
+npm run generate-service-token
 ```
+
+The script loads env from `.env.local` or `.env.apilocaldbjh` (same as when running the API). It uses an existing HQ user (by default `admin@cleanmatex.com`) so the token works for getMe and other lookups. Optional env: `SERVICE_EMAIL`, `SERVICE_USER_ID`, `SERVICE_ROLE`, `EXPIRES_IN` (default `365d`). Copy the printed token into `HQ_SERVICE_TOKEN` in cleanmatex web-admin `.env.local`.
 
 ### Option 3: Use Existing HQ User Token
 

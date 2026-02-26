@@ -197,7 +197,7 @@ export const hqApiClient = {
       authHeader?: string | null;
     }
   ): Promise<CleanmatexResolvedSetting[]> {
-    const hqSettings = await callHqApi<HqResolvedSetting[]>(
+    const raw = await callHqApi<HqResolvedSetting[] | { data: HqResolvedSetting[] }>(
       `/settings/tenants/${tenantId}/effective`,
       {
         queryParams: {
@@ -207,7 +207,7 @@ export const hqApiClient = {
         authHeader: options?.authHeader,
       }
     );
-
+    const hqSettings = Array.isArray(raw) ? raw : (raw?.data ?? []);
     return hqSettings.map(transformResolvedSetting);
   },
 

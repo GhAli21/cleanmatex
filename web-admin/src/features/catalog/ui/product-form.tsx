@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CmxInput, CmxSelect, CmxButton, CmxCard, Badge } from '@ui/primitives'
 
@@ -23,6 +23,8 @@ export interface ProductFormValues {
   turnaround_hh?: number
   turnaround_hh_express?: number
   is_active?: boolean
+  product_image?: string | null
+  product_icon?: string | null
 }
 
 interface ProductFormProps {
@@ -40,6 +42,9 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [values, setValues] = useState<ProductFormValues>({
     service_category_code: initialValues?.service_category_code || '',
@@ -54,6 +59,8 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
     turnaround_hh_express: initialValues?.turnaround_hh_express ? Number(initialValues.turnaround_hh_express) : undefined,
     is_active: initialValues?.is_active ?? true,
     id: initialValues?.id,
+    product_image: initialValues?.product_image ?? null,
+    product_icon: initialValues?.product_icon ?? null,
   })
 
   const isRtl = useMemo(() => typeof document !== 'undefined' && document.dir === 'rtl', [])
@@ -98,6 +105,42 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
     return errs
   }
 
+  async function handleImageUpload(file: File) {
+    if (!values.id) return
+    setImageUploading(true)
+    setImageError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch(`/api/v1/products/${values.id}/image`, { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || 'Upload failed')
+      setField('product_image', json.url)
+    } catch (e: unknown) {
+      setImageError(e instanceof Error ? e.message : 'Upload failed')
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
+  async function handleImageRemove() {
+    if (!values.id) return
+    setImageUploading(true)
+    setImageError(null)
+    try {
+      const res = await fetch(`/api/v1/products/${values.id}/image`, { method: 'DELETE' })
+      if (!res.ok) {
+        const j = await res.json()
+        throw new Error(j?.error || 'Remove failed')
+      }
+      setField('product_image', null)
+    } catch (e: unknown) {
+      setImageError(e instanceof Error ? e.message : 'Remove failed')
+    } finally {
+      setImageUploading(false)
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
@@ -124,6 +167,8 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
         turnaround_hh_express: values.turnaround_hh_express !== undefined ? Number(values.turnaround_hh_express) : undefined,
         is_active: values.is_active,
+        product_icon: values.product_icon ?? undefined,
+        // NOTE: product_image is managed exclusively by the upload API route
       }
 
       let res: Response
@@ -192,6 +237,75 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
         <div>
           <label className="mb-1 block text-sm font-medium">{t('productNameAr')}</label>
           <CmxInput value={values.product_name2 || ''} onChange={(e) => setField('product_name2', e.target.value)} />
+        </div>
+
+        {/* Image & Icon */}
+        <div className="col-span-1 md:col-span-2 rounded-lg border border-dashed border-gray-200 p-4">
+          <p className="mb-3 text-sm font-semibold text-gray-700">{t('productImageIconTitle')}</p>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+
+            {/* Image upload — edit mode only (product ID required for storage path) */}
+            {mode === 'edit' && (
+              <div>
+                <label className="mb-1 block text-sm font-medium">{t('productImage')}</label>
+                {values.product_image ? (
+                  <div className="relative mb-2 h-32 w-32 overflow-hidden rounded-lg border border-gray-200">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={values.product_image} alt={values.product_name} className="h-full w-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="mb-2 flex h-32 w-32 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-4xl">
+                    {values.product_icon || '📷'}
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) handleImageUpload(f)
+                    e.target.value = ''
+                  }}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <CmxButton
+                    type="button"
+                    variant="outline"
+                    disabled={imageUploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {imageUploading ? tCommon('loading') : t('uploadImage')}
+                  </CmxButton>
+                  {values.product_image && (
+                    <CmxButton
+                      type="button"
+                      variant="outline"
+                      disabled={imageUploading}
+                      onClick={handleImageRemove}
+                    >
+                      {t('removeImage')}
+                    </CmxButton>
+                  )}
+                </div>
+                {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
+                <p className="mt-1 text-xs text-gray-500">{t('imageHint')}</p>
+              </div>
+            )}
+
+            {/* Emoji icon — always visible (create and edit) */}
+            <div>
+              <label className="mb-1 block text-sm font-medium">{t('productIcon')}</label>
+              <CmxInput
+                value={values.product_icon || ''}
+                maxLength={8}
+                onChange={(e) => setField('product_icon', e.target.value || null)}
+                placeholder="e.g. 👔"
+              />
+              <p className="mt-1 text-xs text-gray-500">{t('iconHint')}</p>
+            </div>
+          </div>
         </div>
 
         {/* Unit */}
