@@ -97,48 +97,6 @@ export default function SettingsPage() {
 
   const tabs = [
     {
-      id: 'general',
-      label: 'General',
-      icon: <span>⚙️</span>,
-      content: (
-        <GeneralSettings
-          tenant={tenant}
-          onUpdate={fetchData}
-          effectiveSettings={effectiveSettings}
-        />
-      ),
-    },
-    {
-      id: 'branding',
-      label: 'Branding',
-      icon: <span>🎨</span>,
-      content: (
-        <BrandingSettings
-          tenant={tenant}
-          onUpdate={fetchData}
-          effectiveSettings={effectiveSettings}
-        />
-      ),
-    },
-    {
-      id: 'hours',
-      label: 'Business Hours',
-      icon: <span>🕒</span>,
-      content: (
-        <BusinessHoursSettings
-          tenant={tenant}
-          onUpdate={fetchData}
-          effectiveSettings={effectiveSettings}
-        />
-      ),
-    },
-    {
-      id: 'subscription',
-      label: 'Subscription',
-      icon: <span>💳</span>,
-      content: <SubscriptionSettings tenant={tenant} />,
-    },
-    {
       id: 'tenant-settings',
       label: 'Tenant Settings',
       icon: <span>🧩</span>,

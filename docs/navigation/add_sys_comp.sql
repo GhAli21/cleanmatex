@@ -983,9 +983,6 @@ SET is_leaf = false,
     updated_at = CURRENT_TIMESTAMP
 WHERE comp_code = 'settings';
 
--- =====================================================
--- 12. Assembly label update (AssemblyJh as per nav config)
--- =====================================================
 UPDATE sys_components_cd
 SET
   label = 'AssemblyJh',
@@ -994,12 +991,91 @@ SET
 WHERE comp_code = 'assembly';
 
 -- =====================================================
+-- 13. Settings - All Settings aggregate screen
+-- =====================================================
+-- New leaf screen under Settings for the consolidated
+-- /dashboard/settings route. Visible only to super_admin.
+
+INSERT INTO sys_components_cd (
+  comp_code,
+  parent_comp_code,
+  label,
+  label2,
+  description,
+  description2,
+  comp_path,
+  comp_icon,
+  comp_level,
+  display_order,
+  is_leaf,
+  is_navigable,
+  is_active,
+  is_system,
+  is_for_tenant_use,
+  roles,
+  main_permission_code,
+  rec_status
+) VALUES (
+  'settings_all',
+  'settings',
+  'All Settings',
+  'كل الإعدادات',
+  'View all tenant, branch, user settings and related configuration in a single consolidated screen',
+  'عرض جميع إعدادات المستأجر والفروع والمستخدمين والتكوينات ذات الصلة في شاشة موحدة واحدة',
+  '/dashboard/settings',
+  'SlidersHorizontal',
+  1,
+  8,
+  true,
+  true,
+  true,
+  true,
+  true,
+  '["super_admin"]'::jsonb,
+  'settings:read',
+  1
+) ON CONFLICT (comp_code) DO UPDATE SET
+  label = EXCLUDED.label,
+  label2 = EXCLUDED.label2,
+  description = EXCLUDED.description,
+  description2 = EXCLUDED.description2,
+  comp_path = EXCLUDED.comp_path,
+  comp_icon = EXCLUDED.comp_icon,
+  display_order = EXCLUDED.display_order,
+  roles = EXCLUDED.roles,
+  updated_at = CURRENT_TIMESTAMP;
+
+-- Link settings_all to Settings parent
+UPDATE sys_components_cd c
+SET parent_comp_id = p.comp_id
+FROM sys_components_cd p
+WHERE c.comp_code = 'settings_all'
+  AND c.parent_comp_code = 'settings'
+  AND p.comp_code = 'settings';
+
+-- =====================================================
 -- Verification Queries
 -- =====================================================
 -- Uncomment to verify inserts:
 -- SELECT comp_code, label, label2, comp_path, display_order, is_navigable
 -- FROM sys_components_cd
--- WHERE comp_code IN ('delivery', 'users', 'users_list', 'settings_permissions', 'assembly', 'settings_finance', 'catalog_pricing_detail', 'catalog_pricing', 'billing_payments_new', 'billing_payments_detail', 'billing_vouchers', 'inventory', 'inventory_stock', 'inventory_machines')
+-- WHERE comp_code IN (
+--   'delivery',
+--   'users',
+--   'users_list',
+--   'settings_permissions',
+--   'settings_all',
+--   'assembly',
+--   'settings_finance',
+--   'catalog_pricing_detail',
+--   'catalog_pricing',
+--   'billing_payments_new',
+--   'billing_payments_detail',
+--   'billing_vouchers',
+--   'inventory',
+--   'inventory_stock',
+--   'inventory_machines'
+-- )
 -- ORDER BY comp_level, display_order, comp_code;
 
 COMMIT;
