@@ -37,6 +37,7 @@ interface ItemCartListProps {
   onDeleteItem: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   trackByPiece?: boolean;
+  currencyCode?: string;
 }
 
 function ItemCartListComponent({ 
@@ -44,7 +45,8 @@ function ItemCartListComponent({
   onEditItem, 
   onDeleteItem, 
   onPiecesChange,
-  trackByPiece = false 
+  trackByPiece = false,
+  currencyCode = 'OMR',
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -105,6 +107,7 @@ function ItemCartListComponent({
             onDelete={() => onDeleteItem(item.id)}
             priceOverride={item.priceOverride}
             overrideReason={item.overrideReason}
+            currencyCode={currencyCode}
           />
         ))}
       </div>

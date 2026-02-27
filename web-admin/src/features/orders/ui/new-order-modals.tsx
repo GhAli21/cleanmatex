@@ -242,6 +242,7 @@ export function NewOrderModals() {
         open={state.state.modals.customerPicker}
         onClose={() => state.closeModal('customerPicker')}
         onSelectCustomer={handleSelectCustomer}
+        tenantId={currentTenant?.tenant_id}
       />
 
       {/* Customer Edit Modal */}

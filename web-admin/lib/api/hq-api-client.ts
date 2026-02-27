@@ -148,26 +148,33 @@ async function callHqApi<T>(
 
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-    
+    let errorCode: string | undefined;
+
     try {
       const errorData = await response.json();
-      // Handle different error response formats
-      if (typeof errorData === 'string') {
+      // Handle NestJS BadRequestException with { message: { code, message } }
+      const msg = errorData?.message;
+      if (msg && typeof msg === 'object' && msg.code) {
+        errorCode = msg.code;
+        errorMessage = msg.message || errorMessage;
+      } else if (typeof errorData === 'string') {
         errorMessage = errorData;
       } else if (errorData?.message) {
-        errorMessage = errorData.message;
+        errorMessage =
+          typeof errorData.message === 'string'
+            ? errorData.message
+            : JSON.stringify(errorData.message);
       } else if (errorData?.error) {
-        errorMessage = typeof errorData.error === 'string' 
-          ? errorData.error 
-          : errorData.error?.message || JSON.stringify(errorData.error);
+        errorMessage =
+          typeof errorData.error === 'string'
+            ? errorData.error
+            : errorData.error?.message || JSON.stringify(errorData.error);
       } else if (errorData?.details) {
         errorMessage = errorData.details;
       } else {
-        // Try to extract meaningful error from object
         errorMessage = JSON.stringify(errorData);
       }
     } catch (e) {
-      // If JSON parsing fails, try to get text
       try {
         const text = await response.text();
         if (text) errorMessage = text;
@@ -175,8 +182,10 @@ async function callHqApi<T>(
         // Keep default error message
       }
     }
-    
-    throw new Error(errorMessage);
+
+    const err = new Error(errorMessage) as Error & { code?: string };
+    if (errorCode) err.code = errorCode;
+    throw err;
   }
 
   return response.json();

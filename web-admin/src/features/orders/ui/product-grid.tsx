@@ -42,6 +42,7 @@ interface ProductGridProps {
   products: Product[];
   items: OrderItem[];
   express: boolean;
+  currencyCode?: string;
   onAddItem: (product: Product) => void;
   onRemoveItem: (productId: string) => void;
   onQuantityChange: (productId: string, quantity: number) => void;
@@ -104,6 +105,7 @@ export const ProductGrid = memo(function ProductGrid({
                   quantity={quantity}
                   price={price}
                   express={express}
+                  currencyCode={currencyCode}
                   onAdd={() => onAddItem(product)}
                   onIncrement={() => onQuantityChange(product.id, quantity + 1)}
                   onDecrement={() => onQuantityChange(product.id, quantity - 1)}

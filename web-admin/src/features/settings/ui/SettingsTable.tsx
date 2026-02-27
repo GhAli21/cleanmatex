@@ -24,6 +24,8 @@ export interface SettingsTableRow {
   resolved?: ResolvedSetting;
   isOverridden: boolean;
   canEdit: boolean;
+  /** When true, setting is EDITABLE_ONCE and already has a value; edit and reset are disabled */
+  isLockedByEditPolicy?: boolean;
 }
 
 interface SettingsTableProps {
@@ -245,7 +247,7 @@ export function SettingsTable({
                                 )}
                               </>
                             )}
-                            {isOverridden && onResetOverride && (
+                            {isOverridden && onResetOverride && !isLockedByEditPolicy && (
                               <CmxButton
                                 size="sm"
                                 variant="ghost"
@@ -254,6 +256,11 @@ export function SettingsTable({
                               >
                                 Reset
                               </CmxButton>
+                            )}
+                            {isLockedByEditPolicy && (
+                              <span className="text-xs text-amber-600" title="This setting can only be set once and is now locked">
+                                Locked
+                              </span>
                             )}
                           </div>
                         </td>

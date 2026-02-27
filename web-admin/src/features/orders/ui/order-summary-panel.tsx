@@ -53,11 +53,13 @@ interface OrderSummaryPanelProps {
   onNotesChange: (value: string) => void;
   readyByAt: string;
   total: number;
+  currencyCode?: string;
   onSubmit: () => void;
   onOpenReadyByModal?: () => void;
   onOpenPaymentModal?: () => void;
   onCalculateReadyBy?: () => Promise<void>;
   loading: boolean;
+  currencyCode?: string;
   trackByPiece?: boolean;
   /** When true (retail orders), allow "now" as valid ready-by instead of requiring strict future */
   isRetailOnlyOrder?: boolean;
@@ -83,11 +85,13 @@ function OrderSummaryPanelComponent({
   onNotesChange,
   readyByAt,
   total,
+  currencyCode = 'OMR',
   onSubmit,
   onOpenReadyByModal,
   onOpenPaymentModal,
   onCalculateReadyBy,
   loading,
+  currencyCode = 'OMR',
   trackByPiece = false,
   isRetailOnlyOrder = false,
 }: OrderSummaryPanelProps) {
@@ -236,6 +240,7 @@ function OrderSummaryPanelComponent({
           onDeleteItem={handleDeleteItem}
           onPiecesChange={onPiecesChange}
           trackByPiece={trackByPiece}
+          currencyCode={currencyCode}
         />
       </div>
 
@@ -371,7 +376,7 @@ function OrderSummaryPanelComponent({
           </span>
           <div className={isRTL ? 'text-left' : 'text-right'}>
             <p className="text-xs opacity-90">{t('total')}</p>
-            <p className="text-2xl font-bold">OMR {total.toFixed(3)}</p>
+            <p className="text-2xl font-bold">{currencyCode} {total.toFixed(3)}</p>
             <p className="text-xs opacity-75 mt-1">
               {tCommon('itemCount', { count: items.length })}
             </p>

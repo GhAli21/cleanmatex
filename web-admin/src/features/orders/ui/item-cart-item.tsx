@@ -35,6 +35,7 @@ interface ItemCartItemProps {
   onDelete: () => void;
   priceOverride?: number | null;
   overrideReason?: string | null;
+  currencyCode?: string;
 }
 
 function ItemCartItemComponent({
@@ -59,6 +60,7 @@ function ItemCartItemComponent({
   onDelete,
   priceOverride,
   overrideReason,
+  currencyCode = 'OMR',
 }: ItemCartItemProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -118,14 +120,14 @@ function ItemCartItemComponent({
         {/* Quantity and Price */}
         <div className={`flex items-center gap-2 text-sm text-gray-600 mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <span className="font-semibold">{quantity}x</span>
-          <span>@{price.toFixed(3)} OMR</span>
+          <span>@{price.toFixed(3)} {currencyCode}</span>
           {priceOverride !== null && priceOverride !== undefined && (
             <span className="px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs font-medium rounded" title={overrideReason || 'Price overridden'}>
               Override
             </span>
           )}
           <span className="mx-1">•</span>
-          <span className="font-bold text-gray-900">{totalPrice.toFixed(3)} OMR</span>
+          <span className="font-bold text-gray-900">{totalPrice.toFixed(3)} {currencyCode}</span>
           {/* Price source indicator - will be populated when pricing service integration is complete */}
         </div>
 

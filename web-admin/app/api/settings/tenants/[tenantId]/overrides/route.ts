@@ -75,6 +75,15 @@ export async function PATCH(
       );
     }
 
+    // Pass through HQ API 400 errors (e.g. SETTING_EDIT_ONCE_LOCKED) with code for i18n
+    const err = error as Error & { code?: string };
+    if (err?.code === 'SETTING_EDIT_ONCE_LOCKED') {
+      return NextResponse.json(
+        { code: err.code, message: err.message },
+        { status: 400 }
+      );
+    }
+
     // Handle validation errors
     if (error instanceof Error && (error.message.includes('400') || error.message.includes('Bad Request'))) {
       return NextResponse.json(

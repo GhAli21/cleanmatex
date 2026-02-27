@@ -8,11 +8,13 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { CmxSelect, CmxButton } from '@ui/primitives';
 import { SettingsTable, type SettingsTableRow } from './SettingsTable';
 import {
   settingsClient,
+  SettingsApiError,
   type SettingDefinition,
   type ResolvedSetting,
 } from '@/lib/api/settings-client';
@@ -95,7 +97,11 @@ export function BranchSettings() {
       await loadSettingsForBranch(selectedBranchId);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to update branch setting';
+        error instanceof SettingsApiError && error.code === 'SETTING_EDIT_ONCE_LOCKED'
+          ? t('error.settingLocked')
+          : error instanceof Error
+            ? error.message
+            : 'Failed to update branch setting';
       cmxMessage.error(message);
       throw error;
     }
@@ -111,7 +117,11 @@ export function BranchSettings() {
       await loadSettingsForBranch(selectedBranchId);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to reset branch setting';
+        error instanceof SettingsApiError && error.code === 'SETTING_EDIT_ONCE_LOCKED'
+          ? t('error.settingLocked')
+          : error instanceof Error
+            ? error.message
+            : 'Failed to reset branch setting';
       cmxMessage.error(message);
       throw error;
     }
@@ -188,17 +198,23 @@ function buildRows(
     .map<SettingsTableRow>((def) => {
       const resolved = effective.find((s) => s.stngCode === def.setting_code);
       const isOverridden = resolved?.stngSourceLayer === 'BRANCH_OVERRIDE';
+      const isLockedByEditPolicy =
+        (def.stng_edit_policy ?? 'FREELY_EDITABLE') === 'EDITABLE_ONCE' &&
+        isOverridden &&
+        resolved?.stngValue != null;
 
-      const canEdit =
+      const baseCanEdit =
         def.stng_scope !== 'SYSTEM' &&
         def.stng_is_overridable &&
         !def.stng_is_sensitive;
+      const canEdit = baseCanEdit && !isLockedByEditPolicy;
 
       return {
         definition: def,
         resolved,
         isOverridden,
         canEdit,
+        isLockedByEditPolicy,
       };
     });
 }

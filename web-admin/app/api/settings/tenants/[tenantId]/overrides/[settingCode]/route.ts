@@ -63,6 +63,15 @@ export async function DELETE(
       );
     }
 
+    // Pass through HQ API 400 errors (e.g. SETTING_EDIT_ONCE_LOCKED) with code for i18n
+    const err = error as Error & { code?: string };
+    if (err?.code === 'SETTING_EDIT_ONCE_LOCKED') {
+      return NextResponse.json(
+        { code: err.code, message: err.message },
+        { status: 400 }
+      );
+    }
+
     // Handle not found errors
     if (error instanceof Error && (error.message.includes('Not found') || error.message.includes('404'))) {
       return NextResponse.json(

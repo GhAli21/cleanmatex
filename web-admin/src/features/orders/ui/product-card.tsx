@@ -28,6 +28,7 @@ interface ProductCardProps {
   quantity: number;
   price: number;
   express: boolean;
+  currencyCode?: string;
   onAdd: () => void;
   onIncrement: () => void;
   onDecrement: () => void;
@@ -38,6 +39,7 @@ export function ProductCard({
   quantity,
   price,
   express,
+  currencyCode = 'OMR',
   onAdd,
   onIncrement,
   onDecrement,
@@ -93,7 +95,7 @@ export function ProductCard({
       {/* Price */}
       <div className={`mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
         <p className="text-blue-600 font-bold text-sm">
-          {price.toFixed(3)} OMR
+          {price.toFixed(3)} {currencyCode}
         </p>
         {express && (
           <span className="text-xs text-orange-600 font-medium">{tNewOrder('express.label')}</span>

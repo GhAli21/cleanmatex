@@ -6,22 +6,38 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { createCustomer } from '@/lib/api/customers';
+import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import type { CustomerType, Customer } from '@/lib/types/customer';
+
+/** Common GCC + regional country codes for phone input */
+const COUNTRY_CODES = [
+  { code: '+968', label: 'Oman', flag: '🇴🇲' },
+  { code: '+966', label: 'Saudi Arabia', flag: '🇸🇦' },
+  { code: '+971', label: 'UAE', flag: '🇦🇪' },
+  { code: '+965', label: 'Kuwait', flag: '🇰🇼' },
+  { code: '+973', label: 'Bahrain', flag: '🇧🇭' },
+  { code: '+974', label: 'Qatar', flag: '🇶🇦' },
+  { code: '+20', label: 'Egypt', flag: '🇪🇬' },
+  { code: '+962', label: 'Jordan', flag: '🇯🇴' },
+  { code: '+961', label: 'Lebanon', flag: '🇱🇧' },
+];
 
 interface CustomerCreateModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: (customer: Customer) => void;
+  tenantId?: string;
 }
 
 export function CustomerCreateModal({
   open,
   onClose,
   onSuccess,
+  tenantId,
 }: CustomerCreateModalProps) {
   const t = useTranslations('customers');
   const tCommon = useTranslations('common');
@@ -30,9 +46,20 @@ export function CustomerCreateModal({
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [countryCode, setCountryCode] = useState('+968');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch tenant default phone country code when modal opens
+  useEffect(() => {
+    if (open && tenantId) {
+      getPhoneCountryCodeAction(tenantId).then((code) => {
+        const found = COUNTRY_CODES.find((c) => c.code === code);
+        setCountryCode(found ? code : '+968');
+      }).catch(() => { /* keep default */ });
+    }
+  }, [open, tenantId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,11 +83,12 @@ export function CustomerCreateModal({
 
       // For stub customers (most common POS use case)
       if (customerType === 'stub') {
-        createdCustomer =         await createCustomer({
+        const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
+        createdCustomer = await createCustomer({
           type: 'stub',
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
-          phone: phone.trim(),
+          phone: fullPhone,
         });
       }
       // For guest customers
@@ -262,9 +290,18 @@ export function CustomerCreateModal({
                 {t('phoneNumber') || 'Phone Number'} <span className="text-red-500">*</span>
               </label>
               <div className={`flex ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`inline-flex items-center px-3 ${isRTL ? 'rounded-r-md border-r border-l-0' : 'rounded-l-md border-l border-r-0'} border border-gray-300 bg-gray-50 text-gray-500 text-sm`}>
-                  +968
-                </span>
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  disabled={loading}
+                  className={`inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-700 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 ${isRTL ? 'rounded-r-md border-r border-l-0' : 'rounded-l-md border-l border-r-0'}`}
+                >
+                  {COUNTRY_CODES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.flag} {c.code}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="tel"
                   id="create-customer-phone"

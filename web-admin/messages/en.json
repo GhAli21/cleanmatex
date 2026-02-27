@@ -1394,6 +1394,9 @@
     "timezone": "Timezone",
     "currency": "Currency",
     "language": "Language",
+    "error": {
+      "settingLocked": "This setting can only be changed once and is now locked."
+    },
     "monday": "Monday",
     "tuesday": "Tuesday",
     "wednesday": "Wednesday",

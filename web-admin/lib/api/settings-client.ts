@@ -11,6 +11,16 @@ const API_BASE = '/api/settings';
 // HELPER FUNCTIONS
 // ============================================================
 
+export class SettingsApiError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string,
+  ) {
+    super(message);
+    this.name = 'SettingsApiError';
+  }
+}
+
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
@@ -22,7 +32,12 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    const message =
+      typeof error?.message === 'string'
+        ? error.message
+        : error?.message?.message ?? error?.error ?? `HTTP ${response.status}`;
+    const code = error?.code ?? error?.message?.code;
+    throw new SettingsApiError(message, code);
   }
 
   return response.json();
@@ -59,6 +74,8 @@ export interface SettingDefinition {
   stng_requires_restart: boolean;
   stng_depends_on_flags?: string[];
   is_active: boolean;
+  /** Edit policy; when EDITABLE_ONCE, value can be set only once per scope */
+  stng_edit_policy?: 'FREELY_EDITABLE' | 'EDITABLE_ONCE' | 'SYSTEM_LOCKED' | null;
 }
 
 export interface ResolvedSetting {

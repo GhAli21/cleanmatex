@@ -58,9 +58,10 @@ interface CustomerPickerModalProps {
   open: boolean;
   onClose: () => void;
   onSelectCustomer: (customer: Customer) => void;
+  tenantId?: string;
 }
 
-export function CustomerPickerModal({ open, onClose, onSelectCustomer }: CustomerPickerModalProps) {
+export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId }: CustomerPickerModalProps) {
   const t = useTranslations('newOrder.customerPicker');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
@@ -464,6 +465,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer }: Custome
           setCreateModalOpen(false);
           setCreateError(null);
         }}
+        tenantId={tenantId}
         onSuccess={async (createdCustomer: CustomerType) => {
           try {
             const searchTerm = createdCustomer.phone || createdCustomer.firstName || '';

@@ -5,6 +5,7 @@
  * CRUD, search, OTP verification, address management, and exports
  */
 
+import { getCSRFToken } from '@/lib/utils/csrf-token';
 import type {
   Customer,
   CustomerListItem,
@@ -164,9 +165,13 @@ export async function getCustomerById(
 export async function createCustomer(
   request: CustomerCreateRequest
 ): Promise<Customer> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(API_BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -186,9 +191,13 @@ export async function updateCustomer(
   customerId: string,
   updates: CustomerUpdateRequest
 ): Promise<Customer> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/${customerId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(updates),
   });
 
@@ -205,8 +214,13 @@ export async function updateCustomer(
  * Deactivate customer (admin only)
  */
 export async function deactivateCustomer(customerId: string): Promise<void> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = {};
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/${customerId}`, {
     method: 'DELETE',
+    headers,
   });
 
   if (!response.ok) {
@@ -222,9 +236,13 @@ export async function upgradeCustomerProfile(
   customerId: string,
   request: CustomerUpgradeRequest
 ): Promise<Customer> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/${customerId}/upgrade`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -250,9 +268,13 @@ export async function sendOTP(request: SendOTPRequest): Promise<{
   expiresAt: string;
   phone: string;
 }> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/send-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -273,9 +295,13 @@ export async function verifyOTP(request: VerifyOTPRequest): Promise<{
   token?: string;
   message?: string;
 }> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/verify-otp`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -318,9 +344,13 @@ export async function createAddress(
   customerId: string,
   request: CreateAddressRequest
 ): Promise<CustomerAddress> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/${customerId}/addresses`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 
@@ -341,11 +371,15 @@ export async function updateAddress(
   addressId: string,
   updates: UpdateAddressRequest
 ): Promise<CustomerAddress> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(
     `${API_BASE}/${customerId}/addresses/${addressId}`,
     {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(updates),
     }
   );
@@ -366,10 +400,15 @@ export async function deleteAddress(
   customerId: string,
   addressId: string
 ): Promise<void> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = {};
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(
     `${API_BASE}/${customerId}/addresses/${addressId}`,
     {
       method: 'DELETE',
+      headers,
     }
   );
 
@@ -393,9 +432,13 @@ export async function mergeCustomers(
   ordersMoved: number;
   loyaltyPointsMerged: number;
 }> {
+  const csrfToken = await getCSRFToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
   const response = await fetch(`${API_BASE}/merge`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(request),
   });
 

@@ -24,6 +24,7 @@ import { useCallback, useMemo, useEffect, useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
+import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import type { BranchOption } from '@/lib/services/inventory-service';
 // Temporary imports - will move to feature folder later
 // Using @ alias to access app folder components
@@ -57,6 +58,7 @@ export function NewOrderContent() {
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
+    const [currencyCode, setCurrencyCode] = useState('OMR');
     const state = useNewOrderStateWithDispatch();
     const { submitOrder, isSubmitting } = useOrderSubmission();
     const totals = useOrderTotals();
@@ -119,6 +121,15 @@ export function NewOrderContent() {
         }).finally(() => setBranchesLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- init only, setBranchId is stable
     }, []);
+
+    // Fetch tenant currency config
+    useEffect(() => {
+        if (currentTenant?.tenant_id) {
+            getCurrencyConfigAction(currentTenant.tenant_id, state.state.branchId ?? undefined).then((config) => {
+                setCurrencyCode(config.currencyCode);
+            }).catch(() => { /* keep default OMR */ });
+        }
+    }, [currentTenant?.tenant_id, state.state.branchId]);
 
     // Load categories and products
     const categoriesQuery = useCategories();
@@ -569,6 +580,7 @@ export function NewOrderContent() {
                             }
                         }}
                         loading={state.state.loading || isSubmitting}
+                        currencyCode={currencyCode}
                         trackByPiece={trackByPiece}
                         isRetailOnlyOrder={isRetailOnlyOrder}
                     />

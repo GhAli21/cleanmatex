@@ -8,6 +8,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
 import { CmxSelect, CmxButton } from '@ui/primitives';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -20,6 +21,7 @@ import {
 } from '@/lib/api/settings-client';
 
 export function UserSettings() {
+  const t = useTranslations('settings');
   const { currentTenant, session } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
   const accessToken = session?.access_token ?? '';
@@ -94,7 +96,11 @@ export function UserSettings() {
       await loadSettingsForUser(selectedUserId);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to update user setting';
+        error instanceof SettingsApiError && error.code === 'SETTING_EDIT_ONCE_LOCKED'
+          ? t('error.settingLocked')
+          : error instanceof Error
+            ? error.message
+            : 'Failed to update user setting';
       cmxMessage.error(message);
       throw error;
     }
@@ -110,7 +116,11 @@ export function UserSettings() {
       await loadSettingsForUser(selectedUserId);
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to reset user setting';
+        error instanceof SettingsApiError && error.code === 'SETTING_EDIT_ONCE_LOCKED'
+          ? t('error.settingLocked')
+          : error instanceof Error
+            ? error.message
+            : 'Failed to reset user setting';
       cmxMessage.error(message);
       throw error;
     }
@@ -191,17 +201,23 @@ function buildRows(
     .map<SettingsTableRow>((def) => {
       const resolved = effective.find((s) => s.stngCode === def.setting_code);
       const isOverridden = resolved?.stngSourceLayer === 'USER_OVERRIDE';
+      const isLockedByEditPolicy =
+        (def.stng_edit_policy ?? 'FREELY_EDITABLE') === 'EDITABLE_ONCE' &&
+        isOverridden &&
+        resolved?.stngValue != null;
 
-      const canEdit =
+      const baseCanEdit =
         def.stng_scope === 'USER' &&
         def.stng_is_overridable &&
         !def.stng_is_sensitive;
+      const canEdit = baseCanEdit && !isLockedByEditPolicy;
 
       return {
         definition: def,
         resolved,
         isOverridden,
         canEdit,
+        isLockedByEditPolicy,
       };
     });
 }
