@@ -23,6 +23,11 @@ import type { Tenant } from '@/lib/types/tenant';
 import { GeneralSettings } from '@features/settings/ui/GeneralSettings';
 import { BrandingSettings } from '@features/settings/ui/BrandingSettings';
 import { BusinessHoursSettings } from '@features/settings/ui/BusinessHoursSettings';
+import { TenantSettings } from '@features/settings/ui/TenantSettings';
+import { BranchSettings } from '@features/settings/ui/BranchSettings';
+import { UserSettings } from '@features/settings/ui/UserSettings';
+import { FeatureFlagsSettings } from '@features/settings/ui/FeatureFlagsSettings';
+import { PlanLimitsSettings } from '@features/settings/ui/PlanLimitsSettings';
 import { SubscriptionSettings } from '@features/settings/ui/SubscriptionSettings';
 import { ProfileInfoCard } from '@features/settings/ui/profile-info-card';
 import { settingsClient, type ResolvedSetting } from '@/lib/api/settings-client';
@@ -132,6 +137,36 @@ export default function SettingsPage() {
       label: 'Subscription',
       icon: <span>💳</span>,
       content: <SubscriptionSettings tenant={tenant} />,
+    },
+    {
+      id: 'tenant-settings',
+      label: 'Tenant Settings',
+      icon: <span>🧩</span>,
+      content: <TenantSettings />,
+    },
+    {
+      id: 'branch-settings',
+      label: 'Branch Settings',
+      icon: <span>🏬</span>,
+      content: <BranchSettings />,
+    },
+    {
+      id: 'user-settings',
+      label: 'User Settings',
+      icon: <span>👤</span>,
+      content: <UserSettings />,
+    },
+    {
+      id: 'feature-flags',
+      label: 'Feature Flags',
+      icon: <span>🚩</span>,
+      content: <FeatureFlagsSettings />,
+    },
+    {
+      id: 'plan-limits',
+      label: 'Plan Limits',
+      icon: <span>📊</span>,
+      content: <PlanLimitsSettings />,
     },
   ];
 

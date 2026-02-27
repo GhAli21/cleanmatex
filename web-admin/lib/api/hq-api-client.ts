@@ -311,5 +311,23 @@ export const hqApiClient = {
       }
     );
   },
+
+  /**
+   * List feature flags (global metadata from Platform HQ).
+   * View-only; may be further filtered server-side.
+   */
+  async getFeatureFlags(options?: { authHeader?: string | null; search?: string }) {
+    const result = await callHqApi<any>(
+      '/feature-flags',
+      {
+        queryParams: {
+          search: options?.search,
+          is_active: 'true',
+        },
+        authHeader: options?.authHeader,
+      },
+    );
+    return result;
+  },
 };
 

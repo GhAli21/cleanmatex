@@ -76,7 +76,7 @@ export function ProductCard({
           <img
             src={product.product_image}
             alt={displayName}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain p-1"
           />
         ) : product.product_icon ? (
           <i className={`mdi ${product.product_icon} text-3xl text-gray-600`} />
