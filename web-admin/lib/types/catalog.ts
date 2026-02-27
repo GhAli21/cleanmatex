@@ -121,6 +121,8 @@ export interface ProductListItem {
   product_unit: ProductUnit | null;
   is_active: boolean;
   created_at: string;
+  product_image?: string | null;
+  product_icon?: string | null;
 }
 
 /**

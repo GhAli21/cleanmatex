@@ -68,17 +68,32 @@ export async function GET(
     const details = error instanceof Error ? error.message : String(error ?? 'Unknown error');
     console.error('Error in effective settings endpoint:', error);
 
-    // Handle authentication errors
+    // Handle authentication errors (missing token in web-admin)
     if (error instanceof Error && error.message.includes('No authentication token')) {
       return NextResponse.json(
-        { error: 'Authentication required', details },
+        {
+          error: 'Authentication required',
+          details: 'Set HQ_SERVICE_TOKEN in web-admin/.env.local or ensure the request forwards an Authorization header. See docs/HQ_SERVICE_TOKEN_GUIDE.md.',
+        },
         { status: 401 }
       );
     }
 
-    // Handle unauthorized errors from HQ API
-    if (error instanceof Error && (error.message.includes('Unauthorized') || error.message.includes('401'))) {
-      return NextResponse.json({ error: 'Unauthorized', details }, { status: 401 });
+    // Handle 401 / "Authentication required" from HQ API (invalid or missing token)
+    if (
+      error instanceof Error &&
+      (details.toLowerCase().includes('authentication required') ||
+        details.includes('Unauthorized') ||
+        details.includes('401'))
+    ) {
+      return NextResponse.json(
+        {
+          error: 'HQ API authentication failed',
+          details:
+            'Platform HQ API rejected the request. Set a valid HQ_SERVICE_TOKEN in web-admin/.env.local (run "npm run generate-service-token" in cleanmatexsaas/platform-api and paste the token).',
+        },
+        { status: 401 }
+      );
     }
 
     // Handle forbidden errors

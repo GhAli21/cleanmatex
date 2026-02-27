@@ -516,6 +516,8 @@ export async function searchProducts(
     product_unit: item.product_unit,
     is_active: item.is_active,
     created_at: item.created_at,
+    product_image: item.product_image ?? null,
+    product_icon: item.product_icon ?? null,
   }));
 
   const total = count || 0;

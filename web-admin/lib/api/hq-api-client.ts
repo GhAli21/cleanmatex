@@ -194,7 +194,7 @@ export const hqApiClient = {
     options?: {
       branchId?: string;
       userId?: string;
-      authHeader?: string | null;
+      authHeader?: string | null; 
     }
   ): Promise<CleanmatexResolvedSetting[]> {
     const raw = await callHqApi<HqResolvedSetting[] | { data: HqResolvedSetting[] }>(
