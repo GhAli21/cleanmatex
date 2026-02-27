@@ -77,6 +77,7 @@ const CHILD_ICON_FALLBACK: Record<string, string> = {
   settings_workflow_roles: 'ClipboardCheck',
   settings_branding: 'Settings',
   settings_subscription: 'Receipt',
+  settings_all: 'Settings',
   users_list: 'Users',
 }
 
@@ -143,7 +144,7 @@ export default function CmxSidebar() {
       'inventory_machines': 'machines', 'settings': 'settings', 'settings_general': 'general',
       'settings_users': 'teamMembers', 'settings_roles': 'rolesAndPermissions',
       'settings_workflow_roles': 'workflowRoles', 'settings_branding': 'branding',
-      'settings_subscription': 'subscription', 'help': 'help', 'jhtestui': 'jwtTest',
+      'settings_subscription': 'subscription', 'settings_all': 'allSettings', 'help': 'help', 'jhtestui': 'jwtTest',
       'delivery': 'delivery', 'users': 'users', 'users_list': 'teamMembers',
       'reports_orders': 'reportsAndAnalytics', 'reports_payments': 'payments', 'reports_invoices': 'invoices',
       'reports_revenue': 'reportsAndAnalytics', 'reports_customers': 'customers',

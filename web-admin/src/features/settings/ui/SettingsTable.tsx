@@ -297,11 +297,12 @@ function renderEditor(
             onChange(v === '' ? '' : v === 'true');
           }}
           className="w-28"
-        >
-          <option value="">Select…</option>
-          <option value="true">true</option>
-          <option value="false">false</option>
-        </CmxSelect>
+          options={[
+            { value: '', label: 'Select…' },
+            { value: 'true', label: 'true' },
+            { value: 'false', label: 'false' },
+          ]}
+        />
       );
     case 'NUMBER':
     case 'NUMBER_ARRAY':

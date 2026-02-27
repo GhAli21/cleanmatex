@@ -134,14 +134,14 @@ export function UserSettings() {
               setSelectedUserId(e.target.value)
             }
             className="min-w-[220px]"
-          >
-            <option value="">Select user…</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.display_name || u.email}
-              </option>
-            ))}
-          </CmxSelect>
+            options={[
+              { value: '', label: 'Select user…' },
+              ...users.map((u) => ({
+                value: u.id,
+                label: u.display_name || u.email,
+              })),
+            ]}
+          />
           {selectedUserId && (
             <CmxButton
               type="button"

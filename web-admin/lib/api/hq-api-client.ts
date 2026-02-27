@@ -313,6 +313,79 @@ export const hqApiClient = {
   },
 
   /**
+   * List settings categories (sys_stng_categories_cd) from Platform HQ.
+   */
+  async getSettingsCategories(options?: {
+    limit?: number | string;
+    offset?: number | string;
+    isActive?: boolean;
+    search?: string;
+    authHeader?: string | null;
+  }) {
+    const result = await callHqApi<any>('/settings/categories', {
+      queryParams: {
+        limit:
+          options?.limit !== undefined && options.limit !== null
+            ? String(options.limit)
+            : undefined,
+        offset:
+          options?.offset !== undefined && options.offset !== null
+            ? String(options.offset)
+            : undefined,
+        isActive:
+          options?.isActive !== undefined && options.isActive !== null
+            ? String(options.isActive)
+            : undefined,
+        search: options?.search,
+      },
+      authHeader: options?.authHeader ?? null,
+    });
+    return result;
+  },
+
+  /**
+   * List settings catalog (sys_tenant_settings_cd) from Platform HQ.
+   */
+  async getSettingsCatalog(options?: {
+    limit?: number | string;
+    offset?: number | string;
+    categoryCode?: string;
+    scope?: string;
+    dataType?: string;
+    isActive?: boolean;
+    isOverridable?: boolean;
+    search?: string;
+    authHeader?: string | null;
+  }) {
+    const result = await callHqApi<any>('/settings/catalog', {
+      queryParams: {
+        limit:
+          options?.limit !== undefined && options.limit !== null
+            ? String(options.limit)
+            : undefined,
+        offset:
+          options?.offset !== undefined && options.offset !== null
+            ? String(options.offset)
+            : undefined,
+        categoryCode: options?.categoryCode,
+        scope: options?.scope,
+        dataType: options?.dataType,
+        isActive:
+          options?.isActive !== undefined && options.isActive !== null
+            ? String(options.isActive)
+            : undefined,
+        isOverridable:
+          options?.isOverridable !== undefined && options.isOverridable !== null
+            ? String(options.isOverridable)
+            : undefined,
+        search: options?.search,
+      },
+      authHeader: options?.authHeader ?? null,
+    });
+    return result;
+  },
+
+  /**
    * List feature flags (global metadata from Platform HQ).
    * View-only; may be further filtered server-side.
    */

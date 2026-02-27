@@ -135,15 +135,14 @@ export function BranchSettings() {
               setSelectedBranchId(e.target.value)
             }
             className="min-w-[220px]"
-          >
-            <option value="">Select branch…</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name2 || b.name}
-                {b.is_main ? ' (Main)' : ''}
-              </option>
-            ))}
-          </CmxSelect>
+            options={[
+              { value: '', label: 'Select branch…' },
+              ...branches.map((b) => ({
+                value: b.id,
+                label: `${b.name2 || b.name}${b.is_main ? ' (Main)' : ''}`,
+              })),
+            ]}
+          />
           {selectedBranchId && (
             <CmxButton
               type="button"
