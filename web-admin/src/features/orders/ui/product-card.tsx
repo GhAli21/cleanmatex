@@ -54,8 +54,8 @@ export function ProductCard({
   return (
     <div
       className={`
-        relative border rounded-xl p-4 transition-all cursor-pointer
-        min-h-[200px] flex flex-col
+        relative border rounded-lg p-2 transition-all cursor-pointer
+        flex flex-col
         ${
           hasQuantity
             ? 'border-blue-500 bg-blue-50 shadow-md'
@@ -65,13 +65,13 @@ export function ProductCard({
     >
       {/* Quantity Overlay Badge - Top Right/Left */}
       {hasQuantity && (
-        <div className={`absolute -top-2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg z-10 border-2 border-white ${isRTL ? '-left-2' : '-right-2'}`}>
+        <div className={`absolute -top-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg z-10 border-2 border-white ${isRTL ? '-left-2' : '-right-2'}`}>
           {quantity}
         </div>
       )}
 
       {/* Product Image/Icon */}
-      <div className="w-full aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+      <div className="w-full h-14 bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden shrink-0">
         {product.product_image ? (
           <img
             src={product.product_image}
@@ -79,20 +79,20 @@ export function ProductCard({
             className="w-full h-full object-cover"
           />
         ) : product.product_icon ? (
-          <span className="text-5xl">{product.product_icon}</span>
+          <i className={`mdi ${product.product_icon} text-3xl text-gray-600`} />
         ) : (
-          <span className="text-5xl">👔</span>
+          <i className="mdi mdi-hanger text-3xl text-gray-400" />
         )}
       </div>
 
       {/* Product Name */}
-      <h3 className={`font-semibold text-sm mb-1 text-gray-900 line-clamp-2 flex-grow ${isRTL ? 'text-right' : 'text-left'}`}>
+      <h3 className={`font-medium text-xs mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>
         {displayName}
       </h3>
 
       {/* Price */}
-      <div className={`mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-        <p className="text-blue-600 font-bold text-lg">
+      <div className={`mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <p className="text-blue-600 font-bold text-sm">
           {price.toFixed(3)} OMR
         </p>
         {express && (
@@ -109,10 +109,10 @@ export function ProductCard({
               e.stopPropagation();
               onDecrement();
             }}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             aria-label={t('decreaseQuantity')}
           >
-            <Minus className="w-5 h-5" />
+            <Minus className="w-3 h-3" />
           </button>
 
           {/* Quantity Display */}
@@ -126,7 +126,7 @@ export function ProductCard({
               e.stopPropagation();
               onIncrement();
             }}
-            className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label={t('increaseQuantity')}
           >
             <Plus className="w-5 h-5" />
@@ -138,9 +138,9 @@ export function ProductCard({
             e.stopPropagation();
             onAdd();
           }}
-          className={`w-full h-12 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`w-full h-8 px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-3 h-3" />
           {t('add')}
         </button>
       )}

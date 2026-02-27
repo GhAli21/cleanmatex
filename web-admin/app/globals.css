@@ -1,6 +1,8 @@
-@import "tailwindcss";
-/* Import Arabic font */
+/* External font imports must come before @import "tailwindcss" */
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap');
+/* Material Design Icons */
+@import url('https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css');
+@import "tailwindcss";
 
 :root { color-scheme: light only; }
 
