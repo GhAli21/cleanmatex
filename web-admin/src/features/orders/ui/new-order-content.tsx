@@ -25,6 +25,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import type { BranchOption } from '@/lib/services/inventory-service';
 // Temporary imports - will move to feature folder later
 // Using @ alias to access app folder components
@@ -58,7 +59,7 @@ export function NewOrderContent() {
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
-    const [currencyCode, setCurrencyCode] = useState('OMR');
+    const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
     const state = useNewOrderStateWithDispatch();
     const { submitOrder, isSubmitting } = useOrderSubmission();
     const totals = useOrderTotals();
@@ -127,7 +128,7 @@ export function NewOrderContent() {
         if (currentTenant?.tenant_id) {
             getCurrencyConfigAction(currentTenant.tenant_id, state.state.branchId ?? undefined).then((config) => {
                 setCurrencyCode(config.currencyCode);
-            }).catch(() => { /* keep default OMR */ });
+            }).catch(() => { /* keep default from ORDER_DEFAULTS */ });
         }
     }, [currentTenant?.tenant_id, state.state.branchId]);
 

@@ -24,6 +24,7 @@ import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/mod
 import { taxService } from '@/lib/services/tax.service';
 import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { cmxMessage } from '@ui/feedback';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 
 interface PaymentModalProps {
@@ -153,7 +154,7 @@ export function PaymentModalEnhanced02({
       getCurrencyConfigAction(tenantOrgId, branchId).then(config => {
         setCurrencyConfig(config);
       }).catch(() => {
-        setCurrencyConfig({ currencyCode: 'USD', decimalPlaces: 3, currencyExRate: 1 });
+        setCurrencyConfig({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: 3, currencyExRate: 1 });
       });
     }
   }, [open, tenantOrgId, branchId]);
@@ -251,7 +252,7 @@ export function PaymentModalEnhanced02({
     }
   }, [isImmediatePayment]);
 
-  const currencyCode = currencyConfig?.currencyCode ?? 'USD';
+  const currencyCode = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
   const formatAmount = (n: number) => n.toFixed(decimalPlaces);
 

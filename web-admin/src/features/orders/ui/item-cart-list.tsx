@@ -7,6 +7,7 @@
 'use client';
 
 import { memo } from 'react';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ItemCartItem } from './item-cart-item';
@@ -46,7 +47,7 @@ function ItemCartListComponent({
   onDeleteItem, 
   onPiecesChange,
   trackByPiece = false,
-  currencyCode = 'OMR',
+  currencyCode = ORDER_DEFAULTS.CURRENCY,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');

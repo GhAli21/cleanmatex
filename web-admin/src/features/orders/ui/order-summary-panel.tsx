@@ -9,6 +9,7 @@
 import { useState, memo, useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { ItemCartList } from './item-cart-list';
 import { UserPlus, Edit, Trash2, Calendar, Calculator, AlertCircle, Clock } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
@@ -59,7 +60,6 @@ interface OrderSummaryPanelProps {
   onOpenPaymentModal?: () => void;
   onCalculateReadyBy?: () => Promise<void>;
   loading: boolean;
-  currencyCode?: string;
   trackByPiece?: boolean;
   /** When true (retail orders), allow "now" as valid ready-by instead of requiring strict future */
   isRetailOnlyOrder?: boolean;
@@ -85,13 +85,12 @@ function OrderSummaryPanelComponent({
   onNotesChange,
   readyByAt,
   total,
-  currencyCode = 'OMR',
+  currencyCode = ORDER_DEFAULTS.CURRENCY,
   onSubmit,
   onOpenReadyByModal,
   onOpenPaymentModal,
   onCalculateReadyBy,
   loading,
-  currencyCode = 'OMR',
   trackByPiece = false,
   isRetailOnlyOrder = false,
 }: OrderSummaryPanelProps) {
