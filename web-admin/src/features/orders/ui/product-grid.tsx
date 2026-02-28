@@ -7,6 +7,7 @@
 'use client';
 
 import { memo } from 'react';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
@@ -56,6 +57,7 @@ export const ProductGrid = memo(function ProductGrid({
   products,
   items,
   express,
+  currencyCode = ORDER_DEFAULTS.CURRENCY,
   onAddItem,
   onRemoveItem,
   onQuantityChange,

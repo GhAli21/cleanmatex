@@ -6,7 +6,8 @@
 
 'use server';
 
-import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 
 export interface CurrencyConfigResult {
   currencyCode: string;
@@ -24,7 +25,8 @@ export async function getCurrencyConfigAction(
   tenantOrgId: string,
   branchId?: string
 ): Promise<CurrencyConfigResult> {
-  const { currencyCode, decimalPlaces } = await tenantSettingsService.getCurrencyConfig(
+  const supabase = await createClient();
+  const { currencyCode, decimalPlaces } = await createTenantSettingsService(supabase).getCurrencyConfig(
     tenantOrgId,
     branchId
   );

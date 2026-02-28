@@ -503,6 +503,7 @@ export function NewOrderContent() {
                                         products={state.state.products}
                                         items={state.state.items}
                                         express={state.state.express}
+                                        currencyCode={currencyCode}
                                         onAddItem={handleAddItem}
                                         onRemoveItem={handleRemoveItem}
                                         onQuantityChange={handleQuantityChange}

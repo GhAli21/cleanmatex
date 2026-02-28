@@ -8,6 +8,7 @@
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { getCashUpData } from '@/app/actions/billing/cashup-actions';
 import CashUpContent from '@features/billing/ui/cashup-content';
 
@@ -53,13 +54,13 @@ export default async function CashUpPage({ searchParams }: PageProps) {
 
   const [cashUpResult, currencyResult] = await Promise.all([
     getCashUpData(selectedDate),
-    getCurrencyConfigAction(tenantOrgId).catch(() => ({ currencyCode: 'OMR', decimalPlaces: 3, currencyExRate: 1 })),
+    getCurrencyConfigAction(tenantOrgId).catch(() => ({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES, currencyExRate: 1 })),
   ]);
 
   const currencyCode =
     currencyResult && typeof currencyResult === 'object' && 'currencyCode' in currencyResult
       ? String(currencyResult.currencyCode)
-      : 'OMR';
+      : ORDER_DEFAULTS.CURRENCY;
 
   if (!cashUpResult.success) {
     return (
