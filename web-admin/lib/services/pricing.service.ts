@@ -6,7 +6,8 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
-import { taxService } from './tax.service';
+import { createTenantSettingsService } from './tenant-settings.service';
+import { TaxService } from './tax.service';
 import { calculateItemPrice } from '@/lib/utils/pricing-calculator';
 import type {
     PriceResult,
@@ -83,10 +84,14 @@ export class PricingService {
             isExpress,
             customerId,
             effectiveDate = new Date(),
+            branchId,
+            userId,
         } = params;
 
         try {
             const supabase = await createClient();
+            const tenantSettings = createTenantSettingsService(supabase);
+            const taxService = new TaxService({ tenantSettings });
 
             // Determine price list type
             const priceListType = await this.determinePriceListType(
@@ -192,8 +197,8 @@ export class PricingService {
                 }
             }
 
-            // Get tax rate
-            const taxRate = await taxService.getTaxRate(tenantId);
+            // Get tax rate (with branch/user context for full 7-layer resolution)
+            const taxRate = await taxService.getTaxRate(tenantId, branchId, userId);
             const isTaxExempt = await taxService.isTaxExempt(tenantId, productId);
 
             // Calculate final price (after discount)
@@ -241,6 +246,8 @@ export class PricingService {
             isExpress?: boolean;
             orderDiscountPercent?: number;
             orderDiscountAmount?: number;
+            branchId?: string;
+            userId?: string;
         } = {}
     ): Promise<OrderTotals> {
         const {
@@ -248,6 +255,8 @@ export class PricingService {
             isExpress = false,
             orderDiscountPercent = 0,
             orderDiscountAmount = 0,
+            branchId,
+            userId,
         } = options;
 
         // Get price results for all items
@@ -259,6 +268,8 @@ export class PricingService {
                     quantity: item.quantity,
                     isExpress,
                     customerId,
+                    branchId,
+                    userId,
                 })
             )
         );
@@ -290,8 +301,11 @@ export class PricingService {
             orderDiscountAmount,
         });
 
-        // Get tax rate for the order
-        const taxRate = await taxService.getTaxRate(tenantId);
+        // Get tax rate for the order (with branch/user context for full 7-layer resolution)
+        const supabase = await createClient();
+        const tenantSettings = createTenantSettingsService(supabase);
+        const taxService = new TaxService({ tenantSettings });
+        const taxRate = await taxService.getTaxRate(tenantId, branchId, userId);
 
         return {
             itemsSubtotal: orderResult.itemsSubtotal,

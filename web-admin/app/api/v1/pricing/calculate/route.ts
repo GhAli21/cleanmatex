@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate price for each item
+    // Calculate price for each item (pass userId for full 7-layer setting resolution)
     const priceResults = await Promise.all(
       items.map((item: { productId: string; quantity: number }) =>
         pricingService.getPriceForOrderItem({
@@ -36,18 +36,19 @@ export async function POST(request: NextRequest) {
           quantity: item.quantity,
           isExpress: isExpress || false,
           customerId,
+          userId: user?.id,
         })
       )
     );
 
-    // Calculate order totals
+    // Calculate order totals (pass userId for full 7-layer setting resolution)
     const orderTotals = await pricingService.calculateOrderTotals(
       tenantId,
       items.map((item: { productId: string; quantity: number }) => ({
         productId: item.productId,
         quantity: item.quantity,
       })),
-      { customerId, isExpress: isExpress || false }
+      { customerId, isExpress: isExpress || false, userId: user?.id }
     );
 
     return NextResponse.json({

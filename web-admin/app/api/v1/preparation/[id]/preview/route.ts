@@ -6,7 +6,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isPreparationEnabled } from '@/lib/config/features';
-import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
 
 export async function GET(
   _request: Request,
@@ -44,7 +44,7 @@ export async function GET(
 
     const subtotal = (items || []).reduce((sum, it) => sum + Number(it.total_price || 0), 0);
     const tenantSettings = createTenantSettingsService(supabase);
-    const taxRateRaw = await tenantSettings.getSettingValue(tenantId, 'TAX_RATE');
+    const taxRateRaw = await tenantSettings.getSettingValue(tenantId, SETTING_CODES.TENANT_VAT_RATE, undefined, user?.id);
     const taxRate = taxRateRaw != null ? Number(taxRateRaw) : 0.05;
     const tax = subtotal * (Number.isFinite(taxRate) ? taxRate : 0.05);
     const total = subtotal + tax;

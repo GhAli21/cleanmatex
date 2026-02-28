@@ -5,15 +5,23 @@
 
 'use server';
 
-import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 
 /**
  * Get default phone country code for a tenant.
  * @param tenantOrgId - Tenant organization ID
+ * @param branchId - Optional branch ID for branch-level override
+ * @param userId - Optional user ID for user-level override; resolved from auth when not passed
  * @returns E.164 country code with + (e.g. '+966', '+968')
  */
 export async function getPhoneCountryCodeAction(
-  tenantOrgId: string
+  tenantOrgId: string,
+  branchId?: string,
+  userId?: string
 ): Promise<string> {
-  return tenantSettingsService.getDefaultPhoneCountryCode(tenantOrgId);
+  const supabase = await createClient();
+  const tenantSettings = createTenantSettingsService(supabase);
+  const uid = userId ?? (await supabase.auth.getUser()).data?.user?.id ?? undefined;
+  return tenantSettings.getDefaultPhoneCountryCode(tenantOrgId, branchId, uid);
 }

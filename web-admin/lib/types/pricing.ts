@@ -24,6 +24,8 @@ export interface PriceLookupParams {
     isExpress: boolean;
     customerId?: string;
     effectiveDate?: Date;
+    branchId?: string;
+    userId?: string;
 }
 
 /**

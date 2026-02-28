@@ -9,7 +9,7 @@ import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
 import { WorkflowService } from './workflow-service';
 import { OrderPieceService } from './order-piece-service';
-import { TenantSettingsService } from './tenant-settings.service';
+import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
@@ -324,8 +324,8 @@ export class OrderService {
       let currencyCode = passedCurrencyCode;
       let currencyExRate = passedCurrencyExRate;
       if (!currencyCode && hasPaymentData) {
-        const tenantSettingsSvc = new TenantSettingsService();
-        const config = await tenantSettingsSvc.getCurrencyConfig(tenantId, branchId ?? undefined);
+        const tenantSettingsSvc = createTenantSettingsService(supabase);
+        const config = await tenantSettingsSvc.getCurrencyConfig(tenantId, branchId ?? undefined, userId);
         currencyCode = config.currencyCode;
       }
       if (currencyExRate == null) {

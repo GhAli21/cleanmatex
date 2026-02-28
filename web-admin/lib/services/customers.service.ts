@@ -7,7 +7,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
-import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type {
   Customer,
@@ -154,7 +154,11 @@ async function getCurrentUserTenantSessionContext(): Promise<CurrentUserTenantSe
 /** Default phone country code for current tenant (from tenant/branch settings). */
 async function getDefaultCountryCodeForCurrentTenant(): Promise<string> {
   const tenantId = await getTenantIdFromSession();
-  return tenantId ? tenantSettingsService.getDefaultPhoneCountryCode(tenantId) : '+968';
+  if (!tenantId) return '+968';
+  const supabase = await createClient();
+  const tenantSettings = createTenantSettingsService(supabase);
+  const uid = (await supabase.auth.getUser()).data?.user?.id;
+  return tenantSettings.getDefaultPhoneCountryCode(tenantId, undefined, uid);
 }
 
 /**

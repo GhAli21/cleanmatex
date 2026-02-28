@@ -40,6 +40,8 @@ interface PaymentModalProps {
   customerId?: string;
   serviceCategories?: string[];
   branchId?: string;
+  /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
+  userId?: string;
   /** When true, PAY_ON_COLLECTION is disabled (retail orders must be paid at POS) */
   isRetailOnlyOrder?: boolean;
   loading?: boolean;
@@ -56,6 +58,7 @@ export function PaymentModalEnhanced02({
   customerId,
   serviceCategories,
   branchId,
+  userId,
   isRetailOnlyOrder = false,
   loading = false,
 }: PaymentModalProps) {
@@ -146,18 +149,18 @@ export function PaymentModalEnhanced02({
 
   useEffect(() => {
     if (open && tenantOrgId) {
-      taxService.getTaxRate(tenantOrgId).then(rate => {
+      taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
         setTaxRate(rate);
       }).catch(() => {
         setTaxRate(0.05);
       });
-      getCurrencyConfigAction(tenantOrgId, branchId).then(config => {
+      getCurrencyConfigAction(tenantOrgId, branchId, userId).then(config => {
         setCurrencyConfig(config);
       }).catch(() => {
         setCurrencyConfig({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: 3, currencyExRate: 1 });
       });
     }
-  }, [open, tenantOrgId, branchId]);
+  }, [open, tenantOrgId, branchId, userId]);
 
   const fetchPreview = useCallback(async () => {
     if (!open || items.length === 0 || !tenantOrgId) return;
@@ -169,6 +172,7 @@ export function PaymentModalEnhanced02({
         credentials: 'include',
         body: JSON.stringify({
           items,
+          branchId: branchId || undefined,
           customerId: customerId || undefined,
           isExpress,
           percentDiscount: percentDiscount ?? 0,
@@ -202,7 +206,7 @@ export function PaymentModalEnhanced02({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, promoCode, giftCardNumber, csrfToken]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, promoCode, giftCardNumber, csrfToken]);
 
   useEffect(() => {
     if (!open || items.length === 0) {
@@ -303,7 +307,7 @@ export function PaymentModalEnhanced02({
         totalSavings: serverTotals.subtotal + serverTotals.vatValue - finalTotalWithExtra,
       };
     }
-    const subtotal = total;
+    const subtotal = total; 
     const manualDiscount =
       percentDiscount > 0
         ? Math.min((subtotal * percentDiscount) / 100, subtotal)

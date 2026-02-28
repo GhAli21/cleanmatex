@@ -19,16 +19,20 @@ export interface CurrencyConfigResult {
  * Get currency configuration for a tenant.
  * @param tenantOrgId - Tenant organization ID
  * @param branchId - Optional branch ID for branch-level override
+ * @param userId - Optional user ID for user-level override; resolved from auth when not passed
  * @returns Currency code (e.g. OMR), decimal places, and exchange rate
  */
 export async function getCurrencyConfigAction(
   tenantOrgId: string,
-  branchId?: string
+  branchId?: string,
+  userId?: string
 ): Promise<CurrencyConfigResult> {
   const supabase = await createClient();
+  const uid = userId ?? (await supabase.auth.getUser()).data?.user?.id ?? undefined;
   const { currencyCode, decimalPlaces } = await createTenantSettingsService(supabase).getCurrencyConfig(
     tenantOrgId,
-    branchId
+    branchId,
+    uid
   );
   return {
     currencyCode,

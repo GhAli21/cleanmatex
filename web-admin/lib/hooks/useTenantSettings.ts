@@ -15,21 +15,23 @@ import {
 
 interface UseTenantSettingsOptions {
   tenantId: string;
+  branchId?: string | null;
+  userId?: string | null;
   enabled?: boolean; // Allow conditional fetching
 }
 
 /**
  * Hook to fetch tenant processing settings
- * @param options - Configuration options
+ * @param options - Configuration options (branchId/userId for full 7-layer resolution)
  * @returns Query result with settings data
  */
 export function useTenantSettings(options: UseTenantSettingsOptions) {
-  const { tenantId, enabled = true } = options;
+  const { tenantId, branchId, userId, enabled = true } = options;
 
   return useQuery<TenantProcessingSettings>({
-    queryKey: ['tenant-settings', tenantId],
+    queryKey: ['tenant-settings', tenantId, branchId ?? null, userId ?? null],
     queryFn: async () => {
-      return tenantSettingsService.getProcessingSettings(tenantId);
+      return tenantSettingsService.getProcessingSettings(tenantId, branchId, userId);
     },
     enabled: enabled && !!tenantId,
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
@@ -43,13 +45,20 @@ export function useTenantSettings(options: UseTenantSettingsOptions) {
  * Hook to fetch a single setting value
  * @param tenantId - The tenant organization ID
  * @param settingCode - The setting code to fetch
+ * @param branchId - Optional branch ID for branch-level overrides
+ * @param userId - Optional user ID for user-level overrides
  * @returns Query result with boolean value
  */
-export function useTenantSetting(tenantId: string, settingCode: string) {
+export function useTenantSetting(
+  tenantId: string,
+  settingCode: string,
+  branchId?: string | null,
+  userId?: string | null
+) {
   return useQuery<boolean>({
-    queryKey: ['tenant-setting', tenantId, settingCode],
+    queryKey: ['tenant-setting', tenantId, settingCode, branchId ?? null, userId ?? null],
     queryFn: async () => {
-      return tenantSettingsService.checkIfSettingAllowed(tenantId, settingCode);
+      return tenantSettingsService.checkIfSettingAllowed(tenantId, settingCode, branchId, userId);
     },
     enabled: !!tenantId && !!settingCode,
     staleTime: 5 * 60 * 1000,
@@ -62,9 +71,16 @@ export function useTenantSetting(tenantId: string, settingCode: string) {
 /**
  * Hook to get settings with default values while loading
  * Useful for conditional rendering where you need immediate access to settings
+ * @param tenantId - The tenant organization ID
+ * @param branchId - Optional branch ID for branch-level overrides
+ * @param userId - Optional user ID for user-level overrides
  */
-export function useTenantSettingsWithDefaults(tenantId: string) {
-  const { data, isLoading, error } = useTenantSettings({ tenantId });
+export function useTenantSettingsWithDefaults(
+  tenantId: string,
+  branchId?: string | null,
+  userId?: string | null
+) {
+  const { data, isLoading, error } = useTenantSettings({ tenantId, branchId, userId });
 
   console.log('[useTenantSettingsWithDefaults] Hook state:', {
     tenantId,

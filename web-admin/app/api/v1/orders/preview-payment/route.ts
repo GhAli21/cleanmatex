@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   if (authCheck instanceof NextResponse) {
     return authCheck;
   }
-  const { tenantId } = authCheck;
+  const { tenantId, userId } = authCheck;
 
   const body = await request.json().catch(() => null);
   const parsed = previewPaymentRequestSchema.safeParse(body);
@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
   try {
     const data = await calculateOrderTotals({
       tenantId,
+      branchId: parsed.data.branchId,
+      userId,
       items: parsed.data.items,
       customerId: parsed.data.customerId,
       isExpress: parsed.data.isExpress ?? false,

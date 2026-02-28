@@ -16,8 +16,8 @@ export interface TenantProcessingSettings {
 }
 
 /**
- * Setting Value Response
- * Response from fn_get_setting_value RPC
+ * Response from legacy fn_get_setting_value RPC.
+ * @deprecated Use TenantSettingsService.getSettingValue() and fn_stng_resolve_all_settings instead.
  */
 export interface SettingValueResponse {
   value: any;

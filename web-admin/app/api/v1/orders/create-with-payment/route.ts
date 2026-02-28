@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
     const serverTotals = await calculateOrderTotals({
       tenantId,
       branchId,
+      userId,
       items: input.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       customerId: input.customerId,
       isExpress: input.express ?? false,

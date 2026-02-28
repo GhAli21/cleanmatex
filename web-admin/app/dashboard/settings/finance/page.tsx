@@ -20,6 +20,8 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { Save, DollarSign, Info, AlertCircle } from 'lucide-react'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { taxService } from '@/lib/services/tax.service'
+import { SETTING_CODES } from '@/lib/services/tenant-settings.service'
 import { CmxInput } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
 import { CmxButton } from '@ui/primitives'
@@ -69,8 +71,8 @@ export default function FinanceSettingsPage() {
         throw new Error(message)
       }
 
-      // Find TAX_RATE setting
-      const taxRateSetting = json.data?.find((s: any) => s.stngCode === 'TAX_RATE')
+      // Find TENANT_VAT_RATE setting
+      const taxRateSetting = json.data?.find((s: any) => s.stngCode === SETTING_CODES.TENANT_VAT_RATE)
 
       if (taxRateSetting) {
         const rate = parseFloat(taxRateSetting.stngValue || '0.06')
@@ -105,7 +107,7 @@ export default function FinanceSettingsPage() {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          settingCode: 'TAX_RATE',
+          settingCode: SETTING_CODES.TENANT_VAT_RATE,
           value: settings.taxRate.toString(),
           overrideReason: 'Tax rate updated via Finance Settings',
         }),
@@ -118,6 +120,9 @@ export default function FinanceSettingsPage() {
       }
 
       showSuccessToast('Tax settings updated successfully')
+
+      // Invalidate tax rate cache so payment modal and order calc use fresh rate
+      taxService.clearAllCache()
 
       // Reload to get updated info
       await loadTaxSettings()

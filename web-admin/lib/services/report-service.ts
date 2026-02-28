@@ -11,7 +11,8 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '../db/tenant-context';
-import { tenantSettingsService } from './tenant-settings.service';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from './tenant-settings.service';
 import { format, eachDayOfInterval, differenceInDays } from 'date-fns';
 import type {
   ReportFilters,
@@ -39,8 +40,11 @@ import type {
 // Helper: Get currency code for tenant
 // ============================================================================
 
-async function getTenantCurrency(tenantOrgId: string, branchId?: string): Promise<string> {
-  const config = await tenantSettingsService.getCurrencyConfig(tenantOrgId, branchId);
+async function getTenantCurrency(tenantOrgId: string, branchId?: string, userId?: string): Promise<string> {
+  const supabase = await createClient();
+  const tenantSettings = createTenantSettingsService(supabase);
+  const uid = userId ?? (await supabase.auth.getUser()).data?.user?.id;
+  const config = await tenantSettings.getCurrencyConfig(tenantOrgId, branchId, uid);
   return config.currencyCode;
 }
 

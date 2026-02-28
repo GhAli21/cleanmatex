@@ -8,9 +8,10 @@
  * Integrates: pricing, tax, promo, gift card. All amounts rounded per tenant currency.
  */
 
+import { createClient } from '@/lib/supabase/server';
 import { pricingService } from './pricing.service';
-import { taxService } from './tax.service';
-import { tenantSettingsService } from './tenant-settings.service';
+import { TaxService } from './tax.service';
+import { createTenantSettingsService } from './tenant-settings.service';
 import { validatePromoCode } from './discount-service';
 import { validateGiftCard } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
@@ -31,6 +32,8 @@ export interface OrderCalculationParams {
   additionalTaxRate?: number;
   /** Additional tax amount. If provided, overrides additionalTaxRate. Applied on top of base total. */
   additionalTaxAmount?: number;
+  /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
+  userId?: string;
 }
 
 export interface OrderCalculationResult {
@@ -64,6 +67,7 @@ export async function calculateOrderTotals(
   const {
     tenantId,
     branchId,
+    userId,
     items,
     customerId,
     isExpress = false,
@@ -76,9 +80,14 @@ export async function calculateOrderTotals(
     additionalTaxAmount: additionalTaxAmountParam,
   } = params;
 
-  const currencyConfig = await tenantSettingsService.getCurrencyConfig(
+  const supabase = await createClient();
+  const tenantSettings = createTenantSettingsService(supabase);
+  const tax = new TaxService({ tenantSettings });
+
+  const currencyConfig = await tenantSettings.getCurrencyConfig(
     tenantId,
-    branchId
+    branchId,
+    userId
   );
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
   const currencyCode = currencyConfig.currencyCode ?? 'OMR';
@@ -159,7 +168,7 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
-  const vatRate = await taxService.getTaxRate(tenantId);
+  const vatRate = await tax.getTaxRate(tenantId, branchId, userId);
   const vatTaxPercent = round(vatRate * 100, 2);
   const vatValue = round(afterDiscounts * vatRate, decimalPlaces);
   const taxAmount = vatValue;

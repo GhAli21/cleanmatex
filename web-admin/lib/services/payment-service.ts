@@ -14,7 +14,8 @@ import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context'
 
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-import { tenantSettingsService } from './tenant-settings.service';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
 import { createReceiptVoucherForPayment } from './voucher-service';
 import type {
@@ -676,7 +677,10 @@ export async function recordPaymentTransaction(
       }
     }
     if (!currencyCode) {
-      const config = await tenantSettingsService.getCurrencyConfig(tenantId, input.branch_id);
+      const supabase = await createClient();
+      const tenantSettings = createTenantSettingsService(supabase);
+      const uid = (await supabase.auth.getUser()).data?.user?.id;
+      const config = await tenantSettings.getCurrencyConfig(tenantId, input.branch_id, uid);
       currencyCode = config.currencyCode;
     }
     if (currencyExRate == null) {
@@ -2193,9 +2197,12 @@ async function createInvoiceForOrder(
     const tax = breakdown?.tax ?? 0;
     const total = breakdown?.total ?? amount;
 
+    const supabase = await createClient();
+    const tenantSettings = createTenantSettingsService(supabase);
+    const uid = (await supabase.auth.getUser()).data?.user?.id;
     const currencyCode =
       order.currency_code ??
-      (await tenantSettingsService.getCurrencyConfig(order.tenant_org_id, order.branch_id ?? undefined)).currencyCode;
+      (await tenantSettings.getCurrencyConfig(order.tenant_org_id, order.branch_id ?? undefined, uid)).currencyCode;
     const currencyExRate = Number(order.currency_ex_rate ?? 1);
 
     const now = new Date();
