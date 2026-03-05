@@ -290,7 +290,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
       aria-describedby="customer-picker-desc"
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col border border-gray-200"
+        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-gray-200"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
@@ -473,11 +473,11 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           </label>
         </div>
 
-        {/* Results */}
+        {/* Results - min-h-0 allows flex child to shrink so overflow-y-auto scrolls inside modal */}
         <div
           ref={resultsRef}
           id="customer-results-list"
-          className="flex-1 overflow-y-auto p-6 min-h-[200px]"
+          className="flex-1 min-h-0 overflow-y-auto p-6"
           role="listbox"
           aria-label={t('title')}
         >
