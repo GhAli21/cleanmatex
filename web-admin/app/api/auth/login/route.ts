@@ -6,7 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClientForLogin } from '@/lib/supabase/server';
+import { cookies } from 'next/headers';
+import { createServerSupabaseClientForLogin, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server';
 import { checkLoginRateLimit } from '@/lib/middleware/rate-limit';
 import { ensureTenantInUserMetadata } from '@/lib/auth/jwt-tenant-manager';
 import {
@@ -144,6 +145,16 @@ export async function POST(request: NextRequest) {
         error: metadataError instanceof Error ? metadataError.message : String(metadataError),
       });
     }
+
+    // Set sb-remember-me so proxy/server/browser respect session vs persistent cookies
+    const cookieStore = await cookies();
+    cookieStore.set(SB_REMEMBER_ME_COOKIE, rememberMe ? '1' : '0', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      ...(rememberMe ? { maxAge: 60 * 60 * 24 } : {}),
+    });
 
     // Return session data
     return NextResponse.json({

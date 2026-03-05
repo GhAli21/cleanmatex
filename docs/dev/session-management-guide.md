@@ -69,7 +69,9 @@ This guide describes the full session lifecycle, route protection, CSRF, and Rem
 - **Where it is applied**  
   - Login API reads `remember_me` from the body (default `false`).  
   - It uses `createServerSupabaseClientForLogin(rememberMe)` so that when `remember_me === false`, auth cookies are set without `maxAge`/`expires` (session cookies). When `remember_me === true`, auth cookies use an explicit `maxAge` of 1 day.  
-  - Only the login response sets this; proxy and other routes use the same cookies afterward until they expire or the browser session ends.
+  - Login API sets `sb-remember-me` cookie (`"1"` or `"0"`) so proxy, server client, and browser client all respect session vs persistent cookies.  
+  - Proxy, `createServerSupabaseClient`, and `createBrowserClient` read `sb-remember-me` and strip `maxAge`/`expires` when it is `"0"` or missing, so token refreshes keep session cookies.  
+  - Logout API clears `sb-remember-me`.
 
 - **Login page**  
   - State `rememberMe` (default `false`) is bound to the “Remember me” checkbox; `signIn(email, password, rememberMe)` sends `remember_me` in the body.

@@ -51,9 +51,23 @@ function getSupabaseEnv() {
  *
  * @returns Promise<SupabaseClient>
  */
+/**
+ * Apply session-only cookie options when user chose "Remember me" = false.
+ * Strips maxAge/expires so cookies expire when browser closes.
+ */
+function applySessionCookieOptions(
+  options: Record<string, unknown>,
+  rememberMe: boolean
+): Record<string, unknown> {
+  if (rememberMe) return options
+  const { maxAge, expires, ...rest } = options
+  return { ...rest, maxAge: undefined, expires: undefined }
+}
+
 export async function createServerSupabaseClient() {
   const cookieStore = await cookies()
   const { url, anonKey } = getSupabaseEnv()
+  const rememberMe = cookieStore.get(SB_REMEMBER_ME_COOKIE)?.value === '1'
 
   return createServerClient<Database>(
     url,
@@ -65,7 +79,11 @@ export async function createServerSupabaseClient() {
         },
         set(name: string, value: string, options: any) {
           try {
-            cookieStore.set({ name, value, ...options })
+            const opts = applySessionCookieOptions(
+              options as Record<string, unknown>,
+              rememberMe
+            )
+            cookieStore.set({ name, value, ...opts })
           } catch (error) {
             // Handle cases where cookies can't be set (e.g., middleware)
           }
@@ -81,6 +99,9 @@ export async function createServerSupabaseClient() {
     }
   )
 }
+
+/** Cookie name storing user's "Remember me" choice. Used to keep auth cookies as session cookies when unchecked. */
+export const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
 
 /** Default max age for "Remember me" cookies: 1 day (in seconds). */
 const REMEMBER_ME_COOKIE_MAX_AGE = 60 * 60 * 24

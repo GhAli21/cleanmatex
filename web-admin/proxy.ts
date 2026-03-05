@@ -16,6 +16,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { defaultLocale } from './i18n'
 import { generateCSRFToken, getCSRFTokenFromRequest, setCSRFTokenInResponse } from './lib/security/csrf'
 
+/** Cookie storing "Remember me" choice; when "0" or missing, auth cookies are session-only. */
+const SB_REMEMBER_ME_COOKIE = 'sb-remember-me'
+
 /**
  * Routes that don't require authentication
  */
@@ -69,6 +72,11 @@ export async function proxy(request: NextRequest) {
     },
   })
 
+  // Session-only cookies when sb-remember-me is not "1" (expire on browser close)
+  const rememberMe = request.cookies.get(SB_REMEMBER_ME_COOKIE)?.value === '1'
+  const applyCookieOptions = (opts: CookieOptions) =>
+    rememberMe ? opts : { ...opts, maxAge: undefined, expires: undefined }
+
   // Create Supabase client with cookie handling
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -79,10 +87,11 @@ export async function proxy(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
+          const opts = applyCookieOptions(options)
           request.cookies.set({
             name,
             value,
-            ...options,
+            ...opts,
           })
           response = NextResponse.next({
             request: {
@@ -92,7 +101,7 @@ export async function proxy(request: NextRequest) {
           response.cookies.set({
             name,
             value,
-            ...options,
+            ...opts,
           })
         },
         remove(name: string, options: CookieOptions) {

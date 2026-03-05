@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, SB_REMEMBER_ME_COOKIE } from '@/lib/supabase/server'
 import { invalidatePermissionCache } from '@/lib/services/permission-cache'
 import { logger } from '@/lib/utils/logger'
 
@@ -72,10 +72,13 @@ export async function POST(request: NextRequest) {
     // Note: Supabase session is cleared client-side
     // This API only handles server-side cleanup
 
-    return NextResponse.json({
+    const res = NextResponse.json({
       success: true,
       message: 'Logged out successfully',
     })
+    // Clear remember-me preference so next login defaults to session-only
+    res.cookies.set(SB_REMEMBER_ME_COOKIE, '', { path: '/', maxAge: 0 })
+    return res
   } catch (error) {
     logger.error('Error in logout API', error as Error, {
       feature: 'auth',
