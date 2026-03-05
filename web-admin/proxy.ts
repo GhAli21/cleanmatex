@@ -142,8 +142,13 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
-  // 2. If route is public, allow access
+  // 2. If route is public, allow access (set CSRF cookie first for login/register)
   if (isPublicRoute) {
+    let csrfToken = getCSRFTokenFromRequest(request)
+    if (!csrfToken) {
+      csrfToken = generateCSRFToken()
+      setCSRFTokenInResponse(response, csrfToken)
+    }
     return response
   }
 
