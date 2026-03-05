@@ -245,6 +245,11 @@ export async function POST(request: NextRequest) {
         userIp: requestAudit.userIp,
         reason: 'Order sale deduction',
       },
+      ...(input.customerMobile != null && { customerMobile: input.customerMobile }),
+      ...(input.customerEmail != null && input.customerEmail !== '' && { customerEmail: input.customerEmail }),
+      ...(input.customerName != null && { customerName: input.customerName }),
+      ...(input.isDefaultCustomer != null && { isDefaultCustomer: input.isDefaultCustomer }),
+      ...(input.customerDetails != null && { customerDetails: input.customerDetails }),
     };
 
     const result = await withTenantContext(tenantId, async () =>

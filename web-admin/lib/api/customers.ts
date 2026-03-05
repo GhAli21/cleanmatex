@@ -32,6 +32,9 @@ const API_BASE = '/api/v1/customers';
 /** Params for fast customer search (picker, autocomplete) */
 export interface CustomerSearchPickerParams {
   search: string;
+  searchPhone?: string;
+  searchName?: string;
+  searchEmail?: string;
   searchAllOptions?: boolean;
   limit?: number;
 }
@@ -58,12 +61,15 @@ export interface CustomerSearchItem {
 export async function searchCustomersForPicker(
   params: CustomerSearchPickerParams
 ): Promise<CustomerSearchItem[]> {
-  const { search, searchAllOptions = false, limit = 10 } = params;
+  const { search, searchPhone, searchName, searchEmail, searchAllOptions = false, limit = 10 } = params;
   const queryParams = new URLSearchParams({
     search: search.trim(),
     limit: String(limit),
     searchAllOptions: String(searchAllOptions),
   });
+  if (searchPhone?.trim()) queryParams.set('searchPhone', searchPhone.trim());
+  if (searchName?.trim()) queryParams.set('searchName', searchName.trim());
+  if (searchEmail?.trim()) queryParams.set('searchEmail', searchEmail.trim());
 
   const response = await fetch(`${API_BASE}?${queryParams.toString()}`);
 

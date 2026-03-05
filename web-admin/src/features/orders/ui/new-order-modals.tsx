@@ -93,7 +93,7 @@ export function NewOrderModals() {
 
   // Handle customer selection
   const handleSelectCustomer = useCallback(
-    (customer: MinimalCustomer) => {
+    (customer: MinimalCustomer & { isDefaultCustomer?: boolean }) => {
       if (!customer.id) {
         cmxMessage.error(t('errors.invalidCustomer') || 'Invalid customer selected');
         return;
@@ -103,7 +103,14 @@ export function NewOrderModals() {
         ? `${customer.phone} - ${customer.name || customer.name2 || customer.displayName || ''}`
         : customer.name || customer.name2 || customer.displayName || '';
 
-      state.setCustomer(customer, customerName);
+      const displayName = customer.name || customer.name2 || customer.displayName || customerName;
+
+      state.setCustomer(customer, customerName, {
+        customerMobile: customer.phone,
+        customerEmail: customer.email,
+        customerNameSnapshot: displayName,
+        isDefaultCustomer: customer.isDefaultCustomer ?? false,
+      });
       state.closeModal('customerPicker');
     },
     [state, t]
@@ -127,7 +134,13 @@ export function NewOrderModals() {
           phone: updatedCustomer.phone,
           email: updatedCustomer.email,
         },
-        displayName
+        displayName,
+        {
+          customerMobile: updatedCustomer.phone ?? undefined,
+          customerEmail: updatedCustomer.email ?? undefined,
+          customerNameSnapshot: displayName,
+          isDefaultCustomer: false,
+        }
       );
       state.closeModal('customerEdit');
       cmxMessage.success(t('success.customerUpdated') || 'Customer updated successfully');

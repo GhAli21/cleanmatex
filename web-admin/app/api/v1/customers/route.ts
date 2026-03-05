@@ -204,6 +204,9 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(100, Math.max(1, Number.isNaN(rawLimit) ? 20 : rawLimit));
     const skipCount = limit <= 15 && searchParams.get('search')?.trim().length ? true : false;
     const search = searchParams.get('search') || '';
+    const searchPhone = searchParams.get('searchPhone') || '';
+    const searchName = searchParams.get('searchName') || '';
+    const searchEmail = searchParams.get('searchEmail') || '';
     const typeParam = searchParams.get('type');
     const type = typeParam && ['guest', 'stub', 'walk_in', 'full'].includes(typeParam) ? typeParam : undefined;
     const statusParam = searchParams.get('status');
@@ -218,6 +221,9 @@ export async function GET(request: NextRequest) {
       page,
       limit,
       search,
+      searchPhone: searchPhone || undefined,
+      searchName: searchName || undefined,
+      searchEmail: searchEmail || undefined,
       searchAllOptions,
       skipCount,
       type,

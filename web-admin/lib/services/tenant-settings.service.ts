@@ -30,6 +30,7 @@ export const SETTING_CODES = {
   AUTO_CLOSE_DAYS: 'AUTO_CLOSE_DAYS',
   PEAK_SEASON_START: 'PEAK_SEASON_START',
   BRANCH_CURRENCY: 'BRANCH_CURRENCY',
+  TENANT_DEFAULT_GUEST_CUSTOMER_ID: 'TENANT_DEFAULT_GUEST_CUSTOMER_ID',
 } as const;
 
 /** Resolved settings map: setting code → parsed value (string, number, boolean) */

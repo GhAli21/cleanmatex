@@ -9,6 +9,7 @@
 
 import { useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { useTranslations } from 'next-intl';
+import { useQuery } from '@tanstack/react-query';
 import { useRTL } from '@/lib/hooks/useRTL';
 import {
   useCustomerSearch,
@@ -16,9 +17,11 @@ import {
 } from '@/lib/hooks/use-customer-search';
 import { searchCustomersForPicker } from '@/lib/api/customers';
 import { CmxInput } from '@ui/primitives/cmx-input';
+import { CmxButton } from '@ui/primitives/cmx-button';
 import { CustomerCreateModal } from './customer-create-modal';
 import type { Customer as CustomerType } from '@/lib/types/customer';
 import type { CustomerSearchItem } from '@/lib/api/customers';
+import { UserCircle } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -34,6 +37,18 @@ interface Customer {
   originalTenantId?: string;
   customerId?: string;
   orgCustomerId?: string;
+  isDefaultCustomer?: boolean;
+}
+
+interface DefaultGuestCustomer {
+  id: string;
+  name?: string | null;
+  name2?: string | null;
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
 }
 
 function mapSearchItemToCustomer(c: CustomerSearchItem): Customer {
@@ -66,6 +81,10 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [search, setSearch] = useState('');
+  const [searchPhone, setSearchPhone] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchEmail, setSearchEmail] = useState('');
+  const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [searchAllOptions, setSearchAllOptions] = useState(false);
   const [linkingCustomer, setLinkingCustomer] = useState<Customer | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -76,10 +95,27 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const resultsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch default guest customer when modal opens
+  const { data: defaultGuest, isLoading: defaultGuestLoading } = useQuery({
+    queryKey: ['tenant-settings', 'default-guest-customer', tenantId],
+    queryFn: async (): Promise<DefaultGuestCustomer | null> => {
+      const res = await fetch('/api/v1/tenant-settings/default-guest-customer');
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error('Failed to fetch default guest customer');
+      const json = await res.json();
+      return json.success && json.data ? json.data : null;
+    },
+    enabled: open && !!tenantId,
+    staleTime: 60_000,
+  });
+
   // Defer search term used for API/list so input stays responsive (fixes INP)
   const deferredSearch = useDeferredValue(search);
   const { customers: rawCustomers, isLoading, isFetching, error, isReady } = useCustomerSearch({
     search: deferredSearch,
+    searchPhone,
+    searchName,
+    searchEmail,
     searchAllOptions,
     limit: 10,
     minChars: CUSTOMER_SEARCH_MIN_CHARS,
@@ -96,10 +132,32 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   useEffect(() => {
     if (open) {
       setSearch('');
+      setSearchPhone('');
+      setSearchName('');
+      setSearchEmail('');
       setCreateError(null);
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
+
+  const handleDefaultGuestSelect = useCallback(() => {
+    if (!defaultGuest) return;
+    const customer: Customer = {
+      id: defaultGuest.id,
+      name: defaultGuest.displayName ?? defaultGuest.name ?? undefined,
+      name2: defaultGuest.name2 ?? undefined,
+      displayName: defaultGuest.displayName ?? undefined,
+      firstName: defaultGuest.firstName ?? undefined,
+      lastName: defaultGuest.lastName ?? undefined,
+      phone: defaultGuest.phone ?? undefined,
+      email: defaultGuest.email ?? undefined,
+      source: 'current_tenant',
+      belongsToCurrentTenant: true,
+      isDefaultCustomer: true,
+    };
+    onSelectCustomer(customer);
+    onClose();
+  }, [defaultGuest, onSelectCustomer, onClose]);
 
   const handleCustomerClick = useCallback(
     (customer: Customer) => {
@@ -214,7 +272,11 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   }, [onClose]);
 
   const displayError = error?.message ?? createError;
-  const canSearch = search.trim().length >= CUSTOMER_SEARCH_MIN_CHARS;
+  const hasFieldSearch =
+    searchPhone.trim().length >= 3 ||
+    searchName.trim().length >= CUSTOMER_SEARCH_MIN_CHARS ||
+    searchEmail.trim().length >= 3;
+  const canSearch = search.trim().length >= CUSTOMER_SEARCH_MIN_CHARS || hasFieldSearch;
   const showResults = canSearch && isReady && !displayError;
 
   if (!open) return null;
@@ -245,6 +307,51 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           >
             {t('description')}
           </p>
+        </div>
+
+        {/* Default Guest Customer Section - always visible */}
+        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
+          <div
+            className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+            role="region"
+            aria-label={t('defaultGuest') || 'Default guest customer'}
+          >
+            <UserCircle className="h-5 w-5 text-gray-500 shrink-0" aria-hidden />
+            <span className="text-sm font-medium text-gray-700">
+              {t('defaultGuest') || 'Default Guest Customer'}
+            </span>
+          </div>
+          {defaultGuestLoading ? (
+            <div className={`py-3 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {tCommon('loading') || 'Loading...'}
+            </div>
+          ) : defaultGuest ? (
+            <div
+              className={`p-4 border border-gray-200 rounded-lg bg-white ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              <div className="space-y-1 text-sm text-gray-700">
+                <div className="font-medium">
+                  {defaultGuest.displayName || defaultGuest.name || defaultGuest.name2 || defaultGuest.id}
+                </div>
+                {defaultGuest.phone && <div>{defaultGuest.phone}</div>}
+                {defaultGuest.email && <div>{defaultGuest.email}</div>}
+              </div>
+              <CmxButton
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={handleDefaultGuestSelect}
+                className="mt-3"
+                aria-label={t('useDefaultGuest') || 'Use as customer'}
+              >
+                {t('useDefaultGuest') || 'Use as Customer'}
+              </CmxButton>
+            </div>
+          ) : (
+            <p className={`py-2 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t('noDefaultGuestSetting') || 'No default guest customer setting'}
+            </p>
+          )}
         </div>
 
         {/* Search */}
@@ -297,6 +404,61 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
           <p id="customer-search-hint" className="text-xs text-gray-500">
             {t('searchHint')}
           </p>
+          <button
+            type="button"
+            onClick={() => setAdvancedSearchOpen((o) => !o)}
+            className={`text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${isRTL ? 'text-right' : 'text-left'}`}
+            aria-expanded={advancedSearchOpen}
+          >
+            {advancedSearchOpen ? '− ' : '+ '}
+            {t('advancedSearch') || 'Advanced search'}
+          </button>
+          {advancedSearchOpen && (
+            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div>
+                <label htmlFor="search-phone" className="block text-xs text-gray-600 mb-1">
+                  {tCommon('phone') || 'Phone'}
+                </label>
+                <CmxInput
+                  id="search-phone"
+                  type="tel"
+                  value={searchPhone}
+                  onChange={(e) => setSearchPhone(e.target.value)}
+                  dir="ltr"
+                  placeholder={t('searchPhone') || 'Search by phone'}
+                  className="w-full text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="search-name" className="block text-xs text-gray-600 mb-1">
+                  {tCommon('name') || 'Name'}
+                </label>
+                <CmxInput
+                  id="search-name"
+                  type="text"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  placeholder={t('searchName') || 'Search by name'}
+                  className="w-full text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="search-email" className="block text-xs text-gray-600 mb-1">
+                  {tCommon('email') || 'Email'}
+                </label>
+                <CmxInput
+                  id="search-email"
+                  type="email"
+                  value={searchEmail}
+                  onChange={(e) => setSearchEmail(e.target.value)}
+                  dir="ltr"
+                  placeholder={t('searchEmail') || 'Search by email'}
+                  className="w-full text-sm"
+                />
+              </div>
+            </div>
+          )}
           <label
             className={`flex items-center gap-2 cursor-pointer select-none ${isRTL ? 'flex-row-reverse' : ''}`}
           >

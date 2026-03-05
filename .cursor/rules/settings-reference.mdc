@@ -1,0 +1,16 @@
+---
+description: Where to find settings list/details (sys_tenant_settings_cd or Allsettings files)
+alwaysApply: true
+---
+
+# Settings Reference
+
+When you need to check the **list or details of settings** (codes, names, types, defaults, validation, etc.):
+
+1. **Query the database table** `sys_tenant_settings_cd` (system table, no tenant filter needed).
+
+2. **Or read the settings files** (offline/quick reference):
+   - `F:\jhapp\cleanmatex\.claude\docs\Allsettings.md` — human-readable table
+   - `F:\jhapp\cleanmatex\.claude\docs\Allsettings.json` — structured JSON
+
+Use the table for live/current data; use the files for quick lookup without a DB connection.

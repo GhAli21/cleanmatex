@@ -739,6 +739,11 @@ model org_orders_mst {
   service_charge_type             String?                           @db.VarChar(50)
   payment_terms                   String?                           @db.VarChar(50)
   payment_due_date                DateTime?                         @db.Date
+  is_default_customer             Boolean?                          @default(false)
+  customer_mobile_number          String?
+  customer_email                  String?
+  customer_name                   String?
+  customer_details                Json?
   org_asm_tasks_mst               org_asm_tasks_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_fin_vouchers_mst            org_fin_vouchers_mst[]

@@ -17,6 +17,11 @@ export const initialState: NewOrderState = {
   // Customer
   customer: null,
   customerName: '',
+  customerMobile: '',
+  customerEmail: '',
+  customerNameSnapshot: '',
+  isDefaultCustomer: false,
+  customerSnapshotOverride: null,
 
   // Order Items
   items: [],
@@ -65,11 +70,26 @@ export function newOrderReducer(
   action: NewOrderAction
 ): NewOrderState {
   switch (action.type) {
-    case 'SET_CUSTOMER':
+    case 'SET_CUSTOMER': {
+      const { customer, customerName, customerMobile, customerEmail, customerNameSnapshot, isDefaultCustomer } =
+        action.payload;
+      const displayName = customerNameSnapshot ?? customerName;
       return {
         ...state,
-        customer: action.payload.customer,
-        customerName: action.payload.customerName,
+        customer,
+        customerName: customerName ?? displayName ?? '',
+        customerMobile: customerMobile ?? customer?.phone ?? '',
+        customerEmail: customerEmail ?? customer?.email ?? '',
+        customerNameSnapshot: displayName ?? customer?.displayName ?? customer?.name ?? '',
+        isDefaultCustomer: isDefaultCustomer ?? false,
+        customerSnapshotOverride: null,
+      };
+    }
+
+    case 'SET_CUSTOMER_SNAPSHOT_OVERRIDE':
+      return {
+        ...state,
+        customerSnapshotOverride: action.payload,
       };
 
     case 'SET_BRANCH_ID':

@@ -650,6 +650,9 @@ export async function searchCustomersProgressive(
   const searchAllOptions = params.searchAllOptions ?? false;
   const skipCount = params.skipCount ?? false;
   const searchTerm = params.search?.trim() || '';
+  const searchPhone = params.searchPhone?.trim() || '';
+  const searchName = params.searchName?.trim() || '';
+  const searchEmail = params.searchEmail?.trim() || '';
   const limit = params.limit || 100;
 
   // Step 1: Search current tenant's org_customers_mst
@@ -660,8 +663,20 @@ export async function searchCustomersProgressive(
     .select('id, customer_id, first_name, last_name, display_name, name, name2, phone, email, type, loyalty_points, created_at, tenant_org_id', selectOpts)
     .eq('tenant_org_id', tenantId)
     .eq('is_active', true);
-  
-  if (searchTerm.length > 0) {
+
+  // Use field-specific search when provided; else fall back to combined search
+  const hasFieldSearch = searchPhone.length > 0 || searchName.length > 0 || searchEmail.length > 0;
+  if (hasFieldSearch) {
+    const conditions: string[] = [];
+    if (searchPhone.length > 0) conditions.push(`phone.ilike.%${searchPhone}%`);
+    if (searchName.length > 0) {
+      conditions.push(`first_name.ilike.%${searchName}%`);
+      conditions.push(`last_name.ilike.%${searchName}%`);
+      conditions.push(`display_name.ilike.%${searchName}%`);
+    }
+    if (searchEmail.length > 0) conditions.push(`email.ilike.%${searchEmail}%`);
+    if (conditions.length > 0) query = query.or(conditions.join(','));
+  } else if (searchTerm.length > 0) {
     query = query.or(`phone.ilike.%${searchTerm}%,first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,display_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
   }
   

@@ -70,6 +70,12 @@ export interface CreateOrderParams {
   paymentTypeCode?: string;
   currencyCode?: string;
   currencyExRate?: number;
+  /** Customer snapshot at order time (order-level, not customer master) */
+  isDefaultCustomer?: boolean;
+  customerMobile?: string;
+  customerEmail?: string;
+  customerName?: string;
+  customerDetails?: Record<string, unknown>;
   /** Optional audit context for stock deduction (org_inv_stock_tr) */
   stockDeductionAudit?: {
     referenceType?: string;
@@ -684,6 +690,11 @@ export class OrderService {
       paymentTypeCode,
       currencyCode: passedCurrencyCode,
       currencyExRate: passedCurrencyExRate,
+      isDefaultCustomer,
+      customerMobile,
+      customerEmail,
+      customerName,
+      customerDetails,
     } = params;
 
     const isRetailOnlyOrder =
@@ -790,6 +801,11 @@ export class OrderService {
         ...(discountType != null && { discount_type: discountType }),
         ...(promoCodeId != null && { promo_code_id: promoCodeId }),
         ...(giftCardId != null && { gift_card_id: giftCardId }),
+        ...(isDefaultCustomer != null && { is_default_customer: isDefaultCustomer }),
+        ...(customerMobile != null && customerMobile !== '' && { customer_mobile_number: customerMobile }),
+        ...(customerEmail != null && customerEmail !== '' && { customer_email: customerEmail }),
+        ...(customerName != null && customerName !== '' && { customer_name: customerName }),
+        ...(customerDetails != null && Object.keys(customerDetails).length > 0 && { customer_details: customerDetails }),
         ...(promoDiscountAmount != null && { promo_discount_amount: promoDiscountAmount }),
         ...(giftCardDiscountAmount != null && { gift_card_discount_amount: giftCardDiscountAmount }),
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),

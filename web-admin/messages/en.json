@@ -2454,6 +2454,13 @@
     "customerPicker": {
       "title": "Select Customer",
       "description": "Search by name, phone, or email",
+      "defaultGuest": "Default Guest Customer",
+      "useDefaultGuest": "Use as Customer",
+      "noDefaultGuestSetting": "No default guest customer setting",
+      "advancedSearch": "Advanced search",
+      "searchPhone": "Search by phone",
+      "searchName": "Search by name",
+      "searchEmail": "Search by email",
       "searchPlaceholder": "Search customers...",
       "searchAllOptions": "Search all options",
       "searchHint": "Type at least 2 characters to search",
@@ -2470,6 +2477,10 @@
       "linkCustomer": "Link Customer",
       "copyCustomer": "Copy Customer",
       "error": "Error"
+    },
+    "customerDetails": {
+      "title": "Customer Details",
+      "orderOnlyNote": "Changes apply to this order only, not to customer profile."
     },
     "serviceCategory": {
       "title": "Service categories",

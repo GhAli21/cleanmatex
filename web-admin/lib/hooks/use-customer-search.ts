@@ -14,11 +14,17 @@ import { searchCustomersForPicker, type CustomerSearchItem } from '@/lib/api/cus
 export const CUSTOMER_SEARCH_DEBOUNCE_MS = 250;
 export const CUSTOMER_SEARCH_MIN_CHARS = 2;
 
+export const CUSTOMER_SEARCH_MIN_PHONE = 3;
+export const CUSTOMER_SEARCH_MIN_EMAIL = 3;
+
 export interface UseCustomerSearchOptions {
   search: string;
+  searchPhone?: string;
+  searchName?: string;
+  searchEmail?: string;
   searchAllOptions?: boolean;
   limit?: number;
-  /** Min chars before triggering search (default 2) */
+  /** Min chars for general search (default 2) */
   minChars?: number;
 }
 
@@ -39,18 +45,33 @@ export interface UseCustomerSearchResult {
 export function useCustomerSearch(options: UseCustomerSearchOptions): UseCustomerSearchResult {
   const {
     search,
+    searchPhone = '',
+    searchName = '',
+    searchEmail = '',
     searchAllOptions = false,
     limit = 10,
     minChars = CUSTOMER_SEARCH_MIN_CHARS,
   } = options;
 
   const debouncedSearch = useDebounce(search, CUSTOMER_SEARCH_DEBOUNCE_MS);
+  const debouncedPhone = useDebounce(searchPhone, CUSTOMER_SEARCH_DEBOUNCE_MS);
+  const debouncedName = useDebounce(searchName, CUSTOMER_SEARCH_DEBOUNCE_MS);
+  const debouncedEmail = useDebounce(searchEmail, CUSTOMER_SEARCH_DEBOUNCE_MS);
+
   const trimmedSearch = debouncedSearch.trim();
-  const canSearch = trimmedSearch.length >= minChars;
+  const trimmedPhone = debouncedPhone.trim();
+  const trimmedName = debouncedName.trim();
+  const trimmedEmail = debouncedEmail.trim();
+
+  const hasFieldSearch =
+    trimmedPhone.length >= CUSTOMER_SEARCH_MIN_PHONE ||
+    trimmedName.length >= minChars ||
+    trimmedEmail.length >= CUSTOMER_SEARCH_MIN_EMAIL;
+  const canSearch = trimmedSearch.length >= minChars || hasFieldSearch;
 
   const queryKey = useMemo(
-    () => ['customers', 'search', trimmedSearch, searchAllOptions, limit],
-    [trimmedSearch, searchAllOptions, limit]
+    () => ['customers', 'search', trimmedSearch, trimmedPhone, trimmedName, trimmedEmail, searchAllOptions, limit],
+    [trimmedSearch, trimmedPhone, trimmedName, trimmedEmail, searchAllOptions, limit]
   );
 
   const {
@@ -64,6 +85,9 @@ export function useCustomerSearch(options: UseCustomerSearchOptions): UseCustome
     queryFn: () =>
       searchCustomersForPicker({
         search: trimmedSearch,
+        searchPhone: trimmedPhone || undefined,
+        searchName: trimmedName || undefined,
+        searchEmail: trimmedEmail || undefined,
         searchAllOptions,
         limit,
       }),

@@ -148,6 +148,12 @@ export const createWithPaymentRequestSchema = z.object({
     (val) => (val === '' || val == null ? undefined : val),
     z.string().optional() // z.string().uuid().optional()
   ),
+  /** Customer snapshot at order time (order-level, not customer master) */
+  customerMobile: z.string().max(50).optional(),
+  customerEmail: z.string().max(255).optional(),
+  customerName: z.string().max(255).optional(),
+  isDefaultCustomer: z.boolean().optional(),
+  customerDetails: z.record(z.string(), z.unknown()).optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),

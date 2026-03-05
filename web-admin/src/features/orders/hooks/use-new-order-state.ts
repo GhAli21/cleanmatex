@@ -4,7 +4,17 @@
  */
 
 import { useNewOrderContext } from '../ui/context/new-order-context';
-import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, ServiceCategory, Product } from '../model/new-order-types';
+import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
+
+/**
+ * Optional snapshot when setting customer (for org_orders_mst columns)
+ */
+export interface SetCustomerSnapshot {
+  customerMobile?: string;
+  customerEmail?: string;
+  customerNameSnapshot?: string;
+  isDefaultCustomer?: boolean;
+}
 
 /**
  * Return type for useNewOrderStateWithDispatch
@@ -12,7 +22,8 @@ import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, Ser
 export interface UseNewOrderStateWithDispatchReturn {
   state: NewOrderState;
   dispatch: ReturnType<typeof useNewOrderContext>['dispatch'];
-  setCustomer: (customer: MinimalCustomer | null, customerName: string) => void;
+  setCustomer: (customer: MinimalCustomer | null, customerName: string, snapshot?: SetCustomerSnapshot) => void;
+  setCustomerSnapshotOverride: (override: CustomerSnapshotOverride | null) => void;
   setBranchId: (branchId: string | null) => void;
   addItem: (item: OrderItem) => void;
   removeItem: (productId: string) => void;
@@ -47,11 +58,24 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
   // Helper functions for common actions
   const actions = {
-    setCustomer: (customer: typeof state.customer, customerName: string) => {
+    setCustomer: (customer: typeof state.customer, customerName: string, snapshot?: SetCustomerSnapshot) => {
       dispatch({
         type: 'SET_CUSTOMER',
-        payload: { customer, customerName },
+        payload: {
+          customer,
+          customerName,
+          ...(snapshot && {
+            customerMobile: snapshot.customerMobile,
+            customerEmail: snapshot.customerEmail,
+            customerNameSnapshot: snapshot.customerNameSnapshot,
+            isDefaultCustomer: snapshot.isDefaultCustomer,
+          }),
+        },
       });
+    },
+
+    setCustomerSnapshotOverride: (override: CustomerSnapshotOverride | null) => {
+      dispatch({ type: 'SET_CUSTOMER_SNAPSHOT_OVERRIDE', payload: override });
     },
 
     setBranchId: (branchId: string | null) => {

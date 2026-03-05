@@ -34,6 +34,7 @@ import { ProductGrid } from './product-grid';
 import { OrderSummaryPanel } from './order-summary-panel';
 import { CategoryTabsSkeleton, ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
+import { OrderCustomerDetailsSection } from './order-customer-details-section';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 
@@ -55,7 +56,7 @@ export function NewOrderContent() {
         trackModalOpen,
         resetMetrics,
     } = useOrderPerformance();
-    const [activeTab, setActiveTab] = useState<'select' | 'details'>('select');
+    const [activeTab, setActiveTab] = useState<'select' | 'details' | 'customer'>('select');
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
@@ -89,13 +90,15 @@ export function NewOrderContent() {
         }
     }, [state.state.createdOrderId, clearSavedNotes]);
 
-    // Reset active tab to 'select' when order is reset (items cleared)
+    // Reset active tab when order is reset (items cleared or customer cleared)
     useEffect(() => {
-        // Reset tab to 'select' when items are cleared (after order submission or manual reset)
-        if (state.state.items.length === 0 && activeTab === 'details') {
+        if (state.state.items.length === 0 && (activeTab === 'details' || activeTab === 'customer')) {
             setActiveTab('select');
         }
-    }, [state.state.items.length, activeTab]);
+        if (state.state.customer === null && activeTab === 'customer') {
+            setActiveTab('select');
+        }
+    }, [state.state.items.length, state.state.customer, activeTab]);
 
     const isRetailOnlyOrder = useMemo(
         () =>
@@ -368,6 +371,11 @@ export function NewOrderContent() {
                     setActiveTab('details');
                     return;
                 }
+                if (key === '3' && state.state.customer !== null) {
+                    event.preventDefault();
+                    setActiveTab('customer');
+                    return;
+                }
             }
         },
     });
@@ -483,15 +491,43 @@ export function NewOrderContent() {
                                     2) {t('itemsGrid.orderItems') || 'Order Items'} (
                                     {state.state.items.length})
                                 </button>
+                                {state.state.customer !== null && (
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeTab === 'customer'}
+                                        aria-controls="new-order-customer-panel"
+                                        tabIndex={activeTab === 'customer' ? 0 : -1}
+                                        onClick={() => setActiveTab('customer')}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'customer'
+                                                ? 'bg-blue-600 text-white shadow-md'
+                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                            }`}
+                                    >
+                                        3) {t('customerDetails.title') || 'Customer Details'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Scrollable: Select Items (product grid) or Order Details */}
                     <div
-                        id={activeTab === 'select' ? 'new-order-select-items-panel' : 'new-order-details-panel'}
+                        id={
+                            activeTab === 'select'
+                                ? 'new-order-select-items-panel'
+                                : activeTab === 'details'
+                                    ? 'new-order-details-panel'
+                                    : 'new-order-customer-panel'
+                        }
                         role="tabpanel"
-                        aria-labelledby={activeTab === 'select' ? 'new-order-select-items-tab' : 'new-order-details-tab'}
+                        aria-labelledby={
+                            activeTab === 'select'
+                                ? 'new-order-select-items-tab'
+                                : activeTab === 'details'
+                                    ? 'new-order-details-tab'
+                                    : 'new-order-customer-tab'
+                        }
                         className="flex-1 min-h-0 overflow-y-auto"
                     >
                         {activeTab === 'select' && (
@@ -523,6 +559,12 @@ export function NewOrderContent() {
                         {activeTab === 'details' && (
                             <div className="p-6 pt-0">
                                 <OrderDetailsSection trackByPiece={trackByPiece} />
+                            </div>
+                        )}
+
+                        {activeTab === 'customer' && (
+                            <div className="p-6 pt-0">
+                                <OrderCustomerDetailsSection />
                             </div>
                         )}
                     </div>

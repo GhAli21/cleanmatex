@@ -177,6 +177,16 @@ export function useOrderSubmission() {
                     ...(state.state.branchId && { branchId: state.state.branchId }),
                     ...((payload.totals.taxRate != null && payload.totals.taxRate > 0) && { additionalTaxRate: payload.totals.taxRate }),
                     ...((payload.totals.taxAmount != null && payload.totals.taxAmount > 0) && { additionalTaxAmount: payload.totals.taxAmount }),
+                    customerMobile: state.state.customerSnapshotOverride?.phone != null
+                        ? sanitizeInput(state.state.customerSnapshotOverride.phone)
+                        : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),
+                    customerEmail: state.state.customerSnapshotOverride?.email != null
+                        ? sanitizeInput(state.state.customerSnapshotOverride.email)
+                        : (state.state.customerEmail ? sanitizeInput(state.state.customerEmail) : undefined),
+                    customerName: state.state.customerSnapshotOverride?.name != null
+                        ? sanitizeInput(state.state.customerSnapshotOverride.name)
+                        : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
+                    ...(state.state.isDefaultCustomer && { isDefaultCustomer: true }),
                     clientTotals: {
                         subtotal: payload.totals.subtotal,
                         manualDiscount: payload.totals.manualDiscount ?? 0,

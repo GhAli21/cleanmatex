@@ -250,6 +250,9 @@ export interface CustomerSearchParams {
   page?: number;
   limit?: number;
   search?: string; // Search by name, phone, email, customer number
+  searchPhone?: string; // Direct phone search
+  searchName?: string; // Direct name search (first_name, last_name, display_name)
+  searchEmail?: string; // Direct email search
   type?: CustomerType; // Filter by type
   status?: 'active' | 'inactive'; // Filter by is_active
   sortBy?: 'name' | 'createdAt' | 'lastOrderAt' | 'totalOrders';

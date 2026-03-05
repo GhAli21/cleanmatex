@@ -19,6 +19,17 @@ export interface MinimalCustomer {
   lastName?: string;
   phone?: string;
   email?: string;
+  /** True when selected from tenant default guest customer */
+  isDefaultCustomer?: boolean;
+}
+
+/**
+ * Order-level customer snapshot override (edits apply to order only, not customer master)
+ */
+export interface CustomerSnapshotOverride {
+  name?: string;
+  phone?: string;
+  email?: string;
 }
 
 // ==================================================================
@@ -135,6 +146,13 @@ export interface NewOrderState {
   // Customer
   customer: MinimalCustomer | null;
   customerName: string;
+  /** Customer snapshot at order time (for org_orders_mst columns) */
+  customerMobile: string;
+  customerEmail: string;
+  customerNameSnapshot: string;
+  isDefaultCustomer: boolean;
+  /** Order-only edits (not persisted to customer master) */
+  customerSnapshotOverride: CustomerSnapshotOverride | null;
 
   // Order Items
   items: OrderItem[];
@@ -175,7 +193,18 @@ export interface NewOrderState {
  * New Order Actions
  */
 export type NewOrderAction =
-  | { type: 'SET_CUSTOMER'; payload: { customer: MinimalCustomer | null; customerName: string } }
+  | {
+      type: 'SET_CUSTOMER';
+      payload: {
+        customer: MinimalCustomer | null;
+        customerName: string;
+        customerMobile?: string;
+        customerEmail?: string;
+        customerNameSnapshot?: string;
+        isDefaultCustomer?: boolean;
+      };
+    }
+  | { type: 'SET_CUSTOMER_SNAPSHOT_OVERRIDE'; payload: CustomerSnapshotOverride | null }
   | { type: 'SET_BRANCH_ID'; payload: string | null }
   | { type: 'SET_ITEMS'; payload: OrderItem[] }
   | { type: 'ADD_ITEM'; payload: OrderItem }
