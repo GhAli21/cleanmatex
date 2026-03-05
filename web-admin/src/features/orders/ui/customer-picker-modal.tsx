@@ -290,221 +290,287 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
       aria-describedby="customer-picker-desc"
     >
       <div
-        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden border border-gray-200"
+        className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="p-6 border-b border-gray-100">
+        <div className="px-6 pt-6 pb-4">
           <h2
             id="customer-picker-title"
-            className={`text-xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
+            className={`text-2xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
           >
             {t('title')}
           </h2>
           <p
             id="customer-picker-desc"
-            className={`text-gray-600 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
+            className={`text-gray-500 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
           >
             {t('description')}
           </p>
         </div>
 
-        {/* Default Guest Customer Section - always visible */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-          <div
-            className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}
-            role="region"
-            aria-label={t('defaultGuest') || 'Default guest customer'}
-          >
-            <UserCircle className="h-5 w-5 text-gray-500 shrink-0" aria-hidden />
-            <span className="text-sm font-medium text-gray-700">
-              {t('defaultGuest') || 'Default Guest Customer'}
-            </span>
-          </div>
-          {defaultGuestLoading ? (
-            <div className={`py-3 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {tCommon('loading') || 'Loading...'}
-            </div>
-          ) : defaultGuest ? (
+        {/* Default Guest Customer - Quick Action Banner (only if exists) */}
+        {!defaultGuestLoading && defaultGuest && (
+          <div className="mx-6 mb-4">
             <div
-              className={`p-4 border border-gray-200 rounded-lg bg-white ${isRTL ? 'text-right' : 'text-left'}`}
+              className={`flex items-center justify-between gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}
             >
-              <div className="space-y-1 text-sm text-gray-700">
-                <div className="font-medium">
-                  {defaultGuest.displayName || defaultGuest.name || defaultGuest.name2 || defaultGuest.id}
+              <div className={`flex items-center gap-3 flex-1 min-w-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <div className="shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                  <UserCircle className="h-6 w-6 text-blue-600" aria-hidden />
                 </div>
-                {defaultGuest.phone && <div>{defaultGuest.phone}</div>}
-                {defaultGuest.email && <div>{defaultGuest.email}</div>}
+                <div className={`flex-1 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {defaultGuest.displayName || defaultGuest.name || defaultGuest.name2 || defaultGuest.id}
+                  </div>
+                  <div className="text-xs text-gray-600 truncate">
+                    {defaultGuest.phone || defaultGuest.email || t('defaultGuest')}
+                  </div>
+                </div>
               </div>
               <CmxButton
                 type="button"
                 variant="primary"
                 size="sm"
                 onClick={handleDefaultGuestSelect}
-                className="mt-3"
-                aria-label={t('useDefaultGuest') || 'Use as customer'}
+                className="shrink-0"
+                aria-label={t('useDefaultGuest') || 'Use default guest'}
               >
-                {t('useDefaultGuest') || 'Use as Customer'}
+                {t('quickSelect') || 'Quick Select'}
               </CmxButton>
             </div>
-          ) : (
-            <p className={`py-2 text-sm text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('noDefaultGuestSetting') || 'No default guest customer setting'}
+          </div>
+        )}
+
+        {/* Search Section */}
+        <div className="px-6 pb-4 space-y-3">
+          {/* Main Search Input */}
+          <div>
+            <label
+              htmlFor="customer-search-input"
+              className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              {t('searchLabel') || 'Search Customer'}
+            </label>
+            <div className="relative">
+              <CmxInput
+                id="customer-search-input"
+                ref={inputRef}
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                placeholder={t('searchPlaceholder')}
+                className={`w-full text-base ${isRTL ? 'text-right' : 'text-left'}`}
+                autoComplete="off"
+                aria-label={t('searchPlaceholder')}
+                aria-describedby="customer-search-hint"
+                aria-controls="customer-results-list"
+                aria-expanded={customers.length > 0}
+              />
+              {isFetching && (
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'}`}
+                  aria-hidden="true"
+                >
+                  <svg
+                    className="animate-spin h-5 w-5 text-blue-500"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <p
+              id="customer-search-hint"
+              className={`text-xs text-gray-500 mt-1.5 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              {t('searchHint')}
             </p>
+          </div>
+
+          {/* Advanced Search Toggle */}
+          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'}`}>
+            <button
+              type="button"
+              onClick={() => setAdvancedSearchOpen((o) => !o)}
+              className={`inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
+              aria-expanded={advancedSearchOpen}
+            >
+              <svg
+                className={`w-4 h-4 transition-transform ${advancedSearchOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+              <span>{t('advancedSearch') || 'Advanced search'}</span>
+            </button>
+          </div>
+
+          {/* Advanced Search Fields */}
+          {advancedSearchOpen && (
+            <div className="pt-2 pb-1 space-y-3">
+              <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div>
+                  <label htmlFor="search-phone" className="block text-xs font-medium text-gray-700 mb-1.5">
+                    {tCommon('phone') || 'Phone'}
+                  </label>
+                  <CmxInput
+                    id="search-phone"
+                    type="tel"
+                    value={searchPhone}
+                    onChange={(e) => setSearchPhone(e.target.value)}
+                    dir="ltr"
+                    placeholder={t('searchPhone') || 'Search by phone'}
+                    className="w-full text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="search-name" className="block text-xs font-medium text-gray-700 mb-1.5">
+                    {tCommon('name') || 'Name'}
+                  </label>
+                  <CmxInput
+                    id="search-name"
+                    type="text"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    dir={isRTL ? 'rtl' : 'ltr'}
+                    placeholder={t('searchName') || 'Search by name'}
+                    className="w-full text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="search-email" className="block text-xs font-medium text-gray-700 mb-1.5">
+                    {tCommon('email') || 'Email'}
+                  </label>
+                  <CmxInput
+                    id="search-email"
+                    type="email"
+                    value={searchEmail}
+                    onChange={(e) => setSearchEmail(e.target.value)}
+                    dir="ltr"
+                    placeholder={t('searchEmail') || 'Search by email'}
+                    className="w-full text-sm"
+                  />
+                </div>
+              </div>
+              <label
+                className={`flex items-center gap-2 cursor-pointer select-none text-sm ${isRTL ? 'flex-row-reverse' : ''}`}
+              >
+                <input
+                  type="checkbox"
+                  checked={searchAllOptions}
+                  onChange={(e) => setSearchAllOptions(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  aria-describedby="customer-search-hint"
+                />
+                <span className="text-gray-700">{t('searchAllOptions')}</span>
+              </label>
+            </div>
           )}
         </div>
 
-        {/* Search */}
-        <div className="p-6 border-b border-gray-100 space-y-3">
-          <div className="relative">
-            <CmxInput
-              ref={inputRef}
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              dir={isRTL ? 'rtl' : 'ltr'}
-              placeholder={t('searchPlaceholder')}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                isRTL ? 'text-right' : 'text-left'
-              }`}
-              autoComplete="off"
-              aria-label={t('searchPlaceholder')}
-              aria-describedby="customer-search-hint"
-              aria-controls="customer-results-list"
-              aria-expanded={customers.length > 0}
-            />
-            {isFetching && (
-              <div
-                className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-3' : 'right-3'}`}
-                aria-hidden="true"
-              >
-                <svg
-                  className="animate-spin h-5 w-5 text-blue-500"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-              </div>
-            )}
-          </div>
-          <p id="customer-search-hint" className="text-xs text-gray-500">
-            {t('searchHint')}
-          </p>
-          <button
-            type="button"
-            onClick={() => setAdvancedSearchOpen((o) => !o)}
-            className={`text-sm text-blue-600 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded ${isRTL ? 'text-right' : 'text-left'}`}
-            aria-expanded={advancedSearchOpen}
-          >
-            {advancedSearchOpen ? '− ' : '+ '}
-            {t('advancedSearch') || 'Advanced search'}
-          </button>
-          {advancedSearchOpen && (
-            <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-              <div>
-                <label htmlFor="search-phone" className="block text-xs text-gray-600 mb-1">
-                  {tCommon('phone') || 'Phone'}
-                </label>
-                <CmxInput
-                  id="search-phone"
-                  type="tel"
-                  value={searchPhone}
-                  onChange={(e) => setSearchPhone(e.target.value)}
-                  dir="ltr"
-                  placeholder={t('searchPhone') || 'Search by phone'}
-                  className="w-full text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="search-name" className="block text-xs text-gray-600 mb-1">
-                  {tCommon('name') || 'Name'}
-                </label>
-                <CmxInput
-                  id="search-name"
-                  type="text"
-                  value={searchName}
-                  onChange={(e) => setSearchName(e.target.value)}
-                  dir={isRTL ? 'rtl' : 'ltr'}
-                  placeholder={t('searchName') || 'Search by name'}
-                  className="w-full text-sm"
-                />
-              </div>
-              <div>
-                <label htmlFor="search-email" className="block text-xs text-gray-600 mb-1">
-                  {tCommon('email') || 'Email'}
-                </label>
-                <CmxInput
-                  id="search-email"
-                  type="email"
-                  value={searchEmail}
-                  onChange={(e) => setSearchEmail(e.target.value)}
-                  dir="ltr"
-                  placeholder={t('searchEmail') || 'Search by email'}
-                  className="w-full text-sm"
-                />
-              </div>
-            </div>
-          )}
-          <label
-            className={`flex items-center gap-2 cursor-pointer select-none ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <input
-              type="checkbox"
-              checked={searchAllOptions}
-              onChange={(e) => setSearchAllOptions(e.target.checked)}
-              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              aria-describedby="customer-search-hint"
-            />
-            <span className="text-sm text-gray-700">{t('searchAllOptions')}</span>
-          </label>
-        </div>
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
 
         {/* Results - min-h-0 allows flex child to shrink so overflow-y-auto scrolls inside modal */}
         <div
           ref={resultsRef}
           id="customer-results-list"
-          className="flex-1 min-h-0 overflow-y-auto p-6"
+          className="flex-1 min-h-0 overflow-y-auto px-6 py-4"
           role="listbox"
           aria-label={t('title')}
         >
           {displayError ? (
-            <div
-              className={`py-8 text-red-600 text-sm ${isRTL ? 'text-right' : 'text-center'}`}
-              role="alert"
-            >
-              {t('error')}: {displayError}
+            <div className="flex flex-col items-center justify-center py-12" role="alert">
+              <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mb-4">
+                <svg
+                  className="w-8 h-8 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-red-600 text-sm font-medium mb-1">{t('error')}</p>
+              <p className="text-red-500 text-sm text-center max-w-sm">{displayError}</p>
             </div>
           ) : !canSearch ? (
-            <div
-              className={`py-8 text-gray-500 text-sm ${isRTL ? 'text-right' : 'text-center'}`}
-              id="customer-search-empty"
-            >
-              {t('searchHint')}
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <svg
+                  className="w-10 h-10 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-gray-500 text-sm text-center max-w-sm">{t('searchHint')}</p>
             </div>
-          ) : customers.length === 0 && !isLoading ? (
-            <div className={`py-8 space-y-4 ${isRTL ? 'text-right' : 'text-center'}`}>
-              <p className="text-gray-500 text-sm">{t('noCustomersFound')}</p>
-              <button
+          ) : isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="w-12 h-12 rounded-full border-4 border-gray-200 border-t-blue-500 animate-spin mb-4" />
+              <p className="text-gray-500 text-sm">{tCommon('loading') || 'Searching...'}</p>
+            </div>
+          ) : customers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <svg
+                  className="w-10 h-10 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-gray-700 font-medium text-sm mb-1">{t('noCustomersFound')}</p>
+              <p className="text-gray-500 text-xs mb-6 text-center max-w-sm">
+                {t('noCustomersFoundHint') || 'Try different search terms or create a new customer'}
+              </p>
+              <CmxButton
                 type="button"
+                variant="primary"
+                size="md"
                 onClick={() => setCreateModalOpen(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
               >
                 {t('createNewCustomer')}
-              </button>
+              </CmxButton>
             </div>
           ) : (
             <div className="space-y-2" role="group" aria-live="polite" aria-atomic="true">
@@ -516,16 +582,19 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                   aria-selected={idx === focusedIndex}
                   onClick={() => handleCustomerClick(customer)}
                   className={`w-full ${isRTL ? 'text-right' : 'text-left'} p-4 border rounded-lg transition-all ${
-                    idx === focusedIndex ? 'ring-2 ring-blue-500 ring-offset-1 border-blue-500' : ''
+                    idx === focusedIndex ? 'ring-2 ring-blue-500 border-blue-500 bg-blue-50' : ''
                   } ${
                     customer.source === 'current_tenant'
-                      ? 'border-gray-200 hover:bg-blue-50/80 hover:border-blue-300'
+                      ? 'border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300'
                       : customer.source === 'sys_global'
-                        ? 'border-amber-200 bg-amber-50/80 hover:bg-amber-100 hover:border-amber-300'
-                        : 'border-violet-200 bg-violet-50/80 hover:bg-violet-100 hover:border-violet-300'
+                        ? 'border-amber-200 bg-amber-50/50 hover:bg-amber-50 hover:border-amber-300'
+                        : 'border-violet-200 bg-violet-50/50 hover:bg-violet-50 hover:border-violet-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
+                  <div className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                      <UserCircle className="w-6 h-6 text-gray-500" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-gray-900 truncate">
                         {customer.name ||
@@ -539,18 +608,18 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                           className={`text-sm text-gray-600 mt-0.5 truncate ${isRTL ? 'text-right' : 'text-left'}`}
                         >
                           {customer.phone && <span>{customer.phone}</span>}
-                          {customer.phone && customer.email && <span> • </span>}
+                          {customer.phone && customer.email && <span className="mx-1">•</span>}
                           {customer.email && <span>{customer.email}</span>}
                         </div>
                       )}
                     </div>
                     {customer.source === 'sys_global' && (
-                      <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-amber-200 text-amber-800 rounded">
+                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
                         {t('global')}
                       </span>
                     )}
                     {customer.source === 'other_tenant' && (
-                      <span className="shrink-0 px-2 py-0.5 text-xs font-medium bg-violet-200 text-violet-800 rounded">
+                      <span className="shrink-0 px-2.5 py-1 text-xs font-medium bg-violet-100 text-violet-800 rounded-full">
                         {t('otherTenant')}
                       </span>
                     )}
@@ -562,16 +631,18 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         </div>
 
         {/* Footer */}
-        <div
-          className={`p-4 border-t border-gray-100 flex ${isRTL ? 'justify-start' : 'justify-end'}`}
-        >
-          <button
-            type="button"
-            onClick={handleClose}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium"
-          >
-            {tCommon('cancel')}
-          </button>
+        <div className="border-t border-gray-200 p-4 bg-gray-50">
+          <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CmxButton
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={handleClose}
+              className="flex-1 sm:flex-initial"
+            >
+              {tCommon('cancel')}
+            </CmxButton>
+          </div>
         </div>
       </div>
 
