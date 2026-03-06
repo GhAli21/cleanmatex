@@ -21,7 +21,7 @@ import { CmxButton } from '@ui/primitives/cmx-button';
 import { CustomerCreateModal } from './customer-create-modal';
 import type { Customer as CustomerType } from '@/lib/types/customer';
 import type { CustomerSearchItem } from '@/lib/api/customers';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Search } from 'lucide-react';
 
 interface Customer {
   id: string;
@@ -84,6 +84,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const [searchPhone, setSearchPhone] = useState('');
   const [searchName, setSearchName] = useState('');
   const [searchEmail, setSearchEmail] = useState('');
+  const [appliedSearchPhone, setAppliedSearchPhone] = useState('');
+  const [appliedSearchName, setAppliedSearchName] = useState('');
+  const [appliedSearchEmail, setAppliedSearchEmail] = useState('');
   const [advancedSearchOpen, setAdvancedSearchOpen] = useState(false);
   const [searchAllOptions, setSearchAllOptions] = useState(false);
   const [linkingCustomer, setLinkingCustomer] = useState<Customer | null>(null);
@@ -113,9 +116,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const deferredSearch = useDeferredValue(search);
   const { customers: rawCustomers, isLoading, isFetching, error, isReady } = useCustomerSearch({
     search: deferredSearch,
-    searchPhone,
-    searchName,
-    searchEmail,
+    searchPhone: appliedSearchPhone,
+    searchName: appliedSearchName,
+    searchEmail: appliedSearchEmail,
     searchAllOptions,
     limit: 10,
     minChars: CUSTOMER_SEARCH_MIN_CHARS,
@@ -135,10 +138,19 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
       setSearchPhone('');
       setSearchName('');
       setSearchEmail('');
+      setAppliedSearchPhone('');
+      setAppliedSearchName('');
+      setAppliedSearchEmail('');
       setCreateError(null);
       setTimeout(() => inputRef.current?.focus(), 0);
     }
   }, [open]);
+
+  const handleAdvancedSearch = useCallback(() => {
+    setAppliedSearchPhone(searchPhone.trim());
+    setAppliedSearchName(searchName.trim());
+    setAppliedSearchEmail(searchEmail.trim());
+  }, [searchPhone, searchName, searchEmail]);
 
   const handleDefaultGuestSelect = useCallback(() => {
     if (!defaultGuest) return;
@@ -273,9 +285,9 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
 
   const displayError = error?.message ?? createError;
   const hasFieldSearch =
-    searchPhone.trim().length >= 3 ||
-    searchName.trim().length >= CUSTOMER_SEARCH_MIN_CHARS ||
-    searchEmail.trim().length >= 3;
+    appliedSearchPhone.trim().length >= 3 ||
+    appliedSearchName.trim().length >= CUSTOMER_SEARCH_MIN_CHARS ||
+    appliedSearchEmail.trim().length >= 3;
   const canSearch = search.trim().length >= CUSTOMER_SEARCH_MIN_CHARS || hasFieldSearch;
   const showResults = canSearch && isReady && !displayError;
 
@@ -450,7 +462,13 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
 
           {/* Advanced Search Fields */}
           {advancedSearchOpen && (
-            <div className="pt-2 pb-1 space-y-3">
+            <form
+              className="pt-2 pb-1 space-y-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAdvancedSearch();
+              }}
+            >
               <div className={`grid grid-cols-1 sm:grid-cols-3 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <div>
                   <label htmlFor="search-phone" className="block text-xs font-medium text-gray-700 mb-1.5">
@@ -507,7 +525,19 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
                 />
                 <span className="text-gray-700">{t('searchAllOptions')}</span>
               </label>
-            </div>
+              <div className={`flex items-center gap-2 pt-1 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-start'}`}>
+                <CmxButton
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  aria-label={tCommon('search') || 'Search'}
+                  className="shrink-0"
+                >
+                  <Search className="w-4 h-4" aria-hidden />
+                  <span>{tCommon('search') || 'Search'}</span>
+                </CmxButton>
+              </div>
+            </form>
           )}
         </div>
 
