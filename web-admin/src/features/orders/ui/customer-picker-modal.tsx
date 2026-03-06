@@ -294,19 +294,43 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
         onKeyDown={handleKeyDown}
       >
         {/* Header */}
-        <div className="px-6 pt-6 pb-4">
-          <h2
-            id="customer-picker-title"
-            className={`text-2xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
-          >
-            {t('title')}
-          </h2>
-          <p
-            id="customer-picker-desc"
-            className={`text-gray-500 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
-          >
-            {t('description')}
-          </p>
+        <div className="px-6 pt-6 pb-4 border-b border-gray-200">
+          <div className={`flex items-start justify-between gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div className="flex-1">
+              <h2
+                id="customer-picker-title"
+                className={`text-2xl font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                {t('title')}
+              </h2>
+              <p
+                id="customer-picker-desc"
+                className={`text-gray-500 text-sm mt-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                {t('description')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleClose}
+              className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              aria-label={tCommon('close') || 'Close'}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Default Guest Customer - Quick Action Banner (only if exists) */}
