@@ -2449,6 +2449,7 @@
     "customerPicker": {
       "title": "اختر عميل",
       "description": "البحث بالاسم أو الهاتف أو البريد الإلكتروني",
+      "quickSelect": "اختيار سريع",
       "defaultGuest": "العميل الافتراضي",
       "useDefaultGuest": "استخدام كعميل",
       "noDefaultGuestSetting": "لا يوجد إعداد عميل افتراضي",

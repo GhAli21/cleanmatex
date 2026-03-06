@@ -2454,6 +2454,7 @@
     "customerPicker": {
       "title": "Select Customer",
       "description": "Search by name, phone, or email",
+      "quickSelect": "Quick Select",
       "defaultGuest": "Default Guest Customer",
       "useDefaultGuest": "Use as Customer",
       "noDefaultGuestSetting": "No default guest customer setting",
