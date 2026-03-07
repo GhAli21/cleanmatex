@@ -7,7 +7,6 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useNewOrderState } from '../ui/context/new-order-context';
 
 /**
  * Hook to handle unsaved changes warning
@@ -19,7 +18,6 @@ export function useUnsavedChanges(
   warningMessage?: string
 ) {
   const router = useRouter();
-  const state = useNewOrderState();
   const isNavigatingRef = useRef(false);
 
   // Warn before page unload
@@ -39,23 +37,13 @@ export function useUnsavedChanges(
     };
   }, [hasUnsavedChanges, warningMessage]);
 
-  // Check if there are unsaved changes
-  const checkUnsavedChanges = (): boolean => {
-    // Consider it unsaved if there are items or notes
-    return (
-      state.items.length > 0 ||
-      (state.notes && state.notes.trim().length > 0) ||
-      state.customer !== null
-    );
-  };
-
-  // Intercept router navigation
+  // Intercept router navigation (use passed hasUnsavedChanges for both beforeunload and router)
   useEffect(() => {
     const originalPush = router.push;
     const originalReplace = router.replace;
 
     router.push = ((...args: Parameters<typeof router.push>) => {
-      if (!isNavigatingRef.current && checkUnsavedChanges()) {
+      if (!isNavigatingRef.current && hasUnsavedChanges()) {
         const confirmed = window.confirm(
           warningMessage ||
             'You have unsaved changes. Are you sure you want to leave this page?'
@@ -69,7 +57,7 @@ export function useUnsavedChanges(
     }) as typeof router.push;
 
     router.replace = ((...args: Parameters<typeof router.replace>) => {
-      if (!isNavigatingRef.current && checkUnsavedChanges()) {
+      if (!isNavigatingRef.current && hasUnsavedChanges()) {
         const confirmed = window.confirm(
           warningMessage ||
             'You have unsaved changes. Are you sure you want to leave this page?'
@@ -86,10 +74,10 @@ export function useUnsavedChanges(
       router.push = originalPush;
       router.replace = originalReplace;
     };
-  }, [router, warningMessage]);
+  }, [router, warningMessage, hasUnsavedChanges]);
 
   return {
-    hasUnsavedChanges: checkUnsavedChanges,
+    hasUnsavedChanges,
   };
 }
 

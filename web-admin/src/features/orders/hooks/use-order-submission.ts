@@ -33,6 +33,7 @@ function isValidBranchId(value: string | null | undefined): value is string {
 export function useOrderSubmission() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
+    const tEdit = useTranslations('orders.edit');
     const { currentTenant, user } = useAuth();
     const { trackByPiece } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
@@ -479,8 +480,149 @@ export function useOrderSubmission() {
         ]
     );
 
+    const saveOrderUpdate = useCallback(async () => {
+        const isEditMode = state.state.isEditMode && state.state.editingOrderId;
+        if (!isEditMode) return;
+
+        setIsSubmitting(true);
+        state.setLoading(true);
+
+        try {
+            const productIds = state.state.items.map((item) => item.productId);
+            const invalidProductIds = validateProductIds(productIds);
+            if (invalidProductIds.length > 0) {
+                cmxMessage.error(t('errors.invalidProductIds'));
+                setIsSubmitting(false);
+                state.setLoading(false);
+                return;
+            }
+
+            const sanitizedNotes = state.state.notes
+                ? sanitizeOrderNotes(state.state.notes)
+                : undefined;
+
+            const updateBody = {
+                customerId: state.state.customer?.id || '',
+                items: state.state.items.map((item) => ({
+                    productId: item.productId,
+                    productName: item.productName ?? undefined,
+                    productName2: item.productName2 ?? undefined,
+                    quantity: item.quantity,
+                    pricePerUnit: item.pricePerUnit ?? 0,
+                    totalPrice: item.totalPrice ?? 0,
+                    serviceCategoryCode: item.serviceCategoryCode,
+                    notes: item.notes ? sanitizeOrderNotes(item.notes) : undefined,
+                    ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
+                        pieces: item.pieces.map((piece) => ({
+                            pieceSeq: piece.pieceSeq,
+                            color: piece.color,
+                            brand: piece.brand,
+                            hasStain: piece.hasStain,
+                            hasDamage: piece.hasDamage,
+                            notes: piece.notes,
+                            rackLocation: piece.rackLocation,
+                            metadata: piece.metadata,
+                        })),
+                    }),
+                    priceOverride: item.priceOverride,
+                    overrideReason: item.overrideReason,
+                    overrideBy: item.overrideBy,
+                })),
+                express: state.state.express || false,
+                notes: sanitizedNotes,
+                readyByAt: state.state.readyByAt,
+                ...(state.state.branchId && { branchId: state.state.branchId }),
+                customerMobile: state.state.customerSnapshotOverride?.phone != null
+                    ? sanitizeInput(state.state.customerSnapshotOverride.phone)
+                    : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),
+                customerEmail: state.state.customerSnapshotOverride?.email != null
+                    ? sanitizeInput(state.state.customerSnapshotOverride.email)
+                    : (state.state.customerEmail ? sanitizeInput(state.state.customerEmail) : undefined),
+                customerName: state.state.customerSnapshotOverride?.name != null
+                    ? sanitizeInput(state.state.customerSnapshotOverride.name)
+                    : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
+                expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
+                recalculate: true,
+            };
+
+            const res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getCSRFHeader(csrfToken),
+                },
+                credentials: 'include',
+                body: JSON.stringify(updateBody),
+            });
+
+            if (!res.ok) {
+                let errorMessage = '';
+                try {
+                    const json = await res.json().catch(() => ({}));
+                    errorMessage = (json.error as string) || (json.message as string) || `Request failed with status ${res.status}`;
+                } catch {
+                    errorMessage = `Request failed with status ${res.status}`;
+                }
+                cmxMessage.error(errorMessage);
+                setIsSubmitting(false);
+                state.setLoading(false);
+                return;
+            }
+
+            const json = await res.json();
+            if (!json.success) {
+                cmxMessage.error((json.error as string) || t('errors.orderCreationFailed'));
+                setIsSubmitting(false);
+                state.setLoading(false);
+                return;
+            }
+
+            const tEdit = useTranslations('orders.edit');
+            const orderNo = (json.data?.order?.order_no ?? json.data?.order_no ?? state.state.editingOrderNo) || '';
+            cmxMessage.success(tEdit('success') || t('success.orderUpdated', { orderNo }) || `Order ${orderNo} updated successfully`);
+
+            // Update originalOrderData from current state so isDirty resets (API response shape may differ)
+            const newOriginal: Record<string, unknown> = {
+                ...(state.state.originalOrderData as Record<string, unknown> | null),
+                customer_id: state.state.customer?.id ?? null,
+                branch_id: state.state.branchId,
+                notes: state.state.notes,
+                is_express: state.state.express,
+                customer_name: state.state.customerNameSnapshot,
+                customer_mobile: state.state.customerMobile,
+                customer_email: state.state.customerEmail,
+                ready_by_at: state.state.readyByAt,
+                items: state.state.items.map((item) => ({
+                    product_id: item.productId,
+                    quantity: item.quantity,
+                    price_per_unit: item.pricePerUnit,
+                    notes: item.notes,
+                    price_override: item.priceOverride,
+                    override_reason: item.overrideReason,
+                    pieces: item.pieces?.map((p) => ({
+                        piece_seq: p.pieceSeq,
+                        color: p.color,
+                        brand: p.brand,
+                        has_stain: p.hasStain,
+                        has_damage: p.hasDamage,
+                        notes: p.notes,
+                        rack_location: p.rackLocation,
+                    })),
+                })),
+            };
+            state.dispatch({ type: 'UPDATE_ORIGINAL_ORDER_DATA', payload: newOriginal });
+        } catch (err: unknown) {
+            const error = err as Error;
+            cmxMessage.error(error.message || t('errors.unknownError'));
+        } finally {
+            setIsSubmitting(false);
+            state.setLoading(false);
+        }
+    }, [state, trackByPiece, csrfToken, t, tEdit]);
+
     return {
         submitOrder,
+        saveOrderUpdate,
         isSubmitting,
         amountMismatch,
         setAmountMismatch,

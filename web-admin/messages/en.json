@@ -730,9 +730,11 @@
         "featureDisabled": "Edit order feature is disabled",
         "locked": "Order is locked by another user"
       },
+      "editModeLabel": "Editing Order #{orderNo}",
       "saveChanges": "Save Changes",
       "cancelEdit": "Cancel Edit",
       "saving": "Saving changes...",
+      "noChangesToSave": "No changes to save",
       "success": "Order updated successfully",
       "error": "Failed to update order",
       "confirmCancel": "Discard changes?",

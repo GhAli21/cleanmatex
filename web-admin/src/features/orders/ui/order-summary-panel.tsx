@@ -63,6 +63,11 @@ interface OrderSummaryPanelProps {
   trackByPiece?: boolean;
   /** When true (retail orders), allow "now" as valid ready-by instead of requiring strict future */
   isRetailOnlyOrder?: boolean;
+  /** Edit mode: show Save instead of Add Order */
+  isEditMode?: boolean;
+  isDirty?: boolean;
+  onSave?: () => void;
+  isSaving?: boolean;
 }
 
 function OrderSummaryPanelComponent({
@@ -93,9 +98,14 @@ function OrderSummaryPanelComponent({
   loading,
   trackByPiece = false,
   isRetailOnlyOrder = false,
+  isEditMode = false,
+  isDirty = false,
+  onSave,
+  isSaving = false,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
+  const tEdit = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const [isCalculating, setIsCalculating] = useState(false);
@@ -364,14 +374,22 @@ function OrderSummaryPanelComponent({
           )}
         </div>
 
-        {/* Submit Button with Total - Clickable for Payment */}
+        {/* Submit Button: Save (edit mode) or Add Order (new order) */}
         <button
-          onClick={onOpenPaymentModal || onSubmit}
-          disabled={loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture}
+          onClick={isEditMode ? (onSave ?? (() => {})) : (onOpenPaymentModal || onSubmit)}
+          disabled={
+            isEditMode
+              ? !isDirty || isSaving || loading
+              : loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture
+          }
           className={`w-full h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
         >
           <span className="text-lg">
-            {loading ? t('processing') : tNewOrder('submitOrder')}
+            {loading || isSaving
+              ? (isEditMode ? tEdit('saving') : t('processing'))
+              : isEditMode
+                ? tEdit('saveChanges')
+                : tNewOrder('submitOrder')}
           </span>
           <div className={isRTL ? 'text-left' : 'text-right'}>
             <p className="text-xs opacity-90">{t('total')}</p>
@@ -383,30 +401,44 @@ function OrderSummaryPanelComponent({
         </button>
 
         {/* Validation Messages for Submit Button */}
-        {!customerName && (
-          <p className="text-xs text-center text-red-600 font-medium">
-            {tNewOrder('errors.selectCustomer') || 'Please select a customer'}
-          </p>
-        )}
-        {customerName && items.length === 0 && (
-          <p className="text-xs text-center text-red-600 font-medium">
-            {tNewOrder('errors.addItems') || 'Please add at least one item'}
-          </p>
-        )}
-        {customerName && items.length > 0 && !readyByAt && (
-          <p className="text-xs text-center text-red-600 font-medium">
-            {tNewOrder('validation.readyByRequired') || 'Please set a ready-by date'}
-          </p>
-        )}
-        {customerName && items.length > 0 && readyByAt && !readyByValidation.isFuture && (
-          <p className="text-xs text-center text-red-600 font-medium">
-            {readyByValidation.message || tNewOrder('validation.readyByMustBeFuture') || 'Ready-by date must be in the future'}
-          </p>
-        )}
-        {customerName && items.length > 0 && readyByAt && readyByValidation.isFuture && (
-          <p className="text-xs text-center text-green-600 font-medium">
-            ✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}
-          </p>
+        {isEditMode ? (
+          isDirty && !isSaving && !loading ? (
+            <p className="text-xs text-center text-green-600 font-medium">
+              ✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}
+            </p>
+          ) : !isDirty ? (
+            <p className="text-xs text-center text-gray-500 font-medium">
+              {tEdit('noChangesToSave') || 'No changes to save'}
+            </p>
+          ) : null
+        ) : (
+          <>
+            {!customerName && (
+              <p className="text-xs text-center text-red-600 font-medium">
+                {tNewOrder('errors.selectCustomer') || 'Please select a customer'}
+              </p>
+            )}
+            {customerName && items.length === 0 && (
+              <p className="text-xs text-center text-red-600 font-medium">
+                {tNewOrder('errors.addItems') || 'Please add at least one item'}
+              </p>
+            )}
+            {customerName && items.length > 0 && !readyByAt && (
+              <p className="text-xs text-center text-red-600 font-medium">
+                {tNewOrder('validation.readyByRequired') || 'Please set a ready-by date'}
+              </p>
+            )}
+            {customerName && items.length > 0 && readyByAt && !readyByValidation.isFuture && (
+              <p className="text-xs text-center text-red-600 font-medium">
+                {readyByValidation.message || tNewOrder('validation.readyByMustBeFuture') || 'Ready-by date must be in the future'}
+              </p>
+            )}
+            {customerName && items.length > 0 && readyByAt && readyByValidation.isFuture && (
+              <p className="text-xs text-center text-green-600 font-medium">
+                ✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}
+              </p>
+            )}
+          </>
         )}
       </div>
     </div> 

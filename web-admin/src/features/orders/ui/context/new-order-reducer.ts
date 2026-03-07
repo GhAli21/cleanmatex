@@ -461,6 +461,12 @@ export function newOrderReducer(
         lockInfo: action.payload,
       };
 
+    case 'UPDATE_ORIGINAL_ORDER_DATA':
+      return {
+        ...state,
+        originalOrderData: action.payload,
+      };
+
     default:
       return state;
   }

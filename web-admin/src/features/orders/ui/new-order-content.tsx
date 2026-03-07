@@ -13,6 +13,8 @@ import { useReadyByEstimation } from '../hooks/use-ready-by-estimation';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useOrderSubmission } from '../hooks/use-order-submission';
+import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
+import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
 import { useNotesPersistence } from '../hooks/use-notes-persistence';
 import { useOrderWarnings } from '../hooks/use-order-warnings';
 import { useUnsavedChanges } from '../hooks/use-unsaved-changes';
@@ -35,6 +37,7 @@ import { OrderSummaryPanel } from './order-summary-panel';
 import { CategoryTabsSkeleton, ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import { OrderCustomerDetailsSection } from './order-customer-details-section';
+import { EditOrderBar } from './edit-order-bar';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 
@@ -58,11 +61,14 @@ export function NewOrderContent() {
     } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details' | 'customer'>('select');
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
     const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
     const state = useNewOrderStateWithDispatch();
-    const { submitOrder, isSubmitting } = useOrderSubmission();
+    const { submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
+    const { isDirty } = useOrderEditDirty();
+    const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);
     const totals = useOrderTotals();
     const { warnings, hasErrors } = useOrderWarnings({ hasBranches: branches.length > 0 });
     const { calculateReadyBy } = useReadyByEstimation();
@@ -74,14 +80,22 @@ export function NewOrderContent() {
 
     const { clearSavedNotes } = useNotesPersistence(state.state.notes, handleLoadNotes);
 
-    // Unsaved changes warning
-    useUnsavedChanges(() => {
+    // Unsaved changes warning (edit mode: use isDirty; new order: use items/notes/customer)
+    const tEdit = useTranslations('orders.edit');
+    const hasUnsavedChanges = useCallback(() => {
+        if (state.state.isEditMode) return isDirty;
         return (
             state.state.items.length > 0 ||
             (state.state.notes && state.state.notes.trim().length > 0) ||
             state.state.customer !== null
         );
-    }, t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?');
+    }, [state.state.isEditMode, isDirty, state.state.items.length, state.state.notes, state.state.customer]);
+    useUnsavedChanges(
+        hasUnsavedChanges,
+        state.state.isEditMode
+            ? (tEdit('confirmLeave') || 'Leave without saving?')
+            : (t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?')
+    );
 
     // Clear saved notes when order is successfully created
     useEffect(() => {
@@ -310,6 +324,20 @@ export function NewOrderContent() {
         setShowDiscardConfirm(false);
     }, [state, clearSavedNotes]);
 
+    // Cancel edit: if dirty show confirm, else unlock and navigate
+    const handleCancelEdit = useCallback(() => {
+        if (isDirty) {
+            setShowCancelConfirm(true);
+        } else {
+            cancelEditOrder();
+        }
+    }, [isDirty, cancelEditOrder]);
+
+    const handleConfirmCancelEdit = useCallback(() => {
+        cancelEditOrder();
+        setShowCancelConfirm(false);
+    }, [cancelEditOrder]);
+
     // Memoized order items for OrderSummaryPanel
     const memoizedOrderItems = useMemo(
         () =>
@@ -403,8 +431,16 @@ export function NewOrderContent() {
             <div className={`h-full min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Left/Center Panel - Primary Content Area: categories fixed, Select Items scrollable */}
                 <div className="flex-1 min-h-0 flex flex-col">
-                    {/* Fixed at top: branch selector, then categories, then step tabs */}
+                    {/* Fixed at top: edit bar (when editing), branch selector, then categories, then step tabs */}
                     <div className="flex-shrink-0 p-6 space-y-4">
+                        {/* Edit mode bar */}
+                        {state.state.isEditMode && (
+                            <EditOrderBar
+                                orderNo={state.state.editingOrderNo}
+                                onCancelEdit={handleCancelEdit}
+                                isCancelling={isCancelling}
+                            />
+                        )}
                         {/* Branch Selector - at top */}
                         {branches.length > 0 && (
                             <div className={`flex flex-col gap-1 ${isRTL ? 'items-end' : 'items-start'}`}>
@@ -575,8 +611,8 @@ export function NewOrderContent() {
                     className={`w-96 ${isRTL ? 'border-r' : 'border-l'
                         } border-gray-200 bg-white h-full flex flex-col overflow-hidden`}
                 >
-                    {/* Add New Order - compact link when not in post-creation state */}
-                    {!state.state.createdOrderId && (
+                    {/* Add New Order - compact link when not in post-creation state (hidden in edit mode) */}
+                    {!state.state.createdOrderId && !state.state.isEditMode && (
                         <div className={`flex-shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
                             <button
                                 type="button"
@@ -609,6 +645,10 @@ export function NewOrderContent() {
                         readyByAt={state.state.readyByAt}
                         total={totals.subtotal}
                         onSubmit={handleSubmitOrderClick}
+                        isEditMode={state.state.isEditMode}
+                        isDirty={isDirty}
+                        onSave={saveOrderUpdate}
+                        isSaving={isSubmitting}
                         onOpenReadyByModal={() => state.openModal('readyBy')}
                         onCalculateReadyBy={async () => {
                             try {
@@ -661,6 +701,18 @@ export function NewOrderContent() {
                 cancelLabel={tCommon('cancel')}
                 onConfirm={handleConfirmDiscard}
                 onCancel={() => setShowDiscardConfirm(false)}
+            />
+
+            {/* Cancel edit confirmation when discarding unsaved changes */}
+            <CmxAlertDialog
+                open={showCancelConfirm}
+                title={tEdit('confirmCancel')}
+                message={tEdit('confirmCancelMessage')}
+                variant="warning"
+                confirmLabel={tCommon('confirm')}
+                cancelLabel={tCommon('cancel')}
+                onConfirm={handleConfirmCancelEdit}
+                onCancel={() => setShowCancelConfirm(false)}
             />
         </div>
     );

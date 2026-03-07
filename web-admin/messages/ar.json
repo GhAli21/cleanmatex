@@ -730,9 +730,11 @@
         "featureDisabled": "ميزة تعديل الطلب معطلة",
         "locked": "الطلب مقفل بواسطة مستخدم آخر"
       },
+      "editModeLabel": "تعديل الطلب #{orderNo}",
       "saveChanges": "حفظ التغييرات",
       "cancelEdit": "إلغاء التعديل",
       "saving": "جاري حفظ التغييرات...",
+      "noChangesToSave": "لا توجد تغييرات للحفظ",
       "success": "تم تحديث الطلب بنجاح",
       "error": "فشل تحديث الطلب",
       "confirmCancel": "تجاهل التغييرات؟",
