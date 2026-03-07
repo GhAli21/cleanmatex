@@ -438,7 +438,10 @@ export function NewOrderContent() {
                             <EditOrderBar
                                 orderNo={state.state.editingOrderNo}
                                 onCancelEdit={handleCancelEdit}
+                                onSave={saveOrderUpdate}
+                                isDirty={isDirty}
                                 isCancelling={isCancelling}
+                                isSaving={isSubmitting}
                             />
                         )}
                         {/* Branch Selector - at top */}
