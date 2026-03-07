@@ -68,6 +68,10 @@ interface OrderSummaryPanelProps {
   isDirty?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
+  /** When true (edit mode), disable Save button */
+  hasErrors?: boolean;
+  /** Validation error messages (edit mode) */
+  validationErrors?: string[];
 }
 
 function OrderSummaryPanelComponent({
@@ -102,6 +106,8 @@ function OrderSummaryPanelComponent({
   isDirty = false,
   onSave,
   isSaving = false,
+  hasErrors = false,
+  validationErrors = [],
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -379,7 +385,7 @@ function OrderSummaryPanelComponent({
           onClick={isEditMode ? (onSave ?? (() => {})) : (onOpenPaymentModal || onSubmit)}
           disabled={
             isEditMode
-              ? !isDirty || isSaving || loading
+              ? !isDirty || isSaving || loading || hasErrors
               : loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture
           }
           className={`w-full h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
@@ -402,7 +408,11 @@ function OrderSummaryPanelComponent({
 
         {/* Validation Messages for Submit Button */}
         {isEditMode ? (
-          isDirty && !isSaving && !loading ? (
+          hasErrors && validationErrors.length > 0 ? (
+            <p className="text-xs text-center text-red-600 font-medium">
+              {validationErrors[0]}
+            </p>
+          ) : isDirty && !isSaving && !loading ? (
             <p className="text-xs text-center text-green-600 font-medium">
               ✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}
             </p>

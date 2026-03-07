@@ -58,18 +58,27 @@ export async function PATCH(
   });
 
   if (!parsed.success) {
+    const issues = parsed.error.issues;
+    const detailMessages = issues.map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join('.') : 'request';
+      return `${path}: ${issue.message}`;
+    });
+    const readableMessage = detailMessages.length > 0
+      ? `Validation failed. ${detailMessages.join('; ')}`
+      : 'Validation failed';
+
     logger.error('[update-order] Request body validation failed', undefined, {
       feature: 'orders',
       action: 'update_order',
       orderId: params.id,
       userId,
-      zodIssues: parsed.error.issues,
+      zodIssues: issues,
     });
     return NextResponse.json(
       {
         success: false,
-        error: 'Validation failed',
-        details: parsed.error.issues,
+        error: readableMessage,
+        details: issues,
       },
       { status: 400 }
     );

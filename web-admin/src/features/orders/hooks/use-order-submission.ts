@@ -27,6 +27,54 @@ function isValidBranchId(value: string | null | undefined): value is string {
   return typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
 }
 
+const FIELD_LABELS: Record<string, string> = {
+  readyByAt: 'Ready by date',
+  customerId: 'Customer',
+  customerEmail: 'Customer email',
+  customerName: 'Customer name',
+  customerMobile: 'Customer phone',
+  branchId: 'Branch',
+  notes: 'Notes',
+  items: 'Order items',
+  quantity: 'Quantity',
+  pricePerUnit: 'Price',
+  productId: 'Product',
+};
+
+/** Format API validation error into a readable message for the user */
+function formatValidationErrorMessage(
+  json: Record<string, unknown>,
+  status?: number
+): string {
+  const baseError = (json.error as string) || (json.message as string);
+  const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
+
+  if (details && Array.isArray(details) && details.length > 0) {
+    const lines = details.map((d) => {
+      const pathParts = d.path ?? [];
+      let pathStr = pathParts.length > 0
+        ? pathParts
+            .map((p) => (typeof p === 'number' ? `[${p}]` : `.${p}`))
+            .join('')
+            .replace(/^\./, '')
+        : '';
+      if (pathStr.match(/^items\[\d+\]/)) {
+        const match = pathStr.match(/^items\[(\d+)\](?:\.(.+))?$/);
+        const idx = match ? Number(match[1]) + 1 : 0;
+        const sub = match?.[2];
+        pathStr = sub ? `Item ${idx} (${FIELD_LABELS[sub] ?? sub})` : `Item ${idx}`;
+      } else if (pathStr in FIELD_LABELS) {
+        pathStr = FIELD_LABELS[pathStr];
+      }
+      const msg = d.message || '';
+      return pathStr ? `${pathStr}: ${msg}` : msg;
+    });
+    return lines.length > 0 ? lines.join('. ') : baseError;
+  }
+
+  return baseError || (status ? `Request failed with status ${status}` : 'An error occurred');
+}
+
 /**
  * Hook to handle order submission
  */
@@ -530,7 +578,7 @@ export function useOrderSubmission() {
                 })),
                 express: state.state.express || false,
                 notes: sanitizedNotes,
-                readyByAt: state.state.readyByAt,
+                ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
                 ...(state.state.branchId && { branchId: state.state.branchId }),
                 customerMobile: state.state.customerSnapshotOverride?.phone != null
                     ? sanitizeInput(state.state.customerSnapshotOverride.phone)
@@ -555,23 +603,18 @@ export function useOrderSubmission() {
                 body: JSON.stringify(updateBody),
             });
 
+            const json = await res.json().catch(() => ({}));
             if (!res.ok) {
-                let errorMessage = '';
-                try {
-                    const json = await res.json().catch(() => ({}));
-                    errorMessage = (json.error as string) || (json.message as string) || `Request failed with status ${res.status}`;
-                } catch {
-                    errorMessage = `Request failed with status ${res.status}`;
-                }
+                const errorMessage = formatValidationErrorMessage(json, res.status);
                 cmxMessage.error(errorMessage);
                 setIsSubmitting(false);
                 state.setLoading(false);
                 return;
             }
 
-            const json = await res.json();
             if (!json.success) {
-                cmxMessage.error((json.error as string) || t('errors.orderCreationFailed'));
+                const errorMessage = formatValidationErrorMessage(json, res.status);
+                cmxMessage.error(errorMessage);
                 setIsSubmitting(false);
                 state.setLoading(false);
                 return;

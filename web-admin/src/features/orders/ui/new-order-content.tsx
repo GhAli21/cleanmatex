@@ -338,6 +338,18 @@ export function NewOrderContent() {
         setShowCancelConfirm(false);
     }, [cancelEditOrder]);
 
+    // Save edit: run same validation as new order before calling API
+    const handleSaveEditOrder = useCallback(() => {
+        if (hasErrors) {
+            const errorWarnings = warnings.filter((w) => w.severity === 'error');
+            if (errorWarnings.length > 0) {
+                cmxMessage.error(errorWarnings[0].message);
+                return;
+            }
+        }
+        saveOrderUpdate();
+    }, [hasErrors, warnings, saveOrderUpdate]);
+
     // Memoized order items for OrderSummaryPanel
     const memoizedOrderItems = useMemo(
         () =>
@@ -650,8 +662,10 @@ export function NewOrderContent() {
                         onSubmit={handleSubmitOrderClick}
                         isEditMode={state.state.isEditMode}
                         isDirty={isDirty}
-                        onSave={saveOrderUpdate}
+                        onSave={handleSaveEditOrder}
                         isSaving={isSubmitting}
+                        hasErrors={hasErrors}
+                        validationErrors={warnings.filter((w) => w.severity === 'error').map((w) => w.message)}
                         onOpenReadyByModal={() => state.openModal('readyBy')}
                         onCalculateReadyBy={async () => {
                             try {
