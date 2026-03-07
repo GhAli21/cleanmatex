@@ -13,7 +13,7 @@
 import type { OrderStatus } from '@/lib/types/workflow';
 
 // Editable statuses per business rules
-const EDITABLE_STATUSES: OrderStatus[] = ['draft', 'intake', 'preparation'];
+const EDITABLE_STATUSES: OrderStatus[] = ['processing', 'draft', 'intake', 'preparation'];
 
 // Processing has started - cannot edit
 const PROCESSING_STARTED_STATUSES: OrderStatus[] = [
