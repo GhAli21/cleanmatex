@@ -15,7 +15,6 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
-import { useNotesPersistence } from '../hooks/use-notes-persistence';
 import { useOrderWarnings } from '../hooks/use-order-warnings';
 import { useUnsavedChanges } from '../hooks/use-unsaved-changes';
 import { useKeyboardNavigation } from '@/lib/hooks/use-keyboard-navigation';
@@ -73,13 +72,6 @@ export function NewOrderContent() {
     const { warnings, hasErrors } = useOrderWarnings({ hasBranches: branches.length > 0 });
     const { calculateReadyBy } = useReadyByEstimation();
 
-    // Notes persistence
-    const handleLoadNotes = useCallback((savedNotes: string) => {
-        state.setNotes(savedNotes);
-    }, [state]);
-
-    const { clearSavedNotes } = useNotesPersistence(state.state.notes, handleLoadNotes);
-
     // Unsaved changes warning (edit mode: use isDirty; new order: use items/notes/customer)
     const tEdit = useTranslations('orders.edit');
     const hasUnsavedChanges = useCallback(() => {
@@ -96,13 +88,6 @@ export function NewOrderContent() {
             ? (tEdit('confirmLeave') || 'Leave without saving?')
             : (t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?')
     );
-
-    // Clear saved notes when order is successfully created
-    useEffect(() => {
-        if (state.state.createdOrderId) {
-            clearSavedNotes();
-        }
-    }, [state.state.createdOrderId, clearSavedNotes]);
 
     // Reset active tab when order is reset (items cleared or customer cleared)
     useEffect(() => {
@@ -304,7 +289,6 @@ export function NewOrderContent() {
     const handleAddNewOrder = useCallback(() => {
         if (state.state.createdOrderId) {
             state.resetOrder();
-            clearSavedNotes?.();
             return;
         }
         const hasUnsaved =
@@ -316,13 +300,12 @@ export function NewOrderContent() {
         } else {
             state.resetOrder();
         }
-    }, [state, clearSavedNotes]);
+    }, [state]);
 
     const handleConfirmDiscard = useCallback(() => {
         state.resetOrder();
-        clearSavedNotes?.();
         setShowDiscardConfirm(false);
-    }, [state, clearSavedNotes]);
+    }, [state]);
 
     // Cancel edit: if dirty show confirm, else unlock and navigate
     const handleCancelEdit = useCallback(() => {

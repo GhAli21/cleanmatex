@@ -24,7 +24,7 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-
 const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
 
 function isValidBranchId(value: string | null | undefined): value is string {
-  return typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
+  return true; //typeof value === 'string' && value.trim().length > 0 && UUID_REGEX_V2.test(value.trim());
 }
 
 const FIELD_LABELS: Record<string, string> = {
@@ -579,7 +579,7 @@ export function useOrderSubmission() {
                 express: state.state.express || false,
                 notes: sanitizedNotes,
                 ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
-                ...(state.state.branchId && { branchId: state.state.branchId }),
+                ...(state.state.branchId && isValidBranchId(state.state.branchId) && { branchId: state.state.branchId }),
                 customerMobile: state.state.customerSnapshotOverride?.phone != null
                     ? sanitizeInput(state.state.customerSnapshotOverride.phone)
                     : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),

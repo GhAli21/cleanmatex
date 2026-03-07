@@ -20,8 +20,10 @@ import { logger } from '@/lib/utils/logger';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: orderId } = await params;
+
   // 1. CSRF validation
   const csrfResponse = await validateCSRF(request);
   if (csrfResponse) {
@@ -43,7 +45,7 @@ export async function PATCH(
     logger.error('[update-order] Invalid request body', undefined, {
       feature: 'orders',
       action: 'update_order',
-      orderId: params.id,
+      orderId,
       userId,
     });
     return NextResponse.json(
@@ -54,7 +56,7 @@ export async function PATCH(
 
   const parsed = updateOrderInputSchema.safeParse({
     ...body,
-    orderId: params.id,
+    orderId,
   });
 
   if (!parsed.success) {
@@ -70,7 +72,7 @@ export async function PATCH(
     logger.error('[update-order] Request body validation failed', undefined, {
       feature: 'orders',
       action: 'update_order',
-      orderId: params.id,
+      orderId,
       userId,
       zodIssues: issues,
     });
@@ -109,7 +111,7 @@ export async function PATCH(
       logger.warn('[update-order] Update failed', {
         feature: 'orders',
         action: 'update_order',
-        orderId: params.id,
+        orderId,
         userId,
         error: result.error,
         statusCode,
@@ -124,7 +126,7 @@ export async function PATCH(
     logger.info('[update-order] Order updated successfully', {
       feature: 'orders',
       action: 'update_order',
-      orderId: params.id,
+      orderId,
       userId,
     });
 
@@ -136,7 +138,7 @@ export async function PATCH(
     logger.error('[update-order] Unexpected error', error as Error, {
       feature: 'orders',
       action: 'update_order',
-      orderId: params.id,
+      orderId,
       userId,
     });
 
