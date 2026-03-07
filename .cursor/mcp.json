@@ -10,7 +10,7 @@
       ]
     },
     "supabase_local": {
-       "url": "http://127.0.0.1:54321/mcp"
+       "url": "http://192.168.100.24:54321/mcp"
     },
 	"supabase_remote": {
        "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"

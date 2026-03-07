@@ -58,6 +58,17 @@ user-invocable: true
 - [ ] Document API endpoints
 - [ ] Add inline code comments for complex logic
 - [ ] Update pending work docs
+- [ ] **Feature Implementation Requirements** — Document all implementation details (use `/documentation` skill):
+  - **Security & Access:** Permissions, RBAC roles
+  - **Navigation:** Navigation tree entries, screen paths, menu items
+  - **Configuration:** Tenant settings, system settings, environment variables
+  - **Feature Management:** Feature flags, plan limits/constraints
+  - **i18n:** New translation keys (EN/AR)
+  - **API:** New routes, endpoints, request/response schemas
+  - **Database:** Migrations, tables, indexes, RLS policies
+  - **Constants & Types:** New constants, TypeScript types, Zod schemas
+  - **Infrastructure:** Dependencies, external services, monitoring/logging
+  - See complete checklist in `/documentation` skill
 
 ## Coding Standards
 

@@ -70,3 +70,16 @@ export interface CreateReceiptVoucherForPaymentInput {
   created_by?: string;
   auto_issue?: boolean;
 }
+
+export interface CreateRefundVoucherForPaymentInput {
+  tenant_org_id: string;
+  branch_id?: string;
+  invoice_id?: string;
+  order_id?: string;
+  customer_id?: string;
+  total_amount: number;
+  currency_code?: string;
+  reason_code?: string;
+  issued_at?: Date;
+  created_by?: string;
+}

@@ -70,6 +70,144 @@ Test scenarios and edge cases.
 - [ ] Documentation
 ```
 
+## Feature Implementation Documentation Checklist
+
+When implementing any feature, document the following in the feature's implementation documentation:
+
+### Security & Access Control
+- [ ] **Permissions** - List all used or new permissions required
+  - Permission codes (e.g., `orders.create`, `invoices.view`)
+  - RBAC roles that need these permissions
+  - Permission scope (tenant-level, global, resource-specific)
+
+### Navigation & UI Structure
+- [ ] **Navigation Tree** - New screens/menu items to be added
+  - Navigation tree ID (`sys_components_cd`)
+  - Parent menu location
+  - Display order and hierarchy
+  - Screen route/path
+  - Icon and translations (EN/AR)
+
+### Configuration & Settings
+- [ ] **Tenant Settings** - New or used tenant-level settings
+  - Setting key and default value
+  - Setting type (boolean, string, number, JSON)
+  - Validation rules
+  - UI for configuration
+
+- [ ] **System Settings** - Global/system-level settings
+  - Setting scope and purpose
+  - Environment variables if applicable
+
+### Feature Management
+- [ ] **Feature Flags** - Feature toggles for gradual rollout
+  - Flag key and default state
+  - Rollout strategy
+  - Dependency on other features
+
+- [ ] **Plan Limits & Constraints** - Subscription/plan restrictions
+  - Limit type (e.g., max orders per month, max users)
+  - Enforcement logic
+  - Upgrade path for users
+
+### Internationalization
+- [ ] **i18n Keys** - New translation keys added
+  - Message key paths
+  - EN and AR translations
+  - Namespace organization
+
+### API & Integration
+- [ ] **API Routes** - New endpoints created
+  - Route path and HTTP method
+  - Request/response schemas
+  - Authentication/authorization requirements
+
+- [ ] **External Services** - Third-party integrations
+  - Service name and purpose
+  - API keys/credentials required
+  - Rate limits and quotas
+
+### Database & Schema
+- [ ] **Migrations** - Database changes
+  - Migration file names and version numbers
+  - Tables/columns added or modified
+  - Indexes created
+  - RLS policies added
+
+- [ ] **Constants & Types** - New constants or TypeScript types
+  - Location (e.g., `lib/constants/payment.ts`)
+  - Exported values and types
+  - Validation schemas (Zod)
+
+### Infrastructure & Environment
+- [ ] **Environment Variables** - New .env variables
+  - Variable name and purpose
+  - Required vs. optional
+  - Default values
+  - Security classification
+
+- [ ] **Dependencies** - New npm packages
+  - Package name and version
+  - Purpose and usage
+  - License compatibility
+
+### Monitoring & Observability
+- [ ] **Logging** - New log events or categories
+  - Log level and context
+  - PII/sensitive data handling
+
+- [ ] **Metrics** - Performance or business metrics tracked
+  - Metric name and purpose
+  - Collection method
+
+### Documentation Template Example
+
+```markdown
+## Feature Implementation Requirements
+
+### Permissions
+- `orders.edit` - Edit order details (admin, manager roles)
+- `orders.lock` - Lock/unlock orders for editing (admin only)
+
+### Navigation Tree
+- Screen: Order Edit Lock Management
+- Path: `/admin/orders/edit-locks`
+- Parent: Orders module
+- Navigation ID: To be assigned in `sys_components_cd`
+
+### Settings
+- `order_edit_lock_timeout` (number, default: 300) - Auto-unlock timeout in seconds
+- `order_edit_history_enabled` (boolean, default: true) - Enable edit history tracking
+
+### Feature Flags
+- `feature.order_edit_locks` (default: true) - Enable order editing lock mechanism
+
+### Plan Limits
+- N/A for this feature (available to all plans)
+
+### i18n Keys
+- `orders.editLock.title`
+- `orders.editLock.locked`
+- `orders.editLock.unlocked`
+
+### API Routes
+- `POST /api/orders/:id/lock` - Acquire edit lock
+- `DELETE /api/orders/:id/lock` - Release edit lock
+- `GET /api/orders/:id/edit-history` - Get edit history
+
+### Migrations
+- `0126_order_edit_locks.sql` - Create `org_order_edit_locks` table
+- `0127_order_edit_history.sql` - Create `org_order_edit_history` table
+- `0128_order_edit_settings.sql` - Add settings to `sys_org_settings`
+
+### Constants & Types
+- `lib/types/order-lock.ts` - `OrderLock`, `OrderEditHistory` types
+- `lib/constants/order-locks.ts` - `LOCK_STATUS` constant
+
+### Environment Variables
+- N/A for this feature
+```
+
 ## API Documentation Format
 
 ```markdown

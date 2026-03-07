@@ -36,6 +36,7 @@ export function createClient() {
     {
       cookies: {
         getAll: () => {
+          if (typeof document === 'undefined') return []
           const parsed = parse(document.cookie)
           return Object.keys(parsed).map((name) => ({
             name,
@@ -43,6 +44,7 @@ export function createClient() {
           }))
         },
         setAll: (cookiesToSet) => {
+          if (typeof document === 'undefined') return
           const rememberMe = getRememberMe()
           cookiesToSet.forEach(({ name, value, options }) => {
             const opts = rememberMe

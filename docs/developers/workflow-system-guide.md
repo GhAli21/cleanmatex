@@ -111,7 +111,10 @@ Each screen has wrapper functions:
 - `cmx_ord_{screen}_pre_conditions()`: Returns pre-conditions for screen
 - `cmx_ord_{screen}_transition(...)`: Executes transition for screen
 
-Available screens: `preparation`, `processing`, `assembly`, `qa`, `packing`, `ready_release`, `driver_delivery`, `new_order`, `workboard`
+Available screens: `preparation`, `processing`, `assembly`, `qa`, `packing`, `ready_release`, `driver_delivery`, `new_order`, `workboard`, **`canceling`**, **`returning`**
+
+- **`canceling`** — Cancel order before customer receives items. Requires `orders:cancel`. See [Cancel and Return Order](../../features/orders/cancel_return/README.md).
+- **`returning`** — Customer return (delivered/closed → cancelled + refund). Requires `orders:return`.
 
 ## Application Service API
 

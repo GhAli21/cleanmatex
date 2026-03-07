@@ -60,6 +60,14 @@ export const initialState: NewOrderState = {
   isInitialLoading: true,
   categoriesLoading: true,
   productsLoading: false,
+
+  // Edit Mode State
+  isEditMode: false,
+  editingOrderId: null,
+  editingOrderNo: null,
+  originalOrderData: null,
+  lockInfo: null,
+  expectedUpdatedAt: null,
 };
 
 /**
@@ -388,6 +396,69 @@ export function newOrderReducer(
         isInitialLoading: false,
         categoriesLoading: false,
         productsLoading: false,
+      };
+
+    case 'ENTER_EDIT_MODE':
+      return {
+        ...state,
+        isEditMode: true,
+        editingOrderId: action.payload.orderId,
+        editingOrderNo: action.payload.orderNo,
+      };
+
+    case 'LOAD_ORDER_FOR_EDIT': {
+      const {
+        orderId,
+        orderNo,
+        customer,
+        customerName,
+        customerMobile,
+        customerEmail,
+        branchId,
+        items,
+        express,
+        notes,
+        readyByAt,
+        originalData,
+        expectedUpdatedAt,
+      } = action.payload;
+
+      return {
+        ...state,
+        isEditMode: true,
+        editingOrderId: orderId,
+        editingOrderNo: orderNo,
+        originalOrderData: originalData,
+        expectedUpdatedAt,
+        // Load order data into form
+        customer,
+        customerName,
+        customerMobile,
+        customerEmail,
+        customerNameSnapshot: customerName,
+        branchId,
+        items,
+        express,
+        notes,
+        readyByAt,
+      };
+    }
+
+    case 'EXIT_EDIT_MODE':
+      return {
+        ...state,
+        isEditMode: false,
+        editingOrderId: null,
+        editingOrderNo: null,
+        originalOrderData: null,
+        lockInfo: null,
+        expectedUpdatedAt: null,
+      };
+
+    case 'SET_LOCK_INFO':
+      return {
+        ...state,
+        lockInfo: action.payload,
       };
 
     default:

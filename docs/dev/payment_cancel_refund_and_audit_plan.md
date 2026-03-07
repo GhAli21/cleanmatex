@@ -2,7 +2,9 @@
 
 **Goal:** Implement cancel and refund of payment following best practices, and add a payments audit history that records all changes with before/after values.
 
-**References:** Existing cancel flow (`cancelPayment` service, `cancelPaymentAction`, `cancel-payment-dialog`), existing `refundPayment` service, order history pattern (`org_order_history`), price audit pattern (`org_price_history_audit`).
+**Mandatory rule:** No payment transaction without a voucher master in `org_fin_vouchers_mst`. Every payment row (including refund rows with negative `paid_amount`) must have `voucher_id` referencing `org_fin_vouchers_mst`.
+
+**References:** Existing cancel flow (`cancelPayment` service, `cancelPaymentAction`, `cancel-payment-dialog`), existing `refundPayment` service, order history pattern (`org_order_history`), price audit pattern (`org_price_history_audit`), voucher service (`createReceiptVoucherForPayment` for CASH_IN/SALE_PAYMENT).
 
 ---
 
@@ -31,7 +33,25 @@ Cancel is already implemented. This phase tightens validation, permissions, and 
 
 ## Part 2: Refund Payment (Full Flow)
 
-Refund exists only at service level. Add action, validation, permission, UI, and audit.
+Refund exists only at service level. Add action, validation, permission, UI, audit, and **refund voucher service**.
+
+### 2.0 Refund Voucher Service (New — Mandatory)
+
+**Rule:** No payment transaction without voucher master. Refund rows must have `voucher_id` pointing to `org_fin_vouchers_mst`.
+
+**New file:** `web-admin/lib/services/refund-voucher-service.ts` — standalone, best-practice, no-bug refund service.
+
+| Responsibility | Detail |
+|----------------|--------|
+| **Create voucher first** | Before creating refund payment row, create voucher in `org_fin_vouchers_mst` with `voucher_category=CASH_OUT`, `voucher_subtype=REFUND`, `voucher_type=PAYMENT`. |
+| **Voucher fields** | `invoice_id`, `order_id`, `customer_id`, `branch_id` from original payment; `total_amount` = refund amount (positive); `reason_code` optional (CUSTOMER_RETURN, ORDER_CANCELLED); `status=issued`, `issued_at=now()`. |
+| **Voucher numbering** | Use prefix `REF-YYYY-NNNNN` (distinct from `RCP-` for receipts). Generate via `generateVoucherNo(tenantId, 'REF', db)` or similar. |
+| **Return** | `{ voucher_id, voucher_no }` for attaching to refund payment row. |
+| **Atomic** | Voucher creation + payment row creation + invoice/order reversal in same `prisma.$transaction`. |
+
+**Integration:** `refundPayment` in payment-service.ts must call `createRefundVoucherForPayment` (or equivalent from refund-voucher-service) **before** creating the refund payment row, then pass `voucher_id` to the payment create.
+
+**DB enforcement (new migration):** Add CHECK or trigger: for `org_payments_dtl_tr`, when `status IN ('completed','refunded','paid','success')` and `paid_amount != 0`, `voucher_id` must be NOT NULL. Backfill any existing rows without voucher_id first.
 
 ### 2.1 Refund rules (best practice)
 - **Partial refund:** Amount &lt; original payment; original transaction stays `completed`; new row with negative `paid_amount`, status `refunded` (or link to original).
@@ -44,8 +64,9 @@ Refund exists only at service level. Add action, validation, permission, UI, and
 
 | Task | Detail |
 |------|--------|
+| **Create voucher first** | Call `createRefundVoucherForPayment` from refund-voucher-service **before** creating refund payment row. Pass `voucher_id` to payment create. |
 | **Reject non-completed** | In `refundPayment`, reject if `transaction.status` is not `completed` (e.g. already refunded/cancelled). |
-| **Use transaction** | Wrap refund + invoice/order updates in `prisma.$transaction` so all-or-nothing. |
+| **Use transaction** | Wrap voucher creation + refund payment row + invoice/order updates in `prisma.$transaction` so all-or-nothing. |
 | **Invoice reversal** | Already decreases `invoice.paid_amount`; recalc `status` (pending/partial/paid). |
 | **Order reversal** | **Add:** If original payment has `order_id`, decrease `org_orders_mst.paid_amount` and recalc `payment_status` (same as cancel). |
 | **Original status** | Option A: Leave original row as `completed`. Option B: If refund amount = original amount, set original `status = 'refunded'`. Recommend Option A for traceability; keep refund as separate row. |
@@ -90,9 +111,11 @@ Refund exists only at service level. Add action, validation, permission, UI, and
 ### 2.7 Refund service fixes (concrete)
 
 - In `refundPayment`:
+  - **Create voucher first:** Call `createRefundVoucherForPayment` (refund-voucher-service) with `{ tenantId, amount, invoiceId, orderId, customerId, branchId, reasonCode?, processedBy }`. Get `voucher_id`.
   - Add guard: if `transaction.status !== 'completed'`, return error (e.g. "Only completed payments can be refunded").
-  - Wrap entire logic (find transaction, create refund row, update invoice, **and update order if order_id present**) in `prisma.$transaction`.
+  - Wrap entire logic (create voucher, create refund row with `voucher_id`, update invoice, **and update order if order_id present**) in `prisma.$transaction`.
   - For order: same as cancel — `findUnique` order by `transaction.order_id`, compute new `paid_amount` and `payment_status`, `update` order.
+  - Pass `voucher_id` to `org_payments_dtl_tr.create` for the refund row.
 
 ---
 
@@ -200,11 +223,13 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 ### New files
 - `supabase/migrations/[NEXT_SEQ]_create_org_payment_audit_log.sql`
 - `supabase/migrations/[NEXT_SEQ]_add_payments_refund_permission.sql`
+- `supabase/migrations/[NEXT_SEQ]_enforce_voucher_id_on_payments.sql` — backfill voucher_id for any payment rows missing it; add CHECK or trigger: completed/refunded rows must have voucher_id NOT NULL
 - `web-admin/lib/services/payment-audit.service.ts`
+- `web-admin/lib/services/refund-voucher-service.ts` — `createRefundVoucherForPayment` (CASH_OUT, REFUND, REF-YYYY-NNNNN)
 - `web-admin/app/dashboard/billing/payments/components/refund-payment-dialog.tsx`
 
 ### Modified files
-- `web-admin/lib/services/payment-service.ts` — refund: transaction, order reversal, status check; audit calls in create/cancel/refund/updateNotes.
+- `web-admin/lib/services/payment-service.ts` — refund: call `createRefundVoucherForPayment` from refund-voucher-service first, pass voucher_id to refund row; transaction, order reversal, status check; audit calls in create/cancel/refund/updateNotes.
 - `web-admin/lib/validations/payment-crud-schemas.ts` — refundPaymentSchema (or new refund schema file).
 - `web-admin/app/actions/payments/payment-crud-actions.ts` — refundPaymentAction (or new refund action file).
 - `web-admin/app/dashboard/billing/payments/[id]/payment-detail-client.tsx` — Refund button, Audit history section.
@@ -216,9 +241,10 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 
 ## Verification Checklist
 
+- [ ] **Mandatory voucher rule:** No payment row (including refund) without voucher_id. Refund creates org_fin_vouchers_mst (CASH_OUT, REFUND) first.
 - [ ] Cancel: only for non-cancelled/refunded; reason required; permission enforced; invoice/order reversed; one CANCELLED audit row.
-- [ ] Refund: only for completed; amount ≤ original; partial and full; invoice + order reversed; REFUNDED audit row.
-- [ ] Create payment: one CREATED audit row with after_value.
+- [ ] Refund: creates voucher (CASH_OUT, REFUND) first; refund row has voucher_id; only for completed; amount ≤ original; partial and full; invoice + order reversed; REFUNDED audit row.
+- [ ] Create payment: one CREATED audit row with after_value; voucher_id set (receipt voucher).
 - [ ] Edit notes: one NOTES_UPDATED audit row with before/after rec_notes.
 - [ ] Audit history visible on payment detail; RLS and tenant isolation verified.
 - [ ] `npm run build` passes.

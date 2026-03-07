@@ -744,6 +744,14 @@ model org_orders_mst {
   customer_email                  String?
   customer_name                   String?
   customer_details                Json?
+  cancelled_at                    DateTime?                         @db.Timestamptz(6)
+  cancelled_by                    String?                           @db.Uuid
+  cancelled_note                  String?                           @db.Text
+  cancellation_reason_code       String?                           @db.VarChar(50)
+  returned_at                     DateTime?                         @db.Timestamptz(6)
+  returned_by                     String?                           @db.Uuid
+  return_reason                   String?                           @db.Text
+  return_reason_code              String?                           @db.VarChar(50)
   org_asm_tasks_mst               org_asm_tasks_mst[]
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_fin_vouchers_mst            org_fin_vouchers_mst[]

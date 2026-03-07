@@ -14,6 +14,11 @@ import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { RETAIL_TERMINAL_STATUS } from '@/lib/constants/order-types';
 import { generateOrderNumberWithTx } from '@/lib/utils/order-number-generator';
+import { isOrderEditable } from '@/lib/utils/order-editability';
+import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/order-lock.service';
+import { createEditAudit } from '@/lib/services/order-audit.service';
+import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -117,6 +122,21 @@ export interface EstimateReadyByParams {
 export interface EstimateReadyByResult {
   success: boolean;
   readyByAt?: string;
+  error?: string;
+}
+
+export interface UpdateOrderParams extends Partial<UpdateOrderInput> {
+  orderId: string;
+  tenantId: string;
+  userId: string;
+  userName: string;
+  ipAddress?: string;
+  userAgent?: string;
+}
+
+export interface UpdateOrderResult {
+  success: boolean;
+  order?: any;
   error?: string;
 }
 
@@ -1465,5 +1485,399 @@ export class OrderService {
       };
     }
   }
+
+  /**
+   * Update an existing order
+   * PRD: Edit Order Feature - Backend Service
+   *
+   * Validates editability, manages locks, updates items/pieces, recalculates totals,
+   * creates audit trail
+   */
+  static async updateOrder(params: UpdateOrderParams): Promise<UpdateOrderResult> {
+    const {
+      orderId,
+      tenantId,
+      userId,
+      userName,
+      ipAddress,
+      userAgent,
+      customerId,
+      branchId,
+      notes,
+      readyByAt,
+      express,
+      items,
+      customerName,
+      customerMobile,
+      customerEmail,
+      isDefaultCustomer,
+      customerDetails,
+      recalculate = false,
+      expectedUpdatedAt,
+      isQuickDrop,
+      quickDropQuantity,
+    } = params;
+
+    try {
+      const supabase = await createClient();
+
+      // 1. Fetch existing order with items
+      const { data: existingOrder, error: fetchError } = await supabase
+        .from('org_orders_mst')
+        .select(`
+          *,
+          items:org_order_items_dtl(
+            *,
+            pieces:org_order_pieces_dtl(*)
+          )
+        `)
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      if (fetchError || !existingOrder) {
+        return {
+          success: false,
+          error: 'Order not found',
+        };
+      }
+
+      // 2. Validate editability
+      const editabilityCheck = isOrderEditable(existingOrder);
+      if (!editabilityCheck.canEdit) {
+        return {
+          success: false,
+          error: editabilityCheck.reason || 'Order cannot be edited',
+        };
+      }
+
+      // 3. Check for active lock
+      const lockStatus = await checkOrderLock(orderId, tenantId);
+      if (lockStatus.isLocked && lockStatus.lock?.lockedBy !== userId) {
+        return {
+          success: false,
+          error: `Order is locked by ${lockStatus.lock?.lockedByName || 'another user'}`,
+        };
+      }
+
+      // 4. Optimistic locking check
+      if (expectedUpdatedAt) {
+        const existingUpdatedAt = new Date(existingOrder.updated_at);
+        const expectedDate = new Date(expectedUpdatedAt);
+        if (existingUpdatedAt.getTime() !== expectedDate.getTime()) {
+          return {
+            success: false,
+            error: 'Order has been modified by another user. Please refresh and try again.',
+          };
+        }
+      }
+
+      // 5. Create snapshot_before
+      const snapshotBefore = {
+        order: {
+          id: existingOrder.id,
+          orderNo: existingOrder.order_no,
+          customerId: existingOrder.customer_id,
+          branchId: existingOrder.branch_id,
+          notes: existingOrder.internal_notes,
+          readyByAt: existingOrder.ready_by_at,
+          express: existingOrder.priority_multiplier === 0.5,
+          subtotal: existingOrder.subtotal,
+          discount: existingOrder.discount,
+          tax: existingOrder.tax,
+          total: existingOrder.total,
+          customerName: existingOrder.customer_name,
+          customerMobile: existingOrder.customer_mobile,
+          customerEmail: existingOrder.customer_email,
+          isQuickDrop: existingOrder.is_order_quick_drop,
+          quickDropQuantity: existingOrder.quick_drop_quantity,
+        },
+        items: existingOrder.items?.map((item: any) => ({
+          id: item.id,
+          productId: item.product_id,
+          quantity: item.quantity,
+          pricePerUnit: item.price_per_unit,
+          totalPrice: item.total_price,
+          notes: item.notes,
+          hasStain: item.has_stain,
+          hasDamage: item.has_damage,
+        })) || [],
+      };
+
+      // 6. Use Prisma transaction for atomic updates
+      const result = await prisma.$transaction(async (tx) => {
+        // 7. Delete old items/pieces if items array provided
+        if (items && items.length >= 0) {
+          // Delete all pieces first
+          await tx.org_order_pieces_dtl.deleteMany({
+            where: {
+              order_id: orderId,
+              tenant_org_id: tenantId,
+            },
+          });
+
+          // Delete all items
+          await tx.org_order_items_dtl.deleteMany({
+            where: {
+              order_id: orderId,
+              tenant_org_id: tenantId,
+            },
+          });
+        }
+
+        // 8. Recalculate totals if items changed or recalculate flag set
+        let subtotal = existingOrder.subtotal;
+        let discount = existingOrder.discount;
+        let tax = existingOrder.tax;
+        let total = existingOrder.total;
+        let vatRate = existingOrder.vat_rate;
+        let vatAmount = existingOrder.vat_amount;
+
+        if ((items && items.length > 0) || recalculate) {
+          if (items && items.length > 0) {
+            // Calculate from new items
+            const calculationResult = await calculateOrderTotals({
+              tenantId,
+              branchId: branchId ?? existingOrder.branch_id,
+              items: items.map(item => ({
+                productId: item.productId,
+                quantity: item.quantity,
+              })),
+              customerId: customerId ?? existingOrder.customer_id,
+              isExpress: express ?? existingOrder.priority_multiplier === 0.5,
+              userId,
+            });
+
+            subtotal = calculationResult.subtotal;
+            discount = calculationResult.manualDiscount + calculationResult.promoDiscount;
+            tax = calculationResult.taxAmount;
+            total = calculationResult.finalTotal;
+            vatRate = calculationResult.taxRate;
+            vatAmount = calculationResult.vatValue;
+          }
+        }
+
+        // 9. Create new items/pieces
+        if (items && items.length > 0) {
+          const orderNo = existingOrder.order_no;
+          const v_initialStatus = existingOrder.current_status || 'processing';
+          const v_transitionFrom = existingOrder.current_stage || 'intake';
+
+          for (let index = 0; index < items.length; index++) {
+            const item = items[index];
+
+            // Create item
+            const createdItem = await tx.org_order_items_dtl.create({
+              data: {
+                order_id: orderId,
+                tenant_org_id: tenantId,
+                service_category_code: item.serviceCategoryCode || 'GENERAL',
+                order_item_srno: `${orderNo}-${index + 1}`,
+                product_id: item.productId,
+                quantity: item.quantity,
+                price_per_unit: item.pricePerUnit,
+                total_price: item.totalPrice,
+                status: 'pending',
+                item_status: v_initialStatus,
+                item_stage: v_transitionFrom,
+                notes: item.notes,
+                has_stain: item.hasStain,
+                has_damage: item.hasDamage,
+                stain_notes: item.stainNotes,
+                damage_notes: item.damageNotes,
+                created_by: userId,
+                rec_status: 1,
+              },
+            });
+
+            // Create pieces for item
+            const piecesData = item.pieces && item.pieces.length > 0
+              ? item.pieces.map((piece, idx) => ({
+                pieceSeq: piece.pieceSeq || idx + 1,
+                color: piece.color,
+                brand: piece.brand,
+                hasStain: piece.hasStain ?? item.hasStain,
+                hasDamage: piece.hasDamage ?? item.hasDamage,
+                notes: piece.notes || item.notes,
+                rackLocation: piece.rackLocation,
+                metadata: piece.metadata || {},
+              }))
+              : undefined;
+
+            const piecesResult = await OrderPieceService.createPiecesForItem(
+              tenantId,
+              orderId,
+              createdItem.id,
+              item.quantity,
+              {
+                serviceCategoryCode: item.serviceCategoryCode || 'GENERAL',
+                productId: item.productId,
+                pricePerUnit: item.pricePerUnit,
+                totalPrice: item.totalPrice,
+                color: undefined,
+                brand: undefined,
+                hasStain: item.hasStain,
+                hasDamage: item.hasDamage,
+                notes: item.notes,
+                metadata: {},
+              },
+              piecesData
+            );
+
+            if (!piecesResult.success) {
+              throw new Error(`Failed to create pieces for item: ${piecesResult.error}`);
+            }
+          }
+        }
+
+        // 10. Update order master fields
+        const updateData: any = {
+          updated_at: new Date(),
+          updated_by: userId,
+        };
+
+        if (customerId !== undefined) updateData.customer_id = customerId;
+        if (branchId !== undefined) updateData.branch_id = branchId;
+        if (notes !== undefined) updateData.internal_notes = notes;
+        if (readyByAt !== undefined) updateData.ready_by_at = readyByAt;
+        if (express !== undefined) updateData.priority_multiplier = express ? 0.5 : 1.0;
+        if (customerName !== undefined) updateData.customer_name = customerName;
+        if (customerMobile !== undefined) updateData.customer_mobile = customerMobile;
+        if (customerEmail !== undefined) updateData.customer_email = customerEmail;
+        if (isDefaultCustomer !== undefined) updateData.is_default_customer = isDefaultCustomer;
+        if (customerDetails !== undefined) updateData.customer_details = customerDetails;
+        if (isQuickDrop !== undefined) updateData.is_order_quick_drop = isQuickDrop;
+        if (quickDropQuantity !== undefined) updateData.quick_drop_quantity = quickDropQuantity;
+
+        // Update totals if changed
+        if (items && items.length >= 0) {
+          updateData.subtotal = subtotal;
+          updateData.discount = discount;
+          updateData.tax = tax;
+          updateData.total = total;
+          updateData.vat_rate = vatRate;
+          updateData.vat_amount = vatAmount;
+          updateData.total_items = items.length;
+        }
+
+        const updatedOrder = await tx.org_orders_mst.update({
+          where: {
+            id: orderId,
+            tenant_org_id: tenantId,
+          },
+          data: updateData,
+        });
+
+        return updatedOrder;
+      });
+
+      // 11. Fetch updated order with items for snapshot_after
+      const { data: updatedOrderWithItems } = await supabase
+        .from('org_orders_mst')
+        .select(`
+          *,
+          items:org_order_items_dtl(
+            *,
+            pieces:org_order_pieces_dtl(*)
+          )
+        `)
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .single();
+
+      // 12. Create snapshot_after
+      const snapshotAfter = {
+        order: {
+          id: updatedOrderWithItems.id,
+          orderNo: updatedOrderWithItems.order_no,
+          customerId: updatedOrderWithItems.customer_id,
+          branchId: updatedOrderWithItems.branch_id,
+          notes: updatedOrderWithItems.internal_notes,
+          readyByAt: updatedOrderWithItems.ready_by_at,
+          express: updatedOrderWithItems.priority_multiplier === 0.5,
+          subtotal: updatedOrderWithItems.subtotal,
+          discount: updatedOrderWithItems.discount,
+          tax: updatedOrderWithItems.tax,
+          total: updatedOrderWithItems.total,
+          customerName: updatedOrderWithItems.customer_name,
+          customerMobile: updatedOrderWithItems.customer_mobile,
+          customerEmail: updatedOrderWithItems.customer_email,
+          isQuickDrop: updatedOrderWithItems.is_order_quick_drop,
+          quickDropQuantity: updatedOrderWithItems.quick_drop_quantity,
+        },
+        items: updatedOrderWithItems.items?.map((item: any) => ({
+          id: item.id,
+          productId: item.product_id,
+          quantity: item.quantity,
+          pricePerUnit: item.price_per_unit,
+          totalPrice: item.total_price,
+          notes: item.notes,
+          hasStain: item.has_stain,
+          hasDamage: item.has_damage,
+        })) || [],
+      };
+
+      // 13. Create audit entry
+      await createEditAudit({
+        tenantId,
+        orderId,
+        orderNo: existingOrder.order_no,
+        editedBy: userId,
+        editedByName: userName,
+        ipAddress,
+        userAgent,
+        snapshotBefore,
+        snapshotAfter,
+        paymentAdjusted: false, // Phase 5: will implement payment adjustment
+        paymentAdjustmentAmount: undefined,
+        paymentAdjustmentType: undefined,
+      });
+
+      // 14. Unlock order
+      try {
+        await unlockOrder({
+          orderId,
+          tenantId,
+          userId,
+        });
+      } catch (unlockError) {
+        // Log but don't fail - lock will expire anyway
+        logger.warn('[updateOrder] Failed to unlock order', {
+          feature: 'orders',
+          action: 'update_order',
+          orderId,
+          error: unlockError instanceof Error ? unlockError.message : 'Unknown error',
+        });
+      }
+
+      logger.info('[updateOrder] Order updated successfully', {
+        feature: 'orders',
+        action: 'update_order',
+        orderId,
+        userId,
+        itemsChanged: items ? items.length : 0,
+      });
+
+      return {
+        success: true,
+        order: updatedOrderWithItems,
+      };
+    } catch (error) {
+      logger.error('[updateOrder] Failed to update order', error as Error, {
+        feature: 'orders',
+        action: 'update_order',
+        orderId,
+        userId,
+      });
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to update order',
+      };
+    }
+  }
 }
+
+// Re-export lock service functions for convenience
+export { lockOrderForEdit, unlockOrder, checkOrderLock } from '@/lib/services/order-lock.service';
 

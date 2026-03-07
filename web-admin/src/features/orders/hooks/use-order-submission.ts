@@ -51,6 +51,9 @@ export function useOrderSubmission() {
             setIsSubmitting(true);
             state.setLoading(true);
 
+            // Check if we're in edit mode
+            const isEditMode = state.state.isEditMode && state.state.editingOrderId;
+
             try {
                 // Validate extended payload when provided (invoice or cash/card/check flow)
                 if (payload) {
@@ -202,12 +205,67 @@ export function useOrderSubmission() {
                     ...getCSRFHeader(csrfToken),
                 };
 
-                const res = await fetch('/api/v1/orders/create-with-payment', {
-                    method: 'POST',
-                    headers,
-                    credentials: 'include',
-                    body: JSON.stringify(createWithPaymentBody),
-                });
+                // Edit mode: use update API instead of create
+                let res: Response;
+                if (isEditMode) {
+                    const updateBody = {
+                        customerId: state.state.customer?.id || '',
+                        items: state.state.items.map((item) => ({
+                            productId: item.productId,
+                            productName: item.productName ?? undefined,
+                            productName2: item.productName2 ?? undefined,
+                            quantity: item.quantity,
+                            pricePerUnit: item.pricePerUnit ?? 0,
+                            totalPrice: item.totalPrice ?? 0,
+                            serviceCategoryCode: item.serviceCategoryCode,
+                            notes: item.notes ? sanitizeOrderNotes(item.notes) : undefined,
+                            ...(trackByPiece && item.pieces && item.pieces.length > 0 && {
+                                pieces: item.pieces.map((piece) => ({
+                                    pieceSeq: piece.pieceSeq,
+                                    color: piece.color,
+                                    brand: piece.brand,
+                                    hasStain: piece.hasStain,
+                                    hasDamage: piece.hasDamage,
+                                    notes: piece.notes,
+                                    rackLocation: piece.rackLocation,
+                                    metadata: piece.metadata,
+                                })),
+                            }),
+                            priceOverride: item.priceOverride,
+                            overrideReason: item.overrideReason,
+                            overrideBy: item.overrideBy,
+                        })),
+                        express: state.state.express || false,
+                        notes: sanitizedNotes,
+                        readyByAt: state.state.readyByAt,
+                        ...(state.state.branchId && { branchId: state.state.branchId }),
+                        customerMobile: state.state.customerSnapshotOverride?.phone != null
+                            ? sanitizeInput(state.state.customerSnapshotOverride.phone)
+                            : (state.state.customerMobile ? sanitizeInput(state.state.customerMobile) : undefined),
+                        customerEmail: state.state.customerSnapshotOverride?.email != null
+                            ? sanitizeInput(state.state.customerSnapshotOverride.email)
+                            : (state.state.customerEmail ? sanitizeInput(state.state.customerEmail) : undefined),
+                        customerName: state.state.customerSnapshotOverride?.name != null
+                            ? sanitizeInput(state.state.customerSnapshotOverride.name)
+                            : (state.state.customerNameSnapshot ? sanitizeInput(state.state.customerNameSnapshot) : undefined),
+                        expectedUpdatedAt: state.state.expectedUpdatedAt?.toISOString(),
+                        recalculate: true,
+                    };
+
+                    res = await fetch(`/api/v1/orders/${state.state.editingOrderId}/update`, {
+                        method: 'PATCH',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify(updateBody),
+                    });
+                } else {
+                    res = await fetch('/api/v1/orders/create-with-payment', {
+                        method: 'POST',
+                        headers,
+                        credentials: 'include',
+                        body: JSON.stringify(createWithPaymentBody),
+                    });
+                }
 
                 // Handle error responses
                 if (!res.ok) {
@@ -356,13 +414,22 @@ export function useOrderSubmission() {
                 if (orderId) {
                     state.setCreatedOrder(orderId, orderStatus || null);
                 }
-                const orderNo = data?.orderNo || data?.order_no || '';
-                cmxMessage.success(
-                    tWorkflow('newOrder.orderCreatedSuccess', { orderNo }) ||
-                    t('success.orderCreated', { orderNo }) ||
-                    `Order ${orderNo} created successfully`
-                );
-                state.resetOrder();
+                const orderNo = data?.orderNo || data?.order_no || state.state.editingOrderNo || '';
+
+                if (isEditMode) {
+                    cmxMessage.success(
+                        t('success.orderUpdated', { orderNo, default: `Order ${orderNo} updated successfully` })
+                    );
+                    // Exit edit mode and navigate back
+                    state.dispatch({ type: 'EXIT_EDIT_MODE' });
+                } else {
+                    cmxMessage.success(
+                        tWorkflow('newOrder.orderCreatedSuccess', { orderNo }) ||
+                        t('success.orderCreated', { orderNo }) ||
+                        `Order ${orderNo} created successfully`
+                    );
+                    state.resetOrder();
+                }
             } catch (err: unknown) {
                 const error = err as Error;
                 let errorMessage = error.message || t('errors.unknownError');

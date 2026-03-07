@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage",
     "test:prisma": "jest __tests__/db",
     "test:prisma:watch": "jest --watch __tests__/db",
+    "test:tenant-isolation": "jest __tests__/services/workflow-service-enhanced-tenant-isolation __tests__/services/order-cancel-service __tests__/services/order-return-service",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",

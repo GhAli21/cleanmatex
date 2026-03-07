@@ -1,10 +1,10 @@
 /**
  * RLS Policies Tests
- * 
+ *
  * Tests for Row-Level Security policies to ensure tenant isolation.
+ * Requires: Supabase running, user logged in (or service role).
  */
 
-import { describe, it, expect } from 'vitest';
 import { createClient } from '@/lib/supabase/server';
 
 describe('RLS Policies', () => {

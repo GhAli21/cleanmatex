@@ -140,6 +140,17 @@ export interface LoadingStates {
 }
 
 /**
+ * Order lock information (for edit mode)
+ */
+export interface OrderLockInfo {
+  lockedBy: string;
+  lockedByName: string;
+  lockedAt: Date;
+  expiresAt: Date;
+  sessionId?: string;
+}
+
+/**
  * New Order State
  */
 export interface NewOrderState {
@@ -183,6 +194,14 @@ export interface NewOrderState {
   isInitialLoading: boolean;
   categoriesLoading: boolean;
   productsLoading: boolean;
+
+  // Edit Mode State
+  isEditMode: boolean;
+  editingOrderId: string | null;
+  editingOrderNo: string | null;
+  originalOrderData: any | null; // Snapshot of original order for comparison
+  lockInfo: OrderLockInfo | null;
+  expectedUpdatedAt: Date | null; // For optimistic locking
 }
 
 // ==================================================================
@@ -229,5 +248,26 @@ export type NewOrderAction =
   | { type: 'SET_CATEGORIES_LOADING'; payload: boolean }
   | { type: 'SET_PRODUCTS_LOADING'; payload: boolean }
   | { type: 'SET_INITIAL_LOADING'; payload: boolean }
-  | { type: 'RESET_ORDER' };
+  | { type: 'RESET_ORDER' }
+  | { type: 'ENTER_EDIT_MODE'; payload: { orderId: string; orderNo: string } }
+  | {
+      type: 'LOAD_ORDER_FOR_EDIT';
+      payload: {
+        orderId: string;
+        orderNo: string;
+        customer: MinimalCustomer | null;
+        customerName: string;
+        customerMobile: string;
+        customerEmail: string;
+        branchId: string | null;
+        items: OrderItem[];
+        express: boolean;
+        notes: string;
+        readyByAt: string;
+        originalData: any;
+        expectedUpdatedAt: Date;
+      };
+    }
+  | { type: 'EXIT_EDIT_MODE' }
+  | { type: 'SET_LOCK_INFO'; payload: OrderLockInfo | null };
 

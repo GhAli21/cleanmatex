@@ -55,7 +55,13 @@ Database indexes and foreign keys are defined in `supabase/migrations/0001_core_
   - `getPaymentsForOrder(orderId)` returns all payments for an order (including unapplied deposit/pos).
   - `getPaymentsForCustomer(customerId)` returns all payments for a customer (e.g. advance balance).
   - `applyPaymentToInvoice(paymentId, invoiceId)` applies an unapplied payment (deposit/advance/pos) to an invoice: sets `invoice_id`, updates invoice `paid_amount` and status, and order if applicable.
-  - `refundPayment` implements refund transactions; copies `invoice_id`, `order_id`, `customer_id` from original (all nullable); only updates invoice when `transaction.invoice_id` is not null.
+  - `refundPayment` implements refund transactions; creates refund voucher first via `refund-voucher-service`; every refund row has `voucher_id`. See [Cancel and Return Order](../../features/orders/cancel_return/README.md).
+  - `cancelPayment(paymentId, reason, cancelledBy)` cancels a payment and reverses invoice/order balances.
+
+- `web-admin/lib/services/refund-voucher-service.ts`
+  - `createRefundVoucherForPayment(input)` — creates CASH_OUT/REFUND voucher (REF-YYYY-NNNNN). **Rule:** No payment without voucher. Used by `refundPayment` before creating refund row.
+
+- **Order Cancel/Return:** When order is cancelled (before delivery), `WorkflowServiceEnhanced` cancels linked payments. When customer returns (after delivery), it refunds via `refundPayment` (voucher first). See [Cancel and Return Order](../../features/orders/cancel_return/README.md).
 
 ### Server Actions
 

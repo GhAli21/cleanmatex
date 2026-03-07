@@ -30,6 +30,7 @@ supabase/.temp/
 # Testing
 coverage/
 *.log
+jest.setup.js
 
 # OS Files
 .DS_Store

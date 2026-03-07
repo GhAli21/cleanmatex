@@ -9,6 +9,11 @@ import { getFeatureFlags } from '@/lib/services/feature-flags.service';
 import { canCreateOrder } from '@/lib/services/usage-tracking.service';
 import { hqApiClient } from '@/lib/api/hq-api-client';
 import { WorkflowService } from './workflow-service';
+import {
+  getPaymentsForOrder,
+  cancelPayment,
+  refundPayment,
+} from './payment-service';
 import type { Order } from '@/types/order';
 
 // ==================================================================
@@ -240,6 +245,26 @@ export class WorkflowServiceEnhanced {
     // 7. Complex business rules (application layer)
     await this.validateBusinessRules(order as Order, screen, input);
 
+    // 7b. Cancel/return require reason
+    if (screen === 'canceling') {
+      const reason = (input.cancelled_note || input.notes || '').trim();
+      if (reason.length < 10) {
+        throw new ValidationError(
+          'Cancellation reason is required (min 10 characters)',
+          'REASON_REQUIRED'
+        );
+      }
+    }
+    if (screen === 'returning') {
+      const reason = (input.return_reason || input.notes || '').trim();
+      if (reason.length < 10) {
+        throw new ValidationError(
+          'Return reason is required (min 10 characters)',
+          'REASON_REQUIRED'
+        );
+      }
+    }
+
     // 8. Quality gates (application layer)
     const nextStatus = input.to_status || this.resolveNextStatus(screen, order as Order);
     if (nextStatus === 'ready') {
@@ -252,6 +277,93 @@ export class WorkflowServiceEnhanced {
     // ============================================
     // Database Layer: Atomic Update
     // ============================================
+
+    // Use dedicated RPCs for canceling and returning (they set cancelled_at, returned_at, etc.)
+    if (screen === 'canceling') {
+      const { data: result, error } = await supabase.rpc('cmx_ord_canceling_transition', {
+        p_tenant_org_id: tenantId,
+        p_order_id: orderId,
+        p_user_id: userId,
+        p_input: {
+          cancelled_note: input.cancelled_note || input.notes,
+          cancellation_reason_code: input.cancellation_reason_code,
+          ...input,
+        },
+        p_idempotency_key: input.idempotency_key,
+        p_expected_updated_at: order.updated_at,
+      });
+
+      if (error || !result?.ok) {
+        throw new TransitionError(
+          result?.message || error?.message || 'Cancel failed',
+          result?.errors || []
+        );
+      }
+      // Payment handling: cancel completed payments linked to order
+      try {
+        const payments = await getPaymentsForOrder(orderId);
+        const completedPayments = payments.filter(
+          (p) => p.status === 'completed' && p.paid_amount > 0
+        );
+        for (const payment of completedPayments) {
+          const cancelResult = await cancelPayment(
+            payment.id,
+            (input.cancelled_note || input.notes || '').trim(),
+            userId!
+          );
+          if (!cancelResult.success) {
+            console.warn(`Failed to cancel payment ${payment.id}:`, cancelResult.error);
+          }
+        }
+      } catch (paymentError) {
+        console.warn('Payment cancel handling failed:', paymentError);
+      }
+      return result;
+    }
+
+    if (screen === 'returning') {
+      const { data: result, error } = await supabase.rpc('cmx_ord_returning_transition', {
+        p_tenant_org_id: tenantId,
+        p_order_id: orderId,
+        p_user_id: userId,
+        p_input: {
+          return_reason: input.return_reason || input.notes,
+          return_reason_code: input.return_reason_code,
+          ...input,
+        },
+        p_idempotency_key: input.idempotency_key,
+        p_expected_updated_at: order.updated_at,
+      });
+
+      if (error || !result?.ok) {
+        throw new TransitionError(
+          result?.message || error?.message || 'Customer return failed',
+          result?.errors || []
+        );
+      }
+      // Refund handling: refund each completed payment (full amount)
+      try {
+        const payments = await getPaymentsForOrder(orderId);
+        const completedPayments = payments.filter(
+          (p) => p.status === 'completed' && p.paid_amount > 0
+        );
+        for (const payment of completedPayments) {
+          const refundResult = await refundPayment({
+            transaction_id: payment.id,
+            amount: payment.paid_amount,
+            reason: (input.return_reason || input.notes || '').trim(),
+            processed_by: userId!,
+            reason_code: 'CUSTOMER_RETURN',
+          });
+          if (!refundResult.success) {
+            console.warn(`Failed to refund payment ${payment.id}:`, refundResult.error);
+          }
+        }
+      } catch (paymentError) {
+        console.warn('Refund handling failed:', paymentError);
+      }
+      return result;
+    }
 
     const { data: result, error } = await supabase.rpc('cmx_ord_execute_transition', {
       p_tenant_org_id: tenantId,

@@ -657,7 +657,9 @@
         "outForDelivery": "خارج للتسليم",
         "markAsDelivered": "تحديد كمسلم",
         "cancelOrder": "إلغاء الطلب",
-        "fixOrderData": "إصلاح بيانات الطلب"
+        "customerReturn": "استلام إرجاع العميل",
+        "fixOrderData": "إصلاح بيانات الطلب",
+        "editOrder": "تعديل الطلب"
       },
       "success": {
         "statusUpdated": "تم تحديث حالة الطلب إلى {status}"
@@ -672,6 +674,75 @@
         "notesPlaceholder": "أضف أي ملاحظات حول تغيير الحالة هذا...",
         "confirmChange": "تأكيد التغيير"
       }
+    },
+    "cancel": {
+      "title": "إلغاء الطلب",
+      "description": "سيتم إلغاء هذا الطلب. يرجى تقديم السبب (مطلوب للتدقيق).",
+      "reasonLabel": "سبب الإلغاء",
+      "reasonPlaceholder": "أدخل سبب إلغاء هذا الطلب...",
+      "reasonHint": "الحد الأدنى {min} أحرف مطلوبة",
+      "reasonMinLength": "يرجى إدخال {min} أحرف على الأقل",
+      "reasonCodeLabel": "رمز السبب",
+      "reasonCodePlaceholder": "اختر السبب (اختياري)",
+      "reasonCodes": {
+        "customerRequest": "طلب العميل",
+        "duplicate": "طلب مكرر",
+        "wrongAddress": "عنوان خاطئ",
+        "outOfStock": "نفاد المخزون",
+        "other": "أخرى"
+      },
+      "confirm": "إلغاء الطلب",
+      "success": "تم إلغاء الطلب بنجاح",
+      "error": "فشل إلغاء الطلب"
+    },
+    "return": {
+      "title": "استلام إرجاع العميل",
+      "description": "أعاد العميل العناصر. سيتم إلغاء الطلب ومعالجة الاسترداد إن كان مدفوعاً.",
+      "reasonLabel": "سبب الإرجاع",
+      "reasonPlaceholder": "أدخل سبب إرجاع العميل...",
+      "reasonHint": "الحد الأدنى {min} أحرف مطلوبة",
+      "reasonMinLength": "يرجى إدخال {min} أحرف على الأقل",
+      "reasonCodeLabel": "رمز السبب",
+      "reasonCodePlaceholder": "اختر السبب (اختياري)",
+      "reasonCodes": {
+        "changedMind": "غيّر رأيه",
+        "qualityIssue": "مشكلة جودة",
+        "wrongItems": "عناصر خاطئة",
+        "damaged": "تالف",
+        "other": "أخرى"
+      },
+      "confirm": "معالجة الإرجاع",
+      "success": "تمت معالجة إرجاع العميل بنجاح",
+      "error": "فشلت معالجة إرجاع العميل"
+    },
+    "edit": {
+      "pageTitle": "تعديل الطلب #{orderNo}",
+      "lockAcquired": "تم قفل الطلب للتعديل",
+      "lockReleased": "تم فتح قفل الطلب",
+      "lockExpiresSoon": "ينتهي القفل في {minutes} دقيقة",
+      "lockedByOther": "يتم تعديل هذا الطلب حالياً بواسطة {userName}",
+      "cannotEdit": "لا يمكن تعديل الطلب",
+      "cannotEditReasons": {
+        "status": "حالة الطلب لا تسمح بالتعديل (فقط مسودة، استلام، أو تحضير مسموح)",
+        "preparationComplete": "تم إكمال تحضير الطلب",
+        "split": "لا يمكن تعديل الطلبات المقسمة",
+        "retail": "لا يمكن تعديل طلبات التجزئة بعد الإغلاق",
+        "featureDisabled": "ميزة تعديل الطلب معطلة",
+        "locked": "الطلب مقفل بواسطة مستخدم آخر"
+      },
+      "saveChanges": "حفظ التغييرات",
+      "cancelEdit": "إلغاء التعديل",
+      "saving": "جاري حفظ التغييرات...",
+      "success": "تم تحديث الطلب بنجاح",
+      "error": "فشل تحديث الطلب",
+      "confirmCancel": "تجاهل التغييرات؟",
+      "confirmCancelMessage": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد تجاهلها؟",
+      "confirmLeave": "المغادرة دون الحفظ؟",
+      "unsavedChanges": "لديك تغييرات غير محفوظة",
+      "lockStatusLabel": "حالة القفل",
+      "lockedBy": "مقفل بواسطة",
+      "expiresAt": "ينتهي في",
+      "extendLock": "تمديد القفل"
     },
     "fixOrderDataModal": {
       "title": "إصلاح بيانات الطلب",
@@ -2661,6 +2732,7 @@
     },
     "success": {
       "orderCreated": "تم إنشاء الطلب {orderNo} بنجاح!",
+      "orderUpdated": "تم تحديث الطلب {orderNo} بنجاح!",
       "customerUpdated": "تم تحديث العميل بنجاح",
       "readyByCalculated": "تم حساب تاريخ الجاهزية بنجاح"
     },

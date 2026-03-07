@@ -12,11 +12,11 @@ import {
   Package,
   CheckCircle,
   XCircle,
-  MessageSquare,
-  Loader2,
   ArrowRight,
   AlertCircle,
   Wrench,
+  RotateCcw,
+  Edit,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -36,6 +36,8 @@ import {
 } from '@ui/overlays';
 import { Label, CmxTextarea, Alert, AlertDescription } from '@ui/primitives';
 import { FixOrderDataModal } from './fix-order-data-modal';
+import { CancelOrderDialog } from './cancel-order-dialog';
+import { CustomerReturnOrderDialog } from './customer-return-order-dialog';
 import type { OrderStatus } from '@/lib/types/workflow';
 import { STATUS_META, getAllowedTransitions } from '@/lib/types/workflow';
 
@@ -69,6 +71,8 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
   const [allowedTransitions, setAllowedTransitions] = useState<OrderStatus[]>([]);
   const [blockers, setBlockers] = useState<string[]>([]);
   const [showFixOrderDataModal, setShowFixOrderDataModal] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showReturnDialog, setShowReturnDialog] = useState(false);
 
   // Fetch allowed transitions on mount
   useEffect(() => {
@@ -216,12 +220,28 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           </CmxButton>
         ))}
 
-        {/* Cancel Order - Always available if not already cancelled/closed */}
-        {currentStatus !== 'cancelled' &&
-          currentStatus !== 'closed' &&
+        {/* Customer Return - when delivered/closed (customer brings items back) */}
+        {(currentStatus === 'delivered' || currentStatus === 'closed') &&
           canMoveTo('cancelled') && (
             <CmxButton
-              onClick={() => handleStatusClick('cancelled')}
+              onClick={() => setShowReturnDialog(true)}
+              disabled={loading}
+              variant="outline"
+              className={`w-full border-amber-300 text-amber-700 hover:bg-amber-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+              size="lg"
+            >
+              <RotateCcw className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+              {t('buttons.customerReturn')}
+            </CmxButton>
+          )}
+
+        {/* Cancel Order - draft through out_for_delivery (no items with customer) */}
+        {currentStatus !== 'cancelled' &&
+          currentStatus !== 'closed' &&
+          currentStatus !== 'delivered' &&
+          canMoveTo('cancelled') && (
+            <CmxButton
+              onClick={() => setShowCancelDialog(true)}
               disabled={loading}
               variant="outline"
               className={`w-full border-red-300 text-red-700 hover:bg-red-50 ${isRTL ? 'flex-row-reverse' : ''}`}
@@ -231,6 +251,20 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
               {t('buttons.cancelOrder')}
             </CmxButton>
           )}
+
+        {/* Edit Order - for draft/intake/preparation status */}
+        {(currentStatus === 'draft' || currentStatus === 'intake' || currentStatus === 'preparation') && (
+          <CmxButton
+            variant="outline"
+            onClick={() => router.push(`/dashboard/orders/${order.id}/edit`)}
+            disabled={loading}
+            className={`w-full border-blue-300 text-blue-700 hover:bg-blue-50 ${isRTL ? 'flex-row-reverse' : ''}`}
+            size="lg"
+          >
+            <Edit className={`w-4 h-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+            {t('buttons.editOrder')}
+          </CmxButton>
+        )}
 
         {/* Fix order data - opens modal */}
         <CmxButton
@@ -253,6 +287,22 @@ export function OrderActions({ order, screen = 'orders' }: OrderActionsProps) {
           router.refresh();
           setShowFixOrderDataModal(false);
         }}
+      />
+
+      <CancelOrderDialog
+        orderId={order.id}
+        tenantOrgId={order.tenant_org_id}
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onSuccess={() => router.refresh()}
+      />
+
+      <CustomerReturnOrderDialog
+        orderId={order.id}
+        tenantOrgId={order.tenant_org_id}
+        open={showReturnDialog}
+        onOpenChange={setShowReturnDialog}
+        onSuccess={() => router.refresh()}
       />
 
       {/* Status Change Confirmation Dialog */}

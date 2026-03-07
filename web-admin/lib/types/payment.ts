@@ -668,6 +668,8 @@ export interface RefundPaymentInput {
   amount: number;
   reason: string;
   processed_by?: string;
+  /** Voucher reason_code: CUSTOMER_RETURN, ORDER_CANCELLED, REFUND, etc. */
+  reason_code?: string;
 }
 
 export interface RefundPaymentResult {

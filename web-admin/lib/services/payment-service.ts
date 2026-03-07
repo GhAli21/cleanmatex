@@ -18,6 +18,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
 import { createReceiptVoucherForPayment } from './voucher-service';
+import { createRefundVoucherForPayment } from './refund-voucher-service';
 import type {
   PaymentMethod,
   PaymentMethodCode,
@@ -1410,10 +1411,27 @@ export async function refundPayment(
           };
         }
 
+        // Create refund voucher first (mandatory: no payment without voucher)
+        const { voucher_id } = await createRefundVoucherForPayment(
+          {
+            tenant_org_id: tenantId,
+            branch_id: transaction.branch_id ?? undefined,
+            invoice_id: transaction.invoice_id ?? undefined,
+            order_id: transaction.order_id ?? undefined,
+            customer_id: transaction.customer_id ?? undefined,
+            total_amount: input.amount,
+            currency_code: transaction.currency_code,
+            reason_code: input.reason_code ?? 'REFUND',
+            created_by: input.processed_by ?? undefined,
+          },
+          tx as PrismaTx
+        );
+
         const refundTransaction = await tx.org_payments_dtl_tr.create({
           data: {
             tenant_org_id: tenantId,
             branch_id: transaction.branch_id ?? undefined,
+            voucher_id,
             invoice_id: transaction.invoice_id ?? undefined,
             order_id: transaction.order_id ?? undefined,
             customer_id: transaction.customer_id ?? undefined,

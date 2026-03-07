@@ -657,7 +657,9 @@
         "outForDelivery": "Out for Delivery",
         "markAsDelivered": "Mark as Delivered",
         "cancelOrder": "Cancel Order",
-        "fixOrderData": "Fix order data"
+        "customerReturn": "Customer Return",
+        "fixOrderData": "Fix order data",
+        "editOrder": "Edit Order"
       },
       "success": {
         "statusUpdated": "Order status updated to {status}"
@@ -672,6 +674,75 @@
         "notesPlaceholder": "Add any notes about this status change...",
         "confirmChange": "Confirm Change"
       }
+    },
+    "cancel": {
+      "title": "Cancel Order",
+      "description": "This order will be cancelled. Please provide a reason (required for audit).",
+      "reasonLabel": "Cancellation reason",
+      "reasonPlaceholder": "Enter the reason for cancelling this order...",
+      "reasonHint": "Minimum {min} characters required",
+      "reasonMinLength": "Please enter at least {min} characters",
+      "reasonCodeLabel": "Reason code",
+      "reasonCodePlaceholder": "Select reason (optional)",
+      "reasonCodes": {
+        "customerRequest": "Customer request",
+        "duplicate": "Duplicate order",
+        "wrongAddress": "Wrong address",
+        "outOfStock": "Out of stock",
+        "other": "Other"
+      },
+      "confirm": "Cancel Order",
+      "success": "Order cancelled successfully",
+      "error": "Failed to cancel order"
+    },
+    "return": {
+      "title": "Customer Return",
+      "description": "Customer has brought items back. Order will be cancelled and refund processed if paid.",
+      "reasonLabel": "Return reason",
+      "reasonPlaceholder": "Enter the reason for the customer return...",
+      "reasonHint": "Minimum {min} characters required",
+      "reasonMinLength": "Please enter at least {min} characters",
+      "reasonCodeLabel": "Reason code",
+      "reasonCodePlaceholder": "Select reason (optional)",
+      "reasonCodes": {
+        "changedMind": "Changed mind",
+        "qualityIssue": "Quality issue",
+        "wrongItems": "Wrong items",
+        "damaged": "Damaged",
+        "other": "Other"
+      },
+      "confirm": "Process Return",
+      "success": "Customer return processed successfully",
+      "error": "Failed to process customer return"
+    },
+    "edit": {
+      "pageTitle": "Edit Order #{orderNo}",
+      "lockAcquired": "Order locked for editing",
+      "lockReleased": "Order unlocked",
+      "lockExpiresSoon": "Lock expires in {minutes} minutes",
+      "lockedByOther": "This order is currently being edited by {userName}",
+      "cannotEdit": "Cannot edit order",
+      "cannotEditReasons": {
+        "status": "Order status does not allow editing (only DRAFT, INTAKE, or PREPARATION allowed)",
+        "preparationComplete": "Order preparation is complete",
+        "split": "Split orders cannot be edited",
+        "retail": "Retail orders cannot be edited after closing",
+        "featureDisabled": "Edit order feature is disabled",
+        "locked": "Order is locked by another user"
+      },
+      "saveChanges": "Save Changes",
+      "cancelEdit": "Cancel Edit",
+      "saving": "Saving changes...",
+      "success": "Order updated successfully",
+      "error": "Failed to update order",
+      "confirmCancel": "Discard changes?",
+      "confirmCancelMessage": "You have unsaved changes. Are you sure you want to discard them?",
+      "confirmLeave": "Leave without saving?",
+      "unsavedChanges": "You have unsaved changes",
+      "lockStatusLabel": "Lock Status",
+      "lockedBy": "Locked by",
+      "expiresAt": "Expires at",
+      "extendLock": "Extend Lock"
     },
     "fixOrderDataModal": {
       "title": "Fix order data",
@@ -2661,6 +2732,7 @@
     },
     "success": {
       "orderCreated": "Order {orderNo} created successfully!",
+      "orderUpdated": "Order {orderNo} updated successfully!",
       "customerUpdated": "Customer updated successfully",
       "readyByCalculated": "Ready-by date calculated successfully"
     },

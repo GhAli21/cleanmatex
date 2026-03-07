@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
     const { data: order, error } = await supabase
       .from('org_orders_mst')
-      .select('status, service_category_code')
+      .select('status, current_status, service_category_code')
       .eq('id', id)
       .eq('tenant_org_id', tenantId)
       .single();
@@ -45,15 +45,22 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
       .eq('is_active', true)
       .single();
 
+    const statusKey = (order.status as string)?.toUpperCase?.() || (order.status as string);
+    const currentStatus = (order as { current_status?: string }).current_status;
+    const lookupKey = currentStatus || order.status;
+
     let allowed: string[] = [];
     if (settings?.status_transitions) {
-      allowed = (settings.status_transitions as Record<string, string[]>)[(order.status as any)] || [];
+      const st = settings.status_transitions as Record<string, string[]>;
+      allowed = st[lookupKey] || st[statusKey] || st[(order.status as string)] || [];
     } else {
       const { WORKFLOW_TRANSITIONS } = await import('@/lib/services/workflow-constants');
-      allowed = WORKFLOW_TRANSITIONS[(order.status as any)] || [];
+      allowed = WORKFLOW_TRANSITIONS[statusKey] || WORKFLOW_TRANSITIONS[lookupKey] || WORKFLOW_TRANSITIONS[(order.status as string)] || [];
     }
 
-    return NextResponse.json({ success: true, data: allowed, meta: { check: result } });
+    // Normalize to lowercase for consistent client comparison with OrderStatus
+    const allowedLower = allowed.map((s) => (s || '').toLowerCase());
+    return NextResponse.json({ success: true, data: allowedLower, meta: { check: result } });
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error';
     const status = message.includes('Unauthorized') ? 401 : 400;

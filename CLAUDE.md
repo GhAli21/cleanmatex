@@ -1,8 +1,8 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
-**Last Update** 20-02-2026
-**Last Update Description** added 74-web-admin 83-see cursor 140-148-How to Make Cursor/Claude Follow the Rules
+**Last Update** 07-03-2026
+**Last Update Description** Added comprehensive feature implementation documentation requirements (permissions, navigation, settings, feature flags, plan limits, i18n, migrations, etc.)
 
 ## CRITICAL RULES
 
@@ -61,6 +61,8 @@ npm run build                     # Build (run after changes)
 - Wrap queries: `withTenantContext()`
 
 **See:** `/implementation` skill for coding standards
+
+**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `prdimplementationrules.mdc` → Feature Implementation Requirements.
 
 ## Constants & Types (single source of truth)
 
@@ -138,6 +140,7 @@ docs/         # All documentation
 - **Performance:** Indexes, avoid N+1 queries, paginate results
 - **Testing:** Cover business logic and tenant isolation
 - **Validation:** Validate all inputs at system boundaries
+- **Documentation:** For every feature, document permissions, navigation tree, settings, feature flags, plan limits, i18n keys, API routes, migrations, constants/types, and env vars (see `/documentation` skill for complete checklist)
 
 ## How to Make Cursor/Claude Follow the Rules
 
