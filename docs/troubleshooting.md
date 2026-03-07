@@ -313,6 +313,28 @@ Comprehensive troubleshooting guide for common issues in CleanMateX development.
            memory: 2G
    ```
 
+### Prisma: "Timed out fetching a new connection from the connection pool"
+
+**Symptoms:**
+
+- `Invalid prisma.*.count() invocation: Timed out fetching a new connection from the connection pool`
+- Error mentions `connection limit: 1` or `connection pool timeout: 10`
+
+**Cause:** `DATABASE_URL` has no `connection_limit` or it is set to 1. With a single connection, concurrent requests block each other and time out.
+
+**Solution:** Add `connection_limit` and optionally `pool_timeout` to your `DATABASE_URL` in `.env.local`:
+
+```env
+# Local (direct PostgreSQL)
+DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres?connection_limit=10&pool_timeout=20"
+
+# Production (Supabase pooler)
+DATABASE_URL="postgresql://postgres.[REF]:[PASS]@...pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=10&pool_timeout=20"
+```
+
+- `connection_limit=10` — allows up to 10 concurrent connections (adjust based on load)
+- `pool_timeout=20` — seconds to wait for a free connection (default 10)
+
 ---
 
 ## Supabase Issues

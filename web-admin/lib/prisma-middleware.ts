@@ -147,105 +147,30 @@ export function applyTenantMiddleware(prisma: PrismaClient) {
 }
 
 /**
- * Create a scoped Prisma client for a specific tenant
- * Useful for background jobs, scripts, or when you have tenant ID upfront
+ * @deprecated DO NOT USE - This function created a new PrismaClient per call,
+ * exhausting the connection pool. Use withTenantContext() from '@/lib/db/tenant-context'
+ * with the shared prisma singleton from '@/lib/db/prisma' instead.
  *
- * @param tenantId - Tenant organization ID
- * @returns Prisma client with tenant middleware applied
+ * Migration:
+ * BEFORE (broken - spawns new connection pool on every call):
+ *   const scopedPrisma = createTenantScopedPrisma(tenantId)
+ *   const orders = await scopedPrisma.org_orders_mst.findMany()
  *
- * @example
- * ```typescript
- * const prisma = createTenantScopedPrisma('tenant-id')
- * // All queries automatically filtered by tenant_org_id
- * const orders = await prisma.org_orders_mst.findMany()
- * ```
+ * AFTER (correct - reuses singleton pool):
+ *   import { prisma } from '@/lib/db/prisma'
+ *   import { withTenantContext } from '@/lib/db/tenant-context'
+ *   const orders = await withTenantContext(tenantId, () =>
+ *     prisma.org_orders_mst.findMany()
+ *   )
+ *
+ * The shared prisma singleton already has applyTenantMiddleware() applied, which
+ * reads the tenant ID from AsyncLocalStorage set by withTenantContext(). There is
+ * no need to create a separate client.
  */
-export function createTenantScopedPrisma(tenantId: string) {
-  const scopedPrisma = new PrismaClient({
-    log:
-      process.env.NODE_ENV === 'development'
-        ? ['query', 'error', 'warn']
-        : ['error'],
-  })
-
-  // Apply middleware with fixed tenant ID
-  ;(scopedPrisma as any).$use(async (params: any, next: any) => {
-    const isOrgTable = params.model?.toLowerCase().startsWith('org_')
-
-    if (!isOrgTable) {
-      return next(params)
-    }
-
-    // READ operations
-    if (['findFirst', 'findMany', 'findUnique', 'count', 'aggregate', 'groupBy'].includes(params.action)) {
-      params.args = params.args || {}
-      params.args.where = {
-        ...params.args.where,
-        tenant_org_id: tenantId,
-      }
-    }
-
-    // CREATE operations
-    if (params.action === 'create') {
-      params.args = params.args || {}
-      params.args.data = {
-        ...params.args.data,
-        tenant_org_id: tenantId,
-      }
-    }
-
-    // CREATE MANY operations
-    if (params.action === 'createMany') {
-      params.args = params.args || {}
-      if (Array.isArray(params.args.data)) {
-        params.args.data = params.args.data.map((record: any) => ({
-          ...record,
-          tenant_org_id: tenantId,
-        }))
-      }
-    }
-
-    // UPDATE operations
-    if (['update', 'updateMany'].includes(params.action)) {
-      params.args = params.args || {}
-      params.args.where = {
-        ...params.args.where,
-        tenant_org_id: tenantId,
-      }
-    }
-
-    // UPSERT operations: Handle both where, create, and update
-    if (params.action === 'upsert') {
-      params.args = params.args || {}
-      params.args.where = {
-        ...params.args.where,
-        tenant_org_id: tenantId,
-      }
-      if (params.args.create) {
-        params.args.create = {
-          ...params.args.create,
-          tenant_org_id: tenantId,
-        }
-      }
-      if (params.args.update && typeof params.args.update === 'object' && !Array.isArray(params.args.update)) {
-        params.args.update = {
-          ...params.args.update,
-          tenant_org_id: tenantId,
-        }
-      }
-    }
-
-    // DELETE operations
-    if (['delete', 'deleteMany'].includes(params.action)) {
-      params.args = params.args || {}
-      params.args.where = {
-        ...params.args.where,
-        tenant_org_id: tenantId,
-      }
-    }
-
-    return next(params)
-  })
-
-  return scopedPrisma
+export function createTenantScopedPrisma(_tenantId: string): never {
+  throw new Error(
+    '[createTenantScopedPrisma] This function is removed. ' +
+    'Use withTenantContext() + the shared prisma singleton from @/lib/db/prisma. ' +
+    'Creating a new PrismaClient per request exhausts the connection pool.'
+  )
 }

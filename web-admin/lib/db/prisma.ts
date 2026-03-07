@@ -83,23 +83,15 @@ if (!(prismaClient as any).__performanceMiddlewareApplied) {
 // Export singleton instance
 export const prisma = prismaClient;
 
-// Save to global in development to prevent hot reload issues
+// Save to global in development to prevent hot reload issues.
+// This is the canonical pattern from the Prisma docs for Next.js:
+// https://www.prisma.io/docs/orm/more/help-and-troubleshooting/help-articles/nextjs-prisma-client-dev-practices
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
-// Graceful shutdown handler
-process.on('beforeExit', async () => {
-  await prisma.$disconnect();
-});
-
-// Also handle SIGINT and SIGTERM for better cleanup
-process.on('SIGINT', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+// NOTE: Do NOT register process.on('beforeExit') here.
+// In Next.js, 'beforeExit' fires whenever the event loop drains (e.g., between requests),
+// which causes the singleton pool to disconnect and reconnect constantly.
+// Prisma's query engine manages its own lifecycle and handles SIGINT/SIGTERM internally.
+// Explicit $disconnect() is only needed in scripts (not long-running servers).
