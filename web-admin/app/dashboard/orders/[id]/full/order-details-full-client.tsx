@@ -938,35 +938,29 @@ export function OrderDetailsFullClient({
             </div>
           </div>
 
-          {(order.customer_notes || order.internal_notes) && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t.notes}
-              </h2>
-              <div className="space-y-4">
-                {order.customer_notes && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t.customerNotes}
-                    </div>
-                    <div className={`text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.customer_notes)}
-                    </div>
-                  </div>
-                )}
-                {order.internal_notes && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {t.internalNotes}
-                    </div>
-                    <div className={`text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.internal_notes)}
-                    </div>
-                  </div>
-                )}
+          <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {t.notes}
+            </h2>
+            <div className="space-y-4">
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.customerNotes}
+                </div>
+                <div className={`text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {order.customer_notes ? String(order.customer_notes) : '—'}
+                </div>
+              </div>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.internalNotes}
+                </div>
+                <div className={`text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {order.internal_notes ? String(order.internal_notes) : '—'}
+                </div>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="space-y-6">
