@@ -1669,7 +1669,7 @@ export class OrderService {
           for (let index = 0; index < items.length; index++) {
             const item = items[index];
 
-            // Create item
+            // Create item (omit undefined - Prisma rejects undefined for optional fields)
             const createdItem = await tx.org_order_items_dtl.create({
               data: {
                 order_id: orderId,
@@ -1683,13 +1683,13 @@ export class OrderService {
                 status: 'pending',
                 item_status: v_initialStatus,
                 item_stage: v_transitionFrom,
-                notes: item.notes,
-                has_stain: item.hasStain,
-                has_damage: item.hasDamage,
-                stain_notes: item.stainNotes,
-                damage_notes: item.damageNotes,
                 created_by: userId,
                 rec_status: 1,
+                ...(item.notes != null && { notes: item.notes }),
+                ...(item.hasStain != null && { has_stain: item.hasStain }),
+                ...(item.hasDamage != null && { has_damage: item.hasDamage }),
+                ...(item.stainNotes != null && { stain_notes: item.stainNotes }),
+                ...(item.damageNotes != null && { damage_notes: item.damageNotes }),
               },
             });
 
