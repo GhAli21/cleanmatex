@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
 import { WorkflowService } from './workflow-service';
@@ -1519,28 +1520,30 @@ export class OrderService {
     } = params;
 
     try {
-      const supabase = await createClient();
-
-      // 1. Fetch existing order with items
-      const { data: existingOrder, error: fetchError } = await supabase
-        .from('org_orders_mst')
-        .select(`
-          *,
-          items:org_order_items_dtl(
-            *,
-            pieces:org_order_pieces_dtl(*)
-          )
-        `)
-        .eq('id', orderId)
-        .eq('tenant_org_id', tenantId)
-        .single();
-
-      if (fetchError || !existingOrder) {
+      // 1. Fetch existing order with items (use Prisma for consistency with GET - bypasses Supabase RLS)
+      const orderFromDb = await getOrderById(tenantId, orderId);
+      if (!orderFromDb) {
         return {
           success: false,
           error: 'Order not found',
         };
       }
+
+      // Map to shape expected by rest of updateOrder (snake_case, items with product_id)
+      const existingOrder = {
+        ...orderFromDb,
+        items: (orderFromDb.items ?? []).map((item: { id: string; product_id?: string; quantity?: number; price_per_unit?: unknown; total_price?: unknown; notes?: string; has_stain?: boolean; has_damage?: boolean }) => ({
+          id: item.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price_per_unit: item.price_per_unit,
+          total_price: item.total_price,
+          notes: item.notes,
+          has_stain: item.has_stain,
+          has_damage: item.has_damage,
+        })),
+        ready_by_at: (orderFromDb as { ready_by?: Date; ready_by_at_new?: Date }).ready_by_at_new ?? (orderFromDb as { ready_by?: Date }).ready_by ?? null,
+      };
 
       // 2. Validate editability
       const editabilityCheck = isOrderEditable(existingOrder);
@@ -1609,7 +1612,7 @@ export class OrderService {
         // 7. Delete old items/pieces if items array provided
         if (items && items.length >= 0) {
           // Delete all pieces first
-          await tx.org_order_pieces_dtl.deleteMany({
+          await tx.org_order_item_pieces_dtl.deleteMany({
             where: {
               order_id: orderId,
               tenant_org_id: tenantId,
@@ -1739,7 +1742,10 @@ export class OrderService {
         if (customerId !== undefined) updateData.customer_id = customerId;
         if (branchId !== undefined) updateData.branch_id = branchId;
         if (notes !== undefined) updateData.internal_notes = notes;
-        if (readyByAt !== undefined) updateData.ready_by_at = readyByAt;
+        if (readyByAt !== undefined) {
+          updateData.ready_by = readyByAt;
+          updateData.ready_by_at_new = readyByAt;
+        }
         if (express !== undefined) updateData.priority_multiplier = express ? 0.5 : 1.0;
         if (customerName !== undefined) updateData.customer_name = customerName;
         if (customerMobile !== undefined) updateData.customer_mobile = customerMobile;
@@ -1771,19 +1777,26 @@ export class OrderService {
         return updatedOrder;
       });
 
-      // 11. Fetch updated order with items for snapshot_after
-      const { data: updatedOrderWithItems } = await supabase
-        .from('org_orders_mst')
-        .select(`
-          *,
-          items:org_order_items_dtl(
-            *,
-            pieces:org_order_pieces_dtl(*)
-          )
-        `)
-        .eq('id', orderId)
-        .eq('tenant_org_id', tenantId)
-        .single();
+      // 11. Fetch updated order with items for snapshot_after (use Prisma)
+      const updatedOrderWithItems = await prisma.org_orders_mst.findUnique({
+        where: { id: orderId, tenant_org_id: tenantId },
+        include: { org_order_items_dtl: { orderBy: { created_at: 'asc' } } },
+      });
+
+      if (!updatedOrderWithItems) {
+        logger.error('[updateOrder] Order not found after update', undefined, {
+          feature: 'orders',
+          action: 'update_order',
+          orderId,
+          tenantId,
+        });
+        return {
+          success: false,
+          error: 'Order not found',
+        };
+      }
+
+      const readyByAtVal = updatedOrderWithItems.ready_by_at_new ?? updatedOrderWithItems.ready_by ?? null;
 
       // 12. Create snapshot_after
       const snapshotAfter = {
@@ -1793,7 +1806,7 @@ export class OrderService {
           customerId: updatedOrderWithItems.customer_id,
           branchId: updatedOrderWithItems.branch_id,
           notes: updatedOrderWithItems.internal_notes,
-          readyByAt: updatedOrderWithItems.ready_by_at,
+          readyByAt: readyByAtVal,
           express: updatedOrderWithItems.priority_multiplier === 0.5,
           subtotal: updatedOrderWithItems.subtotal,
           discount: updatedOrderWithItems.discount,
@@ -1805,7 +1818,7 @@ export class OrderService {
           isQuickDrop: updatedOrderWithItems.is_order_quick_drop,
           quickDropQuantity: updatedOrderWithItems.quick_drop_quantity,
         },
-        items: updatedOrderWithItems.items?.map((item: any) => ({
+        items: (updatedOrderWithItems.org_order_items_dtl ?? []).map((item) => ({
           id: item.id,
           productId: item.product_id,
           quantity: item.quantity,
@@ -1814,7 +1827,7 @@ export class OrderService {
           notes: item.notes,
           hasStain: item.has_stain,
           hasDamage: item.has_damage,
-        })) || [],
+        })),
       };
 
       // 13. Create audit entry
