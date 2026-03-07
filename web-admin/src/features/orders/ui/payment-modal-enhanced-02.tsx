@@ -199,7 +199,17 @@ export function PaymentModalEnhanced02({
         cmxMessage.error(json.error ?? t('errors.productNotFound'));
       } else if (!res.ok && json.error) {
         setServerTotals(null);
-        cmxMessage.error(json.error);
+        const details = json.details as Array<{ path?: (string | number)[]; message?: string }> | undefined;
+        const msg =
+          details && Array.isArray(details) && details.length > 0
+            ? details
+                .map((d) => {
+                  const path = (d.path ?? []).join('.');
+                  return path ? `${path}: ${d.message ?? ''}` : (d.message ?? '');
+                })
+                .join('. ')
+            : (json.error as string);
+        cmxMessage.error(msg);
       }
     } catch {
       setServerTotals(null);

@@ -65,8 +65,14 @@ export const previewPaymentRequestSchema = z.object({
       quantity: z.number().positive(),
     })
   ).min(1),
-  branchId: z.string().uuid().optional(),
-  customerId: z.string().uuid().optional(),
+  branchId: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().uuid().optional()
+  ),
+  customerId: z.preprocess(
+    (val) => (val === '' || val == null ? undefined : val),
+    z.string().uuid().optional()
+  ),
   isExpress: z.boolean().optional(),
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
