@@ -113,6 +113,7 @@ model users {
   org_order_item_issues_org_order_item_issues_solved_byTousers  org_order_item_issues[]           @relation("org_order_item_issues_solved_byTousers")
   org_order_item_processing_steps                               org_order_item_processing_steps[]
   org_order_status_history                                      org_order_status_history[]
+  org_order_edit_locks                                          org_order_edit_locks[]
   org_users_mst                                                 org_users_mst[]
   sys_audit_log                                                 sys_audit_log[]
 
@@ -757,6 +758,7 @@ model org_orders_mst {
   org_fin_vouchers_mst            org_fin_vouchers_mst[]
   org_invoice_mst                 org_invoice_mst[]
   org_ord_transition_events       org_ord_transition_events[]
+  org_order_edit_locks            org_order_edit_locks?
   org_order_history               org_order_history[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
@@ -795,6 +797,28 @@ model org_orders_mst {
   @@index([tenant_org_id, parent_order_id], map: "idx_orders_parent_order")
   @@index([tenant_org_id, current_status, last_transition_at(sort: Desc)], map: "idx_orders_status_transition")
   @@index([tenant_org_id, workflow_template_id], map: "idx_orders_workflow_template")
+  @@schema("public")
+}
+
+/// Order edit locks: pessimistic locking to prevent concurrent edits (PRD: Edit Order Feature).
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_order_edit_locks {
+  order_id       String    @id @db.Uuid
+  tenant_org_id  String    @db.Uuid
+  locked_by      String    @db.Uuid
+  locked_by_name String?
+  locked_at      DateTime  @db.Timestamptz(6)
+  expires_at     DateTime  @db.Timestamptz(6)
+  session_id     String?
+  ip_address     String?
+  user_agent     String?
+  org_orders_mst  org_orders_mst  @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_order")
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_tenant")
+  users           users            @relation(fields: [locked_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_edit_lock_user")
+
+  @@index([tenant_org_id], map: "idx_order_edit_locks_tenant")
+  @@index([expires_at], map: "idx_order_edit_locks_expires_at")
+  @@index([locked_by], map: "idx_order_edit_locks_locked_by")
   @@schema("public")
 }
 
@@ -1142,6 +1166,7 @@ model org_tenants_mst {
   org_gift_card_transactions       org_gift_card_transactions[]
   org_gift_cards_mst               org_gift_cards_mst[]
   org_invoice_mst                  org_invoice_mst[]
+  org_order_edit_locks             org_order_edit_locks[]
   org_order_history                org_order_history[]
   org_order_item_issues            org_order_item_issues[]
   org_order_item_pieces_dtl        org_order_item_pieces_dtl[]
