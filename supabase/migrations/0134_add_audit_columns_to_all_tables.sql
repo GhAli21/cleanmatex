@@ -26,6 +26,7 @@ ALTER TABLE org_customer_merge_log
 
 -- org_order_items_dtl: missing created_info, updated_at, updated_by, updated_info, rec_status, rec_order, rec_notes
 ALTER TABLE org_order_items_dtl
+  ADD COLUMN IF NOT EXISTS created_by TEXT NULL,
   ADD COLUMN IF NOT EXISTS created_info TEXT NULL,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NULL,
   ADD COLUMN IF NOT EXISTS updated_by TEXT NULL,

@@ -633,6 +633,7 @@ model org_order_items_dtl {
   rec_status                      Int?                              @default(1) @db.SmallInt
   rec_order                       Int?
   rec_notes                       String?
+  created_by                      String?
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
