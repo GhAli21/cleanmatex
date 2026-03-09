@@ -59,6 +59,11 @@ async function OrderDetailsFullContent({
         backToOrders={tOrders('allOrders')}
         returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
         returnLabel={searchParams?.returnLabel}
+        debug={{
+          condition: 'Invalid order ID (empty or not a valid UUID format)',
+          tenantId,
+          userId,
+        }}
       />
     );
   }
@@ -88,6 +93,12 @@ async function OrderDetailsFullContent({
         backToOrders={tOrders('allOrders')}
         returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
         returnLabel={searchParams?.returnLabel}
+        debug={{
+          condition: 'getOrder returned no data (order not in DB for this tenant, or query failed)',
+          serverError: orderResult.error,
+          tenantId,
+          userId,
+        }}
       />
     );
   }
