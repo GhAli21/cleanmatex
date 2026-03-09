@@ -1590,7 +1590,7 @@ export class OrderService {
           tax: existingOrder.tax,
           total: existingOrder.total,
           customerName: existingOrder.customer_name,
-          customerMobile: existingOrder.customer_mobile,
+          customerMobile: existingOrder.customer_mobile_number,
           customerEmail: existingOrder.customer_email,
           isQuickDrop: existingOrder.is_order_quick_drop,
           quickDropQuantity: existingOrder.quick_drop_quantity,
@@ -1745,7 +1745,7 @@ export class OrderService {
         }
         if (express !== undefined) updateData.priority_multiplier = express ? 0.5 : 1.0;
         if (customerName !== undefined) updateData.customer_name = customerName;
-        if (customerMobile !== undefined) updateData.customer_mobile = customerMobile;
+        if (customerMobile !== undefined) updateData.customer_mobile_number = customerMobile;
         if (customerEmail !== undefined) updateData.customer_email = customerEmail;
         if (isDefaultCustomer !== undefined) updateData.is_default_customer = isDefaultCustomer;
         if (customerDetails !== undefined) updateData.customer_details = customerDetails;
@@ -1810,7 +1810,7 @@ export class OrderService {
           tax: updatedOrderWithItems.tax,
           total: updatedOrderWithItems.total,
           customerName: updatedOrderWithItems.customer_name,
-          customerMobile: updatedOrderWithItems.customer_mobile,
+          customerMobile: updatedOrderWithItems.customer_mobile_number,
           customerEmail: updatedOrderWithItems.customer_email,
           isQuickDrop: updatedOrderWithItems.is_order_quick_drop,
           quickDropQuantity: updatedOrderWithItems.quick_drop_quantity,
