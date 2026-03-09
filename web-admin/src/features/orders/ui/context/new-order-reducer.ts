@@ -467,6 +467,12 @@ export function newOrderReducer(
         originalOrderData: action.payload,
       };
 
+    case 'SET_EXPECTED_UPDATED_AT':
+      return {
+        ...state,
+        expectedUpdatedAt: action.payload,
+      };
+
     default:
       return state;
   }

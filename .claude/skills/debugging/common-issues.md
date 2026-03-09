@@ -754,4 +754,68 @@ All other write ops are correct. Only `customer_mobile` was found mismatched.
 
 ---
 
+---
+
+### Issue 13: Repeated `get_user_workflow_roles` / Permission RPC Calls (useEffect Dependency Loop)
+
+**Symptom:**
+
+Browser DevTools network tab shows `get_user_workflow_roles` (and/or `get_user_permissions`) being called 10–12 times on every page load. Console may show no errors — the calls silently succeed repeatedly.
+
+**Root Cause:**
+
+Two compounding problems in `auth-context.tsx`:
+
+1. **Volatile array length in `useEffect` deps.** The old dependency list included `permissions.length` and `workflowRoles.length`. Every time `refreshPermissions` set state it changed those lengths, which re-triggered the effect, which called `refreshPermissions` again — an infinite loop capped only by in-flight timing.
+
+2. **No in-flight guard on `refreshPermissions`.** Without a ref tracking whether a fetch was already running, concurrent calls fired before the first one resolved, multiplying the RPC calls.
+
+**Fix (applied March 2026):**
+
+Two `useRef` guards were added to `web-admin/lib/auth/auth-context.tsx`:
+
+```typescript
+// Prevents concurrent in-flight calls to refreshPermissions
+const isFetchingPermissionsRef = useRef(false)
+
+// Tracks which tenant_id permissions were last loaded for.
+// Replaces the volatile permissions.length === 0 check.
+const permissionsLoadedForTenantRef = useRef<string | null>(null)
+```
+
+`refreshPermissions` now:
+- Returns immediately if `isFetchingPermissionsRef.current === true`
+- Sets `permissionsLoadedForTenantRef.current = currentTenant.tenant_id` on success
+- Resets it to `null` on error
+
+The permissions `useEffect` now:
+- Skips if `isFetchingPermissionsRef.current` is true
+- Skips if `permissionsLoadedForTenantRef.current === currentTenant.tenant_id` (already loaded)
+- Has deps `[user, currentTenant, isLoading]` only — `permissions` and `workflowRoles` intentionally excluded
+
+Lifecycle integration:
+- `signIn` sets `permissionsLoadedForTenantRef.current` after its own batch fetch, preventing the useEffect from re-fetching immediately after login
+- `switchTenant` resets `permissionsLoadedForTenantRef.current = null` before fetching the new tenant's permissions
+- `signOut` and the `SIGNED_OUT` auth event handler both reset `permissionsLoadedForTenantRef.current = null`
+
+**Detection:**
+
+```typescript
+// Quick check in browser DevTools console — count RPC calls on one page load:
+// Network tab → filter by "workflow_roles" or "permissions"
+// Should be 1 call per page load, not 10+
+```
+
+**Files:**
+
+- `web-admin/lib/auth/auth-context.tsx` — all guard logic lives here
+
+**Prevention:**
+
+- Never put derived array lengths (`state.length`) in `useEffect` dependency arrays when the effect itself sets that state — it creates a self-reinforcing loop.
+- Always add an in-flight ref guard to any async function that can be triggered by React effects.
+- After a batch fetch (login, tenant switch), immediately update the "already loaded" ref so downstream effects are skipped.
+
+---
+
 ## Return to [Main Documentation](../CLAUDE.md)

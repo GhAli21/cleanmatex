@@ -270,5 +270,6 @@ export type NewOrderAction =
     }
   | { type: 'EXIT_EDIT_MODE' }
   | { type: 'SET_LOCK_INFO'; payload: OrderLockInfo | null }
-  | { type: 'UPDATE_ORIGINAL_ORDER_DATA'; payload: Record<string, unknown> | null };
+  | { type: 'UPDATE_ORIGINAL_ORDER_DATA'; payload: Record<string, unknown> | null }
+  | { type: 'SET_EXPECTED_UPDATED_AT'; payload: Date };
 

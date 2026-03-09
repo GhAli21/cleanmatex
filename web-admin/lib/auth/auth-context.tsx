@@ -54,6 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoggingInRef = useRef(false)
   // Track if we're currently fetching tenants to prevent concurrent requests
   const isFetchingTenantsRef = useRef(false)
+  // Track if we're currently fetching permissions/workflow roles to prevent concurrent requests
+  const isFetchingPermissionsRef = useRef(false)
   // Track if tenant fetch failed to prevent infinite retries
   const tenantFetchFailedRef = useRef(false)
   // Track previous user ID to detect user changes
@@ -64,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshTenantsRef = useRef<(() => Promise<void>) | null>(null)
   // Track user-initiated signOut so we don't redirect to session_expired on normal logout
   const isSigningOutRef = useRef(false)
+  // Track the tenant ID for which permissions were last loaded — avoids re-fetching same tenant
+  const permissionsLoadedForTenantRef = useRef<string | null>(null)
 
   /**
    * Fetch available tenants for current user
@@ -257,6 +261,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions(authData.permissions)
       setWorkflowRoles(authData.workflowRoles)
 
+      // Mark permissions as loaded for this tenant so the useEffect does not re-fetch
+      if (authData.tenants.length > 0) {
+        permissionsLoadedForTenantRef.current = authData.tenants[0].tenant_id
+      }
+
       // Redirect after state is set
       router.push('/dashboard')
     } catch (error: unknown) {
@@ -344,6 +353,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAvailableTenants([])
       setPermissions([])
       setWorkflowRoles([])
+      permissionsLoadedForTenantRef.current = null
 
       // Clear browser storage
       localStorage.removeItem('permissions_cache')
@@ -417,50 +427,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   /**
-   * Fetch permissions and workflow roles for current tenant
-   * Uses caching for better performance
+   * Fetch permissions and workflow roles for current tenant.
+   * - Guards against concurrent in-flight calls (isFetchingPermissionsRef)
+   * - Always fetches both permissions AND workflow roles together in one round-trip
+   * - Caches permissions; workflow roles are always re-fetched (they change frequently)
+   * - Tracks which tenant was last loaded so the useEffect does not re-trigger on same tenant
    */
   const refreshPermissions = useCallback(async () => {
     if (!user || !currentTenant) {
       setPermissions([])
       setWorkflowRoles([])
+      permissionsLoadedForTenantRef.current = null
       return
     }
 
+    // Prevent concurrent fetches
+    if (isFetchingPermissionsRef.current) {
+      return
+    }
+
+    isFetchingPermissionsRef.current = true
+
     try {
-      // Check cache first
       const cached = getCachedPermissions(currentTenant.tenant_id)
+
       if (cached) {
-        setPermissions(cached)
-        // Still fetch workflow roles (they change more frequently)
+        // Permissions are cached — only re-fetch workflow roles (they change more frequently)
         const workflow = await getUserWorkflowRoles()
+        setPermissions(cached)
         setWorkflowRoles(workflow)
-        return
+      } else {
+        // Full fetch — permissions + workflow roles in parallel
+        const [perms, workflow] = await Promise.all([
+          getUserPermissions(currentTenant.tenant_id),
+          getUserWorkflowRoles(),
+        ])
+        setPermissions(perms)
+        setWorkflowRoles(workflow)
+        setCachedPermissions(currentTenant.tenant_id, perms)
       }
 
-      // Fetch from API if not cached
-      const [perms, workflow] = await Promise.all([
-        getUserPermissions(currentTenant.tenant_id),
-        getUserWorkflowRoles(),
-      ])
-
-      setPermissions(perms)
-      setWorkflowRoles(workflow)
-
-      // Cache permissions
-      setCachedPermissions(currentTenant.tenant_id, perms)
+      // Record which tenant we loaded for, so the useEffect guard can skip redundant calls
+      permissionsLoadedForTenantRef.current = currentTenant.tenant_id
     } catch (error) {
       console.error('Error fetching permissions:', error)
-      // Try to use cached data on error
       const cached = getCachedPermissions(currentTenant.tenant_id)
-      if (cached) {
-        setPermissions(cached)
-      } else {
-        setPermissions([])
-      }
+      setPermissions(cached ?? [])
       setWorkflowRoles([])
+      permissionsLoadedForTenantRef.current = null
     } finally {
-      // Update ref after function completes
+      isFetchingPermissionsRef.current = false
       refreshPermissionsRef.current = refreshPermissions
     }
   }, [user, currentTenant])
@@ -533,7 +549,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setCurrentTenant(newTenant)
       currentTenantRef.current = newTenant
 
-      // 6. Fetch permissions for new tenant
+      // 6. Reset loaded-for ref so refreshPermissions re-fetches for the new tenant
+      permissionsLoadedForTenantRef.current = null
+
+      // 7. Fetch permissions for new tenant
       await refreshPermissions()
 
       // 7. Reload the page to ensure all queries use new tenant context
@@ -601,6 +620,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAvailableTenants([])
           setPermissions([])
           setWorkflowRoles([])
+          permissionsLoadedForTenantRef.current = null
           invalidatePermissionCache()
           sessionStorage.clear()
           // Redirect to login with reason when session expired (not user-initiated)
@@ -654,22 +674,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, isLoading, availableTenants.length]) // refreshTenants intentionally omitted to prevent loops
 
   /**
-   * Fetch permissions when tenant changes or user logs in
-   * Skip if we're in the middle of a login (signIn already fetches this data)
+   * Fetch permissions when tenant changes or user logs in.
+   *
+   * Guards:
+   * - Skip while still loading auth state
+   * - Skip during an in-progress login (signIn already fetched everything)
+   * - Skip during an in-progress permissions fetch (isFetchingPermissionsRef)
+   * - Skip if permissions were already loaded for this exact tenant (permissionsLoadedForTenantRef)
+   *
+   * Deps intentionally exclude `permissions` / `workflowRoles` lengths to avoid
+   * re-trigger loops whenever those arrays change.
    */
   useEffect(() => {
-    if (!isLoading && user && currentTenant && !isLoggingInRef.current) {
-      // Only refresh if permissions are empty (not already loaded from signIn)
-      if (permissions.length === 0 && workflowRoles.length === 0) {
-        refreshPermissions()
-      }
-    } else if (!user || !currentTenant) {
-      // Clear permissions when logged out or no tenant
+    if (isLoading) return
+
+    if (!user || !currentTenant) {
+      // Logged out or no tenant — clear permissions
       setPermissions([])
       setWorkflowRoles([])
+      permissionsLoadedForTenantRef.current = null
+      return
     }
+
+    // Skip if already loaded for this tenant, or a fetch is already in flight
+    if (
+      isLoggingInRef.current ||
+      isFetchingPermissionsRef.current ||
+      permissionsLoadedForTenantRef.current === currentTenant.tenant_id
+    ) {
+      return
+    }
+
+    refreshPermissions()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, currentTenant, isLoading, permissions.length, workflowRoles.length]) // refreshPermissions intentionally omitted to prevent loops
+  }, [user, currentTenant, isLoading]) // refreshPermissions intentionally omitted — accessed via ref to avoid loops
 
   const value: AuthContextType = {
     // State

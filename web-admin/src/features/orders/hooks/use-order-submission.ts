@@ -6,6 +6,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { useTranslations } from 'next-intl';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
@@ -82,6 +83,7 @@ export function useOrderSubmission() {
     const t = useTranslations('newOrder');
     const tWorkflow = useTranslations('workflow');
     const tEdit = useTranslations('orders.edit');
+    const router = useRouter();
     const { currentTenant, user } = useAuth();
     const { trackByPiece } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
@@ -623,36 +625,15 @@ export function useOrderSubmission() {
             const orderNo = (json.data?.order?.order_no ?? json.data?.order_no ?? state.state.editingOrderNo) || '';
             cmxMessage.success(tEdit('success') || t('success.orderUpdated', { orderNo }) || `Order ${orderNo} updated successfully`);
 
-            // Update originalOrderData from current state so isDirty resets (API response shape may differ)
-            const newOriginal: Record<string, unknown> = {
-                ...(state.state.originalOrderData as Record<string, unknown> | null),
-                customer_id: state.state.customer?.id ?? null,
-                branch_id: state.state.branchId,
-                notes: state.state.notes,
-                is_express: state.state.express,
-                customer_name: state.state.customerNameSnapshot,
-                customer_mobile: state.state.customerMobile,
-                customer_email: state.state.customerEmail,
-                ready_by_at: state.state.readyByAt,
-                items: state.state.items.map((item) => ({
-                    product_id: item.productId,
-                    quantity: item.quantity,
-                    price_per_unit: item.pricePerUnit,
-                    notes: item.notes,
-                    price_override: item.priceOverride,
-                    override_reason: item.overrideReason,
-                    pieces: item.pieces?.map((p) => ({
-                        piece_seq: p.pieceSeq,
-                        color: p.color,
-                        brand: p.brand,
-                        has_stain: p.hasStain,
-                        has_damage: p.hasDamage,
-                        notes: p.notes,
-                        rack_location: p.rackLocation,
-                    })),
-                })),
-            };
-            state.dispatch({ type: 'UPDATE_ORIGINAL_ORDER_DATA', payload: newOriginal });
+            // Update expectedUpdatedAt with the new updated_at from the server response
+            // so optimistic locking works correctly if the user stays on the page
+            const newUpdatedAt = json.data?.order?.updated_at;
+            if (newUpdatedAt) {
+                state.dispatch({ type: 'SET_EXPECTED_UPDATED_AT', payload: new Date(newUpdatedAt) });
+            }
+
+            // Navigate back to previous page after successful save
+            router.back();
         } catch (err: unknown) {
             const error = err as Error;
             cmxMessage.error(error.message || t('errors.unknownError'));
@@ -660,7 +641,7 @@ export function useOrderSubmission() {
             setIsSubmitting(false);
             state.setLoading(false);
         }
-    }, [state, trackByPiece, csrfToken, t, tEdit]);
+    }, [state, trackByPiece, csrfToken, t, tEdit, router]);
 
     return {
         submitOrder,
