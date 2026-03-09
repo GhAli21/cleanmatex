@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
@@ -10,6 +9,9 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { OrderDetailsFullClient } from './order-details-full-client';
+import { OrderDetailError } from '../order-detail-error';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface OrderDetailsFullPageProps {
   params: Promise<{
@@ -47,6 +49,20 @@ async function OrderDetailsFullContent({
   const { processPayment } = await import('@/app/actions/payments/process-payment');
   const { applyPaymentToInvoice } = await import('@/app/actions/payments/process-payment');
 
+  // Validate order ID
+  if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
+    return (
+      <OrderDetailError
+        orderId={orderId || ''}
+        title={t('errorInvalidOrderId')}
+        description={t('errorInvalidOrderIdDesc')}
+        backToOrders={tOrders('allOrders')}
+        returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
+        returnLabel={searchParams?.returnLabel}
+      />
+    );
+  }
+
   const [
     orderResult,
     paymentsResult,
@@ -64,7 +80,16 @@ async function OrderDetailsFullContent({
   ]);
 
   if (!orderResult.success || !orderResult.data) {
-    notFound();
+    return (
+      <OrderDetailError
+        orderId={orderId}
+        title={t('errorOrderNotFound')}
+        description={t('errorOrderNotFoundDesc')}
+        backToOrders={tOrders('allOrders')}
+        returnUrl={searchParams?.returnUrl ?? '/dashboard/orders'}
+        returnLabel={searchParams?.returnLabel}
+      />
+    );
   }
 
   const order = orderResult.data;

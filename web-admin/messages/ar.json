@@ -952,7 +952,11 @@
       "recordDepositPos": "تسجيل عربون / نقاط بيع",
       "selectInvoiceToApply": "اختر الفاتورة لتطبيق الدفعة عليها",
       "paymentKind": "نوع الدفع",
-      "viewFullDetails": "عرض التفاصيل الكاملة"
+      "viewFullDetails": "عرض التفاصيل الكاملة",
+      "errorOrderNotFound": "الطلب غير موجود",
+      "errorOrderNotFoundDesc": "الطلب الذي تبحث عنه غير موجود. ربما تم حذفه أو قد لا يكون لديك صلاحية الوصول إليه.",
+      "errorInvalidOrderId": "معرف الطلب غير صالح",
+      "errorInvalidOrderIdDesc": "معرف الطلب مفقود أو غير صالح. يرجى التحقق من الرابط والمحاولة مرة أخرى."
     },
     "detailFull": {
       "viewFullDetails": "عرض التفاصيل الكاملة",

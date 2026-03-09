@@ -951,7 +951,11 @@
       "recordDepositPos": "Record deposit / POS",
       "selectInvoiceToApply": "Select invoice to apply payment to",
       "paymentKind": "Payment kind",
-      "viewFullDetails": "View full details"
+      "viewFullDetails": "View full details",
+      "errorOrderNotFound": "Order not found",
+      "errorOrderNotFoundDesc": "The order you are looking for could not be found. It may have been deleted or you may not have access to it.",
+      "errorInvalidOrderId": "Invalid order ID",
+      "errorInvalidOrderIdDesc": "The order ID is missing or invalid. Please check the URL and try again."
     },
     "detailFull": {
       "viewFullDetails": "View full details",

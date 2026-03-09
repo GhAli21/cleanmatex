@@ -1,5 +1,4 @@
 import { Suspense } from 'react';
-import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getLocale } from 'next-intl/server';
 import { getOrder } from '@/app/actions/orders/get-order';
@@ -7,6 +6,9 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { getPaymentsForOrder } from '@/app/actions/payments/process-payment';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { OrderDetailClient } from './order-detail-client';
+import { OrderDetailError } from './order-detail-error';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -33,6 +35,20 @@ async function OrderDetailContent({
   const { processPayment } = await import('@/app/actions/payments/process-payment');
   const { applyPaymentToInvoice } = await import('@/app/actions/payments/process-payment');
 
+  // Validate order ID
+  if (!orderId || typeof orderId !== 'string' || !UUID_REGEX.test(orderId.trim())) {
+    return (
+      <OrderDetailError
+        orderId={orderId || ''}
+        title={t('errorInvalidOrderId')}
+        description={t('errorInvalidOrderIdDesc')}
+        backToOrders={t('backToOrders')}
+        returnUrl={searchParams?.returnUrl}
+        returnLabel={searchParams?.returnLabel}
+      />
+    );
+  }
+
   // Fetch order, payments for order, and order invoices
   const [orderResult, paymentsResult, invoicesResult] = await Promise.all([
     getOrder(tenantId, orderId),
@@ -41,7 +57,16 @@ async function OrderDetailContent({
   ]);
 
   if (!orderResult.success || !orderResult.data) {
-    notFound();
+    return (
+      <OrderDetailError
+        orderId={orderId}
+        title={t('errorOrderNotFound')}
+        description={t('errorOrderNotFoundDesc')}
+        backToOrders={t('backToOrders')}
+        returnUrl={searchParams?.returnUrl}
+        returnLabel={searchParams?.returnLabel}
+      />
+    );
   }
 
   const order = orderResult.data;
