@@ -1707,7 +1707,10 @@ export class OrderService {
               }))
               : undefined;
 
-            const piecesResult = await OrderPieceService.createPiecesForItem(
+            // Use the tx-aware method: runs entirely within the Prisma transaction
+            // so all writes are atomic and visible to each other without isolation gaps.
+            await OrderPieceService.createPiecesForItemWithTx(
+              tx,
               tenantId,
               orderId,
               createdItem.id,
@@ -1717,8 +1720,6 @@ export class OrderService {
                 productId: item.productId,
                 pricePerUnit: item.pricePerUnit,
                 totalPrice: item.totalPrice,
-                color: undefined,
-                brand: undefined,
                 hasStain: item.hasStain,
                 hasDamage: item.hasDamage,
                 notes: item.notes,
@@ -1726,10 +1727,6 @@ export class OrderService {
               },
               piecesData
             );
-
-            if (!piecesResult.success) {
-              throw new Error(`Failed to create pieces for item: ${piecesResult.error}`);
-            }
           }
         }
 

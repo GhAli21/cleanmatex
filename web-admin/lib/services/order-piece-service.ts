@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db/prisma';
 import type { OrderItemPiece } from '@/types/order';
 import { log } from '@/lib/utils/logger';
 import {
@@ -12,6 +13,9 @@ import {
   mapOrderPiecesFromDb,
   type OrderPieceDbModel,
 } from '@/lib/mappers/order-piece.mapper';
+
+/** Prisma transaction client — same shape used in order-service.ts */
+type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 export interface CreatePieceParams {
   tenantId: string;
@@ -191,6 +195,102 @@ export class OrderPieceService {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  }
+
+  /**
+   * Create pieces for an order item inside an existing Prisma transaction.
+   *
+   * Use this instead of `createPiecesForItem` whenever the parent order item was
+   * created within the same Prisma transaction (e.g. during order update).  All
+   * reads and writes use the transaction client so they are fully atomic with the
+   * surrounding transaction and are never affected by transaction isolation issues.
+   *
+   * `quantity_ready` is intentionally left at 0 — newly created pieces have
+   * status "processing", so the count would be 0 regardless.
+   */
+  static async createPiecesForItemWithTx(
+    tx: PrismaTx,
+    tenantId: string,
+    orderId: string,
+    orderItemId: string,
+    quantity: number,
+    baseData: {
+      serviceCategoryCode?: string;
+      productId?: string;
+      pricePerUnit: number;
+      totalPrice: number;
+      color?: string;
+      brand?: string;
+      hasStain?: boolean;
+      hasDamage?: boolean;
+      notes?: string;
+      metadata?: Record<string, any>;
+    },
+    piecesData?: Array<{
+      pieceSeq: number;
+      color?: string;
+      brand?: string;
+      hasStain?: boolean;
+      hasDamage?: boolean;
+      notes?: string;
+      rackLocation?: string;
+      metadata?: Record<string, any>;
+    }>
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const pricePerPiece = baseData.pricePerUnit / quantity;
+      const totalPricePerPiece = baseData.totalPrice / quantity;
+
+      const piecesToInsert = Array.from({ length: quantity }, (_, index) => {
+        const pieceSeq = index + 1;
+        const pieceData = piecesData?.find(p => p.pieceSeq === pieceSeq);
+
+        return {
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          order_item_id: orderItemId,
+          piece_seq: pieceSeq,
+          service_category_code: baseData.serviceCategoryCode ?? null,
+          product_id: baseData.productId ?? null,
+          scan_state: 'expected',
+          barcode: null,
+          quantity: 1,
+          price_per_unit: pricePerPiece,
+          total_price: totalPricePerPiece,
+          piece_status: 'processing',
+          piece_stage: null,
+          is_rejected: false,
+          issue_id: null,
+          rack_location: pieceData?.rackLocation ?? null,
+          last_step_at: null,
+          last_step_by: null,
+          last_step: null,
+          notes: pieceData?.notes ?? baseData.notes ?? null,
+          color: pieceData?.color ?? baseData.color ?? null,
+          brand: pieceData?.brand ?? baseData.brand ?? null,
+          has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
+          has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
+          metadata: (pieceData?.metadata ?? baseData.metadata ?? {}) as object,
+          created_by: null,
+          created_info: null,
+          rec_status: 1,
+        };
+      });
+
+      await tx.org_order_item_pieces_dtl.createMany({ data: piecesToInsert });
+
+      // quantity_ready stays 0 — new pieces are "processing", not "ready"
+
+      return { success: true };
+    } catch (error) {
+      log.error(
+        '[OrderPieceService] Exception creating pieces within transaction',
+        error instanceof Error ? error : new Error(String(error)),
+        { feature: 'order_pieces', action: 'create_pieces_with_tx', tenantId, orderId, orderItemId, quantity }
+      );
+      // Re-throw so the enclosing Prisma transaction rolls back atomically
+      throw error;
     }
   }
 
