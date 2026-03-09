@@ -154,18 +154,24 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                     className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <Link
-                      href={`/dashboard/orders/${order.id}`}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      {t('view')}
-                    </Link>
-                    <Link
-                      href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent('/dashboard/orders')}&returnLabel=${encodeURIComponent(t('allOrders'))}`}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                    >
-                      {t('detail.viewFullDetails')}
-                    </Link>
+                    {order.id ? (
+                      <>
+                        <Link
+                          href={`/dashboard/orders/${order.id}`}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          {t('view')}
+                        </Link>
+                        <Link
+                          href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent('/dashboard/orders')}&returnLabel=${encodeURIComponent(t('allOrders'))}`}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          {t('detail.viewFullDetails')}
+                        </Link>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-400">—</span>
+                    )}
                   </div>
                 </td>
               </tr>
