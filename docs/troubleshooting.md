@@ -335,6 +335,39 @@ DATABASE_URL="postgresql://postgres.[REF]:[PASS]@...pooler.supabase.com:6543/pos
 - `connection_limit=10` — allows up to 10 concurrent connections (adjust based on load)
 - `pool_timeout=20` — seconds to wait for a free connection (default 10)
 
+### Prisma: "canceling statement due to statement timeout" (PostgreSQL 57014)
+
+**Symptoms:**
+
+- `ConnectorError ... PostgresError { code: "57014", message: "canceling statement due to statement timeout" }`
+- Queries on `org_orders_mst` or other tables time out
+
+**Cause:** Supabase sets default `statement_timeout` (e.g. 8s for `authenticated`, 3s for `anon`). Prisma connects as `postgres`; long-running queries exceed the limit.
+
+**Solutions:**
+
+1. **Increase timeout at database level** (Supabase Dashboard → SQL Editor):
+
+   ```sql
+   -- For all connections (max 60s for Dashboard/API)
+   ALTER DATABASE postgres SET statement_timeout = '60s';
+
+   -- Or for postgres role only (used by Prisma direct connection)
+   ALTER ROLE postgres SET statement_timeout = '60s';
+   ```
+
+2. **Set per-session via connection URL** (Prisma, direct connection only):
+
+   Add `options=-c statement_timeout=60000` to `DATABASE_URL` (60000 = 60 seconds in ms):
+
+   ```env
+   DATABASE_URL="postgresql://...?connection_limit=10&pool_timeout=20&options=-c%20statement_timeout%3D60000"
+   ```
+
+   Note: With Supabase pooler (port 6543, `pgbouncer=true`), session options may not persist. Prefer solution 1 (ALTER) for production.
+
+3. **Optimize slow queries** — Add pagination, limit `include` depth, ensure indexes on `tenant_org_id`, `status`, `created_at`. Use Query Performance in Supabase Dashboard to find slow queries.
+
 ---
 
 ## Supabase Issues
