@@ -130,6 +130,16 @@ export interface Order {
   customer_notes: string | null;
   internal_notes: string | null;
 
+  // Denormalized customer fields (written at order creation/update, schema org_orders_mst lines 774-778)
+  // NOTE: These use schema names. The API layer (/api/v1/orders/[id]) translates:
+  //   customer_mobile_number → customer_mobile (API/frontend)
+  //   internal_notes → notes (API/frontend)
+  customer_name?: string | null;
+  customer_mobile_number?: string | null;
+  customer_email?: string | null;
+  customer_details?: Record<string, unknown> | null;
+  is_default_customer?: boolean | null;
+
   // Media (new in PRD-004)
   photo_urls: string[];
   qr_code: string | null;

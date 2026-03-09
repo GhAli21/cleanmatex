@@ -388,20 +388,28 @@ model org_branches_mst {
   name                        String?
   name2                       String?
   is_main                     Boolean?                      @default(false)
-  org_asm_locations_mst       org_asm_locations_mst[]
-  org_tenants_mst             org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
-  org_dlv_routes_mst          org_dlv_routes_mst[]
-  org_dlv_slots_mst           org_dlv_slots_mst[]
-  org_fin_vouchers_mst        org_fin_vouchers_mst[]
-  org_gift_card_transactions  org_gift_card_transactions[]
-  org_inv_stock_by_branch     org_inv_stock_by_branch[]
-  org_inv_stock_tr            org_inv_stock_tr[]
-  org_invoice_mst             org_invoice_mst[]
-  org_orders_mst              org_orders_mst[]
-  org_payments_dtl_tr         org_payments_dtl_tr[]
-  org_rcpt_receipts_mst       org_rcpt_receipts_mst[]
-  org_stng_audit_log_tr       org_stng_audit_log_tr[]
-  org_stng_effective_cache_cf org_stng_effective_cache_cf[]
+  org_asm_exceptions_tr             org_asm_exceptions_tr[]
+  org_asm_locations_mst             org_asm_locations_mst[]
+  org_tenants_mst                   org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_branch_tenant")
+  org_dlv_pod_tr                    org_dlv_pod_tr[]
+  org_dlv_routes_mst                org_dlv_routes_mst[]
+  org_dlv_slots_mst                 org_dlv_slots_mst[]
+  org_dlv_stops_dtl                 org_dlv_stops_dtl[]
+  org_fin_vouchers_mst              org_fin_vouchers_mst[]
+  org_gift_card_transactions        org_gift_card_transactions[]
+  org_inv_stock_by_branch           org_inv_stock_by_branch[]
+  org_inv_stock_tr                  org_inv_stock_tr[]
+  org_invoice_mst                   org_invoice_mst[]
+  org_order_item_pieces_dtl         org_order_item_pieces_dtl[]
+  org_order_item_processing_steps   org_order_item_processing_steps[]
+  org_order_items_dtl               org_order_items_dtl[]
+  org_orders_mst                    org_orders_mst[]
+  org_pck_packing_lists_mst         org_pck_packing_lists_mst[]
+  org_payments_dtl_tr               org_payments_dtl_tr[]
+  org_qa_decisions_tr               org_qa_decisions_tr[]
+  org_rcpt_receipts_mst             org_rcpt_receipts_mst[]
+  org_stng_audit_log_tr             org_stng_audit_log_tr[]
+  org_stng_effective_cache_cf       org_stng_effective_cache_cf[]
 
   @@id([id, tenant_org_id])
   @@schema("public")
@@ -596,6 +604,7 @@ model org_order_items_dtl {
   id                              String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   order_id                        String                            @db.Uuid
   tenant_org_id                   String                            @db.Uuid
+  branch_id                       String?                           @db.Uuid
   service_category_code           String?                           @db.VarChar(120)
   order_item_srno                 String?
   product_id                      String?                           @db.Uuid
@@ -638,6 +647,7 @@ model org_order_items_dtl {
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
+  org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_items_branch")
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
   org_product_data_mst            org_product_data_mst?             @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_prod")
@@ -647,6 +657,7 @@ model org_order_items_dtl {
   @@unique([id, order_id, tenant_org_id], map: "org_order_items_tenant_org_id_order_id_key")
   @@index([tenant_org_id], map: "idx_order_items_tenant")
   @@index([order_id], map: "idx_org_items_order")
+  @@index([tenant_org_id, branch_id], map: "idx_ord_items_branch")
   @@index([tenant_org_id], map: "idx_org_items_tenant")
   @@index([tenant_org_id, item_stage], map: "idx_order_items_stage")
   @@index([tenant_org_id, item_status], map: "idx_order_items_status")
@@ -1666,6 +1677,7 @@ model org_order_item_processing_steps {
   tenant_org_id       String              @db.Uuid
   order_id            String              @db.Uuid
   order_item_id       String              @db.Uuid
+  branch_id           String?             @db.Uuid
   step_code           String
   step_seq            Int
   done_by             String?             @db.Uuid
@@ -1681,6 +1693,7 @@ model org_order_item_processing_steps {
   rec_status          Int?                @default(1) @db.SmallInt
   rec_order           Int?
   rec_notes           String?
+  org_branches_mst    org_branches_mst?   @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_proc_steps_branch")
   users               users?              @relation(fields: [done_by], references: [id], onUpdate: NoAction, map: "fk_step_done_by")
   org_orders_mst      org_orders_mst      @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_step_order")
   org_order_items_dtl org_order_items_dtl @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_step_order_item")
@@ -1691,6 +1704,7 @@ model org_order_item_processing_steps {
   @@index([order_id, done_at(sort: Desc)], map: "idx_step_order")
   @@index([order_item_id, done_at(sort: Desc)], map: "idx_step_order_item")
   @@index([tenant_org_id, done_at(sort: Desc)], map: "idx_step_tenant")
+  @@index([tenant_org_id, branch_id], map: "idx_ord_proc_steps_branch")
   @@schema("public")
 }
 
@@ -4314,6 +4328,7 @@ model org_asm_exceptions_tr {
   id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   task_id             String            @db.Uuid
   tenant_org_id       String            @db.Uuid
+  branch_id           String?           @db.Uuid
   exception_type_code String            @db.VarChar(50)
   severity            String?           @default("MEDIUM") @db.VarChar(20)
   description         String
@@ -4335,11 +4350,13 @@ model org_asm_exceptions_tr {
   updated_at          DateTime?         @db.Timestamp(6)
   updated_by          String?           @db.VarChar(120)
   updated_info        String?
+  org_branches_mst    org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_asm_exc_branch")
   org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_asm_exception_task")
 
   @@index([task_id, exception_status], map: "idx_asm_exceptions_status")
   @@index([task_id], map: "idx_asm_exceptions_task")
   @@index([tenant_org_id, exception_type_code], map: "idx_asm_exceptions_type")
+  @@index([tenant_org_id, branch_id], map: "idx_asm_exc_branch")
   @@schema("public")
 }
 
@@ -4473,6 +4490,7 @@ model org_dlv_pod_tr {
   id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   stop_id           String            @db.Uuid
   tenant_org_id     String            @db.Uuid
+  branch_id         String?           @db.Uuid
   pod_method_code   String            @db.VarChar(50)
   otp_code          String?           @db.VarChar(10)
   otp_verified      Boolean?          @default(false)
@@ -4491,11 +4509,13 @@ model org_dlv_pod_tr {
   updated_at        DateTime?         @db.Timestamp(6)
   updated_by        String?           @db.VarChar(120)
   updated_info      String?
+  org_branches_mst  org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_pod_branch")
   org_dlv_stops_dtl org_dlv_stops_dtl @relation(fields: [stop_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_pod_stop")
 
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_dlv_pod_created")
   @@index([stop_id], map: "idx_dlv_pod_stop")
   @@index([tenant_org_id], map: "idx_dlv_pod_tenant")
+  @@index([tenant_org_id, branch_id], map: "idx_dlv_pod_branch")
   @@schema("public")
 }
 
@@ -4577,6 +4597,7 @@ model org_dlv_stops_dtl {
   route_id           String             @db.Uuid
   order_id           String             @db.Uuid
   tenant_org_id      String             @db.Uuid
+  branch_id          String?            @db.Uuid
   sequence           Int
   address            String
   address_lat        Decimal?           @db.Decimal(10, 8)
@@ -4598,6 +4619,7 @@ model org_dlv_stops_dtl {
   updated_at         DateTime?          @db.Timestamp(6)
   updated_by         String?            @db.VarChar(120)
   updated_info       String?
+  org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_dlv_stops_branch")
   org_dlv_pod_tr     org_dlv_pod_tr[]
   org_orders_mst     org_orders_mst     @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_order")
   org_dlv_routes_mst org_dlv_routes_mst @relation(fields: [route_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_dlv_stop_route")
@@ -4607,6 +4629,7 @@ model org_dlv_stops_dtl {
   @@index([order_id], map: "idx_dlv_stops_order")
   @@index([route_id], map: "idx_dlv_stops_route")
   @@index([tenant_org_id, scheduled_time], map: "idx_dlv_stops_scheduled")
+  @@index([tenant_org_id, branch_id], map: "idx_dlv_stops_branch")
   @@index([route_id, stop_status_code], map: "idx_dlv_stops_status")
   @@schema("public")
 }
@@ -4652,6 +4675,7 @@ model org_ff_overrides_cf {
 model org_pck_packing_lists_mst {
   id                  String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id       String            @db.Uuid
+  branch_id           String?           @db.Uuid
   order_id            String            @db.Uuid
   task_id             String            @db.Uuid
   list_number         String            @db.VarChar(100)
@@ -4673,6 +4697,7 @@ model org_pck_packing_lists_mst {
   updated_at          DateTime?         @db.Timestamp(6)
   updated_by          String?           @db.VarChar(120)
   updated_info        String?
+  org_branches_mst    org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_pck_list_branch")
   org_orders_mst      org_orders_mst    @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_order")
   org_asm_tasks_mst   org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_task")
   org_tenants_mst     org_tenants_mst   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_pck_list_tenant")
@@ -4682,6 +4707,7 @@ model org_pck_packing_lists_mst {
   @@index([order_id], map: "idx_pck_lists_order")
   @@index([task_id], map: "idx_pck_lists_task")
   @@index([tenant_org_id], map: "idx_pck_lists_tenant")
+  @@index([tenant_org_id, branch_id], map: "idx_pck_list_branch")
   @@schema("public")
 }
 
@@ -4691,6 +4717,7 @@ model org_qa_decisions_tr {
   id                 String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   task_id            String            @db.Uuid
   tenant_org_id      String            @db.Uuid
+  branch_id          String?           @db.Uuid
   order_id           String            @db.Uuid
   decision_type_code String            @db.VarChar(50)
   qa_by              String            @db.Uuid
@@ -4707,6 +4734,7 @@ model org_qa_decisions_tr {
   updated_at         DateTime?         @db.Timestamp(6)
   updated_by         String?           @db.VarChar(120)
   updated_info       String?
+  org_branches_mst   org_branches_mst? @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_qa_dec_branch")
   org_orders_mst     org_orders_mst    @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_qa_decision_order")
   org_asm_tasks_mst  org_asm_tasks_mst @relation(fields: [task_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_qa_decision_task")
 
@@ -4714,6 +4742,7 @@ model org_qa_decisions_tr {
   @@index([order_id], map: "idx_qa_decisions_order")
   @@index([task_id], map: "idx_qa_decisions_task")
   @@index([tenant_org_id], map: "idx_qa_decisions_tenant")
+  @@index([tenant_org_id, branch_id], map: "idx_qa_dec_branch")
   @@schema("public")
 }
 
@@ -5178,6 +5207,7 @@ model org_order_item_pieces_dtl {
   tenant_org_id           String                   @db.Uuid
   order_id                String                   @db.Uuid
   order_item_id           String                   @db.Uuid
+  branch_id               String?                  @db.Uuid
   piece_seq               Int
   piece_code              String?                  @default(dbgenerated("(((((order_id)::text || '-'::text) || (order_item_id)::text) || '-'::text) || piece_seq)"))
   service_category_code   String?                  @db.VarChar(120)
@@ -5211,6 +5241,7 @@ model org_order_item_pieces_dtl {
   updated_by              String?
   updated_info            String?
   is_ready                Boolean                  @default(false)
+  org_branches_mst        org_branches_mst?        @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_pieces_branch")
   org_order_items_dtl     org_order_items_dtl      @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")
   org_orders_mst          org_orders_mst           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_order")
   org_product_data_mst    org_product_data_mst?    @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_org_pieces_product")
@@ -5223,6 +5254,7 @@ model org_order_item_pieces_dtl {
   @@index([order_id, order_item_id, piece_status], map: "idx_order_pieces_order_item_status")
   @@index([tenant_org_id, scan_state], map: "idx_order_pieces_scan_state")
   @@index([tenant_org_id, piece_status], map: "idx_order_pieces_status")
+  @@index([tenant_org_id, branch_id], map: "idx_ord_pieces_branch")
   @@index([tenant_org_id], map: "idx_order_pieces_tenant")
   @@schema("public")
 }

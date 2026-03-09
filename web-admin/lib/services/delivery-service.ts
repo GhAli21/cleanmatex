@@ -236,6 +236,7 @@ export class DeliveryService {
           route_id: route.id,
           order_id: orderId,
           tenant_org_id: tenantId,
+          branch_id: (order as any).branch_id ?? null,
           sequence: i + 1,
           address: address || null,
           stop_status_code: 'pending',
@@ -377,7 +378,7 @@ export class DeliveryService {
       // Find stop for this order
       const { data: stop, error: stopError } = await supabase
         .from('org_dlv_stops_dtl')
-        .select('id')
+        .select('id, branch_id')
         .eq('order_id', orderId)
         .eq('tenant_org_id', tenantId)
         .eq('stop_status_code', 'pending')
@@ -411,6 +412,7 @@ export class DeliveryService {
         await supabase.from('org_dlv_pod_tr').insert({
           stop_id: stop.id,
           tenant_org_id: tenantId,
+          branch_id: (stop as any).branch_id ?? null,
           pod_method_code: 'OTP',
           otp_code: encryptedOTP,
           otp_verified: false,
@@ -584,6 +586,7 @@ export class DeliveryService {
       const podData: any = {
         stop_id: stopId,
         tenant_org_id: tenantId,
+        branch_id: (stop as any).branch_id ?? null,
         pod_method_code: podMethodCode,
         verified_at: new Date().toISOString(),
         verified_by: userId,

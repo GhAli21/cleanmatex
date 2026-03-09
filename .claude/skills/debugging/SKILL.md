@@ -137,6 +137,34 @@ supabase gen types typescript --local > web-admin/types/database.ts
 # Cmd+Shift+P → "TypeScript: Restart TS Server"
 ```
 
+### Prisma Unknown Field Error
+
+**Symptom:** `Invalid prisma.<model>.update() invocation` with `~~~` under a field name in the error
+
+**Root Cause:** Using the API-layer/frontend field name in a Prisma write instead of the actual schema field name.
+
+**Field Translation Table — orders (DB Schema ↔ API/Frontend):**
+| Prisma Write — DB Schema ✅ | API Output / Frontend ❌ (never use in writes) |
+|-----------------------------|------------------------------------------------|
+| `customer_mobile_number`    | `customer_mobile`                              |
+| `internal_notes`            | `notes`                                        |
+| `priority` (string)         | `is_express` (boolean)                         |
+| `ready_by` / `ready_by_at_new` | `ready_by_at`                               |
+
+**Translation lives in:** `web-admin/app/api/v1/orders/[id]/route.ts` lines 71–85
+
+**Rule:** In ALL Prisma `.create()` / `.update()` / `.upsert()` calls, use schema field names ONLY.
+
+```typescript
+// ❌ WRONG — frontend/API name used in Prisma write
+updateData.customer_mobile = value;
+
+// ✅ CORRECT — schema field name
+updateData.customer_mobile_number = value;
+```
+
+**How to verify:** Open `prisma/schema.prisma`, find the model, confirm exact field name. Never trust the API response field name or frontend variable name.
+
 ## Authentication Issues
 
 ### Missing Tenant Context

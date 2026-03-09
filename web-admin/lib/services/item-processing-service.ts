@@ -58,10 +58,10 @@ export class ItemProcessingService {
       const supabase = createClient();
       const { orderId, orderItemId, tenantId, stepCode, stepSeq, notes, userId, userName } = params;
 
-      // Get order item to find service category
+      // Get order item to find service category and branch
       const { data: orderItem, error: itemError } = await supabase
         .from('org_order_items_dtl')
-        .select('service_category_code')
+        .select('service_category_code, branch_id')
         .eq('id', orderItemId)
         .eq('tenant_org_id', tenantId)
         .single();
@@ -122,6 +122,7 @@ export class ItemProcessingService {
           tenant_org_id: tenantId,
           order_id: orderId,
           order_item_id: orderItemId,
+          branch_id: orderItem.branch_id ?? null,
           step_code: stepCode,
           step_seq: stepSeq,
           done_by: userId,

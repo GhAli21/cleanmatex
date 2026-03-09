@@ -106,7 +106,7 @@ export async function POST(
     const supabase = await createClient();
     const { data: item, error: itemError } = await supabase
       .from('org_order_items_dtl')
-      .select('id, order_id, tenant_org_id, quantity, price_per_unit, total_price')
+      .select('id, order_id, tenant_org_id, quantity, price_per_unit, total_price, branch_id')
       .eq('id', itemId)
       .eq('order_id', orderId)
       .eq('tenant_org_id', tenantId)
@@ -136,7 +136,9 @@ export async function POST(
         hasDamage: baseData.hasDamage,
         notes: baseData.notes,
         metadata: baseData.metadata,
-      }
+      },
+      undefined,
+      (item as any).branch_id ?? undefined
     );
 
     if (!result.success) {

@@ -102,7 +102,8 @@ export class OrderPieceService {
       notes?: string;
       rackLocation?: string;
       metadata?: Record<string, any>;
-    }>
+    }>,
+    branchId?: string
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
     try {
       const supabase = await createClient();
@@ -133,6 +134,7 @@ export class OrderPieceService {
           tenant_org_id: tenantId,
           order_id: orderId,
           order_item_id: orderItemId,
+          branch_id: branchId ?? null,
           piece_seq: pieceSeq,
           service_category_code: baseData.serviceCategoryCode || null,
           product_id: baseData.productId || null,
@@ -236,7 +238,8 @@ export class OrderPieceService {
       notes?: string;
       rackLocation?: string;
       metadata?: Record<string, any>;
-    }>
+    }>,
+    branchId?: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const pricePerPiece = baseData.pricePerUnit / quantity;
@@ -250,6 +253,7 @@ export class OrderPieceService {
           tenant_org_id: tenantId,
           order_id: orderId,
           order_item_id: orderItemId,
+          branch_id: branchId ?? null,
           piece_seq: pieceSeq,
           service_category_code: baseData.serviceCategoryCode ?? null,
           product_id: baseData.productId ?? null,

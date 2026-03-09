@@ -437,6 +437,7 @@ export class OrderService {
         const itemsToInsert = items.map((item, index) => ({
           order_id: order.id,
           tenant_org_id: tenantId,
+          branch_id: branchId ?? null,
           service_category_code: item.serviceCategoryCode,
           order_item_srno: `${orderNo}-${index + 1}`,
           product_id: item.productId,
@@ -501,7 +502,8 @@ export class OrderService {
                     notes: itemData.notes,
                     metadata: {},
                   },
-                  piecesData // Pass piece-level data array
+                  piecesData, // Pass piece-level data array
+                  branchId ?? undefined
                 );
 
                 // If pieces creation failed, collect the error
@@ -840,6 +842,7 @@ export class OrderService {
           data: {
             order_id: order.id,
             tenant_org_id: tenantId,
+            branch_id: branchId ?? null,
             service_category_code: item.serviceCategoryCode,
             order_item_srno: `${orderNo}-${index + 1}`,
             product_id: item.productId,
@@ -866,6 +869,7 @@ export class OrderService {
             tenant_org_id: tenantId,
             order_id: order.id,
             order_item_id: createdItem.id,
+            branch_id: branchId ?? null,
             piece_seq: i + 1,
             service_category_code: item.serviceCategoryCode,
             product_id: item.productId,
@@ -1419,6 +1423,7 @@ export class OrderService {
           .insert({
             tenant_org_id: tenantId,
             order_id: suborder.id,
+            branch_id: (item as any).branch_id ?? suborder.branch_id ?? null,
             product_id: item.product_id,
             service_category_code: item.service_category_code,
             product_name: item.product_name,
@@ -1674,6 +1679,7 @@ export class OrderService {
               data: {
                 order_id: orderId,
                 tenant_org_id: tenantId,
+                branch_id: branchId ?? existingOrder.branch_id ?? null,
                 service_category_code: item.serviceCategoryCode || 'GENERAL',
                 order_item_srno: `${orderNo}-${index + 1}`,
                 product_id: item.productId,
@@ -1725,7 +1731,8 @@ export class OrderService {
                 notes: item.notes,
                 metadata: {},
               },
-              piecesData
+              piecesData,
+              branchId ?? existingOrder.branch_id ?? undefined
             );
           }
         }

@@ -620,7 +620,6 @@ export function useOrderSubmission() {
                 return;
             }
 
-            const tEdit = useTranslations('orders.edit');
             const orderNo = (json.data?.order?.order_no ?? json.data?.order_no ?? state.state.editingOrderNo) || '';
             cmxMessage.success(tEdit('success') || t('success.orderUpdated', { orderNo }) || `Order ${orderNo} updated successfully`);
 

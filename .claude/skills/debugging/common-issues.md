@@ -6,6 +6,7 @@
 - **N+1 queries:** use relation selects
 - **TS type drift:** regenerate Supabase types
 - **next-intl config missing:** add `createNextIntlPlugin('./i18n.ts')` to `next.config.ts`
+- **Prisma unknown field `~~~`:** using API/frontend field name in write — see Issue 12 below
 
 ---
 
@@ -689,6 +690,67 @@ npm run build
 - Use try-catch around middleware application to handle build-time edge cases
 - Ensure API routes that use Prisma specify `runtime = 'nodejs'`
 - Middleware will be properly applied at runtime even if it fails during build
+
+---
+
+---
+
+### Issue 12: Prisma Unknown Field Error (3-Layer Field Translation)
+
+**Symptom:**
+```
+Invalid `prisma.org_orders_mst.update()` invocation:
+{ where: { id: "..." }, data: { ~~~~~~~~~~~ customer_mobile: "...", ... } }
+```
+The `~~~` wavy underline under a field name means Prisma does not recognize it — the wrong name was used.
+
+**Root Cause:**
+
+The codebase has a **deliberate 3-layer field name translation** for orders. The API serialization
+layer (`/api/v1/orders/[id]/route.ts` lines 71–85) translates DB schema field names to
+frontend-friendly names when serving the GET response. If a developer accidentally uses the
+frontend name in a Prisma **write** operation, Prisma rejects it.
+
+```
+Layer 1 — DB/Prisma writes     Layer 2 — API serialization     Layer 3 — Frontend state
+(use these in service code)    (translated in route.ts)         (used in React hooks/state)
+
+customer_mobile_number     →   customer_mobile             →   state.customerMobile
+internal_notes             →   notes                       →   state.notes
+priority (string)          →   is_express (boolean)        →   state.express
+ready_by / ready_by_at_new →   ready_by_at                 →   state.readyByAt
+```
+
+**Translation source file:** `web-admin/app/api/v1/orders/[id]/route.ts` lines 71–85
+
+**Rules:**
+- **Layer 1 (Prisma writes):** ALWAYS use exact schema field names from `prisma/schema.prisma`
+- **Layer 2 (API route `serializedOrder`):** Only place allowed to output translated names
+- **Layer 3 (frontend hooks/state):** Consumes translated names from the API response
+
+**Real Bug Example (March 2026):**
+```typescript
+// ❌ WRONG — caused production Prisma error
+updateData.customer_mobile = customerMobile;
+
+// ✅ CORRECT — exact schema field name
+updateData.customer_mobile_number = customerMobile;
+```
+
+**Fix Checklist:**
+1. Open `web-admin/prisma/schema.prisma`
+2. Find the model (e.g. `model org_orders_mst`)
+3. Confirm the **exact** field name — e.g. `customer_mobile_number` not `customer_mobile`
+4. Update the write operation to use the schema name
+5. Run `npm run build` to confirm no TypeScript errors
+
+**Files to check when this error appears:**
+- Service file with the write (e.g. `lib/services/order-service.ts`)
+- `prisma/schema.prisma` — ground truth for all field names
+- `app/api/v1/orders/[id]/route.ts` — where translations are defined (read-only direction only)
+
+**Audit note:** Full audit of 48 write operations across 6 models was performed March 2026.
+All other write ops are correct. Only `customer_mobile` was found mismatched.
 
 ---
 

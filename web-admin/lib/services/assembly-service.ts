@@ -551,6 +551,7 @@ export class AssemblyService {
         .insert({
           task_id: taskId,
           tenant_org_id: tenantId,
+          branch_id: (task as any).branch_id ?? null,
           exception_type_code: exceptionTypeCode,
           severity: severity || 'MEDIUM',
           description,
@@ -737,6 +738,7 @@ export class AssemblyService {
       const { error: qaError } = await supabase.from('org_qa_decisions_tr').insert({
         task_id: taskId,
         tenant_org_id: tenantId,
+        branch_id: (task as any).branch_id ?? null,
         order_id: (task.order as any).id,
         decision_type_code: decisionTypeCode,
         qa_by: userId,
@@ -856,6 +858,7 @@ export class AssemblyService {
         .from('org_pck_packing_lists_mst')
         .insert({
           tenant_org_id: tenantId,
+          branch_id: (task as any).branch_id ?? null,
           order_id: (task.order as any).id,
           task_id: taskId,
           list_number: listNumber,
