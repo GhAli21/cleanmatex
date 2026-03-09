@@ -150,13 +150,23 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                   )}
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
-                  <Link
-                    href={`/dashboard/orders/${order.id}`}
-                    className="text-xs text-blue-600 hover:text-blue-700"
+                  <div
+                    className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {t('view')}
-                  </Link>
+                    <Link
+                      href={`/dashboard/orders/${order.id}`}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      {t('view')}
+                    </Link>
+                    <Link
+                      href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent('/dashboard/orders')}&returnLabel=${encodeURIComponent(t('allOrders'))}`}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      {t('detail.viewFullDetails')}
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

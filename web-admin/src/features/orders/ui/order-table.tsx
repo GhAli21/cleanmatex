@@ -206,13 +206,23 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
                   )}
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>
-                  <Link
-                    href={`/dashboard/orders/${order.id}`}
-                    className="text-blue-600 hover:text-blue-700 text-sm"
+                  <div
+                    className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse justify-end' : 'justify-end'}`}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {t('view')}
-                  </Link>
+                    <Link
+                      href={`/dashboard/orders/${order.id}`}
+                      className="text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      {t('view')}
+                    </Link>
+                    <Link
+                      href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent('/dashboard/orders')}&returnLabel=${encodeURIComponent(t('allOrders'))}`}
+                      className="text-blue-600 hover:text-blue-700 text-sm"
+                    >
+                      {t('detail.viewFullDetails')}
+                    </Link>
+                  </div>
                 </td>
               </tr>
               );
