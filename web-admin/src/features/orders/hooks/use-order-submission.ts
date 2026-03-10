@@ -144,6 +144,12 @@ export function useOrderSubmission() {
                 const sanitizedNotes = state.state.notes
                     ? sanitizeOrderNotes(state.state.notes)
                     : undefined;
+                const sanitizedCustomerNotes = (state.state.customerNotes ?? state.state.notes)
+                    ? sanitizeOrderNotes(state.state.customerNotes ?? state.state.notes)
+                    : undefined;
+                const sanitizedPaymentNotes = paymentData.paymentNotes?.trim()
+                    ? sanitizeOrderNotes(paymentData.paymentNotes.trim())
+                    : undefined;
 
                 if (!payload?.totals) {
                     cmxMessage.error(t('payment.errors.invalidAmount'));
@@ -214,7 +220,8 @@ export function useOrderSubmission() {
                         quickDropQuantity: state.state.quickDropQuantity,
                     }),
                     express: state.state.express || false,
-                    customerNotes: sanitizedNotes,
+                    customerNotes: sanitizedCustomerNotes,
+                    paymentNotes: sanitizedPaymentNotes,
                     readyByAt: state.state.readyByAt,
                     paymentMethod: paymentData.paymentMethod,
                     percentDiscount: paymentData.percentDiscount ?? 0,
@@ -288,6 +295,8 @@ export function useOrderSubmission() {
                         })),
                         express: state.state.express || false,
                         notes: sanitizedNotes,
+                        customerNotes: sanitizedCustomerNotes,
+                        paymentNotes: sanitizedPaymentNotes,
                         readyByAt: state.state.readyByAt,
                         ...(state.state.branchId && { branchId: state.state.branchId }),
                         customerMobile: state.state.customerSnapshotOverride?.phone != null
@@ -550,6 +559,12 @@ export function useOrderSubmission() {
             const sanitizedNotes = state.state.notes
                 ? sanitizeOrderNotes(state.state.notes)
                 : undefined;
+            const sanitizedCustomerNotes = (state.state.customerNotes ?? state.state.notes)
+                ? sanitizeOrderNotes(state.state.customerNotes ?? state.state.notes)
+                : undefined;
+            const sanitizedPaymentNotes = state.state.paymentNotes?.trim()
+                ? sanitizeOrderNotes(state.state.paymentNotes.trim())
+                : undefined;
 
             const updateBody = {
                 customerId: state.state.customer?.id || '',
@@ -580,6 +595,8 @@ export function useOrderSubmission() {
                 })),
                 express: state.state.express || false,
                 notes: sanitizedNotes,
+                customerNotes: sanitizedCustomerNotes,
+                paymentNotes: sanitizedPaymentNotes,
                 ...(state.state.readyByAt && { readyByAt: state.state.readyByAt }),
                 ...(state.state.branchId && isValidBranchId(state.state.branchId) && { branchId: state.state.branchId }),
                 customerMobile: state.state.customerSnapshotOverride?.phone != null

@@ -1,6 +1,6 @@
 # PRD-003: Customer Management Feature
 
-**Status**: 🟡 In Progress (50% Complete)
+**Status**: Near-complete implementation set with partial testing follow-up
 **Priority**: Must Have (MVP)
 **Dependencies**: PRD-001 (Auth), PRD-002 (Tenant Management)
 
@@ -47,18 +47,18 @@ Progressive customer engagement system supporting three customer types:
   - `web-admin/lib/services/otp.service.ts`
   - `web-admin/lib/services/customer-addresses.service.ts`
 
-### Phase 3: API Endpoints ⏳ PENDING
-- Main customer routes (POST, GET)
-- Individual customer routes (GET, PATCH, DELETE)
-- Profile upgrade endpoint
-- Address management routes
-- OTP verification routes
-- Admin routes (merge, export)
+### Phase 3: API Endpoints ✅ COMPLETE
+- Main customer routes implemented
+- Individual customer routes implemented
+- Profile upgrade endpoint implemented
+- Address management routes implemented
+- OTP verification routes implemented
+- Admin routes implemented
 
-### Phase 4: Frontend UI ⏳ PENDING
-- Customer list page with search & filters
-- Customer detail page (tabbed interface)
-- Quick customer creation modal (POS)
+### Phase 4: Frontend UI ✅ COMPLETE
+- Customer list page with search and filters
+- Customer detail page with tabbed interface
+- Quick customer creation modal
 - OTP verification modal
 - Address management components
 
@@ -66,15 +66,13 @@ Progressive customer engagement system supporting three customer types:
 - Comprehensive type definitions
 - **File**: `web-admin/lib/types/customer.ts`
 
-### Phase 6: Testing ⏳ PENDING
-- Unit tests for services
-- Integration tests for API
-- E2E tests for critical flows
+### Phase 6: Testing 🟡 PARTIAL
+- Testing work exists but was not documented here as fully complete
+- Validate current automated coverage before making stronger completion claims
 
-### Phase 7: Documentation ⏳ PENDING
-- API reference
-- User guide
-- Testing guide
+### Phase 7: Documentation ✅ SUBSTANTIAL
+- Multiple implementation and completion docs exist in this folder
+- API and testing references exist, though some file names in this README were never updated fully
 
 ---
 
@@ -85,9 +83,10 @@ Progressive customer engagement system supporting three customer types:
 ├── README.md                          # This file
 ├── IMPLEMENTATION_PROGRESS.md         # Detailed progress tracking
 ├── NEXT_SESSION_PROMPT.md            # Quick start for next session
-├── API_REFERENCE.md                   # API documentation (to be created)
-├── TESTING_GUIDE.md                   # Testing guide (to be created)
-└── USER_GUIDE.md                      # End-user documentation (to be created)
+├── CRUD_API.md                        # API documentation
+├── API_TESTING.md                     # Testing notes
+├── USER_GUIDE.md                      # End-user documentation
+└── FINAL_COMPLETION_SUMMARY.md        # Near-final implementation summary
 ```
 
 ---
@@ -238,7 +237,7 @@ Deletes OTP codes expired more than 1 hour ago
 
 ---
 
-## 🚀 API Endpoints (Planned)
+## 🚀 API Endpoints
 
 ### Customer Management
 - `POST /api/v1/customers` - Create customer
@@ -308,10 +307,11 @@ Deletes OTP codes expired more than 1 hour ago
 
 ## 🔗 Related Documentation
 
-- **PRD**: `docs/plan/003_customer_management_dev_prd.md`
+- **PRD lineage**: reconcile with approved planning material in `docs/plan/`
 - **Database Schema**: `supabase/migrations/0011_customer_enhancements.sql`
 - **Progress Tracking**: `IMPLEMENTATION_PROGRESS.md`
 - **Next Steps**: `NEXT_SESSION_PROMPT.md`
+- **Legacy customer-domain grouping**: `history/customer_domain_legacy_index.md`
 
 ---
 
@@ -329,12 +329,12 @@ For questions about this feature:
 
 ## 🎯 Next Steps
 
-Continue with **Phase 3: API Endpoints**
-
-See `NEXT_SESSION_PROMPT.md` for detailed instructions on building the API layer.
+- treat this folder as mostly implemented customer-management documentation
+- use `FINAL_COMPLETION_SUMMARY.md` and `IMPLEMENTATION_PROGRESS.md` before relying on older pending-task statements
+- focus future updates on testing validation and current-code verification rather than re-documenting basic feature scope
 
 ---
 
-**Last Updated**: 2025-10-24
-**Version**: 1.0
-**Status**: Backend Complete, Ready for API Development
+**Last Updated**: 2026-03-10
+**Version**: 1.1
+**Status**: Largely implemented; reconcile remaining testing and current-state verification

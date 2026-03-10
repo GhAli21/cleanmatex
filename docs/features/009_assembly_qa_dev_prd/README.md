@@ -1,41 +1,19 @@
-# Assembly Qa
+# Assembly QA Dev PRD
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Sibling planning folder for assembly-QA feature history
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains planning-oriented assembly-QA material that belongs to the same feature family as `../009_assembly_qa/`.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
-
-## Documentation
-
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- treat this folder as planning/history support
+- use `../009_assembly_qa/` as the stronger feature-level home
+- keep the two folders logically grouped during consolidation
 
 ## Notes
 
-Add any important notes or context.
+This folder should not stand alone as if it were a separate feature from the assembly-QA implementation set.
 

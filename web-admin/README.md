@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CleanMateX Web Admin
 
-## Getting Started
+`web-admin` is the primary admin application for CleanMateX. It is a Next.js 16 and React 19 codebase used for tenant-facing administration, operational workflows, settings, reporting surfaces, and internal platform management screens.
 
-First, run the development server:
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Tailwind CSS
+- `next-intl` for EN/AR localization
+- React Hook Form and Zod for forms and validation
+- TanStack Query and TanStack Table
+- Supabase client integrations
+- Prisma client generation in the build pipeline
+- Jest and Playwright for testing
+
+## Local Development
+
+From this directory:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Default URL: `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Before running the app, make sure shared local services are up from the repo root:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+.\scripts\dev\start-services.ps1
+```
 
-## Learn More
+## Core Commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev
+npm run build
+npm run lint
+npm run typecheck
+npm run test
+npm run test:e2e
+npm run check:i18n
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Important Folders
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `app/`: App Router routes, layouts, pages, and route-level UI
+- `src/ui/`: Cmx design system primitives and shared UI domains
+- `lib/`: shared application services, DB utilities, helpers, and server logic
+- `messages/`: translation messages for English and Arabic
+- `docs/`: web-admin-specific guides and migration notes
+- `prisma/`: Prisma-related assets used by this app
 
-## Deploy on Vercel
+## UI Rules
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project uses the CleanMateX UI system, not ad hoc local component libraries.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Use the Cmx UI domains: `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`
+- Do not use `@ui/compat`
+- Do not use `@/components/ui` or `@/components/ui/*`
+- When adding UI code, follow the import guidance in `../CLAUDE.md`, `.cursor/rules/web-admin-ui-imports.mdc`, and `web-admin/.clauderc`
+- After UI changes, run `npm run build`
+
+## Localization
+
+All user-facing text must support English and Arabic.
+
+- Store messages in `messages/`
+- Reuse existing message keys before adding new ones
+- Validate parity with `npm run check:i18n`
+- Ensure RTL support is preserved for Arabic flows
+
+## Testing
+
+Available test layers:
+
+- `npm run test`: unit and component tests
+- `npm run test:tenant-isolation`: tenant isolation-focused tests
+- `npm run test:e2e`: Playwright end-to-end tests
+
+## Related Documentation
+
+- `../README.md`
+- `../docs/README.md`
+- `../CLAUDE.md`
+- `src/ui/README.md`
+- `docs/API_DOCUMENTATION.md`
+- `prisma/README.md`
+
+## Documentation Notes
+
+The web-admin module contains several legacy or historical markdown files around Prisma and UI migration work. Treat them as supporting context, not as automatic source-of-truth, unless they match the current implementation and project guardrails.

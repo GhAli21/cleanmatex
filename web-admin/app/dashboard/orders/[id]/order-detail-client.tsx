@@ -65,6 +65,12 @@ interface OrderDetailClientProps {
     notes: string;
     customerNotes: string;
     internalNotes: string;
+    paymentNotes: string;
+    cancelledNote: string;
+    returnReason: string;
+    cancelledAt: string;
+    returnedAt: string;
+    cancellationReturn: string;
     photos: string;
     orderTimeline: string;
     quickActions: string;
@@ -475,8 +481,63 @@ export function OrderDetailClient({
                   {order.internal_notes || '—'}
                 </div>
               </div>
+              <div className={isRTL ? 'text-right' : 'text-left'}>
+                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.paymentNotes}</div>
+                <div className={`text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {order.payment_notes || '—'}
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Cancellation / Return */}
+          {(order.cancelled_at || order.returned_at) && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.cancellationReturn || 'Cancellation & Return'}
+              </h2>
+              <div className="space-y-4">
+                {order.cancelled_at && (
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.cancelledAt}</div>
+                    <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </div>
+                  </div>
+                )}
+                {order.cancelled_note && (
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.cancelledNote}</div>
+                    <div className={`text-sm text-gray-600 bg-red-50 border border-red-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {order.cancelled_note}
+                    </div>
+                  </div>
+                )}
+                {order.returned_at && (
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.returnedAt}</div>
+                    <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {new Date(order.returned_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </div>
+                  </div>
+                )}
+                {order.return_reason && (
+                  <div className={isRTL ? 'text-right' : 'text-left'}>
+                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.returnReason}</div>
+                    <div className={`text-sm text-gray-600 bg-red-50 border border-red-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {order.return_reason}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Photos */}
           {order.photo_urls && Array.isArray(order.photo_urls) && order.photo_urls.length > 0 && (

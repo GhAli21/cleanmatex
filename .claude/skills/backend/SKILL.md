@@ -6,6 +6,12 @@ user-invocable: true
 
 # Backend Standards
 
+Authority note:
+
+- use this skill as backend guidance, not as proof that one tenant-handling pattern fits every module
+- `web-admin` and `cmx-api` may use different server-side access patterns
+- when this skill conflicts with `CLAUDE.md`, current module READMEs, or current implementation, the current implementation wins
+
 ## Next.js API Routes
 
 ### Route Handlers (App Router)

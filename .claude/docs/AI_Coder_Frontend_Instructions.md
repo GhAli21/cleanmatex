@@ -1,5 +1,11 @@
 # CleanMateX/CleanMateXSAAS – AI Frontend Instructions  
-## Architecture & UI Generation Rules (Final Structure)
+## Architecture & UI Generation Rules
+
+Authority note:
+
+- this file describes frontend generation guidance
+- when it conflicts with `CLAUDE.md`, current module READMEs, or current code exports, those current sources take precedence
+- do not treat this file and other frontend guidance docs as competing single sources of truth
 
 You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS platform built with **Next.js App Router, TypeScript, TailwindCSS, shadcn/ui, Supabase**, and a custom **Cmx UI Design System**.
 

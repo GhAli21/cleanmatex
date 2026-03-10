@@ -1,194 +1,154 @@
 # CleanMateX
 
-**Multi-tenant SaaS for Laundry & Dry Cleaning Management**
+Multi-tenant SaaS for laundry and dry-cleaning operations, with shared Supabase infrastructure, a web admin surface, a NestJS API, and planned mobile applications.
 
-A comprehensive, scalable platform for managing laundry and dry cleaning operations with support for multiple tenants, stores, customers, and workflows.
+## Overview
 
-## 🚀 Quick Start
+CleanMateX is organized as a multi-module monorepo:
+
+- `web-admin/`: Next.js 16 admin application
+- `cmx-api/`: NestJS 10 client API
+- `supabase/`: shared database, auth, RLS, migrations, and seed-related assets
+- `docs/`: project, feature, planning, operational, and historical documentation
+- `scripts/`: local development and maintenance scripts
+- `mobile-apps/`: reserved area for Flutter mobile applications
+- `packages/`: reserved area for shared packages
+- `infra/`: local infrastructure bootstrap assets
+- `qa/`: reserved area for QA assets and test documentation
+
+## Quick Start
+
+### 1. Install workspace dependencies
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd cleanmatex
-
-# Copy environment template
-cp .env.example .env
-
-# Start infrastructure services
-# Windows:
-.\scripts\dev\start-services.ps1
-
-# Linux/Mac:
-./scripts/dev/start-services.sh
-
-# Start web admin
-cd web-admin
 npm install
+```
+
+### 2. Start local infrastructure
+
+Windows:
+
+```powershell
+.\scripts\dev\start-services.ps1
+```
+
+Root shortcut:
+
+```bash
+npm run services:start
+```
+
+### 3. Start the web admin
+
+```bash
+cd web-admin
 npm run dev
 ```
 
-Visit http://localhost:3000 to access the admin dashboard.
+Default URL: `http://localhost:3000`
 
-## 📚 Documentation
-
-- **[Development Setup Guide](docs/development-setup.md)** - Complete setup instructions
-- **[Troubleshooting Guide](docs/troubleshooting.md)** - Common issues and solutions
-- **[Master Plan](docs/plan/master_plan_cc_01.md)** - Project roadmap and architecture
-- **[Current Task](docs/current-task.md)** - What we're working on now
-
-## 🏗️ Project Structure
-
-```
-cleanmatex/
-├── cmx-api/              # NestJS client API
-├── web-admin/           # Next.js admin dashboard
-├── mobile-apps/         # Flutter mobile apps
-│   ├── customer-app/    # Customer mobile app
-│   ├── driver-app/      # Driver mobile app
-│   └── store-app/       # Store staff mobile app
-├── supabase/            # Database, auth, storage
-│   ├── migrations/      # Database migrations
-│   └── seeds/          # Seed data
-├── docs/               # Documentation
-├── scripts/            # Development scripts
-└── infra/              # Infrastructure configs
-```
-
-## 🛠️ Tech Stack
-
-### Backend
-
-- **Runtime:** Node.js 20+
-- **Framework:** NestJS
-- **Database:** PostgreSQL 16
-- **Cache:** Redis 7
-- **Storage:** MinIO (S3-compatible)
-- **Auth:** Supabase Auth
-
-### Frontend
-
-- **Web Admin:** Next.js 14 (App Router)
-- **UI Library:** React + TailwindCSS
-- **State:** React Context / Zustand
-- **Forms:** React Hook Form
-
-### Mobile
-
-- **Framework:** Flutter 3.x
-- **State:** Provider / Riverpod
-- **API:** REST + GraphQL
-
-### Infrastructure
-
-- **Containerization:** Docker + Docker Compose
-- **Local Development:** Supabase CLI
-- **CI/CD:** GitHub Actions (planned)
-
-## 📦 Services
-
-| Service         | Port  | Description            |
-| --------------- | ----- | ---------------------- |
-| Web Admin       | 3000  | Admin dashboard        |
-| cmx-api         | 3001  | Client API (NestJS)     |
-| PostgreSQL      | 5432  | Primary database       |
-| Redis           | 6379  | Cache & queues         |
-| MinIO API       | 9000  | S3-compatible storage  |
-| MinIO Console   | 9001  | MinIO web UI           |
-| Supabase API    | 54321 | Supabase REST API      |
-| Supabase Studio | 54323 | Database management UI |
-| Inbucket        | 54324 | Email testing          |
-
-## 🎯 Features
-
-### Core Features (MVP)
-
-- ✅ Multi-tenant architecture
-- ✅ Authentication & authorization
-- ✅ Store management
-- ✅ Customer management
-- ✅ Order intake & tracking
-- ✅ Basic workflow management
-- ✅ Digital receipts
-
-### Phase 2
-
-- 📋 Advanced workflows
-- 📋 Inventory management
-- 📋 Driver management & routing
-- 📋 Payment processing
-- 📋 Reporting & analytics
-
-### Phase 3
-
-- 🔜 AI-powered features
-- 🔜 Marketplace
-- 🔜 Assembly services
-- 🔜 Multi-language support
-
-## 🧪 Testing
+### 4. Start the client API when needed
 
 ```bash
-# Run smoke tests
+cd cmx-api
+npm install
+npm run start:dev
+```
+
+Default URL: `http://localhost:3004`
+
+## Documentation Map
+
+Start with these entrypoints:
+
+- `docs/README.md`: main documentation index
+- `docs/plan/master_plan_cc_01.md`: current high-level master plan reference
+- `docs/features/`: feature-level docs, implementation notes, and PRD-aligned material
+- `web-admin/README.md`: web admin module guide
+- `cmx-api/README.md`: API module guide
+- `supabase/README.md`: shared database and migration guide
+- `CLAUDE.md`: project guardrails, AI workflow rules, and implementation requirements
+
+## Current Stack
+
+### Application stack
+
+- Web admin: Next.js 16, React 19, TypeScript, Tailwind CSS, `next-intl`
+- API: NestJS 10, TypeScript, Supabase client, Swagger/OpenAPI
+- Shared data layer: PostgreSQL 16 via Supabase, RLS, tenant-aware patterns
+- Local supporting services: Redis, MinIO, Supabase Studio, Inbucket
+
+### Workspace tooling
+
+- Node.js 20+
+- npm workspaces
+- Prisma is used inside `web-admin` for generated client workflows
+- Supabase CLI is used from the repo-level `supabase/` directory
+
+## Common Commands
+
+From repo root:
+
+```bash
+npm run services:start
+npm run services:stop
 npm run test:smoke
+npm run validate:env
+```
 
-# Run unit tests
+From `web-admin/`:
+
+```bash
+npm run dev
+npm run build
 npm run test
+npm run test:e2e
+npm run check:i18n
+```
 
-# Run e2e tests
+From `cmx-api/`:
+
+```bash
+npm run start:dev
+npm run build
+npm run test
 npm run test:e2e
 ```
 
-## 🔧 Development Commands
+## Project Guardrails
 
-### Infrastructure Management
+- Treat the codebase as multi-tenant by default. Tenant-scoped data must honor `tenant_org_id`.
+- English/Arabic support and RTL awareness are mandatory for user-facing work.
+- After frontend changes in `web-admin`, run `npm run build`.
+- Use the shared Supabase setup in `supabase/` for schema and database workflow.
+- Do not treat local reset scripts as a routine workflow. Use them only intentionally for controlled local development and never as the default recommendation in feature docs.
 
-```bash
-# Start all services
-npm run services:start
+## Key Directories
 
-# Stop all services
-npm run services:stop
-
-# Reset database
-./scripts/dev/reset-db.sh
-
-# Validate environment
-node scripts/validate-env.js
+```text
+cleanmatex/
+├── README.md
+├── CLAUDE.md
+├── docs/
+├── web-admin/
+├── cmx-api/
+├── supabase/
+├── scripts/
+├── mobile-apps/
+├── packages/
+├── infra/
+└── qa/
 ```
 
-### Database Management
+## Documentation Maintenance
 
-```bash
-# Apply migrations
-cd supabase && supabase db reset
+When updating project docs:
 
-# Create migration
-cd supabase && supabase migration new <name>
+- reconcile documentation with the already implemented reality
+- update module docs and PRDs together when both exist
+- clearly separate implemented, in-progress, deferred, and proposed scope
+- capture unresolved decisions in a dated `current_urgent_decesion_YYYY_MM_DD.md` file before treating them as approved direction
 
-# Generate types
-cd supabase && supabase gen types typescript --local
-```
+## License
 
-## 🤝 Contributing
-
-1. Read the [development setup guide](docs/development-setup.md)
-2. Pick a task from the current sprint
-3. Create a feature branch
-4. Make your changes
-5. Submit a pull request
-
-## 📝 License
-
-[Your License Here]
-
-## 👥 Team
-
-- **Product Owner:** [Name]
-- **Tech Lead:** [Name]
-- **DevOps:** [Name]
-
-## 🔗 Links
-
-- **Documentation:** [Link]
-- **Project Board:** [Link]
-- **Design System:** [Link]
+`UNLICENSED`

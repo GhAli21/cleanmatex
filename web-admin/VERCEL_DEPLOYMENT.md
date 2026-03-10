@@ -155,7 +155,7 @@ After successful deployment:
 
 ## Current Configuration
 
-- **Framework:** Next.js 15.5.4
+- **Framework:** Next.js 16
 - **Node Version:** >=20.0.0
 - **Build Command:** `npm run build`
 - **Output Directory:** `.next`
@@ -168,4 +168,8 @@ For deployment issues:
 2. Verify environment variables
 3. Test build locally: `cd web-admin && npm run build`
 4. Check Next.js documentation: https://nextjs.org/docs/deployment
+
+## Documentation Note
+
+This file is a deployment helper, not the overall module source of truth. If deployment guidance conflicts with `web-admin/README.md`, `README.md`, or current build behavior, update this file before relying on it.
 

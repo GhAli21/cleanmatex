@@ -1,41 +1,19 @@
 # Customer Data Management Global And Tenant
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Legacy customer-domain folder
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder appears to cover customer-data management topics that overlap with the stronger customer feature pack.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
-
-## Documentation
-
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- treat this folder as legacy customer-domain material
+- prefer `../003_customer_management/` for the stronger customer feature pack
+- keep this folder grouped with the same customer-domain family during cleanup
 
 ## Notes
 
-Add any important notes or context.
+This folder should not be treated as an equal parallel authority to `../003_customer_management/`.
 

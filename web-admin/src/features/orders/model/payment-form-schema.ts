@@ -49,6 +49,7 @@ const paymentFormBaseSchema = z.object({
   giftCardNumber: emptyStringToUndefined,
   giftCardAmount: z.number().nonnegative().optional(),
   payAllOrders: z.boolean().default(false),
+  paymentNotes: z.string().max(1000).optional(),
 });
 
 /**

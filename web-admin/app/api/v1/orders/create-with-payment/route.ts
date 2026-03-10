@@ -216,6 +216,7 @@ export async function POST(request: NextRequest) {
       quickDropQuantity: input.quickDropQuantity,
       express: input.express,
       customerNotes: input.customerNotes,
+      paymentNotes: input.paymentNotes,
       readyByAt: input.readyByAt,
       paymentMethod: input.paymentMethod,
       totals: {

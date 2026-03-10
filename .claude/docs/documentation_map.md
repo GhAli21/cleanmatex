@@ -1,7 +1,16 @@
-
 # Documentation Map
 
-- Requirements → `docs/Requirments Specifications/clean_mate_x_unified_requirements_pack_v_0.12.1.md`
-- Plans → `docs/plan/` (master + feature plans)
-- Database → `docs/Database_Design/`
-- Config → `docs/config/` (e.g., `supabase_keys.md`)
+Use `docs/README.md` as the main documentation index.
+
+## Key Areas
+
+- requirements and specifications: `docs/`
+- plans: `docs/plan/`
+- feature docs: `docs/features/`
+- session tracking for this refresh: `docs/Refersh_documentations_10_03_2026/`
+- shared database docs: `supabase/README.md`
+- module docs: `web-admin/README.md`, `cmx-api/README.md`
+
+## Rule
+
+Do not rely on older typo paths or duplicate maps when `docs/README.md` already reflects the current repo layout.

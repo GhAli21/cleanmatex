@@ -1,7 +1,7 @@
 # CleanMateX - Master Development Plan v1.0
 
 **Document ID**: master_plan_cc_01
-**Last Updated**: 2025-10-10
+**Last Updated**: 2026-03-10
 **Status**: Active Development Plan
 **Owner**: Development Team
 
@@ -56,11 +56,11 @@ Driver App:
 └── Geofencing & Live Tracking
 
 Web Admin:
-├── Next.js 15 (App Router)
-├── React 18 + TypeScript
+├── Next.js 16 (App Router)
+├── React 19 + TypeScript
 ├── Tailwind CSS
-├── i18next (EN/AR)
-├── shadcn/ui Components
+├── next-intl (EN/AR)
+├── Cmx UI domains over shared UI primitives
 └── React Query (TanStack)
 ```
 
@@ -70,7 +70,7 @@ Web Admin:
 API Services:
 ├── NestJS (REST + OpenAPI)
 ├── TypeScript
-├── Prisma ORM
+├── Supabase typed client patterns
 ├── Redis/BullMQ (Job Queues)
 ├── JWT + Supabase Auth
 ├── Idempotency Middleware
@@ -1389,11 +1389,11 @@ Database:
 **Rationale**: Enterprise-grade, TypeScript-first, excellent documentation, modular architecture
 **Alternatives Considered**: Express.js, Fastify, Koa
 
-### Decision 004: Frontend - Next.js 15
+### Decision 004: Frontend - Next.js 16
 
-**Date**: 2025-10-10
+**Date**: 2026-03-10
 **Context**: Web admin framework
-**Decision**: Next.js 15 (App Router) with React Server Components
+**Decision**: Next.js 16 (App Router) with React Server Components
 **Rationale**: Performance, SEO, server-side rendering, excellent DX, large ecosystem
 **Alternatives Considered**: Remix, SvelteKit, Nuxt.js
 

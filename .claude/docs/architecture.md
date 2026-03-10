@@ -12,17 +12,17 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 
 ## Stack
 - **DB:** PostgreSQL 16 (Supabase Local on port 54322), JSONB, composite PKs, RLS, planned partitioning
-- **ORM:** Prisma (server-side library, NOT a service) + Supabase Client (client-side) - Hybrid approach
-- **Web Admin:** Next.js 15, React 19, TS 5, Tailwind v4, React Query + Zustand, next-intl
+- **Data Access:** shared Supabase workspace plus module-specific access patterns
+- **Web Admin:** Next.js 16, React 19, TS 5, Tailwind v4, React Query + Zustand, next-intl
 - **Mobile (planned):** Flutter apps for customer, driver, store; Riverpod, Dio, Hive
-- **Backend (planned):** NestJS with Prisma, Redis, BullMQ
+- **Backend:** `cmx-api` NestJS module with Supabase-based backend patterns
 - **Infra:** Supabase Local (includes Postgres on port 54322), Docker Compose for Redis & MinIO only
 
 **Note:** We do NOT use a separate Docker Postgres container. Supabase Local includes PostgreSQL.
 
-## Data Access Layer - Hybrid Strategy
+## Data Access Layer
 
-### Dual ORM Architecture
+### Current Repository Pattern
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -33,9 +33,9 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
         ┌────────┴─────────┐
         │                  │
 ┌───────▼─────────┐  ┌─────▼──────────────┐
-│  Supabase JS    │  │  Prisma Client     │
-│  Client         │  │  (Direct PG)       │
-│  (PostgREST)    │  │  + Middleware      │
+│  Supabase JS    │  │  Module-Specific   │
+│  Client         │  │  Server Data       │
+│  (PostgREST)    │  │  Access Patterns   │
 └─────────────────┘  └────────────────────┘
         │                  │
 ┌───────▼─────────┐  ┌─────▼──────────────┐
@@ -52,20 +52,20 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 | Use Case | Tool | Location | Why |
 |----------|------|----------|-----|
 | Client-side queries | Supabase JS | React Components | RLS enforcement, real-time |
-| Server API routes | Prisma | API Routes/Actions | Type safety, middleware |
+| Server API routes | Module-specific server data access | API Routes/Actions | Depends on module implementation |
 | Authentication | Supabase Auth | Both | Built-in, JWT tokens |
 | File uploads | Supabase Storage | Both | S3-compatible |
 | Real-time subs | Supabase Realtime | Client | WebSocket support |
-| Complex joins | Prisma | Server | Better query builder |
-| Business logic | Prisma | Server | Transactions, middleware |
-| Reporting | Prisma | Server | Aggregations, raw SQL |
+| Complex joins | Module-specific server data access | Server | Depends on implementation |
+| Business logic | Services + repositories | Server | Explicit boundaries |
+| Reporting | Server-side data access | Server | Depends on implementation |
 
 ### Multi-Tenancy Enforcement
 
-**Application Layer (Prisma Middleware):**
-- Auto-inject `tenant_org_id` filter on all `org_*` tables
-- Enforced via middleware in `lib/prisma-middleware.ts`
-- Compile-time type checking prevents mistakes
+**Application Layer:**
+- tenant filtering must be explicit and verifiable
+- implementation varies by module
+- `web-admin` and `cmx-api` may use different access patterns
 
 **Database Layer (RLS Policies):**
 - Existing RLS policies still active
@@ -171,7 +171,7 @@ const orders = await prisma.org_orders_mst.findMany()
   - Partitioning for high-volume tables (planned)
 
 ### Frontend - Web Admin
-- **Framework**: Next.js 15 (App Router)
+- **Framework**: Next.js 16 (App Router)
 - **Location**: `web-admin/`
 - **Language**: TypeScript 5+
 - **UI Framework**: React 19
@@ -192,8 +192,8 @@ const orders = await prisma.org_orders_mst.findMany()
 - **Local Storage**: Hive
 
 ### Backend API 
-- **Framework**: NestJS (REST + GraphQL)
-- **Location**: `backend/`
+- **Framework**: NestJS
+- **Location**: `cmx-api/`
 - **Cache**: Redis 7+
 - **Queue**: BullMQ for background jobs
 - **Purpose**: Complex business logic, integrations
@@ -215,6 +215,13 @@ const orders = await prisma.org_orders_mst.findMany()
 **Note:** PostgreSQL runs inside Supabase Local (port 54322), NOT as a separate Docker container.
 
 ---
+
+## Authority Note
+
+This file is a high-level architecture reference.
+
+- when it conflicts with current module READMEs, `CLAUDE.md`, or the actual codebase structure, the current module/code reality wins
+- do not treat older Prisma-first descriptions in this file as universal truth across all modules
 
 ## Architecture Decisions
 

@@ -164,6 +164,10 @@ export interface NewOrderState {
   isDefaultCustomer: boolean;
   /** Order-only edits (not persisted to customer master) */
   customerSnapshotOverride: CustomerSnapshotOverride | null;
+  /** Customer-provided notes (org_orders_mst.customer_notes) */
+  customerNotes: string;
+  /** Payment-related notes (org_orders_mst.payment_notes) */
+  paymentNotes: string;
 
   // Order Items
   items: OrderItem[];
@@ -173,6 +177,7 @@ export interface NewOrderState {
   isQuickDrop: boolean;
   quickDropQuantity: number;
   express: boolean;
+  /** Internal staff notes (org_orders_mst.internal_notes) */
   notes: string;
   readyByAt: string;
 
@@ -236,6 +241,8 @@ export type NewOrderAction =
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
   | { type: 'SET_EXPRESS'; payload: boolean }
   | { type: 'SET_NOTES'; payload: string }
+  | { type: 'SET_CUSTOMER_NOTES'; payload: string }
+  | { type: 'SET_PAYMENT_NOTES'; payload: string }
   | { type: 'SET_READY_BY_AT'; payload: string }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_CREATED_ORDER'; payload: { orderId: string; status: string | null } }
@@ -263,6 +270,8 @@ export type NewOrderAction =
         items: OrderItem[];
         express: boolean;
         notes: string;
+        customerNotes: string;
+        paymentNotes: string;
         readyByAt: string;
         originalData: any;
         expectedUpdatedAt: Date;

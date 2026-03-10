@@ -1,41 +1,25 @@
 # Delivery Management
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Feature folder with implementation docs requiring reconciliation
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder covers delivery-management planning and implementation notes for the CleanMateX order lifecycle.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
+This folder is not a blank feature anymore. Use it as a delivery-domain documentation area that still needs current-code verification.
 
-## Documentation
+## Suggested Reading Order
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+1. `IMPLEMENTATION_SUMMARY.md`
+2. `current_status.md`
+3. `developer_guide.md`
+4. `testing_scenarios.md`
 
 ## Notes
 
-Add any important notes or context.
+- if this folder claims completion, verify those claims against the current delivery code paths
+- treat this README as the truthful entrypoint rather than older placeholder assumptions
 

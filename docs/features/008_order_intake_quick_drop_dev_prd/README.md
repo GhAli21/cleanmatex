@@ -1,41 +1,19 @@
-# Order Intake Quick Drop
+# Order Intake Quick Drop Dev PRD
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Quick-drop planning/history folder under order-domain reconciliation
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder captures quick-drop intake planning that belongs to the broader order feature family.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
-
-## Documentation
-
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- treat this folder as a planning/history sibling to the later order feature packs
+- use `../004_order_intake/` for foundational order-intake history
+- use `../010_advanced_orders/` for the later active order-domain cluster
 
 ## Notes
 
-Add any important notes or context.
+This folder should remain grouped with the order-domain documentation family and not be treated as an isolated feature unrelated to intake and advanced-order work.
 

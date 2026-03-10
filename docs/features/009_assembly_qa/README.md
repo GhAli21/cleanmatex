@@ -1,41 +1,38 @@
-# Assembly Qa
+# Assembly QA
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Mixed feature folder under reconciliation
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder covers assembly and quality-assurance workflow documentation for the order domain.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
+This is no longer a placeholder-only area. It should be read as a mixed folder containing:
 
-## Documentation
+- implementation summaries and status notes
+- planning-era documents from a sibling PRD folder
+- order-domain workflow material that should stay grouped with adjacent order features
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+## Current Best Reading Order
 
-## Related Files
+Start with:
 
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
+1. `IMPLEMENTATION_SUMMARY.md`
+2. `current_status.md`
+3. `009_assembly_qa_lookup.md`
 
-## Key Features
+Then cross-check the sibling PRD folder:
 
-* Feature 1
-* Feature 2
-* Feature 3
+- `../009_assembly_qa_dev_prd/`
+- `related_docs_index.md`
 
-## Next Steps
+## Consolidation Note
 
-* Task 1
-* Task 2
+The sibling folder `../009_assembly_qa_dev_prd/` is part of the same feature family and should not be treated as an unrelated parallel authority.
 
 ## Notes
 
-Add any important notes or context.
+Use this folder for the current assembly-QA feature cluster, but verify any strong completion claims against the current codebase and broader order workflow documentation.
 

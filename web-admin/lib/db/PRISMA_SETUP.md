@@ -1,6 +1,12 @@
 # Prisma Configuration Guide
 
-This document explains how Prisma is configured in CleanMateX with multi-tenant support.
+This document explains a documented Prisma pattern inside `web-admin`.
+
+Authority note:
+
+- this is module-local guidance only
+- it is not the project-wide backend or schema authority
+- verify the current code before relying on older middleware claims in this file
 
 ## Architecture
 
@@ -8,7 +14,7 @@ This document explains how Prisma is configured in CleanMateX with multi-tenant 
 
 - **Location**: `lib/db/prisma.ts`
 - **Pattern**: Singleton to prevent multiple instances in development
-- **Middleware**: Automatically applies tenant filtering
+- **Middleware**: historical/local pattern if used by the current implementation
 
 ### 2. Tenant Context System
 
@@ -19,12 +25,12 @@ This document explains how Prisma is configured in CleanMateX with multi-tenant 
 ### 3. Multi-Tenant Middleware
 
 - **Location**: `lib/prisma-middleware.ts`
-- **Function**: Automatically filters all `org_*` table queries by `tenant_org_id`
-- **Applied**: Automatically when Prisma client is created
+- **Function**: documented as automatically filtering `org_*` table queries by `tenant_org_id`
+- **Applied**: verify against the current implementation before relying on this as universal behavior
 
 ## Usage Patterns
 
-### Pattern 1: Server Actions (Recommended)
+### Pattern 1: Server Actions (Historical Recommended Pattern)
 
 ```typescript
 "use server";
@@ -83,7 +89,7 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-### Pattern 3: Direct DB Functions (Current Pattern)
+### Pattern 3: Direct DB Functions
 
 ```typescript
 import { prisma } from "@/lib/db/prisma";
@@ -102,7 +108,7 @@ export async function listOrdersDb(tenantOrgId: string, filters: OrderFilters) {
 }
 ```
 
-**Note**: Manual tenant filters are kept for defense-in-depth. Middleware ensures tenant filtering even if manual filters are forgotten.
+**Note**: Manual tenant filters remain valuable for defense-in-depth. Do not rely on old documentation alone to assume middleware coverage.
 
 ### Pattern 4: Tenant-Scoped Client (For Scripts/Jobs)
 
@@ -169,10 +175,10 @@ await withTenantContext(tenantId, async () => {
 
 ## Best Practices
 
-1. **Always use `withTenantContext()`** in server actions/API routes
+1. **Use the current tenant-context approach implemented by `web-admin`**
 2. **Get tenant ID from session** using `getTenantIdFromSession()`
 3. **Keep manual filters** for defense-in-depth (optional but recommended)
-4. **Never bypass middleware** for `org_*` tables
+4. **Never bypass tenant-isolation requirements** for `org_*` tables
 5. **Use `sys_*` tables** for global data (no tenant filtering needed)
 
 ## Troubleshooting
@@ -197,7 +203,7 @@ await withTenantContext(tenantId, async () => {
 - `lib/db/prisma.ts` - Main Prisma client (use this)
 - `lib/db/tenant-context.ts` - Tenant context management
 - `lib/prisma-middleware.ts` - Multi-tenant middleware
-- `lib/prisma.ts` - Legacy export (backward compatibility)
+- `lib/prisma.ts` - Legacy export if still present
 
 ## Testing
 

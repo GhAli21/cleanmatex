@@ -1,8 +1,8 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
-**Last Update** 07-03-2026
-**Last Update Description** Added comprehensive feature implementation documentation requirements (permissions, navigation, settings, feature flags, plan limits, i18n, migrations, etc.)
+**Last Update** 10-03-2026
+**Last Update Description** Documentation refresh alignment for current stack, module boundaries, and planning authority cleanup
 
 ## CRITICAL RULES
 
@@ -57,8 +57,8 @@ npm run build                     # Build (run after changes)
 
 - TypeScript strict, no `any`
 - No hardcoded secrets
-- Tenant context: `getTenantIdFromSession()` from `@/lib/db/tenant-context`
-- Wrap queries: `withTenantContext()`
+- In `web-admin`, use the centralized tenant-context utilities where the implementation requires them
+- In `cmx-api`, pass tenant context explicitly through guards/request context and service boundaries
 
 **See:** `/implementation` skill for coding standards
 
@@ -92,7 +92,7 @@ npm run build                     # Build (run after changes)
 
 - `/multitenancy` - **CRITICAL** - Tenant isolation, RLS policies
 - `/database` - Schema conventions, migrations, naming
-- `/frontend` - for frontend developing rules, Next.js 15, React 19, Cmx Design System
+- `/frontend` - for frontend developing rules, Next.js 16, React 19, Cmx Design System
 - `/backend` - API routes, service layer, Supabase patterns
 - `/i18n` - Bilingual support (EN/AR), RTL layout
 
@@ -130,6 +130,7 @@ docs/         # All documentation
 - **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
 - **UI Migration Guide:** `docs/dev/ui-migration-guide.md` — `@/components/ui` → `@ui` gradual migration
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
+- **Planning Backlog Note:** `docs/plan/` is the approved planning authority; reconcile useful material from `docs/plan_cr/` into `docs/plan/`
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
 - **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`

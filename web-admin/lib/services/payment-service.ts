@@ -234,7 +234,9 @@ export async function processPayment(
               input.order_id,
               newPaid >= total ? 'paid' : 'partial',
               newPaid,
-              input.processed_by
+              input.processed_by,
+              undefined,
+              input.notes
             );
           }
         }
@@ -376,7 +378,7 @@ export async function processPayment(
                 const newOrderPaid = currentOrderPaid + totalApplied;
                 orderRemaining = Math.max(0, orderTotal - newOrderPaid);
                 const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-                await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx);
+                await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx, input.notes);
               }
             }
           });
@@ -540,7 +542,7 @@ export async function processPayment(
             const currentOrderPaid = Number(orderRow.paid_amount ?? 0);
             const newOrderPaid = currentOrderPaid + amountToPay;
             const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
-            await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx);
+            await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx, input.notes);
           }
         }
 
@@ -1257,7 +1259,7 @@ export async function validatePaymentData(
 
 /**
  * Update order payment status.
- * Only updates payment-related fields: payment_status, paid_amount, paid_at, updated_at, updated_by.
+ * Only updates payment-related fields: payment_status, paid_amount, paid_at, payment_notes, updated_at, updated_by.
  * Must NOT update order total, subtotal, vat, or other financial totals (those are set at order creation/edit).
  */
 async function updateOrderPaymentStatus(
@@ -1265,7 +1267,8 @@ async function updateOrderPaymentStatus(
   status: string,
   paidAmount: number,
   userId?: string,
-  tx?: PrismaTx
+  tx?: PrismaTx,
+  paymentNotes?: string
 ): Promise<void> {
   const db = tx ?? prisma;
   await db.org_orders_mst.update({
@@ -1276,6 +1279,7 @@ async function updateOrderPaymentStatus(
       paid_at: status === 'paid' ? new Date() : undefined,
       updated_at: new Date(),
       ...(userId && { updated_by: userId }),
+      ...(paymentNotes != null && { payment_notes: paymentNotes }),
     },
   });
 }

@@ -2,7 +2,7 @@
 version: v1.0.0
 last_updated: 2025-10-31
 author: CleanMateX Development Team
-status: Complete
+status: Historical completion set requiring current-code verification
 ---
 
 # PRD-007: Admin Dashboard Feature
@@ -13,7 +13,7 @@ The Admin Dashboard is the central management interface for the CleanMateX laund
 
 ## Purpose
 
-To deliver a fully functional, production-ready admin dashboard that enables:
+To define and document the admin dashboard scope for tenant-facing business operations, navigation, settings, and reporting surfaces.
 - Real-time business monitoring through interactive widgets
 - Efficient order and customer management
 - Complete business configuration through settings
@@ -78,7 +78,7 @@ This feature encompasses 12 major phases covering:
 
 ## Technology Stack
 
-- **Frontend**: Next.js 15, React 19, TypeScript 5+
+- **Frontend**: Next.js 16, React 19, TypeScript 5+
 - **Styling**: Tailwind CSS v4
 - **Charts**: Recharts 3.3.0
 - **i18n**: next-intl
@@ -131,6 +131,26 @@ docs/features/007_admin_dashboard/
 - **Architecture**: [technical_docs/architecture.md](./technical_docs/architecture.md)
 - **API Specs**: [technical_docs/api_specifications.md](./technical_docs/api_specifications.md)
 
+## Documentation Status
+
+This folder contains a rich dashboard documentation set, but some files overclaim finality or production-readiness and some file references reflect older paths.
+
+Use this folder as:
+
+- a strong historical implementation record
+- a useful feature guide for dashboard scope
+- a set that still requires reconciliation with the current codebase before treating every completion claim as canonical
+
+The most useful files here are:
+
+- `developer_guide.md`
+- `user_guide.md`
+- `testing_scenarios.md`
+- `progress_summary.md`
+- `current_status.md`
+- `PRD-007_FINAL_COMPLETION_REPORT.md`
+- `history/dashboard_feature_legacy_index.md`
+
 ## Success Metrics
 
 - ✅ All 27 functional requirements delivered
@@ -139,16 +159,15 @@ docs/features/007_admin_dashboard/
 - ✅ 100% RTL support
 - ✅ 19 files created, 4 modified
 - ✅ ~4,500 lines of code
-- ✅ Zero technical debt
-- ✅ Production ready
+- documented as complete at the time, but current-code verification is still recommended before relying on every claim
 
 ## Current Status
 
-**Status**: ✅ Complete (v1.0.0)
-**Last Updated**: 2025-10-31
-**Production Ready**: YES
+**Status**: Historical completion set with current reconciliation needed
+**Last Updated**: 2026-03-10
+**Production Ready**: historical claim, verify against current code before relying on it
 
-All 12 phases successfully completed and documented. See [current_status.md](./current_status.md) for details.
+This folder remains important, but it should be treated as an implementation-rich feature pack that needs selective validation rather than an unquestioned single source of truth.
 
 ## Support & Contact
 
@@ -161,4 +180,4 @@ All 12 phases successfully completed and documented. See [current_status.md](./c
 **Project**: CleanMateX - Multi-Tenant Laundry SaaS Platform
 **Feature**: PRD-007 Admin Dashboard
 **Version**: v1.0.0
-**Status**: Production Ready ✅
+**Status**: Historical completion record under reconciliation

@@ -1,6 +1,12 @@
 # CleanMateX Frontend Standards (Aligned with Architecture)
 
-This document defines the **frontend standards** for CleanMateX and is fully aligned with the architecture described in `AI_Coder_Frontend_Instructions.md`.
+This document defines frontend standards for CleanMateX.
+
+Authority note:
+
+- use this as a standards reference
+- use `CLAUDE.md`, current module docs, and active code exports as the higher authority when they conflict
+- do not treat multiple frontend guidance files as competing single sources of truth
 
 **Always use Global Message Utility (`cmxMessage`) for showing all and any messages, errors, alerts ... so on**
 - Use CmxEditableDataTable reusable ui component for editable data tables : reference developer guide in docs/dev/cmx-editable-datatable/developer_guide.md

@@ -45,6 +45,8 @@ interface PaymentModalProps {
   /** When true, PAY_ON_COLLECTION is disabled (retail orders must be paid at POS) */
   isRetailOnlyOrder?: boolean;
   loading?: boolean;
+  /** Initial payment notes (for edit mode) */
+  initialPaymentNotes?: string;
 }
 
 export function PaymentModalEnhanced02({
@@ -61,6 +63,7 @@ export function PaymentModalEnhanced02({
   userId,
   isRetailOnlyOrder = false,
   loading = false,
+  initialPaymentNotes = '',
 }: PaymentModalProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
@@ -89,6 +92,7 @@ export function PaymentModalEnhanced02({
       giftCardNumber: '',
       giftCardAmount: 0,
       payAllOrders: false,
+      paymentNotes: '',
     },
     mode: 'onChange',
     reValidateMode: 'onChange',
@@ -248,6 +252,7 @@ export function PaymentModalEnhanced02({
         giftCardNumber: '',
         giftCardAmount: 0,
         payAllOrders: false,
+        paymentNotes: initialPaymentNotes ?? '',
       });
       setPromoCodeResult(null);
       setAppliedPromoCode(null);
@@ -257,7 +262,7 @@ export function PaymentModalEnhanced02({
       setPayPartial(false);
       setPartialAmount(0);
     }
-  }, [open, reset, isRetailOnlyOrder]);
+  }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
 
   useEffect(() => {
     if (!isImmediatePayment) {
@@ -816,6 +821,32 @@ export function PaymentModalEnhanced02({
                 />
               </div>
             )}
+
+            {/* Payment notes */}
+            <div>
+              <Controller
+                name="paymentNotes"
+                control={control}
+                render={({ field }) => (
+                  <>
+                    <label htmlFor="payment-notes" className={`block text-sm font-medium text-gray-900 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('paymentNotes') || 'Payment notes'}
+                    </label>
+                    <textarea
+                      {...field}
+                      id="payment-notes"
+                      value={field.value ?? ''}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      dir={isRTL ? 'rtl' : 'ltr'}
+                      rows={2}
+                      className={`w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${isRTL ? 'text-right' : 'text-left'}`}
+                      placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
+                      aria-label={t('paymentNotes') || 'Payment notes'}
+                    />
+                  </>
+                )}
+              />
+            </div>
 
             {/* Collapsible: Have a coupon? */}
             <div>

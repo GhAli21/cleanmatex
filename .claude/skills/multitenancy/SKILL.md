@@ -1,127 +1,32 @@
 ---
 name: multitenancy
-description: Multi-tenancy enforcement, RLS policies, tenant isolation patterns. CRITICAL - use when writing ANY database queries, creating tables, or handling tenant-scoped data.
+description: Multi-tenancy enforcement, RLS policies, and tenant isolation patterns. Use when writing any tenant-scoped data access or schema changes.
 user-invocable: true
 ---
 
 # Multi-Tenancy Enforcement
 
-## CRITICAL RULES - NEVER VIOLATE
+## Critical Rules
 
-1. **Always filter by `tenant_org_id`** in every query
-2. **Use composite foreign keys** when joining tenant tables
-3. **ALWAYS use centralized tenant context** - Never duplicate `getTenantIdFromSession()`
+1. Always enforce `tenant_org_id` for tenant-scoped data.
+2. Add RLS to new `org_*` tables.
+3. Prefer composite foreign keys where they strengthen tenant isolation.
+4. Verify tenant handling per module; do not universalize one implementation pattern.
 
-## Centralized Tenant Context (MANDATORY)
+## Module Notes
 
-**Location:** `web-admin/lib/db/tenant-context.ts`
+- `web-admin`: use its centralized tenant-context utilities where applicable
+- `cmx-api`: pass tenant context explicitly through NestJS layers
+- database: keep RLS and schema-level isolation as defense in depth
 
-### For Prisma Services
+## Review Checklist
 
-```typescript
-import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+- every `org_*` query has safe tenant enforcement
+- no cross-tenant leak path
+- no stale assumption that Prisma middleware alone solves everything
+- no destructive shortcut that bypasses tenant safety
 
-const tenantId = await getTenantIdFromSession();
-return withTenantContext(tenantId, async () => {
-  // Middleware automatically adds tenant_org_id filter
-  return await prisma.org_orders_mst.findMany();
-});
-```
+## Related Docs
 
-### For Supabase Services
-
-```typescript
-import { getTenantIdFromSession } from '@/lib/db/tenant-context';
-
-const tenantId = await getTenantIdFromSession();
-const { data } = await supabase
-  .from('org_customers_mst')
-  .select('*')
-  .eq('tenant_org_id', tenantId);  // REQUIRED - Never omit
-```
-
-## Composite Foreign Keys (CRITICAL)
-
-Enforce tenant isolation at the database schema level:
-
-```sql
--- Example: Order references customer
-FOREIGN KEY (tenant_org_id, customer_id)
-  REFERENCES org_customers_mst(tenant_org_id, customer_id)
-  ON DELETE CASCADE
-
--- Example: Order item references product
-FOREIGN KEY (tenant_org_id, service_category_code)
-  REFERENCES org_service_category_cf(tenant_org_id, service_category_code)
-```
-
-**Why?** Database-level enforcement prevents accidental cross-tenant references even if application code has bugs.
-
-## Code Review Checklist
-
-Before committing any database code:
-
-- [ ] No duplicate `getTenantIdFromSession()` implementations
-- [ ] All Prisma queries wrapped with `withTenantContext()`
-- [ ] All Supabase queries include `.eq('tenant_org_id', tenantId)`
-- [ ] All services import from `@/lib/db/tenant-context`
-- [ ] All new `org_*` tables have composite foreign keys
-- [ ] RLS policies enabled on all `org_*` tables
-
-## Dual-Layer Architecture
-
-```
-SYSTEM LAYER (sys_*): Global shared data, no tenant_org_id
-  Examples: sys_auth_users_mst, sys_pln_plans_mst
-
-ORGANIZATION LAYER (org_*): Tenant data with RLS
-  Examples: org_orders_mst, org_customers_mst
-```
-
-### Multi-Tenancy Enforcement Layers
-
-**Application Layer (Prisma Middleware):**
-- Auto-inject `tenant_org_id` filter on all `org_*` tables
-- Enforced via middleware in `lib/prisma-middleware.ts`
-- Compile-time type checking prevents mistakes
-
-**Database Layer (RLS Policies):**
-- Existing RLS policies still active
-- Defense-in-depth security model
-- Works even if application layer bypassed
-
-## Common Mistakes to Avoid
-
-❌ **Wrong - Missing tenant filter:**
-```typescript
-const orders = await prisma.org_orders_mst.findMany();
-// Missing withTenantContext - will fail or leak data
-```
-
-✅ **Correct - With tenant context:**
-```typescript
-const tenantId = await getTenantIdFromSession();
-const orders = await withTenantContext(tenantId, async () => {
-  return await prisma.org_orders_mst.findMany();
-});
-```
-
-❌ **Wrong - Duplicate tenant function:**
-```typescript
-// In some-service.ts
-async function getTenantId() {
-  // Duplicated logic
-}
-```
-
-✅ **Correct - Use centralized:**
-```typescript
-import { getTenantIdFromSession } from '@/lib/db/tenant-context';
-
-const tenantId = await getTenantIdFromSession();
-```
-
-## Additional Resources
-
-- See [reference.md](./reference.md) for RLS policy examples and testing checklist
-- See [Database Skill](/database) for composite foreign key patterns
+- `../../docs/multitenancy.md`
+- `../../../CLAUDE.md`

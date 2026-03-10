@@ -1,7 +1,7 @@
 # RBAC & User Management — Progress Status
 
 ## Feature Overview
-RBAC (Role-Based Access Control) screens for `cleanmatex/web-admin`, fully backed by `platform-api` (port 3002).
+RBAC (Role-Based Access Control) screens for `cleanmatex/web-admin`, documented here as an implementation snapshot tied to a specific backend integration phase.
 
 ---
 
@@ -64,13 +64,20 @@ RBAC (Role-Based Access Control) screens for `cleanmatex/web-admin`, fully backe
 ### Build
 | Step | Status |
 |------|--------|
-| `npm run build` in `web-admin` | ✅ Passing — 0 TypeScript errors |
+| `npm run build` in `web-admin` | Historical snapshot at the time of this report |
 
 ---
 
 ## Architecture Decision Record
-**Decision:** All RBAC data flows exclusively through `platform-api`. No direct Supabase queries from RBAC screens.
+**Decision at the time:** All RBAC data flows exclusively through `platform-api`. No direct Supabase queries from RBAC screens.
 
 **Rationale:** Platform-api handles dual Supabase Auth + DB user creation, permission rebuilding, role hierarchies, and tenant isolation — none of which can be safely replicated in the client.
 
-**Token:** `session.access_token` from `useAuth()` passed as `Authorization: Bearer` header to all platform-api calls.
+**Token:** `session.access_token` from `useAuth()` passed as `Authorization: Bearer` header to the documented backend calls.
+
+## Current Authority Note
+
+Use this file as a historical/progress snapshot.
+
+- verify current endpoints, file paths, and backend ownership before relying on it as current truth
+- use active module docs and current code for final authority

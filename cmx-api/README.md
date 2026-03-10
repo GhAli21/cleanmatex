@@ -1,77 +1,87 @@
-# cmx-api
+# CleanMateX API
 
-CleanMateX **client API** — NestJS + Supabase. Serves mobile apps, integrations, and external clients.
+`cmx-api` is the NestJS client API for CleanMateX. It serves external clients, mobile applications, partner integrations, and API-first backend workflows against the shared platform database.
 
 ## Stack
 
-- **Runtime:** Node.js 20+
-- **Framework:** NestJS 10
-- **Database:** Supabase (PostgreSQL); typed client, no Prisma
-- **Auth:** Supabase Auth; JWT + refresh token
-- **API:** REST, OpenAPI/Swagger at `/api/docs`
+- NestJS 10
+- TypeScript
+- Supabase client integrations
+- Swagger/OpenAPI
+- Jest and Supertest-based testing
+- Shared Supabase schema from `../supabase`
 
-**Supabase:** One **shared Supabase instance** for the whole platform. Same database schema; **separate project/module folders** (e.g. `cmx-api/`, `web-admin/`) that all connect to it. Supabase project lives at repo root: `supabase/` (from cmx-api: `../supabase`). Run Supabase CLI (e.g. `supabase start`, `supabase gen types`) from that directory.
+## Runtime Defaults
 
-## Setup
+- Default port: `3004`
+- API prefix: `/api/v1`
+- Swagger: `/api/docs`
+- Health endpoint: `/api/v1/health`
+
+The current bootstrap uses `process.env.PORT ?? 3004` in `src/main.ts`.
+
+## Local Development
 
 ```bash
-# From repo root
 cd cmx-api
-cp .env.example .env
-# Edit .env: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-
 npm install
 npm run start:dev
 ```
 
-- **Base URL:** http://localhost:3004
-- **API prefix:** `/api/v1`
-- **Health:** GET http://localhost:3004/api/v1/health
-- **Swagger:** http://localhost:3004/api/docs
+Make sure shared local services are already running from the repo root when this API needs the database and related infrastructure.
 
 ## Commands
 
-| Command              | Description          |
-| -------------------- | -------------------- |
-| `npm run start:dev`  | Start with watch     |
-| `npm run build`      | Build for production |
-| `npm run start:prod` | Run production build |
-| `npm run test`       | Unit tests           |
-| `npm run lint`       | Lint                 |
+```bash
+npm run start:dev
+npm run build
+npm run start:prod
+npm run lint
+npm run test
+npm run test:e2e
+npm run test:openapi
+```
 
-## Auth & tenant contract
+## Shared Database Contract
 
-**Tenant resolution (hard rule: missing tenant → 401/403):**
+This module does not own a separate database. It connects to the shared Supabase project located at `../supabase`.
+
+- schema, migrations, and seed-related assets live in `../supabase`
+- tenant-aware database rules from the main project still apply here
+- local Supabase CLI operations should be run from the repo-level `supabase/` directory
+
+## Auth And Tenant Rules
+
+Tenant resolution is a hard requirement:
 
 1. JWT claim `tenant_org_id`
-2. Header `X-Tenant-Id` (platform ops only)
-3. Reject if unresolved (no implicit defaults)
+2. `X-Tenant-Id` header only for approved platform operations
+3. reject requests when tenant context cannot be resolved safely
 
-Protected routes must use `JwtAuthGuard` and `TenantGuard`. Document this in OpenAPI for clients.
+Protected endpoints should document authentication and tenant requirements clearly in OpenAPI.
 
-## Request context & tracing
+## API Conventions
 
-Every request has:
+- Use REST endpoints under `/api/v1`
+- Document request and response contracts in Swagger
+- Use pagination for list endpoints
+- Include request tracing and structured error context
+- Treat multi-tenant isolation as a first-class requirement
 
-- `traceId`, `requestId` — set by middleware
-- `tenantOrgId`, `userId`, `roles[]` — from JWT (after auth)
+## Testing
 
-**Hard rule:** Every log and every error response includes `traceId`.
+- `npm run test`: unit tests
+- `npm run test:e2e`: end-to-end tests
+- `npm run test:openapi`: OpenAPI contract-focused checks
 
-## Pagination
+## Related Documentation
 
-List endpoints use:
+- `../README.md`
+- `../docs/README.md`
+- `../CLAUDE.md`
+- `../supabase/README.md`
+- `../.claude/skills/backend/SKILL.md`
 
-- **Query:** `page`, `limit`, `sort`, `order`, `search`
-- **Response:** `{ data: [], meta: { page, limit, total } }`
+## Documentation Notes
 
-Use `PaginationQueryDto` and `createPaginatedResponse()` from `common/`.
-
-## Idempotency
-
-Mutations (orders, payments, webhooks) support `Idempotency-Key` header. Replay returns stored response. Use `IdempotencyInterceptor` on mutation routes.
-
-## Links
-
-- [Root README](../README.md)
-- [Backend skill](../.claude/skills/backend/SKILL.md) — NestJS + Supabase standards
+This module currently has a light local documentation surface compared with `web-admin`. As the API surface grows, update this README alongside endpoint docs and feature documentation so implementation reality, PRDs, and backend guidance stay aligned.

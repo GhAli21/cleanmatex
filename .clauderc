@@ -10,8 +10,8 @@ project:
   
 # Tech Stack
 stack:
-  backend: "NestJS + Prisma + PostgreSQL"
-  frontend-web: "Next.js 14 + TypeScript + TailwindCSS"
+  backend: "NestJS + Supabase + PostgreSQL"
+  frontend-web: "Next.js 16 + React 19 + TypeScript + TailwindCSS"
   frontend-mobile: "Flutter 3.16+"
   database: "PostgreSQL 16"
   cache: "Redis 7"
@@ -24,7 +24,7 @@ directories:
   web: "./web-admin"
   mobile: "./mobile-apps"
   docs: "./docs"
-  shared: "./shared"
+  shared: "./packages"
   templates: "./templates"
 
 # Coding Standards
@@ -43,7 +43,7 @@ critical_rules:
   - "🔴 NEVER hardcode sensitive data (API keys, passwords)"
   - "🔴 ALWAYS validate user input with DTOs/schemas"
   - "🔴 ALWAYS use environment variables for configuration"
-  - "🔴 ALWAYS follow the database schema in prisma/schema.prisma"
+  - "🔴 ALWAYS align database changes with the shared Supabase workspace in ./supabase"
   - "🔴 ALWAYS support RTL (Right-to-Left) for Arabic"
   - "🔴 NEVER skip writing tests for business logic"
   - "🔴 ALWAYS use transactions for multi-table operations"
@@ -61,7 +61,7 @@ security:
   - "JWT authentication with refresh tokens"
   - "Input sanitization and validation"
   - "Rate limiting on all public APIs"
-  - "SQL injection prevention via Prisma ORM"
+  - "SQL injection prevention via validated queries and typed database access"
   - "XSS protection on frontend"
   - "CORS configuration"
   - "Helmet.js for HTTP headers"

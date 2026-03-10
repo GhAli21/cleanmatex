@@ -54,7 +54,12 @@ export const updateOrderInputSchema = z.object({
   // Optional fields (only update what's provided)
   customerId: z.string().optional(), // Can be UUID or empty string for default customer
   branchId: z.string().uuid().nullable().optional(),
+  /** Internal staff notes */
   notes: z.string().max(1000).optional(),
+  /** Customer-provided notes */
+  customerNotes: z.string().max(1000).optional(),
+  /** Payment-related notes */
+  paymentNotes: z.string().max(1000).optional(),
   readyByAt: z.coerce.date().optional(),
   express: z.boolean().optional(),
   isQuickDrop: z.boolean().optional(),

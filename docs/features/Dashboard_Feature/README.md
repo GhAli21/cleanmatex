@@ -1,41 +1,31 @@
 # Dashboard Feature
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Historical predecessor folder  
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains earlier dashboard-development notes from before the richer `007_admin_dashboard/` feature pack became the stronger dashboard documentation area.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
+Treat this folder as historical context only.
 
-## Documentation
+- use it to understand early dashboard implementation phases
+- do not treat it as the canonical current dashboard documentation set
+- prefer `../007_admin_dashboard/` for the more complete dashboard feature pack
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+## Most Relevant Historical File
 
-## Related Files
+- `DASHBOARD_CONTINUATION_GUIDE.md`
 
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
+## Relationship To Current Dashboard Docs
 
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- current richer dashboard docs: `../007_admin_dashboard/`
+- grouped legacy index inside canonical dashboard folder: `../007_admin_dashboard/history/dashboard_feature_legacy_index.md`
+- this folder should eventually either move to archive or become a feature-local `history/` area under the approved documentation cleanup approach
 
 ## Notes
 
-Add any important notes or context.
+This folder remains useful for historical implementation sequencing, but it should not sit beside active dashboard docs as if both are equal authorities.
 

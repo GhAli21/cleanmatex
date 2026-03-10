@@ -131,6 +131,7 @@ export const createWithPaymentRequestSchema = z.object({
   quickDropQuantity: z.number().positive().optional(),
   express: z.boolean().optional(),
   customerNotes: z.string().optional(),
+  paymentNotes: z.string().optional(),
   readyByAt: z.string().datetime().optional(),
   paymentMethod: z.string(),
   percentDiscount: z.number().min(0).max(100).optional(),

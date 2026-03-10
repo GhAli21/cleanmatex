@@ -2,11 +2,18 @@
 
 Unified API for displaying messages across the application with support for multiple display methods (Toast, Alert, Console, Inline) and full i18n/RTL support.
 
+## Current Authority Note
+
+This file remains useful, but current message-system guidance is:
+
+- prefer `cmxMessage` and `useMessage`
+- treat older toast-only helpers as legacy
+- use `../README.md`, `../../README.md`, and project-level rules as the higher authority when guidance conflicts
+
 ## Quick Start
 
 ```typescript
 import { cmxMessage } from "@ui/feedback";
-// or
 import { useMessage } from "@ui/feedback";
 
 // Direct usage
@@ -74,7 +81,7 @@ The hook automatically integrates with `useTranslations` from `next-intl` for i1
 
 ### 1. Toast (Default)
 
-Sonner toast notifications. Best for most user-facing messages.
+Sonner-based toast notifications. Best for most user-facing messages.
 
 ```typescript
 cmxMessage.success("Saved!", { method: "toast" });
@@ -111,7 +118,7 @@ cmxMessage.error("Error logged", {
 
 ### 4. Inline
 
-Returns message object for component rendering. Use with `SummaryMessage` component.
+Returns message object for component rendering. Use with the current summary-message component exported by the feedback domain.
 
 ```typescript
 const result = cmxMessage.success("Saved!", { method: "inline" });
@@ -120,7 +127,7 @@ const result = cmxMessage.success("Saved!", { method: "inline" });
 // In component:
 {
   result.message && (
-    <SummaryMessage
+    <CmxSummaryMessage
       type={result.message.type}
       title={result.message.title}
       items={result.message.items}
@@ -276,7 +283,7 @@ function MyComponent() {
   return (
     <div>
       {inlineMessage && (
-        <SummaryMessage
+        <CmxSummaryMessage
           type={inlineMessage.type}
           title={inlineMessage.title}
           items={inlineMessage.items}
@@ -318,10 +325,6 @@ RTL support is automatically handled based on document direction. The toast posi
 - LTR: `top-right`
 - RTL: `top-left`
 
-## Migration
-
-See [MIGRATION.md](./MIGRATION.md) for migrating from old implementations.
-
 ## Type Definitions
 
 All types are exported from `@ui/feedback`:
@@ -348,6 +351,6 @@ import type {
 
 ## Related Documentation
 
-- [Migration Guide](./MIGRATION.md)
-- [UI Blueprint](../../.claude/docs/ui_blueprint.md)
-- [Frontend Standards](../../.claude/docs/frontend_standards.md)
+- `../README.md`
+- `./cmxMessage_developer_guide.md`
+- `../../README.md`

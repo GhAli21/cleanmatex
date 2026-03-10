@@ -932,6 +932,12 @@
       "notes": "Notes",
       "customerNotes": "Customer Notes",
       "internalNotes": "Internal Notes",
+      "paymentNotes": "Payment Notes",
+      "cancelledNote": "Cancellation reason",
+      "returnReason": "Return reason",
+      "cancelledAt": "Cancelled at",
+      "returnedAt": "Returned at",
+      "cancellationReturn": "Cancellation & Return",
       "photos": "Photos",
       "orderTimeline": "Order Timeline",
       "quickActions": "Quick Actions",
@@ -1000,7 +1006,14 @@
         "refund": "Refund",
         "ipAddress": "IP Address",
         "viewDetails": "Details",
-        "hideDetails": "Hide"
+        "hideDetails": "Hide",
+        "qty": "Qty",
+        "price": "Price",
+        "totalPrice": "Total Price",
+        "stain": "Has Stain",
+        "damage": "Has Damage",
+        "stainNotes": "Stain Notes",
+        "damageNotes": "Damage Notes"
       },
       "orderSummary": "Order Summary",
       "viewPayments": "View payments",
@@ -1028,6 +1041,7 @@
         "datesAndTimeline": "Dates & timeline",
         "preparationAndWorkflow": "Preparation & workflow",
         "notes": "Notes",
+        "cancellationReturn": "Cancellation & Return",
         "other": "Other"
       },
       "masterCustomerData": "Customer data",
@@ -1067,7 +1081,14 @@
         "prepared_by": "Prepared by",
         "currency_code": "Currency",
         "bag_count": "Bag count",
-        "is_retail": "Retail"
+        "is_retail": "Retail",
+        "cancelled_at": "Cancelled at",
+        "cancelled_by": "Cancelled by",
+        "cancelled_note": "Cancellation reason",
+        "returned_at": "Returned at",
+        "returned_by": "Returned by",
+        "return_reason": "Return reason",
+        "return_reason_code": "Return reason code"
       }
     },
     "statuses": {
@@ -2591,7 +2612,9 @@
     },
     "customerDetails": {
       "title": "Customer Details",
-      "orderOnlyNote": "Changes apply to this order only, not to customer profile."
+      "orderOnlyNote": "Changes apply to this order only, not to customer profile.",
+      "customerNotes": "Customer notes",
+      "customerNotesPlaceholder": "Notes from the customer..."
     },
     "serviceCategory": {
       "title": "Service categories",
@@ -2807,6 +2830,8 @@
         "label": "Check Date",
         "placeholder": "Select date"
       },
+      "paymentNotes": "Payment notes",
+      "paymentNotesPlaceholder": "Optional payment-related notes...",
       "validation": {
         "discountExceedsTotal": "Discount cannot exceed order total"
       },

@@ -25,6 +25,18 @@ export interface ItemChange {
   newQuantity?: number;
   oldPrice?: number;
   newPrice?: number;
+  oldTotalPrice?: number;
+  newTotalPrice?: number;
+  oldNotes?: string | null;
+  newNotes?: string | null;
+  oldHasStain?: boolean | null;
+  newHasStain?: boolean | null;
+  oldHasDamage?: boolean | null;
+  newHasDamage?: boolean | null;
+  oldStainNotes?: string | null;
+  newStainNotes?: string | null;
+  oldDamageNotes?: string | null;
+  newDamageNotes?: string | null;
 }
 
 export interface PricingChange {
@@ -183,7 +195,8 @@ export async function getOrderEditHistory(
 }
 
 /**
- * Compares before/after order snapshots and generates structured change set
+ * Compares before/after order snapshots and generates structured change set.
+ * Snapshots are shaped as { order: {...camelCase fields}, items: [...camelCase] }
  */
 export function compareOrderSnapshots(before: any, after: any): ChangeSet {
   const fieldChanges: FieldChange[] = [];
@@ -191,103 +204,166 @@ export function compareOrderSnapshots(before: any, after: any): ChangeSet {
   const itemsRemoved: ItemChange[] = [];
   const itemsModified: ItemChange[] = [];
 
-  // Compare order-level fields
-  const fieldsToTrack = [
-    { key: 'customer_id', display: 'Customer' },
-    { key: 'customer_name', display: 'Customer Name' },
-    { key: 'customer_mobile_number', display: 'Customer Phone' },
-    { key: 'customer_email', display: 'Customer Email' },
-    { key: 'branch_id', display: 'Branch' },
-    { key: 'internal_notes', display: 'Notes' },
-    { key: 'ready_by', display: 'Ready By' },
-    { key: 'priority', display: 'Priority' },
-    { key: 'is_order_quick_drop', display: 'Quick Drop' },
-    { key: 'quick_drop_quantity', display: 'Quick Drop Quantity' },
+  // Snapshots store order fields under `before.order` in camelCase
+  const bo = before?.order ?? before ?? {};
+  const ao = after?.order ?? after ?? {};
+
+  const fieldsToTrack: Array<{ key: string; display: string; isDate?: boolean; isBool?: boolean }> = [
+    { key: 'customerId',       display: 'Customer' },
+    { key: 'customerName',     display: 'Customer Name' },
+    { key: 'customerMobile',   display: 'Customer Phone' },
+    { key: 'customerEmail',    display: 'Customer Email' },
+    { key: 'branchId',         display: 'Branch' },
+    { key: 'notes',            display: 'Internal Notes' },
+    { key: 'customerNotes',    display: 'Customer Notes' },
+    { key: 'paymentNotes',     display: 'Payment Notes' },
+    { key: 'readyByAt',        display: 'Ready By', isDate: true },
+    { key: 'express',          display: 'Express / Priority', isBool: true },
+    { key: 'isQuickDrop',      display: 'Quick Drop', isBool: true },
+    { key: 'quickDropQuantity', display: 'Quick Drop Quantity' },
   ];
 
   for (const field of fieldsToTrack) {
-    if (before[field.key] !== after[field.key]) {
+    let oldVal = bo[field.key];
+    let newVal = ao[field.key];
+
+    // Normalise dates to ISO string for stable comparison
+    if (field.isDate) {
+      oldVal = oldVal ? new Date(oldVal).toISOString() : null;
+      newVal = newVal ? new Date(newVal).toISOString() : null;
+    }
+
+    // Treat null/undefined as equivalent
+    const oldNorm = oldVal ?? null;
+    const newNorm = newVal ?? null;
+
+    if (oldNorm !== newNorm) {
       fieldChanges.push({
         field: field.key,
         displayName: field.display,
-        oldValue: before[field.key],
-        newValue: after[field.key],
+        oldValue: bo[field.key],
+        newValue: ao[field.key],
       });
     }
   }
 
-  // Compare items
-  const beforeItems = before.items || [];
-  const afterItems = after.items || [];
+  // Compare pricing fields at the order level
+  const pricingFields: Array<{ key: string; display: string }> = [
+    { key: 'subtotal',  display: 'Subtotal' },
+    { key: 'discount',  display: 'Discount' },
+    { key: 'tax',       display: 'Tax' },
+  ];
+  for (const pf of pricingFields) {
+    const oldNum = bo[pf.key] != null ? Number(bo[pf.key]) : null;
+    const newNum = ao[pf.key] != null ? Number(ao[pf.key]) : null;
+    if (oldNum !== newNum) {
+      fieldChanges.push({
+        field: pf.key,
+        displayName: pf.display,
+        oldValue: bo[pf.key],
+        newValue: ao[pf.key],
+      });
+    }
+  }
 
-  const beforeItemsMap = new Map(
-    beforeItems.map((item: any) => [item.product_id, item])
+  // Items — snapshots use camelCase keys: productId, productName, quantity, pricePerUnit, totalPrice,
+  // notes, hasStain, hasDamage, stainNotes, damageNotes
+  const beforeItems: any[] = before?.items ?? [];
+  const afterItems: any[]  = after?.items  ?? [];
+
+  const beforeItemsMap = new Map<string, any>(
+    beforeItems.map((item: any) => [item.productId, item])
   );
-  const afterItemsMap = new Map(
-    afterItems.map((item: any) => [item.product_id, item])
+  const afterItemsMap = new Map<string, any>(
+    afterItems.map((item: any) => [item.productId, item])
   );
 
-  // Find removed items
+  // Removed items
   for (const [productId, item] of beforeItemsMap) {
     if (!afterItemsMap.has(productId)) {
       itemsRemoved.push({
         productId,
-        productName: item.product_name || 'Unknown',
+        productName: item.productName || item.product_name || productId.slice(0, 8),
         changeType: 'removed',
         oldQuantity: item.quantity,
-        oldPrice: Number(item.price_per_unit),
+        oldPrice: item.pricePerUnit != null ? Number(item.pricePerUnit) : undefined,
+        oldTotalPrice: item.totalPrice != null ? Number(item.totalPrice) : undefined,
+        oldNotes: item.notes ?? null,
+        oldHasStain: item.hasStain ?? null,
+        oldHasDamage: item.hasDamage ?? null,
+        oldStainNotes: item.stainNotes ?? null,
+        oldDamageNotes: item.damageNotes ?? null,
       });
     }
   }
 
-  // Find added and modified items
+  // Added + modified items
   for (const [productId, afterItem] of afterItemsMap) {
     const beforeItem = beforeItemsMap.get(productId);
+    const pName = afterItem.productName || afterItem.product_name || productId.slice(0, 8);
 
     if (!beforeItem) {
-      // Added item
       itemsAdded.push({
         productId,
-        productName: afterItem.product_name || 'Unknown',
+        productName: pName,
         changeType: 'added',
         newQuantity: afterItem.quantity,
-        newPrice: Number(afterItem.price_per_unit),
+        newPrice: afterItem.pricePerUnit != null ? Number(afterItem.pricePerUnit) : undefined,
+        newTotalPrice: afterItem.totalPrice != null ? Number(afterItem.totalPrice) : undefined,
+        newNotes: afterItem.notes ?? null,
+        newHasStain: afterItem.hasStain ?? null,
+        newHasDamage: afterItem.hasDamage ?? null,
+        newStainNotes: afterItem.stainNotes ?? null,
+        newDamageNotes: afterItem.damageNotes ?? null,
       });
     } else {
-      // Check if modified
-      const quantityChanged = beforeItem.quantity !== afterItem.quantity;
-      const priceChanged =
-        Number(beforeItem.price_per_unit) !== Number(afterItem.price_per_unit);
+      const quantityChanged  = beforeItem.quantity   !== afterItem.quantity;
+      const priceChanged     = Number(beforeItem.pricePerUnit)  !== Number(afterItem.pricePerUnit);
+      const notesChanged     = (beforeItem.notes     ?? null) !== (afterItem.notes     ?? null);
+      const stainChanged     = (beforeItem.hasStain  ?? null) !== (afterItem.hasStain  ?? null);
+      const damageChanged    = (beforeItem.hasDamage ?? null) !== (afterItem.hasDamage ?? null);
+      const stainNotesChg    = (beforeItem.stainNotes  ?? null) !== (afterItem.stainNotes  ?? null);
+      const damageNotesChg   = (beforeItem.damageNotes ?? null) !== (afterItem.damageNotes ?? null);
 
-      if (quantityChanged || priceChanged) {
+      if (quantityChanged || priceChanged || notesChanged || stainChanged || damageChanged || stainNotesChg || damageNotesChg) {
         itemsModified.push({
           productId,
-          productName: afterItem.product_name || 'Unknown',
+          productName: pName,
           changeType: 'modified',
-          oldQuantity: beforeItem.quantity,
-          newQuantity: afterItem.quantity,
-          oldPrice: Number(beforeItem.price_per_unit),
-          newPrice: Number(afterItem.price_per_unit),
+          oldQuantity:    beforeItem.quantity,
+          newQuantity:    afterItem.quantity,
+          oldPrice:       beforeItem.pricePerUnit  != null ? Number(beforeItem.pricePerUnit)  : undefined,
+          newPrice:       afterItem.pricePerUnit   != null ? Number(afterItem.pricePerUnit)   : undefined,
+          oldTotalPrice:  beforeItem.totalPrice    != null ? Number(beforeItem.totalPrice)    : undefined,
+          newTotalPrice:  afterItem.totalPrice     != null ? Number(afterItem.totalPrice)     : undefined,
+          oldNotes:       beforeItem.notes    ?? null,
+          newNotes:       afterItem.notes     ?? null,
+          oldHasStain:    beforeItem.hasStain  ?? null,
+          newHasStain:    afterItem.hasStain   ?? null,
+          oldHasDamage:   beforeItem.hasDamage ?? null,
+          newHasDamage:   afterItem.hasDamage  ?? null,
+          oldStainNotes:  beforeItem.stainNotes  ?? null,
+          newStainNotes:  afterItem.stainNotes   ?? null,
+          oldDamageNotes: beforeItem.damageNotes ?? null,
+          newDamageNotes: afterItem.damageNotes  ?? null,
         });
       }
     }
   }
 
-  // Compare pricing
+  // Pricing totals change
   let pricingChange: PricingChange | null = null;
-  if (before.subtotal !== after.subtotal || before.total !== after.total) {
-    const oldTotal = Number(before.total) || 0;
-    const newTotal = Number(after.total) || 0;
+  const oldTotal = Number(bo.total) || 0;
+  const newTotal = Number(ao.total) || 0;
+  if (oldTotal !== newTotal || Number(bo.subtotal) !== Number(ao.subtotal)) {
     const difference = newTotal - oldTotal;
-    const percentageChange = oldTotal > 0 ? (difference / oldTotal) * 100 : 0;
-
     pricingChange = {
-      oldSubtotal: Number(before.subtotal) || 0,
-      newSubtotal: Number(after.subtotal) || 0,
+      oldSubtotal: Number(bo.subtotal) || 0,
+      newSubtotal: Number(ao.subtotal) || 0,
       oldTotal,
       newTotal,
       difference,
-      percentageChange,
+      percentageChange: oldTotal > 0 ? (difference / oldTotal) * 100 : 0,
     };
   }
 
@@ -311,37 +387,26 @@ export function generateChangeSummary(
 ): string {
   const parts: string[] = [];
 
-  // Field changes
   if (changeSet.fields.length > 0) {
     const fieldNames = changeSet.fields.map((f) => f.displayName || f.field);
-    parts.push(`Updated ${fieldNames.join(', ')}`);
+    parts.push(`Updated: ${fieldNames.join(', ')}`);
   }
 
-  // Item changes
   const { added, removed, modified } = changeSet.items;
-
   if (added.length > 0) {
-    const names = added.map((i) => i.productName).join(', ');
-    parts.push(`Added ${added.length} item(s): ${names}`);
+    parts.push(`Added ${added.length} item(s): ${added.map((i) => i.productName).join(', ')}`);
   }
-
   if (removed.length > 0) {
-    const names = removed.map((i) => i.productName).join(', ');
-    parts.push(`Removed ${removed.length} item(s): ${names}`);
+    parts.push(`Removed ${removed.length} item(s): ${removed.map((i) => i.productName).join(', ')}`);
   }
-
   if (modified.length > 0) {
-    const names = modified.map((i) => i.productName).join(', ');
-    parts.push(`Modified ${modified.length} item(s): ${names}`);
+    parts.push(`Modified ${modified.length} item(s): ${modified.map((i) => i.productName).join(', ')}`);
   }
 
-  // Pricing changes
   if (changeSet.pricing) {
     const { oldTotal, newTotal, difference } = changeSet.pricing;
     const direction = difference > 0 ? 'increased' : 'decreased';
-    parts.push(
-      `Total ${direction} from ${oldTotal.toFixed(2)} to ${newTotal.toFixed(2)}`
-    );
+    parts.push(`Total ${direction} from ${oldTotal.toFixed(3)} to ${newTotal.toFixed(3)}`);
   }
 
   if (parts.length === 0) {

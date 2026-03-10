@@ -329,68 +329,27 @@ Rules:
 
 ### 7.1 Tenant Context Management (CRITICAL)
 
-**🚨 MANDATORY: Use Centralized Tenant Context**
+Tenant handling is module-specific and must match the actual runtime surface.
 
-**For Next.js Services (web-admin):**
+**For Next.js services in `web-admin`:**
 
-1. **ALWAYS import from centralized location:**
+1. Reuse centralized tenant-context utilities when the current implementation requires them.
+2. Do not create duplicate tenant-context helpers.
+3. When using Supabase or other tenant-scoped access, ensure tenant filtering is explicit and auditable.
+4. When using Prisma inside `web-admin`, follow the current module implementation rather than assuming one historical middleware pattern is always correct.
 
-   ```typescript
-   // ✅ CORRECT
-   import {
-     getTenantIdFromSession,
-     withTenantContext,
-   } from "@/lib/db/tenant-context";
+**For NestJS services in `cmx-api`:**
 
-   // ❌ WRONG - Never create duplicate implementations
-   async function getTenantIdFromSession(): Promise<string> {
-     // This violates the rule!
-   }
-   ```
-
-2. **For Prisma services:**
-
-   - Wrap all Prisma queries on `org_*` tables with `withTenantContext()`
-   - Middleware automatically adds `tenant_org_id` to queries
-   - Example:
-     ```typescript
-     export async function createInvoice(input: CreateInvoiceInput) {
-       const tenantId = await getTenantIdFromSession();
-       if (!tenantId) throw new Error('Unauthorized');
-
-       return withTenantContext(tenantId, async () => {
-         // Middleware adds tenant_org_id automatically
-         return await prisma.org_invoice_mst.create({ ... });
-       });
-     }
-     ```
-
-3. **For Supabase services:**
-   - Use centralized `getTenantIdFromSession()` to get tenant ID
-   - Explicitly add `.eq('tenant_org_id', tenantId)` to all queries
-   - Example:
-     ```typescript
-     export async function getCustomers() {
-       const tenantId = await getTenantIdFromSession();
-       const { data } = await supabase
-         .from("org_customers_mst")
-         .select("*")
-         .eq("tenant_org_id", tenantId); // Required
-     }
-     ```
-
-**For NestJS Services (backend):**
-
-- Tenant ID should be extracted from request context (via guards/interceptors)
-- Pass tenant ID explicitly to service methods
-- Services receive `tenantId` as parameter, not retrieved internally
+1. Extract tenant context from request/guard/interceptor flow.
+2. Pass `tenantId` explicitly into service methods and repositories.
+3. Keep controllers thin and do not fetch tenant context ad hoc inside deep layers unless the module explicitly supports that pattern.
 
 **Code Review Checklist:**
 
-- ✅ No duplicate `getTenantIdFromSession()` implementations
-- ✅ All Prisma queries wrapped with `withTenantContext()` (for `org_*` tables)
-- ✅ All Supabase queries include `.eq('tenant_org_id', tenantId)`
-- ✅ All services import from `@/lib/db/tenant-context` (Next.js) or receive tenantId as parameter (NestJS)
+- ✅ No duplicate tenant-context helper implementations
+- ✅ Tenant-scoped reads and writes are explicit and verifiable
+- ✅ `web-admin` uses its current centralized tenant utilities where applicable
+- ✅ `cmx-api` receives tenant context through request-boundary patterns
 
 ---
 

@@ -22,6 +22,8 @@ export const initialState: NewOrderState = {
   customerNameSnapshot: '',
   isDefaultCustomer: false,
   customerSnapshotOverride: null,
+  customerNotes: '',
+  paymentNotes: '',
 
   // Order Items
   items: [],
@@ -301,6 +303,18 @@ export function newOrderReducer(
         notes: action.payload,
       };
 
+    case 'SET_CUSTOMER_NOTES':
+      return {
+        ...state,
+        customerNotes: action.payload,
+      };
+
+    case 'SET_PAYMENT_NOTES':
+      return {
+        ...state,
+        paymentNotes: action.payload,
+      };
+
     case 'SET_READY_BY_AT':
       return {
         ...state,
@@ -418,6 +432,8 @@ export function newOrderReducer(
         items,
         express,
         notes,
+        customerNotes,
+        paymentNotes,
         readyByAt,
         originalData,
         expectedUpdatedAt,
@@ -440,6 +456,8 @@ export function newOrderReducer(
         items,
         express,
         notes,
+        customerNotes: customerNotes ?? '',
+        paymentNotes: paymentNotes ?? '',
         readyByAt,
       };
     }

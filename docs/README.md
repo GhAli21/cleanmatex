@@ -1,247 +1,116 @@
 # CleanMateX Documentation Index
 
-**Last Updated:** 2026-01-29
+This directory contains the project documentation hub: active plans, feature docs, operational guides, technical references, and historical archives.
 
-Welcome to the CleanMateX documentation. This index helps you find the right documentation for your needs.
+## Start Here
 
----
+Use these files first:
 
-## 🚀 Quick Start
+1. `../README.md`: repo entrypoint and module map
+2. `../CLAUDE.md`: project guardrails and implementation rules
+3. `plan/master_plan_cc_01.md`: primary high-level master plan reference
+4. `features/`: feature-level docs, implementation notes, and PRD-aligned material
+5. `dev/claude-code-efficiency-guide.md`: workflow guidance for AI-assisted development
 
-**New to the project?** Start here:
+## Documentation Areas
 
-1. **Setup:** [Getting Started](../CLAUDE.md) - Project overview and critical rules
-2. **Efficiency Guide:** [Claude Code Best Practices](dev/claude-code-efficiency-guide.md) ⭐ **MUST READ**
-3. **Quick Reference:** [Quick Reference Card](dev/claude-code-quick-reference.md) - Keep this handy
-4. **Architecture:** [System Architecture](plan/master_plan_cc_01.md) - System design and tech stack
+The real `docs/` structure is broader than the older index implied. Current areas include:
 
----
+- `features/`: feature folders, implementation notes, PRD-linked docs, and status files
+- `plan/`: high-level plans and older planning references
+- `plan_cr/`: broad PRD and planning corpus that still overlaps with `plan/`
+- `dev/`: development workflows, migration notes, implementation aids, and troubleshooting
+- `api/`: API references and backend-facing technical docs
+- `config/`: environment and configuration guidance
+- `deployment/`: deployment-related notes and external deployment pointers
+- `Database_Design/`: schema notes and database references
+- `security/`: security and tenant-isolation references
+- `migration/`: migration-specific supporting docs
+- `testing/`: testing references
+- `users/`, `admins/`, `developers/`: audience-specific docs
+- `implementation/`: implementation support material
+- `master_data/`: data and setup references
+- `navigation/`: navigation/tree-related docs
+- `langs/`: language and localization support docs
+- `_archive/`: retired or historical documentation
+- loose root files such as `troubleshooting.md`, `progress.md`, and `development-setup.md`
 
-## 📚 Documentation Structure
+## Planning And PRD Guidance
 
-```
-docs/
-├── README.md (this file)           # Documentation index
-├── plan/                           # Active plans and PRDs
-├── features/                       # Feature-specific documentation
-├── dev/                            # Development guides and tools
-├── api/                            # API documentation
-├── config/                         # Configuration guides
-├── deployment/                     # Deployment documentation
-└── _archive/                       # Archived documentation
-```
+Planning material currently spans two parallel areas:
 
----
+- `plan/`: treat this as the primary home for the high-level master plan
+- `plan_cr/`: treat this as a large PRD and planning backlog that still needs consolidation
 
-## 📋 Active Plans & PRDs
+Until the planning corpus is fully normalized:
 
-**Current Active Plans:**
+- use `plan/master_plan_cc_01.md` as the primary high-level roadmap reference
+- cross-check important planning assumptions against `plan_cr/` and implemented code/docs
+- do not assume a PRD is current unless it matches the already implemented scope
 
-- [Master Plan](plan/master_plan_cc_01.md) - Complete project roadmap and implementation guide
-- [Invoice Feature Plan](plan/invoice_feature_plan.md) - Invoice and payments feature
-- [Order Workflow Plan](plan/orders_workflow_plan.md) - Order processing workflow
+## Module Documentation
 
-**Note:** Old plans have been archived to `_archive/2025-01/old-plans/`
+Important module-level documentation lives outside `docs/` too:
 
----
+- `../web-admin/README.md`
+- `../cmx-api/README.md`
+- `../supabase/README.md`
+- `../scripts/README.md`
+- `../mobile-apps/README.md`
+- `../packages/README.md`
+- `../infra/README.md`
+- `../qa/README.md`
 
-## 🎯 Features Documentation
+Use those together with feature and plan docs so module reality and feature docs stay compatible.
 
-Each feature has its own directory with a README.md. Navigate to the feature you're working on:
+## How To Use This Documentation
 
-### Core Features
+### If you are onboarding
 
-| Feature | Directory | Status |
-|---------|-----------|--------|
-| **Authentication** | [001_auth_dev_prd](features/001_auth_dev_prd/) | ✅ Complete |
-| **Tenant Management** | [002_tenant_management_dev_prd](features/002_tenant_management_dev_prd/) | ✅ Complete |
-| **Customer Management** | [003_customer_management](features/003_customer_management/) | ✅ Complete |
-| **Order Intake** | [004_order_intake](features/004_order_intake/) | ✅ Complete |
-| **Basic Workflow** | [005_basic_workflow](features/005_basic_workflow/) | ✅ Complete |
-| **Digital Receipts** | [006_digital_receipts](features/006_digital_receipts/) | ✅ Complete |
-| **Admin Dashboard** | [007_admin_dashboard](features/007_admin_dashboard/) | ✅ Complete |
+- start with `../README.md`
+- read `../CLAUDE.md`
+- use `dev/claude-code-efficiency-guide.md`
 
-### Order Processing Features
+### If you are updating a feature
 
-| Feature | Directory | Status |
-|---------|-----------|--------|
-| **Service Catalog** | [008_service_catalog_dev_prd](features/008_service_catalog_dev_prd/) | ✅ Complete |
-| **Quick Drop** | [008_order_intake_quick_drop_dev_prd](features/008_order_intake_quick_drop_dev_prd/) | ✅ Complete |
-| **Order Preparation** | [009 – Order Preparation & Itemization (Dev PRD)](features/009%20–%20Order%20Preparation%20&%20Itemization%20(Dev%20PRD)/) | ✅ Complete |
-| **Assembly & QA** | [009_assembly_qa](features/009_assembly_qa/) | ✅ Complete |
-| **Workflow Engine** | [010 - Order Workflow Engine (Dev Plan)](features/010%20-%20Order%20Workflow%20Engine%20(Dev%20Plan)/) | ✅ Complete |
-| **Advanced Orders** | [010_advanced_orders](features/010_advanced_orders/) | 🚧 Active |
-| **Payments** | [010_2_Payment Feature for Order Module](features/010_2_Payment%20Feature%20for%20Order%20Module/) | 🚧 Active |
+- check the relevant folder under `features/`
+- check overlapping PRDs in `plan/` and `plan_cr/`
+- update implementation-facing docs and PRDs together when both exist
 
-### Operational Features
+### If you are working on data or migrations
 
-| Feature | Directory | Status |
-|---------|-----------|--------|
-| **Pricing** | [pricing](features/pricing/) | ✅ Complete |
-| **Delivery Management** | [013_delivery_management](features/013_delivery_management/) | 📋 Planned |
-| **RBAC** | [RBAC](features/RBAC/) | 🚧 Active |
+- check `../supabase/README.md`
+- review `Database_Design/`
+- use `security/` and `dev/` notes for multi-tenancy and migration workflow
 
----
+### If you are working on UI or admin flows
 
-## 🛠️ Development Guides
+- check `../web-admin/README.md`
+- use feature docs under `features/`
+- cross-check i18n and UI rules from `../CLAUDE.md`
 
-### Essential Guides
+## Documentation Standards
 
-- **[Claude Code Efficiency Guide](dev/claude-code-efficiency-guide.md)** ⭐ - How to work efficiently with Claude
-- **[Quick Reference Card](dev/claude-code-quick-reference.md)** - One-page cheat sheet
-- **[Build Configuration](dev/BUILD_CONFIGURATION_GUIDE.md)** - Build setup and troubleshooting
-- **[Creating Tenants](dev/CREATING_TENANTS.md)** - Tenant setup guide
-- **[After DB Reset](dev/Do_After_Supabase_db_reset.md)** - Recovery steps after database reset
+When updating docs in this repository:
 
-### Feature Development
+- reconcile docs to the already implemented reality
+- keep module docs and PRDs compatible and consolidated
+- clearly label implemented, in-progress, deferred, and proposed scope
+- archive stale duplicates instead of leaving them alongside active docs
+- capture unresolved decisions in a dated `current_urgent_decesion_YYYY_MM_DD.md` file before treating them as approved direction
 
-- **[Finance & Invoices](dev/finance_invoices_payments_dev_guide.md)** - Invoice and payment implementation
-- **[CMX Editable DataTable](dev/cmx-editable-datatable/)** - Reusable data table component
+## Known Ongoing Cleanup Areas
 
-### Database
+These are under active documentation consolidation:
 
-- **[Current Tables](Database_Design/Current_Tables_jh.md)** - Database schema reference
-- **[Migration Reorganization](dev/migration-reorganization.md)** - Migration management guide
+- overlap between `plan/` and `plan_cr/`
+- inconsistent feature-folder naming under `features/`
+- older loose root docs inside `docs/`
+- stale indexes such as `folders_lookup.md`
 
----
+## Navigation
 
-## 🔧 Configuration
-
-- **[Supabase Auth Setup](config/supabase_auth_setup.md)** - Authentication configuration
-- **[Supabase Keys](config/supabase_keys.md)** - Environment variables and keys
-
----
-
-## 🌐 API Documentation
-
-- **[API Endpoints](api/PRD-002-API-Endpoints.md)** - Complete API reference
-
----
-
-## 🚢 Deployment
-
-- **[Deployment Guide](deployment/README.md)** - Production deployment instructions
-- **[Deployment Index](deployment/INDEX.md)** - Deployment resources
-
----
-
-## 📦 Archived Documentation
-
-Old plans, completed features, and historical documentation have been moved to:
-
-**[docs/_archive/2025-01/](\_archive/2025-01/)**
-
-```
-_archive/2025-01/
-├── progress-tracking/       # Old progress/status files (30 files)
-├── old-plans/               # Old PRD files (21 files)
-├── completed-features/      # Completed implementations (5 files)
-├── fixes/                   # Old fix documentation (2 files)
-├── database-design/         # Old DB design docs (1 file)
-└── features-loose-files/    # Archived feature files (8 files)
-```
-
----
-
-## 🎯 Skills & Best Practices
-
-CleanMateX uses Claude Code Skills for specialized guidance. See [CLAUDE.md](../CLAUDE.md) for complete skill list.
-
-### Core Skills
-
-- `/multitenancy` - **CRITICAL** - Tenant isolation, RLS policies
-- `/database` - Schema conventions, migrations, naming
-- `/frontend` - Next.js 15, React 19, UI components
-- `/backend` - API routes, service layer
-- `/i18n` - Bilingual support (EN/AR), RTL layout
-
-### Development Skills
-
-- `/implementation` - Feature development workflow
-- `/dev-commands` - CLI commands reference
-- `/testing` - Testing strategy and patterns
-- `/debugging` - Troubleshooting and fixes
-- `/documentation` - Documentation standards
-
----
-
-## 🔍 Finding Documentation
-
-### By Task
-
-| Task | Where to Look |
-|------|---------------|
-| **Starting a new feature** | Check [features/](features/) for similar implementations |
-| **Database changes** | Use `/database` skill, check [Database Design](Database_Design/) |
-| **API development** | See [API docs](api/), use `/backend` skill |
-| **UI components** | Use `/frontend` skill, check existing components |
-| **Troubleshooting** | See [debugging guides](dev/), use `/debugging` skill |
-| **Testing** | Use `/testing` skill |
-
-### By Role
-
-| Role | Key Documentation |
-|------|-------------------|
-| **New Developer** | [Efficiency Guide](dev/claude-code-efficiency-guide.md), [Quick Reference](dev/claude-code-quick-reference.md), [CLAUDE.md](../CLAUDE.md) |
-| **Frontend Developer** | `/frontend` skill, [UI Integration](features/RBAC/), [i18n guide](config/) |
-| **Backend Developer** | `/backend` skill, [API docs](api/), [Database Design](Database_Design/) |
-| **Full Stack** | [Master Plan](plan/master_plan_cc_01.md), All skills |
-| **DevOps** | [Deployment](deployment/), [Config](config/), [Dev Commands](dev/) |
-
----
-
-## 📊 Documentation Statistics
-
-**Last Audit:** 2026-01-29
-
-- **Total markdown files:** ~365
-- **Active plans:** 8 files
-- **Feature directories:** 20+ features
-- **Archived files:** 67 files (moved to _archive/2025-01/)
-- **Feature READMEs created:** 14 new READMEs
-
----
-
-## 🔄 Maintenance
-
-### When to Update This Index
-
-- After adding new features (add to Features section)
-- After archiving old docs (update Archive section)
-- After major structural changes
-- Monthly review (update statistics)
-
-### Documentation Standards
-
-See [Documentation Skill](../.claude/skills/documentation/SKILL.md) for:
-- File naming conventions
-- Structure requirements
-- When to archive
-- How to organize
-
----
-
-## 💡 Tips for Efficient Documentation Use
-
-1. **Use agents for exploration** - "Explore how feature X works" instead of reading all files
-2. **Clear context frequently** - Use `/clear` when switching topics
-3. **Start with Quick Reference** - Keep [Quick Reference Card](dev/claude-code-quick-reference.md) handy
-4. **Check skills first** - Use `/skill-name` for specialized guidance
-5. **Archive aggressively** - Keep active docs lean
-
----
-
-## 🆘 Need Help?
-
-1. **Claude Code Help:** Type `/help` in Claude Code CLI
-2. **Common Issues:** See [debugging guides](dev/) or use `/debugging` skill
-3. **Best Practices:** Read [Efficiency Guide](dev/claude-code-efficiency-guide.md)
-4. **Report Issues:** https://github.com/anthropics/claude-code/issues
-
----
-
-**Navigation:**
-- [← Back to Project Root](../)
-- [CLAUDE.md (Project Instructions)](../CLAUDE.md)
-- [Efficiency Guide](dev/claude-code-efficiency-guide.md)
-- [Quick Reference](dev/claude-code-quick-reference.md)
+- `../README.md`
+- `../CLAUDE.md`
+- `plan/master_plan_cc_01.md`
+- `features/`

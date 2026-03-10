@@ -1,41 +1,19 @@
-# Service Catalog
+# Service Catalog Dev PRD
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Planning-focused feature folder
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains service-catalog planning material rather than a fully normalized implementation pack.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
-
-## Documentation
-
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- use it for service-catalog scope and PRD context
+- do not assume placeholder planning text equals implemented reality
+- reconcile any implementation claims against current code and active module docs
 
 ## Notes
 
-Add any important notes or context.
+This folder still needs deeper PRD-to-implementation verification, but it should now be treated as an intentional planning folder rather than an unfinished template.
 

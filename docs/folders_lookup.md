@@ -6,7 +6,9 @@ author: CleanMateX AI Assistant
 
 # folders_lookup
 
-This file indexes all top-level feature folders under `docs/features/`.
+This file is a curated active-feature index used during the current documentation consolidation.
+
+It does not yet represent every folder under `docs/features/`; until the full feature inventory is normalized, use this file together with `docs/README.md` and direct feature-folder navigation.
 
 | Feature Name | Folder Path | Description | Version | Last Updated |
 | --- | --- | --- | --- | --- |

@@ -10,11 +10,11 @@ import { useCallback, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
-import { CmxInput } from '@ui/primitives';
+import { CmxInput, CmxTextarea } from '@ui/primitives';
 import type { CustomerSnapshotOverride } from '../model/new-order-types';
 
 export function OrderCustomerDetailsSection() {
-  const { state, setCustomerSnapshotOverride } = useNewOrderStateWithDispatch();
+  const { state, setCustomerSnapshotOverride, setCustomerNotes } = useNewOrderStateWithDispatch();
   const isRTL = useRTL();
   const t = useTranslations('newOrder.customerDetails');
   const tCommon = useTranslations('common');
@@ -151,6 +151,21 @@ export function OrderCustomerDetailsSection() {
             className="w-full"
             placeholder={tCommon('email') || 'Email'}
             aria-label={tCommon('email') || 'Email'}
+          />
+        </div>
+
+        <div>
+          <label htmlFor="order-customer-notes" className="block text-sm font-medium text-gray-700 mb-1">
+            {t('customerNotes') || 'Customer notes'}
+          </label>
+          <CmxTextarea
+            id="order-customer-notes"
+            value={state.customerNotes ?? ''}
+            onChange={(e) => setCustomerNotes(e.target.value)}
+            dir={isRTL ? 'rtl' : 'ltr'}
+            className="w-full min-h-[80px]"
+            placeholder={t('customerNotesPlaceholder') || 'Notes from the customer...'}
+            aria-label={t('customerNotes') || 'Customer notes'}
           />
         </div>
       </div>

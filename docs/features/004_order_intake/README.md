@@ -1,41 +1,44 @@
 # Order Intake
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Foundational order-intake implementation docs with historical progress notes  
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder documents the original order-intake implementation track: order creation, quick-drop flow, intake-related data changes, and the early order-management UI foundation.
 
-## Current Implementation
+## Current Implementation Reality
 
-Describe current state.
+The documentation in this folder represents an earlier implementation milestone, not the full current order domain.
 
-## Documentation
+- the original intake implementation was substantially completed here
+- later order work moved into other folders such as `../010_advanced_orders/` and workflow-related docs
+- some progress reports in this folder still describe pending work that was later continued elsewhere
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+## Most Relevant Files
 
-## Related Files
+- `PRD-004_IMPLEMENTATION_SUMMARY.md`
+- `PRD-004_FINAL_SUMMARY.md`
+- `PRD-004_SESSION_PROGRESS.md`
 
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
+## How To Read This Folder
 
-## Key Features
+Use this folder for:
 
-* Feature 1
-* Feature 2
-* Feature 3
+- the original intake-phase scope
+- early migration and utility references
+- historical context for how order creation evolved
 
-## Next Steps
+Do not use it alone as the canonical source for the current full order workflow or advanced order UX.
 
-* Task 1
-* Task 2
+## Related Documentation
 
-## Notes
+- `../010_advanced_orders/`
+- `../005_basic_workflow/`
+- `../orders_workflow_migration/`
+- `../../plan/master_plan_cc_01.md`
 
-Add any important notes or context.
+## Documentation Status
+
+This folder is still useful, but it should be treated as foundational order-intake history plus partial implementation records rather than the final single source of truth for all current order functionality.
 

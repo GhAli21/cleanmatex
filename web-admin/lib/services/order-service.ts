@@ -61,6 +61,7 @@ export interface CreateOrderParams {
   express?: boolean;
   customerNotes?: string;
   internalNotes?: string;
+  paymentNotes?: string;
   paymentMethod?: string;
   readyByAt?: string; // ISO datetime string for ready-by date from screen
   userId: string;
@@ -417,6 +418,7 @@ export class OrderService {
       if (promoDiscountAmount != null) insertPayload.promo_discount_amount = promoDiscountAmount;
       if (giftCardDiscountAmount != null) insertPayload.gift_card_discount_amount = giftCardDiscountAmount;
       if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
+      if (params.paymentNotes != null) insertPayload.payment_notes = params.paymentNotes;
 
       // Create order
       const { data: order, error: orderError } = await supabase
@@ -812,6 +814,7 @@ export class OrderService {
         is_retail: isRetailOnlyOrder,
         customer_notes: customerNotes,
         internal_notes: internalNotes,
+        payment_notes: params.paymentNotes,
         created_by: userId,
         created_info: null,
         rec_status: 1,
@@ -1510,6 +1513,8 @@ export class OrderService {
       customerId,
       branchId,
       notes,
+      customerNotes,
+      paymentNotes,
       readyByAt,
       express,
       items,
@@ -1588,6 +1593,8 @@ export class OrderService {
           customerId: existingOrder.customer_id,
           branchId: existingOrder.branch_id,
           notes: existingOrder.internal_notes,
+          customerNotes: existingOrder.customer_notes,
+          paymentNotes: existingOrder.payment_notes,
           readyByAt: existingOrder.ready_by_at,
           express: existingOrder.priority_multiplier === 0.5,
           subtotal: existingOrder.subtotal,
@@ -1603,12 +1610,15 @@ export class OrderService {
         items: existingOrder.items?.map((item: any) => ({
           id: item.id,
           productId: item.product_id,
+          productName: item.product_name ?? item.productName ?? null,
           quantity: item.quantity,
           pricePerUnit: item.price_per_unit,
           totalPrice: item.total_price,
-          notes: item.notes,
-          hasStain: item.has_stain,
-          hasDamage: item.has_damage,
+          notes: item.notes ?? null,
+          hasStain: item.has_stain ?? null,
+          hasDamage: item.has_damage ?? null,
+          stainNotes: item.stain_notes ?? null,
+          damageNotes: item.damage_notes ?? null,
         })) || [],
       };
 
@@ -1746,6 +1756,8 @@ export class OrderService {
         if (customerId !== undefined) updateData.customer_id = customerId;
         if (branchId !== undefined) updateData.branch_id = branchId;
         if (notes !== undefined) updateData.internal_notes = notes;
+        if (customerNotes !== undefined) updateData.customer_notes = customerNotes;
+        if (paymentNotes !== undefined) updateData.payment_notes = paymentNotes;
         if (readyByAt !== undefined) {
           updateData.ready_by = readyByAt;
           updateData.ready_by_at_new = readyByAt;
@@ -1803,6 +1815,11 @@ export class OrderService {
       const readyByAtVal = updatedOrderWithItems.ready_by_at_new ?? updatedOrderWithItems.ready_by ?? null;
 
       // 12. Create snapshot_after
+      // Build product name lookup from input items (DB re-fetch doesn't join product names)
+      const inputItemNameMap = new Map<string, string>(
+        (items ?? []).map((i) => [i.productId, i.productName ?? i.productId.slice(0, 8)])
+      );
+
       const snapshotAfter = {
         order: {
           id: updatedOrderWithItems.id,
@@ -1810,6 +1827,8 @@ export class OrderService {
           customerId: updatedOrderWithItems.customer_id,
           branchId: updatedOrderWithItems.branch_id,
           notes: updatedOrderWithItems.internal_notes,
+          customerNotes: updatedOrderWithItems.customer_notes,
+          paymentNotes: updatedOrderWithItems.payment_notes,
           readyByAt: readyByAtVal,
           express: updatedOrderWithItems.priority_multiplier === 0.5,
           subtotal: updatedOrderWithItems.subtotal,
@@ -1822,16 +1841,22 @@ export class OrderService {
           isQuickDrop: updatedOrderWithItems.is_order_quick_drop,
           quickDropQuantity: updatedOrderWithItems.quick_drop_quantity,
         },
-        items: (updatedOrderWithItems.org_order_items_dtl ?? []).map((item) => ({
-          id: item.id,
-          productId: item.product_id,
-          quantity: item.quantity,
-          pricePerUnit: item.price_per_unit,
-          totalPrice: item.total_price,
-          notes: item.notes,
-          hasStain: item.has_stain,
-          hasDamage: item.has_damage,
-        })),
+        items: (updatedOrderWithItems.org_order_items_dtl ?? []).map((item) => {
+          const inputItem = (items ?? []).find((i) => i.productId === item.product_id);
+          return {
+            id: item.id,
+            productId: item.product_id,
+            productName: inputItemNameMap.get(item.product_id ?? '') ?? (item as any).product_name ?? null,
+            quantity: item.quantity,
+            pricePerUnit: item.price_per_unit,
+            totalPrice: item.total_price,
+            notes: item.notes ?? null,
+            hasStain: item.has_stain ?? null,
+            hasDamage: item.has_damage ?? null,
+            stainNotes: inputItem?.stainNotes ?? (item as any).stain_notes ?? null,
+            damageNotes: inputItem?.damageNotes ?? (item as any).damage_notes ?? null,
+          };
+        }),
       };
 
       // 13. Create audit entry

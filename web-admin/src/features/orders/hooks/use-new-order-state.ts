@@ -35,6 +35,8 @@ export interface UseNewOrderStateWithDispatchReturn {
   setQuickDropQuantity: (quantity: number) => void;
   setExpress: (value: boolean) => void;
   setNotes: (notes: string) => void;
+  setCustomerNotes: (notes: string) => void;
+  setPaymentNotes: (notes: string) => void;
   setReadyByAt: (readyByAt: string) => void;
   setLoading: (loading: boolean) => void;
   setCreatedOrder: (orderId: string, status: string | null) => void;
@@ -132,6 +134,14 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     setNotes: (notes: string) => {
       dispatch({ type: 'SET_NOTES', payload: notes });
+    },
+
+    setCustomerNotes: (notes: string) => {
+      dispatch({ type: 'SET_CUSTOMER_NOTES', payload: notes });
+    },
+
+    setPaymentNotes: (notes: string) => {
+      dispatch({ type: 'SET_PAYMENT_NOTES', payload: notes });
     },
 
     setReadyByAt: (readyByAt: string) => {

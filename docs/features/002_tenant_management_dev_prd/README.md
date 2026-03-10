@@ -1,41 +1,19 @@
-# Tenant Management
+# Tenant Management Dev PRD
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Planning-oriented tenant-management folder
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains tenant-management planning material and some historically mixed neighboring documents.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
-
-## Documentation
-
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
-
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- use this folder for tenant-management PRD context
+- verify any implementation assumptions against current module docs and code
+- note that some dashboard-related historical material may also reference this area and should be treated carefully during consolidation
 
 ## Notes
 
-Add any important notes or context.
+This folder is no longer a blank placeholder, but it still needs selective cleanup where adjacent historical docs overlap with dashboard or tenant-setup topics.
 

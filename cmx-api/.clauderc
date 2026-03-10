@@ -5,12 +5,12 @@ context: "NestJS Backend API for CleanMateX Laundry SaaS"
 
 # Critical Files (Always Check These First)
 critical_files:
-  - "prisma/schema.prisma"      # Database schema (SOURCE OF TRUTH)
   - "src/main.ts"                # Application entry point
   - "src/app.module.ts"          # Root module
   - ".env.example"               # Environment variables template
   - "src/common/guards/"         # Auth/tenant guards
   - "src/common/decorators/"     # Custom decorators
+  - "../supabase/"               # Shared database workspace
 
 # Module Structure (Follow This Pattern)
 module_structure:
@@ -22,7 +22,7 @@ module_structure:
     - "*.spec.ts"                # Unit tests
   
   optional_files:
-    - "entities/*.entity.ts"     # Domain entities (if not using Prisma)
+    - "entities/*.entity.ts"     # Domain entities (if used)
     - "interfaces/*.interface.ts" # TypeScript interfaces
     - "*.e2e-spec.ts"            # E2E tests
 
@@ -57,15 +57,13 @@ testing:
   e2e: "npm run test:e2e"
   specific_file: "npm run test -- orders.service.spec.ts"
 
-# Database Commands (Prisma)
+# Database Commands (Shared Supabase Workspace)
 database:
-  migrate_dev: "npx prisma migrate dev --name {description}"
-  migrate_deploy: "npx prisma migrate deploy"
-  generate: "npx prisma generate"
-  studio: "npx prisma studio"
-  seed: "npx prisma db seed"
-  reset: "npx prisma migrate reset"
-  format: "npx prisma format"
+  supabase_start: "cd ../supabase && supabase start"
+  supabase_status: "cd ../supabase && supabase status"
+  migration_new: "cd ../supabase && supabase migration new {description}"
+  types_generate: "cd ../supabase && supabase gen types typescript --local"
+  reset_warning: "Do not treat destructive reset flows as a routine default"
 
 # Code Quality
 code_quality:
@@ -86,16 +84,11 @@ patterns:
   service_pattern: |
     @Injectable()
     export class OrdersService {
-      constructor(private prisma: PrismaService) {}
+      constructor(private readonly dataService: DataService) {}
       
       async create(dto: CreateOrderDto, tenantId: string) {
-        // ALWAYS include tenantId
-        return this.prisma.order.create({
-          data: {
-            ...dto,
-            tenantOrgId: tenantId,  // CRITICAL!
-          }
-        });
+        // ALWAYS include tenant context in data access
+        return this.dataService.createOrder(dto, tenantId);
       }
     }
   
@@ -144,7 +137,7 @@ security_checklist:
 
 # Performance Checklist
 performance_checklist:
-  - "Use Prisma's 'include' to avoid N+1 queries"
+  - "Avoid N+1 queries and load related data intentionally"
   - "Add database indexes for frequent queries"
   - "Implement pagination for list endpoints"
   - "Use transactions for multi-table operations"

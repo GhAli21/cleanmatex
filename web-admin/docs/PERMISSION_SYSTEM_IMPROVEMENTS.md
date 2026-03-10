@@ -1,11 +1,19 @@
 # Permission System Improvements - Implementation Summary
 
 **Date**: 2025-01-27  
-**Status**: ✅ Completed
+**Status**: Historical implementation summary under current architecture reconciliation
 
 ## Overview
 
 This document summarizes the improvements made to the permission and authorization system to enhance performance, security, and maintainability.
+
+## Current Authority Note
+
+Use this file as historical implementation context.
+
+- verify current file paths before relying on them
+- some paths and component locations in this document reflect older structure
+- use current `web-admin` module docs and active code as the higher authority
 
 ---
 
@@ -35,7 +43,7 @@ This document summarizes the improvements made to the permission and authorizati
 **Files**:
 
 - `web-admin/app/api/feature-flags/route.ts` (API endpoint)
-- `web-admin/components/layout/Sidebar.tsx` (Updated to use real flags)
+- path references here may reflect older layout locations
 
 **Changes**:
 
@@ -142,7 +150,7 @@ const authData = await fetchAuthData();
 
 ### 6. Updated Sidebar Component ✅
 
-**File**: `web-admin/components/layout/Sidebar.tsx`
+**File**: historical path reference; verify current location in the codebase
 
 **Changes**:
 
@@ -214,7 +222,7 @@ function MyComponent() {
 
 ### Breaking Changes
 
-- None - all changes are backward compatible
+- historical claim; validate against current auth/navigation implementation
 
 ### New Dependencies
 

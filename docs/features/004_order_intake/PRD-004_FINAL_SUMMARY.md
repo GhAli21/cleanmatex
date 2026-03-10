@@ -1,12 +1,20 @@
 # PRD-004 Implementation - Final Summary
 
 **Session Date**: 2025-10-25
-**Status**: Phase 1-4 Completed (60% Complete)
-**Next Steps**: Apply migration, test, complete remaining UI
+**Status**: Historical milestone summary, not current canonical order status
+**Next Steps**: Use together with later order docs before making current-state assumptions
 
 ---
 
-## 🎉 What We Accomplished
+## Context
+
+This file captures an implementation snapshot from the earlier order-intake phase. Later order work continued in other folders, especially advanced-order and workflow-related documentation.
+
+Use this document for historical progress tracking, not as the final current-state summary of all order functionality.
+
+---
+
+## 🎉 What We Accomplished In This Milestone
 
 ### ✅ Phase 1: Database Schema (100% Complete)
 - Migration file with 10 new columns in `org_orders_mst`
@@ -97,7 +105,7 @@
 | **Phase 8**: Testing | ⏳ Pending | 0% |
 | **Phase 9**: Deployment | ⏳ Pending | 0% |
 
-**Overall Progress**: 60% (11 of 18 days)
+**Overall Progress at This Milestone**: 60% (11 of 18 days)
 
 ---
 
@@ -105,11 +113,11 @@
 
 ### 1. Apply Database Migration
 ```bash
-# Start Supabase
+# Start local services intentionally as needed
 npx supabase start
 
-# Apply migration
-npx supabase migration up
+# Apply the required schema changes using the current approved workflow
+# Verify against current shared Supabase guidance before running commands
 
 # Verify in Studio
 open http://127.0.0.1:54323
@@ -129,8 +137,8 @@ npx prisma db pull
 npx prisma generate
 ```
 
-### 3. Fix Missing Prisma File
-The data layer imports `prisma` from `@/lib/db/prisma` but this file doesn't exist yet.
+### 3. Historical Prisma Follow-Up
+The notes below reflect the earlier web-admin-local Prisma workflow at the time of this summary.
 
 **Create**: `web-admin/lib/db/prisma.ts`
 ```typescript
@@ -170,7 +178,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 ---
 
-## 🎯 Remaining Work (40%)
+## 🎯 Remaining Work At The Time (40%)
 
 ### Phase 6: Preparation UI (2 days)
 - [ ] Product catalog component

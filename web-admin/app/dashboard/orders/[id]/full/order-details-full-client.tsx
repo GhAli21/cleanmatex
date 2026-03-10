@@ -245,6 +245,16 @@ export function OrderDetailsFullClient({
     ipAddress: t.ipAddress ?? 'IP Address',
     viewDetails: t.viewDetails ?? 'Details',
     hideDetails: t.hideDetails ?? 'Hide',
+    qty: t.qty ?? 'Qty',
+    price: t.price ?? 'Price',
+    totalPrice: t.totalPrice ?? 'Total Price',
+    notes: t.notes ?? 'Notes',
+    stain: t.stain ?? 'Has Stain',
+    damage: t.damage ?? 'Has Damage',
+    stainNotes: t.stainNotes ?? 'Stain Notes',
+    damageNotes: t.damageNotes ?? 'Damage Notes',
+    yes: t.commonYes ?? 'Yes',
+    no: t.commonNo ?? 'No',
   };
 
   const tabTranslations = {
@@ -361,7 +371,11 @@ export function OrderDetailsFullClient({
     },
     {
       sectionKey: 'notes',
-      keys: ['customer_notes', 'internal_notes'],
+      keys: ['customer_notes', 'internal_notes', 'payment_notes'],
+    },
+    {
+      sectionKey: 'cancellationReturn',
+      keys: ['cancelled_at', 'cancelled_by', 'cancelled_note', 'returned_at', 'returned_by', 'return_reason', 'return_reason_code'],
     },
     {
       sectionKey: 'other',

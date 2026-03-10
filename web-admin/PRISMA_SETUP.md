@@ -2,11 +2,13 @@
 
 ## 🎯 Overview
 
-CleanMateX uses a **hybrid ORM strategy**:
-- **Prisma** for server-side queries (API routes, Server Actions)
-- **Supabase Client** for client-side queries (React components, Auth, Storage)
+This guide describes the **web-admin-local Prisma workflow**.
 
-This guide will help you complete the Prisma setup.
+- Prisma here is used inside `web-admin`
+- it is not the project-wide backend or schema authority
+- the shared database workspace for the repo is `../supabase`
+
+Use this guide only when you need Prisma specifically for `web-admin`.
 
 ---
 
@@ -16,7 +18,7 @@ This guide will help you complete the Prisma setup.
 ✅ Prisma Client installed (`@prisma/client@^6.17.1`)
 ✅ Schema initialized (`prisma/schema.prisma`)
 ✅ Client singleton created (`lib/prisma.ts`)
-✅ Tenant middleware created (`lib/prisma-middleware.ts`)
+Historical notes in this file may reference tenant middleware and older patterns that should be validated against the current codebase before reuse.
 ✅ Test script created (`scripts/test-prisma-connection.ts`)
 
 ---
@@ -165,9 +167,9 @@ export async function GET(request: NextRequest) {
 }
 ```
 
-### With Tenant Middleware
+### Historical Tenant Middleware Note
 
-Update `lib/prisma.ts` to apply middleware:
+The example below reflects an older documented pattern and should not be treated as universal project guidance.
 
 ```typescript
 import { prisma } from './prisma'
@@ -179,7 +181,7 @@ applyTenantMiddleware(prisma, getTenantIdFromSession)
 export { prisma }
 ```
 
-Now **all queries automatically filter by `tenant_org_id`**! ✨
+Do not assume this alone is the canonical tenant-isolation strategy for the whole project.
 
 ---
 
@@ -191,8 +193,7 @@ Now **all queries automatically filter by `tenant_org_id`**! ✨
 # 1. Create Supabase migration
 # supabase/migrations/0005_new_feature.sql
 
-# 2. Apply migration
-supabase db push
+# 2. Apply the required shared schema changes using the currently approved workflow
 
 # 3. Sync Prisma schema
 cd web-admin
@@ -249,8 +250,8 @@ web-admin/
 │   ├── schema.prisma          # Auto-generated from DB ✅
 │   └── README.md              # Prisma-specific docs
 ├── lib/
-│   ├── prisma.ts              # Client singleton ✅
-│   ├── prisma-middleware.ts   # Tenant filtering ✅
+│   ├── prisma.ts              # Client singleton
+│   ├── prisma-middleware.ts   # Historical/local pattern if present
 │   └── supabase.ts            # Supabase client (existing)
 ├── scripts/
 │   └── test-prisma-connection.ts  # Connection test ✅
@@ -264,7 +265,7 @@ web-admin/
 
 - [ ] DATABASE_URL not committed to git (in `.gitignore`)
 - [ ] Using connection pooling (`?pgbouncer=true`)
-- [ ] Tenant middleware applied to all `org_*` queries
+- [ ] Tenant handling verified against the current project rules and implementation
 - [ ] RLS policies still active (defense in depth)
 - [ ] Service role key only used server-side
 
@@ -287,7 +288,11 @@ Once setup is complete:
 2. ✅ Run `npx prisma db pull`
 3. ✅ Run `npx prisma generate`
 4. ✅ Run test script
-5. ✅ Implement tenant middleware with real auth
-6. ✅ Start building API routes with Prisma!
+5. ✅ Verify current tenant-handling approach before extending local Prisma usage
+6. ✅ Use Prisma only where it fits the current `web-admin` implementation
 
-**Need help?** Check `prisma/README.md` or `.claude/docs/dev_commands.md`
+**Need help?** Check `prisma/README.md`, `../README.md`, or `../CLAUDE.md`
+
+## Documentation Note
+
+If this guide conflicts with `CLAUDE.md`, `README.md`, `supabase/README.md`, or current module code, update this guide before treating it as authoritative.

@@ -1,41 +1,40 @@
 # Digital Receipts
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Implemented feature summary available; current code alignment should still be verified when extending  
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This feature covers receipt generation, delivery-channel tracking, bilingual receipt templates, WhatsApp delivery support, QR code generation, and receipt retrieval/resend flows.
 
-## Current Implementation
+## Current Documentation Reality
 
-Describe current state.
+The main implementation detail currently lives in `IMPLEMENTATION_SUMMARY.md`. This README was previously a placeholder and did not reflect the actual documented implementation status.
 
-## Documentation
+## Most Relevant File
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+- `IMPLEMENTATION_SUMMARY.md`
 
-## Related Files
+## Documented Implemented Scope
 
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
+Based on the implementation summary, this feature includes:
 
-## Key Features
+- receipt schema and delivery tracking tables
+- bilingual receipt templates
+- receipt service and template generation
+- WhatsApp client integration and webhook handling
+- receipt API routes
+- frontend hooks for receipt retrieval and sending
+- QR-code utility support
 
-* Feature 1
-* Feature 2
-* Feature 3
+## Related Documentation
 
-## Next Steps
-
-* Task 1
-* Task 2
+- `IMPLEMENTATION_SUMMARY.md`
+- `../../plan/master_plan_cc_01.md`
+- related order and customer docs under `../`
 
 ## Notes
 
-Add any important notes or context.
+- Treat the implementation summary as the main historical implementation reference in this folder
+- If the feature is extended, update this README and the implementation summary together so they stay compatible
 

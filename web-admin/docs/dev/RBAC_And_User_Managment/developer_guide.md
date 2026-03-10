@@ -5,12 +5,12 @@
 ```
 cleanmatex/web-admin (port 3000)
     ↓  HTTP + Bearer JWT
-platform-api (port 3002, NestJS)  ←  single backend authority for RBAC
+platform-api or current approved RBAC backend surface
     ↓
-Supabase (port 54321)             ←  actual DB + Auth storage
+shared platform data/auth services
 ```
 
-**Rule:** RBAC screens in `web-admin` NEVER call Supabase directly. All user/role/permission data comes from `platform-api`.
+**Rule:** Treat this guide as a targeted RBAC integration guide. Verify the current backend endpoint authority and paths before relying on older service names or ports in this file.
 
 ---
 
@@ -196,7 +196,7 @@ orders.read        ❌ (wrong separator)
      loadData()
    }, [accessToken])
    ```
-5. Add to `config/navigation.ts` under the appropriate section with `roles: ['admin']`
+5. Add to the current navigation configuration under the appropriate protected section
 6. If it's under Settings, add a tab to `app/dashboard/settings/layout.tsx`
 
 ---

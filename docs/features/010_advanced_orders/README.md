@@ -1,41 +1,57 @@
 # Advanced Orders
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Active feature cluster with mixed historical material  
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains the later-order-flow documentation that grew beyond the original order-intake scope. It covers the new-order experience, processing details, payment integration work, piece tracking, and related redesign efforts.
 
-## Current Implementation
+## Current Implementation Reality
 
-Describe current state.
+This is not a single clean PRD pack. It is a mixed working set that includes:
 
-## Documentation
+- current implementation-oriented notes for new order and processing UX
+- payment-related implementation summaries
+- redesign and enhancement plans
+- older PRD variants and archived drafts under `old/` and other historical files
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+The most implementation-relevant documents in this folder are the new-order and processing summaries, while several legacy PRD variants should be treated as historical context rather than canonical current state.
 
-## Related Files
+## Recommended Reading Order
 
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
+Start with:
 
-## Key Features
+1. `IMPLEMENTATION_COMPLETE.md`
+2. `NEW_ORDER_PAGE_DOCUMENTATION.md`
+3. `NEW_ORDER_QUICK_REFERENCE.md`
+4. `PAYMENT_IMPLEMENTATION_SUMMARY.md`
+5. `Processing_Details_Enhancement_Summary.md`
 
-* Feature 1
-* Feature 2
-* Feature 3
+Use these older materials only for historical comparison:
 
-## Next Steps
+- `old/`
+- `clde/PRD_010_Advanced_Orders_Implementation.md`
+- older versioned PRD documents and one-off plan files
 
-* Task 1
-* Task 2
+## Scope Covered Here
 
-## Notes
+- new-order page evolution
+- payment workflow integration in the order experience
+- processing screen/detail enhancements
+- piece-level and item-level order handling
+- redesign notes for order-entry UX
 
-Add any important notes or context.
+## Relationship To Other Order Docs
+
+- foundational intake work lives under `../004_order_intake/`
+- workflow migration work lives under `../orders_workflow_migration/`
+- older payment/order-plan variants exist in adjacent feature folders and should be reconciled into `docs/plan/` over time
+- grouped discovery for split related folders lives in `related_docs_index.md`
+
+## Documentation Status
+
+- This folder is valuable but fragmented
+- It needs continued consolidation into clearer active docs plus feature-local history
+- Historical residue should not be treated as the canonical implementation state without cross-checking the current codebase
 

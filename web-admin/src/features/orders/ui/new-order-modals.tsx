@@ -282,6 +282,7 @@ export function NewOrderModals() {
           serviceCategories={serviceCategories}
           isRetailOnlyOrder={isRetailOnlyOrder}
           loading={state.state.loading}
+          initialPaymentNotes={state.state.paymentNotes ?? ''}
         />
       )}
 

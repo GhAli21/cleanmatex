@@ -3,7 +3,7 @@
 **Document ID**: master_plan_cc_01  
 **Version**: 1.0  
 **Status**: Active  
-**Last Updated**: 2025-10-09  
+**Last Updated**: 2026-03-10  
 **Owner**: Development Team
 
 ---
@@ -157,12 +157,12 @@ Mobile-first, multi-tenant SaaS for laundry & dry cleaning that minimizes errors
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  FRONTEND LAYER                                          │
-│  - Web Admin (Next.js 15 - SSR/App Router)             │
+│  - Web Admin (Next.js 16 - SSR/App Router)             │
 │  - Customer Mobile (Flutter)                            │
 │  - Driver Mobile (Flutter)                              │
 │  - Store POS (Flutter/PWA)                              │
 └───────────────────┬─────────────────────────────────────┘
-                    │ REST/GraphQL APIs
+                    │ REST APIs
 ┌───────────────────▼─────────────────────────────────────┐
 │  API LAYER                                               │
 │  - Tenant API (NestJS - Core business logic)           │
@@ -1116,7 +1116,7 @@ Month 18    : Integrations (044-048)
 | Risk                                        | Impact   | Probability | Mitigation                                                   |
 | ------------------------------------------- | -------- | ----------- | ------------------------------------------------------------ |
 | Database performance degradation with scale | High     | Medium      | Implement caching, optimize queries, partitioning strategy   |
-| Supabase vendor lock-in                     | High     | Low         | Use Prisma ORM abstraction, standard PostgreSQL features     |
+| Supabase vendor lock-in                     | High     | Low         | Prefer portable PostgreSQL patterns and keep module boundaries clear |
 | Real-time sync conflicts in mobile apps     | Medium   | Medium      | Implement conflict resolution strategy, optimistic locking   |
 | WhatsApp API rate limits                    | Medium   | High        | Implement queue with backoff, multi-provider fallback        |
 | Complex RLS policies impacting performance  | High     | Medium      | Regular performance testing, query optimization              |

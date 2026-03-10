@@ -1,41 +1,26 @@
-# - Order Workflow Engine (Dev Plan)
+# 010 - Order Workflow Engine (Dev Plan)
 
-**Status:** Active Development
-**Last Updated:** 2026-01-29
+**Status:** Split workflow sub-feature folder under order-domain reconciliation
+**Last Updated:** 2026-03-10
 
 ## Overview
 
-Add feature overview here.
+This folder contains workflow-engine planning documents that belong to the broader order feature domain.
 
-## Current Implementation
+## Current Documentation Role
 
-Describe current state.
+Treat this folder as workflow-specific material under the order feature family.
 
-## Documentation
+- use `../010_advanced_orders/` as the stronger active order-domain folder
+- use `../010_advanced_orders/related_docs_index.md` as the grouped discovery point for related order docs
+- keep workflow-engine notes aligned with `docs/plan/` and the broader order feature documentation
 
-* See files in this directory for detailed documentation
-* Related migrations: List relevant migration files
-* Related API endpoints: List API routes
+## Files In This Folder
 
-## Related Files
-
-* Frontend: web-admin/app/dashboard/feature-path
-* Backend API: web-admin/app/api/v1/feature-path
-* Services: web-admin/lib/services/feature-service.ts
-* Database: supabase/migrations/
-
-## Key Features
-
-* Feature 1
-* Feature 2
-* Feature 3
-
-## Next Steps
-
-* Task 1
-* Task 2
+- `010 - Order Workflow Engine (Dev Plan).md`
+- `Workflow Seed Auto-Initialization Plan.md`
 
 ## Notes
 
-Add any important notes or context.
+These docs are still useful for workflow planning and implementation history, but they should not be treated as a separate parallel authority from the main order documentation set.
 

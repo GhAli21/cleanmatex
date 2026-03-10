@@ -1,5 +1,13 @@
 # Prisma Configuration for CleanMateX
 
+## Scope Note
+
+This README is for the module-local Prisma workflow inside `web-admin`.
+
+- Prisma here is not the project-wide schema authority
+- the shared database workspace for the repository is `../supabase`
+- if this file conflicts with `README.md`, `CLAUDE.md`, `supabase/README.md`, or current module code, those current sources take precedence
+
 ## 🔧 Setup Instructions
 
 ### Step 1: Get Your Database Connection String
@@ -67,23 +75,25 @@ npx prisma format
 npx prisma validate
 ```
 
-## ��️ Architecture
+## Architecture
 
-### Dual ORM Strategy
+### Module-Local Access Strategy
 
-**Prisma (Server-side):**
-- Used in: API routes, Server Actions, Server Components
-- Purpose: Type-safe queries, complex joins, business logic
-- Connection: Direct PostgreSQL via connection pooling
+**Prisma (web-admin local):**
+- Used where the current `web-admin` implementation requires generated DB access
+- Purpose: local type-safe data access and schema introspection support
+- Connection: direct PostgreSQL via connection pooling when configured
 
 **Supabase Client (Client-side):**
 - Used in: React Client Components
 - Purpose: Authentication, Real-time, Storage, RLS enforcement
 - Connection: Via Supabase PostgREST API
 
-### Multi-Tenancy Enforcement
+### Tenant Handling Note
 
-All queries on `org_*` tables automatically filter by `tenant_org_id` through middleware in `lib/prisma-middleware.ts`.
+Historical docs in this area often describe middleware-heavy automatic tenant filtering.
+
+Treat those notes as implementation-specific and verify them against the current code before using them as authoritative guidance.
 
 ## 📁 Project Structure
 
@@ -103,7 +113,7 @@ web-admin/
 1. **Never commit `.env.local`** - Contains sensitive credentials
 2. **Use connection pooling** - PgBouncer mode for serverless
 3. **RLS policies still active** - Defense in depth
-4. **Tenant middleware required** - Enforces `tenant_org_id` filtering
+4. **Tenant handling must match current implementation** - do not assume one historical middleware pattern is always correct
 
 ## 🐛 Troubleshooting
 

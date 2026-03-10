@@ -2,22 +2,19 @@
 
 ## Pre-Testing Setup
 
-1. **Run Database Migration**
+1. **Prepare Required Local Schema/Data Carefully**
 
    ```bash
-   # Apply migration
-   supabase migration up
-   # Or if using Supabase CLI locally
-   supabase db reset
+   # Use the current approved local database workflow.
+   # Do not treat destructive reset commands as the default path.
+   # Verify the required schema and seed state before testing navigation.
    ```
 
-2. **Run Seed Script**
+2. **Run Seed Or Data Preparation Step If Required**
 
    ```bash
-   # Seed navigation data
-   psql -h localhost -p 54322 -U postgres -d postgres -f supabase/seeds/0058_navigation_seed.sql
-   # Or use Supabase CLI
-   supabase db seed
+   # Use the actual current seed/data-loading location and workflow.
+   # Older references in historical docs may not match the current folder structure.
    ```
 
 3. **Verify Database**
@@ -151,7 +148,7 @@ Should see:
 ### Navigation Not Loading
 
 1. Check browser console for errors
-2. Verify database migration ran successfully
+2. Verify the required database objects and data exist
 3. Check seed data exists: `SELECT * FROM sys_components_cd LIMIT 10;`
 4. Verify RLS policies allow read access
 5. Check API endpoint: `/api/navigation` returns data

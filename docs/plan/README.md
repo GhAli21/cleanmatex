@@ -1,48 +1,21 @@
 # CleanMateX Development Planning Documents
 
-This directory contains comprehensive development planning documents for the CleanMateX project.
+This directory is the approved planning authority for CleanMateX.
+
+Useful planning material from `docs/plan_cr/` should be reconciled into this directory over time, and `docs/plan_cr/` should no longer be treated as a peer planning authority.
 
 ## Directory Contents
 
 ### Master Plan
 - **[master_plan_cc_01.md](./master_plan_cc_01.md)** - Comprehensive master development plan covering all 10 phases, technical architecture, feature flags, testing strategy, and implementation roadmap for all 48 PRDs.
 
-### MVP Phase PRDs (Phase 1: Weeks 3-8)
+### Planning Corpus Note
 
-1. **[001_auth_dev_prd.md](./001_auth_dev_prd.md)** - Authentication & Authorization
-   - Duration: 2 weeks
-   - Supabase Auth integration, RLS policies, RBAC, JWT tokens
-   - Dependencies: None (Foundation)
+Some older planning references listed here historically pointed to PRD files that are no longer present in this directory. During the current documentation refresh:
 
-2. **[002_tenant_management_dev_prd.md](./002_tenant_management_dev_prd.md)** - Tenant Onboarding & Management
-   - Duration: 1.5 weeks
-   - Self-service registration, subscription management, feature flags, settings
-   - Dependencies: PRD-001
-
-3. **[003_customer_management_dev_prd.md](./003_customer_management_dev_prd.md)** - Customer Profiles
-   - Duration: 1.5 weeks
-   - Progressive engagement (Guest → Stub → Full), OTP verification, addresses
-   - Dependencies: PRD-001, PRD-002
-
-4. **[004_order_intake_dev_prd.md](./004_order_intake_dev_prd.md)** - Order Creation & Itemization
-   - Duration: 2 weeks
-   - Quick Drop workflow, preparation/itemization, pricing, Ready-By calculation
-   - Dependencies: PRD-001, PRD-002, PRD-003
-
-5. **[005_basic_workflow_dev_prd.md](./005_basic_workflow_dev_prd.md)** - Workflow & Status Transitions
-   - Duration: 1 week
-   - Status state machine, audit trail, SLA tracking, bulk updates
-   - Dependencies: PRD-001, PRD-004
-
-6. **[006_digital_receipts_dev_prd.md](./006_digital_receipts_dev_prd.md)** - WhatsApp & In-App Receipts
-   - Duration: 1.5 weeks
-   - WhatsApp text receipts, QR codes, in-app viewing, delivery tracking
-   - Dependencies: PRD-001, PRD-003, PRD-004
-
-7. **[007_admin_dashboard_dev_prd.md](./007_admin_dashboard_dev_prd.md)** - Basic Admin UI
-   - Duration: 1.5 weeks
-   - Next.js dashboard, order/customer management, settings, basic reporting
-   - Dependencies: PRD-001, PRD-002, PRD-003, PRD-004, PRD-005
+- use `master_plan_cc_01.md` as the primary planning entrypoint
+- reconcile still-useful PRDs from `docs/plan_cr/` into `docs/plan/`
+- avoid treating missing or stale plan references as active authoritative docs
 
 ## Document Structure
 
@@ -62,8 +35,8 @@ Each PRD follows a consistent structure:
 ## Key Project Information
 
 ### Tech Stack
-- **Frontend**: Next.js 15, React 18, TypeScript, Tailwind CSS
-- **Backend**: NestJS, TypeScript, Prisma ORM
+- **Frontend**: Next.js 16, React 19, TypeScript, Tailwind CSS
+- **Backend**: NestJS, TypeScript, Supabase-based backend patterns
 - **Database**: PostgreSQL 16 with RLS
 - **Mobile**: Flutter (iOS/Android)
 - **Infra**: Docker, Redis, MinIO
@@ -103,17 +76,17 @@ Each PRD follows a consistent structure:
 1. Review and approve master plan and PRDs
 2. Set up project tracking (Jira/Linear/GitHub Projects)
 3. Create database migrations (combine all schema changes)
-4. Set up development environment (Docker Compose)
+4. Set up the shared local development environment
 5. Begin Phase 1 implementation following PRD sequence
 
 ## Document Maintenance
 
 - **Owner**: Development Team
-- **Last Updated**: 2025-10-10
+- **Last Updated**: 2026-03-10
 - **Status**: Active Development Plan
 - **Change Process**: Update PRDs via pull request with team review
 
 ---
 
 For questions or clarifications, refer to the main requirements document:
-- `docs/Requirments Specifications/clean_mate_x_unified_requirements_pack_v_0.12.1.md`
+- `docs/Requirments_Specifications/clean_mate_x_unified_requirements_pack_v_0.12.1.md`

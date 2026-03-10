@@ -933,6 +933,12 @@
       "notes": "ملاحظات",
       "customerNotes": "ملاحظات العميل",
       "internalNotes": "ملاحظات داخلية",
+      "paymentNotes": "ملاحظات الدفع",
+      "cancelledNote": "سبب الإلغاء",
+      "returnReason": "سبب الإرجاع",
+      "cancelledAt": "تم الإلغاء في",
+      "returnedAt": "تم الإرجاع في",
+      "cancellationReturn": "الإلغاء والإرجاع",
       "photos": "الصور",
       "orderTimeline": "الجدول الزمني للطلب",
       "quickActions": "إجراءات سريعة",
@@ -1001,7 +1007,14 @@
         "refund": "استرداد",
         "ipAddress": "عنوان IP",
         "viewDetails": "التفاصيل",
-        "hideDetails": "إخفاء"
+        "hideDetails": "إخفاء",
+        "qty": "الكمية",
+        "price": "السعر",
+        "totalPrice": "السعر الإجمالي",
+        "stain": "يوجد بقع",
+        "damage": "يوجد تلف",
+        "stainNotes": "ملاحظات البقع",
+        "damageNotes": "ملاحظات التلف"
       },
       "orderSummary": "ملخص الطلب",
       "viewPayments": "عرض المدفوعات",
@@ -1029,6 +1042,7 @@
         "datesAndTimeline": "التواريخ والجدول الزمني",
         "preparationAndWorkflow": "التحضير وسير العمل",
         "notes": "ملاحظات",
+        "cancellationReturn": "الإلغاء والإرجاع",
         "other": "أخرى"
       },
       "masterCustomerData": "بيانات العميل",
@@ -1068,7 +1082,14 @@
         "prepared_by": "حضّر بواسطة",
         "currency_code": "العملة",
         "bag_count": "عدد الأكياس",
-        "is_retail": "تجزئة"
+        "is_retail": "تجزئة",
+        "cancelled_at": "تم الإلغاء في",
+        "cancelled_by": "ألغى بواسطة",
+        "cancelled_note": "سبب الإلغاء",
+        "returned_at": "تم الإرجاع في",
+        "returned_by": "أرجع بواسطة",
+        "return_reason": "سبب الإرجاع",
+        "return_reason_code": "رمز سبب الإرجاع"
       }
     },
     "statuses": {
@@ -2586,7 +2607,9 @@
     },
     "customerDetails": {
       "title": "تفاصيل العميل",
-      "orderOnlyNote": "التغييرات تطبق على هذا الطلب فقط، وليس على ملف العميل."
+      "orderOnlyNote": "التغييرات تطبق على هذا الطلب فقط، وليس على ملف العميل.",
+      "customerNotes": "ملاحظات العميل",
+      "customerNotesPlaceholder": "ملاحظات من العميل..."
     },
     "express": {
       "label": "مستعجل",
@@ -2807,6 +2830,8 @@
         "label": "تاريخ الشيك",
         "placeholder": "اختر التاريخ"
       },
+      "paymentNotes": "ملاحظات الدفع",
+      "paymentNotesPlaceholder": "ملاحظات متعلقة بالدفع (اختياري)...",
       "validation": {
         "discountExceedsTotal": "الخصم لا يمكن أن يتجاوز إجمالي الطلب"
       },
