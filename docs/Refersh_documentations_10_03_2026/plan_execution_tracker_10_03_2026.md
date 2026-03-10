@@ -32,57 +32,51 @@ Notes:
 
 ### 3. Planning authority clarification
 
-Status: In progress
+Status: Completed
 
 Notes:
 
 - `docs/plan/` has been marked as the approved planning authority
-- `docs/plan_cr/` still needs broader reconciliation and eventual demotion from equal-authority status
+- `docs/plan_cr/README.md` now explicitly demotes `plan_cr` to historical or secondary planning reference status
 
 ### 4. Module doc reconciliation
 
-Status: In progress
+Status: Completed
 
 Notes:
 
 - core module READMEs are updated
 - high-risk `web-admin` local markdown and Prisma/UI guidance was reconciled
-- lower-value historical module notes may still remain, but the main drift hotspots were cleaned
+- the main drift hotspots were cleaned and current module entrypoints now align with implemented reality
 
 ### 5. Feature doc reconciliation
 
-Status: In progress
+Status: Completed
 
 Notes:
 
 - several high-drift feature entry docs were updated
-- more feature folders still need active-vs-historical normalization
 - remaining placeholder feature READMEs and several overclaiming status docs were cleaned in the final sweep
+- canonical history and subdomain entrypoints were added for fragmented feature families
 
 ### 6. Guidance cleanup
 
-Status: In progress
+Status: Completed
 
 Notes:
 
 - selected high-authority `.claude` docs were aligned
 - the highest-risk remaining `.claude` docs for commands, database guidance, multitenancy, architecture, and documentation governance were rewritten
-- lower-value historical mirrors may still exist, but the main authority conflicts were reduced
+- the main authority conflicts were reduced to non-blocking historical residue
 
 ### 7. Archive/history normalization
 
-Status: In progress
+Status: Completed
 
 Notes:
 
 - approved direction is Option C
-- next steps should separate active docs from historical residue more explicitly
-- first same-feature consolidation indexes were added for dashboard and advanced-orders split folders
-- more physical moves are still needed for older sibling folders and legacy handoff material
-
-## Suggested Next Work Order
-
-1. Continue `docs/features/**` cleanup for remaining high-drift folders
-2. Continue `web-admin/docs/**`, `web-admin/prisma/**`, and remaining UI markdown cleanup
-3. Continue `.claude/**` and skills-layer authority cleanup
-4. Create a clearer active/history normalization pass for fragmented feature folders
+- same-feature consolidation indexes were added for dashboard, customer, assembly-QA, Prisma, UI, and advanced-orders split families
+- canonical history and subdomain README entrypoints were added so fragmented material now points to one obvious home
+- physical relocation was completed for the clearest dashboard, order-payment, order-workflow, and customer legacy sibling folders
+- the remaining future archive moves are optional housekeeping rather than an active blocker

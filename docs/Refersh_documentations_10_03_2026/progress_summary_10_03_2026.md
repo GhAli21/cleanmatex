@@ -101,18 +101,32 @@ Impact:
 - dangerous reset-heavy or Prisma-first instructions were removed from remaining high-risk guidance docs
 - more fragmented feature families now clearly point back to canonical folders
 
-## In Progress
+### Wave 8: Structural Finish And Canonical Folder Closure
 
-- more `docs/features/**` reconciliation
-- archive/history normalization under approved Option C
-- more physical relocation of same-feature docs into canonical feature/history folders
+Completed:
+
+- `docs/plan_cr/README.md` was added to explicitly demote `plan_cr` to historical or secondary planning status
+- canonical folder entrypoints were added for dashboard history, advanced-orders payment, advanced-orders workflow, and customer history
+- the clearest remaining split sibling folders were physically emptied and reduced to archive-pointer READMEs after moving their related docs into canonical locations
+- session consolidation tracking was updated to reflect structural closure
+
+Impact:
+
+- documentation-refresh work no longer depends on unresolved folder-authority ambiguity
+- fragmented feature families now have a clear canonical home even where old sibling folders remain for reference
+- remaining future file-by-file archive moves are optional cleanup, not active project risk
+
+## Current Status
+
+- documentation refresh execution is complete for the approved scope
+- remaining future cleanup is optional archival housekeeping only
 
 ## Remaining Risks
 
 - many legacy files still contain historical path references, version drift, or Prisma-first assumptions
-- `docs/plan_cr/` still exists and must be gradually reconciled into `docs/plan/`
+- `docs/plan_cr/` still exists, but it is now clearly marked as secondary to `docs/plan/`
 - some feature packs remain fragmented and need deeper current-code verification
-- several same-feature files are now logically grouped but not yet fully physically relocated
+- some legacy content elsewhere in the repo may still need future archive simplification, but the highest-value same-feature sibling folders were physically normalized
 
 ## Current Best-Use Rule
 

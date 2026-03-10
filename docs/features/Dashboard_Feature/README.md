@@ -1,31 +1,17 @@
 # Dashboard Feature
 
-**Status:** Historical predecessor folder  
+**Status:** Archive pointer folder  
 **Last Updated:** 2026-03-10
 
-## Overview
+## Current Rule
 
-This folder contains earlier dashboard-development notes from before the richer `007_admin_dashboard/` feature pack became the stronger dashboard documentation area.
+This folder is no longer the home for dashboard legacy content.
 
-## Current Documentation Role
+- canonical dashboard docs live in `../007_admin_dashboard/`
+- dashboard history now lives in `../007_admin_dashboard/history/`
+- use `../007_admin_dashboard/history/dashboard_feature_legacy_index.md` for the grouped history view
 
-Treat this folder as historical context only.
+## Note
 
-- use it to understand early dashboard implementation phases
-- do not treat it as the canonical current dashboard documentation set
-- prefer `../007_admin_dashboard/` for the more complete dashboard feature pack
-
-## Most Relevant Historical File
-
-- `DASHBOARD_CONTINUATION_GUIDE.md`
-
-## Relationship To Current Dashboard Docs
-
-- current richer dashboard docs: `../007_admin_dashboard/`
-- grouped legacy index inside canonical dashboard folder: `../007_admin_dashboard/history/dashboard_feature_legacy_index.md`
-- this folder should eventually either move to archive or become a feature-local `history/` area under the approved documentation cleanup approach
-
-## Notes
-
-This folder remains useful for historical implementation sequencing, but it should not sit beside active dashboard docs as if both are equal authorities.
+The legacy dashboard files that used to live beside this README were physically relocated into the canonical dashboard history folder during the documentation refresh.
 

@@ -1,19 +1,17 @@
 # Customer Data Management Global And Tenant
 
-**Status:** Legacy customer-domain folder
+**Status:** Archive pointer folder
 **Last Updated:** 2026-03-10
 
-## Overview
+## Current Rule
 
-This folder appears to cover customer-data management topics that overlap with the stronger customer feature pack.
+This legacy sibling folder is no longer the home for customer-domain overlap notes.
 
-## Current Documentation Role
+- canonical customer docs live in `../003_customer_management/`
+- customer history now lives in `../003_customer_management/history/`
+- use `../003_customer_management/history/customer_domain_legacy_index.md` for grouped discovery
 
-- treat this folder as legacy customer-domain material
-- prefer `../003_customer_management/` for the stronger customer feature pack
-- keep this folder grouped with the same customer-domain family during cleanup
+## Note
 
-## Notes
-
-This folder should not be treated as an equal parallel authority to `../003_customer_management/`.
+The customer-domain note that used to live in this folder was physically relocated into the canonical customer history folder during the documentation refresh.
 

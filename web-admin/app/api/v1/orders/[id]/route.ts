@@ -63,6 +63,24 @@ export async function GET(
       {}
     );
 
+    // Option B: Fallback — resolve product names from catalog for items with null product_name
+    const itemsMissingName = (order.items ?? []).filter(
+      (item: Record<string, unknown>) => !item.product_name && item.product_id
+    );
+    const productNameMap: Record<string, { product_name: string | null; product_name2: string | null }> = {};
+    if (itemsMissingName.length > 0) {
+      const missingProductIds = [
+        ...new Set(itemsMissingName.map((i: Record<string, unknown>) => i.product_id as string)),
+      ];
+      const catalogProducts = await prisma.org_product_data_mst.findMany({
+        where: { tenant_org_id: tenantId, id: { in: missingProductIds } },
+        select: { id: true, product_name: true, product_name2: true },
+      });
+      for (const p of catalogProducts) {
+        productNameMap[p.id] = { product_name: p.product_name ?? null, product_name2: p.product_name2 ?? null };
+      }
+    }
+
     const customer = order.customer as { name?: string; phone?: string; email?: string } | undefined;
     const customerName = customer?.name ?? null;
     const customerMobile = customer?.phone ?? null;
@@ -88,8 +106,13 @@ export async function GET(
       priority_multiplier: toNumber(order.priority_multiplier) ?? null,
       items: (order.items ?? []).map((item: Record<string, unknown>) => {
         const itemPieces = (item.id && piecesByItemId[item.id as string]) || [];
+        const catalog = (!item.product_name && item.product_id)
+          ? productNameMap[item.product_id as string]
+          : undefined;
         return {
           ...item,
+          product_name: (item.product_name as string | null) ?? catalog?.product_name ?? null,
+          product_name2: (item.product_name2 as string | null) ?? catalog?.product_name2 ?? null,
           price_per_unit: toNumber(item.price_per_unit) ?? 0,
           total_price: toNumber(item.total_price) ?? 0,
           quantity: toNumber(item.quantity) ?? 1,

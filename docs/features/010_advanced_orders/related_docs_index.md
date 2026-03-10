@@ -1,6 +1,6 @@
 # Advanced Orders Related Docs Index
 
-This index groups the order-related documentation that is still split across multiple feature folders.
+This index groups order-related documentation that was previously split across multiple feature folders and is now partially co-located under canonical subfolders here.
 
 ## Canonical Active Folder
 
@@ -16,19 +16,21 @@ Use this folder as the primary active location for the later order-domain work:
 
 ## Closely Related Split Folders
 
-These folders still contain related documentation for the same broader order domain:
+These related materials belong to the same broader order domain:
 
-### Payment-related split folder
+### Payment subdomain
 
-- `../010_2_Payment Feature for Order Module/README.md`
-- `../010_2_Payment Feature for Order Module/Summary of Payment Implementation Progress_01.md`
-- `../010_2_Payment Feature for Order Module/Payment Feature Implementation Plan for Order Module.md`
+- `payment/README.md`
+- `payment/summary_of_payment_implementation_progress_01.md`
+- `payment/payment_feature_implementation_plan_for_order_module.md`
+- archive pointer left behind at `../010_2_Payment Feature for Order Module/README.md`
 
-### Workflow-engine split folder
+### Workflow subdomain
 
-- `../010 - Order Workflow Engine (Dev Plan)/README.md`
-- `../010 - Order Workflow Engine (Dev Plan)/010 - Order Workflow Engine (Dev Plan).md`
-- `../010 - Order Workflow Engine (Dev Plan)/Workflow Seed Auto-Initialization Plan.md`
+- `workflow/README.md`
+- `workflow/order_workflow_engine_dev_plan.md`
+- `workflow/workflow_seed_auto_initialization_plan.md`
+- archive pointer left behind at `../010 - Order Workflow Engine (Dev Plan)/README.md`
 
 ### Foundational order-intake folder
 
@@ -39,5 +41,5 @@ These folders still contain related documentation for the same broader order dom
 ## Consolidation Rule
 
 - later active order-domain documentation should converge toward this folder and `docs/plan/`
-- sibling folders that describe payment or workflow as subdomains of the same order feature should not be treated as unrelated standalone authorities
-- where full physical moves are not yet done, use this file as the single discovery point for related order docs
+- payment and workflow documentation for this feature now belongs under the canonical `payment/` and `workflow/` subfolders here
+- the former sibling folders are now archive pointers only
