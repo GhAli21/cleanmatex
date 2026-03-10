@@ -8,6 +8,7 @@ import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
 import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
+import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -75,6 +76,7 @@ async function OrderDetailsFullContent({
     vouchersResult,
     stockResult,
     receiptsResult,
+    editHistoryResult,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
     getPaymentsForOrder(orderId),
@@ -82,6 +84,7 @@ async function OrderDetailsFullContent({
     getVouchersForOrder(orderId),
     getStockTransactionsForOrder(orderId),
     ReceiptService.getReceipts({ orderId, tenantId }),
+    getOrderEditHistoryAction(orderId),
   ]);
 
   if (!orderResult.success || !orderResult.data) {
@@ -110,6 +113,7 @@ async function OrderDetailsFullContent({
   const vouchers = vouchersResult ?? [];
   const stockTransactions = stockResult ?? [];
   const receipts = receiptsResult ?? [];
+  const editHistory = editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
 
   const serializedOrder = {
     ...order,
@@ -144,6 +148,7 @@ async function OrderDetailsFullContent({
       vouchers={vouchers}
       stockTransactions={stockTransactions}
       receipts={receipts}
+      editHistory={editHistory}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       processPaymentAction={processPayment}
@@ -206,6 +211,7 @@ async function OrderDetailsFullContent({
         tabsMaster: tFull('tabs.master'),
         tabsItems: tFull('tabs.items'),
         tabsHistory: tFull('tabs.history'),
+        tabsEditHistory: tFull('tabs.editHistory'),
         tabsInvoices: tFull('tabs.invoices'),
         tabsVouchers: tFull('tabs.vouchers'),
         tabsPayments: tFull('tabs.payments'),
@@ -230,6 +236,33 @@ async function OrderDetailsFullContent({
         transactionId: tFull('transactionId'),
         gateway: tFull('gateway'),
         notes: tFull('notes'),
+        emptyEditHistory: tFull('editHistory.empty'),
+        editHistoryTitle: tFull('editHistory.title'),
+        editNo: tFull('editHistory.editNo'),
+        editedBy: tFull('editHistory.editedBy'),
+        editedAt: tFull('editHistory.editedAt'),
+        changeSummary: tFull('editHistory.changeSummary'),
+        fieldChanges: tFull('editHistory.fieldChanges'),
+        itemChanges: tFull('editHistory.itemChanges'),
+        pricingChanges: tFull('editHistory.pricingChanges'),
+        paymentAdjustment: tFull('editHistory.paymentAdjustment'),
+        fieldName: tFull('editHistory.fieldName'),
+        oldValue: tFull('editHistory.oldValue'),
+        newValue: tFull('editHistory.newValue'),
+        itemAdded: tFull('editHistory.itemAdded'),
+        itemRemoved: tFull('editHistory.itemRemoved'),
+        itemModified: tFull('editHistory.itemModified'),
+        oldSubtotal: tFull('editHistory.oldSubtotal'),
+        newSubtotal: tFull('editHistory.newSubtotal'),
+        oldTotal: tFull('editHistory.oldTotal'),
+        newTotal: tFull('editHistory.newTotal'),
+        difference: tFull('editHistory.difference'),
+        noChangesRecorded: tFull('editHistory.noChangesRecorded'),
+        charge: tFull('editHistory.charge'),
+        refund: tFull('editHistory.refund'),
+        ipAddress: tFull('editHistory.ipAddress'),
+        viewDetails: tFull('editHistory.viewDetails'),
+        hideDetails: tFull('editHistory.hideDetails'),
         masterSectionOrderIdentity: tFull('masterSections.orderIdentity'),
         masterSectionCustomerReference: tFull('masterSections.customerReference'),
         masterSectionFinancial: tFull('masterSections.financial'),

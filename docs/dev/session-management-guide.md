@@ -92,6 +92,38 @@ Used in `POST /api/auth/logout` body, logout page `?reason=`, and `trackLogout()
 
 ---
 
+## Permissions & workflow roles loading
+
+Permissions (`get_user_permissions`) and workflow roles (`get_user_workflow_roles`) are loaded once per tenant session. The loading is orchestrated by `refreshPermissions()` in `auth-context.tsx`.
+
+### Load sequence
+
+1. **Login** — `signIn()` calls `fetchAuthData()` which batches all three RPCs (`get_user_tenants`, `get_user_permissions`, `get_user_workflow_roles`) in one `Promise.all`. After state is set, `permissionsLoadedForTenantRef.current` is set to the tenant ID so the `useEffect` below is skipped.
+
+2. **Page reload / session restore** — Auth initialises (`initializeAuth`), sets `user` and `currentTenant`. The permissions `useEffect` fires, sees `permissionsLoadedForTenantRef.current === null`, and calls `refreshPermissions()`.
+
+3. **Tenant switch** — `switchTenant()` resets `permissionsLoadedForTenantRef.current = null`, then calls `refreshPermissions()` for the new tenant.
+
+4. **Logout / session expiry** — All permission state and `permissionsLoadedForTenantRef.current` are cleared to `null`.
+
+### Guards in `refreshPermissions()`
+
+| Guard | Ref | Purpose |
+|---|---|---|
+| In-flight lock | `isFetchingPermissionsRef` | Prevents concurrent calls; returns immediately if already running |
+| Already-loaded check | `permissionsLoadedForTenantRef` | Skips fetch if permissions were already loaded for the current tenant |
+
+### `useEffect` dependency rule
+
+The permissions `useEffect` depends only on `[user, currentTenant, isLoading]`. The `permissions` and `workflowRoles` state values are **intentionally excluded** from deps — including them would create a self-reinforcing loop (fetch sets state → length changes → effect re-fires → fetch again). See Issue 13 in `common-issues.md` for full diagnosis.
+
+### Caching
+
+- **Permissions** (`get_user_permissions`) are cached in `permission-cache-client.ts` keyed by `tenant_id`. On cache hit, only `get_user_workflow_roles` is re-fetched (workflow roles change more frequently).
+- **Workflow roles** are never cached — always fetched fresh.
+
+---
+
 ## Key files
 
 | Area            | File(s) |

@@ -19,13 +19,15 @@ import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-r
 import { OrdersPaymentsTabRprt } from '@features/orders/ui/orders-payments-tab-rprt';
 import { OrdersStockTabRprt } from '@features/orders/ui/orders-stock-tab-rprt';
 import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-rprt';
+import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
-const TAB_IDS = ['master', 'items', 'history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
+const TAB_IDS = ['master', 'items', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -43,6 +45,7 @@ interface OrderDetailsFullClientProps {
     deliveredAt?: string;
     retryCount: number;
   }>;
+  editHistory: OrderEditHistoryEntry[];
   tenantOrgId: string;
   userId: string;
   processPaymentAction: (
@@ -81,6 +84,7 @@ export function OrderDetailsFullClient({
   vouchers,
   stockTransactions,
   receipts,
+  editHistory,
   tenantOrgId,
   userId,
   processPaymentAction,
@@ -212,6 +216,36 @@ export function OrderDetailsFullClient({
 
   const customer = (order.org_customers_mst as { sys_customers_mst?: { first_name?: string; last_name?: string; phone?: string; email?: string; address?: string }; loyalty_points?: number })?.sys_customers_mst ?? order.org_customers_mst ?? {};
   const items = (order.items ?? order.org_order_items_dtl ?? []) as Array<Record<string, unknown>>;
+
+  const editHistoryTranslations = {
+    emptyEditHistory: t.emptyEditHistory ?? 'No edit history',
+    editHistoryTitle: t.editHistoryTitle ?? 'Edit History',
+    editNo: t.editNo ?? 'Edit #',
+    editedBy: t.editedBy ?? 'Edited by',
+    editedAt: t.editedAt ?? 'Edited at',
+    changeSummary: t.changeSummary ?? 'Summary',
+    fieldChanges: t.fieldChanges ?? 'Field Changes',
+    itemChanges: t.itemChanges ?? 'Item Changes',
+    pricingChanges: t.pricingChanges ?? 'Pricing Changes',
+    paymentAdjustment: t.paymentAdjustment ?? 'Payment Adjustment',
+    fieldName: t.fieldName ?? 'Field',
+    oldValue: t.oldValue ?? 'Old Value',
+    newValue: t.newValue ?? 'New Value',
+    itemAdded: t.itemAdded ?? 'Added',
+    itemRemoved: t.itemRemoved ?? 'Removed',
+    itemModified: t.itemModified ?? 'Modified',
+    oldSubtotal: t.oldSubtotal ?? 'Old Subtotal',
+    newSubtotal: t.newSubtotal ?? 'New Subtotal',
+    oldTotal: t.oldTotal ?? 'Old Total',
+    newTotal: t.newTotal ?? 'New Total',
+    difference: t.difference ?? 'Difference',
+    noChangesRecorded: t.noChangesRecorded ?? 'No changes recorded',
+    charge: t.charge ?? 'Charge',
+    refund: t.refund ?? 'Refund',
+    ipAddress: t.ipAddress ?? 'IP Address',
+    viewDetails: t.viewDetails ?? 'Details',
+    hideDetails: t.hideDetails ?? 'Hide',
+  };
 
   const tabTranslations = {
     emptyInvoices: t.emptyInvoices ?? 'No invoices',
@@ -499,6 +533,19 @@ export function OrderDetailsFullClient({
       content: (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <OrderTimeline orderId={order.id as string} currentStatus={order.status as string} />
+        </div>
+      ),
+    },
+    {
+      id: 'edit_history',
+      label: t.tabsEditHistory ?? 'Edit History',
+      content: (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <OrdersEditHistoryTabRprt
+            entries={editHistory}
+            currencyCode={(order.currency_code as string) ?? 'OMR'}
+            translations={editHistoryTranslations}
+          />
         </div>
       ),
     },
