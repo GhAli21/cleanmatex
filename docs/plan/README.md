@@ -8,12 +8,19 @@ Useful planning material from `docs/plan_cr/` should be reconciled into this dir
 
 ### Master Plan
 - **[master_plan_cc_01.md](./master_plan_cc_01.md)** - Comprehensive master development plan covering all 10 phases, technical architecture, feature flags, testing strategy, and implementation roadmap for all 48 PRDs.
+- **[plan_cr_reconciliation_map.md](./plan_cr_reconciliation_map.md)** - Topic-based map between the approved `docs/plan/` layer and the legacy `docs/plan_cr/` planning corpus.
+
+### Detailed Promoted Plan Files
+- **[files/PRD_FILES_SUMMARY.md](./files/PRD_FILES_SUMMARY.md)** - Index of the detailed plan files already living under `docs/plan/files/`
+- **[files/Phase_2_Enhanced_Operations_Overview.md](./files/Phase_2_Enhanced_Operations_Overview.md)** - Approved Phase 2 overview
+- **[files/PRD_023_Bilingual_Support_Implementation_Plan.md](./files/PRD_023_Bilingual_Support_Implementation_Plan.md)** - Approved detailed bilingual-support plan
 
 ### Planning Corpus Note
 
 Some older planning references listed here historically pointed to PRD files that are no longer present in this directory. During the current documentation refresh:
 
 - use `master_plan_cc_01.md` as the primary planning entrypoint
+- use `plan_cr_reconciliation_map.md` when you need to interpret or mine legacy `docs/plan_cr/` material
 - reconcile still-useful PRDs from `docs/plan_cr/` into `docs/plan/`
 - avoid treating missing or stale plan references as active authoritative docs
 

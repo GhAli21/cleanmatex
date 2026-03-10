@@ -1,5 +1,12 @@
 # Prisma Configuration Fixes - Summary
 
+This file is a historical Prisma fix-summary artifact.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints
+- verify current code before relying on this summary as proof that every historical Prisma issue remains resolved
+
 ## ✅ All Issues Fixed
 
 ### 1. ✅ Tenant Context System Created

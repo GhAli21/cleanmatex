@@ -1,6 +1,10 @@
 > Combined from `@.claude/docs/overview.md` and `@.claude/docs/01-project-overview.md` on 2025-10-17
 
-# Overview & Differentiators
+# Overview & Differentiators (Legacy Pointer)
+
+This file is an older overview snapshot.
+
+Use `CLAUDE.md`, `README.md`, and `docs/README.md` as the current repo entrypoints.
 
 CleanMateX is a multi-tenant SaaS for laundry and dry-cleaning with bilingual EN/AR and RTL. Focus areas:
 - Per-piece tracking

@@ -1,5 +1,12 @@
 # Prisma Usage Analysis Report
 
+This file is a historical Prisma analysis artifact.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints
+- treat this report as a point-in-time analysis, not as current exhaustive truth without re-auditing the codebase
+
 **Date**: 2025-01-16  
 **Status**: ⚠️ **Issues Found - Needs Improvement**
 

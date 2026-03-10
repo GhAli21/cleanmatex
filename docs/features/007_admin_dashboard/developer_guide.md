@@ -10,6 +10,14 @@ author: CleanMateX Development Team
 
 This guide provides comprehensive technical documentation for developers working with the CleanMateX Admin Dashboard. It covers architecture, code structure, API usage, and best practices.
 
+## Current Reading Rule
+
+Treat this file as a mixed historical-and-technical guide.
+
+- some paths, runtime defaults, and component examples reflect earlier implementation phases
+- verify dashboard widget completeness, quick actions, global filters, and live-data claims against current `web-admin` code before using this file as exact implementation authority
+- prefer current `web-admin` structure, Cmx UI imports, and module READMEs when this guide conflicts with current code
+
 ---
 
 ## Table of Contents
@@ -86,7 +94,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3001
 
 ```
 ┌─────────────────────────────────────────┐
-│         Next.js 15 App Router           │
+│         Next.js 16 App Router           │
 │         React 19 + TypeScript 5+        │
 └─────────────────┬───────────────────────┘
                   │
@@ -289,6 +297,8 @@ export default function MyTabPage() {
 
 #### Using QuickActionsStrip
 
+Treat this section as planned or historical guidance unless the current codebase still exports and uses this component in the active dashboard flow.
+
 ```typescript
 import { QuickActionsStrip } from '@/components/dashboard/QuickActionsStrip'
 
@@ -305,6 +315,8 @@ export default function MyPage() {
 ### Global Filters
 
 #### Using GlobalFiltersBar
+
+Treat this section as planned or historical guidance unless the current codebase still exports and uses this component in the active dashboard flow.
 
 ```typescript
 import { GlobalFiltersBar, GlobalFilters } from '@/components/dashboard/GlobalFiltersBar'

@@ -1,5 +1,13 @@
 # Prisma Testing & Performance Monitoring - Quick Reference
 
+This file is a historical quick-reference note.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints for `web-admin`
+- treat this file as supporting reference only
+- verify any test or monitoring command here against `package.json` before relying on it
+
 ## 🧪 Running Tests (Quick Commands)
 
 ```bash

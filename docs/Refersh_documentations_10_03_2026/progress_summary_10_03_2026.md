@@ -116,6 +116,21 @@ Impact:
 - fragmented feature families now have a clear canonical home even where old sibling folders remain for reference
 - remaining future file-by-file archive moves are optional cleanup, not active project risk
 
+### Wave 9: Post-Plan Hardening And Minimization
+
+Completed:
+
+- high-risk customer, dashboard, advanced-orders, and `cmx-api` docs were softened where code-vs-doc verification found overclaims or outdated assumptions
+- `docs/plan/plan_cr_reconciliation_map.md` was added and wired into the planning entrypoints
+- stale setup, troubleshooting, Prisma quick-reference, and older `.claude` meta/standards docs were downgraded to pointer or historical-supporting status
+- root-level Prisma report artifacts were explicitly marked as historical support material instead of active operational guidance
+
+Impact:
+
+- fewer docs now overstate production readiness or feature completeness
+- the planning layer now has an explicit topic-based crosswalk between `plan/` and `plan_cr/`
+- legacy and meta docs are less likely to compete with current authority sources
+
 ## Current Status
 
 - documentation refresh execution is complete for the approved scope
@@ -125,7 +140,7 @@ Impact:
 
 - many legacy files still contain historical path references, version drift, or Prisma-first assumptions
 - `docs/plan_cr/` still exists, but it is now clearly marked as secondary to `docs/plan/`
-- some feature packs remain fragmented and need deeper current-code verification
+- some feature packs may still benefit from deeper current-code verification beyond this pass
 - some legacy content elsewhere in the repo may still need future archive simplification, but the highest-value same-feature sibling folders were physically normalized
 
 ## Current Best-Use Rule

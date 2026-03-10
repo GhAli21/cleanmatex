@@ -1,5 +1,12 @@
 # Prisma Configuration - Comprehensive Evaluation Report
 
+This file is a historical Prisma evaluation artifact.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints
+- treat the status language in this report as time-bound to its evaluation session
+
 **Date**: 2025-01-16  
 **Status**: ✅ **All Issues Fixed and Verified**
 

@@ -2,7 +2,7 @@
 
 **Version**: 1.2.1  
 **Last Updated**: 2026-02-20  
-**Status**: ✅ Production Ready
+**Status**: Strong implementation guide with current verification still recommended
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## Overview
 
-The New Order Page is a comprehensive, production-ready order creation interface for CleanMateX. It provides a modern, accessible, and performant experience for creating laundry orders with support for:
+The New Order Page is a substantial order-creation implementation guide for CleanMateX. It documents the current architecture and intended behavior well, but production-readiness and some completeness claims below should be treated as implementation-wave claims that still deserve current verification.
 
 - Multi-tenant isolation
 - Piece-level tracking
@@ -49,7 +49,7 @@ The New Order Page is a comprehensive, production-ready order creation interface
 - ✅ **Internationalized**: Full EN/AR support with RTL
 - ✅ **Secure**: Input sanitization, XSS prevention, permission checks
 - ✅ **Performant**: Memoization, React Query, code splitting
-- ✅ **Well-Tested**: Unit, integration, and E2E tests
+- ✅ **Well-Tested**: test files and coverage work exist; verify exact current breadth before reusing older completeness claims
 
 ---
 
@@ -435,6 +435,8 @@ Located in `__tests__/features/orders/`:
 - API endpoint tests
 - Full order flow tests
 - Payment processing tests
+
+Treat these as implemented test categories, not as proof that every branch of the current new-order flow is exhaustively covered today.
 
 ### E2E Tests
 

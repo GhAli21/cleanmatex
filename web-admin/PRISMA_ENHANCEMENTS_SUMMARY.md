@@ -1,5 +1,12 @@
 # Prisma Enhancements Implementation Summary
 
+This file is a historical Prisma implementation artifact.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints
+- treat completion claims here as scoped to the original enhancement session
+
 **Date**: 2025-01-16  
 **Status**: ✅ **ALL ENHANCEMENTS COMPLETED**
 

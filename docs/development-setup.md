@@ -2,6 +2,15 @@
 
 Complete guide to setting up your local development environment for CleanMateX.
 
+## Current Safety Note
+
+This file has been reconciled to current repo reality.
+
+- prefer repo scripts under `scripts/dev/` where available
+- `web-admin/` and `cmx-api/` are the active application modules
+- do not use `supabase db reset` as a default setup step
+- shared database authority lives under `supabase/`
+
 ## 📋 Table of Contents
 
 - [Prerequisites](#prerequisites)
@@ -107,16 +116,16 @@ cd web-admin
 npm install
 npm run dev
 
-# Backend API (Terminal 2)
-cd backend
+# cmx-api (Terminal 2)
+cd cmx-api
 npm install
-npm run dev
+npm run start:dev
 ```
 
 ### 6. Access Applications
 
 - **Web Admin:** http://localhost:3000
-- **Backend API:** http://localhost:3001
+- **cmx-api:** http://localhost:3004
 - **Supabase Studio:** http://localhost:54323
 
 ---
@@ -164,8 +173,8 @@ S3_BUCKET=cleanmatex-dev
 
 Our `docker-compose.yml` includes:
 
-1. **PostgreSQL** - Primary database
-2. **Redis** - Caching and queues
+1. **Supabase PostgreSQL** - shared database authority
+2. **Redis** - caching and queues
 3. **MinIO** - S3-compatible storage
 4. **Redis Commander** - Redis GUI (optional)
 
@@ -189,9 +198,6 @@ supabase start
 # Check status
 supabase status
 
-# Reset database (WARNING: deletes all data)
-supabase db reset
-
 # Generate TypeScript types
 supabase gen types typescript --local > ../web-admin/types/database.ts
 ```
@@ -201,26 +207,17 @@ supabase gen types typescript --local > ../web-admin/types/database.ts
 Migrations are located in `supabase/migrations/`:
 
 ```bash
-# Apply migrations
-supabase db reset
-
 # Create new migration
 supabase migration new <migration-name>
-
-# Push to remote (production)
-supabase db push
 ```
 
 ### Step 5: Seed Data
 
-Seed data is in `supabase/seeds/`:
+Seed-related docs live under `supabase/migrations/xseeds/` and repo scripts:
 
 ```bash
-# Seeds run automatically with db reset
-supabase db reset
-
-# Or manually
-psql $DATABASE_URL -f supabase/seeds/0001_init.sql
+# Review current seed/readme guidance first
+# Do not assume a reset-based seed workflow
 ```
 
 ---
@@ -245,8 +242,8 @@ psql $DATABASE_URL -f supabase/seeds/0001_init.sql
 | Service     | URL                            | Description     |
 | ----------- | ------------------------------ | --------------- |
 | Web Admin   | http://localhost:3000          | Admin dashboard |
-| Backend API | http://localhost:3001          | REST API        |
-| API Docs    | http://localhost:3001/api/docs | Swagger UI      |
+| cmx-api     | http://localhost:3004          | NestJS API      |
+| API Docs    | http://localhost:3004/api/docs | Swagger UI      |
 
 ---
 
@@ -260,9 +257,6 @@ npm run services:start    # (add to package.json)
 
 # Stop all services (preserves data)
 npm run services:stop
-
-# Reset database
-./scripts/dev/reset-db.sh
 
 # Run smoke tests
 npm run test:smoke
@@ -301,9 +295,6 @@ cd supabase && supabase stop
 
 # View Supabase status
 cd supabase && supabase status
-
-# Reset database
-cd supabase && supabase db reset
 
 # Create migration
 cd supabase && supabase migration new my_migration
@@ -445,7 +436,7 @@ After successful setup:
 1. **Read the Documentation**
 
    - [Master Plan](./plan/master_plan_cc_01.md)
-   - [Architecture](./Complete%20Project%20Structure%20Documentation_Draft%20suggestion_01.md)
+   - [Architecture](../CLAUDE.md)
 
 2. **Run Tests**
 

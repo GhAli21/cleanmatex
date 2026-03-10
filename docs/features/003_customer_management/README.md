@@ -1,6 +1,6 @@
 # PRD-003: Customer Management Feature
 
-**Status**: Near-complete implementation set with partial testing follow-up
+**Status**: Largely implemented with important runtime caveats
 **Priority**: Must Have (MVP)
 **Dependencies**: PRD-001 (Auth), PRD-002 (Tenant Management)
 
@@ -30,15 +30,15 @@ Progressive customer engagement system supporting three customer types:
 
 ## ✅ Implementation Status
 
-### Phase 1: Database Schema ✅ COMPLETE
-- Enhanced `sys_customers_mst` with progressive engagement fields
+### Phase 1: Database Schema ✅ Mostly Landed
+- customer-domain schema work exists across system and tenant layers
 - Created `org_customer_addresses` for multi-address support
 - Created `sys_otp_codes` for phone verification
 - Created `org_customer_merge_log` for audit trail
 - Added RLS policies and indexes
 - **File**: `supabase/migrations/0011_customer_enhancements.sql`
 
-### Phase 2: Backend Services ✅ COMPLETE
+### Phase 2: Backend Services ✅ Largely Implemented
 - **Customer Service**: CRUD, search, merge, upgrade, statistics
 - **OTP Service**: Generation, SMS, verification, rate limiting
 - **Address Service**: CRUD, default management, GPS validation
@@ -47,7 +47,7 @@ Progressive customer engagement system supporting three customer types:
   - `web-admin/lib/services/otp.service.ts`
   - `web-admin/lib/services/customer-addresses.service.ts`
 
-### Phase 3: API Endpoints ✅ COMPLETE
+### Phase 3: API Endpoints ✅ Largely Implemented
 - Main customer routes implemented
 - Individual customer routes implemented
 - Profile upgrade endpoint implemented
@@ -55,7 +55,7 @@ Progressive customer engagement system supporting three customer types:
 - OTP verification routes implemented
 - Admin routes implemented
 
-### Phase 4: Frontend UI ✅ COMPLETE
+### Phase 4: Frontend UI ✅ Largely Implemented
 - Customer list page with search and filters
 - Customer detail page with tabbed interface
 - Quick customer creation modal
@@ -92,6 +92,14 @@ Progressive customer engagement system supporting three customer types:
 ---
 
 ## 🔑 Key Features
+
+## Current Runtime Rule
+
+Treat tenant-scoped customer handling through `org_customers_mst` as the primary current runtime path.
+
+- references to guaranteed global-customer linking via `sys_customers_mst` should be read as historical design intent or partial capability, not as something every live flow fully depends on
+- references to cross-tenant or "search all tenants" customer discovery should be verified against current code before relying on them operationally
+- references to guaranteed sequential `CUST-xxxxx` numbering should be treated as implementation intent unless verified in the current runtime path
 
 ### Progressive Customer Types
 
@@ -147,7 +155,7 @@ Progressive customer engagement system supporting three customer types:
 - 5-minute expiration
 - 3 verification attempts max
 - 60-second resend cooldown
-- SMS via Twilio
+- SMS is mock-capable and Twilio-dependent; production SMS readiness depends on environment configuration
 
 ### Address Management
 - Multiple addresses per customer
@@ -157,9 +165,8 @@ Progressive customer engagement system supporting three customer types:
 - Delivery notes
 
 ### Customer Number Generation
-- Format: CUST-00001, CUST-00002, etc.
-- Sequential per tenant
-- Database function for atomicity
+- intended format: `CUST-00001`, `CUST-00002`, etc.
+- verify current runtime generation behavior before treating exact numbering guarantees as contractual
 
 ### Customer Merge
 - Admin-only operation
@@ -194,7 +201,7 @@ Progressive customer engagement system supporting three customer types:
 
 ### Tables Created
 
-#### sys_customers_mst (Enhanced)
+#### sys_customers_mst (Historical Or Partial Global Layer)
 ```sql
 ALTER TABLE sys_customers_mst ADD COLUMN:
 - customer_number VARCHAR(50)
@@ -230,7 +237,7 @@ ALTER TABLE sys_customers_mst ADD COLUMN:
 ### Functions
 
 #### generate_customer_number(tenant_org_id)
-Generates sequential customer number per tenant (CUST-00001)
+Intended to generate sequential customer numbers per tenant; verify current runtime usage before relying on exact output guarantees
 
 #### cleanup_expired_otp_codes()
 Deletes OTP codes expired more than 1 hour ago
@@ -337,4 +344,4 @@ For questions about this feature:
 
 **Last Updated**: 2026-03-10
 **Version**: 1.1
-**Status**: Largely implemented; reconcile remaining testing and current-state verification
+**Status**: Largely implemented; verify runtime gaps before production-grade claims

@@ -2,6 +2,14 @@
 
 Comprehensive troubleshooting guide for common issues in CleanMateX development.
 
+## Current Safety Rule
+
+Use the least destructive fix that can restore the environment.
+
+- do not default to `supabase db reset`
+- do not default to `docker system prune -a`
+- prefer service status checks, logs, and targeted restarts first
+
 ## 📋 Table of Contents
 
 - [Docker Issues](#docker-issues)
@@ -41,7 +49,7 @@ Comprehensive troubleshooting guide for common issues in CleanMateX development.
 
 3. **Reset Docker Desktop**
 
-   - Settings → Troubleshoot → Reset to factory defaults
+   - last resort only
    - ⚠️ Warning: This removes all containers and images
 
 4. **Check System Requirements**
@@ -111,7 +119,7 @@ Comprehensive troubleshooting guide for common issues in CleanMateX development.
 4. **Check Disk Space**
    ```bash
    docker system df
-   docker system prune  # Clean up unused resources
+   docker system prune  # Use carefully; avoids the more destructive -a variant
    ```
 
 ### Docker Compose Version Issues
@@ -228,14 +236,7 @@ Comprehensive troubleshooting guide for common issues in CleanMateX development.
 
 **Solutions:**
 
-1. **Reset Database**
-
-   ```bash
-   cd supabase
-   supabase db reset
-   ```
-
-2. **Manual Rollback**
+1. **Manual Investigation First**
 
    ```bash
    # Connect to database
@@ -248,13 +249,13 @@ Comprehensive troubleshooting guide for common issues in CleanMateX development.
    DROP TABLE IF EXISTS problem_table CASCADE;
    ```
 
-3. **Fix Migration File**
+2. **Fix Migration File**
 
    - Edit migration in `supabase/migrations/`
    - Add `IF NOT EXISTS` clauses
    - Use transactions
 
-4. **Check Migration Order**
+3. **Check Migration Order**
    - Migrations run alphabetically
    - Ensure dependencies are met
 
@@ -405,11 +406,11 @@ DATABASE_URL="postgresql://postgres.[REF]:[PASS]@...pooler.supabase.com:6543/pos
    lsof -i :54321
    ```
 
-4. **Clean Up**
+4. **Clean Up Carefully**
 
    ```bash
    supabase stop --no-backup
-   docker system prune -a
+   docker system prune
    supabase start
    ```
 
@@ -850,11 +851,11 @@ Or use PowerShell scripts (`.ps1`)
    ./scripts/smoke-test.sh
    ```
 
-3. **Clean Slate**
+3. **Clean Slate (Last Resort)**
 
    ```bash
    docker-compose down -v
-   docker system prune -a
+   docker system prune
    ./scripts/dev/start-services.sh
    ```
 

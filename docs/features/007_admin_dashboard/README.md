@@ -46,20 +46,20 @@ This feature encompasses 12 major phases covering:
 ## Key Features
 
 ### Dashboard & Analytics
-- 10 interactive widgets with real-time data
+- intended 10-widget analytics surface from the implementation plan
 - Revenue, orders, turnaround time, delivery rate metrics
 - Payment mix, driver utilization, top services analytics
 - System alerts and issues tracking
 
 ### Navigation & Quick Actions
-- Responsive sidebar with 11 menu sections
-- Quick actions strip for common tasks
+- responsive sidebar with 11 menu sections
+- quick actions strip was part of the intended scope; verify current implementation status before treating it as fully landed
 - Global search functionality
 - Language switcher (EN/AR)
 - Tenant switcher for multi-tenant users
 
 ### Filtering & Search
-- Global filters bar (collapsible)
+- global filters bar was part of intended dashboard scope; verify current implementation status before relying on it as complete
 - Date range, branch, status, priority filters
 - URL query parameter synchronization
 - Active filter count badges
@@ -168,6 +168,8 @@ The most useful files here are:
 **Production Ready**: historical claim, verify against current code before relying on it
 
 This folder remains important, but it should be treated as an implementation-rich feature pack that needs selective validation rather than an unquestioned single source of truth.
+
+In particular, treat widget completeness, live-data coverage, quick actions, global filters, and fully real-time behavior as areas that may still differ from the strongest historical completion claims.
 
 ## Support & Contact
 

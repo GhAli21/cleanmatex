@@ -13,19 +13,26 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 
 - `docs/README.md`
 - `docs/folders_lookup.md`
+- `docs/current-task.md`
+- `docs/development-setup.md`
+- `docs/troubleshooting.md`
 - `docs/plan/README.md`
 - `docs/plan/master_plan_cc_01.md`
+- `docs/plan/plan_cr_reconciliation_map.md`
 - `docs/plan_cr/master_plan_cc_01.md`
 - `docs/plan_cr/README.md`
 
 ## Feature Docs
 
 - `docs/features/010_advanced_orders/README.md`
+- `docs/features/010_advanced_orders/IMPLEMENTATION_COMPLETE.md`
+- `docs/features/010_advanced_orders/NEW_ORDER_PAGE_DOCUMENTATION.md`
 - `docs/features/004_order_intake/README.md`
 - `docs/features/004_order_intake/PRD-004_IMPLEMENTATION_SUMMARY.md`
 - `docs/features/004_order_intake/PRD-004_FINAL_SUMMARY.md`
 - `docs/features/006_digital_receipts/README.md`
 - `docs/features/007_admin_dashboard/README.md`
+- `docs/features/007_admin_dashboard/developer_guide.md`
 - `docs/features/007_admin_dashboard/history/README.md`
 - `docs/features/007_admin_dashboard/history/dashboard_feature_legacy_index.md`
 - `docs/features/007_admin_dashboard/history/dashboard_continuation_guide_2025_10_24.md`
@@ -35,6 +42,11 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 - `docs/features/007_admin_dashboard/history/to_continue_finishing_dashboard_jh.txt`
 - `docs/features/007_admin_dashboard/current_status.md`
 - `docs/features/003_customer_management/README.md`
+- `docs/features/003_customer_management/CRUD_API.md`
+- `docs/features/003_customer_management/domain-model.md`
+- `docs/features/003_customer_management/FINAL_VALIDATION.md`
+- `docs/features/003_customer_management/IMPLEMENTATION_PROGRESS.md`
+- `docs/features/003_customer_management/FINAL_COMPLETION_SUMMARY.md`
 - `docs/features/003_customer_management/history/README.md`
 - `docs/features/003_customer_management/history/customer_domain_legacy_index.md`
 - `docs/features/003_customer_management/history/customer_data_management_global_and_tenant_01.md`
@@ -81,6 +93,12 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 - `web-admin/docs/NAVIGATION_TESTING_CHECKLIST.md`
 - `web-admin/PRISMA_SETUP.md`
 - `web-admin/PRISMA_QUICK_START.md`
+- `web-admin/PRISMA_QUICK_REFERENCE.md`
+- `web-admin/PRISMA_EVALUATION_REPORT.md`
+- `web-admin/PRISMA_BEST_PRACTICES_EVALUATION.md`
+- `web-admin/PRISMA_ENHANCEMENTS_SUMMARY.md`
+- `web-admin/PRISMA_FIXES_SUMMARY.md`
+- `web-admin/PRISMA_USAGE_ANALYSIS.md`
 - `web-admin/prisma/README.md`
 - `web-admin/prisma/related_docs_index.md`
 - `web-admin/lib/db/PRISMA_SETUP.md`
@@ -100,6 +118,8 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 
 - `.claude/docs/backend_standards.md`
 - `.claude/docs/frontend_standards.md`
+- `.claude/docs/prd-implementation_rules.md`
+- `.claude/docs/overview.md`
 - `.claude/docs/AI_Coder_Frontend_Instructions.md`
 - `.claude/docs/architecture.md`
 - `.claude/docs/postgresql-rules.md`
@@ -108,6 +128,8 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 - `.claude/docs/documentation_rules.md`
 - `.claude/docs/documentation_map.md`
 - `.claude/skills/backend/SKILL.md`
+- `.claude/Improve_CLAUDE_jh.md`
+- `.claude/SESSION_LONGEVITY_RECOMMENDATIONS.md`
 - `.claude/skills/database/postgresql-prisma.md`
 - `.claude/skills/architecture/SKILL.md`
 - `.claude/skills/architecture/reference.md`

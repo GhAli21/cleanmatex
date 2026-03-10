@@ -2,7 +2,15 @@
 
 ## Tables
 
-### sys_customers_mst (global)
+## Current Reading Rule
+
+Use this file as a mixed design-and-implementation model note.
+
+- `org_customers_mst` is the safer default to treat as the primary current runtime customer surface
+- `sys_customers_mst` and org-to-sys linking should be treated as historical design intent or partial capability unless verified in the active code path you are working on
+- field lists here may reflect schema intent from the implementation wave rather than every field currently used in live screens
+
+### sys_customers_mst (global / partial design layer)
 
 - **PK**: `id` (UUID)
 - **Fields**: first_name, last_name, display_name, name, name2, phone, email, type, address, area, building, floor, preferences (JSONB), first_tenant_org_id, created_at, updated_at, created_by, created_info, updated_by, updated_info

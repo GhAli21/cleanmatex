@@ -1,6 +1,16 @@
-# UI Migration Guide: Legacy @/components/ui → @ui APIs
+# UI Migration Guide Phase 4
 
-This guide supports the gradual migration from `@/components/ui` (legacy) to the new `@ui` design system. The compatibility layer ensures existing code continues to work while you migrate call sites incrementally.
+This file is a historical migration-phase document.
+
+## Current Rule
+
+- do not use this file as active UI guidance
+- use `docs/dev/ui-migration-guide.md`, `web-admin/src/ui/README.md`, and the current `@ui/*` exports instead
+- `@ui/compat` has been removed from the active import path guidance, so earlier compat-layer instructions here are no longer the preferred direction
+
+## Note
+
+This document is kept only as migration-history context from an older compat-layer phase.
 
 ---
 

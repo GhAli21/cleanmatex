@@ -5,6 +5,8 @@
 **Status**: Active Development Plan
 **Owner**: Development Team
 
+> Planning authority note: this is the approved master plan. If you are also reading `docs/plan_cr/`, reconcile by topic using `plan_cr_reconciliation_map.md`; do not assume `plan_cr` numbering matches the approved PRD numbering here.
+
 ---
 
 ## Executive Summary

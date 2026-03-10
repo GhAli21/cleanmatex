@@ -13,6 +13,7 @@ Use this folder as the Prisma documentation home for `web-admin`:
 
 - `../PRISMA_SETUP.md`
 - `../PRISMA_QUICK_START.md`
+- `../PRISMA_QUICK_REFERENCE.md`
 - `../PRISMA_EVALUATION_REPORT.md`
 - `../PRISMA_BEST_PRACTICES_EVALUATION.md`
 - `../PRISMA_ENHANCEMENTS_SUMMARY.md`
@@ -26,3 +27,5 @@ Use this folder as the Prisma documentation home for `web-admin`:
 ## Rule
 
 Prisma docs for `web-admin` should be discoverable from this folder and should not present themselves as project-wide database authority.
+
+The root-level evaluation, analysis, enhancement, and quick-reference files should be treated as historical Prisma project artifacts unless their content is explicitly reconciled back into the canonical docs in this folder.

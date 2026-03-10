@@ -4,9 +4,11 @@ last_updated: 2025-11-14
 author: CleanMateX Team
 ---
 
-# PRD Implementation Rules
+# PRD Implementation Rules (Legacy Doc Pointer)
 
-**CRITICAL**: Follow these rules for all code implementation across the CleanMateX platform.
+Use this file as supporting legacy guidance only.
+
+Prefer `.claude/skills/implementation/`, `CLAUDE.md`, and current module docs for active implementation authority.
 
 ---
 

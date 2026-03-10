@@ -1,4 +1,12 @@
-Yes! Your CLAUDE.md is updated with the latest best practices. Let me show you what's already there:
+# Improve CLAUDE JH
+
+This file is a historical meta-optimization note from earlier AI-guidance cleanup work.
+
+## Current Rule
+
+- do not use this file as active repository authority
+- use `CLAUDE.md` and active `.claude/skills/` docs instead
+- keep this file only as historical context for past guidance-optimization work
 
 ✅ CLAUDE.md is Already Optimized
 What's Already Included:

@@ -1,6 +1,6 @@
 # Customer CRUD API
 
-## Endpoints (Next.js API routes)
+## Endpoints (Documented API Surface)
 
 | Method | Path | Permission | Description |
 |--------|------|------------|-------------|
@@ -25,7 +25,7 @@
 ## List query parameters
 
 - `page`, `limit` (1–100), `search`, `type` (guest|stub|walk_in|full), `status` (active|inactive), `sortBy` (name|createdAt|lastOrderAt|totalOrders), `sortOrder` (asc|desc).
-- Optional: `all=true` (all tenant customers), `searchAllOptions=true` (progressive search: current tenant → global → other tenants).
+- optional broader search flags in older customer docs should be treated as implementation-dependent and verified in current code before being exposed as user-facing guarantees
 
 ## Response format
 

@@ -1,8 +1,10 @@
 # CleanMateX - Master Development Plan
 
+> Historical or secondary planning copy. Use `../plan/master_plan_cc_01.md` as the approved planning authority, and use `../plan/plan_cr_reconciliation_map.md` to interpret legacy `plan_cr` material by topic rather than by PRD number.
+
 **Document ID**: master_plan_cc_01  
 **Version**: 1.0  
-**Status**: Active  
+**Status**: Secondary historical reference  
 **Last Updated**: 2026-03-10  
 **Owner**: Development Team
 

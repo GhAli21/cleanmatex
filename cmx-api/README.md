@@ -1,6 +1,8 @@
 # CleanMateX API
 
-`cmx-api` is the NestJS client API for CleanMateX. It serves external clients, mobile applications, partner integrations, and API-first backend workflows against the shared platform database.
+`cmx-api` is the NestJS API module for CleanMateX.
+
+At the current repo state, treat it as a light API shell with a small active surface rather than a fully expanded external/mobile/partner API platform.
 
 ## Stack
 
@@ -19,6 +21,16 @@
 - Health endpoint: `/api/v1/health`
 
 The current bootstrap uses `process.env.PORT ?? 3004` in `src/main.ts`.
+
+## Current Active Surface
+
+The currently visible runtime surface is intentionally small:
+
+- app root controller
+- health endpoint
+- auth refresh endpoint
+
+Broader API scope described in older plans remains roadmap direction rather than already-landed implementation.
 
 ## Local Development
 
@@ -84,4 +96,4 @@ Protected endpoints should document authentication and tenant requirements clear
 
 ## Documentation Notes
 
-This module currently has a light local documentation surface compared with `web-admin`. As the API surface grows, update this README alongside endpoint docs and feature documentation so implementation reality, PRDs, and backend guidance stay aligned.
+This module currently has a light local documentation surface compared with `web-admin`, which matches its still-limited active endpoint surface. As the API surface grows, update this README alongside endpoint docs and feature documentation so implementation reality, PRDs, and backend guidance stay aligned.

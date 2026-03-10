@@ -1,5 +1,12 @@
 # Prisma Best Practices Evaluation Report
 
+This file is a historical Prisma evaluation artifact.
+
+## Current Rule
+
+- use `prisma/README.md` and `prisma/related_docs_index.md` as the active Prisma documentation entrypoints
+- treat the compliance status language here as time-bound and supporting only
+
 **Date**: 2025-01-16  
 **Status**: ✅ **EXCELLENT - Following Industry Best Practices**
 

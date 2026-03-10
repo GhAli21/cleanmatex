@@ -1,5 +1,13 @@
 # Claude Code Session Longevity - Optimization Report
 
+This file is a historical meta-optimization report.
+
+## Current Rule
+
+- do not use this file as active repo authority
+- use `CLAUDE.md`, current skills, and active docs structure instead
+- treat the cleanup suggestions here as already historical unless they were explicitly adopted elsewhere
+
 **Date:** 2026-01-24
 **Current Context Usage:** ~50-70% reduction achieved
 **Remaining Opportunities:** ~30-40% additional savings possible

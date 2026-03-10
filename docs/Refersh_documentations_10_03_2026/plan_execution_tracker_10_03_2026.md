@@ -80,3 +80,10 @@ Notes:
 - canonical history and subdomain README entrypoints were added so fragmented material now points to one obvious home
 - physical relocation was completed for the clearest dashboard, order-payment, order-workflow, and customer legacy sibling folders
 - the remaining future archive moves are optional housekeeping rather than an active blocker
+
+## Optional Hardening Follow-Up Completed
+
+- code-vs-doc verification findings were applied to the highest-risk feature and module docs
+- stale setup and troubleshooting docs were modernized to safer current workflows
+- `docs/plan/plan_cr_reconciliation_map.md` was added to reconcile `plan/` vs `plan_cr/`
+- legacy Prisma and `.claude` support docs were downgraded to pointer or historical-supporting status where safe

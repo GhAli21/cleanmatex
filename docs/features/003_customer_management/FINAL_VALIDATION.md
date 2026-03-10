@@ -1,6 +1,6 @@
 # PRD-003: Final Validation Checklist
 
-**Status**: ✅ READY FOR PRODUCTION
+**Status**: Historical final-validation snapshot requiring current verification
 **Date**: 2025-10-25
 
 ---
@@ -201,17 +201,25 @@
 
 ---
 
-## ✅ Final Sign-Off
+## Current Sign-Off Rule
 
-**PRD-003: Customer Management** is **PRODUCTION READY**
+Treat this file as a historical implementation-wave validation checklist, not as current deployment approval.
 
-- **Completion**: 95%
-- **Quality**: Production Grade
+- SMS was described as "Twilio ready" but still depends on real environment configuration
+- several detail surfaces were recorded as complete even where placeholders or partial follow-up remained
+- re-verify testing depth and runtime behavior before using this file as production sign-off
+
+## Historical Final Sign-Off
+
+**PRD-003: Customer Management** was recorded as **production ready** at the time of this snapshot
+
+- **Completion**: historical 95% claim
+- **Quality**: historical production-grade claim
 - **Security**: Verified
 - **Documentation**: Complete
 - **Testing**: Manual Complete, Automated Recommended
 
-**Ready to deploy!** 🚀
+Use current code, environment setup, and newer feature docs to decide present-day deployment readiness.
 
 ---
 

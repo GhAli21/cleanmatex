@@ -1,10 +1,10 @@
-# CleanMateX Frontend Standards (Aligned with Architecture)
+# CleanMateX Frontend Standards (Legacy Doc Pointer)
 
-This document defines frontend standards for CleanMateX.
+This document is a legacy pointer, not the preferred active frontend standards source.
 
 Authority note:
 
-- use this as a standards reference
+- prefer `.claude/skills/frontend/` materials, `CLAUDE.md`, `web-admin/README.md`, and active `@ui/*` exports first
 - use `CLAUDE.md`, current module docs, and active code exports as the higher authority when they conflict
 - do not treat multiple frontend guidance files as competing single sources of truth
 
@@ -429,4 +429,4 @@ Patterns:
   - `@lib/*` → `lib/*`
 - **Do not use:** `components/ui`, `shared/`, `common/` as roots.
 
-This document is the single source of truth for frontend implementation standards and must always remain consistent with the architecture defined in `AI_Coder_Frontend_Instructions.md`.
+This document is retained as supporting legacy guidance only and should not be treated as the single source of truth.
