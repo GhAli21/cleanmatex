@@ -2045,7 +2045,34 @@
     "removeImage": "إزالة الصورة",
     "imageHint": "JPEG / PNG / WebP، الحد الأقصى 5 ميغابايت. تظهر في شاشة الطلب.",
     "productIcon": "أيقونة المنتج (إيموجي)",
-    "iconHint": "تُستخدم بديلاً عند عدم وجود صورة. مثال: 👔"
+    "iconHint": "تُستخدم بديلاً عند عدم وجود صورة. مثال: 👔",
+    "preferences": {
+      "title": "كتالوج التفضيلات",
+      "subtitle": "تفضيلات الخدمة والتغليف للطلبات",
+      "servicePrefs": "تفضيلات الخدمة",
+      "servicePrefsDesc": "خيارات المعالجة: النشا، العطر، العناية الخاصة، إلخ.",
+      "packingPrefs": "تفضيلات التغليف",
+      "packingPrefsDesc": "خيارات التجميع: تعليق، طي، صندوق، إلخ.",
+      "noServicePrefs": "لم يتم تكوين تفضيلات خدمة",
+      "noPackingPrefs": "لم يتم تكوين تفضيلات تغليف",
+      "bundles": "باقات العناية",
+      "bundlesDesc": "مجموعات تفضيلات للتطبيق السريع",
+      "addBundle": "إضافة باقة",
+      "editBundle": "تعديل الباقة",
+      "bundleCode": "الرمز",
+      "bundleName": "الاسم",
+      "preferences": "التفضيلات",
+      "discount": "الخصم",
+      "status": "الحالة",
+      "actions": "الإجراءات",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "noBundles": "لم يتم تكوين باقات العناية",
+      "confirmDeleteBundle": "حذف هذه الباقة؟",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "saving": "جاري الحفظ..."
+    }
   },
   "validation": {
     "required": "هذا الحقل مطلوب",
@@ -2163,6 +2190,8 @@
       "noItemsDesc": "هذا الطلب لا يحتوي على عناصر للمعالجة. يرجى التحقق من تفاصيل الطلب أو الاتصال بالدعم.",
       "color": "اللون",
       "brand": "العلامة التجارية",
+      "packing": "التغليف",
+      "packingOverride": "تجاوز",
       "barcode": "الرمز الشريطي",
       "hasStain": "بقعة",
       "hasDamage": "تلف",
@@ -2207,6 +2236,8 @@
       "search": "بحث",
       "retry": "إعادة المحاولة",
       "clickStepToChange": "انقر على خطوة لتغيير مرحلة المعالجة",
+      "confirmPrefs": "تأكيد",
+      "confirming": "جاري التأكيد...",
       "error": {
         "loadingFailed": "فشل تحميل الطلب"
       }
@@ -2674,7 +2705,29 @@
       "unknownProduct": "منتج غير معروف",
       "add": "إضافة",
       "decreaseQuantity": "تقليل الكمية",
-      "increaseQuantity": "زيادة الكمية"
+      "increaseQuantity": "زيادة الكمية",
+      "preferences": "التفضيلات",
+      "applyToAllPieces": "تطبيق على جميع القطع",
+      "itemsSubtotal": "العناصر",
+      "additionalServices": "خدمات إضافية"
+    },
+    "preferences": {
+      "servicePrefs": "تفضيلات الخدمة",
+      "packingPref": "التغليف",
+      "none": "لا شيء",
+      "carePackages": "باقات العناية",
+      "carePackagesDesc": "تطبيق مجموعة تفضيلات على جميع العناصر",
+      "applyToAll": "تطبيق على جميع العناصر",
+      "repeatLastOrder": "تكرار آخر طلب",
+      "repeatLastOrderDesc": "نسخ التفضيلات من آخر طلبك",
+      "repeatLastOrderBtn": "تكرار من آخر طلب",
+      "smartSuggestions": "مقترح لك",
+      "smartSuggestionsDesc": "بناءً على سجل طلباتك",
+      "noLastOrder": "لم يتم العثور على طلب سابق",
+      "appliedSuccess": "تم تطبيق التفضيلات",
+      "noBundles": "لم يتم تكوين باقات العناية",
+      "addItemsFirst": "أضف العناصر أولاً",
+      "incompatiblePref": "غير متوافق مع {name}"
     },
     "pieces": {
       "viewPieces": "عرض القطع",

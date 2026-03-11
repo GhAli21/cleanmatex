@@ -1,0 +1,341 @@
+{
+  "folders_lookup": [
+    {
+      "feature_name": "001_auth_dev_prd",
+      "folder_path": "docs/features/001_auth_dev_prd",
+      "description": "Authentication & Authorization",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "002_tenant_management_dev_prd",
+      "folder_path": "docs/features/002_tenant_management_dev_prd",
+      "description": "Tenant Onboarding",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "003_customer_management",
+      "folder_path": "docs/features/003_customer_management",
+      "description": "Customer Profiles",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "004_order_intake_dev_prd",
+      "folder_path": "docs/features/004_order_intake_dev_prd",
+      "description": "Order Creation & Itemization",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "005_basic_workflow_dev_prd",
+      "folder_path": "docs/features/005_basic_workflow_dev_prd",
+      "description": "Basic Workflow State Machine",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "006_digital_receipts_dev_prd",
+      "folder_path": "docs/features/006_digital_receipts_dev_prd",
+      "description": "WhatsApp & In-App Digital Receipts",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "007_admin_dashboard_dev_prd",
+      "folder_path": "docs/features/007_admin_dashboard_dev_prd",
+      "description": "Admin Dashboard UI",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "008_service_catalog_dev_prd",
+      "folder_path": "docs/features/008_service_catalog_dev_prd",
+      "description": "Product & Service Catalog",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "009_assembly_qa_dev_prd",
+      "folder_path": "docs/features/009_assembly_qa_dev_prd",
+      "description": "Assembly & QA Workflow",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "010_advanced_orders_dev_prd",
+      "folder_path": "docs/features/010_advanced_orders_dev_prd",
+      "description": "Advanced Order Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "011_pdf_receipts_dev_prd",
+      "folder_path": "docs/features/011_pdf_receipts_dev_prd",
+      "description": "PDF Receipt Generation & Printing",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "012_payments_dev_prd",
+      "folder_path": "docs/features/012_payments_dev_prd",
+      "description": "Payment Processing",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "013_delivery_dev_prd",
+      "folder_path": "docs/features/013_delivery_dev_prd",
+      "description": "Delivery Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "014_multi_branch_dev_prd",
+      "folder_path": "docs/features/014_multi_branch_dev_prd",
+      "description": "Multi-Branch Support",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "015_reporting_dev_prd",
+      "folder_path": "docs/features/015_reporting_dev_prd",
+      "description": "Reporting & Analytics",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "016_customer_app_dev_prd",
+      "folder_path": "docs/features/016_customer_app_dev_prd",
+      "description": "Customer Mobile App",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "017_loyalty_dev_prd",
+      "folder_path": "docs/features/017_loyalty_dev_prd",
+      "description": "Loyalty & Referral Programs",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "018_whatsapp_dev_prd",
+      "folder_path": "docs/features/018_whatsapp_dev_prd",
+      "description": "WhatsApp Business API Integration",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "019_notifications_dev_prd",
+      "folder_path": "docs/features/019_notifications_dev_prd",
+      "description": "Multi-Channel Notifications",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "020_booking_dev_prd",
+      "folder_path": "docs/features/020_booking_dev_prd",
+      "description": "Pickup/Delivery Scheduling",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "021_promotions_dev_prd",
+      "folder_path": "docs/features/021_promotions_dev_prd",
+      "description": "Promo Codes & Discounts",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "022_feedback_dev_prd",
+      "folder_path": "docs/features/022_feedback_dev_prd",
+      "description": "Customer Ratings & Reviews",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "023_bilingual_dev_prd",
+      "folder_path": "docs/features/023_bilingual_dev_prd",
+      "description": "Arabic Language Support",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "024_driver_app_dev_prd",
+      "folder_path": "docs/features/024_driver_app_dev_prd",
+      "description": "Driver Mobile Application",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "025_pod_dev_prd",
+      "folder_path": "docs/features/025_pod_dev_prd",
+      "description": "Proof of Delivery System",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "026_routing_dev_prd",
+      "folder_path": "docs/features/026_routing_dev_prd",
+      "description": "Route Optimization",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "027_driver_metrics_dev_prd",
+      "folder_path": "docs/features/027_driver_metrics_dev_prd",
+      "description": "Driver Performance Metrics",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "028_live_tracking_dev_prd",
+      "folder_path": "docs/features/028_live_tracking_dev_prd",
+      "description": "Real-time GPS Tracking",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "029_b2b_customers_dev_prd",
+      "folder_path": "docs/features/029_b2b_customers_dev_prd",
+      "description": "B2B Corporate Customer Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "030_b2b_billing_dev_prd",
+      "folder_path": "docs/features/030_b2b_billing_dev_prd",
+      "description": "B2B Invoicing & Statements",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "031_inventory_dev_prd",
+      "folder_path": "docs/features/031_inventory_dev_prd",
+      "description": "Inventory Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "032_machines_dev_prd",
+      "folder_path": "docs/features/032_machines_dev_prd",
+      "description": "Equipment & Machine Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "033_staff_dev_prd",
+      "folder_path": "docs/features/033_staff_dev_prd",
+      "description": "Staff Roles & Permissions",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "034_advanced_analytics_dev_prd",
+      "folder_path": "docs/features/034_advanced_analytics_dev_prd",
+      "description": "Advanced Business Intelligence",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "035_marketplace_dev_prd",
+      "folder_path": "docs/features/035_marketplace_dev_prd",
+      "description": "Marketplace Platform",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "036_commission_dev_prd",
+      "folder_path": "docs/features/036_commission_dev_prd",
+      "description": "Commission & Escrow Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "037_reviews_dev_prd",
+      "folder_path": "docs/features/037_reviews_dev_prd",
+      "description": "Review System",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "038_disputes_dev_prd",
+      "folder_path": "docs/features/038_disputes_dev_prd",
+      "description": "Dispute Management",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "039_campaigns_dev_prd",
+      "folder_path": "docs/features/039_campaigns_dev_prd",
+      "description": "Marketing Campaigns",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "040_memberships_dev_prd",
+      "folder_path": "docs/features/040_memberships_dev_prd",
+      "description": "Membership Programs",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "041_payment_gateways_dev_prd",
+      "folder_path": "docs/features/041_payment_gateways_dev_prd",
+      "description": "Multi-Gateway Payment Integration",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "042_wallet_dev_prd",
+      "folder_path": "docs/features/042_wallet_dev_prd",
+      "description": "Wallet System",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "043_family_accounts_dev_prd",
+      "folder_path": "docs/features/043_family_accounts_dev_prd",
+      "description": "Family Accounts & Shared Wallets",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "044_accounting_dev_prd",
+      "folder_path": "docs/features/044_accounting_dev_prd",
+      "description": "Accounting Integration",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "045_offline_dev_prd",
+      "folder_path": "docs/features/045_offline_dev_prd",
+      "description": "Offline & Sync Mode",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "046_push_dev_prd",
+      "folder_path": "docs/features/046_push_dev_prd",
+      "description": "Push Notifications",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "047_messaging_dev_prd",
+      "folder_path": "docs/features/047_messaging_dev_prd",
+      "description": "In-App Messaging",
+      "version": "1.0",
+      "last_updated": null
+    },
+    {
+      "feature_name": "048_white_label_dev_prd",
+      "folder_path": "docs/features/048_white_label_dev_prd",
+      "description": "White-Label Apps & Branding",
+      "version": "1.0",
+      "last_updated": null
+    }
+  ],
+  "instructions": "Add each new feature folder entry upon creation with folder path, description, version 1.0, and last_updated null. Update fields as documentation changes."
+}

@@ -54,6 +54,10 @@
 - even if i confirm do not delete just provide the script for deleting in seperate file
 - Check children: `SELECT 1 FROM sys_components_cd WHERE parent_comp_id = :id`. If any, refuse delete ("Delete children first"). Else delete by `comp_id`. Optionally set parent's `is_leaf = true` if it has no children left.
 
+## Migration file
+
+- if you create new supabase db migration file make it proper such as if needed Add BEGIN; at the start so the migration runs in a single transaction, and commit last.
+
 ## References
 
 - Schema: `supabase/migrations/0058_sys_components_cd_navigation.sql`

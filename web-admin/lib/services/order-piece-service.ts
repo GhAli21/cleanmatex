@@ -102,6 +102,8 @@ export class OrderPieceService {
       notes?: string;
       rackLocation?: string;
       metadata?: Record<string, any>;
+      packingPrefCode?: string;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
     }>,
     branchId?: string
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
@@ -129,6 +131,10 @@ export class OrderPieceService {
       const piecesToInsert = Array.from({ length: quantity }, (_, index) => {
         const pieceSeq = index + 1;
         const pieceData = piecesData?.find(p => p.pieceSeq === pieceSeq);
+        const servicePrefCharge = (pieceData?.servicePrefs ?? []).reduce(
+          (sum, p) => sum + Number(p.extra_price ?? 0),
+          0
+        );
 
         return {
           tenant_org_id: tenantId,
@@ -157,6 +163,8 @@ export class OrderPieceService {
           has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
           metadata: pieceData?.metadata || baseData.metadata || {},
+          packing_pref_code: pieceData?.packingPrefCode || null,
+          service_pref_charge: servicePrefCharge,
           created_by: null,
           created_info: null,
           rec_status: 1,
@@ -178,6 +186,34 @@ export class OrderPieceService {
           quantity,
         });
         return { success: false, error: insertError.message };
+      }
+
+      // Insert piece-level service prefs (org_order_item_pc_prefs)
+      const createdPieces = pieces as Array<{ id: string; piece_seq: number }>;
+      for (const pieceData of piecesData ?? []) {
+        const prefs = pieceData.servicePrefs;
+        if (!prefs || prefs.length === 0) continue;
+        const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
+        if (!createdPiece) continue;
+        const rows = prefs.map((p) => ({
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          order_item_id: orderItemId,
+          order_item_piece_id: createdPiece.id,
+          preference_code: p.preference_code,
+          source: p.source ?? 'manual',
+          extra_price: Number(p.extra_price ?? 0),
+          branch_id: branchId ?? null,
+        }));
+        const { error: prefsError } = await supabase.from('org_order_item_pc_prefs').insert(rows);
+        if (prefsError) {
+          log.warn('[OrderPieceService] Failed to insert piece service prefs', {
+            feature: 'order_pieces',
+            action: 'create_piece_prefs',
+            pieceId: createdPiece.id,
+            error: prefsError.message,
+          });
+        }
       }
 
       // Sync quantity_ready on item (starts at 0)
@@ -238,6 +274,8 @@ export class OrderPieceService {
       notes?: string;
       rackLocation?: string;
       metadata?: Record<string, any>;
+      packingPrefCode?: string;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
     }>,
     branchId?: string
   ): Promise<{ success: boolean; error?: string }> {
@@ -248,6 +286,10 @@ export class OrderPieceService {
       const piecesToInsert = Array.from({ length: quantity }, (_, index) => {
         const pieceSeq = index + 1;
         const pieceData = piecesData?.find(p => p.pieceSeq === pieceSeq);
+        const servicePrefCharge = (pieceData?.servicePrefs ?? []).reduce(
+          (sum, p) => sum + Number(p.extra_price ?? 0),
+          0
+        );
 
         return {
           tenant_org_id: tenantId,
@@ -276,6 +318,8 @@ export class OrderPieceService {
           has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
           metadata: (pieceData?.metadata ?? baseData.metadata ?? {}) as object,
+          packing_pref_code: pieceData?.packingPrefCode ?? null,
+          service_pref_charge: servicePrefCharge,
           created_by: null,
           created_info: null,
           rec_status: 1,
@@ -283,6 +327,9 @@ export class OrderPieceService {
       });
 
       await tx.org_order_item_pieces_dtl.createMany({ data: piecesToInsert });
+
+      // Note: Piece-level service prefs (org_order_item_pc_prefs) for order-update flow
+      // are not yet persisted here. New-order flow uses createPiecesForItem (Supabase) which does.
 
       // quantity_ready stays 0 — new pieces are "processing", not "ready"
 
@@ -342,6 +389,7 @@ export class OrderPieceService {
 
   /**
    * Get pieces by order ID
+   * Includes packing_pref_code from pieces table and service_prefs from org_order_item_pc_prefs
    */
   static async getPiecesByOrder(
     tenantId: string,
@@ -368,7 +416,34 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, pieces: mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]) };
+      const pieceIds = (pieces ?? []).map((p: { id: string }) => p.id);
+      let piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
+
+      if (pieceIds.length > 0) {
+        const { data: prefs } = await supabase
+          .from('org_order_item_pc_prefs')
+          .select('order_item_piece_id, preference_code, source, extra_price')
+          .eq('tenant_org_id', tenantId)
+          .in('order_item_piece_id', pieceIds);
+
+        for (const row of prefs ?? []) {
+          const pieceId = row.order_item_piece_id as string;
+          if (!piecePrefsMap[pieceId]) piecePrefsMap[pieceId] = [];
+          piecePrefsMap[pieceId].push({
+            preference_code: row.preference_code,
+            source: row.source ?? 'manual',
+            extra_price: Number(row.extra_price ?? 0),
+          });
+        }
+      }
+
+      const mapped = mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]);
+      const enriched = mapped.map((p) => ({
+        ...p,
+        service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
+      }));
+
+      return { success: true, pieces: enriched };
     } catch (error) {
       log.error('[OrderPieceService] Exception fetching pieces', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',

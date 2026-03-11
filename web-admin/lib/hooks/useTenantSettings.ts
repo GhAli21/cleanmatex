@@ -82,26 +82,20 @@ export function useTenantSettingsWithDefaults(
 ) {
   const { data, isLoading, error } = useTenantSettings({ tenantId, branchId, userId });
 
-  console.log('[useTenantSettingsWithDefaults] Hook state:', {
-    tenantId,
-    data,
-    isLoading,
-    error
-  });
-
   // Return defaults while loading or on error. Pieces are always used (trackByPiece forced true).
   const base = data || {
     splitOrderEnabled: true,
     rejectEnabled: true,
     trackByPiece: true,
     rejectColor: '#10B981',
+    packingPerPieceEnabled: false,
+    enforcePrefCompatibility: false,
+    processingConfirmationEnabled: false,
   };
   const settings: TenantProcessingSettings = {
     ...base,
     trackByPiece: true, // Always use order item pieces; no longer gated by USE_TRACK_BY_PIECE
   };
-
-  console.log('[useTenantSettingsWithDefaults] Final settings:', settings);
 
   return {
     settings,
@@ -112,5 +106,8 @@ export function useTenantSettingsWithDefaults(
     rejectEnabled: settings.rejectEnabled,
     trackByPiece: settings.trackByPiece,
     rejectColor: settings.rejectColor,
+    packingPerPieceEnabled: settings.packingPerPieceEnabled ?? false,
+    enforcePrefCompatibility: settings.enforcePrefCompatibility ?? false,
+    processingConfirmationEnabled: settings.processingConfirmationEnabled ?? false,
   };
 }

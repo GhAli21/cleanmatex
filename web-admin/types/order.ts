@@ -208,6 +208,9 @@ export interface OrderItem {
   // Metadata
   metadata: Record<string, any>;
 
+  // Service preferences (migration 0139)
+  packing_pref_code?: string | null;
+
   // Audit
   created_at: Date;
 }
@@ -267,6 +270,12 @@ export interface OrderItemPiece {
 
   // Metadata
   metadata: Record<string, any>;
+
+  // Service preferences (migration 0139)
+  packing_pref_code?: string | null;
+  service_pref_charge?: number | null;
+  /** Piece-level service prefs from org_order_item_pc_prefs */
+  service_prefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
 
   // Audit fields
   created_at: Date | null;
@@ -714,6 +723,9 @@ export interface ItemPiece {
   piece_status?: 'intake' | 'processing' | 'qa' | 'ready' | null;
   piece_stage?: string | null;
   is_ready?: boolean | null;
+  // Service preferences (migration 0139)
+  packingPrefCode?: string | null;
+  servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
 }
 
 /**

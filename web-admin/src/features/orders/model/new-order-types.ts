@@ -71,6 +71,13 @@ export interface Product {
 // PIECE TYPES
 // ==================================================================
 
+/** Service preference for order item (processing prefs: starch, perfume, etc.) */
+export interface OrderItemServicePref {
+  preference_code: string;
+  source: string;
+  extra_price: number;
+}
+
 /**
  * Pre-submission piece data (before order creation)
  */
@@ -85,6 +92,10 @@ export interface PreSubmissionPiece {
   notes?: string;
   rackLocation?: string;
   metadata?: Record<string, unknown>;
+  /** Piece-level service prefs (Enterprise-gated) */
+  servicePrefs?: OrderItemServicePref[];
+  /** Piece-level packing preference (Enterprise-gated, packingPerPieceEnabled) */
+  packingPrefCode?: string;
 }
 
 // ==================================================================
@@ -110,6 +121,14 @@ export interface OrderItem {
   priceOverride?: number | null;
   overrideReason?: string | null;
   overrideBy?: string | null;
+  /** Service preferences (starch, perfume, delicate, etc.) */
+  servicePrefs?: OrderItemServicePref[];
+  /** Packing preference (hang, fold, box, etc.) */
+  packingPrefCode?: string;
+  packingPrefIsOverride?: boolean;
+  packingPrefSource?: string;
+  /** Aggregated charge from service prefs. Included in order total. */
+  servicePrefCharge?: number;
 }
 
 // ==================================================================
@@ -236,6 +255,8 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
+  | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
+  | { type: 'UPDATE_ITEM_PACKING_PREF'; payload: { productId: string; packingPrefCode: string; packingPrefIsOverride?: boolean; packingPrefSource?: string } }
   | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }

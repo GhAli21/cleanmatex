@@ -132,7 +132,11 @@ export async function POST(request: NextRequest) {
       tenantId,
       branchId,
       userId,
-      items: input.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+      items: input.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        servicePrefCharge: i.servicePrefCharge ?? 0,
+      })),
       customerId: input.customerId,
       isExpress: input.express ?? false,
       percentDiscount: input.percentDiscount ?? 0,

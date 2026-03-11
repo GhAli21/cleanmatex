@@ -50,7 +50,7 @@ export function NewOrderContent() {
     const router = useRouter();
     const isRTL = useRTL();
     const { currentTenant } = useAuth();
-    const { trackByPiece } = useTenantSettingsWithDefaults(
+    const { trackByPiece, packingPerPieceEnabled, enforcePrefCompatibility } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
     const {
@@ -592,7 +592,7 @@ export function NewOrderContent() {
 
                         {activeTab === 'details' && (
                             <div className="p-6 pt-0">
-                                <OrderDetailsSection trackByPiece={trackByPiece} />
+                                <OrderDetailsSection trackByPiece={trackByPiece} packingPerPieceEnabled={packingPerPieceEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
                             </div>
                         )}
 

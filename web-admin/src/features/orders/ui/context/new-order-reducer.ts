@@ -235,6 +235,35 @@ export function newOrderReducer(
         }),
       };
 
+    case 'UPDATE_ITEM_SERVICE_PREFS': {
+      const { productId, servicePrefs, servicePrefCharge } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.productId === productId
+            ? { ...item, servicePrefs, servicePrefCharge }
+            : item
+        ),
+      };
+    }
+
+    case 'UPDATE_ITEM_PACKING_PREF': {
+      const { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.productId === productId
+            ? {
+                ...item,
+                packingPrefCode,
+                packingPrefIsOverride: packingPrefIsOverride ?? false,
+                packingPrefSource: packingPrefSource ?? 'manual',
+              }
+            : item
+        ),
+      };
+    }
+
     case 'UPDATE_ITEM_NOTES':
       return {
         ...state,

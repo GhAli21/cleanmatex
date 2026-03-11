@@ -48,7 +48,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
       const pieces: PreSubmissionPiece[] | undefined = item.pieces?.map((piece: any, index: number) => ({
         id: `temp-${item.product_id}-${index + 1}`,
         itemId: item.product_id,
-        pieceSeq: index + 1,
+        pieceSeq: piece.piece_seq ?? index + 1,
         color: piece.color || undefined,
         brand: piece.brand || undefined,
         hasStain: piece.has_stain || false,
@@ -56,6 +56,18 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         notes: piece.notes || undefined,
         rackLocation: piece.rack_location || undefined,
         metadata: piece.metadata || undefined,
+        packingPrefCode: piece.packing_pref_code || undefined,
+        servicePrefs: piece.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number }) => ({
+          preference_code: p.preference_code,
+          source: p.source ?? 'manual',
+          extra_price: Number(p.extra_price ?? 0),
+        })),
+      }));
+
+      const servicePrefs = item.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number }) => ({
+        preference_code: p.preference_code,
+        source: p.source ?? 'manual',
+        extra_price: Number(p.extra_price ?? 0),
       }));
 
       return {
@@ -73,6 +85,11 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         priceOverride: item.price_override || null,
         overrideReason: item.override_reason || null,
         overrideBy: item.override_by || null,
+        servicePrefs,
+        packingPrefCode: item.packing_pref_code || undefined,
+        packingPrefIsOverride: item.packing_pref_is_override || false,
+        packingPrefSource: item.packing_pref_source || undefined,
+        servicePrefCharge: item.service_pref_charge != null ? Number(item.service_pref_charge) : 0,
       };
     });
 

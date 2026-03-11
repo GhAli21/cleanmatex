@@ -125,6 +125,15 @@ export const createWithPaymentRequestSchema = z.object({
         rackLocation: z.string().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
       })).optional(),
+      servicePrefs: z.array(z.object({
+        preference_code: z.string(),
+        source: z.string(),
+        extra_price: z.number().nonnegative(),
+      })).optional(),
+      packingPrefCode: z.string().optional(),
+      packingPrefIsOverride: z.boolean().optional(),
+      packingPrefSource: z.string().optional(),
+      servicePrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
   isQuickDrop: z.boolean().optional(),

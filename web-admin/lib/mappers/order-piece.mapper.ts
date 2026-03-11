@@ -39,6 +39,8 @@ export interface OrderPieceDbModel {
   has_stain: boolean | null;
   has_damage: boolean | null;
   metadata: Record<string, any>;
+  packing_pref_code?: string | null;
+  service_pref_charge?: number | null;
   created_at: string | null; // ISO string from DB
   rec_order: number | null;
   rec_notes: string | null;

@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { WorkflowService } from '@/lib/services/workflow-service';
-import { WorkflowServiceEnhanced } from '@/lib/services/workflow-service-enhanced';
+import {
+  WorkflowServiceEnhanced,
+  ValidationError,
+  PermissionError,
+  FeatureFlagError,
+  SettingsError,
+  LimitExceededError,
+  QualityGateError,
+} from '@/lib/services/workflow-service-enhanced';
 import { TransitionRequestSchema } from '@/lib/validations/workflow-schema';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import type { OrderStatus } from '@/lib/types/workflow';
@@ -63,14 +71,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       } catch (error: any) {
         // Handle enhanced workflow errors
         const statusCode =
-          error instanceof WorkflowServiceEnhanced.ValidationError ||
-          error instanceof WorkflowServiceEnhanced.PermissionError ||
-          error instanceof WorkflowServiceEnhanced.FeatureFlagError ||
-          error instanceof WorkflowServiceEnhanced.SettingsError
+          error instanceof ValidationError ||
+          error instanceof PermissionError ||
+          error instanceof FeatureFlagError ||
+          error instanceof SettingsError
             ? 400
-            : error instanceof WorkflowServiceEnhanced.LimitExceededError
+            : error instanceof LimitExceededError
             ? 402
-            : error instanceof WorkflowServiceEnhanced.QualityGateError
+            : error instanceof QualityGateError
             ? 400
             : 500;
 

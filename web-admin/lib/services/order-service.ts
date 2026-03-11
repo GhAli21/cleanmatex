@@ -33,6 +33,15 @@ export interface CreateOrderPieceData {
   notes?: string;
   rackLocation?: string;
   metadata?: Record<string, any>;
+  /** Piece-level service prefs (Enterprise-gated) */
+  servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number }>;
+}
+
+/** Service preference for order item (processing prefs: starch, perfume, etc.) */
+export interface CreateOrderServicePref {
+  preference_code: string;
+  source: string;
+  extra_price: number;
 }
 
 export interface CreateOrderParams {
@@ -54,6 +63,14 @@ export interface CreateOrderParams {
     stainNotes?: string;
     damageNotes?: string;
     pieces?: CreateOrderPieceData[]; // Optional piece-level data for new orders
+    /** Service preferences (starch, perfume, delicate, etc.) */
+    servicePrefs?: CreateOrderServicePref[];
+    /** Packing preference (hang, fold, box, etc.) */
+    packingPrefCode?: string;
+    packingPrefIsOverride?: boolean;
+    packingPrefSource?: string;
+    /** Aggregated charge from service prefs. Included in order total. */
+    servicePrefCharge?: number;
   }>;
   isQuickDrop?: boolean;
   quickDropQuantity?: number;
@@ -116,6 +133,8 @@ export interface EstimateReadyByParams {
     serviceCategoryCode: string;
     turnaroundHh?: number;
     quantity: number;
+    /** Service preference codes for SLA adjustment (extra_turnaround_minutes) */
+    servicePrefs?: Array<{ preference_code: string }>;
   }>;
   isQuickDrop?: boolean;
   express?: boolean;
@@ -336,7 +355,13 @@ export class OrderService {
       const orderNo = orderNoData as string;
 
       // Calculate totals (use provided totals when present, else from items)
-      const subtotal = totals?.subtotal ?? items.reduce((sum, item) => sum + item.totalPrice, 0);
+      const subtotal =
+        totals?.subtotal ??
+        items.reduce(
+          (sum, item) =>
+            sum + item.totalPrice + (item.servicePrefCharge ?? 0),
+          0
+        );
       const discount = totals?.discount ?? 0;
       const tax = totals?.tax ?? 0;
       const total = totals?.total ?? subtotal - discount + tax;
@@ -454,6 +479,10 @@ export class OrderService {
           has_damage: item.hasDamage,
           stain_notes: item.stainNotes,
           damage_notes: item.damageNotes,
+          packing_pref_code: item.packingPrefCode ?? null,
+          packing_pref_is_override: item.packingPrefIsOverride ?? false,
+          packing_pref_source: item.packingPrefSource ?? null,
+          service_pref_charge: item.servicePrefCharge ?? 0,
         }));
 
         const { error: itemsError, data: createdItems } = await supabase
@@ -465,6 +494,53 @@ export class OrderService {
           console.error('Failed to create order items:', itemsError);
           // Continue anyway - items can be added later in preparation
         } else if (createdItems && createdItems.length > 0) {
+          // Insert service preferences for items that have them
+          const servicePrefsToInsert: Array<{
+            tenant_org_id: string;
+            order_id: string;
+            order_item_id: string;
+            preference_code: string;
+            source: string;
+            extra_price: number;
+            branch_id: string | null;
+            created_by: string;
+            created_info: string | null;
+          }> = [];
+          for (let i = 0; i < createdItems.length; i++) {
+            const createdItem = createdItems[i];
+            const itemData = items[i];
+            const prefs = itemData?.servicePrefs;
+            if (createdItem && prefs && prefs.length > 0) {
+              for (const pref of prefs) {
+                servicePrefsToInsert.push({
+                  tenant_org_id: tenantId,
+                  order_id: order.id,
+                  order_item_id: createdItem.id,
+                  preference_code: pref.preference_code,
+                  source: pref.source,
+                  extra_price: pref.extra_price,
+                  branch_id: branchId ?? null,
+                  created_by: userId,
+                  created_info: userName,
+                });
+              }
+            }
+          }
+          if (servicePrefsToInsert.length > 0) {
+            const { error: prefsError } = await supabase
+              .from('org_order_item_service_prefs')
+              .insert(servicePrefsToInsert);
+            if (prefsError) {
+              logger.warn('Failed to insert service preferences for order items', {
+                tenantId,
+                orderId: order.id,
+                error: prefsError.message,
+                feature: 'orders',
+                action: 'create_order',
+              });
+            }
+          }
+
           // Always create pieces for each order item
           const piecesErrors: Array<{ itemId: string; error: string }> = [];
 
@@ -484,6 +560,8 @@ export class OrderService {
                     notes: piece.notes || itemData.notes,
                     rackLocation: piece.rackLocation,
                     metadata: piece.metadata || {},
+                    packingPrefCode: piece.packingPrefCode,
+                    servicePrefs: piece.servicePrefs,
                   }))
                   : undefined; // Will use baseData fallback
 
@@ -754,7 +832,12 @@ export class OrderService {
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
 
-    const subtotal = totals?.subtotal ?? items.reduce((sum, item) => sum + item.totalPrice, 0);
+    const subtotal =
+      totals?.subtotal ??
+      items.reduce(
+        (sum, item) => sum + item.totalPrice + (item.servicePrefCharge ?? 0),
+        0
+      );
     const discount = totals?.discount ?? 0;
     const tax = totals?.tax ?? 0;
     const total = totals?.total ?? subtotal - discount + tax;
@@ -862,8 +945,30 @@ export class OrderService {
             has_damage: item.hasDamage,
             stain_notes: item.stainNotes,
             damage_notes: item.damageNotes,
+            packing_pref_code: item.packingPrefCode ?? null,
+            packing_pref_is_override: item.packingPrefIsOverride ?? false,
+            packing_pref_source: item.packingPrefSource ?? null,
+            service_pref_charge: item.servicePrefCharge ?? 0,
           },
         });
+
+        // Insert service preferences for this item
+        const prefs = item.servicePrefs;
+        if (prefs && prefs.length > 0) {
+          await tx.org_order_item_service_prefs.createMany({
+            data: prefs.map((pref) => ({
+              tenant_org_id: tenantId,
+              order_id: order.id,
+              order_item_id: createdItem.id,
+              preference_code: pref.preference_code,
+              source: pref.source,
+              extra_price: pref.extra_price,
+              branch_id: branchId ?? null,
+              created_by: userId,
+              created_info: params.userName ?? null,
+            })),
+          });
+        }
 
         // Always create pieces for each order item
         if (item.quantity > 0) {
@@ -962,12 +1067,26 @@ export class OrderService {
         maxTurnaround = express ? 12 : 24;
       }
 
+      // Add extra minutes from service preferences (SLA adjustment, migration 0139)
+      let extraMinutes = 0;
+      const prefCodes = [...new Set(items.flatMap((i) => i.servicePrefs?.map((p) => p.preference_code) ?? []))];
+      if (prefCodes.length > 0) {
+        const { data: prefs } = await supabase
+          .from('sys_service_preference_cd')
+          .select('code, extra_turnaround_minutes')
+          .in('code', prefCodes);
+        extraMinutes = (prefs ?? []).reduce((sum, p) => {
+          const itemCount = items.filter((i) => i.servicePrefs?.some((sp) => sp.preference_code === p.code)).length;
+          return sum + (p.extra_turnaround_minutes ?? 0) * Math.max(1, itemCount);
+        }, 0);
+      }
+
       // Apply priority multiplier if express
       const multiplier = express ? 0.5 : 1.0;
       const finalTurnaround = maxTurnaround * multiplier;
 
-      // Calculate ready-by date
-      const readyByAt = new Date(Date.now() + finalTurnaround * 60 * 60 * 1000);
+      // Calculate ready-by date (base hours + extra minutes from prefs)
+      const readyByAt = new Date(Date.now() + finalTurnaround * 60 * 60 * 1000 + extraMinutes * 60 * 1000);
 
       return {
         success: true,
@@ -1720,6 +1839,8 @@ export class OrderService {
                 notes: piece.notes || item.notes,
                 rackLocation: piece.rackLocation,
                 metadata: piece.metadata || {},
+                packingPrefCode: piece.packingPrefCode,
+                servicePrefs: piece.servicePrefs,
               }))
               : undefined;
 

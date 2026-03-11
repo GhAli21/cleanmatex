@@ -85,7 +85,7 @@ export function useOrderSubmission() {
     const tEdit = useTranslations('orders.edit');
     const router = useRouter();
     const { currentTenant, user } = useAuth();
-    const { trackByPiece } = useTenantSettingsWithDefaults(
+    const { trackByPiece, packingPerPieceEnabled } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
     const { token: csrfToken } = useCSRFToken();
@@ -214,6 +214,15 @@ export function useOrderSubmission() {
                                 metadata: piece.metadata,
                             })),
                         }),
+                        ...(item.servicePrefs && item.servicePrefs.length > 0 && {
+                            servicePrefs: item.servicePrefs,
+                            servicePrefCharge: item.servicePrefCharge ?? 0,
+                        }),
+                        ...(item.packingPrefCode && {
+                            packingPrefCode: item.packingPrefCode,
+                            packingPrefIsOverride: item.packingPrefIsOverride,
+                            packingPrefSource: item.packingPrefSource,
+                        }),
                     })),
                     isQuickDrop: state.state.isQuickDrop || false,
                     ...(state.state.isQuickDrop && state.state.quickDropQuantity > 0 && {
@@ -287,11 +296,26 @@ export function useOrderSubmission() {
                                     notes: piece.notes,
                                     rackLocation: piece.rackLocation,
                                     metadata: piece.metadata,
+                                    ...(packingPerPieceEnabled && piece.packingPrefCode && {
+                                        packingPrefCode: piece.packingPrefCode,
+                                    }),
+                                    ...(packingPerPieceEnabled && piece.servicePrefs && piece.servicePrefs.length > 0 && {
+                                        servicePrefs: piece.servicePrefs,
+                                    }),
                                 })),
                             }),
                             priceOverride: item.priceOverride,
                             overrideReason: item.overrideReason,
                             overrideBy: item.overrideBy,
+                            ...(item.servicePrefs && item.servicePrefs.length > 0 && {
+                                servicePrefs: item.servicePrefs,
+                                servicePrefCharge: item.servicePrefCharge ?? 0,
+                            }),
+                            ...(item.packingPrefCode && {
+                                packingPrefCode: item.packingPrefCode,
+                                packingPrefIsOverride: item.packingPrefIsOverride,
+                                packingPrefSource: item.packingPrefSource,
+                            }),
                         })),
                         express: state.state.express || false,
                         notes: sanitizedNotes,
@@ -587,6 +611,12 @@ export function useOrderSubmission() {
                             notes: piece.notes,
                             rackLocation: piece.rackLocation,
                             metadata: piece.metadata,
+                            ...(packingPerPieceEnabled && piece.packingPrefCode && {
+                                packingPrefCode: piece.packingPrefCode,
+                            }),
+                            ...(packingPerPieceEnabled && piece.servicePrefs && piece.servicePrefs.length > 0 && {
+                                servicePrefs: piece.servicePrefs,
+                            }),
                         })),
                     }),
                     priceOverride: item.priceOverride,

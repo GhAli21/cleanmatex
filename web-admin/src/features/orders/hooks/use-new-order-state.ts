@@ -4,7 +4,7 @@
  */
 
 import { useNewOrderContext } from '../ui/context/new-order-context';
-import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
+import type { NewOrderState, MinimalCustomer, OrderItem, PreSubmissionPiece, OrderItemServicePref, ServiceCategory, Product, CustomerSnapshotOverride } from '../model/new-order-types';
 
 /**
  * Optional snapshot when setting customer (for org_orders_mst columns)
@@ -29,6 +29,8 @@ export interface UseNewOrderStateWithDispatchReturn {
   removeItem: (productId: string) => void;
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
+  updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
+  updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string) => void;
   updateItemNotes: (productId: string, notes: string) => void;
   updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
@@ -103,6 +105,20 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({
         type: 'UPDATE_ITEM_PIECES',
         payload: { productId, pieces: pieces || [] },
+      });
+    },
+
+    updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => {
+      dispatch({
+        type: 'UPDATE_ITEM_SERVICE_PREFS',
+        payload: { productId, servicePrefs, servicePrefCharge },
+      });
+    },
+
+    updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string) => {
+      dispatch({
+        type: 'UPDATE_ITEM_PACKING_PREF',
+        payload: { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource },
       });
     },
 

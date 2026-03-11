@@ -19,7 +19,12 @@ import type { PriceResult } from '@/lib/types/pricing';
 export interface OrderCalculationParams {
   tenantId: string;
   branchId?: string;
-  items: { productId: string; quantity: number }[];
+  items: {
+    productId: string;
+    quantity: number;
+    /** Service preference charge per item (from service prefs). Included in subtotal. */
+    servicePrefCharge?: number;
+  }[];
   customerId?: string;
   isExpress?: boolean;
   percentDiscount?: number;
@@ -123,7 +128,10 @@ export async function calculateOrderTotals(
   );
 
   const subtotal = priceResults.reduce(
-    (sum, result, i) => sum + result.basePrice * items[i].quantity,
+    (sum, result, i) =>
+      sum +
+      result.basePrice * items[i].quantity +
+      (items[i].servicePrefCharge ?? 0),
     0
   );
   const subtotalRounded = round(subtotal, decimalPlaces);

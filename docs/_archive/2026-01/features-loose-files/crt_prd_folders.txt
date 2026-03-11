@@ -1,0 +1,16 @@
+@echo off
+REM Create folders for each PRD feature
+
+mkdir "001_auth_dev_prd"
+mkdir "002_tenant_management_dev_prd"
+mkdir "003_customer_management_dev_prd"
+mkdir "004_order_intake_dev_prd"
+mkdir "005_basic_workflow_dev_prd"
+mkdir "006_digital_receipts_dev_prd"
+mkdir "007_admin_dashboard_dev_prd"
+mkdir "008_service_catalog_dev_prd"
+mkdir "009_assembly_qa_dev_prd"
+mkdir "010_advanced_orders_dev_prd"
+
+echo All folders created successfully.
+pause

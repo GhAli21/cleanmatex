@@ -110,7 +110,7 @@ export class ReceiptService {
         action: 'generate',
       });
 
-      // Get order with customer and items
+      // Get order with customer and items (include service prefs for receipt placeholders)
       const { data: order, error: orderError } = await supabase
         .from('org_orders_mst')
         .select(
@@ -126,7 +126,13 @@ export class ReceiptService {
             product_name,
             product_name2,
             quantity,
-            total_price
+            total_price,
+            packing_pref_code,
+            service_pref_charge,
+            service_prefs:org_order_item_service_prefs(
+              preference_code,
+              extra_price
+            )
           )
         `
         )
@@ -152,11 +158,15 @@ export class ReceiptService {
         throw new TemplateNotFoundError(receiptTypeCode, language);
       }
 
+      // Compute eco score (requires DB lookup)
+      const ecoScore = await this.getOrderEcoScore(supabase, order);
+
       // Replace template placeholders
       const contentText = this.replaceTemplatePlaceholders(
         template.template_content,
         order,
-        language
+        language,
+        { ecoScore }
       );
 
       // Generate HTML version (basic)
@@ -368,6 +378,10 @@ export class ReceiptService {
     const customer = order.customer || {};
     const items = order.items || [];
 
+    const preferencesSummary = this.formatPreferencesSummary(items);
+    const servicePrefCharge = this.calculateServicePrefCharge(items);
+    const ecoScore = this.calculateEcoScore(order);
+
     const replacements: Record<string, string> = {
       '{{orderNumber}}': order.order_no || '',
       '{{customerName}}':
@@ -377,6 +391,9 @@ export class ReceiptService {
       '{{orderDate}}': new Date(order.created_at).toLocaleDateString(),
       '{{total}}': order.total?.toString() || '0',
       '{{items}}': this.formatItemsList(items, language),
+      '{{preferences_summary}}': preferencesSummary,
+      '{{service_pref_charge}}': servicePrefCharge.toFixed(3),
+      '{{eco_score}}': ecoScore.toString(),
     };
 
     let content = template;
@@ -385,6 +402,71 @@ export class ReceiptService {
     }
 
     return content;
+  }
+
+  /**
+   * Format preferences summary for receipt (service prefs + packing)
+   */
+  private static formatPreferencesSummary(items: any[]): string {
+    const parts: string[] = [];
+    for (const item of items) {
+      const prefs = item.service_prefs as Array<{ preference_code: string }> | undefined;
+      if (prefs && prefs.length > 0) {
+        parts.push(...prefs.map((p) => p.preference_code));
+      }
+      if (item.packing_pref_code) {
+        parts.push(`Packing: ${item.packing_pref_code}`);
+      }
+    }
+    return [...new Set(parts)].join(', ') || '—';
+  }
+
+  /**
+   * Calculate total service preference charge from items
+   */
+  private static calculateServicePrefCharge(items: any[]): number {
+    return items.reduce(
+      (sum, item) => sum + (Number(item.service_pref_charge) || 0),
+      0
+    );
+  }
+
+  /**
+   * Get eco/sustainability score from order prefs (service + packing).
+   * Sums sustainability_score from sys_service_preference_cd and sys_packing_preference_cd.
+   */
+  private static async getOrderEcoScore(
+    supabase: Awaited<ReturnType<typeof createClient>>,
+    order: any
+  ): Promise<number> {
+    const items = order.items || [];
+    const servicePrefCodes = new Set<string>();
+    const packingPrefCodes = new Set<string>();
+    for (const item of items) {
+      const prefs = item.service_prefs as Array<{ preference_code: string }> | undefined;
+      if (prefs) {
+        prefs.forEach((p) => servicePrefCodes.add(p.preference_code));
+      }
+      if (item.packing_pref_code) {
+        packingPrefCodes.add(item.packing_pref_code);
+      }
+    }
+    let total = 0;
+    if (servicePrefCodes.size > 0) {
+      const { data: servicePrefs } = await supabase
+        .from('sys_service_preference_cd')
+        .select('sustainability_score')
+        .in('code', Array.from(servicePrefCodes));
+      total += (servicePrefs ?? []).reduce((s, p) => s + (Number(p.sustainability_score) || 0), 0);
+    }
+    if (packingPrefCodes.size > 0) {
+      const { data: packingPrefs } = await supabase
+        .from('sys_packing_preference_cd')
+        .select('sustainability_score')
+        .in('code', Array.from(packingPrefCodes));
+      total += (packingPrefs ?? []).reduce((s, p) => s + (Number(p.sustainability_score) || 0), 0);
+    }
+    return total;
   }
 
   /**
@@ -439,6 +521,16 @@ export class ReceiptService {
             <p>${isRTL ? item.product_name2 || item.product_name : item.product_name} x${item.quantity} - ${item.total_price}</p>
           `).join('')}
         </div>
+        ${this.formatPreferencesSummary(items) !== '—' ? `
+        <div class="preferences">
+          <p><strong>${isRTL ? 'التفضيلات' : 'Preferences'}:</strong> ${this.formatPreferencesSummary(items)}</p>
+        </div>
+        ` : ''}
+        ${this.calculateServicePrefCharge(items) > 0 ? `
+        <div class="service-pref-charge">
+          <p><strong>${isRTL ? 'خدمات إضافية' : 'Additional Services'}:</strong> ${this.calculateServicePrefCharge(items).toFixed(3)}</p>
+        </div>
+        ` : ''}
         <div class="total">
           <p>${isRTL ? 'المجموع' : 'Total'}: ${order.total}</p>
         </div>

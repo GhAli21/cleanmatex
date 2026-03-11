@@ -64,8 +64,9 @@ export function useReadyByEstimation() {
         try {
             const readyBy = await estimateReadyBy({
                 items: state.items.map((item) => ({
-                    serviceCategoryCode: item.serviceCategoryCode,
+                    serviceCategoryCode: item.serviceCategoryCode ?? '',
                     quantity: item.quantity,
+                    servicePrefs: item.servicePrefs?.map((p) => ({ preference_code: p.preference_code })),
                 })),
                 isQuickDrop: state.isQuickDrop,
                 express: state.express,

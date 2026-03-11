@@ -31,6 +31,9 @@ export const SETTING_CODES = {
   PEAK_SEASON_START: 'PEAK_SEASON_START',
   BRANCH_CURRENCY: 'BRANCH_CURRENCY',
   TENANT_DEFAULT_GUEST_CUSTOMER_ID: 'TENANT_DEFAULT_GUEST_CUSTOMER_ID',
+  SERVICE_PREF_PACKING_PER_PIECE_ENABLED: 'SERVICE_PREF_PACKING_PER_PIECE_ENABLED',
+  SERVICE_PREF_ENFORCE_COMPATIBILITY: 'SERVICE_PREF_ENFORCE_COMPATIBILITY',
+  SERVICE_PREF_PROCESSING_CONFIRMATION: 'SERVICE_PREF_PROCESSING_CONFIRMATION',
 } as const;
 
 /** Resolved settings map: setting code → parsed value (string, number, boolean) */
@@ -41,6 +44,12 @@ export interface TenantProcessingSettings {
   rejectEnabled: boolean;
   trackByPiece: boolean;
   rejectColor: string;
+  /** Per-piece packing preference (Enterprise, SERVICE_PREF_PACKING_PER_PIECE_ENABLED) */
+  packingPerPieceEnabled: boolean;
+  /** Block incompatible prefs (true) or warn only (false). SERVICE_PREF_ENFORCE_COMPATIBILITY */
+  enforcePrefCompatibility: boolean;
+  /** Require processing confirmation per piece (Enterprise). SERVICE_PREF_PROCESSING_CONFIRMATION */
+  processingConfirmationEnabled: boolean;
 }
 
 export interface CurrencyConfig {
@@ -134,6 +143,9 @@ export class TenantSettingsService {
       rejectEnabled: toBoolean(map[SETTING_CODES.USE_REJECT_TO_SOLVE], false),
       trackByPiece: toBoolean(map[SETTING_CODES.USE_TRACK_BY_PIECE], false),
       rejectColor: toString(map[SETTING_CODES.REJECT_ROW_COLOR], '#10B981'),
+      packingPerPieceEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PACKING_PER_PIECE_ENABLED], false),
+      enforcePrefCompatibility: toBoolean(map[SETTING_CODES.SERVICE_PREF_ENFORCE_COMPATIBILITY], false),
+      processingConfirmationEnabled: toBoolean(map[SETTING_CODES.SERVICE_PREF_PROCESSING_CONFIRMATION], false),
     };
   }
 

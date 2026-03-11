@@ -91,12 +91,13 @@ export function updateItemQuantity(
 }
 
 /**
- * Calculates total price for a single item
+ * Calculates total price for a single item (base + service pref charge)
  * @param item - Order item
  * @returns Total price
  */
 export function calculateItemTotal(item: OrderItem): number {
-  return item.quantity * item.pricePerUnit;
+  const baseTotal = item.totalPrice ?? item.quantity * item.pricePerUnit;
+  return baseTotal + (item.servicePrefCharge ?? 0);
 }
 
 /**

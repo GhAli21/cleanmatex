@@ -9,8 +9,10 @@
 
 import * as React from 'react';
 import { useTranslations } from 'next-intl';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { CmxCheckbox, CmxInput, CmxTextarea, CmxButton, CmxCard } from '@ui/primitives';
-import { X, Package, AlertTriangle } from 'lucide-react';
+import { X, Package, AlertTriangle, Check } from 'lucide-react';
 import type { ItemPiece, ProcessingStep, ProcessingStepConfig } from '@/types/order';
 import { CmxProcessingStepTimeline } from '@/src/ui/data-display/cmx-processing-step-timeline';
 import { CmxStatusBadge } from '@/src/ui/feedback/cmx-status-badge';
@@ -25,6 +27,16 @@ interface ProcessingPieceRowProps {
   rejectEnabled: boolean;
   rejectColor: string;
   processingSteps?: ProcessingStepConfig[]; // Dynamic steps from service category
+  /** Item-level packing default; when piece differs, show Override badge */
+  itemDefaultPacking?: string | null;
+  /** When true, show Confirm button for pieces with service prefs (Enterprise) */
+  processingConfirmationEnabled?: boolean;
+  /** For confirm API call */
+  orderId?: string;
+  itemId?: string;
+  tenantId?: string;
+  /** Called after successful confirm */
+  onConfirmSuccess?: () => void;
 }
 
 export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
@@ -36,8 +48,37 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
   rejectEnabled,
   rejectColor,
   processingSteps = [], // Default to empty array if not provided
+  itemDefaultPacking,
+  processingConfirmationEnabled = false,
+  orderId,
+  itemId,
+  tenantId,
+  onConfirmSuccess,
 }: ProcessingPieceRowProps) {
   const t = useTranslations('processing');
+  const queryClient = useQueryClient();
+
+  const confirmMutation = useMutation({
+    mutationFn: async () => {
+      if (!orderId || !itemId || !piece.id || !tenantId) return;
+      const res = await fetch(
+        `/api/v1/orders/${orderId}/items/${itemId}/pieces/${piece.id}/service-prefs/confirm`,
+        { method: 'POST', headers: { ...getCSRFHeader() } }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to confirm');
+      }
+    },
+    onSuccess: () => {
+      onConfirmSuccess?.();
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+    },
+  });
+
+  const hasServicePrefs = (piece.servicePrefs?.length ?? 0) > 0;
+  const showConfirmButton =
+    processingConfirmationEnabled && hasServicePrefs && orderId && itemId && tenantId;
 
   // Get step codes from processingSteps config
   const stepCodes = React.useMemo(() => {
@@ -168,6 +209,39 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
                   className="font-mono"
                 />
               )}
+            </div>
+          )}
+
+          {/* Service preferences and packing (migration 0139) */}
+          {(piece.packingPrefCode || (piece.servicePrefs?.length ?? 0) > 0) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {piece.packingPrefCode && (
+                <>
+                  <CmxStatusBadge
+                    label={`${t('modal.packing') || 'Packing'}: ${piece.packingPrefCode}`}
+                    variant="outline"
+                    size="sm"
+                  />
+                  {itemDefaultPacking != null &&
+                    itemDefaultPacking !== '' &&
+                    piece.packingPrefCode !== itemDefaultPacking && (
+                      <CmxStatusBadge
+                        label={t('modal.packingOverride') || 'Override'}
+                        variant="warning"
+                        size="sm"
+                      />
+                    )}
+                </>
+              )}
+              {(piece.servicePrefs?.length ?? 0) > 0 &&
+                piece.servicePrefs!.map((p) => (
+                  <CmxStatusBadge
+                    key={p.preference_code}
+                    label={p.preference_code.replace(/_/g, ' ')}
+                    variant="outline"
+                    size="sm"
+                  />
+                ))}
             </div>
           )}
 
@@ -391,6 +465,19 @@ export const ProcessingPieceRow = React.memo(function ProcessingPieceRow({
             onChange={(e) => handleSplitChange(e.target.checked)}
             label={t('modal.split')}
           />
+        )}
+        {showConfirmButton && (
+          <CmxButton
+            variant="outline"
+            size="sm"
+            onClick={() => confirmMutation.mutate()}
+            disabled={confirmMutation.isPending}
+            className="h-8"
+            aria-label={t('modal.confirmPrefs') || 'Confirm preferences'}
+          >
+            <Check className="h-3.5 w-3.5 mr-1" />
+            {confirmMutation.isPending ? (t('modal.confirming') || 'Confirming...') : (t('modal.confirmPrefs') || 'Confirm')}
+          </CmxButton>
         )}
       </div>
     </CmxCard>

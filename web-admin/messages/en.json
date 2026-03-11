@@ -2045,7 +2045,34 @@
     "removeImage": "Remove Image",
     "imageHint": "JPEG / PNG / WebP, max 5 MB. Displayed on the order screen.",
     "productIcon": "Product Icon (Emoji)",
-    "iconHint": "Used as fallback when no image is uploaded. Example: 👔"
+    "iconHint": "Used as fallback when no image is uploaded. Example: 👔",
+    "preferences": {
+      "title": "Preferences Catalog",
+      "subtitle": "Service and packing preferences for orders",
+      "servicePrefs": "Service Preferences",
+      "servicePrefsDesc": "Processing options: starch, perfume, delicate, etc.",
+      "packingPrefs": "Packing Preferences",
+      "packingPrefsDesc": "Assembly options: hang, fold, box, etc.",
+      "noServicePrefs": "No service preferences configured",
+      "noPackingPrefs": "No packing preferences configured",
+      "bundles": "Care Packages",
+      "bundlesDesc": "Preference bundles for quick apply (Growth+)",
+      "addBundle": "Add Bundle",
+      "editBundle": "Edit Bundle",
+      "bundleCode": "Code",
+      "bundleName": "Name",
+      "preferences": "Preferences",
+      "discount": "Discount",
+      "status": "Status",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "noBundles": "No care packages configured",
+      "confirmDeleteBundle": "Delete this bundle?",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving..."
+    }
   },
   "validation": {
     "required": "This field is required",
@@ -2163,6 +2190,8 @@
       "noItemsDesc": "This order has no items to process. Please check the order details or contact support.",
       "color": "Color",
       "brand": "Brand",
+      "packing": "Packing",
+      "packingOverride": "Override",
       "barcode": "Barcode",
       "hasStain": "Stain",
       "hasDamage": "Damage",
@@ -2207,6 +2236,8 @@
       "search": "Search",
       "retry": "Retry",
       "clickStepToChange": "Click on a step to change the processing stage",
+      "confirmPrefs": "Confirm",
+      "confirming": "Confirming...",
       "error": {
         "loadingFailed": "Failed to Load Order"
       }
@@ -2674,7 +2705,29 @@
       "unknownProduct": "Unknown Product",
       "add": "Add",
       "decreaseQuantity": "Decrease quantity",
-      "increaseQuantity": "Increase quantity"
+      "increaseQuantity": "Increase quantity",
+      "preferences": "Preferences",
+      "applyToAllPieces": "Apply to all pieces",
+      "itemsSubtotal": "Items",
+      "additionalServices": "Additional Services"
+    },
+    "preferences": {
+      "servicePrefs": "Service preferences",
+      "packingPref": "Packing",
+      "none": "None",
+      "carePackages": "Care Packages",
+      "carePackagesDesc": "Apply a bundle of preferences to all items",
+      "applyToAll": "Apply to all items",
+      "repeatLastOrder": "Repeat Last Order",
+      "repeatLastOrderDesc": "Copy preferences from your last order",
+      "repeatLastOrderBtn": "Repeat from last order",
+      "smartSuggestions": "Suggested for you",
+      "smartSuggestionsDesc": "Based on your order history",
+      "noLastOrder": "No previous order found",
+      "appliedSuccess": "Preferences applied",
+      "noBundles": "No care packages configured",
+      "addItemsFirst": "Add items first",
+      "incompatiblePref": "Incompatible with {name}"
     },
     "pieces": {
       "viewPieces": "View Pieces",

@@ -30,11 +30,16 @@ export function useOrderTotals() {
   const totals = useMemo(() => {
     const subtotal = calculateOrderTotal(state.items);
     const itemCount = state.items.reduce((count, item) => count + item.quantity, 0);
+    const servicePrefCharge = state.items.reduce(
+      (sum, item) => sum + (item.servicePrefCharge ?? 0),
+      0
+    );
 
     return {
       subtotal,
       itemCount,
       itemsCount: state.items.length,
+      servicePrefCharge,
     };
   }, [state.items]);
 

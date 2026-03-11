@@ -643,10 +643,15 @@ model org_order_items_dtl {
   rec_order                       Int?
   rec_notes                       String?
   created_by                      String?
+  packing_pref_code                String?                           @db.VarChar(50)
+  packing_pref_is_override        Boolean?                           @default(false)
+  packing_pref_source             String?                           @db.VarChar(30)
+  service_pref_charge             Decimal?                         @default(0) @db.Decimal(19, 4)
   org_asm_items_dtl               org_asm_items_dtl[]
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
+  org_order_item_service_prefs    org_order_item_service_prefs[]
   org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_items_branch")
   org_service_category_cf         org_service_category_cf?          @relation(fields: [tenant_org_id, service_category_code], references: [tenant_org_id, service_category_code], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_items_ctg")
   org_orders_mst                  org_orders_mst                    @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_items_order")
@@ -669,6 +674,37 @@ model org_order_items_dtl {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model org_order_item_service_prefs {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String    @db.Uuid
+  order_id          String    @db.Uuid
+  order_item_id     String    @db.Uuid
+  preference_code   String    @db.VarChar(50)
+  preference_category String? @db.VarChar(30)
+  source            String?   @default("manual") @db.VarChar(30)
+  extra_price       Decimal  @default(0) @db.Decimal(19, 4)
+  branch_id         String?   @db.Uuid
+  processing_confirmed Boolean? @default(false)
+  confirmed_by      String?   @db.VarChar(120)
+  confirmed_at      DateTime? @db.Timestamptz(6)
+  rec_status        Int?      @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?   @db.VarChar(200)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  created_by        String?   @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime? @db.Timestamp(6)
+  updated_by        String?
+  updated_info      String?
+  org_order_items_dtl org_order_items_dtl @relation(fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_svc_prefs_order_item")
+  org_orders_mst    org_orders_mst @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_svc_prefs_order")
+  org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_svc_prefs_tenant")
+
+  @@index([order_item_id], map: "idx_org_ord_itm_svc_prefs_item")
+  @@index([tenant_org_id], map: "idx_org_ord_itm_svc_prefs_tenant")
+  @@schema("public")
+}
+
 model org_order_status_history {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   order_id        String          @db.Uuid
@@ -806,6 +842,7 @@ model org_orders_mst {
   org_order_item_issues           org_order_item_issues[]
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
+  org_order_item_service_prefs    org_order_item_service_prefs[]
   org_order_items_dtl             org_order_items_dtl[]
   org_order_status_history        org_order_status_history[]
   org_orders_mst                  org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
@@ -1233,6 +1270,7 @@ model org_tenants_mst {
   org_order_item_issues            org_order_item_issues[]
   org_order_item_pieces_dtl        org_order_item_pieces_dtl[]
   org_order_item_processing_steps  org_order_item_processing_steps[]
+  org_order_item_service_prefs     org_order_item_service_prefs[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
   org_payment_audit_log            org_payment_audit_log[]
@@ -5241,6 +5279,8 @@ model org_order_item_pieces_dtl {
   updated_by              String?
   updated_info            String?
   is_ready                Boolean                  @default(false)
+  packing_pref_code       String?                  @db.VarChar(50)
+  service_pref_charge     Decimal?                 @default(0) @db.Decimal(19, 4)
   org_branches_mst        org_branches_mst?        @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ord_pieces_branch")
   org_order_items_dtl     org_order_items_dtl      @relation(fields: [order_item_id], references: [id], onUpdate: Restrict, map: "fk_org_orde_reference_org_orde")
   org_orders_mst          org_orders_mst           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_pieces_order")

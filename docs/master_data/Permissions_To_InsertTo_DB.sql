@@ -268,4 +268,31 @@ INSERT INTO sys_auth_role_default_permissions (
 )
 ON CONFLICT (role_code, permission_code) DO NOTHING;
 
+-- =====================================================
+-- Service Preferences Feature Permissions
+-- Description: View/edit order service prefs, manage config, customer prefs
+-- Roles: super_admin, tenant_admin, operator (for orders)
+-- Date: 2026-03-12
+-- =====================================================
+
+INSERT INTO sys_auth_permissions (code, name, name2, category, description, description2, category_main, is_active, is_enabled, rec_status, created_at, created_by)
+VALUES
+  ('orders:service_prefs_view', 'View Service Preferences', 'عرض تفضيلات الخدمة', 'orders', 'View service and packing preferences on orders', 'عرض تفضيلات الخدمة والتغليف على الطلبات', 'Orders', true, true, 1, CURRENT_TIMESTAMP, 'system_admin'),
+  ('orders:service_prefs_edit', 'Edit Service Preferences', 'تعديل تفضيلات الخدمة', 'orders', 'Add/remove service and packing preferences on orders', 'إضافة/إزالة تفضيلات الخدمة والتغليف على الطلبات', 'Orders', true, true, 1, CURRENT_TIMESTAMP, 'system_admin'),
+  ('config:preferences_manage', 'Manage Preferences Catalog', 'إدارة كتالوج التفضيلات', 'config', 'Manage service preferences catalog and bundles', 'إدارة كتالوج تفضيلات الخدمة والحزم', 'Config', true, true, 1, CURRENT_TIMESTAMP, 'system_admin'),
+  ('customers:preferences_manage', 'Manage Customer Preferences', 'إدارة تفضيلات العميل', 'customers', 'Manage customer standing preferences', 'إدارة تفضيلات العميل الدائمة', 'Customers', true, true, 1, CURRENT_TIMESTAMP, 'system_admin')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO sys_auth_role_default_permissions (role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by)
+SELECT r, p, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM (VALUES ('super_admin'), ('tenant_admin'), ('operator')) AS roles(r)
+CROSS JOIN (VALUES ('orders:service_prefs_view'), ('orders:service_prefs_edit')) AS perms(p)
+ON CONFLICT (role_code, permission_code) DO NOTHING;
+
+INSERT INTO sys_auth_role_default_permissions (role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by)
+SELECT r, p, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM (VALUES ('super_admin'), ('tenant_admin')) AS roles(r)
+CROSS JOIN (VALUES ('config:preferences_manage'), ('customers:preferences_manage')) AS perms(p)
+ON CONFLICT (role_code, permission_code) DO NOTHING;
+
 commit;

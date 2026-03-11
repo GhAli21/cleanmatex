@@ -122,6 +122,18 @@ INSERT INTO sys_stng_categories_cd (
     'plug',
     'system_admin',
     true
+  ),
+  -- 1. SERVICE_PREF:  settings
+  (
+    'SERVICE_PREF',
+    'Service Preferences Settings',
+    'اعدادات تفضيلات الخدمات',
+    'Service Preferences Settings',
+    'إعدادات تفضيلات الخدمات',
+    1,
+    'settings',
+    'system_admin',
+    true
   )
 
 ON CONFLICT (stng_category_code) DO UPDATE SET

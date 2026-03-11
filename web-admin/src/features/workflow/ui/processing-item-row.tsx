@@ -33,6 +33,10 @@ interface ProcessingItemRowProps {
   rejectColor: string;
   orderId?: string;
   tenantId?: string;
+  /** Show Confirm button for pieces with service prefs (Enterprise) */
+  processingConfirmationEnabled?: boolean;
+  /** Called after piece prefs confirmed */
+  onConfirmSuccess?: () => void;
 }
 
 export const ProcessingItemRow = React.memo(function ProcessingItemRow({
@@ -49,6 +53,8 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
   rejectColor,
   orderId,
   tenantId,
+  processingConfirmationEnabled = false,
+  onConfirmSuccess,
 }: ProcessingItemRowProps) {
   const t = useTranslations('processing.modal');
 
@@ -203,6 +209,12 @@ export const ProcessingItemRow = React.memo(function ProcessingItemRow({
                 rejectEnabled={rejectEnabled}
                 rejectColor={rejectColor}
                 processingSteps={processingSteps}
+                itemDefaultPacking={item.packing_pref_code}
+                processingConfirmationEnabled={processingConfirmationEnabled}
+                orderId={orderId}
+                itemId={item.id}
+                tenantId={tenantId}
+                onConfirmSuccess={onConfirmSuccess}
               />
             ))}
           </div>

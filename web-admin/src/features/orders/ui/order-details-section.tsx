@@ -12,6 +12,12 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
+import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
+import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
+import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
+import { CarePackageBundles } from './preferences/CarePackageBundles';
+import { RepeatLastOrderPanel } from './preferences/RepeatLastOrderPanel';
+import { SmartSuggestionsPanel } from './preferences/SmartSuggestionsPanel';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 
@@ -19,16 +25,34 @@ const VIRTUALIZED_ITEM_LIMIT = 100;
 
 interface OrderDetailsSectionProps {
   trackByPiece: boolean;
+  /** When true, show packing and service pref selectors per piece (Enterprise) */
+  packingPerPieceEnabled?: boolean;
+  /** Gate Care Packages (Growth+) */
+  bundlesEnabled?: boolean;
+  /** Gate Repeat Last Order (Starter+) */
+  repeatLastOrderEnabled?: boolean;
+  /** Gate Smart Suggestions (Growth+) */
+  smartSuggestionsEnabled?: boolean;
+  /** Block incompatible prefs (SERVICE_PREF_ENFORCE_COMPATIBILITY) */
+  enforcePrefCompatibility?: boolean;
 }
 
-export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) {
+export function OrderDetailsSection({
+  trackByPiece,
+  packingPerPieceEnabled = false,
+  enforcePrefCompatibility = false,
+}: OrderDetailsSectionProps) {
   const {
     state,
     updateItemQuantity,
     updateItemNotes,
     updateItemPieces,
+    updateItemServicePrefs,
+    updateItemPackingPref,
     removeItem,
   } = useNewOrderStateWithDispatch();
+  const { servicePrefs, packingPrefs, hasServicePrefs, hasPackingPrefs } =
+    usePreferenceCatalog(state.branchId);
   const totals = useOrderTotals();
   const isRTL = useRTL();
   const tNewOrder = useTranslations('newOrder');
@@ -159,14 +183,41 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
           </p>
         </div>
         <div className={isRTL ? 'text-left' : 'text-right'}>
-          <p className="text-xs text-gray-500">
-            {tItems('total') || 'Total'}
-          </p>
-          <p className="text-lg font-bold text-gray-900">
-            OMR {totals.subtotal.toFixed(3)}
-          </p>
+          {totals.servicePrefCharge > 0 ? (
+            <div className="space-y-1">
+              <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-gray-500">{tItems('itemsSubtotal') || 'Items'}</span>
+                <span>OMR {(totals.subtotal - totals.servicePrefCharge).toFixed(3)}</span>
+              </div>
+              <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-gray-500">{tItems('additionalServices') || 'Additional Services'}</span>
+                <span>OMR {totals.servicePrefCharge.toFixed(3)}</span>
+              </div>
+              <div className={`flex justify-between gap-4 text-sm font-bold pt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span>{tItems('total') || 'Total'}</span>
+                <span>OMR {totals.subtotal.toFixed(3)}</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-gray-500">
+                {tItems('total') || 'Total'}
+              </p>
+              <p className="text-lg font-bold text-gray-900">
+                OMR {totals.subtotal.toFixed(3)}
+              </p>
+            </>
+          )}
         </div>
       </div>
+
+      {(bundlesEnabled || repeatLastOrderEnabled || smartSuggestionsEnabled) && (
+        <div className="px-4 py-3 border-b border-gray-100 space-y-3">
+          <CarePackageBundles bundlesEnabled={bundlesEnabled} branchId={state.branchId} />
+          <RepeatLastOrderPanel repeatLastOrderEnabled={repeatLastOrderEnabled} branchId={state.branchId} />
+          <SmartSuggestionsPanel smartSuggestionsEnabled={smartSuggestionsEnabled} branchId={state.branchId} />
+        </div>
+      )}
 
       <div className="overflow-x-auto max-h-[60vh]">
         <table className="min-w-full text-xs">
@@ -192,6 +243,11 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
               <th className="px-3 py-2 font-semibold">
                 {tItems('note') || 'Note'}
               </th>
+              {(hasServicePrefs || hasPackingPrefs) && (
+                <th className="px-3 py-2 font-semibold">
+                  {tItems('preferences') || 'Preferences'}
+                </th>
+              )}
               <th className="px-3 py-2 font-semibold text-center">
                 {tItems('actions') || 'Actions'}
               </th>
@@ -323,6 +379,46 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                         }`}
                     />
                   </td>
+                  {(hasServicePrefs || hasPackingPrefs) && (
+                    <td className="px-3 py-2 align-top">
+                      <div className="flex flex-col gap-2 min-w-[140px]">
+                        {hasServicePrefs && (
+                          <ServicePreferenceSelector
+                            selectedPrefs={item.servicePrefs ?? []}
+                            availablePrefs={servicePrefs}
+                            onChange={(prefs, charge) =>
+                              updateItemServicePrefs(item.productId, prefs, charge)
+                            }
+                            enforceCompatibility={enforcePrefCompatibility}
+                          />
+                        )}
+                        {hasPackingPrefs && (
+                          <>
+                            <PackingPreferenceSelector
+                              value={item.packingPrefCode}
+                              availablePrefs={packingPrefs}
+                              onChange={(code) =>
+                                updateItemPackingPref(item.productId, code)
+                              }
+                            />
+                            {packingPerPieceEnabled && trackByPiece && (item.pieces?.length ?? 0) > 0 && item.packingPrefCode && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const code = item.packingPrefCode!;
+                                  const updatedPieces = (item.pieces ?? []).map((p) => ({ ...p, packingPrefCode: code }));
+                                  updateItemPieces(item.productId, updatedPieces);
+                                }}
+                                className="text-[10px] text-blue-600 hover:underline"
+                              >
+                                {tItems('applyToAllPieces') || 'Apply to all pieces'}
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  )}
                   <td className="px-3 py-2 align-top text-center">
                     <button
                       type="button"
@@ -342,7 +438,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                   expandedPiecesItems.has(item.productId) &&
                   (item.pieces ?? []).map((piece) => (
                     <tr key={piece.id} className="bg-gray-50 border-t border-gray-100">
-                      <td className="px-6 py-2 align-top" colSpan={7}>
+                      <td className="px-6 py-2 align-top" colSpan={hasServicePrefs || hasPackingPrefs ? 8 : 7}>
                         <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2 shadow-xs">
                           {/* Top row: piece label + main fields */}
                           <div
@@ -427,6 +523,31 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                               />
                             </div>
 
+                            {packingPerPieceEnabled && (hasServicePrefs || hasPackingPrefs) && (
+                              <div className="flex flex-wrap gap-3 min-w-[200px]">
+                                {hasServicePrefs && (
+                                  <ServicePreferenceSelector
+                                    selectedPrefs={piece.servicePrefs ?? []}
+                                    availablePrefs={servicePrefs}
+                                    onChange={(prefs, _charge) =>
+                                      handlePieceUpdate(item.productId, piece.id, { servicePrefs: prefs })
+                                    }
+                                    maxPrefs={5}
+                                    enforceCompatibility={enforcePrefCompatibility}
+                                  />
+                                )}
+                                {hasPackingPrefs && (
+                                  <PackingPreferenceSelector
+                                    value={piece.packingPrefCode}
+                                    availablePrefs={packingPrefs}
+                                    onChange={(code) =>
+                                      handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code })
+                                    }
+                                  />
+                                )}
+                              </div>
+                            )}
+
                             <button
                               type="button"
                               onClick={() => handleRemovePiece(item.productId, piece.id)}
@@ -463,7 +584,7 @@ export function OrderDetailsSection({ trackByPiece }: OrderDetailsSectionProps) 
                   <tr className="bg-gray-50 border-t border-gray-100">
                     <td
                       className="px-6 py-2 text-[11px] text-blue-700 cursor-pointer"
-                      colSpan={7}
+                      colSpan={hasServicePrefs || hasPackingPrefs ? 8 : 7}
                     >
                       <button
                         type="button"

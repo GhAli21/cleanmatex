@@ -108,6 +108,9 @@ function mapDbPieceToItemPiece(dbPiece: OrderItemPiece & { is_ready?: boolean | 
     piece_status: pieceStatus || null,
     piece_stage: dbPiece.piece_stage || null,
     is_ready: isReady ?? null,
+    // Service preferences (migration 0139)
+    packingPrefCode: (dbPiece as any).packing_pref_code || null,
+    servicePrefs: (dbPiece as any).service_prefs || undefined,
   };
 }
 
@@ -128,6 +131,7 @@ export function ProcessingModal({
     rejectEnabled,
     trackByPiece,
     rejectColor,
+    processingConfirmationEnabled,
     isLoading: settingsLoading,
   } = useTenantSettingsWithDefaults(tenantId);
 
@@ -1003,6 +1007,8 @@ export function ProcessingModal({
                           rejectColor={rejectColor}
                           orderId={orderId || undefined}
                           tenantId={tenantId}
+                          processingConfirmationEnabled={processingConfirmationEnabled}
+                          onConfirmSuccess={() => orderId && queryClient.invalidateQueries({ queryKey: ['order', orderId] })}
                         />
                       ))}
                       {/* Show loading indicator for pieces if still loading */}
