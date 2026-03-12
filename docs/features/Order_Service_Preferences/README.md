@@ -28,6 +28,9 @@ Service Preferences allow customers and operators to specify processing and pack
 
 ## Key Documentation
 
-- [Implementation Plan Complete](../Order_Service_Preferences/IMPLEMENTATION_PLAN_COMPLETE.md)
+- [Implementation Plan Complete](IMPLEMENTATION_PLAN_COMPLETE.md)
 - [Technical Data Model](technical_docs/tech_data_model.md)
 - [API Specification](technical_docs/tech_api_spec.md)
+- [Developer Guide](developer_guide.md)
+- [User Guide](user_guide.md)
+- [Order Service Preferences Lookup](Order_Service_Preferences_lookup.md)

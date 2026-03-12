@@ -119,6 +119,16 @@ describe('Order Item Helpers', () => {
     it('should calculate total for item with quantity > 1', () => {
       expect(calculateItemTotal(mockItem2)).toBe(40.0);
     });
+
+    it('should include servicePrefCharge when present', () => {
+      const itemWithPref = { ...mockItem, servicePrefCharge: 5.5 };
+      expect(calculateItemTotal(itemWithPref)).toBe(15.5);
+    });
+
+    it('should treat undefined servicePrefCharge as 0', () => {
+      const itemNoPref = { ...mockItem };
+      expect(calculateItemTotal(itemNoPref)).toBe(10.0);
+    });
   });
 
   describe('calculateOrderTotal', () => {
@@ -132,6 +142,13 @@ describe('Order Item Helpers', () => {
 
     it('should calculate total for multiple items', () => {
       expect(calculateOrderTotal([mockItem, mockItem2])).toBe(50.0);
+    });
+
+    it('should include servicePrefCharge across items', () => {
+      const item1 = { ...mockItem, servicePrefCharge: 3 };
+      const item2 = { ...mockItem2, servicePrefCharge: 7 };
+      // 10 + 3 + 40 + 7 = 60
+      expect(calculateOrderTotal([item1, item2])).toBe(60.0);
     });
   });
 

@@ -123,7 +123,7 @@ INSERT INTO sys_stng_categories_cd (
     'system_admin',
     true
   ),
-  -- 1. SERVICE_PREF:  settings
+  -- 9. SERVICE_PREF:  settings
   (
     'SERVICE_PREF',
     'Service Preferences Settings',
