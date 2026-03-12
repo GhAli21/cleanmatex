@@ -21,7 +21,12 @@
     "prisma:pull": "npx prisma db pull",
     "prisma:studio": "npx prisma studio",
     "prisma:generate:safe": "powershell -ExecutionPolicy Bypass -File ./scripts/generate-prisma.ps1",
-    "check:i18n": "node scripts/check-i18n-parity.js"
+    "check:i18n": "node scripts/check-i18n-parity.js",
+    "docs:extract-permissions": "npx tsx ../scripts/docs/extract-permissions.ts",
+    "docs:extract-settings": "npx tsx ../scripts/docs/extract-settings-usage.ts",
+    "docs:extract-feature-flags": "npx tsx ../scripts/docs/extract-feature-flags.ts",
+    "docs:extract-api-auth-audit": "npx tsx ../scripts/docs/extract-api-auth-audit.ts",
+    "docs:validate": "npx tsx ../scripts/docs/validate-docs.ts"
   },
   "dependencies": {
     "@alloc/quick-lru": "^5.2.0",

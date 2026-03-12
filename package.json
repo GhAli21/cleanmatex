@@ -13,7 +13,12 @@
     "supabase:stop": "cd supabase && supabase stop",
     "supabase:status": "cd supabase && supabase status",
     "supabase:reset": "cd supabase && supabase db reset",
-    "supabase:types": "cd supabase && supabase gen types typescript --local > ../web-admin/types/database.ts"
+    "supabase:types": "cd supabase && supabase gen types typescript --local > ../web-admin/types/database.ts",
+    "docs:extract-permissions": "tsx scripts/docs/extract-permissions.ts",
+    "docs:extract-settings": "tsx scripts/docs/extract-settings-usage.ts",
+    "docs:extract-feature-flags": "tsx scripts/docs/extract-feature-flags.ts",
+    "docs:extract-api-auth-audit": "tsx scripts/docs/extract-api-auth-audit.ts",
+    "docs:validate": "tsx scripts/docs/validate-docs.ts"
   },
   "keywords": [
     "laundry",
@@ -32,6 +37,9 @@
     "cmx-api",
     "packages/*"
   ],
+  "devDependencies": {
+    "tsx": "^4.19.0"
+  },
   "dependencies": {
     "@tanstack/react-query": "^5.90.7",
     "ioredis": "^5.8.2"

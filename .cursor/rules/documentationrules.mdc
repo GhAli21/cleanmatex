@@ -38,6 +38,7 @@ When implementing any feature, add to the feature documentation a list of platfo
 
 **Document which of the following apply** (mark N/A if not applicable):
 
+- **Platform docs** — See [docs/platform/README.md](../../docs/platform/README.md) for permissions, settings, feature flags, and plan limits reference
 - **New permissions** — Add to `sys_permission_*` and assign to roles
 - **Navigation tree / screen** — Add new menu item or screen to sys tree
 - **New tenant setting** — Add to `sys_tenant_settings_cd` and seed data
