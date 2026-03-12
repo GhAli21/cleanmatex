@@ -18,6 +18,8 @@ You are generating code for **CleanMateX/CleanMateXSAAS**, a multi-tenant SaaS p
 **Naming:**
 - Screens should start with feature name then screen name then end with `-screen`
 - When building/Implementing A New report then put at the beginig the main feature name then the report name then at the end `rprt` in Naming any reports components/tools/screens/UI/... so on for example orders-payments-print-rprt.tsx
+- Always use best practice for reports
+- Use centralized/reusable themes, fonts, layout, UI/UX for all alike reports
 
 **DO NOT:**
 - Define reusable primitives

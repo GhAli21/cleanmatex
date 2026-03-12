@@ -6,7 +6,7 @@
 - **N+1 queries:** use relation selects
 - **TS type drift:** regenerate Supabase types
 - **next-intl config missing:** add `createNextIntlPlugin('./i18n.ts')` to `next.config.ts`
-
+- **Prisma unknown field `~~~`:** using API/frontend field name in write — see Issue 12 below
 
 ---
 

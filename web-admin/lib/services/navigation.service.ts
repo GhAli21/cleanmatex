@@ -81,11 +81,12 @@ export async function getNavigationFromDatabase(
   featureFlags: Record<string, boolean> = {}
 ): Promise<NavigationSection[]> {
   try {
-    // super_admin: skip DB and use config fallback so they always get the full menu.
-    // The DB (sys_components_cd / get_navigation_with_parents_jh) often returns only one
-    // or few rows for super_admin, so we bypass it and use NAVIGATION_SECTIONS filtering.
-    if (userRole === 'super_admin') {
-      const fallback = getSystemNavigationFallback('super_admin', userPermissions, featureFlags)
+    // super_admin and tenant_admin: skip DB and use config fallback so they get the full menu.
+    // Both have same permissions (126); tenant_admin is tenant-scoped admin.
+    // The DB (sys_components_cd / get_navigation_with_parents_jh) may return fewer rows
+    // for tenant_admin, so we bypass it and use NAVIGATION_SECTIONS filtering.
+    if (userRole === 'super_admin' || userRole === 'tenant_admin') {
+      const fallback = getSystemNavigationFallback(userRole, userPermissions, featureFlags)
       if (fallback.length > 0) {
         return fallback
       }
@@ -339,8 +340,8 @@ export function getSystemNavigationFallback(
     return result
   } catch (error) {
     console.error('Error in getSystemNavigationFallback:', error)
-    // Return basic navigation as fallback for super_admin
-    if (userRole === 'super_admin') {
+    // Return basic navigation as fallback for super_admin and tenant_admin
+    if (userRole === 'super_admin' || userRole === 'tenant_admin') {
       return getBasicNavigationForSuperAdmin()
     }
     return []
@@ -356,9 +357,10 @@ export function filterByAdditionalRules(
   userRole: UserRole,
   featureFlags: Record<string, boolean>
 ): NavigationSection[] {
+  const isAdminBypass = userRole === 'super_admin' || userRole === 'tenant_admin'
   return items.filter((section) => {
-    // Check roles
-    if (section.roles && section.roles.length > 0 && !section.roles.includes(userRole)) {
+    // Check roles (super_admin and tenant_admin bypass - same permissions)
+    if (!isAdminBypass && section.roles && section.roles.length > 0 && !section.roles.includes(userRole)) {
       return false
     }
 
@@ -370,7 +372,7 @@ export function filterByAdditionalRules(
     // Filter children
     if (section.children) {
       section.children = section.children.filter((child) => {
-        if (child.roles && child.roles.length > 0 && !child.roles.includes(userRole)) {
+        if (!isAdminBypass && child.roles && child.roles.length > 0 && !child.roles.includes(userRole)) {
           return false
         }
         if (child.featureFlag && !featureFlags[child.featureFlag]) {

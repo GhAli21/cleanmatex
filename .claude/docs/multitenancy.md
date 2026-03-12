@@ -17,9 +17,11 @@ This is supporting guidance. When implementation details differ, prefer:
 
 ## Module-Specific Reality
 
-- `web-admin` may use centralized tenant-context helpers where implemented
-- `cmx-api` should pass tenant context through NestJS request/guard/service boundaries
+- **web-admin**: Use centralized tenant-context utilities (`getTenantIdFromSession`, `withTenantContext`) from `web-admin/lib/db/tenant-context.ts` — never duplicate
+- **cmx-api**: Pass tenant context explicitly through NestJS request/guard/service boundaries
 - Supabase queries still need explicit tenant awareness unless RLS and the runtime path guarantee it
+
+See `.claude/skills/implementation/prd-rules.md` → Security Best Practices for full tenant context management.
 
 ## Review Checklist
 

@@ -511,6 +511,31 @@ See also: [Multi-Tenancy Enforcement](./multitenancy.md#tenant-context-managemen
 
 ---
 
+## Feature Implementation Requirements (Documentation Checklist)
+
+**CRITICAL**: When implementing any feature, add to the feature documentation a list of platform-level items that must be done or considered. Include this in the feature's `README.md`, `development_plan.md`, or a dedicated `implementation_requirements.md`.
+
+### Required Checklist Items
+
+Document which of the following apply to the feature (mark N/A if not applicable):
+
+- [ ] **New permissions** — Add to `sys_permission_*` and assign to roles
+- [ ] **Navigation tree / screen** — Add new menu item or screen to `sys_nav_tree_*` / sys tree
+- [ ] **New tenant setting** — Add to `sys_tenant_settings_cd` and seed data
+- [ ] **New feature flag** — Add to `sys_ff_*` if feature is gated
+- [ ] **New plan limit / constraint** — Add to plan limits if feature is tiered
+- [ ] **New i18n keys** — Add to `en.json` / `ar.json` (search existing first)
+- [ ] **New API route(s)** — Document endpoint(s) and version
+- [ ] **Database migration(s)** — New tables, columns, indexes, RLS
+- [ ] **New constants / types** — Add to `lib/constants/` and `lib/types/`
+- [ ] **RBAC / role changes** — Update role-permission mappings
+- [ ] **Environment variables** — New `.env` keys if needed
+- [ ] **Other** — Document any other platform-level requirements
+
+Use this checklist during planning and keep it updated as the feature evolves.
+
+---
+
 ## Code Review Checklist
 
 Before submitting code for review, ensure:
@@ -525,7 +550,7 @@ Before submitting code for review, ensure:
 - [ ] Tests are written and passing
 - [ ] No sensitive data in logs or code
 - [ ] Performance considerations addressed
-- [ ] Documentation updated if needed
+- [ ] Documentation updated (including [Feature Implementation Requirements](#feature-implementation-requirements-documentation-checklist) if applicable)
 - [ ] Git commit message follows conventions
 
 ---

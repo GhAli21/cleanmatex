@@ -19,12 +19,16 @@ import { CarePackageBundles } from './preferences/CarePackageBundles';
 import { RepeatLastOrderPanel } from './preferences/RepeatLastOrderPanel';
 import { SmartSuggestionsPanel } from './preferences/SmartSuggestionsPanel';
 import type { PreSubmissionPiece } from '../model/new-order-types';
+import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
-const VIRTUALIZED_ITEM_LIMIT = 100;
+const VIRTUALIZED_ITEM_LIMIT = 1000;
 
 interface OrderDetailsSectionProps {
   trackByPiece: boolean;
+  /** Tenant currency code (e.g. OMR, SAR) for price display */
+  currencyCode?: string;
   /** When true, show packing and service pref selectors per piece (Enterprise) */
   packingPerPieceEnabled?: boolean;
   /** Gate Care Packages (Growth+) */
@@ -39,9 +43,10 @@ interface OrderDetailsSectionProps {
 
 export function OrderDetailsSection({
   trackByPiece,
-  packingPerPieceEnabled = false,
+  currencyCode = ORDER_DEFAULTS.CURRENCY,
+  packingPerPieceEnabled = true, // for testing
   bundlesEnabled = false,
-  repeatLastOrderEnabled = false,
+  repeatLastOrderEnabled = true,
   smartSuggestionsEnabled = false,
   enforcePrefCompatibility = false,
 }: OrderDetailsSectionProps) {
@@ -190,15 +195,15 @@ export function OrderDetailsSection({
             <div className="space-y-1">
               <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-gray-500">{tItems('itemsSubtotal') || 'Items'}</span>
-                <span>OMR {(totals.subtotal - totals.servicePrefCharge).toFixed(3)}</span>
+                <span>{currencyCode} {(totals.subtotal - totals.servicePrefCharge).toFixed(3)}</span>
               </div>
               <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-gray-500">{tItems('additionalServices') || 'Additional Services'}</span>
-                <span>OMR {totals.servicePrefCharge.toFixed(3)}</span>
+                <span>{currencyCode} {totals.servicePrefCharge.toFixed(3)}</span>
               </div>
               <div className={`flex justify-between gap-4 text-sm font-bold pt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span>{tItems('total') || 'Total'}</span>
-                <span>OMR {totals.subtotal.toFixed(3)}</span>
+                <span>{currencyCode} {totals.subtotal.toFixed(3)}</span>
               </div>
             </div>
           ) : (
@@ -207,7 +212,7 @@ export function OrderDetailsSection({
                 {tItems('total') || 'Total'}
               </p>
               <p className="text-lg font-bold text-gray-900">
-                OMR {totals.subtotal.toFixed(3)}
+                {currencyCode} {totals.subtotal.toFixed(3)}
               </p>
             </>
           )}
@@ -359,7 +364,7 @@ export function OrderDetailsSection({
                       className={`text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'
                         }`}
                     >
-                      OMR {item.pricePerUnit.toFixed(3)}
+                      {currencyCode} {(item.pricePerUnit + (item.servicePrefCharge ?? 0) / item.quantity).toFixed(3)}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -367,7 +372,7 @@ export function OrderDetailsSection({
                       className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'
                         }`}
                     >
-                      OMR {item.totalPrice.toFixed(3)}
+                      {currencyCode} {calculateItemTotal(item).toFixed(3)}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">

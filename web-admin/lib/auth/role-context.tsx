@@ -11,8 +11,10 @@ import { createContext, useContext, useMemo, useCallback, type ReactNode } from 
 import { useAuth } from './auth-context'
 import type { UserRole } from '@/config/navigation'
 
-// Role hierarchy: admin > operator > viewer
+// Role hierarchy: super_admin = tenant_admin = admin > operator > viewer
 const ROLE_HIERARCHY: Partial<Record<UserRole, number>> = {
+  super_admin: 4,
+  tenant_admin: 4,
   admin: 3,
   operator: 2,
   viewer: 1,
@@ -45,7 +47,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
   }, [currentTenant])
 
   // Role checks
-  const isAdmin = role === 'admin'
+  const isAdmin = role === 'admin' || role === 'tenant_admin' || role === 'super_admin'
   const isOperator = role === 'operator'
   const isViewer = role === 'viewer'
   //const isDriver = role === 'driver'

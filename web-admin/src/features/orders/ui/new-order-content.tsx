@@ -40,6 +40,7 @@ import { OrderCustomerDetailsSection } from './order-customer-details-section';
 import { EditOrderBar } from './edit-order-bar';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
+import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 
 /**
  * New Order Content Component
@@ -335,21 +336,26 @@ export function NewOrderContent() {
         saveOrderUpdate();
     }, [hasErrors, warnings, saveOrderUpdate]);
 
-    // Memoized order items for OrderSummaryPanel
+    // Memoized order items for OrderSummaryPanel (includes service pref charges in prices)
     const memoizedOrderItems = useMemo(
         () =>
             state.state.items.map((item) => {
                 const cat = state.state.categories.find(
                     (c) => c.service_category_code === item.serviceCategoryCode
                 );
+                const prefCharge = item.servicePrefCharge ?? 0;
+                const effectiveUnitPrice =
+                    prefCharge > 0
+                        ? item.pricePerUnit + prefCharge / item.quantity
+                        : item.pricePerUnit;
                 return {
                     id: item.productId,
                     productId: item.productId,
                     productName: item.productName || 'Unknown Product',
                     productName2: item.productName2 || undefined,
                     quantity: item.quantity,
-                    pricePerUnit: item.pricePerUnit,
-                    totalPrice: item.totalPrice,
+                    pricePerUnit: effectiveUnitPrice,
+                    totalPrice: calculateItemTotal(item),
                     notes: item.notes,
                     pieces: item.pieces,
                     serviceCategoryCode: item.serviceCategoryCode,
@@ -594,7 +600,7 @@ export function NewOrderContent() {
 
                         {activeTab === 'details' && (
                             <div className="p-6 pt-0">
-                                <OrderDetailsSection trackByPiece={trackByPiece} packingPerPieceEnabled={packingPerPieceEnabled} bundlesEnabled={bundlesEnabled} repeatLastOrderEnabled={repeatLastOrderEnabled} smartSuggestionsEnabled={smartSuggestionsEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
+                                <OrderDetailsSection trackByPiece={trackByPiece} currencyCode={currencyCode} packingPerPieceEnabled={packingPerPieceEnabled} bundlesEnabled={bundlesEnabled} repeatLastOrderEnabled={repeatLastOrderEnabled} smartSuggestionsEnabled={smartSuggestionsEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
                             </div>
                         )}
 

@@ -62,7 +62,7 @@ npm run build                     # Build (run after changes)
 
 **See:** `/implementation` skill for coding standards
 
-**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `prdimplementationrules.mdc` → Feature Implementation Requirements.
+**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.cursor/rules/prdimplementationrules.mdc` or `.claude/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
 
 ## Constants & Types (single source of truth)
 
@@ -84,7 +84,7 @@ npm run build                     # Build (run after changes)
 
 **See:** `/i18n` skill for complete i18n rules
 **See:** `/frontend` skill for frontend developing rules
-**See:** `.cursor/rules/web-admin-ui-imports.mdc` (always-applied), `.cursor/rules/frontendstandards.mdc`, `docs/dev/ui-migration-guide.md`
+**See:** `.cursor/rules/web-admin-ui-imports.mdc` (always-applied), `.claude/docs/web-admin-ui-imports.md`, `.cursor/rules/frontendstandards.mdc`, `docs/dev/ui-migration-guide.md`
 
 ## Skills (Auto-loaded on demand)
 
@@ -134,6 +134,7 @@ docs/         # All documentation
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
 - **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
+- **Settings Reference:** `.claude/docs/settings-reference.md` — when to use `sys_tenant_settings_cd` vs Allsettings files
 
 ## Key Guardrails
 

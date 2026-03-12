@@ -28,7 +28,7 @@ import {
   Bug
 } from 'lucide-react'
 
-export type UserRole = 'super_admin' | 'admin' | 'operator' | 'viewer'
+export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer'
 
 export interface NavigationSection {
   key: string
@@ -422,10 +422,11 @@ export function getNavigationForRole(
       return false
     }
 
-    // super_admin: allow all sections that have any role requirement (full menu)
-    const isSuperAdmin = role === 'super_admin'
-    // Check role permission (if roles specified); super_admin bypasses role check
-    if (hasRoleRequirement && !isSuperAdmin && !section.roles!.includes(role)) {
+    // super_admin and tenant_admin: allow all sections that have any role requirement (full menu)
+    // Both have same permissions (126); tenant_admin is tenant-scoped admin
+    const isAdminBypass = role === 'super_admin' || role === 'tenant_admin'
+    // Check role permission (if roles specified); admin roles bypass role check
+    if (hasRoleRequirement && !isAdminBypass && !section.roles!.includes(role)) {
       return false
     }
 
@@ -457,8 +458,8 @@ export function getNavigationForRole(
           return false
         }
 
-        // Check child role permission; super_admin bypasses role check
-        if (childHasRoleRequirement && !isSuperAdmin && !child.roles!.includes(role)) {
+        // Check child role permission; admin roles bypass role check
+        if (childHasRoleRequirement && !isAdminBypass && !child.roles!.includes(role)) {
           return false
         }
 

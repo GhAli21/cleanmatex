@@ -32,7 +32,31 @@ This document outlines comprehensive, structured, and scalable rules for creatin
 
 ---
 
-## 2. Documentation Folder Structure and Content
+## 2. Feature Implementation Requirements Checklist
+
+When implementing any feature, add to the feature documentation a list of platform-level items that must be done or considered. Include this in `development_plan.md`, `README.md`, or a dedicated `implementation_requirements.md`.
+
+**Document which of the following apply** (mark N/A if not applicable):
+
+- **Platform docs** — See [docs/platform/README.md](../../docs/platform/README.md) for permissions, settings, feature flags, and plan limits reference
+- **New permissions** — Add to `sys_permission_*` and assign to roles
+- **Navigation tree / screen** — Add new menu item or screen to sys tree
+- **New tenant setting** — Add to `sys_tenant_settings_cd` and seed data
+- **New feature flag** — Add to `sys_ff_*` if feature is gated
+- **New plan limit / constraint** — Add to plan limits if feature is tiered
+- **New i18n keys** — Add to `en.json` / `ar.json` (search existing first)
+- **New API route(s)** — Document endpoint(s) and version
+- **Database migration(s)** — New tables, columns, indexes, RLS
+- **New constants / types** — Add to `lib/constants/` and `lib/types/`
+- **RBAC / role changes** — Update role-permission mappings
+- **Environment variables** — New `.env` keys if needed
+- **Other** — Document any other platform-level requirements
+
+See also: [PRD Implementation Rules](../implementation/prd-rules.md#feature-implementation-requirements-documentation-checklist)
+
+---
+
+## 3. Documentation Folder Structure and Content
 
 Each feature or sub-component folder must include the following files with regularly updated content:
 
@@ -60,6 +84,9 @@ Each feature or sub-component folder must include the following files with regul
 - `user_guide_mermaid.md`  
   A Flowchart file using mermaid.js that shows workflows, tutorials, UI walkthroughs, FAQs, and troubleshooting information relevant at this level.
 
+- `deploy_guide.md`  
+  Step-by-step deploy workflows, requirements, FAQs, and troubleshooting information relevant at this level.
+
 - `testing_scenarios.md`  
   Clear test cases, edge cases, and acceptance criteria scoped to the feature/component.
 
@@ -78,7 +105,7 @@ Each feature or sub-component folder must include the following files with regul
 
 ---
 
-## 3. Content and Metadata Standards
+## 4. Content and Metadata Standards
 
 - Every markdown file should start with a metadata header:
 version: v1.2.0
@@ -91,7 +118,7 @@ author: Author Name
 
 ---
 
-## 4. Versioning and Change Management
+## 5. Versioning and Change Management
 
 - Follow [Semantic Versioning](https://semver.org/) rules for every feature and sub-component independently.
 - Version format: `MAJOR.MINOR.PATCH` (e.g., `v2.0.1`).
@@ -113,7 +140,7 @@ Updated token encryption.
 
 ---
 
-## 5. User Guide and Workflow Documentation
+## 6. User Guide and Workflow Documentation
 
 - Provide user-centric documentation describing:
 - How to use the feature/component.
@@ -124,7 +151,7 @@ Updated token encryption.
 
 ---
 
-## 6. Developer Guide and Code Flow Documentation
+## 7. Developer Guide and Code Flow Documentation
 Provide comprehensive developer-centric documentation describing:
 - Code structure, services, API calls, and overall code execution flow.
 - Detailed explanations of key functions, modules, and interactions.
@@ -133,7 +160,7 @@ Provide comprehensive developer-centric documentation describing:
 
 ---
 
-## 7. Testing Scenarios
+## 8. Testing Scenarios
 
 - Document testing strategies and scenarios, including:
 - Functional test cases.
@@ -143,14 +170,14 @@ Provide comprehensive developer-centric documentation describing:
 
 ---
 
-## 8. Regular Updates and Synchronization
+## 9. Regular Updates and Synchronization
 
 - Documentation files must be updated frequently during development sessions.
 - Critical to avoid progress and remaining/pending tasks loss by updating docs before the end or pause of any work session such as by Claude code sessions limits.
 
 ---
 
-## 9. Automated Validation and Enforcement
+## 10. Automated Validation and Enforcement
 
 - Automated checks must run on start using and on commit the work to verify:
 - Folder and file names conform to naming standards referenced by lookup files.
@@ -161,7 +188,7 @@ Provide comprehensive developer-centric documentation describing:
 
 ---
 
-## 10. Versioning and Release Tag Enforcement Rules
+## 11. Versioning and Release Tag Enforcement Rules
 
 - Use strictly semantic versioning for all artifacts.
 - Ensure version tags are mirrored across documentation and VCS.
@@ -169,7 +196,7 @@ Provide comprehensive developer-centric documentation describing:
 
 ---
 
-## 11. Consolidated Checklist
+## 12. Consolidated Checklist
 
 - [ ] Create and maintain unique feature folders.
 - [ ] Ensure sub-component folders replicate feature documentation structure.
@@ -184,7 +211,7 @@ Provide comprehensive developer-centric documentation describing:
 
 ---
 
-## 12. Sample Folder Tree
+## 13. Sample Folder Tree
 
 docs/
 ├── folders_lookup.md
@@ -197,6 +224,7 @@ docs/
 │ │ ├── current_status.md
 │ │ ├── developers_guide.md
 │ │ ├── user_guide.md
+│ │ ├── deploy_guide.md
 │ │ ├── testing_scenarios.md
 │ │ ├── CHANGELOG.md
 │ │ ├── version.txt

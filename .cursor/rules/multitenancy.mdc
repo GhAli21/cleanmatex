@@ -8,6 +8,11 @@
 3. Enforce RLS on every org_* table
 4. Global sys_* tables link to org_* via junctions
 
+**Module Notes**
+- **web-admin**: Use centralized tenant-context utilities (`getTenantIdFromSession`, `withTenantContext`) from `web-admin/lib/db/tenant-context.ts` — never duplicate
+- **cmx-api**: Pass tenant context explicitly through NestJS guards/request/service boundaries
+- See `.cursor/rules/prdimplementationrules.mdc` → Security Best Practices for full tenant context management
+
 **RLS Example**
 - Enable RLS on `org_orders_mst`
 - Policy ensures `tenant_org_id` matches JWT claim
