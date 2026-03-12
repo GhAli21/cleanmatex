@@ -218,6 +218,12 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/catalog/addons',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
       },
+      {
+        key: 'catalog_preferences',
+        label: 'Services preferences',
+        path: '/dashboard/catalog/preferences',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+      },
     ],
   },
   {
