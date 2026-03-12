@@ -7,10 +7,11 @@
 
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton } from '@ui/primitives';
 import {
@@ -58,10 +59,28 @@ interface PreferenceBundle {
 export default function PreferencesCatalogPage() {
   const t = useTranslations('catalog.preferences');
   const { currentTenant } = useAuth();
+  const queryClient = useQueryClient();
+  const { bundles } = usePreferenceBundles();
   const [loading, setLoading] = useState(true);
   const [servicePrefs, setServicePrefs] = useState<ServicePref[]>([]);
   const [packingPrefs, setPackingPrefs] = useState<PackingPref[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [bundleDialogOpen, setBundleDialogOpen] = useState(false);
+  const [editingBundle, setEditingBundle] = useState<PreferenceBundle | null>(null);
+
+  const deleteBundleMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/v1/catalog/preference-bundles/${id}`, {
+        method: 'DELETE',
+        headers: getCSRFHeader(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to delete');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['preference-bundles'] });
+    },
+  });
 
   useEffect(() => {
     if (!currentTenant) {
