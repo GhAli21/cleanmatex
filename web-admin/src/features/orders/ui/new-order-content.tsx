@@ -12,6 +12,7 @@ import { useOrderTotals } from '../hooks/use-order-totals';
 import { useReadyByEstimation } from '../hooks/use-ready-by-estimation';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
+import { usePlanFlags } from '../hooks/use-plan-flags';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
@@ -53,6 +54,7 @@ export function NewOrderContent() {
     const { trackByPiece, packingPerPieceEnabled, enforcePrefCompatibility } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
+    const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags();
     const {
         trackItemAddition,
         trackModalOpen,
@@ -592,7 +594,7 @@ export function NewOrderContent() {
 
                         {activeTab === 'details' && (
                             <div className="p-6 pt-0">
-                                <OrderDetailsSection trackByPiece={trackByPiece} packingPerPieceEnabled={packingPerPieceEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
+                                <OrderDetailsSection trackByPiece={trackByPiece} packingPerPieceEnabled={packingPerPieceEnabled} bundlesEnabled={bundlesEnabled} repeatLastOrderEnabled={repeatLastOrderEnabled} smartSuggestionsEnabled={smartSuggestionsEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
                             </div>
                         )}
 

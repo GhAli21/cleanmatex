@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderItemPreferenceService } from '@/lib/services/order-item-preference.service';
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
+import { checkPlanFlag } from '@/lib/services/plan-flags.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
 
@@ -22,9 +23,17 @@ export async function POST(
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId, userId, userName } = authCheck;
 
-    const { id: orderId, itemId, bundleCode } = await params;
-
     const supabase = await createClient();
+
+    const bundlesEnabled = await checkPlanFlag(tenantId, 'bundles_enabled', supabase);
+    if (!bundlesEnabled) {
+      return NextResponse.json(
+        { success: false, error: 'Care Packages not available on your plan' },
+        { status: 403 }
+      );
+    }
+
+    const { id: orderId, itemId, bundleCode } = await params;
 
     // Verify order item exists
     const { data: item, error: itemError } = await supabase

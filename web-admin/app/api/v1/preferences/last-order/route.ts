@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PreferenceResolutionService } from '@/lib/services/preference-resolution.service';
+import { checkPlanFlag } from '@/lib/services/plan-flags.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
 
@@ -29,6 +30,13 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
+    const repeatLastOrderEnabled = await checkPlanFlag(tenantId, 'repeat_last_order', supabase);
+    if (!repeatLastOrderEnabled) {
+      return NextResponse.json(
+        { success: false, error: 'Repeat Last Order not available on your plan' },
+        { status: 403 }
+      );
+    }
     const items = await PreferenceResolutionService.getLastOrderPreferences(
       supabase,
       tenantId,

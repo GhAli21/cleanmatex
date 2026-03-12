@@ -62,6 +62,19 @@ Where each feature flag is checked in the codebase.
 | advanced_analytics | subscription page |
 | service_preferences_enabled, packing_preferences_enabled, etc. | hq_ff_feature_flags_mst, workflow-service (indirect via getFeatureFlags) |
 
+## Plan-Bound Flags (Service Prefs)
+
+| File | Usage |
+|------|-------|
+| `web-admin/lib/services/plan-flags.service.ts` | `getPlanFlags`, `checkPlanFlag` — resolves via `hq_ff_get_effective_value` RPC |
+| `web-admin/app/api/v1/plan-flags/route.ts` | `GET` — returns bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled |
+| `web-admin/src/features/orders/hooks/use-plan-flags.ts` | `usePlanFlags` — React Query hook for new order UI |
+| `web-admin/src/features/orders/ui/order-details-section.tsx` | Receives plan flags as props; gates CarePackageBundles, RepeatLastOrderPanel, SmartSuggestionsPanel |
+| `web-admin/src/features/orders/ui/new-order-content.tsx` | Uses `usePlanFlags`, passes flags to OrderDetailsSection |
+| `web-admin/app/api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode]/route.ts` | Gates by `bundles_enabled` — 403 if not enabled |
+| `web-admin/app/api/v1/preferences/last-order/route.ts` | Gates by `repeat_last_order` — 403 if not enabled |
+| `web-admin/app/api/v1/preferences/suggest/route.ts` | Gates by `smart_suggestions` — 403 if not enabled |
+
 ## See Also
 
 - [FEATURE_FLAGS_REFERENCE](FEATURE_FLAGS_REFERENCE.md)

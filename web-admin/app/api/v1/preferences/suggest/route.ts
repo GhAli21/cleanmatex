@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PreferenceResolutionService } from '@/lib/services/preference-resolution.service';
+import { checkPlanFlag } from '@/lib/services/plan-flags.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
 
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createClient();
+    const smartSuggestionsEnabled = await checkPlanFlag(tenantId, 'smart_suggestions', supabase);
+    if (!smartSuggestionsEnabled) {
+      return NextResponse.json(
+        { success: false, error: 'Smart Suggestions not available on your plan' },
+        { status: 403 }
+      );
+    }
     const suggestions = await PreferenceResolutionService.suggestPreferencesFromHistory(
       supabase,
       tenantId,

@@ -40,6 +40,9 @@ interface OrderDetailsSectionProps {
 export function OrderDetailsSection({
   trackByPiece,
   packingPerPieceEnabled = false,
+  bundlesEnabled = false,
+  repeatLastOrderEnabled = false,
+  smartSuggestionsEnabled = false,
   enforcePrefCompatibility = false,
 }: OrderDetailsSectionProps) {
   const {

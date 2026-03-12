@@ -43,7 +43,7 @@ Required permissions per API route.
 | POST | /api/v1/orders/[id]/items/[itemId]/service-prefs | orders:update |
 | PATCH | /api/v1/orders/[id]/items/[itemId]/service-prefs | orders:update |
 | PATCH | /api/v1/orders/[id]/items/[itemId]/packing-pref | orders:update |
-| POST | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] | orders:update |
+| POST | /api/v1/orders/[id]/items/[itemId]/apply-bundle/[bundleCode] | orders:update | 403 when bundles_enabled=false |
 | GET | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs | orders:read |
 | POST | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs | orders:update |
 | PATCH | /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs | orders:update |
@@ -76,14 +76,14 @@ Required permissions per API route.
 |--------|-------|---------------|
 | GET | /api/v1/catalog/service-preferences | orders:read |
 | GET | /api/v1/catalog/packing-preferences | orders:read |
-| GET | /api/v1/catalog/preference-bundles | orders:read |
-| POST | /api/v1/catalog/preference-bundles | config:preferences_manage |
+| GET | /api/v1/catalog/preference-bundles | orders:read | — |
+| POST | /api/v1/catalog/preference-bundles | config:preferences_manage | — |
 | GET | /api/v1/catalog/preference-bundles/[id] | config:preferences_manage |
 | PATCH | /api/v1/catalog/preference-bundles/[id] | config:preferences_manage |
 | DELETE | /api/v1/catalog/preference-bundles/[id] | config:preferences_manage |
-| GET | /api/v1/preferences/suggest | orders:read |
-| POST | /api/v1/preferences/resolve | orders:read |
-| GET | /api/v1/preferences/last-order | orders:read |
+| GET | /api/v1/preferences/suggest | orders:read | 403 when smart_suggestions=false |
+| POST | /api/v1/preferences/resolve | orders:read | — |
+| GET | /api/v1/preferences/last-order | orders:read | 403 when repeat_last_order=false |
 
 ## Tenant Settings
 

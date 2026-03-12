@@ -37,6 +37,15 @@ author: CleanMateX Team
 - `customer_standing_prefs`, `bundles_enabled`, `smart_suggestions`
 - `sla_adjustment`, `repeat_last_order`, `processing_confirmation`
 
+## Plan Flags Resolution
+
+Plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`) are resolved via `hq_ff_get_effective_value` RPC:
+
+- **Service:** `web-admin/lib/services/plan-flags.service.ts` — `getPlanFlags`, `checkPlanFlag`
+- **API:** `GET /api/v1/plan-flags` — returns flags for current tenant
+- **Hook:** `web-admin/src/features/orders/hooks/use-plan-flags.ts` — `usePlanFlags` for new order UI
+- **Docs:** [PLAN_FLAGS_IMPLEMENTATION](../../platform/feature_flags/PLAN_FLAGS_IMPLEMENTATION.md)
+
 ## i18n Keys
 
 - `newOrder.preferences.servicePrefs`

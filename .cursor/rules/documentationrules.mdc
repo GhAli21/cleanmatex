@@ -75,6 +75,9 @@ Each feature or sub-component folder must include the following files with regul
 - `developer_guide.md`
   Detailed developers documentation covering the implemented feature, including code structure, services, API calls, and overall code flow for clear understanding and maintainability, relevant at this level.
 
+- `deploy_guide.md`  
+  Step-by-step deploy workflows, requirements, FAQs, and troubleshooting information relevant at this level.
+
 - `developer_guide_mermaid.md`
   A Flowchart file using mermaid.js that is part of developers documentation covering shows high-level code flow.
   

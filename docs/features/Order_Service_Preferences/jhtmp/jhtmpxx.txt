@@ -1,0 +1,8 @@
+export function OrderDetailsSection({
+  trackByPiece,
+  packingPerPieceEnabled = true,
+  bundlesEnabled = false,
+  repeatLastOrderEnabled = true,
+  smartSuggestionsEnabled = false,
+  enforcePrefCompatibility = false,
+  

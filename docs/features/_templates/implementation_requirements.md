@@ -31,7 +31,8 @@ author: CleanMateX Team
 
 - `flag_key` — Description (plan mapping if applicable)
 - Add to `hq_ff_feature_flags_mst` and `sys_ff_pln_flag_mappings_dtl` if plan-bound
-- See [FEATURE_FLAGS_REFERENCE](../../platform/feature_flags/FEATURE_FLAGS_REFERENCE.md)
+- **Plan-bound vs tenant settings:** Plan-bound flags (e.g. `bundles_enabled`, `repeat_last_order`) use `plan-flags.service.ts` and `hq_ff_get_effective_value` RPC; tenant settings use `sys_tenant_settings_cd` and `useTenantSettingsWithDefaults`
+- See [FEATURE_FLAGS_REFERENCE](../../platform/feature_flags/FEATURE_FLAGS_REFERENCE.md), [PLAN_FLAGS_IMPLEMENTATION](../../platform/feature_flags/PLAN_FLAGS_IMPLEMENTATION.md)
 
 ## Plan Limits
 

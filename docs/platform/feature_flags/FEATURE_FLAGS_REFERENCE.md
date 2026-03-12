@@ -88,6 +88,10 @@ Plan-specific values (e.g., max prefs per item):
 | PRO | bundles_enabled | 5 | true |
 | ENTERPRISE | bundles_enabled | -1 | true |
 
+## Resolution
+
+For plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`), use `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` RPC. The service layer is in `web-admin/lib/services/plan-flags.service.ts`. See [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md).
+
 ## See Also
 
 - [FEATURE_FLAGS_USAGE](FEATURE_FLAGS_USAGE.md)

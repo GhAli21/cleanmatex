@@ -22,12 +22,14 @@ Cover the full codebase and provide tooling to regenerate or validate docs when 
 
 ## Current State
 
+
 | Area          | Existing Docs                                                  | Source of Truth                                                   |
 | ------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
 | Permissions   | RBAC docs, scattered `implementation_requirements.md`          | Code (RequirePermission, requirePermission, sys_components_cd)    |
 | Settings      | `.claude/docs/Allsettings.md`, `.claude/docs/Allsettings.json` | `sys_tenant_settings_cd`, `tenant-settings.service.ts`            |
 | Feature flags | None centralized                                               | `hq_ff_feature_flags_mst`, `feature-flags.service.ts`, migrations |
 | Plan limits   | None centralized                                               | `sys_plan_limits`, `usage-tracking.service.ts`                    |
+
 
 ---
 
@@ -202,7 +204,7 @@ docs/
 
 ### 3.4 Create `docs/platform/feature_flags/TENANT_AND_PLAN_FLAGS.md`
 
-- Document `org_tenants_mst.feature_flags` (JSON) vs `hq_ff_*` tables
+- Document `org_tenants_mst.feature_flags` (JSON) vs `hq_ff_`* tables
 - Document `sys_plan_limits.feature_flags` (JSON)
 - Document [subscriptions.service](web-admin/lib/services/subscriptions.service.ts), [SubscriptionSettings](web-admin/src/features/settings/ui/SubscriptionSettings.tsx)
 - Document [Widget](web-admin/src/features/dashboard/ui/Widget.tsx) feature-flag usage
@@ -321,6 +323,8 @@ flowchart TB
     ExtractFlags --> FlagsRef
 ```
 
+
+
 ---
 
 ## Implementation Order
@@ -336,21 +340,23 @@ flowchart TB
 
 ## Key Files to Modify/Create
 
-| File                                                      | Action                       |
-| --------------------------------------------------------- | ---------------------------- |
-| `docs/platform/README.md`                                 | Create — index               |
-| `docs/platform/permissions/*.md`                          | Create — 12 files            |
-| `docs/platform/settings/*.md`                             | Create — 5 files             |
-| `docs/platform/feature_flags/*.md`                        | Create — 4 files             |
-| `docs/platform/plan_limits/*.md`                          | Create — 4 files             |
-| `scripts/docs/extract-permissions.ts`                     | Create                       |
-| `scripts/docs/extract-settings-usage.ts`                  | Create                       |
-| `scripts/docs/extract-feature-flags.ts`                   | Create                       |
+
+| File                                                      | Action                                             |
+| --------------------------------------------------------- | -------------------------------------------------- |
+| `docs/platform/README.md`                                 | Create — index                                     |
+| `docs/platform/permissions/*.md`                          | Create — 12 files                                  |
+| `docs/platform/settings/*.md`                             | Create — 5 files                                   |
+| `docs/platform/feature_flags/*.md`                        | Create — 4 files                                   |
+| `docs/platform/plan_limits/*.md`                          | Create — 4 files                                   |
+| `scripts/docs/extract-permissions.ts`                     | Create                                             |
+| `scripts/docs/extract-settings-usage.ts`                  | Create                                             |
+| `scripts/docs/extract-feature-flags.ts`                   | Create                                             |
 | `scripts/docs/extract-api-auth-audit.ts`                  | Create — find API routes without permission checks |
-| `scripts/docs/validate-docs.ts`                           | Create                       |
-| `docs/features/_templates/implementation_requirements.md` | Create                       |
-| `web-admin/package.json`                                  | Add `docs:extract-*` scripts |
-| `.cursor/rules/documentationrules.mdc`                    | Add platform docs link       |
+| `scripts/docs/validate-docs.ts`                           | Create                                             |
+| `docs/features/_templates/implementation_requirements.md` | Create                                             |
+| `web-admin/package.json`                                  | Add `docs:extract-`* scripts                       |
+| `.cursor/rules/documentationrules.mdc`                    | Add platform docs link                             |
+
 
 ---
 
@@ -367,39 +373,44 @@ flowchart TB
 Ensure no area is missed. Document all of:
 
 **Permissions:**
-- [ ] RequirePermission, RequireAnyPermission, RequireAllPermissions (UI)
-- [ ] useHasPermission, useHasAnyPermission, useHasAllPermissions (hooks)
-- [ ] requirePermission, requireTenantAuth (API middleware)
-- [ ] hasPermissionServer (server actions)
-- [ ] org_ord_screen_contracts_cf.required_permissions (workflow screens)
-- [ ] sys_components_cd.main_permission_code (navigation)
-- [ ] withRole (role-based guards)
-- [ ] RequireWorkflowRole, useHasWorkflowRole (workflow roles)
-- [ ] RequireResourcePermission (resource-scoped)
-- [ ] cmx_can, has_permission (RLS/database)
-- [ ] getAuthContext-only routes (assembly, delivery, receipts)
-- [ ] Custom getAuthContext routes (customers/merge, export)
-- [ ] cmx-api guards (NestJS)
-- [ ] Navigation, roles, permissions admin APIs
+
+- RequirePermission, RequireAnyPermission, RequireAllPermissions (UI)
+- useHasPermission, useHasAnyPermission, useHasAllPermissions (hooks)
+- requirePermission, requireTenantAuth (API middleware)
+- hasPermissionServer (server actions)
+- org_ord_screen_contracts_cf.required_permissions (workflow screens)
+- sys_components_cd.main_permission_code (navigation)
+- withRole (role-based guards)
+- RequireWorkflowRole, useHasWorkflowRole (workflow roles)
+- RequireResourcePermission (resource-scoped)
+- cmx_can, has_permission (RLS/database)
+- getAuthContext-only routes (assembly, delivery, receipts)
+- Custom getAuthContext routes (customers/merge, export)
+- cmx-api guards (NestJS)
+- Navigation, roles, permissions admin APIs
 
 **Settings:**
-- [ ] sys_tenant_settings_cd (catalog)
-- [ ] fn_stng_resolve_* (resolution)
-- [ ] tenant-settings.service, useTenantSettings
-- [ ] sys_plan_setting_constraints (plan-bound)
-- [ ] stng_edit_policy, stng_required_min_layer
-- [ ] HQ API, settings-client
+
+- sys_tenant_settings_cd (catalog)
+- fn_stng_resolve_* (resolution)
+- tenant-settings.service, useTenantSettings
+- sys_plan_setting_constraints (plan-bound)
+- stng_edit_policy, stng_required_min_layer
+- HQ API, settings-client
 
 **Feature flags:**
-- [ ] hq_ff_feature_flags_mst, sys_ff_pln_flag_mappings_dtl
-- [ ] org_tenants_mst.feature_flags, sys_plan_limits.feature_flags
-- [ ] sys_components_cd.feature_flag (navigation)
-- [ ] feature-flags.service, canAccess, requireFeature
-- [ ] Widget, SubscriptionSettings
+
+- hq_ff_feature_flags_mst, sys_ff_pln_flag_mappings_dtl
+- org_tenants_mst.feature_flags, sys_plan_limits.feature_flags
+- sys_components_cd.feature_flag (navigation)
+- feature-flags.service, canAccess, requireFeature
+- Widget, SubscriptionSettings
 
 **Plan limits:**
-- [ ] sys_plan_limits (orders_limit, users_limit, branches_limit)
-- [ ] usage-tracking.service (canCreateOrder, canAddUser, canAddBranch)
-- [ ] plan-limits.middleware
-- [ ] sys_plan_setting_constraints
-- [ ] Subscription UI, upgrade flow
+
+- sys_plan_limits (orders_limit, users_limit, branches_limit)
+- usage-tracking.service (canCreateOrder, canAddUser, canAddBranch)
+- plan-limits.middleware
+- sys_plan_setting_constraints
+- Subscription UI, upgrade flow
+
