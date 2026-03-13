@@ -6,3 +6,9 @@ export function OrderDetailsSection({
   smartSuggestionsEnabled = false,
   enforcePrefCompatibility = false,
   
+Validation & Testing
+Single Command to Verify:
+
+
+cd platform-api && npm run test:e2e -- --grep "preferences"
+  

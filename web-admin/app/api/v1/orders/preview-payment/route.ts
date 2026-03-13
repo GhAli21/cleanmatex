@@ -43,7 +43,11 @@ export async function POST(request: NextRequest) {
       tenantId,
       branchId: parsed.data.branchId,
       userId,
-      items: parsed.data.items,
+      items: parsed.data.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        servicePrefCharge: i.servicePrefCharge ?? 0,
+      })),
       customerId: parsed.data.customerId,
       isExpress: parsed.data.isExpress ?? false,
       percentDiscount: parsed.data.percentDiscount ?? 0,

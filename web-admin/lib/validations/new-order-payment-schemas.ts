@@ -63,6 +63,8 @@ export const previewPaymentRequestSchema = z.object({
     z.object({
       productId: z.string().uuid(),
       quantity: z.number().positive(),
+      /** Service preference charge per item (e.g. starch, perfume). Included in subtotal. */
+      servicePrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
   branchId: z.preprocess(

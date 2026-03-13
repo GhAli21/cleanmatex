@@ -33,8 +33,8 @@ interface PaymentModalProps {
   /** Called with form data and extended payload (amountToCharge, totals) for invoice/payment flow */
   onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
   total: number;
-  /** Items for server-side preview (productId, quantity) */
-  items: { productId: string; quantity: number }[];
+  /** Items for server-side preview (productId, quantity, servicePrefCharge) */
+  items: { productId: string; quantity: number; servicePrefCharge?: number }[];
   isExpress?: boolean;
   tenantOrgId: string;
   customerId?: string;

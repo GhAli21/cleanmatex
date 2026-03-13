@@ -273,7 +273,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
-          items={state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity }))}
+          items={state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity, servicePrefCharge: i.servicePrefCharge ?? 0 }))}
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
