@@ -3,17 +3,21 @@
  * Service and packing preferences catalog; Care Package bundles CRUD
  * Route: /dashboard/catalog/preferences
  * Migration 0139: Order Service Preferences
+ *
+ * Multi-tab layout: Service Preferences | Packing Preferences | Care Packages
  */
 
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useTranslations, useLocale } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -22,7 +26,8 @@ import {
   CmxDialogFooter,
   CmxDialogClose,
 } from '@ui/overlays';
-import { Package, Shirt, Plus, Pencil, Trash2, Gift } from 'lucide-react';
+import { CmxTabsPanel } from '@ui/navigation';
+import { Package, Shirt, Plus, Pencil, Trash2, Gift, ChevronRight } from 'lucide-react';
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 
@@ -88,8 +93,340 @@ interface PreferenceBundle {
   display_order?: number;
 }
 
+function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
+      <table className="min-w-full text-sm">
+        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]">
+          <tr>
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <th key={i} className="px-4 py-3 text-left">
+                <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, i) => (
+            <tr key={i} className="border-t border-gray-100">
+              {[1, 2, 3, 4, 5, 6].map((j) => (
+                <td key={j} className="px-4 py-3">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse" />
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ServicePrefsTable({
+  servicePrefsAdmin,
+  servicePrefs,
+  loading,
+  onEdit,
+  t,
+  isRtl,
+}: {
+  servicePrefsAdmin: ServicePrefAdmin[];
+  servicePrefs: ServicePref[];
+  loading: boolean;
+  onEdit: (p: ServicePrefAdmin) => void;
+  t: (key: string, fallback?: string) => string;
+  isRtl: boolean;
+}) {
+  const rows = servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs;
+  const isAdmin = servicePrefsAdmin.length > 0;
+
+  if (loading) {
+    return <TableSkeleton rows={6} />;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        data-testid="service-prefs-empty"
+      >
+        <Shirt className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <p className="text-sm font-medium">{t('noServicePrefs', 'No service preferences configured')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
+      data-testid="service-prefs-table"
+    >
+      <table className="min-w-full text-sm">
+        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <tr>
+            <th className="px-4 py-3 text-left font-medium">{t('code', 'Code')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('name', 'Name')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('nameAr', 'Name (AR)')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('category', 'Category')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('extraPrice', 'Extra Price')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
+            {isAdmin && (
+              <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => {
+            const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
+            const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
+            const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as ServicePref).name2;
+            const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
+            const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
+            const isActive = adminRow ? adminRow.cf_is_active !== false : true;
+            const category = adminRow?.preference_category ?? (p as ServicePref).preference_category ?? '—';
+
+            return (
+              <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
+                <td className="px-4 py-3">{primaryName || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{category}</td>
+                <td className="px-4 py-3">+{Number(displayPrice).toFixed(3)}</td>
+                <td className="px-4 py-3">
+                  <Badge variant={isActive ? 'success' : 'default'}>
+                    {isActive ? t('active', 'Active') : t('inactive', 'Inactive')}
+                  </Badge>
+                </td>
+                {isAdmin && adminRow && (
+                  <td className="px-4 py-3 text-right">
+                    <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                      <CmxButton
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => onEdit(adminRow)}
+                        aria-label={t('edit', 'Edit')}
+                        data-testid={`edit-service-pref-${p.code}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </CmxButton>
+                    </RequireAnyPermission>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function PackingPrefsTable({
+  packingPrefsAdmin,
+  packingPrefs,
+  loading,
+  onEdit,
+  t,
+  isRtl,
+}: {
+  packingPrefsAdmin: PackingPrefAdmin[];
+  packingPrefs: PackingPref[];
+  loading: boolean;
+  onEdit: (p: PackingPrefAdmin) => void;
+  t: (key: string, fallback?: string) => string;
+  isRtl: boolean;
+}) {
+  const rows = packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs;
+  const isAdmin = packingPrefsAdmin.length > 0;
+
+  if (loading) {
+    return <TableSkeleton rows={6} />;
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        data-testid="packing-prefs-empty"
+      >
+        <Package className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <p className="text-sm font-medium">{t('noPackingPrefs', 'No packing preferences configured')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
+      data-testid="packing-prefs-table"
+    >
+      <table className="min-w-full text-sm">
+        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <tr>
+            <th className="px-4 py-3 text-left font-medium">{t('code', 'Code')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('name', 'Name')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('nameAr', 'Name (AR)')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('packagingType', 'Packaging Type')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
+            {isAdmin && (
+              <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((p) => {
+            const adminRow = isAdmin ? (p as PackingPrefAdmin) : null;
+            const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as PackingPref).name;
+            const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as PackingPref).name2;
+            const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
+            const isActive = adminRow ? adminRow.cf_is_active !== false : true;
+            const packagingType = adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type ?? '—';
+
+            return (
+              <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
+                <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
+                <td className="px-4 py-3">{primaryName || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
+                <td className="px-4 py-3 text-gray-600">{packagingType}</td>
+                <td className="px-4 py-3">
+                  <Badge variant={isActive ? 'success' : 'default'}>
+                    {isActive ? t('active', 'Active') : t('inactive', 'Inactive')}
+                  </Badge>
+                </td>
+                {isAdmin && adminRow && (
+                  <td className="px-4 py-3 text-right">
+                    <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                      <CmxButton
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-2"
+                        onClick={() => onEdit(adminRow)}
+                        aria-label={t('edit', 'Edit')}
+                        data-testid={`edit-packing-pref-${p.code}`}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </CmxButton>
+                    </RequireAnyPermission>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BundlesTable({
+  bundles,
+  loading,
+  onEdit,
+  onDelete,
+  t,
+  deletePending,
+}: {
+  bundles: PreferenceBundle[];
+  loading: boolean;
+  onEdit: (b: PreferenceBundle) => void;
+  onDelete: (b: PreferenceBundle) => void;
+  t: (key: string, fallback?: string) => string;
+  deletePending: boolean;
+}) {
+  if (loading) {
+    return <TableSkeleton rows={5} />;
+  }
+
+  if (bundles.length === 0) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center py-12 text-center text-gray-500"
+        data-testid="bundles-empty"
+      >
+        <Gift className="h-12 w-12 text-gray-300 mb-3" aria-hidden />
+        <p className="text-sm font-medium">{t('noBundles', 'No care packages configured')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
+      data-testid="bundles-table"
+    >
+      <table className="min-w-full text-sm">
+        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+          <tr>
+            <th className="px-4 py-3 text-left font-medium">{t('bundleCode', 'Code')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('bundleName', 'Name')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('preferences', 'Preferences')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('discount', 'Discount')}</th>
+            <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
+            <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<th />}>
+              <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
+            </RequireAnyPermission>
+          </tr>
+        </thead>
+        <tbody>
+          {bundles.map((b) => (
+            <tr key={b.id} className="border-t border-gray-100 hover:bg-gray-50/50">
+              <td className="px-4 py-3 font-mono text-xs">{b.bundle_code}</td>
+              <td className="px-4 py-3">{b.name}</td>
+              <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate" title={(b.preference_codes || []).join(', ')}>
+                {(b.preference_codes || []).join(', ') || '—'}
+              </td>
+              <td className="px-4 py-3">
+                {(b.discount_percent ?? 0) > 0
+                  ? `${b.discount_percent}%`
+                  : (b.discount_amount ?? 0) > 0
+                    ? `${Number(b.discount_amount).toFixed(3)}`
+                    : '—'}
+              </td>
+              <td className="px-4 py-3">
+                <Badge variant={b.is_active ? 'success' : 'default'}>
+                  {b.is_active ? t('active', 'Active') : t('inactive', 'Inactive')}
+                </Badge>
+              </td>
+              <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<td />}>
+                <td className="px-4 py-3 text-right">
+                  <div className="flex justify-end gap-1">
+                    <CmxButton
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2"
+                      onClick={() => onEdit(b)}
+                      aria-label={t('edit', 'Edit')}
+                      data-testid={`edit-bundle-${b.bundle_code}`}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </CmxButton>
+                    <CmxButton
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-red-600 hover:text-red-700"
+                      onClick={() => onDelete(b)}
+                      disabled={deletePending}
+                      aria-label={t('delete', 'Delete')}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </CmxButton>
+                  </div>
+                </td>
+              </RequireAnyPermission>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function PreferencesCatalogPage() {
   const t = useTranslations('catalog.preferences');
+  const tCatalog = useTranslations('catalog');
+  const locale = useLocale();
+  const isRtl = useMemo(() => locale === 'ar', [locale]);
   const { currentTenant } = useAuth();
   const queryClient = useQueryClient();
   const { bundles } = usePreferenceBundles();
@@ -148,6 +485,104 @@ export default function PreferencesCatalogPage() {
     loadCatalog();
   }, [currentTenant, loadCatalog]);
 
+  const tabs = useMemo(
+    () => [
+      {
+        id: 'service',
+        label: t('tabService', { defaultValue: t('servicePrefs', 'Service Preferences') }),
+        icon: <Shirt className="h-4 w-4" aria-hidden />,
+        content: (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              {t('servicePrefsDesc', 'Processing options: starch, perfume, delicate, etc.')}
+            </p>
+            <ServicePrefsTable
+              servicePrefsAdmin={servicePrefsAdmin}
+              servicePrefs={servicePrefs}
+              loading={loading}
+              onEdit={setEditingServicePref}
+              t={(k, f) => t(k as 'code', { defaultValue: f })}
+              isRtl={isRtl}
+            />
+          </div>
+        ),
+      },
+      {
+        id: 'packing',
+        label: t('tabPacking', { defaultValue: t('packingPrefs', 'Packing Preferences') }),
+        icon: <Package className="h-4 w-4" aria-hidden />,
+        content: (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              {t('packingPrefsDesc', 'Assembly options: hang, fold, box, etc.')}
+            </p>
+            <PackingPrefsTable
+              packingPrefsAdmin={packingPrefsAdmin}
+              packingPrefs={packingPrefs}
+              loading={loading}
+              onEdit={setEditingPackingPref}
+              t={(k, f) => t(k as 'code', { defaultValue: f })}
+              isRtl={isRtl}
+            />
+          </div>
+        ),
+      },
+      {
+        id: 'bundles',
+        label: t('tabBundles', { defaultValue: t('bundles', 'Care Packages') }),
+        icon: <Gift className="h-4 w-4" aria-hidden />,
+        content: (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                {t('bundlesDesc', 'Preference bundles for quick apply (Growth+)')}
+              </p>
+              <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                <CmxButton
+                  size="sm"
+                  onClick={() => {
+                    setEditingBundle(null);
+                    setBundleDialogOpen(true);
+                  }}
+                  data-testid="add-bundle-btn"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('addBundle', { defaultValue: 'Add Bundle' })}
+                </CmxButton>
+              </RequireAnyPermission>
+            </div>
+            <BundlesTable
+              bundles={bundles}
+              loading={loading}
+              onEdit={(b) => {
+                setEditingBundle(b);
+                setBundleDialogOpen(true);
+              }}
+              onDelete={(b) => {
+                if (confirm(t('confirmDeleteBundle', 'Delete this bundle?'))) {
+                  deleteBundleMutation.mutate(b.id);
+                }
+              }}
+              t={(k, f) => t(k as 'bundleCode', { defaultValue: f })}
+              deletePending={deleteBundleMutation.isPending}
+            />
+          </div>
+        ),
+      },
+    ],
+    [
+      t,
+      servicePrefsAdmin,
+      servicePrefs,
+      packingPrefsAdmin,
+      packingPrefs,
+      bundles,
+      loading,
+      isRtl,
+      deleteBundleMutation.isPending,
+    ]
+  );
+
   return (
     <RequireAnyPermission
       permissions={['orders:service_prefs_view', 'orders:read', 'config:preferences_manage']}
@@ -157,7 +592,22 @@ export default function PreferencesCatalogPage() {
         </CmxCard>
       }
     >
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="preferences-catalog-page">
+        {/* Breadcrumb */}
+        <nav className="flex items-center text-sm text-gray-500" aria-label="Breadcrumb">
+          <Link
+            href="/dashboard/catalog/services"
+            className="hover:text-gray-700 transition-colors"
+          >
+            {tCatalog('title', { defaultValue: 'Catalog' })}
+          </Link>
+          <ChevronRight className="h-4 w-4 mx-1 text-gray-400 rtl:rotate-180" aria-hidden />
+          <span className="text-gray-900 font-medium">
+            {t('title', { defaultValue: 'Preferences Catalog' })}
+          </span>
+        </nav>
+
+        {/* Page Header */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             {t('title', { defaultValue: 'Preferences Catalog' })}
@@ -167,225 +617,16 @@ export default function PreferencesCatalogPage() {
           </p>
         </div>
 
-        {loading && (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600" />
-          </div>
-        )}
-
         {error && (
           <CmxCard className="p-6 border-red-200 bg-red-50">
             <p className="text-red-800">{error}</p>
           </CmxCard>
         )}
 
-        {!loading && !error && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CmxCard className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Shirt className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {t('servicePrefs', { defaultValue: 'Service Preferences' })}
-                </h2>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                {t('servicePrefsDesc', 'Processing options: starch, perfume, delicate, etc.')}
-              </p>
-              <ul className="space-y-2">
-                {(servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs).map((p) => {
-                  const isAdmin = servicePrefsAdmin.length > 0;
-                  const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
-                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
-                  const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
-                  const isDisabled = adminRow ? adminRow.cf_is_active === false : false;
-                  return (
-                    <li
-                      key={p.code}
-                      className={`flex justify-between items-center py-2 px-3 rounded-md text-sm ${isDisabled ? 'bg-gray-100 opacity-75' : 'bg-gray-50'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{displayName}</span>
-                        {isDisabled && (
-                          <span className="text-xs text-gray-500">({t('inactive', 'Inactive')})</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 text-xs">
-                          {(adminRow?.preference_category ?? (p as ServicePref).preference_category) || ''} • +{Number(displayPrice).toFixed(3)}
-                        </span>
-                        {isAdmin && (
-                          <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
-                            <CmxButton
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              onClick={() => setEditingServicePref(adminRow!)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </CmxButton>
-                          </RequireAnyPermission>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-              {servicePrefs.length === 0 && servicePrefsAdmin.length === 0 && (
-                <p className="text-sm text-gray-500 mt-2">{t('noServicePrefs', 'No service preferences configured')}</p>
-              )}
-            </CmxCard>
-
-            <CmxCard className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Package className="h-5 w-5 text-green-600" />
-                <h2 className="text-lg font-semibold text-gray-900">
-                  {t('packingPrefs', { defaultValue: 'Packing Preferences' })}
-                </h2>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                {t('packingPrefsDesc', 'Assembly options: hang, fold, box, etc.')}
-              </p>
-              <ul className="space-y-2">
-                {(packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs).map((p) => {
-                  const isAdmin = packingPrefsAdmin.length > 0;
-                  const adminRow = isAdmin ? (p as PackingPrefAdmin) : null;
-                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as PackingPref).name;
-                  const isDisabled = adminRow ? adminRow.cf_is_active === false : false;
-                  return (
-                    <li
-                      key={p.code}
-                      className={`flex justify-between items-center py-2 px-3 rounded-md text-sm ${isDisabled ? 'bg-gray-100 opacity-75' : 'bg-gray-50'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{displayName}</span>
-                        {isDisabled && (
-                          <span className="text-xs text-gray-500">({t('inactive', 'Inactive')})</span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 text-xs">{(adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type) || '—'}</span>
-                        {isAdmin && (
-                          <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
-                            <CmxButton
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              onClick={() => setEditingPackingPref(adminRow!)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </CmxButton>
-                          </RequireAnyPermission>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-              {packingPrefs.length === 0 && packingPrefsAdmin.length === 0 && (
-                <p className="text-sm text-gray-500 mt-2">{t('noPackingPrefs', 'No packing preferences configured')}</p>
-              )}
-            </CmxCard>
-
-            <CmxCard className="p-6 lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Gift className="h-5 w-5 text-purple-600" />
-                  <h2 className="text-lg font-semibold text-gray-900">
-                    {t('bundles', { defaultValue: 'Care Packages' })}
-                  </h2>
-                </div>
-                <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
-                  <CmxButton
-                    size="sm"
-                    onClick={() => {
-                      setEditingBundle(null);
-                      setBundleDialogOpen(true);
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {t('addBundle', { defaultValue: 'Add Bundle' })}
-                  </CmxButton>
-                </RequireAnyPermission>
-              </div>
-              <p className="text-sm text-gray-600 mb-4">
-                {t('bundlesDesc', 'Preference bundles for quick apply (Growth+)')}
-              </p>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 font-medium text-gray-700">{t('bundleCode', 'Code')}</th>
-                      <th className="text-left py-2 font-medium text-gray-700">{t('bundleName', 'Name')}</th>
-                      <th className="text-left py-2 font-medium text-gray-700">{t('preferences', 'Preferences')}</th>
-                      <th className="text-left py-2 font-medium text-gray-700">{t('discount', 'Discount')}</th>
-                      <th className="text-left py-2 font-medium text-gray-700">{t('status', 'Status')}</th>
-                      <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<th />}>
-                        <th className="text-right py-2 font-medium text-gray-700">{t('actions', 'Actions')}</th>
-                      </RequireAnyPermission>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bundles.map((b) => (
-                      <tr key={b.id} className="border-b border-gray-100">
-                        <td className="py-2 font-mono text-xs">{b.bundle_code}</td>
-                        <td className="py-2">{b.name}</td>
-                        <td className="py-2 text-gray-600">
-                          {(b.preference_codes || []).join(', ') || '—'}
-                        </td>
-                        <td className="py-2">
-                          {(b.discount_percent ?? 0) > 0
-                            ? `${b.discount_percent}%`
-                            : (b.discount_amount ?? 0) > 0
-                              ? `${Number(b.discount_amount).toFixed(3)}`
-                              : '—'}
-                        </td>
-                        <td className="py-2">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded text-xs ${
-                              b.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                            }`}
-                          >
-                            {b.is_active ? t('active', 'Active') : t('inactive', 'Inactive')}
-                          </span>
-                        </td>
-                        <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<td />}>
-                          <td className="py-2 text-right">
-                            <CmxButton
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2"
-                              onClick={() => {
-                                setEditingBundle(b);
-                                setBundleDialogOpen(true);
-                              }}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </CmxButton>
-                            <CmxButton
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2 text-red-600 hover:text-red-700"
-                              onClick={() => {
-                                if (confirm(t('confirmDeleteBundle', 'Delete this bundle?'))) {
-                                  deleteBundleMutation.mutate(b.id);
-                                }
-                              }}
-                              disabled={deleteBundleMutation.isPending}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </CmxButton>
-                          </td>
-                        </RequireAnyPermission>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {bundles.length === 0 && (
-                <p className="text-sm text-gray-500 mt-4">{t('noBundles', 'No care packages configured')}</p>
-              )}
-            </CmxCard>
-          </div>
+        {!error && (
+          <CmxCard className="p-6" data-testid="preferences-tabs">
+            <CmxTabsPanel tabs={tabs} defaultTab="service" />
+          </CmxCard>
         )}
 
         {bundleDialogOpen && (
@@ -495,25 +736,23 @@ function BundleFormDialog({
           )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('bundleCode', 'Bundle Code')}</label>
-            <input
-              type="text"
+            <CmxInput
               value={bundleCode}
               onChange={(e) => setBundleCode(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               placeholder="e.g. DELICATE_STARCH"
               required
               disabled={!!bundle}
+              className="w-full"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('bundleName', 'Name')}</label>
-            <input
-              type="text"
+            <CmxInput
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
               placeholder="e.g. Delicate + Light Starch"
               required
+              className="w-full"
             />
           </div>
           <div>

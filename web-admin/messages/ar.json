@@ -2085,7 +2085,17 @@
       "extraPrice": "السعر الإضافي",
       "includedInBase": "مشمول في السعر الأساسي",
       "enabled": "مفعل",
-      "systemDefault": "الافتراضي للنظام"
+      "systemDefault": "الافتراضي للنظام",
+      "tabService": "تفضيلات الخدمة",
+      "tabPacking": "تفضيلات التغليف",
+      "tabBundles": "باقات العناية",
+      "code": "الرمز",
+      "name": "الاسم",
+      "nameAr": "الاسم (AR)",
+      "category": "الفئة",
+      "packagingType": "نوع التغليف",
+      "edit": "تعديل",
+      "delete": "حذف"
     }
   },
   "validation": {

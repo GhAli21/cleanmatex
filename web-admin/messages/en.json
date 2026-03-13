@@ -2085,7 +2085,17 @@
       "extraPrice": "Extra Price",
       "includedInBase": "Included in base price",
       "enabled": "Enabled",
-      "systemDefault": "System default"
+      "systemDefault": "System default",
+      "tabService": "Service Preferences",
+      "tabPacking": "Packing Preferences",
+      "tabBundles": "Care Packages",
+      "code": "Code",
+      "name": "Name",
+      "nameAr": "Name (AR)",
+      "category": "Category",
+      "packagingType": "Packaging Type",
+      "edit": "Edit",
+      "delete": "Delete"
     }
   },
   "validation": {

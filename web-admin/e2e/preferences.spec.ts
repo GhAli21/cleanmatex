@@ -18,12 +18,13 @@ test.describe('Preferences Catalog - E2E Tests', () => {
   });
 
   test('should display service and packing preferences lists', async ({ page }) => {
-    // Wait for catalog to load
-    await page.waitForSelector('ul li, [data-testid="smart-suggestions-panel"]', { timeout: 15000 }).catch(() => {});
-    // Service prefs or packing prefs should be visible (from sys catalog)
-    const hasServicePrefs = await page.locator('text=Service Preferences').isVisible();
-    const hasPackingPrefs = await page.locator('text=Packing Preferences').isVisible();
-    expect(hasServicePrefs || hasPackingPrefs).toBeTruthy();
+    // Wait for catalog to load (tabs + table or empty state)
+    await page.waitForSelector('[data-testid="preferences-catalog-page"]', { timeout: 15000 }).catch(() => {});
+    // Tab labels should be visible
+    const hasServiceTab = await page.locator('text=Service Preferences').isVisible();
+    const hasPackingTab = await page.locator('text=Packing Preferences').isVisible();
+    const hasBundlesTab = await page.locator('text=Care Packages').isVisible();
+    expect(hasServiceTab && hasPackingTab && hasBundlesTab).toBeTruthy();
   });
 
   test('should have edit buttons when user has config permission', async ({ page }) => {
