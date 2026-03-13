@@ -12,6 +12,8 @@ import { useOrderSubmission } from '../hooks/use-order-submission';
 import { AmountMismatchDialog } from './amount-mismatch-dialog';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
+import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useHasPermission } from '@/lib/hooks/use-has-permission';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -71,6 +73,11 @@ export function NewOrderModals() {
   const { trackByPiece } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
+  const { autoApplyCustomerPrefs } = useTenantPreferenceSettings({
+    tenantId: currentTenant?.tenant_id,
+    branchId: state.state.branchId,
+  });
+  const { servicePrefs } = usePreferenceCatalog(state.state.branchId);
   const t = useTranslations('newOrder');
   const hasPriceOverridePermission = useHasPermission('pricing', 'override');
 
@@ -158,7 +165,7 @@ export function NewOrderModals() {
 
   // Handle custom item add (retail vs services: cannot mix)
   const handleAddCustomItem = useCallback(
-    (item: OrderItem) => {
+    async (item: OrderItem) => {
       const isNewRetail = item.serviceCategoryCode === 'RETAIL_ITEMS';
       const existingItems = state.state.items;
       if (existingItems.length > 0) {
@@ -168,10 +175,49 @@ export function NewOrderModals() {
           return;
         }
       }
-      state.addItem(item);
+
+      let finalItem = item;
+      if (
+        autoApplyCustomerPrefs &&
+        state.state.customer?.id &&
+        servicePrefs.length > 0
+      ) {
+        try {
+          const params = new URLSearchParams({
+            customerId: state.state.customer.id,
+            productCode: '',
+            serviceCategoryCode: item.serviceCategoryCode ?? '',
+          });
+          const res = await fetch(`/api/v1/preferences/resolve?${params}`, {
+            credentials: 'include',
+          });
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+            const priceMap = new Map(servicePrefs.map((s) => [s.code, s.default_extra_price ?? 0]));
+            const resolvedPrefs = json.data.map(
+              (p: { preference_code: string; source: string }) => ({
+                preference_code: p.preference_code,
+                source: p.source || 'customer_pref',
+                extra_price: priceMap.get(p.preference_code) ?? 0,
+              })
+            );
+            const charge = resolvedPrefs.reduce((sum, p) => sum + p.extra_price, 0);
+            finalItem = {
+              ...item,
+              servicePrefs: resolvedPrefs,
+              servicePrefCharge: charge,
+              totalPrice: (item.totalPrice ?? item.pricePerUnit * item.quantity) + charge,
+            };
+          }
+        } catch {
+          // Ignore; use item as-is
+        }
+      }
+
+      state.addItem(finalItem);
       state.closeModal('customItem');
     },
-    [state, t]
+    [state, t, autoApplyCustomerPrefs, servicePrefs]
   );
 
   // Handle photo capture

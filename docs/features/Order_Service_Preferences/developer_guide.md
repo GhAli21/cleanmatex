@@ -28,7 +28,11 @@ web-admin/
 │   └── api/v1/
 │       ├── catalog/
 │       │   ├── service-preferences/
+│       │   │   ├── admin/           # GET admin (tenant overrides for edit)
+│       │   │   └── [code]/         # PUT, DELETE (upsert/reset)
 │       │   ├── packing-preferences/
+│       │   │   ├── admin/
+│       │   │   └── [code]/
 │       │   └── preference-bundles/
 │       ├── orders/[id]/items/[itemId]/
 │       │   ├── service-prefs/
@@ -58,6 +62,10 @@ web-admin/
 ### PreferenceCatalogService
 
 - **getServicePreferences(supabase, tenantId, branchId?):** Fetches sys_service_preference_cd + org_service_preference_cf overrides.
+- **getServicePreferenceCfForAdmin(supabase, tenantId):** Raw sys + cf for admin edit view.
+- **getPackingPreferenceCfForAdmin(supabase, tenantId):** Same for packing.
+- **upsertServicePreferenceCf(...), upsertPackingPreferenceCf(...):** Tenant override CRUD.
+- **deleteServicePreferenceCf(...), deletePackingPreferenceCf(...):** Reset to system default.
 - **getPackingPreferences(supabase, tenantId):** Fetches sys_packing_preference_cd + org_packing_preference_cf.
 - **getPreferenceBundles(supabase, tenantId, includeInactive?):** Care packages for tenant.
 - **createPreferenceBundle, updatePreferenceBundle, deletePreferenceBundle:** Admin CRUD for bundles.
@@ -84,7 +92,7 @@ web-admin/
 
 ## API Flow
 
-1. **New order:** UI fetches catalog (service-preferences, packing-preferences, preference-bundles). User selects prefs; reducer stores in `OrderItem.servicePrefs`, `packingPrefCode`. On submit, OrderService.createOrder includes prefs; inserts into org_order_item_service_prefs, org_order_item_pc_prefs; sets service_pref_charge.
+1. **New order:** UI fetches catalog (service-preferences, packing-preferences, preference-bundles). When `SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS` is true and customer is selected, adding an item calls `/api/v1/preferences/resolve` and auto-applies customer standing prefs. User can also select prefs manually; reducer stores in `OrderItem.servicePrefs`, `packingPrefCode`. On submit, OrderService.createOrder includes prefs; inserts into org_order_item_service_prefs, org_order_item_pc_prefs; sets service_pref_charge.
 
 2. **Edit order:** Same catalog + order item prefs. PATCH/POST/DELETE to item/piece service-prefs; packing-pref PATCH.
 

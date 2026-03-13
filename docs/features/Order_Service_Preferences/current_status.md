@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.2.0
+last_updated: 2026-03-13
 author: CleanMateX Team
 ---
 
@@ -21,7 +21,7 @@ author: CleanMateX Team
 | Receipt | Done | Placeholders integrated |
 | Ready-by | Done | SLA adjustment from prefs |
 | Assembly | Done | Prefs display, override badge, confirmation |
-| Admin catalog | Done | Preferences page, Care Packages CRUD |
+| Admin catalog | Done | Preferences page, Care Packages CRUD, tenant config edit (service/packing) |
 | Permissions | Done | RBAC in place |
 | i18n | Done | EN/AR keys |
 | Unit tests | Done | order-item-helpers, service-preferences-schemas |
@@ -38,6 +38,4 @@ None.
 
 ## Known Limitations
 
-- Smart suggestions panel: UI scaffold may need refinement.
-- Customer prefs tab: API ready; customer detail tab UI pending.
-- E2E tests: Not automated; manual QA recommended.
+None. All previously outstanding items have been completed.

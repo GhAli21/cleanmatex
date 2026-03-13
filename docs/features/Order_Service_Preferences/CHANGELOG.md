@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.2.0] - 2026-03-13
+
+### Added
+
+- **Tenant config CRUD**: Admin APIs and Edit dialogs for org_service_preference_cf and org_packing_preference_cf (enable/disable, custom price, name, is_included_in_base; reset to default)
+- **Customer prefs tab**: Preferences tab in customer detail page with add/remove standing prefs (org_customer_service_prefs)
+- **Auto-apply customer prefs**: SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS integration in new order (handleAddItem) and custom item flow; calls resolve API when adding items
+- **useTenantPreferenceSettings hook**: Fetches SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS for new order UI
+- **SmartSuggestionsPanel refinements**: Loading skeleton, data-testid, usage_count badge, RTL layout
+- **E2E tests**: preferences.spec.ts for catalog, new order prefs, customer prefs tab
+
 ## [v1.1.0] - 2026-03-12
 
 ### Added

@@ -7,13 +7,13 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -44,6 +44,38 @@ interface PackingPref {
   is_active?: boolean;
 }
 
+interface ServicePrefAdmin {
+  code: string;
+  name: string | null;
+  name2: string | null;
+  preference_category: string | null;
+  default_extra_price: number;
+  display_order: number;
+  sys_is_active: boolean;
+  cf_id: string | null;
+  cf_name: string | null;
+  cf_name2: string | null;
+  cf_extra_price: number | null;
+  cf_is_included_in_base: boolean | null;
+  cf_is_active: boolean | null;
+  cf_display_order: number | null;
+}
+
+interface PackingPrefAdmin {
+  code: string;
+  name: string | null;
+  name2: string | null;
+  maps_to_packaging_type: string | null;
+  display_order: number;
+  sys_is_active: boolean;
+  cf_id: string | null;
+  cf_name: string | null;
+  cf_name2: string | null;
+  cf_extra_price: number | null;
+  cf_is_active: boolean | null;
+  cf_display_order: number | null;
+}
+
 interface PreferenceBundle {
   id: string;
   bundle_code: string;
@@ -64,9 +96,13 @@ export default function PreferencesCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [servicePrefs, setServicePrefs] = useState<ServicePref[]>([]);
   const [packingPrefs, setPackingPrefs] = useState<PackingPref[]>([]);
+  const [servicePrefsAdmin, setServicePrefsAdmin] = useState<ServicePrefAdmin[]>([]);
+  const [packingPrefsAdmin, setPackingPrefsAdmin] = useState<PackingPrefAdmin[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [bundleDialogOpen, setBundleDialogOpen] = useState(false);
   const [editingBundle, setEditingBundle] = useState<PreferenceBundle | null>(null);
+  const [editingServicePref, setEditingServicePref] = useState<ServicePrefAdmin | null>(null);
+  const [editingPackingPref, setEditingPackingPref] = useState<PackingPrefAdmin | null>(null);
 
   const deleteBundleMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -82,26 +118,35 @@ export default function PreferencesCatalogPage() {
     },
   });
 
-  useEffect(() => {
-    if (!currentTenant) {
-      setLoading(false);
-      return;
-    }
+  const loadCatalog = useCallback(() => {
+    if (!currentTenant) return;
     setLoading(true);
     setError(null);
     Promise.all([
       fetch('/api/v1/catalog/service-preferences').then((r) => r.json()),
       fetch('/api/v1/catalog/packing-preferences').then((r) => r.json()),
+      fetch('/api/v1/catalog/service-preferences/admin', { credentials: 'include' }).then((r) => r.json()).catch(() => ({ success: false })),
+      fetch('/api/v1/catalog/packing-preferences/admin', { credentials: 'include' }).then((r) => r.json()).catch(() => ({ success: false })),
     ])
-      .then(([svcRes, pckRes]) => {
+      .then(([svcRes, pckRes, svcAdminRes, pckAdminRes]) => {
         if (!svcRes?.success) throw new Error(svcRes?.error || 'Failed to load service preferences');
         if (!pckRes?.success) throw new Error(pckRes?.error || 'Failed to load packing preferences');
         setServicePrefs(svcRes.data || []);
         setPackingPrefs(pckRes.data || []);
+        if (svcAdminRes?.success) setServicePrefsAdmin(svcAdminRes.data || []);
+        if (pckAdminRes?.success) setPackingPrefsAdmin(pckAdminRes.data || []);
       })
       .catch((e) => setError(e.message || 'Failed to load catalog'))
       .finally(() => setLoading(false));
   }, [currentTenant]);
+
+  useEffect(() => {
+    if (!currentTenant) {
+      setLoading(false);
+      return;
+    }
+    loadCatalog();
+  }, [currentTenant, loadCatalog]);
 
   return (
     <RequireAnyPermission
@@ -147,19 +192,45 @@ export default function PreferencesCatalogPage() {
                 {t('servicePrefsDesc', 'Processing options: starch, perfume, delicate, etc.')}
               </p>
               <ul className="space-y-2">
-                {servicePrefs.map((p) => (
-                  <li
-                    key={p.code}
-                    className="flex justify-between items-center py-2 px-3 rounded-md bg-gray-50 text-sm"
-                  >
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-gray-500 text-xs">
-                      {p.preference_category} • +{Number(p.default_extra_price ?? 0).toFixed(3)}
-                    </span>
-                  </li>
-                ))}
+                {(servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs).map((p) => {
+                  const isAdmin = servicePrefsAdmin.length > 0;
+                  const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
+                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
+                  const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
+                  const isDisabled = adminRow ? adminRow.cf_is_active === false : false;
+                  return (
+                    <li
+                      key={p.code}
+                      className={`flex justify-between items-center py-2 px-3 rounded-md text-sm ${isDisabled ? 'bg-gray-100 opacity-75' : 'bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{displayName}</span>
+                        {isDisabled && (
+                          <span className="text-xs text-gray-500">({t('inactive', 'Inactive')})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 text-xs">
+                          {(adminRow?.preference_category ?? (p as ServicePref).preference_category) || ''} • +{Number(displayPrice).toFixed(3)}
+                        </span>
+                        {isAdmin && (
+                          <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                            <CmxButton
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => setEditingServicePref(adminRow!)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </CmxButton>
+                          </RequireAnyPermission>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-              {servicePrefs.length === 0 && (
+              {servicePrefs.length === 0 && servicePrefsAdmin.length === 0 && (
                 <p className="text-sm text-gray-500 mt-2">{t('noServicePrefs', 'No service preferences configured')}</p>
               )}
             </CmxCard>
@@ -175,17 +246,42 @@ export default function PreferencesCatalogPage() {
                 {t('packingPrefsDesc', 'Assembly options: hang, fold, box, etc.')}
               </p>
               <ul className="space-y-2">
-                {packingPrefs.map((p) => (
-                  <li
-                    key={p.code}
-                    className="flex justify-between items-center py-2 px-3 rounded-md bg-gray-50 text-sm"
-                  >
-                    <span className="font-medium">{p.name}</span>
-                    <span className="text-gray-500 text-xs">{p.maps_to_packaging_type || '—'}</span>
-                  </li>
-                ))}
+                {(packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs).map((p) => {
+                  const isAdmin = packingPrefsAdmin.length > 0;
+                  const adminRow = isAdmin ? (p as PackingPrefAdmin) : null;
+                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as PackingPref).name;
+                  const isDisabled = adminRow ? adminRow.cf_is_active === false : false;
+                  return (
+                    <li
+                      key={p.code}
+                      className={`flex justify-between items-center py-2 px-3 rounded-md text-sm ${isDisabled ? 'bg-gray-100 opacity-75' : 'bg-gray-50'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{displayName}</span>
+                        {isDisabled && (
+                          <span className="text-xs text-gray-500">({t('inactive', 'Inactive')})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500 text-xs">{(adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type) || '—'}</span>
+                        {isAdmin && (
+                          <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                            <CmxButton
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => setEditingPackingPref(adminRow!)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </CmxButton>
+                          </RequireAnyPermission>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
-              {packingPrefs.length === 0 && (
+              {packingPrefs.length === 0 && packingPrefsAdmin.length === 0 && (
                 <p className="text-sm text-gray-500 mt-2">{t('noPackingPrefs', 'No packing preferences configured')}</p>
               )}
             </CmxCard>
@@ -307,6 +403,28 @@ export default function PreferencesCatalogPage() {
             }}
           />
         )}
+
+        {editingServicePref && (
+          <ServicePrefEditDialog
+            pref={editingServicePref}
+            onClose={() => setEditingServicePref(null)}
+            onSuccess={() => {
+              loadCatalog();
+              setEditingServicePref(null);
+            }}
+          />
+        )}
+
+        {editingPackingPref && (
+          <PackingPrefEditDialog
+            pref={editingPackingPref}
+            onClose={() => setEditingPackingPref(null)}
+            onSuccess={() => {
+              loadCatalog();
+              setEditingPackingPref(null);
+            }}
+          />
+        )}
       </div>
     </RequireAnyPermission>
   );
@@ -418,6 +536,275 @@ function BundleFormDialog({
             </div>
           </div>
           <CmxDialogFooter>
+            <CmxDialogClose asChild>
+              <CmxButton type="button" variant="outline">
+                {t('cancel', 'Cancel')}
+              </CmxButton>
+            </CmxDialogClose>
+            <CmxButton type="submit" disabled={saving}>
+              {saving ? t('saving', 'Saving...') : t('save', 'Save')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </form>
+      </CmxDialogContent>
+    </CmxDialog>
+  );
+}
+
+function ServicePrefEditDialog({
+  pref,
+  onClose,
+  onSuccess,
+}: {
+  pref: ServicePrefAdmin;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const [name, setName] = useState(pref.cf_name ?? pref.name ?? '');
+  const [name2, setName2] = useState(pref.cf_name2 ?? pref.name2 ?? '');
+  const [extraPrice, setExtraPrice] = useState(String(pref.cf_extra_price ?? pref.default_extra_price ?? 0));
+  const [isIncludedInBase, setIsIncludedInBase] = useState(pref.cf_is_included_in_base ?? false);
+  const [isActive, setIsActive] = useState(pref.cf_is_active ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v1/catalog/service-preferences/${encodeURIComponent(pref.code)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
+        body: JSON.stringify({
+          name: name || null,
+          name2: name2 || null,
+          extra_price: Number(extraPrice) || 0,
+          is_included_in_base: isIncludedInBase,
+          is_active: isActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to save');
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!pref.cf_id) return;
+    if (!confirm(t('resetToDefault', 'Reset to default?'))) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v1/catalog/service-preferences/${encodeURIComponent(pref.code)}`, {
+        method: 'DELETE',
+        headers: getCSRFHeader(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to reset');
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <CmxDialog open onOpenChange={(open) => !open && onClose()}>
+      <CmxDialogContent>
+        <CmxDialogHeader>
+          <CmxDialogTitle>{t('editServicePref', 'Edit Service Preference')}</CmxDialogTitle>
+        </CmxDialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+          )}
+          <p className="text-sm text-gray-600 font-mono">{pref.code}</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', 'Custom Name (EN)')}</label>
+            <CmxInput
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={pref.name ?? pref.code}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customNameAr', 'Custom Name (AR)')}</label>
+            <CmxInput
+              value={name2}
+              onChange={(e) => setName2(e.target.value)}
+              placeholder={pref.name2 ?? ''}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('extraPrice', 'Extra Price')}</label>
+            <CmxInput
+              type="number"
+              step="0.0001"
+              min="0"
+              value={extraPrice}
+              onChange={(e) => setExtraPrice(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSwitch
+              checked={isIncludedInBase}
+              onCheckedChange={setIsIncludedInBase}
+            />
+            <label className="text-sm text-gray-700">{t('includedInBase', 'Included in base price')}</label>
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSwitch
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+            <label className="text-sm text-gray-700">{t('enabled', 'Enabled')}</label>
+          </div>
+          <CmxDialogFooter>
+            {pref.cf_id && (
+              <CmxButton type="button" variant="outline" onClick={handleReset} disabled={saving} className="mr-auto">
+                {t('resetToDefault', 'Reset to default')}
+              </CmxButton>
+            )}
+            <CmxDialogClose asChild>
+              <CmxButton type="button" variant="outline">
+                {t('cancel', 'Cancel')}
+              </CmxButton>
+            </CmxDialogClose>
+            <CmxButton type="submit" disabled={saving}>
+              {saving ? t('saving', 'Saving...') : t('save', 'Save')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </form>
+      </CmxDialogContent>
+    </CmxDialog>
+  );
+}
+
+function PackingPrefEditDialog({
+  pref,
+  onClose,
+  onSuccess,
+}: {
+  pref: PackingPrefAdmin;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const [name, setName] = useState(pref.cf_name ?? pref.name ?? '');
+  const [name2, setName2] = useState(pref.cf_name2 ?? pref.name2 ?? '');
+  const [extraPrice, setExtraPrice] = useState(String(pref.cf_extra_price ?? 0));
+  const [isActive, setIsActive] = useState(pref.cf_is_active ?? true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v1/catalog/packing-preferences/${encodeURIComponent(pref.code)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
+        body: JSON.stringify({
+          name: name || null,
+          name2: name2 || null,
+          extra_price: Number(extraPrice) || 0,
+          is_active: isActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to save');
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!pref.cf_id) return;
+    if (!confirm(t('resetToDefault', 'Reset to default?'))) return;
+    setError(null);
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/v1/catalog/packing-preferences/${encodeURIComponent(pref.code)}`, {
+        method: 'DELETE',
+        headers: getCSRFHeader(),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to reset');
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <CmxDialog open onOpenChange={(open) => !open && onClose()}>
+      <CmxDialogContent>
+        <CmxDialogHeader>
+          <CmxDialogTitle>{t('editPackingPref', 'Edit Packing Preference')}</CmxDialogTitle>
+        </CmxDialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
+          )}
+          <p className="text-sm text-gray-600 font-mono">{pref.code}</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', 'Custom Name (EN)')}</label>
+            <CmxInput
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={pref.name ?? pref.code}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('customNameAr', 'Custom Name (AR)')}</label>
+            <CmxInput
+              value={name2}
+              onChange={(e) => setName2(e.target.value)}
+              placeholder={pref.name2 ?? ''}
+              className="w-full"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('extraPrice', 'Extra Price')}</label>
+            <CmxInput
+              type="number"
+              step="0.0001"
+              min="0"
+              value={extraPrice}
+              onChange={(e) => setExtraPrice(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSwitch
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+            <label className="text-sm text-gray-700">{t('enabled', 'Enabled')}</label>
+          </div>
+          <CmxDialogFooter>
+            {pref.cf_id && (
+              <CmxButton type="button" variant="outline" onClick={handleReset} disabled={saving} className="mr-auto">
+                {t('resetToDefault', 'Reset to default')}
+              </CmxButton>
+            )}
             <CmxDialogClose asChild>
               <CmxButton type="button" variant="outline">
                 {t('cancel', 'Cancel')}

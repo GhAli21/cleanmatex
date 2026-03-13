@@ -56,7 +56,13 @@ Plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`) a
 ## API Routes
 
 - `GET /api/v1/catalog/service-preferences`
+- `GET /api/v1/catalog/service-preferences/admin` — Admin edit view (config:preferences_manage)
+- `PUT /api/v1/catalog/service-preferences/[code]` — Upsert tenant override
+- `DELETE /api/v1/catalog/service-preferences/[code]` — Reset to system default
 - `GET /api/v1/catalog/packing-preferences`
+- `GET /api/v1/catalog/packing-preferences/admin`
+- `PUT /api/v1/catalog/packing-preferences/[code]`
+- `DELETE /api/v1/catalog/packing-preferences/[code]`
 - `GET /api/v1/catalog/preference-bundles`
 - `GET/POST/DELETE /api/v1/orders/[id]/items/[itemId]/service-prefs`
 - `PATCH /api/v1/orders/[id]/items/[itemId]/packing-pref`

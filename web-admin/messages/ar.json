@@ -1353,6 +1353,11 @@
     "lastName": "اسم العائلة",
     "phoneVerified": "الهاتف موثق",
     "preferences": "التفضيلات",
+    "standingPreferences": "التفضيلات الدائمة",
+    "standingPreferencesDesc": "تفضيلات الخدمة المطبقة افتراضياً عند إنشاء الطلبات لهذا العميل.",
+    "addPreference": "إضافة تفضيل",
+    "noPreferences": "لم يتم تكوين تفضيلات دائمة.",
+    "removePreference": "إزالة",
     "language": "اللغة",
     "folding": "الطي",
     "fragrance": "العطر",
@@ -2071,7 +2076,16 @@
       "confirmDeleteBundle": "حذف هذه الباقة؟",
       "cancel": "إلغاء",
       "save": "حفظ",
-      "saving": "جاري الحفظ..."
+      "saving": "جاري الحفظ...",
+      "editServicePref": "تعديل تفضيل الخدمة",
+      "editPackingPref": "تعديل تفضيل التغليف",
+      "resetToDefault": "إعادة تعيين إلى الافتراضي",
+      "customName": "الاسم المخصص (EN)",
+      "customNameAr": "الاسم المخصص (AR)",
+      "extraPrice": "السعر الإضافي",
+      "includedInBase": "مشمول في السعر الأساسي",
+      "enabled": "مفعل",
+      "systemDefault": "الافتراضي للنظام"
     }
   },
   "validation": {

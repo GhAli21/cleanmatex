@@ -91,10 +91,11 @@ export function SmartSuggestionsPanel({
 
   return (
     <div
+      data-testid="smart-suggestions-panel"
       className={`rounded-lg border border-gray-200 bg-gray-50/50 p-3 ${isRTL ? 'text-right' : 'text-left'}`}
     >
-      <div className="flex items-center gap-2 mb-2">
-        <Sparkles className="w-4 h-4 text-gray-600" />
+      <div className={`flex items-center gap-2 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <Sparkles className="w-4 h-4 text-gray-600 shrink-0" />
         <span className="text-sm font-medium text-gray-700">
           {t('smartSuggestions') || 'Suggested for you'}
         </span>
@@ -103,7 +104,15 @@ export function SmartSuggestionsPanel({
         {t('smartSuggestionsDesc') || 'Based on your order history'}
       </p>
       {loading ? (
-        <span className="text-xs text-gray-500">Loading...</span>
+        <div className="flex flex-wrap gap-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-8 w-20 animate-pulse rounded-md bg-gray-200"
+              aria-hidden
+            />
+          ))}
+        </div>
       ) : (
         <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {suggestions.map((s) => (
@@ -114,7 +123,12 @@ export function SmartSuggestionsPanel({
               onClick={() => handleApplySuggestion(s.preference_code)}
               disabled={state.items.length === 0}
             >
-              {nameMap.get(s.preference_code) || s.preference_code}
+              <span className="flex items-center gap-1.5">
+                {nameMap.get(s.preference_code) || s.preference_code}
+                {s.usage_count > 1 && (
+                  <span className="text-xs opacity-75">({s.usage_count}x)</span>
+                )}
+              </span>
             </CmxButton>
           ))}
         </div>

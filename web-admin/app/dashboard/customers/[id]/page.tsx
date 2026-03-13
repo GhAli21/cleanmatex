@@ -23,11 +23,12 @@ import type { CustomerWithTenantData } from '@/lib/types/customer'
 import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section'
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section'
+import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab'
 import UpgradeProfileModal from '@features/customers/ui/upgrade-profile-modal'
 import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
 
 // Tab definitions
-type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty'
+type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences'
 
 interface Tab {
   id: TabId
@@ -61,6 +62,7 @@ export default function CustomerDetailPage() {
     { id: 'profile', label: t('profile'), icon: '👤' },
     { id: 'addresses', label: t('addresses'), icon: '📍' },
     { id: 'orders', label: t('orderHistory'), icon: '📦' },
+    { id: 'preferences', label: t('preferences'), icon: '⚙️' },
     { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
   ]
 
@@ -433,6 +435,9 @@ export default function CustomerDetailPage() {
                   }
                 }}
               />
+            )}
+            {activeTab === 'preferences' && (
+              <CustomerPreferencesTab customerId={customer.id} />
             )}
             {activeTab === 'orders' && (
               <CustomerOrdersSection

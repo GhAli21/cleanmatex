@@ -13,6 +13,8 @@ import { useReadyByEstimation } from '../hooks/use-ready-by-estimation';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useAuth } from '@/lib/auth/auth-context';
 import { usePlanFlags } from '../hooks/use-plan-flags';
+import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
+import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { useOrderSubmission } from '../hooks/use-order-submission';
 import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
@@ -56,6 +58,12 @@ export function NewOrderContent() {
         currentTenant?.tenant_id || ''
     );
     const { bundlesEnabled, repeatLastOrderEnabled, smartSuggestionsEnabled } = usePlanFlags();
+    const { autoApplyCustomerPrefs } = useTenantPreferenceSettings({
+        tenantId: currentTenant?.tenant_id,
+        branchId: state.state.branchId,
+        enabled: true,
+    });
+    const { servicePrefs } = usePreferenceCatalog(state.state.branchId);
     const {
         trackItemAddition,
         trackModalOpen,
@@ -160,7 +168,7 @@ export function NewOrderContent() {
 
     // Handle add item (retail vs services: cannot mix)
     const handleAddItem = useCallback(
-        (product: Product) => {
+        async (product: Product) => {
             const isNewRetail = product.service_category_code === 'RETAIL_ITEMS' || (product as { is_retail_item?: boolean }).is_retail_item;
             const existingItems = state.state.items;
             if (existingItems.length > 0) {
@@ -177,16 +185,50 @@ export function NewOrderContent() {
                     ? product.default_express_sell_price
                     : product.default_sell_price || 0;
 
+            let resolvedServicePrefs: Array<{ preference_code: string; source: string; extra_price: number }> = [];
+            if (
+                autoApplyCustomerPrefs &&
+                state.state.customer?.id &&
+                servicePrefs.length > 0
+            ) {
+                try {
+                    const params = new URLSearchParams({
+                        customerId: state.state.customer.id,
+                        productCode: (product as { product_code?: string }).product_code ?? product.id,
+                        serviceCategoryCode: product.service_category_code ?? '',
+                    });
+                    const res = await fetch(`/api/v1/preferences/resolve?${params}`, {
+                        credentials: 'include',
+                    });
+                    const json = await res.json();
+                    if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+                        const priceMap = new Map(servicePrefs.map((s) => [s.code, s.default_extra_price ?? 0]));
+                        resolvedServicePrefs = json.data.map(
+                            (p: { preference_code: string; source: string }) => ({
+                                preference_code: p.preference_code,
+                                source: p.source || 'customer_pref',
+                                extra_price: priceMap.get(p.preference_code) ?? 0,
+                            })
+                        );
+                    }
+                } catch {
+                    // Ignore; add item without auto prefs
+                }
+            }
+
+            const servicePrefCharge = resolvedServicePrefs.reduce((sum, p) => sum + p.extra_price, 0);
             const newItem: OrderItem = {
                 productId: product.id,
                 productName: product.product_name,
                 productName2: product.product_name2,
                 quantity: 1,
                 pricePerUnit,
-                totalPrice: pricePerUnit,
+                totalPrice: pricePerUnit + servicePrefCharge,
                 defaultSellPrice: product.default_sell_price ?? null,
                 defaultExpressSellPrice: product.default_express_sell_price ?? null,
                 serviceCategoryCode: product.service_category_code || undefined,
+                servicePrefs: resolvedServicePrefs.length > 0 ? resolvedServicePrefs : undefined,
+                servicePrefCharge: resolvedServicePrefs.length > 0 ? servicePrefCharge : undefined,
                 pieces: trackByPiece
                     ? generatePiecesForItem(product.id, 1)
                     : undefined,
@@ -195,7 +237,7 @@ export function NewOrderContent() {
             state.addItem(newItem);
             trackItemAddition();
         },
-        [state, trackByPiece, trackItemAddition, t]
+        [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs]
     );
 
     // Handle remove item

@@ -1353,6 +1353,11 @@
     "lastName": "Last Name",
     "phoneVerified": "Phone Verified",
     "preferences": "Preferences",
+    "standingPreferences": "Standing Preferences",
+    "standingPreferencesDesc": "Service preferences applied by default when creating orders for this customer.",
+    "addPreference": "Add Preference",
+    "noPreferences": "No standing preferences configured.",
+    "removePreference": "Remove",
     "language": "Language",
     "folding": "Folding",
     "fragrance": "Fragrance",
@@ -2071,7 +2076,16 @@
       "confirmDeleteBundle": "Delete this bundle?",
       "cancel": "Cancel",
       "save": "Save",
-      "saving": "Saving..."
+      "saving": "Saving...",
+      "editServicePref": "Edit Service Preference",
+      "editPackingPref": "Edit Packing Preference",
+      "resetToDefault": "Reset to default",
+      "customName": "Custom Name (EN)",
+      "customNameAr": "Custom Name (AR)",
+      "extraPrice": "Extra Price",
+      "includedInBase": "Included in base price",
+      "enabled": "Enabled",
+      "systemDefault": "System default"
     }
   },
   "validation": {

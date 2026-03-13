@@ -70,6 +70,26 @@ export const preferenceBundleSchema = z.object({
   display_order: z.number().int().min(0).optional().default(0),
 });
 
+/** Upsert service preference tenant override (org_service_preference_cf) */
+export const upsertServicePreferenceCfSchema = z.object({
+  name: z.string().max(250).optional().nullable(),
+  name2: z.string().max(250).optional().nullable(),
+  extra_price: z.number().min(0).optional(),
+  is_included_in_base: z.boolean().optional(),
+  is_active: z.boolean().optional(),
+  display_order: z.number().int().min(0).optional(),
+  extra_turnaround_minutes: z.number().int().min(-120).max(120).optional().nullable(),
+});
+
+/** Upsert packing preference tenant override (org_packing_preference_cf) */
+export const upsertPackingPreferenceCfSchema = z.object({
+  name: z.string().max(250).optional().nullable(),
+  name2: z.string().max(250).optional().nullable(),
+  extra_price: z.number().min(0).optional(),
+  is_active: z.boolean().optional(),
+  display_order: z.number().int().min(0).optional(),
+});
+
 /** Resolve preferences query params */
 export const resolvePreferencesQuerySchema = z.object({
   tenant_org_id: uuidSchema,

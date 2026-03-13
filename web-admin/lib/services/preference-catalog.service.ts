@@ -288,6 +288,354 @@ export class PreferenceCatalogService {
   }
 
   /**
+   * Get service preferences for admin (sys + org overrides, includes inactive for edit view)
+   */
+  static async getServicePreferenceCfForAdmin(
+    supabase: SupabaseClient,
+    tenantId: string
+  ): Promise<
+    Array<{
+      code: string;
+      name: string | null;
+      name2: string | null;
+      preference_category: string | null;
+      default_extra_price: number;
+      extra_turnaround_minutes: number | null;
+      display_order: number;
+      sys_is_active: boolean;
+      cf_id: string | null;
+      cf_name: string | null;
+      cf_name2: string | null;
+      cf_extra_price: number | null;
+      cf_is_included_in_base: boolean | null;
+      cf_is_active: boolean | null;
+      cf_display_order: number | null;
+    }>
+  > {
+    try {
+      const { data: sysPrefs, error: sysError } = await supabase
+        .from('sys_service_preference_cd')
+        .select('code, name, name2, preference_category, default_extra_price, extra_turnaround_minutes, display_order, is_active')
+        .order('display_order', { ascending: true });
+
+      if (sysError) {
+        logger.error('Failed to fetch sys_service_preference_cd for admin', new Error(sysError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_service_preference_cf_for_admin',
+        });
+        return [];
+      }
+
+      const { data: tenantCf } = await supabase
+        .from('org_service_preference_cf')
+        .select('id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order')
+        .eq('tenant_org_id', tenantId);
+
+      const cfMap = new Map(
+        (tenantCf || []).map((c) => [c.preference_code, c])
+      );
+
+      return (sysPrefs || []).map((s) => {
+        const cf = cfMap.get(s.code);
+        return {
+          code: s.code,
+          name: s.name,
+          name2: s.name2,
+          preference_category: s.preference_category,
+          default_extra_price: Number(s.default_extra_price ?? 0),
+          extra_turnaround_minutes: s.extra_turnaround_minutes,
+          display_order: s.display_order ?? 0,
+          sys_is_active: s.is_active ?? true,
+          cf_id: cf?.id ?? null,
+          cf_name: cf?.name ?? null,
+          cf_name2: cf?.name2 ?? null,
+          cf_extra_price: cf ? Number(cf.extra_price) : null,
+          cf_is_included_in_base: cf?.is_included_in_base ?? null,
+          cf_is_active: cf?.is_active ?? null,
+          cf_display_order: cf?.display_order ?? null,
+        };
+      });
+    } catch (err) {
+      logger.error('PreferenceCatalogService.getServicePreferenceCfForAdmin failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get packing preferences for admin (sys + org overrides)
+   */
+  static async getPackingPreferenceCfForAdmin(
+    supabase: SupabaseClient,
+    tenantId: string
+  ): Promise<
+    Array<{
+      code: string;
+      name: string | null;
+      name2: string | null;
+      maps_to_packaging_type: string | null;
+      display_order: number;
+      sys_is_active: boolean;
+      cf_id: string | null;
+      cf_name: string | null;
+      cf_name2: string | null;
+      cf_extra_price: number | null;
+      cf_is_active: boolean | null;
+      cf_display_order: number | null;
+    }>
+  > {
+    try {
+      const { data: sysPrefs, error: sysError } = await supabase
+        .from('sys_packing_preference_cd')
+        .select('code, name, name2, maps_to_packaging_type, display_order, is_active')
+        .order('display_order', { ascending: true });
+
+      if (sysError) {
+        logger.error('Failed to fetch sys_packing_preference_cd for admin', new Error(sysError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_packing_preference_cf_for_admin',
+        });
+        return [];
+      }
+
+      const { data: tenantCf } = await supabase
+        .from('org_packing_preference_cf')
+        .select('id, packing_pref_code, name, name2, extra_price, is_active, display_order')
+        .eq('tenant_org_id', tenantId);
+
+      const cfMap = new Map(
+        (tenantCf || []).map((c) => [c.packing_pref_code, c])
+      );
+
+      return (sysPrefs || []).map((s) => {
+        const cf = cfMap.get(s.code);
+        return {
+          code: s.code,
+          name: s.name,
+          name2: s.name2,
+          maps_to_packaging_type: s.maps_to_packaging_type,
+          display_order: s.display_order ?? 0,
+          sys_is_active: s.is_active ?? true,
+          cf_id: cf?.id ?? null,
+          cf_name: cf?.name ?? null,
+          cf_name2: cf?.name2 ?? null,
+          cf_extra_price: cf ? Number(cf.extra_price) : null,
+          cf_is_active: cf?.is_active ?? null,
+          cf_display_order: cf?.display_order ?? null,
+        };
+      });
+    } catch (err) {
+      logger.error('PreferenceCatalogService.getPackingPreferenceCfForAdmin failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Upsert org_service_preference_cf (tenant override)
+   */
+  static async upsertServicePreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    preferenceCode: string,
+    input: {
+      name?: string | null;
+      name2?: string | null;
+      extra_price?: number;
+      is_included_in_base?: boolean;
+      is_active?: boolean;
+      display_order?: number;
+      extra_turnaround_minutes?: number | null;
+    },
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const now = new Date().toISOString();
+      const payload = {
+        tenant_org_id: tenantId,
+        preference_code: preferenceCode,
+        name: input.name ?? null,
+        name2: input.name2 ?? null,
+        extra_price: input.extra_price ?? 0,
+        is_included_in_base: input.is_included_in_base ?? false,
+        is_active: input.is_active ?? true,
+        display_order: input.display_order ?? 0,
+        extra_turnaround_minutes: input.extra_turnaround_minutes ?? null,
+        created_by: userId,
+        created_info: userName,
+        updated_at: now,
+        updated_by: userId,
+        updated_info: userName,
+      };
+
+      const { error } = await supabase
+        .from('org_service_preference_cf')
+        .upsert(payload, {
+          onConflict: 'tenant_org_id,preference_code',
+          ignoreDuplicates: false,
+        });
+
+      if (error) {
+        if (error.code === '23503') {
+          return { success: false, error: 'Invalid preference code' };
+        }
+        logger.error('Failed to upsert org_service_preference_cf', new Error(error.message), {
+          tenantId,
+          preferenceCode,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.upsertServicePreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        preferenceCode,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to save service preference' };
+    }
+  }
+
+  /**
+   * Upsert org_packing_preference_cf (tenant override)
+   */
+  static async upsertPackingPreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    packingPrefCode: string,
+    input: {
+      name?: string | null;
+      name2?: string | null;
+      extra_price?: number;
+      is_active?: boolean;
+      display_order?: number;
+    },
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const now = new Date().toISOString();
+      const payload = {
+        tenant_org_id: tenantId,
+        packing_pref_code: packingPrefCode,
+        name: input.name ?? null,
+        name2: input.name2 ?? null,
+        extra_price: input.extra_price ?? 0,
+        is_active: input.is_active ?? true,
+        display_order: input.display_order ?? 0,
+        created_by: userId,
+        created_info: userName,
+        updated_at: now,
+        updated_by: userId,
+        updated_info: userName,
+      };
+
+      const { error } = await supabase
+        .from('org_packing_preference_cf')
+        .upsert(payload, {
+          onConflict: 'tenant_org_id,packing_pref_code',
+          ignoreDuplicates: false,
+        });
+
+      if (error) {
+        if (error.code === '23503') {
+          return { success: false, error: 'Invalid packing preference code' };
+        }
+        logger.error('Failed to upsert org_packing_preference_cf', new Error(error.message), {
+          tenantId,
+          packingPrefCode,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.upsertPackingPreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        packingPrefCode,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to save packing preference' };
+    }
+  }
+
+  /**
+   * Delete org_service_preference_cf (reset to system default)
+   */
+  static async deleteServicePreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    preferenceCode: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('org_service_preference_cf')
+        .delete()
+        .eq('tenant_org_id', tenantId)
+        .eq('preference_code', preferenceCode);
+
+      if (error) {
+        logger.error('Failed to delete org_service_preference_cf', new Error(error.message), {
+          tenantId,
+          preferenceCode,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.deleteServicePreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        preferenceCode,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to reset service preference' };
+    }
+  }
+
+  /**
+   * Delete org_packing_preference_cf (reset to system default)
+   */
+  static async deletePackingPreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    packingPrefCode: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase
+        .from('org_packing_preference_cf')
+        .delete()
+        .eq('tenant_org_id', tenantId)
+        .eq('packing_pref_code', packingPrefCode);
+
+      if (error) {
+        logger.error('Failed to delete org_packing_preference_cf', new Error(error.message), {
+          tenantId,
+          packingPrefCode,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.deletePackingPreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        packingPrefCode,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to reset packing preference' };
+    }
+  }
+
+  /**
    * Delete (soft: is_active=false) or hard delete preference bundle
    */
   static async deletePreferenceBundle(

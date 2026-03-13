@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.2.0
+last_updated: 2026-03-13
 author: CleanMateX Team
 ---
 
@@ -32,14 +32,15 @@ author: CleanMateX Team
 | 2026-03-12 | Permissions | orders:service_prefs_view, orders:service_prefs_edit, config:preferences_manage, customers:preferences_manage |
 | 2026-03-12 | i18n | newOrder.preferences.*, catalog.preferences.*, processing.modal.* |
 | 2026-03-12 | Unit tests | order-item-helpers (servicePrefCharge), service-preferences-schemas |
+| 2026-03-13 | Tenant config CRUD | org_service_preference_cf, org_packing_preference_cf admin APIs and Edit dialogs |
+| 2026-03-13 | Customer prefs tab | Preferences tab in customer detail with add/remove standing prefs |
+| 2026-03-13 | Auto-apply customer prefs | SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS in new order and custom item flow |
+| 2026-03-13 | SmartSuggestionsPanel | Loading skeleton, RTL, data-testid, usage_count badge |
+| 2026-03-13 | E2E tests | preferences.spec.ts for catalog, new order, customer prefs tab |
 
 ## Outstanding Items
 
-| Item | Priority | Notes |
-|------|----------|-------|
-| Smart suggestions panel | Low | Growth+; UI exists, may need refinement |
-| Customer prefs tab in customer detail | Medium | API exists; UI tab to be added |
-| E2E tests for preference flows | Low | Manual testing done; automated E2E optional |
+None. All planned items completed.
 
 ## Progress Metrics
 
@@ -51,5 +52,5 @@ author: CleanMateX Team
 - **Per-piece UI:** 100%
 - **Receipt/ready-by:** 100%
 - **Assembly:** 100%
-- **Admin catalog:** 100%
-- **Documentation:** 95%
+- **Admin catalog:** 100% (incl. tenant config edit)
+- **Documentation:** 100%

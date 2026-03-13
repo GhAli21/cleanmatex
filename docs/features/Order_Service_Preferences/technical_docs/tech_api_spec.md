@@ -11,7 +11,13 @@ author: CleanMateX Team
 | Method | Endpoint | Purpose |
 |--------|----------|---------|
 | GET | /api/v1/catalog/service-preferences | Fetch service prefs with tenant overrides |
+| GET | /api/v1/catalog/service-preferences/admin | Fetch service prefs for admin edit (config:preferences_manage) |
+| PUT | /api/v1/catalog/service-preferences/[code] | Upsert tenant override for service pref |
+| DELETE | /api/v1/catalog/service-preferences/[code] | Reset service pref to system default |
 | GET | /api/v1/catalog/packing-preferences | Fetch packing prefs |
+| GET | /api/v1/catalog/packing-preferences/admin | Fetch packing prefs for admin edit |
+| PUT | /api/v1/catalog/packing-preferences/[code] | Upsert tenant override for packing pref |
+| DELETE | /api/v1/catalog/packing-preferences/[code] | Reset packing pref to system default |
 | GET | /api/v1/catalog/preference-bundles | Fetch Care packages (?includeInactive=true for admin) |
 | POST | /api/v1/catalog/preference-bundles | Create bundle (requires config:preferences_manage) |
 | PATCH | /api/v1/catalog/preference-bundles/[id] | Update bundle |

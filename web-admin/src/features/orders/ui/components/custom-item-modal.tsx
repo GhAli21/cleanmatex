@@ -39,7 +39,7 @@ type CustomItemFormData = z.infer<typeof customItemSchema>;
 interface CustomItemModalProps {
   open: boolean;
   onClose: () => void;
-  onAdd: (item: OrderItem) => void;
+  onAdd: (item: OrderItem) => void | Promise<void>;
   trackByPiece?: boolean;
   /**
    * Service category to associate with the custom item / product.
@@ -243,7 +243,7 @@ export function CustomItemModal({
         : undefined,
     };
 
-    onAdd(customItem);
+    await onAdd(customItem);
     handleClose();
     setIsSubmitting(false);
   };
