@@ -61,9 +61,9 @@ export async function POST(request: NextRequest) {
     const body: CustomerCreateRequest = await request.json();
 
     // 3. Validate required fields based on type
-    if (!body.type || !['guest', 'stub', 'full'].includes(body.type)) {
+    if (!body.type || !['guest', 'stub', 'full', 'b2b'].includes(body.type)) {
       return NextResponse.json(
-        { error: 'Invalid customer type. Must be: guest, stub, or full' },
+        { error: 'Invalid customer type. Must be: guest, stub, full, or b2b' },
         { status: 400 }
       );
     }
@@ -76,6 +76,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Type-specific validation
+    if (body.type === 'b2b') {
+      if (!('phone' in body) || !body.phone) {
+        return NextResponse.json(
+          { error: 'phone is required for B2B customer' },
+          { status: 400 }
+        );
+      }
+      if (!('companyName' in body) || !body.companyName?.trim()) {
+        return NextResponse.json(
+          { error: 'companyName is required for B2B customer' },
+          { status: 400 }
+        );
+      }
+    }
     if (body.type === 'stub' || body.type === 'full') {
       if (!('phone' in body) || !body.phone) {
         return NextResponse.json(

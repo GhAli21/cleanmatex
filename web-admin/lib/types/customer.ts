@@ -7,7 +7,7 @@
 // ENUMS & CONSTANTS
 // ==================================================================
 
-export type CustomerType = 'guest' | 'stub' | 'walk_in' | 'full';
+export type CustomerType = 'guest' | 'stub' | 'walk_in' | 'full' | 'b2b';
 export type ProfileStatus = 0 | 1 | 2 | 3;
 export type isActive = true | false;
 export type AddressType = 'home' | 'work' | 'other';
@@ -70,6 +70,14 @@ export interface Customer {
 
   // Tenant Reference
   firstTenantOrgId: string | null;
+
+  // B2B fields (when type = 'b2b')
+  companyName?: string | null;
+  companyName2?: string | null;
+  taxId?: string | null;
+  creditLimit?: number | null;
+  paymentTermsDays?: number | null;
+  costCenterCode?: string | null;
 
   // Timestamps
   createdAt: string;
@@ -209,12 +217,37 @@ export interface CreateFullCustomerRequest {
 }
 
 /**
+ * Create B2B Customer (company fields required)
+ */
+export interface CreateB2BCustomerRequest {
+  type: 'b2b';
+  firstName: string;
+  lastName?: string;
+  displayName?: string;
+  name?: string;
+  name2?: string;
+  phone: string;
+  email?: string;
+  companyName: string;
+  companyName2?: string;
+  taxId?: string;
+  creditLimit?: number;
+  paymentTermsDays?: number;
+  costCenterCode?: string;
+  address?: string;
+  area?: string;
+  building?: string;
+  floor?: string;
+}
+
+/**
  * Union type for all customer creation requests
  */
 export type CustomerCreateRequest =
   | CreateGuestCustomerRequest
   | CreateStubCustomerRequest
-  | CreateFullCustomerRequest;
+  | CreateFullCustomerRequest
+  | CreateB2BCustomerRequest;
 
 /**
  * Update Customer Profile
@@ -231,6 +264,13 @@ export interface CustomerUpdateRequest {
   building?: string;
   floor?: string;
   preferences?: CustomerPreferences;
+  // B2B fields
+  companyName?: string;
+  companyName2?: string;
+  taxId?: string;
+  creditLimit?: number;
+  paymentTermsDays?: number;
+  costCenterCode?: string;
 }
 
 /**
@@ -477,6 +517,7 @@ export interface CustomerStatistics {
     guest: number;
     stub: number;
     full: number;
+    b2b?: number;
   };
   newThisMonth: number;
   active: number;

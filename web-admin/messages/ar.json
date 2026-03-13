@@ -1407,7 +1407,8 @@
       "guest": "زائر",
       "stub": "جزئي",
       "walk_in": "وافد",
-      "full": "ملف كامل"
+      "full": "ملف كامل",
+      "b2b": "B2B"
     },
     "upgradeToFull": "ترقية إلى ملف كامل",
     "upgradeProfile": {
@@ -3321,5 +3322,36 @@
       "quantityRequired": "الكمية يجب أن تكون أكبر من صفر",
       "reasonRequired": "السبب مطلوب"
     }
+  },
+  "b2b": {
+    "customers": "عملاء B2B",
+    "contracts": "العقود",
+    "statements": "كشوف الحساب",
+    "noCustomers": "لا يوجد عملاء B2B بعد. أنشئ واحداً للبدء.",
+    "goToCustomers": "الذهاب إلى العملاء",
+    "company": "الشركة",
+    "phone": "الهاتف",
+    "creditLimit": "حد الائتمان",
+    "actions": "الإجراءات",
+    "view": "عرض",
+    "companyName": "اسم الشركة",
+    "taxId": "الرقم الضريبي",
+    "paymentTermsDays": "شروط الدفع (أيام)",
+    "costCenterCode": "رمز مركز التكلفة",
+    "addContact": "إضافة جهة اتصال",
+    "editContact": "تعديل جهة الاتصال",
+    "primaryContact": "جهة الاتصال الرئيسية",
+    "contractNo": "رقم العقد",
+    "effectiveFrom": "ساري من",
+    "effectiveTo": "ساري حتى",
+    "statementNo": "رقم كشف الحساب",
+    "periodFrom": "الفترة من",
+    "periodTo": "الفترة إلى",
+    "dueDate": "تاريخ الاستحقاق",
+    "totalAmount": "المبلغ الإجمالي",
+    "paidAmount": "المبلغ المدفوع",
+    "balanceAmount": "الرصيد",
+    "generateStatement": "إنشاء كشف حساب",
+    "recordPayment": "تسجيل الدفع"
   }
 }

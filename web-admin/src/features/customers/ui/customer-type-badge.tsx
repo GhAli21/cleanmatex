@@ -36,6 +36,7 @@ export default function CustomerTypeBadge({
       stub: 'bg-yellow-100 text-yellow-800',
       full: 'bg-green-100 text-green-800',
       walk_in: 'bg-blue-100 text-blue-800',
+      b2b: 'bg-purple-100 text-purple-800',
     }
 
     return `${baseStyles} ${sizeStyles[size]} ${typeStyles[type] ?? typeStyles.guest}`
@@ -79,6 +80,7 @@ export default function CustomerTypeBadge({
       stub: t('stub'),
       full: t('full'),
       walk_in: t('walk_in'),
+      b2b: t('b2b'),
     }
     return labels[type] ?? type
   }

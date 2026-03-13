@@ -146,6 +146,7 @@ export default function CustomerDetailPage() {
       stub: { color: 'bg-blue-100 text-blue-800', label: t('types.stub') },
       full: { color: 'bg-green-100 text-green-800', label: t('types.full') },
       walk_in: { color: 'bg-blue-100 text-blue-800', label: t('types.walk_in') },
+      b2b: { color: 'bg-purple-100 text-purple-800', label: t('types.b2b') },
     }
     return badges[type as keyof typeof badges] || badges.guest
   }

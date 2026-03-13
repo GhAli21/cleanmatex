@@ -63,6 +63,12 @@ function mapFromOrgRow(row: Record<string, unknown>, tenantId: string): Customer
     building: (row.building as string) ?? null,
     floor: (row.floor as string) ?? null,
     firstTenantOrgId: tenantId,
+    companyName: (row.company_name as string) ?? null,
+    companyName2: (row.company_name2 as string) ?? null,
+    taxId: (row.tax_id as string) ?? null,
+    creditLimit: row.credit_limit != null ? Number(row.credit_limit) : null,
+    paymentTermsDays: row.payment_terms_days != null ? Number(row.payment_terms_days) : null,
+    costCenterCode: (row.cost_center_code as string) ?? null,
     createdAt: (row.created_at as string) ?? new Date().toISOString(),
     updatedAt: (row.updated_at as string) ?? (row.created_at as string) ?? new Date().toISOString(),
   };
@@ -228,27 +234,43 @@ export async function createCustomer(
   }
 
   if (!useSysCustomers()) {
-    const displayName = request.displayName ?? `${request.firstName} ${('lastName' in request && request.lastName) || ''}`.trim();
+    const displayName =
+      request.type === 'b2b' && 'companyName' in request
+        ? request.companyName
+        : request.displayName ?? `${request.firstName} ${('lastName' in request && request.lastName) || ''}`.trim();
     const name = request.name ?? displayName;
+    const insertPayload: Record<string, unknown> = {
+      tenant_org_id: tenantId,
+      customer_id: null,
+      first_name: request.firstName,
+      last_name: 'lastName' in request ? request.lastName : null,
+      name,
+      name2: request.name2 ?? null,
+      display_name: displayName,
+      phone: normalizedPhone,
+      email: 'email' in request ? request.email : null,
+      type: request.type ?? 'walk_in',
+      loyalty_points: 0,
+      is_active: true,
+      created_at: new Date().toISOString(),
+      created_by: curUserId,
+      customer_source_type: 'DIRECT',
+    };
+    if (request.type === 'b2b' && 'companyName' in request) {
+      insertPayload.company_name = request.companyName;
+      insertPayload.company_name2 = request.companyName2 ?? null;
+      insertPayload.tax_id = request.taxId ?? null;
+      insertPayload.credit_limit = request.creditLimit ?? null;
+      insertPayload.payment_terms_days = request.paymentTermsDays ?? null;
+      insertPayload.cost_center_code = request.costCenterCode ?? null;
+      insertPayload.address = request.address ?? null;
+      insertPayload.area = request.area ?? null;
+      insertPayload.building = request.building ?? null;
+      insertPayload.floor = request.floor ?? null;
+    }
     const { data: orgRow, error: orgError } = await supabase
       .from('org_customers_mst')
-      .insert({
-        tenant_org_id: tenantId,
-        customer_id: null,
-        first_name: request.firstName,
-        last_name: 'lastName' in request ? request.lastName : null,
-        name,
-        name2: request.name2 ?? null,
-        display_name: displayName,
-        phone: normalizedPhone,
-        email: 'email' in request ? request.email : null,
-        type: request.type ?? 'walk_in',
-        loyalty_points: 0,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        created_by: curUserId,
-        customer_source_type: 'DIRECT',
-      })
+      .insert(insertPayload)
       .select()
       .single();
     if (orgError) {

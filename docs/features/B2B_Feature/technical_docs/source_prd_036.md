@@ -1,11 +1,9 @@
 # B2B Contracts & Corporate - Development Plan & PRD
 
-**MOVED**: This document has been moved to `docs/features/B2B_Feature/technical_docs/source_prd_036.md`. See the B2B_Feature folder for current implementation plan.
-
----
-
 **Document ID**: 036 | **Version**: 1.0 | **Dependencies**: 021, 024  
 **FR-B2B-001, FR-B2B-002, UC14**
+
+*Moved from docs/plan_cr/036_b2b_contracts_corporate_dev_prd.md. See B2B_Feature plan for current implementation (org_customers_mst-centric model).*
 
 ## Overview
 
@@ -22,7 +20,9 @@ Implement corporate customer management, contract agreements, consolidated billi
 - Cost center tracking
 - Statement generation
 
-## Database
+## Database (Original Design — Superseded by B2B_Feature Plan)
+
+*Note: Current plan uses org_customers_mst with type='b2b' + B2B columns, and org_b2b_contacts_dtl for multi-contact. See tech_data_model.md.*
 
 ```sql
 CREATE TABLE org_corporate_customers (

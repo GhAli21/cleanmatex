@@ -1407,7 +1407,8 @@
       "guest": "Guest",
       "stub": "Stub",
       "walk_in": "Walk-in",
-      "full": "Full Profile"
+      "full": "Full Profile",
+      "b2b": "B2B"
     },
     "upgradeToFull": "Upgrade to Full",
     "upgradeProfile": {
@@ -3321,5 +3322,36 @@
       "quantityRequired": "Quantity must be greater than 0",
       "reasonRequired": "Reason is required"
     }
+  },
+  "b2b": {
+    "customers": "B2B Customers",
+    "contracts": "Contracts",
+    "statements": "Statements",
+    "noCustomers": "No B2B customers yet. Create one to get started.",
+    "goToCustomers": "Go to Customers",
+    "company": "Company",
+    "phone": "Phone",
+    "creditLimit": "Credit Limit",
+    "actions": "Actions",
+    "view": "View",
+    "companyName": "Company Name",
+    "taxId": "Tax ID",
+    "paymentTermsDays": "Payment Terms (Days)",
+    "costCenterCode": "Cost Center Code",
+    "addContact": "Add Contact",
+    "editContact": "Edit Contact",
+    "primaryContact": "Primary Contact",
+    "contractNo": "Contract No",
+    "effectiveFrom": "Effective From",
+    "effectiveTo": "Effective To",
+    "statementNo": "Statement No",
+    "periodFrom": "Period From",
+    "periodTo": "Period To",
+    "dueDate": "Due Date",
+    "totalAmount": "Total Amount",
+    "paidAmount": "Paid Amount",
+    "balanceAmount": "Balance Amount",
+    "generateStatement": "Generate Statement",
+    "recordPayment": "Record Payment"
   }
 }

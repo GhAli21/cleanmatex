@@ -25,7 +25,9 @@ import {
   Settings2,
   CheckCircle,
   CircleCheck,
-  Bug
+  Bug,
+  Building2,
+  FileText
 } from 'lucide-react'
 
 export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer'
@@ -192,6 +194,41 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Users,
     path: '/dashboard/customers',
     roles: ['admin', 'operator'],
+  },
+  {
+    key: 'b2b',
+    label: 'B2B',
+    icon: Building2,
+    path: '/dashboard/b2b/customers',
+    roles: ['admin', 'super_admin', 'tenant_admin'],
+    permissions: ['b2b_customers:view'],
+    featureFlag: 'b2b_contracts',
+    children: [
+      {
+        key: 'b2b_customers',
+        label: 'B2B Customers',
+        path: '/dashboard/b2b/customers',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['b2b_customers:view'],
+        featureFlag: 'b2b_contracts',
+      },
+      {
+        key: 'b2b_contracts',
+        label: 'Contracts',
+        path: '/dashboard/b2b/contracts',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['b2b_contracts:view'],
+        featureFlag: 'b2b_contracts',
+      },
+      {
+        key: 'b2b_statements',
+        label: 'Statements',
+        path: '/dashboard/b2b/statements',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['b2b_statements:view'],
+        featureFlag: 'b2b_contracts',
+      },
+    ],
   },
   {
     key: 'catalog',
