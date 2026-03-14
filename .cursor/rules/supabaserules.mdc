@@ -252,6 +252,7 @@ COMMIT;
 
 ### Migration Rules
 
+0. don't do db reset or apply migration, you have to inform the user to do it by himself
 1. **One logical change per migration** - Don't mix unrelated changes
 2. **Use transactions** - Wrap migrations in BEGIN/COMMIT
 3. **Test locally first** - Always test migrations before applying

@@ -1,6 +1,7 @@
 /**
  * PRD-002: Feature Flag Service
- * Manages feature access based on subscription plans and tenant-specific overrides
+ * Manages feature access via HQ system (hq_ff_feature_flags_mst + sys_ff_pln_flag_mappings_dtl + org_ff_overrides_cf)
+ * Uses hq_ff_get_effective_values_batch RPC as single source of truth.
  */
 
 import { createClient } from '@/lib/supabase/server';
@@ -9,8 +10,9 @@ import {
   type FeatureFlagKey,
   FEATURE_FLAG_KEYS,
   DEFAULT_FEATURE_FLAGS,
+  ALL_FLAG_KEYS,
+  FLAG_CATALOG,
 } from '@/lib/constants/feature-flags';
-import { getTenant } from './tenants.service';
 import { getPlan } from './subscriptions.service';
 
 export type { FeatureFlagKey };
@@ -24,7 +26,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // Feature Flag Types
 // ========================
 
-export const FEATURE_FLAGS: Record<FeatureFlagKey, { name: string; description: string }> = {
+export const FEATURE_FLAGS: Partial<Record<FeatureFlagKey, { name: string; description: string }>> = {
   pdf_invoices: {
     name: 'PDF Invoices',
     description: 'Generate and download PDF invoices',
@@ -80,59 +82,63 @@ export const FEATURE_FLAGS: Record<FeatureFlagKey, { name: string; description: 
 // ========================
 
 /**
- * Get feature flags for a tenant
- * Checks cache first, then database
+ * Coerce RPC JSONB value to FeatureFlags-compatible type
+ */
+function coerceFlagValue(
+  value: unknown,
+  flagKey: string
+): boolean | number | string | Record<string, unknown> {
+  if (value === undefined || value === null) return false;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value !== null) return value as Record<string, unknown>;
+  return Boolean(value);
+}
+
+/**
+ * Get feature flags for a tenant via HQ batch RPC
+ * Resolution: override (org_ff_overrides_cf) > plan_specific > plan > default
  * @param tenantId - Tenant ID
  * @returns Feature flags object
  */
 export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
-  // Check cache
   const cached = featureFlagCache.get(tenantId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log('Jh In getFeatureFlags() [ 1 ] : cached.flags', cached.flags);
     return cached.flags;
   }
 
   try {
-    // Fetch from database
-    const tenant = await getTenant(tenantId);
-    
-    if (tenant.feature_flags) {
-      // Cache and return custom feature flags
-      console.log('Jh In getFeatureFlags() [ 2 ] : tenant.feature_flags', tenant.feature_flags);
-      featureFlagCache.set(tenantId, {
-        flags: tenant.feature_flags,
-        timestamp: Date.now(),
-      });
-      return tenant.feature_flags;
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc('hq_ff_get_effective_values_batch', {
+      p_tenant_id: tenantId,
+      p_flag_keys: ALL_FLAG_KEYS,
+    });
+
+    if (error) {
+      console.error(`[FeatureFlags] hq_ff_get_effective_values_batch error for tenant ${tenantId}:`, error);
+      return DEFAULT_FEATURE_FLAGS as unknown as FeatureFlags;
     }
 
-    // If no custom feature flags, get from plan
-    // Handle both s_current_plan (correct) and s_cureent_plan (typo) for backward compatibility
-    const planCode = (tenant as any).s_current_plan || tenant.s_cureent_plan || 'FREE_TRIAL'
-    console.log('Jh In getFeatureFlags() [ 3 ] : planCode', planCode);
-    try {
-      const plan = await getPlan(planCode);
-      console.log('Jh In getFeatureFlags() [ 4 ] : plan', plan);
-      const flags = plan.feature_flags;
-      console.log('Jh In getFeatureFlags() [ 6 ] : flags length', Object.keys(flags).length);
-      console.log('Jh In getFeatureFlags() [ 5 ] : flags', flags);
-      // Cache and return plan feature flags
-      featureFlagCache.set(tenantId, {
-        flags,
-        timestamp: Date.now(),
-      });
-      console.log('Jh In getFeatureFlags() [ 7 ] : featureFlagCache size', featureFlagCache.size);
-      return flags;
-    } catch (planError) {
-      console.error(`Error fetching plan( ${planCode} ) for tenant( ${tenantId} ):`, planError);
-      // Return default feature flags (all false) if plan lookup fails
-      return DEFAULT_FEATURE_FLAGS as FeatureFlags;
-    }
-  } catch (error) {
-    console.error(`Error fetching feature flags for tenant ${tenantId}:`, error);
-    // Return default feature flags (all false) on error
-    return DEFAULT_FEATURE_FLAGS as FeatureFlags;
+    const rpcResult = (data as Record<string, unknown>) ?? {};
+    const merged: Record<string, unknown> = { ...DEFAULT_FEATURE_FLAGS, ...rpcResult };
+
+    const flags = Object.fromEntries(
+      Object.entries(merged).map(([key, val]) => [
+        key,
+        coerceFlagValue(val, key),
+      ])
+    ) as FeatureFlags;
+
+    featureFlagCache.set(tenantId, {
+      flags,
+      timestamp: Date.now(),
+    });
+
+    return flags;
+  } catch (err) {
+    console.error(`Error fetching feature flags for tenant ${tenantId}:`, err);
+    return DEFAULT_FEATURE_FLAGS as unknown as FeatureFlags;
   }
 }
 
@@ -226,8 +232,9 @@ export async function requireFeature(
 
   if (!hasAccess) {
     const featureMeta = FEATURE_FLAGS[feature];
+    const name = featureMeta?.name ?? feature;
     throw new Error(
-      `Access denied: "${featureMeta.name}" feature is not enabled for your plan. Please upgrade to access this feature.`
+      `Access denied: "${name}" feature is not enabled for your plan. Please upgrade to access this feature.`
     );
   }
 }
@@ -238,7 +245,7 @@ export async function requireFeature(
 
 /**
  * Update feature flags for a tenant (admin override)
- * This allows admins to enable/disable specific features
+ * Writes to org_ff_overrides_cf; HQ RPC picks these up with highest priority
  * @param tenantId - Tenant ID
  * @param flags - Partial feature flags to update
  * @returns Updated feature flags
@@ -248,65 +255,72 @@ export async function updateFeatureFlags(
   flags: Partial<FeatureFlags>
 ): Promise<FeatureFlags> {
   const supabase = await createClient();
+  const catalogByKey = Object.fromEntries(FLAG_CATALOG.map((e) => [e.flag_key, e]));
+  const flagKeys = Object.keys(flags).filter((k) => catalogByKey[k]);
 
-  // Get current flags
-  const currentFlags = await getFeatureFlags(tenantId);
+  if (flagKeys.length === 0) {
+    return getFeatureFlags(tenantId);
+  }
 
-  // Merge with new flags
-  const updatedFlags = { ...currentFlags, ...flags };
+  const { error: deleteError } = await supabase
+    .from('org_ff_overrides_cf')
+    .delete()
+    .eq('tenant_org_id', tenantId)
+    .in('flag_key', flagKeys);
 
-  // Update in database
-  const { error } = await supabase
-    .from('org_tenants_mst')
-    .update({
-      feature_flags: updatedFlags,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', tenantId);
-
-  if (error) {
-    console.error('Error updating feature flags:', error);
+  if (deleteError) {
+    console.error('Error clearing feature flag overrides:', deleteError);
     throw new Error('Failed to update feature flags');
   }
 
-  // Invalidate cache
-  featureFlagCache.delete(tenantId);
+  const rows = flagKeys.map((flagKey) => {
+    const entry = catalogByKey[flagKey]!;
+    const value = flags[flagKey as FeatureFlagKey];
+    return {
+      tenant_org_id: tenantId,
+      flag_key: flagKey,
+      override_value: value,
+      data_type: entry.data_type,
+      approval_status: 'approved',
+      is_active: true,
+      override_type: 'manual',
+    };
+  });
 
-  return updatedFlags;
+  const { error: insertError } = await supabase
+    .from('org_ff_overrides_cf')
+    .insert(rows);
+
+  if (insertError) {
+    console.error('Error inserting feature flag overrides:', insertError);
+    throw new Error('Failed to update feature flags');
+  }
+
+  featureFlagCache.delete(tenantId);
+  return getFeatureFlags(tenantId);
 }
 
 /**
  * Reset feature flags to plan defaults
- * Removes any custom overrides
+ * Removes tenant overrides from org_ff_overrides_cf
  * @param tenantId - Tenant ID
- * @returns Plan default feature flags
+ * @returns Plan default feature flags (from HQ resolution)
  */
 export async function resetToDefaults(tenantId: string): Promise<FeatureFlags> {
   const supabase = await createClient();
 
-  const tenant = await getTenant(tenantId);
-  // Note: Using s_current_plan (correct spelling) from database schema
-  const planCode = (tenant as any).s_current_plan || tenant.s_cureent_plan || 'FREE_TRIAL'
-  const plan = await getPlan(planCode);
-
-  // Set feature flags to plan defaults
   const { error } = await supabase
-    .from('org_tenants_mst')
-    .update({
-      feature_flags: plan.feature_flags as any,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', tenantId);
+    .from('org_ff_overrides_cf')
+    .delete()
+    .eq('tenant_org_id', tenantId);
 
   if (error) {
     console.error('Error resetting feature flags:', error);
     throw new Error('Failed to reset feature flags');
   }
 
-  // Invalidate cache
   featureFlagCache.delete(tenantId);
-
-  return plan.feature_flags;
+  return getFeatureFlags(tenantId);
 }
 
 // ========================

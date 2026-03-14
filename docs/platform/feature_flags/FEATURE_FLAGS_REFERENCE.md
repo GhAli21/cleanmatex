@@ -90,7 +90,9 @@ Plan-specific values (e.g., max prefs per item):
 
 ## Resolution
 
-For plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`), use `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` RPC. The service layer is in `web-admin/lib/services/plan-flags.service.ts`. See [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md).
+**Primary (all flags):** Use `hq_ff_get_effective_values_batch(p_tenant_id, p_flag_keys)` RPC to resolve all feature flags in one call. The service layer is in `web-admin/lib/services/feature-flags.service.ts`. Pass `p_flag_keys` as an array of flag keys, or `NULL` for all active flags.
+
+**Single flag:** For plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`), use `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` RPC. The service layer is in `web-admin/lib/services/plan-flags.service.ts`. See [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md).
 
 ## See Also
 
