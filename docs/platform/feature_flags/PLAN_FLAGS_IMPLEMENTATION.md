@@ -1,16 +1,18 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.1.0
+last_updated: 2026-03-15
 author: CleanMateX Team
 ---
 
 # Plan Flags Implementation Guide
 
-Implementation guide for plan-bound feature flags (bundles_enabled, repeat_last_order, smart_suggestions) used in the new order Items Details tab.
+Implementation guide for plan-bound feature flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`) used in the new order Items Details tab.
 
 ## Overview
 
 These flags are resolved via `hq_ff_get_effective_value` RPC from `hq_ff_feature_flags_mst` and `sys_ff_pln_flag_mappings_dtl`. They are separate from tenant settings (`sys_tenant_settings_cd`).
+
+**Note:** For all-flag resolution (e.g. navigation, gating), use `feature-flags.service.ts` → `getFeatureFlags()` which calls `hq_ff_get_effective_values_batch`. This service is for the three plan-bound flags used in the new order UI.
 
 ## Components
 
@@ -70,10 +72,10 @@ These flags are resolved via `hq_ff_get_effective_value` RPC from `hq_ff_feature
 
 ## Migration
 
-Ensure migration 0140 is applied so `bundles_enabled`, `repeat_last_order`, `smart_suggestions` exist in `hq_ff_feature_flags_mst` and `sys_ff_pln_flag_mappings_dtl`.
+Ensure migrations 0062, 0066, 0067, 0140 are applied so `bundles_enabled`, `repeat_last_order`, `smart_suggestions` exist in `hq_ff_feature_flags_mst` and `sys_ff_pln_flag_mappings_dtl`.
 
 ## See Also
 
-- [FEATURE_FLAGS_REFERENCE](FEATURE_FLAGS_REFERENCE.md)
+- [FEATURE_FLAGS_REFERENCE](FEATURE_FLAGS_REFERENCE.md) — RPCs, resolution order, full catalog
 - [FEATURE_FLAGS_USAGE](FEATURE_FLAGS_USAGE.md)
 - [TENANT_AND_PLAN_FLAGS](TENANT_AND_PLAN_FLAGS.md)

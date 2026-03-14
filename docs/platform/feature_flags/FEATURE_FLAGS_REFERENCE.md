@@ -1,22 +1,30 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.1.0
+last_updated: 2026-03-15
 author: CleanMateX Team
 ---
 
 # Feature Flags Reference
 
-Global feature flag definitions and plan mappings.
+Global feature flag definitions and plan mappings. **All flag resolution uses the HQ system** via RPCs.
 
-**Source:** `hq_ff_feature_flags_mst`, `sys_ff_pln_flag_mappings_dtl`, migrations 0062, 0066, 0067, 0140
+**Source:** `hq_ff_feature_flags_mst`, `sys_ff_pln_flag_mappings_dtl`, `org_ff_overrides_cf` — migrations 0062, 0066, 0067, 0140, 0158, 0159
 
 ## Tables
 
 | Table | Purpose |
 |------|---------|
-| hq_ff_feature_flags_mst | Global flag definitions |
+| hq_ff_feature_flags_mst | Global flag definitions (catalog) |
 | sys_ff_pln_flag_mappings_dtl | Plan-flag relationships with plan-specific values |
-| org_ff_overrides_cf | Tenant-specific overrides (HQ approval workflow) |
+| org_ff_overrides_cf | Tenant-specific overrides (highest priority) |
+
+## RPCs
+
+| RPC | Purpose |
+|-----|---------|
+| `hq_ff_get_effective_values_batch(p_tenant_id, p_flag_keys)` | Resolve all flags for a tenant (override → plan → default) |
+| `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` | Resolve single flag for a tenant |
+| `hq_ff_get_plan_defaults(p_plan_code, p_flag_keys)` | Plan-level values (no tenant overrides) — for plan comparison UI |
 
 ## hq_ff_feature_flags_mst Columns
 
@@ -33,9 +41,7 @@ Global feature flag definitions and plan mappings.
 | allows_tenant_override | Whether tenant can override |
 | comp_code | Links to sys_components_cd for navigation |
 
-## Plan-Level Flags (org_tenants_mst / sys_plan_limits)
-
-These flags live in `org_tenants_mst.feature_flags` and `sys_plan_limits.feature_flags` (JSON object):
+## Common Flag Keys (from hq_ff_feature_flags_mst)
 
 | Flag Key | Name | Description |
 |----------|------|-------------|
@@ -51,6 +57,8 @@ These flags live in `org_tenants_mst.feature_flags` and `sys_plan_limits.feature
 | multi_branch | Multi-Branch | Manage multiple branch locations |
 | advanced_analytics | Advanced Analytics | Detailed reports and BI |
 | api_access | API Access | REST API access |
+
+Full catalog: `web-admin/lib/constants/feature-flags.ts` (FLAG_CATALOG, synced from `hq_ff_feature_flags_mst`).
 
 ## HQ-Managed Flags (hq_ff_feature_flags_mst)
 
@@ -90,12 +98,19 @@ Plan-specific values (e.g., max prefs per item):
 
 ## Resolution
 
-**Primary (all flags):** Use `hq_ff_get_effective_values_batch(p_tenant_id, p_flag_keys)` RPC to resolve all feature flags in one call. The service layer is in `web-admin/lib/services/feature-flags.service.ts`. Pass `p_flag_keys` as an array of flag keys, or `NULL` for all active flags.
+| Use Case | RPC | Service |
+|----------|-----|---------|
+| **All flags for tenant** | `hq_ff_get_effective_values_batch(p_tenant_id, p_flag_keys)` | `feature-flags.service.ts` → `getFeatureFlags()` |
+| **Single flag for tenant** | `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` | `plan-flags.service.ts` → `checkPlanFlag()` |
+| **Plan comparison (no tenant)** | `hq_ff_get_plan_defaults(p_plan_code, p_flag_keys)` | `feature-flags.service.ts` → `compareFeatures()` |
 
-**Single flag:** For plan-bound flags (`bundles_enabled`, `repeat_last_order`, `smart_suggestions`), use `hq_ff_get_effective_value(p_tenant_id, p_flag_key)` RPC. The service layer is in `web-admin/lib/services/plan-flags.service.ts`. See [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md).
+**Resolution order (tenant flags):** override (`org_ff_overrides_cf`) → plan-specific (`sys_ff_pln_flag_mappings_dtl`) → plan (`enabled_plan_codes`) → default.
+
+**Cache:** `getFeatureFlags()` caches results for 5 minutes. Call `invalidateCache(tenantId)` after updates.
 
 ## See Also
 
 - [FEATURE_FLAGS_USAGE](FEATURE_FLAGS_USAGE.md)
 - [NAVIGATION_FEATURE_FLAGS](NAVIGATION_FEATURE_FLAGS.md)
 - [TENANT_AND_PLAN_FLAGS](TENANT_AND_PLAN_FLAGS.md)
+- [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md)

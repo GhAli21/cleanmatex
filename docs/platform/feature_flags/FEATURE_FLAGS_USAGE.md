@@ -1,12 +1,12 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.1.0
+last_updated: 2026-03-15
 author: CleanMateX Team
 ---
 
 # Feature Flags Usage
 
-Where each feature flag is checked in the codebase.
+Where each feature flag is checked in the codebase. **All flags resolve via HQ system** (`hq_ff_get_effective_values_batch` RPC).
 
 **Source:** Grep for `getFeatureFlags`, `canAccess`, `requireFeature`, `currentTenantCan`, `feature_flag`
 
@@ -14,7 +14,7 @@ Where each feature flag is checked in the codebase.
 
 | File | Usage |
 |------|-------|
-| `web-admin/lib/services/feature-flags.service.ts` | `getFeatureFlags`, `canAccess`, `currentTenantCan`, `canAccessMultiple`, `requireFeature`, `updateFeatureFlags`, `resetToDefaults`, `compareFeatures` |
+| `web-admin/lib/services/feature-flags.service.ts` | `getFeatureFlags` (HQ batch RPC), `canAccess`, `currentTenantCan`, `canAccessMultiple`, `requireFeature`, `updateFeatureFlags` (writes to `org_ff_overrides_cf`), `resetToDefaults`, `compareFeatures` (HQ plan defaults RPC) |
 | `web-admin/app/api/feature-flags/route.ts` | `getFeatureFlags(tenantId)` — returns flags for tenant |
 | `web-admin/app/api/settings/tenants/[tenantId]/feature-flags/route.ts` | `hqApiClient.getFeatureFlags` — HQ API proxy |
 | `web-admin/lib/api/hq-api-client.ts` | `getFeatureFlags` — HQ API client |
@@ -32,8 +32,8 @@ Where each feature flag is checked in the codebase.
 
 | File | Usage |
 |------|-------|
-| `web-admin/app/dashboard/subscription/page.tsx` | `plan.feature_flags.pdf_invoices`, `whatsapp_receipts`, `driver_app`, `multi_branch`, `api_access`, `advanced_analytics` — display plan features |
-| `web-admin/src/features/settings/ui/SubscriptionSettings.tsx` | `tenant.feature_flags` — display tenant overrides |
+| `web-admin/app/dashboard/subscription/page.tsx` | `plan.feature_flags` — display plan features (from `sys_plan_limits` for display; flag resolution uses HQ) |
+| `web-admin/src/features/settings/ui/SubscriptionSettings.tsx` | Tenant overrides — `updateFeatureFlags` / `resetToDefaults` write to `org_ff_overrides_cf` |
 | `web-admin/lib/services/subscriptions.service.ts` | `feature_flags` in plan/upgrade flow |
 | `web-admin/app/api/v1/subscriptions/upgrade/route.ts` | `feature_flags` in response |
 
@@ -60,7 +60,7 @@ Where each feature flag is checked in the codebase.
 | multi_branch | subscription page |
 | api_access | subscription page |
 | advanced_analytics | subscription page |
-| service_preferences_enabled, packing_preferences_enabled, etc. | hq_ff_feature_flags_mst, workflow-service (indirect via getFeatureFlags) |
+| service_preferences_enabled, packing_preferences_enabled, etc. | Resolved via `getFeatureFlags()` → `hq_ff_get_effective_values_batch` |
 
 ## Plan-Bound Flags (Service Prefs)
 

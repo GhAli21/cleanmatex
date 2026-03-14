@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.1.0
+last_updated: 2026-03-15
 author: CleanMateX Team
 ---
 
@@ -34,7 +34,7 @@ Navigation items gated by `sys_components_cd.feature_flag`.
 
 **File:** `web-admin/lib/services/navigation.service.ts`
 
-- Builds `featureFlagArray` from tenant feature flags (from `getFeatureFlags` or equivalent).
+- Builds `featureFlagArray` from tenant feature flags via `getFeatureFlags()` → `hq_ff_get_effective_values_batch` RPC.
 - Passes `p_feature_flags: featureFlagArray` to `fn_sys_nav_tree_visible_items`.
 - Maps `item.feature_flag` to `featureFlag` in navigation item response.
 

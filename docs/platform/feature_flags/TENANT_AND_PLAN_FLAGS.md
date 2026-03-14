@@ -1,39 +1,42 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-12
+last_updated: 2026-03-15
 author: CleanMateX Team
 ---
 
 # Tenant and Plan Feature Flags
 
-`org_tenants_mst.feature_flags` vs `hq_ff_*` tables and `sys_plan_limits.feature_flags`.
+**Primary source:** HQ system (`hq_ff_feature_flags_mst`, `sys_ff_pln_flag_mappings_dtl`, `org_ff_overrides_cf`).
 
-**Source:** `org_tenants_mst`, `sys_plan_limits`, `web-admin/lib/services/subscriptions.service.ts`, `web-admin/lib/services/feature-flags.service.ts`
+**Source:** `web-admin/lib/services/feature-flags.service.ts`, `hq_ff_get_effective_values_batch` RPC
 
-## Two Systems
+## HQ System (Primary)
 
-| System | Tables/Columns | Purpose |
-|--------|----------------|---------|
-| Plan/tenant JSON | org_tenants_mst.feature_flags, sys_plan_limits.feature_flags | Subscription plan features (pdf_invoices, driver_app, etc.) |
-| HQ-managed | hq_ff_feature_flags_mst, sys_ff_pln_flag_mappings_dtl, org_ff_overrides_cf | Fine-grained flags (service_preferences_enabled, per_piece_packing, etc.) |
-
-## org_tenants_mst.feature_flags
-
-- JSON object: `{ pdf_invoices: boolean, whatsapp_receipts: boolean, ... }`
-- Overrides plan defaults when set (tenant-specific enable/disable).
-- Resolution: `feature-flags.service.ts` checks tenant first; if null, falls back to plan.
-
-## sys_plan_limits.feature_flags
-
-- JSON object per plan (FREE_TRIAL, STARTER, GROWTH, PRO, ENTERPRISE).
-- Defines which features each plan includes.
-- Used when tenant has no custom override.
+| Table | Purpose |
+|-------|---------|
+| hq_ff_feature_flags_mst | Global flag definitions |
+| sys_ff_pln_flag_mappings_dtl | Plan-flag relationships with plan-specific values |
+| org_ff_overrides_cf | Tenant-specific overrides (highest priority) |
 
 ## Resolution Order (feature-flags.service.ts)
 
-1. **Tenant override** — If `tenant.feature_flags` is set, use it.
-2. **Plan defaults** — Else use `plan.feature_flags` from `sys_plan_limits` for tenant's `s_current_plan`.
-3. **Fallback** — If plan lookup fails, return all-false defaults.
+1. **Tenant override** — `org_ff_overrides_cf` (approved, active, within effective dates)
+2. **Plan-specific** — `sys_ff_pln_flag_mappings_dtl` for tenant's subscription plan
+3. **Plan (enabled_plan_codes)** — Fallback from `hq_ff_feature_flags_mst.enabled_plan_codes`
+4. **Default** — `hq_ff_feature_flags_mst.default_value`
+
+Resolved via `hq_ff_get_effective_values_batch(p_tenant_id, p_flag_keys)` RPC.
+
+## Plan Comparison (compareFeatures)
+
+Uses `hq_ff_get_plan_defaults(p_plan_code, p_flag_keys)` RPC — plan-level values without tenant overrides. Source: `sys_ff_pln_flag_mappings_dtl` + `hq_ff_feature_flags_mst`.
+
+## Legacy (Deprecated)
+
+| System | Status |
+|--------|--------|
+| org_tenants_mst.feature_flags | Deprecated; overrides now in org_ff_overrides_cf |
+| sys_plan_limits.feature_flags | Deprecated for flag resolution; may still be used for plan display |
 
 ## Subscriptions Service
 
@@ -46,7 +49,7 @@ author: CleanMateX Team
 
 **File:** `web-admin/src/features/settings/ui/SubscriptionSettings.tsx`
 
-- Displays `tenant.feature_flags` as key-value pairs (enabled/disabled).
+- Displays tenant feature flags. Overrides are written to `org_ff_overrides_cf` via `updateFeatureFlags()` / `resetToDefaults()`.
 
 ## Widget Component
 

@@ -13,7 +13,6 @@ import {
   ALL_FLAG_KEYS,
   FLAG_CATALOG,
 } from '@/lib/constants/feature-flags';
-import { getPlan } from './subscriptions.service';
 
 export type { FeatureFlagKey };
 export { FEATURE_FLAG_KEYS };
@@ -128,7 +127,7 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
         key,
         coerceFlagValue(val, key),
       ])
-    ) as FeatureFlags;
+    ) as unknown as FeatureFlags;
 
     featureFlagCache.set(tenantId, {
       flags,
@@ -376,8 +375,8 @@ export function getCacheStats() {
 // ========================
 
 /**
- * Compare feature flags between two plans
- * Useful for showing upgrade benefits
+ * Compare feature flags between two plans (HQ source)
+ * Uses hq_ff_get_plan_defaults RPC
  * @param currentPlanCode - Current plan code
  * @param targetPlanCode - Target plan code
  * @returns Difference in features
@@ -390,18 +389,30 @@ export async function compareFeatures(
   lost: FeatureFlagKey[];
   unchanged: FeatureFlagKey[];
 }> {
-  const currentPlan = await getPlan(currentPlanCode);
-  const targetPlan = await getPlan(targetPlanCode);
+  const supabase = await createClient();
+  const [currentRes, targetRes] = await Promise.all([
+    supabase.rpc('hq_ff_get_plan_defaults', {
+      p_plan_code: currentPlanCode,
+      p_flag_keys: ALL_FLAG_KEYS,
+    }),
+    supabase.rpc('hq_ff_get_plan_defaults', {
+      p_plan_code: targetPlanCode,
+      p_flag_keys: ALL_FLAG_KEYS,
+    }),
+  ]);
+
+  const currentFlags = (currentRes.data as Record<string, unknown>) ?? {};
+  const targetFlags = (targetRes.data as Record<string, unknown>) ?? {};
 
   const gained: FeatureFlagKey[] = [];
   const lost: FeatureFlagKey[] = [];
   const unchanged: FeatureFlagKey[] = [];
 
-  const features = Object.keys(FEATURE_FLAGS) as FeatureFlagKey[];
+  const features = ALL_FLAG_KEYS as FeatureFlagKey[];
 
   for (const feature of features) {
-    const currentHas = currentPlan.feature_flags[feature];
-    const targetHas = targetPlan.feature_flags[feature];
+    const currentHas = toBool(currentFlags[feature]);
+    const targetHas = toBool(targetFlags[feature]);
 
     if (!currentHas && targetHas) {
       gained.push(feature);
@@ -413,4 +424,12 @@ export async function compareFeatures(
   }
 
   return { gained, lost, unchanged };
+}
+
+function toBool(v: unknown): boolean {
+  if (v === undefined || v === null) return false;
+  if (typeof v === 'boolean') return v;
+  if (typeof v === 'number') return v !== 0;
+  if (typeof v === 'string') return v.toLowerCase() === 'true' || v === '1';
+  return Boolean(v);
 }
