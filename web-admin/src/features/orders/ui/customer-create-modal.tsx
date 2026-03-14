@@ -12,6 +12,7 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { createCustomer } from '@/lib/api/customers';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useFeature } from '@/src/features/auth/ui/RequireFeature';
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import type { CustomerType, Customer } from '@/lib/types/customer';
 
 /** Common GCC + regional country codes for phone input */
@@ -44,7 +45,7 @@ export function CustomerCreateModal({
   const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
-  const hasB2B = useFeature('b2b_contracts');
+  const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS);
   const [customerType, setCustomerType] = useState<CustomerType>('stub');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');

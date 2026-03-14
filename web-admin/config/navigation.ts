@@ -8,6 +8,7 @@
  */
 
 import type { LucideIcon } from 'lucide-react'
+import { FLAG_KEYS } from '@/lib/constants/feature-flags'
 import {
   Home,
   PackageSearch,
@@ -147,21 +148,21 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: Truck,
     path: '/dashboard/drivers',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-    featureFlag: 'driver_app',
+    featureFlag: FLAG_KEYS.DRIVER_APP,
     children: [
       {
         key: 'drivers_list',
         label: 'All Drivers',
         path: '/dashboard/drivers',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-        featureFlag: 'driver_app',
+        featureFlag: FLAG_KEYS.DRIVER_APP,
       },
       {
         key: 'drivers_routes',
         label: 'Routes',
         path: '/dashboard/drivers/routes',
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-        featureFlag: 'driver_app',
+        featureFlag: FLAG_KEYS.DRIVER_APP,
       },
     ],
   },
@@ -302,7 +303,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: BarChart3,
     path: '/dashboard/reports',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-    featureFlag: 'advanced_analytics',
+    featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
     children: [
       {
         key: 'reports_orders',

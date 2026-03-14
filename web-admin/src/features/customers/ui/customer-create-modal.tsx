@@ -11,6 +11,7 @@ import { useRTL } from '@/lib/hooks/useRTL'
 import { useMessage } from '@ui/feedback'
 import { createCustomer } from '@/lib/api/customers'
 import { useFeature } from '@/src/features/auth/ui/RequireFeature'
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import type { CustomerType } from '@/lib/types/customer'
 
 interface CustomerCreateModalProps {
@@ -27,7 +28,7 @@ export default function CustomerCreateModal({
   const tCommon = useTranslations('common')
   const isRTL = useRTL()
   const { showErrorFrom } = useMessage()
-  const hasB2B = useFeature('b2b_contracts')
+  const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS)
   const [customerType, setCustomerType] = useState<CustomerType>('stub')
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')

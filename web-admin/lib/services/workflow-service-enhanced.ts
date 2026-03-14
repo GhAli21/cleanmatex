@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { getFeatureFlags } from '@/lib/services/feature-flags.service';
 import { canCreateOrder } from '@/lib/services/usage-tracking.service';
 import { hqApiClient } from '@/lib/api/hq-api-client';
@@ -410,11 +411,11 @@ export class WorkflowServiceEnhanced {
    */
   private static mapScreenToFeatureFlag(screen: string): string | null {
     const mapping: Record<string, string> = {
-      assembly: 'assembly_workflow',
-      qa: 'qa_workflow',
-      packing: 'packing_workflow',
-      driver_delivery: 'driver_app',
-      processing: 'basic_workflow',
+      assembly: FLAG_KEYS.ASSEMBLY_WORKFLOW,
+      qa: FLAG_KEYS.QA_WORKFLOW,
+      packing: FLAG_KEYS.PACKING_WORKFLOW,
+      driver_delivery: FLAG_KEYS.DRIVER_APP,
+      processing: 'basic_workflow', // not in catalog
     };
     return mapping[screen] || null;
   }

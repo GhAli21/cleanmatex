@@ -5,8 +5,16 @@
 
 import { createClient } from '@/lib/supabase/server';
 import type { FeatureFlags } from '@/lib/types/tenant';
+import {
+  type FeatureFlagKey,
+  FEATURE_FLAG_KEYS,
+  DEFAULT_FEATURE_FLAGS,
+} from '@/lib/constants/feature-flags';
 import { getTenant } from './tenants.service';
 import { getPlan } from './subscriptions.service';
+
+export type { FeatureFlagKey };
+export { FEATURE_FLAG_KEYS };
 
 // Cache for feature flags (in-memory, can be replaced with Redis)
 const featureFlagCache = new Map<string, { flags: FeatureFlags; timestamp: number }>();
@@ -15,8 +23,6 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 // ========================
 // Feature Flag Types
 // ========================
-
-export type FeatureFlagKey = keyof FeatureFlags;
 
 export const FEATURE_FLAGS: Record<FeatureFlagKey, { name: string; description: string }> = {
   pdf_invoices: {
@@ -83,15 +89,17 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
   // Check cache
   const cached = featureFlagCache.get(tenantId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('Jh In getFeatureFlags() [ 1 ] : cached.flags', cached.flags);
     return cached.flags;
   }
 
   try {
     // Fetch from database
     const tenant = await getTenant(tenantId);
-
+    
     if (tenant.feature_flags) {
       // Cache and return custom feature flags
+      console.log('Jh In getFeatureFlags() [ 2 ] : tenant.feature_flags', tenant.feature_flags);
       featureFlagCache.set(tenantId, {
         flags: tenant.feature_flags,
         timestamp: Date.now(),
@@ -102,54 +110,29 @@ export async function getFeatureFlags(tenantId: string): Promise<FeatureFlags> {
     // If no custom feature flags, get from plan
     // Handle both s_current_plan (correct) and s_cureent_plan (typo) for backward compatibility
     const planCode = (tenant as any).s_current_plan || tenant.s_cureent_plan || 'FREE_TRIAL'
-    
+    console.log('Jh In getFeatureFlags() [ 3 ] : planCode', planCode);
     try {
       const plan = await getPlan(planCode);
+      console.log('Jh In getFeatureFlags() [ 4 ] : plan', plan);
       const flags = plan.feature_flags;
-      
+      console.log('Jh In getFeatureFlags() [ 6 ] : flags length', Object.keys(flags).length);
+      console.log('Jh In getFeatureFlags() [ 5 ] : flags', flags);
       // Cache and return plan feature flags
       featureFlagCache.set(tenantId, {
         flags,
         timestamp: Date.now(),
       });
+      console.log('Jh In getFeatureFlags() [ 7 ] : featureFlagCache size', featureFlagCache.size);
       return flags;
     } catch (planError) {
-      console.error(`Error fetching plan ${planCode} for tenant ${tenantId}:`, planError);
+      console.error(`Error fetching plan( ${planCode} ) for tenant( ${tenantId} ):`, planError);
       // Return default feature flags (all false) if plan lookup fails
-      const defaultFlags: FeatureFlags = {
-        pdf_invoices: false,
-        whatsapp_receipts: false,
-        in_app_receipts: false,
-        printing: false,
-        b2b_contracts: false,
-        white_label: false,
-        marketplace_listings: false,
-        loyalty_programs: false,
-        driver_app: false,
-        multi_branch: false,
-        advanced_analytics: false,
-        api_access: false,
-      };
-      return defaultFlags;
+      return DEFAULT_FEATURE_FLAGS as FeatureFlags;
     }
   } catch (error) {
     console.error(`Error fetching feature flags for tenant ${tenantId}:`, error);
     // Return default feature flags (all false) on error
-    const defaultFlags: FeatureFlags = {
-      pdf_invoices: false,
-      whatsapp_receipts: false,
-      in_app_receipts: false,
-      printing: false,
-      b2b_contracts: false,
-      white_label: false,
-      marketplace_listings: false,
-      loyalty_programs: false,
-      driver_app: false,
-      multi_branch: false,
-      advanced_analytics: false,
-      api_access: false,
-    };
-    return defaultFlags;
+    return DEFAULT_FEATURE_FLAGS as FeatureFlags;
   }
 }
 
@@ -369,7 +352,7 @@ export function getCacheStats() {
  *
  * export async function POST(request: Request) {
  *   const tenantId = await getTenantIdFromRequest(request);
- *   await requireFeature(tenantId, 'pdf_invoices');
+ *   await requireFeature(tenantId, FEATURE_FLAG_KEYS.PDF_INVOICES);
  *   // Continue with PDF generation...
  * }
  */

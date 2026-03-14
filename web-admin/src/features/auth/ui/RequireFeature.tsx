@@ -22,13 +22,13 @@ interface RequireFeatureProps {
  * Render children only if feature flag is enabled
  *
  * @example
- * <RequireFeature feature="pdf_invoices">
+ * <RequireFeature feature={FEATURE_FLAG_KEYS.PDF_INVOICES}>
  *   <DownloadPDFButton />
  * </RequireFeature>
  *
  * @example
  * <RequireFeature
- *   feature={['pdf_invoices', 'printing']}
+ *   feature={[FEATURE_FLAG_KEYS.PDF_INVOICES, FEATURE_FLAG_KEYS.PRINTING]}
  *   requireAll={false}
  *   fallback={<p>Upgrade to access this feature</p>}
  * >
@@ -171,7 +171,7 @@ export function UpgradePrompt({
  * Hook to check feature availability
  *
  * @example
- * const canExportPDF = useFeature('pdf_invoices')
+ * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
  * if (canExportPDF) {
  *   // Show export button
  * }

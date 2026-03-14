@@ -5,12 +5,13 @@
 
 import { ReactNode } from 'react';
 import { RequireFeature, UpgradePrompt } from '@/src/features/auth/ui/RequireFeature';
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 
 export default function B2BLayout({ children }: { children: ReactNode }) {
   return (
     <RequireFeature
-      feature="b2b_contracts"
-      fallback={<UpgradePrompt feature="b2b_contracts" />}
+      feature={FEATURE_FLAG_KEYS.B2B_CONTRACTS}
+      fallback={<UpgradePrompt feature={FEATURE_FLAG_KEYS.B2B_CONTRACTS} />}
     >
       {children}
     </RequireFeature>

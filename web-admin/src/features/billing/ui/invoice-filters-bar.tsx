@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition, useCallback } from 'react';
 import { useFeature } from '@/src/features/auth/ui/RequireFeature';
+import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 
 const STATUS_OPTIONS = ['pending', 'paid', 'partial', 'overdue', 'draft', 'cancelled', 'refunded'] as const;
 const INVOICE_TYPE_OPTIONS = [
@@ -18,7 +19,7 @@ export default function InvoiceFiltersBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const hasB2B = useFeature('b2b_contracts');
+  const hasB2B = useFeature(FEATURE_FLAG_KEYS.B2B_CONTRACTS);
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
 
