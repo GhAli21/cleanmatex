@@ -202,7 +202,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/b2b/customers',
     roles: ['admin', 'super_admin', 'tenant_admin'],
     permissions: ['b2b_customers:view'],
-    featureFlag: 'b2b_contracts',
+    //featureFlag: 'b2b_contracts',
     children: [
       {
         key: 'b2b_customers',
@@ -210,7 +210,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/b2b/customers',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['b2b_customers:view'],
-        featureFlag: 'b2b_contracts',
+        //featureFlag: 'b2b_contracts',
       },
       {
         key: 'b2b_contracts',
@@ -218,7 +218,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/b2b/contracts',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['b2b_contracts:view'],
-        featureFlag: 'b2b_contracts',
+        //featureFlag: 'b2b_contracts',
       },
       {
         key: 'b2b_statements',
@@ -226,7 +226,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/b2b/statements',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['b2b_statements:view'],
-        featureFlag: 'b2b_contracts',
+        //featureFlag: 'b2b_contracts',
       },
     ],
   },
