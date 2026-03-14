@@ -2755,7 +2755,12 @@
       "appliedSuccess": "تم تطبيق التفضيلات",
       "noBundles": "لم يتم تكوين باقات العناية",
       "addItemsFirst": "أضف العناصر أولاً",
-      "incompatiblePref": "غير متوافق مع {name}"
+      "incompatiblePref": "غير متوافق مع {name}",
+      "categoryWashing": "الغسيل",
+      "categoryProcessing": "المعالجة",
+      "categoryFinishing": "التشطيب",
+      "extraTimeTooltip": "يضيف وقتًا لتقدير وقت الجاهزية",
+      "ecoPoints": "صديق للبيئة"
     },
     "pieces": {
       "viewPieces": "عرض القطع",

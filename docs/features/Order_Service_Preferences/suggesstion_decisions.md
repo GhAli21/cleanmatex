@@ -1,5 +1,5 @@
 
-Yes study this file content and then after that build a concrete comprehensive implementation plan
+study this file content:
 - All Implementation should follow approach of best-practices, no gap, ready for production
 - include task of create/update documentations in the plan
 - Check and Study the Suggested table for Services Preferences and Notes Tables in the sql file at F:\JhApps_doc\CleanMateX_Jh\Dev\Order Service Preferences\Suggested_Services_Preferences_and_Note_Tables.sql

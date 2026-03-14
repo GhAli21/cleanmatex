@@ -56,6 +56,30 @@ export const PREFERENCE_SOURCES = {
 export type PreferenceSource =
   (typeof PREFERENCE_SOURCES)[keyof typeof PREFERENCE_SOURCES];
 
+/**
+ * Default Lucide icon names for service preferences when sys_service_preference_cd.icon is null.
+ * Use PascalCase names matching lucide-react exports.
+ */
+export const SERVICE_PREF_DEFAULT_ICONS: Partial<Record<string, string>> = {
+  STARCH_LIGHT: 'Snowflake',
+  STARCH_HEAVY: 'Snowflake',
+  PERFUME: 'Sparkles',
+  SEPARATE_WASH: 'Droplets',
+  DELICATE: 'Heart',
+  STEAM_PRESS: 'Flame',
+  ANTI_BACTERIAL: 'Shield',
+  HAND_WASH: 'Hand',
+  BLEACH_FREE: 'Ban',
+  ECO_WASH: 'Leaf',
+};
+
+/** Fallback icon by preference_category when code has no default */
+export const SERVICE_PREF_CATEGORY_ICONS: Record<string, string> = {
+  washing: 'Droplets',
+  processing: 'Snowflake',
+  finishing: 'Sparkles',
+};
+
 /** Maps packing preference to packaging type (sys_pck_packaging_type_cd) */
 export const PACKING_TO_PACKAGING_MAP: Record<PackingPreferenceCode, string> = {
   HANG: 'HANGER',

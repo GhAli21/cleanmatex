@@ -321,6 +321,7 @@ Create and update documentation per `.claude/skills/documentation/reference.md` 
 | `developer_guide_mermaid.md` | Flowcharts for code flow |
 | `user_guide.md` | User workflows, UI walkthrough, FAQs |
 | `user_guide_mermaid.md` | Flowcharts for user flows |
+| `test_guide.md` | test guide |
 | `testing_scenarios.md` | Test cases, edge cases, acceptance criteria |
 | `deploy_guide.md` | Deploy details and steps and requirements |
 | `CHANGELOG.md` | Versioned changes |

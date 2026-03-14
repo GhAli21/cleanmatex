@@ -24,7 +24,7 @@ export class PreferenceCatalogService {
     try {
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
-        .select('code, name, name2, description, description2, preference_category, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, display_order, is_active')
+        .select('code, name, name2, description, description2, preference_category, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -65,6 +65,7 @@ export class PreferenceCatalogService {
             workflow_impact: s.workflow_impact,
             extra_turnaround_minutes: s.extra_turnaround_minutes,
             sustainability_score: s.sustainability_score,
+            icon: s.icon,
             display_order: s.display_order,
             is_active: true,
           } as ServicePreference;

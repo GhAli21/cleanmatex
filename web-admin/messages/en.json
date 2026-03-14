@@ -2755,7 +2755,12 @@
       "appliedSuccess": "Preferences applied",
       "noBundles": "No care packages configured",
       "addItemsFirst": "Add items first",
-      "incompatiblePref": "Incompatible with {name}"
+      "incompatiblePref": "Incompatible with {name}",
+      "categoryWashing": "Washing",
+      "categoryProcessing": "Processing",
+      "categoryFinishing": "Finishing",
+      "extraTimeTooltip": "Adds time to ready-by estimate",
+      "ecoPoints": "Eco-friendly"
     },
     "pieces": {
       "viewPieces": "View Pieces",

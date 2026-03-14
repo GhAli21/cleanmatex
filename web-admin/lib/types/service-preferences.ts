@@ -47,6 +47,7 @@ export interface ServicePreference {
   workflow_impact?: string | null;
   extra_turnaround_minutes?: number | null;
   sustainability_score?: number | null;
+  icon?: string | null;
   display_order?: number | null;
   is_active: boolean;
 }
