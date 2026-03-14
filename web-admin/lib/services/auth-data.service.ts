@@ -54,6 +54,7 @@ export async function fetchAuthData(): Promise<AuthData> {
       user_role: string
       is_active: boolean
       last_login_at: string | null
+      s_current_plan?: string
     }) => ({
       tenant_id: t.tenant_id,
       tenant_name: t.tenant_name,
@@ -61,6 +62,7 @@ export async function fetchAuthData(): Promise<AuthData> {
       user_role: t.user_role as any,
       is_active: t.is_active,
       last_login_at: t.last_login_at,
+      s_current_plan: t.s_current_plan ?? 'FREE_TRIAL',
     }))
 
     const permissions: string[] = (permissionsResult.data || []).map(

@@ -3181,7 +3181,8 @@
     },
     "sidebar": {
       "currentTenant": "Current Tenant",
-      "role": "Role"
+      "role": "Role",
+      "currentPlan": "Current Plan"
     }
   },
   "auth": {

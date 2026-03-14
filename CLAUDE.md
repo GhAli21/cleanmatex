@@ -44,6 +44,11 @@ npm run build                     # Build (run after changes)
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
 - **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
+- **DROP ... CASCADE** — Before adding DROP CASCADE, fetch
+  affected objects, prepare recreate statements, and include them
+  in the same migration. See `docs/dev/
+drop-cascade-migration-workflow.md`
+  Or, use Supabase MCP to run discovery queries against the target DB, fetch affected objects, prepare recreate statements, and include them in the same migration. See `docs/dev/drop-cascade-migration-workflow.md`.
 - Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
 - Bilingual: `name/name2`, `description/description2`
 - Soft delete: `is_active=false`, `rec_status=0`
@@ -158,3 +163,4 @@ docs/         # All documentation
 - do not use to apply database migrations before you confirm with me if create db migration files only or apply them also
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`
+- **DROP ... CASCADE:** When writing migrations that use DROP FUNCTION/VIEW/etc. CASCADE, use MCP to run discovery queries against the target DB first, fetch affected policies/views, then include recreate statements in the same migration file. See `docs/dev/drop-cascade-migration-workflow.md`.

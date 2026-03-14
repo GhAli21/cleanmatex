@@ -128,6 +128,16 @@ export default function CmxSidebar() {
     return name ? getIcon(name) : getIcon('List')
   }
 
+  /** Format plan code for display (e.g. FREE_TRIAL -> "Free Trial", starter -> "Starter") */
+  const formatPlanDisplay = (planCode: string | undefined): string => {
+    if (!planCode) return 'Free Trial'
+    const normalized = planCode.toLowerCase().replace(/_/g, ' ')
+    return normalized
+      .split(' ')
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ')
+  }
+
   const getNavLabel = (key: string, fallback: string): string => {
     const translationKeyMap: Record<string, string> = {
       'home': 'dashboard',
@@ -242,12 +252,19 @@ export default function CmxSidebar() {
         `}
         style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div className={`h-16 flex items-center px-6 border-b border-gray-200 bg-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`px-4 pt-4 pb-3 border-b border-gray-200 bg-white ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link href="/dashboard" className={`flex items-center ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}>
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            <span className="text-xl font-bold text-gray-900">CleanMateX</span>
+            <div className="min-w-0">
+              <span className="text-xl font-bold text-gray-900 block">CleanMateX</span>
+              {currentTenant && (
+                <span className="text-xs text-gray-500 font-medium block mt-0.5">
+                  {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}
+                </span>
+              )}
+            </div>
           </Link>
         </div>
 

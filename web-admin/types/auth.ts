@@ -29,6 +29,8 @@ export interface UserTenant {
   user_role: UserRole
   is_active: boolean
   last_login_at: string | null
+  /** Current subscription plan code (e.g. FREE_TRIAL, starter, growth) */
+  s_current_plan?: string
 }
 
 /**

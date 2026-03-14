@@ -123,6 +123,37 @@ Before adding a migration:
 
 Never reuse or skip version numbers. When in doubt, list the migrations directory and take max(version) + 1.
 
+## DROP ... CASCADE in Migrations (CRITICAL)
+
+**When a migration uses `DROP ... CASCADE`** (e.g. `DROP FUNCTION get_user_tenants() CASCADE`), PostgreSQL drops dependent objects (RLS policies, views, triggers, etc.) and does **not** recreate them. This can break tenant isolation and the app.
+
+**MANDATORY workflow before adding DROP ... CASCADE:**
+
+1. **Fetch affected objects** — Run the discovery queries (see
+   [docs/dev/drop-cascade-migration-workflow.md](docs/dev/
+   drop-cascade-migration-workflow.md)) against the target DB to
+   list all objects that will be dropped.
+
+Or 2. **Fetch affected objects** — Use **Supabase MCP** (`supabase_local` for local, `supabase_remote` for remote) to execute the discovery queries against the target DB. This returns the exact policy definitions from the live database. See [docs/dev/drop-cascade-migration-workflow.md](docs/dev/drop-cascade-migration-workflow.md). 2. **Prepare recreate statements** — For each affected object (especially RLS policies), write the exact `CREATE POLICY` / `CREATE VIEW` / etc. statements needed to restore them. 3. **Include in the same migration file** — Place recreate statements **after** the DROP and CREATE of the modified object, inside the same `BEGIN;`/`COMMIT;` block. 4. **Order matters** — Drop → Recreate the modified object → Recreate all dropped dependents.
+
+**Example structure:**
+
+```sql
+BEGIN;
+-- 1. Drop (CASCADE will drop dependents)
+DROP FUNCTION IF EXISTS get_user_tenants() CASCADE;
+
+-- 2. Recreate the modified object
+CREATE FUNCTION get_user_tenants() RETURNS TABLE (...) AS $$ ... $$;
+
+-- 3. Recreate all dropped policies/views (from step 1 discovery)
+CREATE POLICY tenant_isolation ON org_orders_mst FOR ALL USING (...);
+-- ... more policies
+COMMIT;
+```
+
+See [docs/dev/drop-cascade-migration-workflow.md](docs/dev/drop-cascade-migration-workflow.md) for discovery queries and full workflow.
+
 ## Before Creating Any Table
 
 **MUST follow this workflow:**

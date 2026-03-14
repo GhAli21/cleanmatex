@@ -104,7 +104,6 @@ SELECT * FROM org_ord_orders_mst;  -- Wrong: This doesn't exist yet!
 **CRITICAL**: The `sys_` and `org_` prefixes apply to ALL database objects, not just tables.
 
 - **`sys_`** - System/global objects (no tenant_org_id)
-
   - Applies to: Tables, Functions, Procedures, Packages, Views, Triggers, Sequences, Types, etc.
   - Examples: `sys_auth_users_mst`, `sys_auth_validate_token()`, `sys_pln_plans_mst`, `sys_pln_get_plan()`
 
@@ -151,22 +150,18 @@ Where:
 #### Table Suffixes
 
 - **`*_mst`** - Master tables (main entities)
-
   - Examples: `org_ord_orders_mst`, `sys_auth_users_mst`, `org_cust_customers_mst`
   - Purpose: Core business entities
 
 - **`*_dtl`** - Detail tables (line items, related records)
-
   - Examples: `org_ord_order_items_dtl`, `org_inv_invoice_items_dtl`
   - Purpose: Child records with 1-to-many relationships
 
 - **`*_tr`** - Transaction tables
-
   - Examples: `org_pay_payments_tr`, `org_ord_status_changes_tr`
   - Purpose: Financial or state-changing transactions
 
 - **`*_cd`** - Code/lookup tables
-
   - Examples: `sys_ord_order_status_cd`, `sys_pay_payment_method_cd`
   - Purpose: Enumerated values, reference data
 
@@ -262,6 +257,18 @@ CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
 CREATE POLICY org_auth_users_tenant_isolation ON org_auth_users_mst
   FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
 ```
+
+#### DROP ... CASCADE in Migrations (CRITICAL)
+
+When a migration uses `DROP ... CASCADE`, PostgreSQL drops
+dependent objects (RLS policies, views, etc.) and does NOT
+recreate them. **MANDATORY:** Before adding DROP CASCADE, (1)
+fetch affected objects via discovery queries, (2) prepare
+recreate statements, (3) include them in the same migration
+file after the DROP/CREATE. See `docs/dev/
+drop-cascade-migration-workflow.md`.
+Or
+(1) use **Supabase MCP** (supabase_local or supabase_remote) to execute discovery queries and fetch affected objects from the live DB, (2) prepare recreate statements from the MCP results, (3) include them in the same migration file after the DROP/CREATE. See `docs/dev/drop-cascade-migration-workflow.md`.
 
 #### Migration File Naming (NEW Migrations)
 

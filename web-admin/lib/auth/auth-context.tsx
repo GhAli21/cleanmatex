@@ -99,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user_role: string
         is_active: boolean
         last_login_at: string | null
+        s_current_plan?: string
       }) => ({
         tenant_id: t.tenant_id,
         tenant_name: t.tenant_name,
@@ -106,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user_role: t.user_role as UserRole,
         is_active: t.is_active,
         last_login_at: t.last_login_at,
+        s_current_plan: t.s_current_plan ?? 'FREE_TRIAL',
       }))
 
       setAvailableTenants(tenants)

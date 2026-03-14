@@ -3181,7 +3181,8 @@
     },
     "sidebar": {
       "currentTenant": "المستأجر الحالي",
-      "role": "الدور"
+      "role": "الدور",
+      "currentPlan": "الخطة الحالية"
     }
   },
   "auth": {
