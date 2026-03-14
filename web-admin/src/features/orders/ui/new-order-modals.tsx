@@ -140,6 +140,7 @@ export function NewOrderModals() {
           lastName: updatedCustomer.lastName,
           phone: updatedCustomer.phone,
           email: updatedCustomer.email,
+          type: updatedCustomer.type,
         },
         displayName,
         {
@@ -323,6 +324,7 @@ export function NewOrderModals() {
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
+          customerType={state.state.customer?.type}
           branchId={state.state.branchId ?? undefined}
           userId={user?.id}
           serviceCategories={serviceCategories}

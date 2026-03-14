@@ -8,6 +8,10 @@
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import {
+  getCreditLimitPlanCap,
+  capCreditLimitToPlan,
+} from '@/lib/services/credit-limit-plan-cap.service';
 import { logger } from '@/lib/utils/logger';
 import type {
   Customer,
@@ -260,7 +264,12 @@ export async function createCustomer(
       insertPayload.company_name = request.companyName;
       insertPayload.company_name2 = request.companyName2 ?? null;
       insertPayload.tax_id = request.taxId ?? null;
-      insertPayload.credit_limit = request.creditLimit ?? null;
+      const planCap = await getCreditLimitPlanCap(tenantId);
+      const cappedCreditLimit =
+        request.creditLimit != null
+          ? capCreditLimitToPlan(Number(request.creditLimit), planCap)
+          : null;
+      insertPayload.credit_limit = cappedCreditLimit;
       insertPayload.payment_terms_days = request.paymentTermsDays ?? null;
       insertPayload.cost_center_code = request.costCenterCode ?? null;
       insertPayload.address = request.address ?? null;

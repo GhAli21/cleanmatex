@@ -21,6 +21,7 @@ import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
+import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 
 const TOLERANCE = 0.001;
 
@@ -178,6 +179,33 @@ export async function POST(request: NextRequest) {
     }
 
     const isInvoiceOnly = input.paymentMethod === PAYMENT_METHODS.INVOICE || input.paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION;
+    const creditLimitOverride = input.creditLimitOverride === true;
+    if (isInvoiceOnly) {
+      const creditCheck = await checkCreditLimit(input.customerId, serverTotals.finalTotal);
+      if (creditCheck.isCreditHold) {
+        return NextResponse.json(
+          {
+            success: false,
+            errorCode: 'B2B_CREDIT_HOLD',
+            error: 'This B2B customer is on credit hold. New orders are blocked until the hold is released.',
+          },
+          { status: 400 }
+        );
+      }
+      if (creditCheck.wouldExceed && !creditLimitOverride) {
+        return NextResponse.json(
+          {
+            success: false,
+            errorCode: 'B2B_CREDIT_EXCEEDED',
+            error: `Credit limit exceeded. Available: ${creditCheck.available.toLocaleString()}, Order total: ${serverTotals.finalTotal.toLocaleString()}`,
+            creditLimit: creditCheck.creditLimit,
+            currentBalance: creditCheck.currentBalance,
+            available: creditCheck.available,
+          },
+          { status: 400 }
+        );
+      }
+    }
     const hasImmediatePayment = !isInvoiceOnly && (
       input.paymentMethod === PAYMENT_METHODS.CASH ||
       input.paymentMethod === PAYMENT_METHODS.CARD ||
@@ -255,6 +283,13 @@ export async function POST(request: NextRequest) {
       ...(input.customerName != null && { customerName: input.customerName }),
       ...(input.isDefaultCustomer != null && { isDefaultCustomer: input.isDefaultCustomer }),
       ...(input.customerDetails != null && { customerDetails: input.customerDetails }),
+      ...(input.b2bContractId != null && { b2bContractId: input.b2bContractId }),
+      ...(input.costCenterCode != null && input.costCenterCode !== '' && { costCenterCode: input.costCenterCode }),
+      ...(input.poNumber != null && input.poNumber !== '' && { poNumber: input.poNumber }),
+      ...(creditLimitOverride && {
+        creditLimitOverrideBy: userName ?? userId,
+        creditLimitOverrideAt: new Date(),
+      }),
     };
 
     const result = await withTenantContext(tenantId, async () =>

@@ -431,6 +431,7 @@ export async function getOrderById(
           name2: true,
           phone: true,
           email: true,
+          type: true,
           preferences: true,
           sys_customers_mst: {
             select: {

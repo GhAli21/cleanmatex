@@ -186,6 +186,106 @@ export async function generateStatement(
   return mapRowToStatement(stmt as Record<string, unknown>);
 }
 
+export interface StatementForPrint {
+  statement: B2BStatement;
+  customer: { name: string; companyName?: string; phone?: string; email?: string };
+  primaryContact: { name: string; email?: string; phone?: string } | null;
+  invoices: Array<{
+    id: string;
+    invoiceNo: string | null;
+    invoiceDate: string | null;
+    total: number;
+    paidAmount: number;
+    remaining: number;
+    currencyCode: string | null;
+  }>;
+}
+
+export async function getStatementForPrint(id: string): Promise<StatementForPrint | null> {
+  const supabase = await createClient();
+  const tenantId = await getTenantIdFromSession();
+  if (!tenantId) throw new Error('Unauthorized: Tenant ID required');
+
+  const { data: stmt, error: stmtErr } = await supabase
+    .from('org_b2b_statements_mst')
+    .select('*')
+    .eq('id', id)
+    .eq('tenant_org_id', tenantId)
+    .eq('is_active', true)
+    .single();
+
+  if (stmtErr || !stmt) return null;
+
+  const customerId = stmt.customer_id as string;
+
+  const { data: customer } = await supabase
+    .from('org_customers_mst')
+    .select('name, name2, company_name, phone, email')
+    .eq('id', customerId)
+    .eq('tenant_org_id', tenantId)
+    .single();
+
+  const { data: primaryContactRow } = await supabase
+    .from('org_b2b_contacts_dtl')
+    .select('contact_name, contact_name2, email, phone')
+    .eq('customer_id', customerId)
+    .eq('tenant_org_id', tenantId)
+    .eq('is_primary', true)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle();
+
+  const { data: invoices } = await supabase
+    .from('org_invoice_mst')
+    .select('id, invoice_no, invoice_date, created_at, total, paid_amount, currency_code')
+    .eq('tenant_org_id', tenantId)
+    .eq('statement_id', id)
+    .eq('is_active', true);
+
+  const cust = customer as { name?: string; name2?: string; company_name?: string; phone?: string; email?: string } | null;
+  const primaryContact = primaryContactRow
+    ? {
+        name: ((primaryContactRow as { contact_name?: string }).contact_name ?? (primaryContactRow as { contact_name2?: string }).contact_name2 ?? '') || '—',
+        email: (primaryContactRow as { email?: string }).email ?? undefined,
+        phone: (primaryContactRow as { phone?: string }).phone ?? undefined,
+      }
+    : null;
+
+  const invList = (invoices ?? []) as Array<{
+    id: string;
+    invoice_no: string | null;
+    invoice_date: string | null;
+    created_at: string | null;
+    total: number | string;
+    paid_amount: number | string;
+    currency_code: string | null;
+  }>;
+
+  return {
+    statement: mapRowToStatement(stmt as Record<string, unknown>),
+    customer: {
+      name: cust?.name ?? cust?.company_name ?? '—',
+      companyName: cust?.company_name ?? undefined,
+      phone: cust?.phone ?? undefined,
+      email: cust?.email ?? undefined,
+    },
+    primaryContact,
+    invoices: invList.map((inv) => {
+      const total = Number(inv.total) ?? 0;
+      const paid = Number(inv.paid_amount) ?? 0;
+      return {
+        id: inv.id,
+        invoiceNo: inv.invoice_no,
+        invoiceDate: inv.invoice_date ?? inv.created_at,
+        total,
+        paidAmount: paid,
+        remaining: Math.max(0, total - paid),
+        currencyCode: inv.currency_code,
+      };
+    }),
+  };
+}
+
 export async function getStatementById(id: string): Promise<B2BStatement | null> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();

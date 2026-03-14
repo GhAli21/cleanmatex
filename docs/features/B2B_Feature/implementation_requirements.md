@@ -63,9 +63,13 @@ Add to `sys_permission_*` and assign to roles:
 - `GET/POST /api/v1/b2b-contacts`, `GET/PATCH/DELETE /api/v1/b2b-contacts/:id`
 - `GET/POST /api/v1/b2b-contracts`, `GET/PATCH/DELETE /api/v1/b2b-contracts/:id`
 - `GET /api/v1/b2b-statements`, `POST /api/v1/b2b-statements/generate`, `GET/PATCH /api/v1/b2b-statements/:id`
+- `GET /api/v1/b2b/overdue-statements` — overdue statements with dunning level
+- `POST /api/v1/b2b/run-dunning-actions` — execute email/sms/hold_orders (manual or cron)
 
 ## Database Migration(s)
 
+- **0152_b2b_credit_limit_override_audit.sql** — credit_limit_override_by, credit_limit_override_at on org_orders_mst
+- **0153_b2b_customer_credit_hold.sql** — is_credit_hold on org_customers_mst
 - **0147_b2b_customers_contracts_contacts.sql**
 - Extend `org_customers_mst`: company_name, company_name2, tax_id, credit_limit, payment_terms_days, cost_center_code
 - Create `org_b2b_contacts_dtl`
@@ -89,7 +93,9 @@ Add to `sys_permission_*` and assign to roles:
 
 ## Environment Variables
 
-- N/A for B2B feature
+- `CRON_SECRET` — optional; when set, POST /api/v1/b2b/run-dunning-actions accepts `x-cron-secret` + `x-tenant-id` for cron
+- `RESEND_API_KEY` — for dunning email (Resend)
+- `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` — for dunning SMS
 
 ## Other
 

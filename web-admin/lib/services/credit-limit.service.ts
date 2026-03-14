@@ -14,6 +14,8 @@ export interface CreditLimitResult {
   available: number;
   orderTotal: number;
   wouldExceed: boolean;
+  /** When true, customer is on credit hold (dunning) - block new orders */
+  isCreditHold?: boolean;
 }
 
 export async function checkCreditLimit(
@@ -26,7 +28,7 @@ export async function checkCreditLimit(
 
   const { data: customer, error: custError } = await supabase
     .from('org_customers_mst')
-    .select('id, type, credit_limit')
+    .select('id, type, credit_limit, is_credit_hold')
     .eq('id', customerId)
     .eq('tenant_org_id', tenantId)
     .single();
@@ -49,6 +51,19 @@ export async function checkCreditLimit(
 
   const isB2B = customer.type === 'b2b' || customer.type === 'B2B';
   const creditLimit = Number(customer.credit_limit) ?? 0;
+  const isCreditHold = Boolean(customer.is_credit_hold);
+
+  if (isB2B && isCreditHold) {
+    return {
+      allowed: false,
+      currentBalance: 0,
+      creditLimit,
+      available: 0,
+      orderTotal: additionalAmount,
+      wouldExceed: true,
+      isCreditHold: true,
+    };
+  }
 
   if (!isB2B || creditLimit <= 0) {
     return {

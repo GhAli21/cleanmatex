@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useReceipts, useSendReceipt } from '../hooks/use-receipts';
@@ -15,6 +15,8 @@ import { Receipt, Send, RefreshCw, CheckCircle2, XCircle, Clock } from 'lucide-r
 
 interface ReceiptPreviewProps {
   orderId: string;
+  /** When 'b2b', default delivery channel is email (formal PDF) per B2B receipt rules */
+  customerType?: string;
 }
 
 const RECEIPT_TYPES = [
@@ -29,9 +31,15 @@ const DELIVERY_CHANNELS = [
   { value: 'app', label: 'In-App' },
 ];
 
-export function ReceiptPreview({ orderId }: ReceiptPreviewProps) {
+export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const [receiptType, setReceiptType] = useState('whatsapp_text');
   const [deliveryChannels, setDeliveryChannels] = useState<string[]>(['whatsapp']);
+
+  useEffect(() => {
+    if (customerType === 'b2b') {
+      setDeliveryChannels(['email']);
+    }
+  }, [customerType]);
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const { data: receipts, isLoading } = useReceipts(orderId);
   const { mutate: sendReceipt, isPending: isSending } = useSendReceipt();

@@ -16,6 +16,7 @@ import InvoicesTable from '@features/billing/ui/invoices-table';
 type InvoicesSearchParams = {
   page?: string;
   status?: string;
+  invoiceType?: string;
   fromDate?: string;
   toDate?: string;
   search?: string;
@@ -63,6 +64,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
   const filters = {
     tenantOrgId,
     status: params.status as any,
+    invoiceTypeCd: params.invoiceType?.trim() || undefined,
     dateFrom: parseDate(params.fromDate),
     dateTo: parseDate(params.toDate),
     searchQuery: params.search?.trim(),

@@ -81,6 +81,13 @@ export interface CreateOrderParams {
   paymentNotes?: string;
   paymentMethod?: string;
   readyByAt?: string; // ISO datetime string for ready-by date from screen
+  /** B2B: Contract, cost center, PO */
+  b2bContractId?: string;
+  costCenterCode?: string;
+  poNumber?: string;
+  /** B2B: Credit limit override audit - set when admin overrides in payment modal */
+  creditLimitOverrideBy?: string;
+  creditLimitOverrideAt?: Date;
   userId: string;
   userName: string;
   useOldWfCodeOrNew?: boolean;
@@ -912,6 +919,11 @@ export class OrderService {
         ...(giftCardId != null && { gift_card_id: giftCardId }),
         ...(isDefaultCustomer != null && { is_default_customer: isDefaultCustomer }),
         ...(customerMobile != null && customerMobile !== '' && { customer_mobile_number: customerMobile }),
+        ...(params.b2bContractId != null && { b2b_contract_id: params.b2bContractId }),
+        ...(params.costCenterCode != null && params.costCenterCode !== '' && { cost_center_code: params.costCenterCode }),
+        ...(params.poNumber != null && params.poNumber !== '' && { po_number: params.poNumber }),
+        ...(params.creditLimitOverrideBy != null && { credit_limit_override_by: params.creditLimitOverrideBy }),
+        ...(params.creditLimitOverrideAt != null && { credit_limit_override_at: params.creditLimitOverrideAt }),
         ...(customerEmail != null && customerEmail !== '' && { customer_email: customerEmail }),
         ...(customerName != null && customerName !== '' && { customer_name: customerName }),
         ...(customerDetails != null && Object.keys(customerDetails).length > 0 && { customer_details: customerDetails }),

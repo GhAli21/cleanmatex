@@ -265,6 +265,10 @@ export function useOrderSubmission() {
                         finalTotal: payload.totals.finalTotal,
                     },
                     amountToCharge: payload.amountToCharge,
+                    ...(paymentData.b2bContractId && { b2bContractId: paymentData.b2bContractId }),
+                    ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),
+                    ...(paymentData.poNumber?.trim() && { poNumber: paymentData.poNumber.trim() }),
+                    ...(payload.creditLimitOverride && { creditLimitOverride: true }),
                 };
 
                 const headers: Record<string, string> = {

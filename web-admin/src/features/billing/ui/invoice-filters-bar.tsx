@@ -3,8 +3,14 @@
 import { useTranslations } from 'next-intl';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useTransition, useCallback } from 'react';
+import { useFeature } from '@/src/features/auth/ui/RequireFeature';
 
 const STATUS_OPTIONS = ['pending', 'paid', 'partial', 'overdue', 'draft', 'cancelled', 'refunded'] as const;
+const INVOICE_TYPE_OPTIONS = [
+  { value: '', labelKey: 'allTypes' },
+  { value: 'RETAIL', labelKey: 'retail' },
+  { value: 'B2B', labelKey: 'b2b' },
+] as const;
 
 export default function InvoiceFiltersBar() {
   const t = useTranslations('invoices.filters');
@@ -12,6 +18,7 @@ export default function InvoiceFiltersBar() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const hasB2B = useFeature('b2b_contracts');
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
 
@@ -96,6 +103,20 @@ export default function InvoiceFiltersBar() {
             </option>
           ))}
         </select>
+
+        {hasB2B && (
+          <select
+            value={currentInvoiceType}
+            onChange={(e) => updateParams({ invoiceType: e.target.value || null })}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          >
+            {INVOICE_TYPE_OPTIONS.map((opt) => (
+              <option key={opt.value || 'all'} value={opt.value}>
+                {t(opt.labelKey)}
+              </option>
+            ))}
+          </select>
+        )}
 
         <div className="flex items-center gap-1">
           <label className="text-xs text-gray-500">{t('fromDate')}</label>

@@ -21,7 +21,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authCheck = await requirePermission('customers:read')(request);
+    const authCheck = await requirePermission('b2b_statements:view')(request);
     if (authCheck instanceof NextResponse) return authCheck;
 
     const { id } = await params;
@@ -47,7 +47,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authCheck = await requirePermission('customers:update')(request);
+    const authCheck = await requirePermission('b2b_statements:create')(request);
     if (authCheck instanceof NextResponse) return authCheck;
 
     const { id } = await params;

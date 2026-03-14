@@ -254,6 +254,9 @@
     "filters": {
       "search": "Search by invoice #, order #, customer, notes...",
       "allStatuses": "All Statuses",
+      "allTypes": "All Types",
+      "retail": "Retail",
+      "b2b": "B2B",
       "fromDate": "From Date",
       "toDate": "To Date"
     },
@@ -2988,6 +2991,21 @@
         },
         "success": "Gift card applied! Balance: OMR {balance}"
       },
+      "b2b": {
+        "title": "B2B Details",
+        "contract": "Contract",
+        "contractOptional": "None (optional)",
+        "costCenter": "Cost Center",
+        "costCenterPlaceholder": "Optional",
+        "poNumber": "PO Number",
+        "poNumberPlaceholder": "Optional",
+        "creditLimit": "Credit Limit",
+        "creditUsed": "Used",
+        "creditAvailable": "Available",
+        "creditExceeded": "Order total exceeds available credit. Payment will be blocked.",
+        "creditExceededWarn": "Order exceeds available credit. You may override with confirmation below.",
+        "creditOverrideConfirm": "I confirm override of credit limit"
+      },
       "customItem": {
         "title": "Add Custom Item",
         "name": "Item Name",
@@ -3324,7 +3342,9 @@
     }
   },
   "b2b": {
+    "customer": "B2B",
     "customers": "B2B Customers",
+    "contacts": "Contacts",
     "contracts": "Contracts",
     "statements": "Statements",
     "noCustomers": "No B2B customers yet. Create one to get started.",
@@ -3335,6 +3355,7 @@
     "actions": "Actions",
     "view": "View",
     "companyName": "Company Name",
+    "companyName2": "Company Name (Arabic)",
     "taxId": "Tax ID",
     "paymentTermsDays": "Payment Terms (Days)",
     "costCenterCode": "Cost Center Code",
@@ -3352,6 +3373,11 @@
     "paidAmount": "Paid Amount",
     "balanceAmount": "Balance Amount",
     "generateStatement": "Generate Statement",
-    "recordPayment": "Record Payment"
+    "recordPayment": "Record Payment",
+    "overdueStatements": "Overdue Statements",
+    "daysOverdue": "Days Overdue",
+    "dunningAction": "Action",
+    "statementTitle": "Statement",
+    "statementDetails": "Statement Details"
   }
 }

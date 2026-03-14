@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { createCustomer } from '@/lib/api/customers';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
+import { useFeature } from '@/src/features/auth/ui/RequireFeature';
 import type { CustomerType, Customer } from '@/lib/types/customer';
 
 /** Common GCC + regional country codes for phone input */
@@ -40,14 +41,21 @@ export function CustomerCreateModal({
   tenantId,
 }: CustomerCreateModalProps) {
   const t = useTranslations('customers');
+  const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const hasB2B = useFeature('b2b_contracts');
   const [customerType, setCustomerType] = useState<CustomerType>('stub');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+968');
   const [email, setEmail] = useState('');
+  const [companyName, setCompanyName] = useState('');
+  const [companyName2, setCompanyName2] = useState('');
+  const [taxId, setTaxId] = useState('');
+  const [creditLimit, setCreditLimit] = useState('');
+  const [paymentTermsDays, setPaymentTermsDays] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,6 +84,11 @@ export function CustomerCreateModal({
       return;
     }
 
+    if (customerType === 'b2b' && !companyName.trim()) {
+      setError(tB2b('companyName') ? `${tB2b('companyName')} is required` : 'Company name is required');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -99,6 +112,22 @@ export function CustomerCreateModal({
           lastName: lastName.trim() || undefined,
         });
       }
+      // For B2B customers (when feature enabled)
+      else if (customerType === 'b2b') {
+        const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
+        createdCustomer = await createCustomer({
+          type: 'b2b',
+          firstName: firstName.trim(),
+          lastName: lastName.trim() || undefined,
+          phone: fullPhone,
+          email: email.trim() || undefined,
+          companyName: companyName.trim(),
+          companyName2: companyName2.trim() || undefined,
+          taxId: taxId.trim() || undefined,
+          creditLimit: creditLimit ? Number(creditLimit) : undefined,
+          paymentTermsDays: paymentTermsDays ? Number(paymentTermsDays) : undefined,
+        });
+      }
       // For full customers (requires OTP - not implemented in simple modal)
       else {
         setError(t('fullCustomerRequiresOTP') || 'Full customer requires OTP verification');
@@ -115,6 +144,11 @@ export function CustomerCreateModal({
       setLastName('');
       setPhone('');
       setEmail('');
+      setCompanyName('');
+      setCompanyName2('');
+      setTaxId('');
+      setCreditLimit('');
+      setPaymentTermsDays('');
       setError(null);
 
       // Call success callback with created customer
@@ -134,6 +168,11 @@ export function CustomerCreateModal({
     setLastName('');
     setPhone('');
     setEmail('');
+    setCompanyName('');
+    setCompanyName2('');
+    setTaxId('');
+    setCreditLimit('');
+    setPaymentTermsDays('');
     setError(null);
     setCustomerType('stub');
     onClose();
@@ -206,7 +245,7 @@ export function CustomerCreateModal({
             <label className={`block text-sm font-medium text-gray-700 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
               {t('customerType') || 'Customer Type'}
             </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${hasB2B ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <button
                 type="button"
                 onClick={() => setCustomerType('guest')}
@@ -231,6 +270,20 @@ export function CustomerCreateModal({
               >
                 {t('stubRecommended') || 'Stub (Recommended)'}
               </button>
+              {hasB2B && (
+                <button
+                  type="button"
+                  onClick={() => setCustomerType('b2b')}
+                  disabled={loading}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors disabled:opacity-50 ${
+                    customerType === 'b2b'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {tB2b('customer') || 'B2B'}
+                </button>
+              )}
             </div>
             <p className={`mt-1 text-xs text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
               {customerType === 'guest'
@@ -317,14 +370,14 @@ export function CustomerCreateModal({
             </div>
           )}
 
-          {/* Email (optional for stub) */}
-          {customerType === 'stub' && (
+          {/* Email (optional for stub, required-ish for B2B) */}
+          {(customerType === 'stub' || customerType === 'b2b') && (
             <div className="mb-4">
               <label
                 htmlFor="create-customer-email"
                 className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
               >
-                {t('emailOptional') || 'Email (Optional)'}
+                {customerType === 'b2b' ? (t('email') || 'Email') : (t('emailOptional') || 'Email (Optional)')}
               </label>
               <input
                 type="email"
@@ -337,6 +390,107 @@ export function CustomerCreateModal({
                 placeholder="customer@example.com"
               />
             </div>
+          )}
+
+          {/* B2B fields */}
+          {customerType === 'b2b' && (
+            <>
+              <div className="mb-4">
+                <label
+                  htmlFor="create-customer-companyName"
+                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                >
+                  {tB2b('companyName') || 'Company Name'} <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="create-customer-companyName"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  dir={isRTL ? 'rtl' : 'ltr'}
+                  disabled={loading}
+                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                  placeholder={tB2b('companyName') || 'Company Name'}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="create-customer-companyName2"
+                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                >
+                  {tB2b('companyName2') || 'Company Name (Arabic)'}
+                </label>
+                <input
+                  type="text"
+                  id="create-customer-companyName2"
+                  value={companyName2}
+                  onChange={(e) => setCompanyName2(e.target.value)}
+                  dir="rtl"
+                  disabled={loading}
+                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed text-right`}
+                  placeholder={tB2b('companyName2') || 'Company Name (Arabic)'}
+                />
+              </div>
+              <div className="mb-4">
+                <label
+                  htmlFor="create-customer-taxId"
+                  className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                >
+                  {tB2b('taxId') || 'Tax ID'}
+                </label>
+                <input
+                  type="text"
+                  id="create-customer-taxId"
+                  value={taxId}
+                  onChange={(e) => setTaxId(e.target.value)}
+                  dir="ltr"
+                  disabled={loading}
+                  className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                  placeholder={tB2b('taxId') || 'Tax ID'}
+                />
+              </div>
+              <div className="mb-4 grid grid-cols-2 gap-3">
+                <div>
+                  <label
+                    htmlFor="create-customer-creditLimit"
+                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  >
+                    {tB2b('creditLimit') || 'Credit Limit'}
+                  </label>
+                  <input
+                    type="number"
+                    id="create-customer-creditLimit"
+                    value={creditLimit}
+                    onChange={(e) => setCreditLimit(e.target.value)}
+                    dir="ltr"
+                    disabled={loading}
+                    min={0}
+                    step={0.01}
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="create-customer-paymentTermsDays"
+                    className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                  >
+                    {tB2b('paymentTermsDays') || 'Payment Terms (Days)'}
+                  </label>
+                  <input
+                    type="number"
+                    id="create-customer-paymentTermsDays"
+                    value={paymentTermsDays}
+                    onChange={(e) => setPaymentTermsDays(e.target.value)}
+                    dir="ltr"
+                    disabled={loading}
+                    min={0}
+                    className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                    placeholder="30"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           {/* Actions */}

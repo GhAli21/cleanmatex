@@ -46,6 +46,9 @@ Index of sub-component folders and key documentation for the Order Service Prefe
 |------|---------|
 | IMPLEMENTATION_PLAN_COMPLETE.md | Consolidated implementation plan |
 | IMPLEMENTATION_PLAN_ADDENDUM.md | Addendum and gap fixes |
+| IMPLEMENTATION_PLAN_ENHANCEMENT_v2.md | Enhancement v2 plan (suggesstion_decisions + suggested schema) |
+| suggesstion_decisions.md | User decisions on enhancement recommendations |
+| GCC_Market_Laundry-Specific_Enhancements.md | GCC market laundry-specific enhancements (documentation) |
 
 ## Sub-Component Folders
 

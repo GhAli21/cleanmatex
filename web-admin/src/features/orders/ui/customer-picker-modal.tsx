@@ -32,6 +32,7 @@ interface Customer {
   lastName?: string;
   phone?: string;
   email?: string;
+  type?: string;
   source?: 'current_tenant' | 'sys_global' | 'other_tenant';
   belongsToCurrentTenant?: boolean;
   originalTenantId?: string;
@@ -61,6 +62,7 @@ function mapSearchItemToCustomer(c: CustomerSearchItem): Customer {
     lastName: c.lastName ?? undefined,
     phone: c.phone ?? undefined,
     email: c.email ?? undefined,
+    type: (c.type as CustomerType['type']) ?? 'walk_in',
     source: c.source,
     belongsToCurrentTenant: c.belongsToCurrentTenant,
     originalTenantId: c.originalTenantId,

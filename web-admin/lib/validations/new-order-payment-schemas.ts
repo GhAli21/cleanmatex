@@ -45,6 +45,8 @@ export const newOrderPaymentPayloadSchema = z
     totals: newOrderPaymentTotalsSchema,
     currencyCode: z.string().length(3).optional(),
     currencyExRate: z.number().min(0).optional(),
+    /** B2B: When true, admin overrides credit limit (warn mode). Passed to create-with-payment. */
+    creditLimitOverride: z.boolean().optional(),
   })
   .refine(
     (data) => data.amountToCharge <= data.totals.finalTotal + 0.001,
@@ -172,6 +174,12 @@ export const createWithPaymentRequestSchema = z.object({
   customerName: z.string().max(255).optional(),
   isDefaultCustomer: z.boolean().optional(),
   customerDetails: z.record(z.string(), z.unknown()).optional(),
+  /** B2B: Contract, cost center, PO */
+  b2bContractId: z.string().uuid().optional(),
+  costCenterCode: z.string().max(50).optional(),
+  poNumber: z.string().max(100).optional(),
+  /** B2B: When true, admin overrides credit limit (warn mode). Recorded on order for audit. */
+  creditLimitOverride: z.boolean().optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),

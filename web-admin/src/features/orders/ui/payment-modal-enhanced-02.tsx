@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
+import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
@@ -26,6 +27,58 @@ import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload } from '@/lib
 import { cmxMessage } from '@ui/feedback';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import type { Control } from 'react-hook-form';
+
+/** B2B contract selector - fetches contracts for customer */
+function B2BContractsSelect({
+  customerId,
+  control,
+  isRTL,
+}: {
+  customerId: string;
+  control: Control<PaymentFormData>;
+  isRTL: boolean;
+}) {
+  const t = useTranslations('newOrder.payment');
+  const { data: contracts = [], isLoading } = useQuery({
+    queryKey: ['b2b-contracts', customerId],
+    queryFn: async () => {
+      const res = await fetch(`/api/v1/b2b-contracts?customer_id=${customerId}`);
+      if (!res.ok) return [];
+      const json = await res.json();
+      return (json.data ?? []) as Array<{ id: string; contractNo: string }>;
+    },
+    enabled: !!customerId,
+  });
+
+  return (
+    <div>
+      <label className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {t('b2b.contract') || 'Contract'}
+      </label>
+      <Controller
+        name="b2bContractId"
+        control={control}
+        render={({ field }) => (
+          <select
+            {...field}
+            value={field.value || ''}
+            onChange={(e) => field.onChange(e.target.value || undefined)}
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+          >
+            <option value="">{t('b2b.contractOptional') || 'None (optional)'}</option>
+            {isLoading && <option disabled>Loading...</option>}
+            {contracts.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.contractNo}
+              </option>
+            ))}
+          </select>
+        )}
+      />
+    </div>
+  );
+}
 
 interface PaymentModalProps {
   open: boolean;
@@ -38,6 +91,8 @@ interface PaymentModalProps {
   isExpress?: boolean;
   tenantOrgId: string;
   customerId?: string;
+  /** When 'b2b', show contract/cost center/PO fields */
+  customerType?: string;
   serviceCategories?: string[];
   branchId?: string;
   /** User ID for USER_OVERRIDE in 7-layer settings resolution. */
@@ -58,6 +113,7 @@ export function PaymentModalEnhanced02({
   isExpress = false,
   tenantOrgId,
   customerId,
+  customerType,
   serviceCategories,
   branchId,
   userId,
@@ -93,6 +149,9 @@ export function PaymentModalEnhanced02({
       giftCardAmount: 0,
       payAllOrders: false,
       paymentNotes: '',
+      b2bContractId: '',
+      costCenterCode: '',
+      poNumber: '',
     },
     mode: 'onChange',
     reValidateMode: 'onChange',
@@ -131,6 +190,7 @@ export function PaymentModalEnhanced02({
     paymentMethod === PAYMENT_METHODS.CHECK;
   const [payPartial, setPayPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState<number>(0);
+  const [creditLimitOverride, setCreditLimitOverride] = useState(false);
 
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
@@ -141,6 +201,13 @@ export function PaymentModalEnhanced02({
     giftCardApplied: number;
     finalTotal: number;
     vatTaxPercent: number;
+    creditLimit?: {
+      currentBalance: number;
+      creditLimit: number;
+      available: number;
+      wouldExceed: boolean;
+      mode?: 'warn' | 'block';
+    };
   } | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -197,6 +264,7 @@ export function PaymentModalEnhanced02({
           giftCardApplied: d.giftCardApplied,
           finalTotal: d.finalTotal,
           vatTaxPercent: d.vatTaxPercent ?? 0,
+          ...(d.creditLimit && { creditLimit: d.creditLimit }),
         });
       } else if (!res.ok && json.errorCode === 'PRODUCT_NOT_FOUND') {
         setServerTotals(null);
@@ -261,6 +329,7 @@ export function PaymentModalEnhanced02({
       setCouponOpen(false);
       setPayPartial(false);
       setPartialAmount(0);
+      setCreditLimitOverride(false);
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
 
@@ -450,6 +519,7 @@ export function PaymentModalEnhanced02({
         currencyCode: currencyConfig.currencyCode,
         currencyExRate: currencyConfig.currencyExRate,
       }),
+      creditLimitOverride: creditLimitOverride || undefined,
     };
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
     if (!parsed.success) {
@@ -461,7 +531,7 @@ export function PaymentModalEnhanced02({
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
-    onSubmit(data, parsed.data);
+    onSubmit(data, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
   };
 
   const getPaymentIcon = (id: string) => {
@@ -634,6 +704,89 @@ export function PaymentModalEnhanced02({
                 )}
               />
             </div>
+
+            {/* B2B: Contract, Cost Center, PO (when customer is B2B) */}
+            {customerType === 'b2b' && customerId && (
+              <div className={`space-y-3 p-3 bg-slate-50 rounded-lg border border-slate-200 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <h3 className="font-semibold text-gray-900 text-sm">{t('b2b.title') || 'B2B Details'}</h3>
+                <B2BContractsSelect
+                  customerId={customerId}
+                  control={control}
+                  isRTL={isRTL}
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('b2b.costCenter') || 'Cost Center'}
+                    </label>
+                    <Controller
+                      name="costCenterCode"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="text"
+                          dir="ltr"
+                          placeholder={t('b2b.costCenterPlaceholder') || 'Optional'}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        />
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <label className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {t('b2b.poNumber') || 'PO Number'}
+                    </label>
+                    <Controller
+                      name="poNumber"
+                      control={control}
+                      render={({ field }) => (
+                        <input
+                          {...field}
+                          type="text"
+                          dir="ltr"
+                          placeholder={t('b2b.poNumberPlaceholder') || 'Optional'}
+                          className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        />
+                      )}
+                    />
+                  </div>
+                </div>
+                {/* Credit limit (when INVOICE or PAY_ON_COLLECTION) */}
+                {(paymentMethod === PAYMENT_METHODS.INVOICE || paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION) &&
+                  serverTotals?.creditLimit &&
+                  serverTotals.creditLimit.creditLimit > 0 && (
+                    <div className={`p-3 rounded-lg border ${serverTotals.creditLimit.wouldExceed ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'} ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <p className="text-sm font-medium text-gray-900">
+                        {t('b2b.creditLimit') || 'Credit Limit'}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-0.5">
+                        {t('b2b.creditUsed') || 'Used'}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable') || 'Available'}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
+                      </p>
+                      {serverTotals.creditLimit.wouldExceed && (
+                        <>
+                          <p className="text-xs font-medium text-amber-800 mt-1">
+                            {serverTotals.creditLimit.mode === 'warn'
+                              ? (t('b2b.creditExceededWarn') || 'Order exceeds available credit. You may override with confirmation below.')
+                              : (t('b2b.creditExceeded') || 'Order total exceeds available credit. Payment will be blocked.')}
+                          </p>
+                          {serverTotals.creditLimit.mode === 'warn' && (
+                            <label className={`flex items-center gap-2 mt-2 text-sm text-amber-900 cursor-pointer ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={creditLimitOverride}
+                                onChange={(e) => setCreditLimitOverride(e.target.checked)}
+                                className="rounded border-amber-600"
+                              />
+                              {t('b2b.creditOverrideConfirm') || 'I confirm override of credit limit'}
+                            </label>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+              </div>
+            )}
 
             {/* Partial Payment Section - only for CASH/CARD/CHECK */}
             {isImmediatePayment && (
@@ -991,7 +1144,14 @@ export function PaymentModalEnhanced02({
             )}
             <button
               type="submit"
-              disabled={loading || totalsLoading || (paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim()) || (payPartial && isImmediatePayment && effectiveAmountToCharge <= 0)}
+              disabled={
+                loading ||
+                totalsLoading ||
+                (paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim()) ||
+                (payPartial && isImmediatePayment && effectiveAmountToCharge <= 0) ||
+                (serverTotals?.creditLimit?.wouldExceed &&
+                  (serverTotals.creditLimit.mode !== 'warn' || !creditLimitOverride))
+              }
               className={`w-full min-h-[44px] px-6 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold text-lg transition-all flex items-center ${isRTL ? 'flex-row-reverse' : ''} justify-center gap-2`}
             >
               {loading ? (

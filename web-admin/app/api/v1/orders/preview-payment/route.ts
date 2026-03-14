@@ -4,7 +4,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService, SETTING_CODES } from '@/lib/services/tenant-settings.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { previewPaymentRequestSchema } from '@/lib/validations/new-order-payment-schemas';
@@ -56,9 +59,42 @@ export async function POST(request: NextRequest) {
       giftCardNumber: parsed.data.giftCardNumber,
     });
 
+    let creditLimit: Awaited<ReturnType<typeof checkCreditLimit>> | undefined;
+    let creditLimitMode: 'warn' | 'block' = 'block';
+    if (parsed.data.customerId && data.finalTotal > 0) {
+      try {
+        creditLimit = await checkCreditLimit(parsed.data.customerId, data.finalTotal);
+        if (creditLimit && creditLimit.creditLimit > 0) {
+          const supabase = await createClient();
+          const settingsService = createTenantSettingsService(supabase);
+          const mode = await settingsService.getSettingValue(
+            tenantId,
+            SETTING_CODES.B2B_CREDIT_LIMIT_MODE,
+            parsed.data.branchId ?? null,
+            userId
+          );
+          creditLimitMode =
+            typeof mode === 'string' && (mode === 'warn' || mode === 'block') ? mode : 'block';
+        }
+      } catch {
+        // Non-fatal; omit credit info
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      data,
+      data: {
+        ...data,
+        ...(creditLimit && creditLimit.creditLimit > 0 && {
+          creditLimit: {
+            currentBalance: creditLimit.currentBalance,
+            creditLimit: creditLimit.creditLimit,
+            available: creditLimit.available,
+            wouldExceed: creditLimit.wouldExceed,
+            mode: creditLimitMode,
+          },
+        }),
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Calculation failed';

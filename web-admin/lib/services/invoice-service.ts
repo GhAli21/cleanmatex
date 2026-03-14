@@ -46,12 +46,18 @@ export async function createInvoice(
       where: { id: input.order_id },
       include: {
         org_order_items_dtl: true,
+        org_customers_mst: true,
       },
     });
 
     if (!order) {
       throw new Error('Order not found');
     }
+
+    const customer = order.org_customers_mst;
+    const isB2B =
+      customer?.type === 'b2b' ||
+      (order as { b2b_contract_id?: string | null }).b2b_contract_id != null;
 
     const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
 
@@ -63,6 +69,12 @@ export async function createInvoice(
       vatAmount,
       additionalTax,
     });
+
+    const orderWithB2B = order as {
+      b2b_contract_id?: string | null;
+      cost_center_code?: string | null;
+      po_number?: string | null;
+    };
 
     const now = new Date();
     const invoice = await db.org_invoice_mst.create({
@@ -92,6 +104,10 @@ export async function createInvoice(
         metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
         rec_notes: input.rec_notes,
         created_at: now,
+        invoice_type_cd: isB2B ? 'B2B' : null,
+        b2b_contract_id: orderWithB2B.b2b_contract_id ?? null,
+        cost_center_code: orderWithB2B.cost_center_code ?? null,
+        po_number: orderWithB2B.po_number ?? null,
       },
     });
 
@@ -236,6 +252,8 @@ export async function getInvoicesByStatus(
 export async function listInvoices(params: {
   tenantOrgId?: string;
   status?: InvoiceStatus;
+  /** Filter by invoice type: RETAIL, B2B, or empty for all */
+  invoiceTypeCd?: string;
   dateFrom?: string;
   dateTo?: string;
   searchQuery?: string;
@@ -260,6 +278,10 @@ export async function listInvoices(params: {
 
     if (params.status) {
       where.status = params.status;
+    }
+
+    if (params.invoiceTypeCd && params.invoiceTypeCd.trim()) {
+      where.invoice_type_cd = params.invoiceTypeCd.trim();
     }
 
     if (params.dateFrom || params.dateTo) {

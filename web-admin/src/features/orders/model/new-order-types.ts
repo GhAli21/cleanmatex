@@ -21,6 +21,8 @@ export interface MinimalCustomer {
   email?: string;
   /** True when selected from tenant default guest customer */
   isDefaultCustomer?: boolean;
+  /** Customer type for B2B flow (contract, cost center, PO) */
+  type?: string;
 }
 
 /**

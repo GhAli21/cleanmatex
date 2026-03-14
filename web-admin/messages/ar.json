@@ -254,6 +254,9 @@
     "filters": {
       "search": "البحث برقم الفاتورة، الطلب، العميل، الملاحظات...",
       "allStatuses": "كل الحالات",
+      "allTypes": "كل الأنواع",
+      "retail": "تجزئة",
+      "b2b": "B2B",
       "fromDate": "من تاريخ",
       "toDate": "إلى تاريخ"
     },
@@ -2988,6 +2991,21 @@
         },
         "success": "تم تطبيق بطاقة الهدية! الرصيد: {balance} ريال عماني"
       },
+      "b2b": {
+        "title": "تفاصيل B2B",
+        "contract": "العقد",
+        "contractOptional": "لا يوجد (اختياري)",
+        "costCenter": "مركز التكلفة",
+        "costCenterPlaceholder": "اختياري",
+        "poNumber": "رقم أمر الشراء",
+        "poNumberPlaceholder": "اختياري",
+        "creditLimit": "حد الائتمان",
+        "creditUsed": "المستخدم",
+        "creditAvailable": "المتاح",
+        "creditExceeded": "إجمالي الطلب يتجاوز الائتمان المتاح. سيتم رفض الدفع.",
+        "creditExceededWarn": "الطلب يتجاوز الائتمان المتاح. يمكنك تجاوزه بتأكيد أدناه.",
+        "creditOverrideConfirm": "أؤكد تجاوز حد الائتمان"
+      },
       "customItem": {
         "title": "إضافة عنصر مخصص",
         "name": "اسم العنصر",
@@ -3324,7 +3342,9 @@
     }
   },
   "b2b": {
+    "customer": "B2B",
     "customers": "عملاء B2B",
+    "contacts": "جهات الاتصال",
     "contracts": "العقود",
     "statements": "كشوف الحساب",
     "noCustomers": "لا يوجد عملاء B2B بعد. أنشئ واحداً للبدء.",
@@ -3335,6 +3355,7 @@
     "actions": "الإجراءات",
     "view": "عرض",
     "companyName": "اسم الشركة",
+    "companyName2": "اسم الشركة (عربي)",
     "taxId": "الرقم الضريبي",
     "paymentTermsDays": "شروط الدفع (أيام)",
     "costCenterCode": "رمز مركز التكلفة",
@@ -3352,6 +3373,11 @@
     "paidAmount": "المبلغ المدفوع",
     "balanceAmount": "الرصيد",
     "generateStatement": "إنشاء كشف حساب",
-    "recordPayment": "تسجيل الدفع"
+    "recordPayment": "تسجيل الدفع",
+    "overdueStatements": "كشوف حساب متأخرة",
+    "daysOverdue": "أيام التأخر",
+    "dunningAction": "الإجراء",
+    "statementTitle": "كشف حساب",
+    "statementDetails": "تفاصيل كشف الحساب"
   }
 }

@@ -9,7 +9,7 @@ import { listStatements } from '@/lib/services/b2b-statements.service';
 
 export async function GET(request: NextRequest) {
   try {
-    const authCheck = await requirePermission('customers:read')(request);
+    const authCheck = await requirePermission('b2b_statements:view')(request);
     if (authCheck instanceof NextResponse) return authCheck;
 
     const { searchParams } = new URL(request.url);

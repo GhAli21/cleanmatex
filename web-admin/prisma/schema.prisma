@@ -508,6 +508,7 @@ model org_customers_mst {
   rec_status             Int?                     @default(1) @db.SmallInt
   is_active              Boolean                  @default(true)
   rec_notes              String?
+  is_credit_hold        Boolean?                  @default(false)
   created_at             DateTime?                @default(now()) @db.Timestamp(6)
   created_by             String?                  @db.Uuid
   created_info           String?
@@ -578,6 +579,11 @@ model org_invoice_mst {
   rec_status                Int?                   @default(1) @db.SmallInt
   is_active                 Boolean?               @default(true)
   customer_id               String?                @db.Uuid
+  invoice_type_cd           String?                @db.VarChar(20)
+  b2b_contract_id           String?                @db.Uuid
+  statement_id              String?                @db.Uuid
+  cost_center_code          String?                @db.VarChar(50)
+  po_number                 String?                @db.VarChar(100)
   org_fin_vouchers_mst      org_fin_vouchers_mst[]
   org_promo_codes_mst       org_promo_codes_mst?   @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_invoice_promo_code")
   org_branches_mst          org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_branch")
@@ -831,6 +837,11 @@ model org_orders_mst {
   returned_by                     String?                           @db.Uuid
   return_reason                   String?
   return_reason_code              String?                           @db.VarChar(50)
+  b2b_contract_id                 String?                           @db.Uuid
+  cost_center_code                String?                           @db.VarChar(50)
+  po_number                       String?                           @db.VarChar(100)
+  credit_limit_override_by        String?                           @db.VarChar(120)
+  credit_limit_override_at        DateTime?                         @db.Timestamp(6)
   org_asm_tasks_mst               org_asm_tasks_mst?
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_fin_vouchers_mst            org_fin_vouchers_mst[]

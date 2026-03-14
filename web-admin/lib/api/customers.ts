@@ -47,6 +47,7 @@ export interface CustomerSearchItem {
   lastName?: string | null;
   phone?: string | null;
   email?: string | null;
+  type?: string;
   source?: 'current_tenant' | 'sys_global' | 'other_tenant';
   belongsToCurrentTenant?: boolean;
   originalTenantId?: string;

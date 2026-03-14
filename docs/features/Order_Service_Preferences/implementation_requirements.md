@@ -29,6 +29,15 @@ author: CleanMateX Team
 - `SERVICE_PREF_PACKING_PER_PIECE_ENABLED`
 - `SERVICE_PREF_BUNDLES_SHOW_SAVINGS`
 
+## Changelog Audit (How to Enable)
+
+To enable the preference changelog (audit trail of customer preference changes):
+
+1. **Feature flag:** Ensure `service_pref.changelog_audit` is enabled for the tenant's plan (Growth+).
+2. **Tenant setting:** Add `SERVICE_PREF_CHANGELOG_AUDIT` (BOOLEAN, default false). When true, the Customer Preferences tab shows the changelog view.
+3. **Data:** `org_customer_pref_changelog` table stores added/removed/modified events; populated by trigger on `org_customer_service_prefs`.
+4. **UI:** Customer detail → Preferences tab → Changelog section (visible when setting is true and flag is enabled).
+
 ## Feature Flags
 
 - `service_preferences_enabled`

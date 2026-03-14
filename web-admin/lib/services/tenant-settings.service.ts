@@ -35,6 +35,8 @@ export const SETTING_CODES = {
   SERVICE_PREF_ENFORCE_COMPATIBILITY: 'SERVICE_PREF_ENFORCE_COMPATIBILITY',
   SERVICE_PREF_PROCESSING_CONFIRMATION: 'SERVICE_PREF_PROCESSING_CONFIRMATION',
   SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS: 'SERVICE_PREF_AUTO_APPLY_CUSTOMER_PREFS',
+  B2B_CREDIT_LIMIT_MODE: 'B2B_CREDIT_LIMIT_MODE',
+  B2B_DUNNING_LEVELS: 'B2B_DUNNING_LEVELS',
 } as const;
 
 /** Resolved settings map: setting code → parsed value (string, number, boolean) */
@@ -128,6 +130,36 @@ export class TenantSettingsService {
   ): Promise<string | number | boolean | null> {
     const map = await this.getAllResolvedSettings(tenantId, branchId, userId);
     return map[settingCode] ?? null;
+  }
+
+  /**
+   * Get raw JSONB value for a setting (e.g. B2B_DUNNING_LEVELS array).
+   * Returns the value as-is from fn_stng_resolve_all_settings.
+   */
+  async getSettingValueJson(
+    tenantId: string,
+    settingCode: string,
+    branchId?: string | null,
+    userId?: string | null
+  ): Promise<unknown> {
+    try {
+      const { data } = await this.supabase.rpc('fn_stng_resolve_all_settings', {
+        p_tenant_id: tenantId,
+        p_branch_id: branchId ?? null,
+        p_user_id: userId ?? null,
+      });
+      const row = (data ?? []).find(
+        (r: { stng_code?: string; setting_code?: string }) =>
+          (r.stng_code ?? r.setting_code) === settingCode
+      );
+      const jsonb = row?.stng_value_jsonb;
+      if (jsonb !== undefined && jsonb !== null && typeof jsonb === 'object' && 'value' in jsonb) {
+        return (jsonb as { value: unknown }).value;
+      }
+      return jsonb ?? null;
+    } catch {
+      return null;
+    }
   }
 
   /**

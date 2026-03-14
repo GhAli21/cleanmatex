@@ -24,7 +24,7 @@ const CreateContactSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const authCheck = await requirePermission('customers:read')(request);
+    const authCheck = await requirePermission('b2b_contacts:view')(request);
     if (authCheck instanceof NextResponse) return authCheck;
 
     const { searchParams } = new URL(request.url);
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authCheck = await requirePermission('customers:update')(request);
+    const authCheck = await requirePermission('b2b_contacts:create')(request);
     if (authCheck instanceof NextResponse) return authCheck;
 
     const body = await request.json();

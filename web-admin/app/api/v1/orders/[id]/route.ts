@@ -81,16 +81,18 @@ export async function GET(
       }
     }
 
-    const customer = order.customer as { name?: string; phone?: string; email?: string } | undefined;
+    const customer = order.customer as { name?: string; phone?: string; email?: string; type?: string } | undefined;
     const customerName = customer?.name ?? null;
     const customerMobile = customer?.phone ?? null;
     const customerEmail = customer?.email ?? null;
+    const customerType = (order.org_customers_mst as { type?: string } | null)?.type ?? customer?.type ?? null;
 
     const serializedOrder = {
       ...order,
       customer_name: customerName,
       customer_mobile: customerMobile,
       customer_email: customerEmail,
+      customer_type: customerType,
       customer_notes: order.customer_notes ?? null,
       internal_notes: order.internal_notes ?? null,
       payment_notes: order.payment_notes ?? null,

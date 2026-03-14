@@ -24,11 +24,16 @@ import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section'
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section'
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab'
+import {
+  CustomerB2BContactsTab,
+  CustomerB2BContractsTab,
+  CustomerB2BStatementsTab,
+} from '@features/customers/ui/customer-b2b-tabs'
 import UpgradeProfileModal from '@features/customers/ui/upgrade-profile-modal'
 import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
 
 // Tab definitions
-type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences'
+type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
 
 interface Tab {
   id: TabId
@@ -57,14 +62,26 @@ export default function CustomerDetailPage() {
 
   const { currentTenant, user } = useAuth()
   const t = useTranslations('customers')
+  const tB2b = useTranslations('b2b')
 
-  const tabs: Tab[] = [
+  const baseTabs: Tab[] = [
     { id: 'profile', label: t('profile'), icon: '👤' },
     { id: 'addresses', label: t('addresses'), icon: '📍' },
     { id: 'orders', label: t('orderHistory'), icon: '📦' },
     { id: 'preferences', label: t('preferences'), icon: '⚙️' },
     { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
   ]
+
+  const b2bTabs: Tab[] = [
+    { id: 'b2b_contacts', label: tB2b('contacts') || 'Contacts', icon: '👥' },
+    { id: 'b2b_contracts', label: tB2b('contracts'), icon: '📄' },
+    { id: 'b2b_statements', label: tB2b('statements'), icon: '📋' },
+  ]
+
+  const tabs: Tab[] =
+    customer?.type === 'b2b'
+      ? [...baseTabs, ...b2bTabs]
+      : baseTabs
 
   // Fetch customer data
   useEffect(() => {
@@ -453,6 +470,15 @@ export default function CustomerDetailPage() {
                 loyaltyPoints={customer.tenantData?.loyaltyPoints || 0}
               />
             )}
+            {activeTab === 'b2b_contacts' && (
+              <CustomerB2BContactsTab customerId={customer.id} />
+            )}
+            {activeTab === 'b2b_contracts' && (
+              <CustomerB2BContractsTab customerId={customer.id} />
+            )}
+            {activeTab === 'b2b_statements' && (
+              <CustomerB2BStatementsTab customerId={customer.id} />
+            )}
           </div>
         </div>
       </div>
@@ -507,6 +533,43 @@ function ProfileTab({
             </div>
           </dl>
         </div>
+
+        {/* B2B Company Info */}
+        {customer.type === 'b2b' && (
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Company Information
+            </h3>
+            <dl className="space-y-3">
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Company Name</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {customer.companyName || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Tax ID</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {customer.taxId || '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Credit Limit</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {customer.creditLimit != null
+                    ? Number(customer.creditLimit).toLocaleString()
+                    : '—'}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-sm font-medium text-gray-500">Payment Terms (Days)</dt>
+                <dd className="mt-1 text-sm text-gray-900">
+                  {customer.paymentTermsDays ?? '—'}
+                </dd>
+              </div>
+            </dl>
+          </div>
+        )}
 
         {/* Preferences (Full Profile Only) */}
         {customer.type === 'full' && (
