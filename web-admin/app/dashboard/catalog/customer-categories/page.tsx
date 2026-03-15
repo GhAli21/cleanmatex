@@ -200,7 +200,7 @@ export default function CustomerCategoriesPage() {
   const isReserved = !!editingCategory?.system_category_code;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="customer-categories-catalog-page">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">
           {t('customerCategories') || 'Customer Categories'}
