@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { useRTL } from "@/lib/hooks/useRTL";
 import { CmxSwitch } from '@ui/primitives';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { Badge } from '@ui/primitives/badge';
@@ -28,7 +29,7 @@ export default function CategoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const isRtl = useMemo(() => typeof document !== "undefined" && document.dir === "rtl", []);
+  const isRtl = useRTL();
 
   useEffect(() => {
     let mounted = true;

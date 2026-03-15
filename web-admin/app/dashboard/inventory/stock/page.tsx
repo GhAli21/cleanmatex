@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
+import { useRTL } from '@/lib/hooks/useRTL';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { CmxInput, CmxSelect } from '@ui/primitives';
@@ -43,7 +44,7 @@ export default function StockPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const isRtl = useMemo(() => typeof document !== 'undefined' && document.dir === 'rtl', []);
+  const isRtl = useRTL();
 
   // Product filter from URL (when navigating from Order details "Full in Stock" tab)
   const productIdFromUrl = searchParams.get('product') ?? '';

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRTL } from '@/lib/hooks/useRTL'
 import { useAuth } from '@/lib/auth/auth-context'
 import { CmxInput, CmxSelect } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
@@ -45,7 +46,7 @@ export default function ServicesPage() {
   const [category, setCategory] = useState<string>('')
   const [showImport, setShowImport] = useState(false)
   const [showExport, setShowExport] = useState(false)
-  const isRtl = useMemo(() => typeof document !== 'undefined' && document.dir === 'rtl', [])
+  const isRtl = useRTL()
 
   async function load() {
     if (!currentTenant) {

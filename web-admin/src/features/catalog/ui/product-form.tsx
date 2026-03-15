@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
+import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxInput, CmxSelect, CmxButton, CmxCard, Badge } from '@ui/primitives'
 
 interface CategoryOption {
@@ -63,7 +64,7 @@ export default function ProductForm({ initialValues, mode, onSuccess }: ProductF
     product_icon: initialValues?.product_icon ?? null,
   })
 
-  const isRtl = useMemo(() => typeof document !== 'undefined' && document.dir === 'rtl', [])
+  const isRtl = useRTL()
 
   useEffect(() => {
     let mounted = true
