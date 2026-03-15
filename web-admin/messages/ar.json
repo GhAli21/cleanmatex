@@ -3187,7 +3187,10 @@
     "sidebar": {
       "currentTenant": "المستأجر الحالي",
       "role": "الدور",
-      "currentPlan": "الخطة الحالية"
+      "currentPlan": "الخطة الحالية",
+      "collapseSidebar": "طي الشريط الجانبي",
+      "expandSidebar": "توسيع الشريط الجانبي",
+      "navLabel": "القائمة الرئيسية"
     }
   },
   "auth": {

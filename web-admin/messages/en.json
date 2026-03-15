@@ -3187,7 +3187,10 @@
     "sidebar": {
       "currentTenant": "Current Tenant",
       "role": "Role",
-      "currentPlan": "Current Plan"
+      "currentPlan": "Current Plan",
+      "collapseSidebar": "Collapse sidebar",
+      "expandSidebar": "Expand sidebar",
+      "navLabel": "Main navigation"
     }
   },
   "auth": {
