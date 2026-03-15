@@ -221,10 +221,11 @@ export interface CreateFullCustomerRequest {
 
 /**
  * Create B2B Customer (company fields required)
+ * firstName/lastName optional - when omitted, name/name2/display_name derived from company
  */
 export interface CreateB2BCustomerRequest {
   type: 'b2b';
-  firstName: string;
+  firstName?: string;
   lastName?: string;
   displayName?: string;
   name?: string;

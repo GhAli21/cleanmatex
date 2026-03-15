@@ -1,0 +1,33 @@
+---
+description: CRITICAL - Never modify existing migration files. Always create new migrations for fixes or changes.
+alwaysApply: true
+---
+
+# Database Migrations (CRITICAL)
+
+**NEVER modify existing migration files.** This is mandatory.
+
+## Rule
+
+- **Do NOT edit** files in `supabase/migrations/` that have already been created or applied.
+- **Do NOT change** the content of any existing migration (e.g. `0160_*.sql`, `0071_*.sql`).
+- **ALWAYS create a NEW migration** for any fix, change, or addition.
+
+## Why
+
+- Migrations are immutable once applied; changing them breaks migration history and can corrupt databases.
+- Different environments may have different migration states; editing old files causes inconsistent schema.
+- Supabase tracks applied migrations by filename; modifying old files does not re-run them.
+
+## Correct Approach
+
+1. List migrations: `supabase/migrations/` → take the next version (e.g. after `0163` use `0164`).
+2. Create new file: `{version}_{descriptive_snake_case}.sql` (e.g. `0164_fix_stng_resolver_stng_code_ambiguity.sql`).
+3. Put all fixes/changes in the new migration.
+
+## Examples
+
+- ❌ Editing `0160_stng_resolver_plan_constraint_and_feature_flag.sql` to fix a bug
+- ✅ Creating `0164_fix_stng_resolver_stng_code_ambiguity.sql` with the fix
+
+See: `CLAUDE.md` (Database Quick Rules), `.cursor/rules/supabaserules.mdc` (Migration Rules), `/database` skill.

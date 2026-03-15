@@ -7,12 +7,13 @@
 ## CRITICAL RULES
 
 1. **Never do Supabase db reset** - tell me, I'll run db migrations
-2. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
-3. **After frontend changes: run `npm run build`** and fix until success
-4. **Bilingual support (EN/AR + RTL) is mandatory**
-5. **Use agents for exploration** - See efficiency guide below
-6. **Use `/clear` frequently** - When switching topics or context >70%
-7. **Check skills for detailed rules** - Use `/skill-name` for specifics
+2. **Never modify existing migration files** - always create a NEW migration for fixes or changes
+3. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
+4. **After frontend changes: run `npm run build`** and fix until success
+5. **Bilingual support (EN/AR + RTL) is mandatory**
+6. **Use agents for exploration** - See efficiency guide below
+7. **Use `/clear` frequently** - When switching topics or context >70%
+8. **Check skills for detailed rules** - Use `/skill-name` for specifics
 
 ## Agent-First Workflow
 
@@ -43,6 +44,7 @@ npm run build                     # Build (run after changes)
 
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
+- **NEVER modify existing migration files** — always create a NEW migration for fixes or changes. See `.cursor/rules/database-migrations.mdc`.
 - **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
 - **DROP ... CASCADE** — Before adding DROP CASCADE, fetch
   affected objects, prepare recreate statements, and include them

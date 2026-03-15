@@ -5,6 +5,7 @@
     "delete": "Delete",
     "edit": "Edit",
     "create": "Create",
+    "add": "Add",
     "update": "Update",
     "search": "Search",
     "filter": "Filter",
@@ -1515,6 +1516,7 @@
     "name": "Name",
     "name2": "Name (Arabic)",
     "displayName": "Display Name",
+    "displayNameHelper": "Defaults to company name if empty",
     "contactInformation": "Contact Information",
     "addressInformation": "Address Information",
     "area": "Area",
@@ -2032,6 +2034,7 @@
     "noProducts": "No products found",
     "noPriceLists": "No price lists found",
     "noCategories": "No categories found",
+    "addonsComingSoon": "Add-ons management is coming soon.",
     "enableCategories": "Enable Categories",
     "disableCategories": "Disable Categories",
     "saveCategories": "Save Categories",
@@ -3390,6 +3393,7 @@
     "daysOverdue": "Days Overdue",
     "dunningAction": "Action",
     "statementTitle": "Statement",
-    "statementDetails": "Statement Details"
+    "statementDetails": "Statement Details",
+    "editB2BCustomer": "Edit B2B Customer"
   }
 }

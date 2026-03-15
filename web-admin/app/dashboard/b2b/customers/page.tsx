@@ -98,7 +98,7 @@ export default function B2BCustomersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => router.push(`/dashboard/customers/${c.id}`)}
+                          onClick={() => router.push(`/dashboard/b2b/customers/${c.id}`)}
                         >
                           {t('view') || 'View'}
                         </Button>

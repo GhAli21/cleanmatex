@@ -5,6 +5,7 @@
     "delete": "حذف",
     "edit": "تعديل",
     "create": "إنشاء",
+    "add": "إضافة",
     "update": "تحديث",
     "search": "بحث",
     "filter": "تصفية",
@@ -1515,6 +1516,7 @@
     "name": "الاسم",
     "name2": "الاسم (عربي)",
     "displayName": "اسم العرض",
+    "displayNameHelper": "يُستخدم اسم الشركة افتراضياً إذا تُرك فارغاً",
     "contactInformation": "معلومات الاتصال",
     "addressInformation": "معلومات العنوان",
     "area": "المنطقة",
@@ -2032,6 +2034,7 @@
     "noProducts": "لم يتم العثور على منتجات",
     "noPriceLists": "لم يتم العثور على قوائم أسعار",
     "noCategories": "لم يتم العثور على فئات",
+    "addonsComingSoon": "إدارة الإضافات قريباً.",
     "enableCategories": "تفعيل الفئات",
     "disableCategories": "تعطيل الفئات",
     "saveCategories": "حفظ الفئات",
@@ -3390,6 +3393,7 @@
     "daysOverdue": "أيام التأخر",
     "dunningAction": "الإجراء",
     "statementTitle": "كشف حساب",
-    "statementDetails": "تفاصيل كشف الحساب"
+    "statementDetails": "تفاصيل كشف الحساب",
+    "editB2BCustomer": "تعديل عميل B2B"
   }
 }

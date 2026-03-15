@@ -253,14 +253,18 @@ COMMIT;
 ### Migration Rules
 
 0. don't do db reset or apply migration, you have to inform the user to do it by himself
-1. **One logical change per migration** - Don't mix unrelated changes
-2. **Use transactions** - Wrap migrations in BEGIN/COMMIT
-3. **Test locally first** - Always test migrations before applying
-4. **Never modify existing migrations** - Create new migrations for fixes
-5. **Include rollback instructions** - Comment rollback SQL
-6. **Add indexes after data** - Create indexes after table creation
-7. **Document complex logic** - Add comments for complex migrations
-8. **DROP ... CASCADE** - When using `DROP ... CASCADE`, you
+1. **CRITICAL: Never modify existing migration files** - Do NOT edit files in `supabase/migrations/` that already exist. Always create a NEW migration for any fix or change. Migrations are immutable once applied.
+2. **One logical change per migration** - Don't mix unrelated changes
+3. **Use transactions** - Wrap migrations in BEGIN/COMMIT
+4. **Test locally first** - Always test migrations before applying
+5. **Create new migrations for fixes** - If a past migration has a bug, add `{next_version}_fix_{description}.sql`; never change the original file
+6. **Include rollback instructions** - Comment rollback SQL
+7. **Add indexes after data** - Create indexes after table creation
+8. **Document complex logic** - Add comments for complex migrations
+
+**See:** `.cursor/rules/database-migrations.mdc` (always-applied rule)
+
+9. **DROP ... CASCADE** - When using `DROP ... CASCADE`, you
    MUST first fetch affected objects (RLS policies, views, etc.),
    prepare recreate statements, and include them in the same
    migration file after the DROP/CREATE. See `docs/dev/

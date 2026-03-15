@@ -40,8 +40,8 @@ export default function B2BCustomerCreatePage() {
   const { currentTenant } = useAuth();
   const { showErrorFrom } = useMessage();
 
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [customerCategoryId, setCustomerCategoryId] = useState('');
   const [phone, setPhone] = useState('');
   const [countryCode, setCountryCode] = useState('+968');
   const [email, setEmail] = useState('');
@@ -55,7 +55,6 @@ export default function B2BCustomerCreatePage() {
   const [area, setArea] = useState('');
   const [building, setBuilding] = useState('');
   const [floor, setFloor] = useState('');
-  const [customerCategoryId, setCustomerCategoryId] = useState('');
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +62,7 @@ export default function B2BCustomerCreatePage() {
   useEffect(() => {
     if (currentTenant?.id) {
       fetchCustomerCategories({ is_b2b: true, active_only: true })
-        .then((data) => setCategories(data.map((c) => ({ id: c.id, name: c.name }))))
+        .then((data) => setCategories(data.filter((c) => c.is_b2b).map((c) => ({ id: c.id, name: c.name }))))
         .catch(() => { /* keep empty */ });
     }
   }, [currentTenant?.id]);
@@ -83,10 +82,6 @@ export default function B2BCustomerCreatePage() {
     e.preventDefault();
     setError(null);
 
-    if (!firstName.trim()) {
-      setError(t('firstNameRequired'));
-      return;
-    }
     if (!phone.trim()) {
       setError(t('phoneRequiredStubFull'));
       return;
@@ -99,14 +94,17 @@ export default function B2BCustomerCreatePage() {
     setLoading(true);
     try {
       const fullPhone = phone.trim().startsWith('+') ? phone.trim() : `${countryCode}${phone.replace(/\D/g, '')}`;
+      const companyNameTrimmed = companyName.trim();
+      const companyName2Trimmed = companyName2.trim() || undefined;
       await createCustomer({
         type: 'b2b',
-        firstName: firstName.trim(),
-        lastName: lastName.trim() || undefined,
         phone: fullPhone,
         email: email.trim() || undefined,
-        companyName: companyName.trim(),
-        companyName2: companyName2.trim() || undefined,
+        displayName: displayName.trim() || companyNameTrimmed,
+        name: companyNameTrimmed,
+        name2: companyName2Trimmed,
+        companyName: companyNameTrimmed,
+        companyName2: companyName2Trimmed,
         taxId: taxId.trim() || undefined,
         creditLimit: creditLimit ? Number(creditLimit) : undefined,
         paymentTermsDays: paymentTermsDays ? Number(paymentTermsDays) : undefined,
@@ -163,17 +161,25 @@ export default function B2BCustomerCreatePage() {
               </div>
             )}
 
+            {/* Category first - B2B categories only (is_b2b=true) */}
+            <div>
+              <label htmlFor="customerCategoryId" className={labelClass}>{t('category') || 'Category'}</label>
+              <select id="customerCategoryId" value={customerCategoryId} onChange={(e) => setCustomerCategoryId(e.target.value)} disabled={loading} className={inputClass()}>
+                <option value="">{tCommon('select') || 'Select...'}</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Contact person */}
               <div className="space-y-4">
-                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">{t('contactInformation') || 'Contact Person'}</h3>
+                <h3 className="text-sm font-medium text-gray-900 border-b pb-2">{t('contactInformation') || 'Contact'}</h3>
                 <div>
-                  <label htmlFor="firstName" className={labelClass}>{t('firstName')} <span className="text-red-500">*</span></label>
-                  <input id="firstName" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={t('firstName')} required disabled={loading} />
-                </div>
-                <div>
-                  <label htmlFor="lastName" className={labelClass}>{t('lastName')}</label>
-                  <input id="lastName" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={t('lastName')} disabled={loading} />
+                  <label htmlFor="displayName" className={labelClass}>{t('displayName')}</label>
+                  <input id="displayName" type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} dir={isRTL ? 'rtl' : 'ltr'} className={inputClass()} placeholder={tB2b('companyName')} disabled={loading} />
+                  <p className="text-xs text-gray-500 mt-1">{t('displayNameHelper') || 'Defaults to company name if empty'}</p>
                 </div>
                 <div>
                   <label htmlFor="phone" className={labelClass}>{t('phoneNumber')} <span className="text-red-500">*</span></label>
@@ -208,15 +214,6 @@ export default function B2BCustomerCreatePage() {
                 <div>
                   <label htmlFor="costCenterCode" className={labelClass}>{tB2b('costCenterCode')}</label>
                   <input id="costCenterCode" type="text" value={costCenterCode} onChange={(e) => setCostCenterCode(e.target.value)} dir="ltr" className={inputClass()} placeholder={tB2b('costCenterCode')} disabled={loading} />
-                </div>
-                <div>
-                  <label htmlFor="customerCategoryId" className={labelClass}>{t('category') || 'Category'}</label>
-                  <select id="customerCategoryId" value={customerCategoryId} onChange={(e) => setCustomerCategoryId(e.target.value)} disabled={loading} className={inputClass()}>
-                    <option value="">{tCommon('select') || 'Select...'}</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
                 </div>
               </div>
             </div>

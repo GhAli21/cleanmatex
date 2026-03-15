@@ -47,36 +47,20 @@ async function verifyCustomerAccess(customerId: string): Promise<void> {
     .eq('tenant_org_id', tenantId)
     .maybeSingle();
 
-  let sysCustomerId: string;
-
   if (orgCustomerCheck) {
-    // This is an org_customers_mst.id, use the linked customer_id
-    sysCustomerId = orgCustomerCheck.customer_id || customerId;
-  } else {
-    // This might be a sys_customers_mst.id, verify it belongs to this tenant
-    const { data: link } = await supabase
-      .from('org_customers_mst')
-      .select('customer_id')
-      .eq('customer_id', customerId)
-      .eq('tenant_org_id', tenantId)
-      .maybeSingle();
-
-    if (!link) {
-      throw new Error('Customer not found or access denied');
-    }
-
-    sysCustomerId = customerId;
+    // This is an org_customers_mst.id - already verified it belongs to tenant
+    return;
   }
 
-  // Verify the sys_customers_mst.id exists and belongs to tenant
-  const { data: finalCheck } = await supabase
+  // This might be a sys_customers_mst.id, verify it belongs to this tenant
+  const { data: link } = await supabase
     .from('org_customers_mst')
     .select('customer_id')
-    .eq('customer_id', sysCustomerId)
+    .eq('customer_id', customerId)
     .eq('tenant_org_id', tenantId)
     .maybeSingle();
 
-  if (!finalCheck) {
+  if (!link) {
     throw new Error('Customer not found or access denied');
   }
 }

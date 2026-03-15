@@ -107,7 +107,18 @@ CREATE POLICY tenant_isolation ON org_example_mst
   USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
 ```
 
-## Database Migrations – Version (Last Seq)
+## Database Migrations – CRITICAL Rules
+
+### Never Modify Existing Migrations
+
+**Do NOT edit existing migration files.** Migrations are immutable once created or applied. Always create a NEW migration for any fix, change, or addition.
+
+- ❌ Editing `0160_*.sql` to fix a bug
+- ✅ Creating `0164_fix_description.sql` with the fix
+
+See `.cursor/rules/database-migrations.mdc` (always-applied).
+
+### Version (Last Seq)
 
 **Always create new migration files with the next sequential version.**
 

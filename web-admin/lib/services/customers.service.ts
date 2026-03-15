@@ -254,16 +254,27 @@ export async function createCustomer(
 
     const displayName =
       request.type === 'b2b' && 'companyName' in request
-        ? request.companyName
-        : request.displayName ?? `${request.firstName} ${('lastName' in request && request.lastName) || ''}`.trim();
-    const name = request.name ?? displayName;
+        ? (request.displayName?.trim() || request.companyName)
+        : request.displayName ?? `${request.firstName ?? ''} ${('lastName' in request && request.lastName) || ''}`.trim();
+    const name =
+      request.type === 'b2b' && 'companyName' in request
+        ? (request.name ?? request.companyName)
+        : request.name ?? displayName;
+    const name2 =
+      request.type === 'b2b' && 'companyName2' in request
+        ? (request.name2 ?? request.companyName2 ?? null)
+        : request.name2 ?? null;
+    const firstName =
+      request.type === 'b2b' && 'companyName' in request
+        ? (request.firstName?.trim() || request.companyName)
+        : request.firstName ?? '';
     const insertPayload: Record<string, unknown> = {
       tenant_org_id: tenantId,
       customer_id: null,
-      first_name: request.firstName,
+      first_name: firstName,
       last_name: 'lastName' in request ? request.lastName : null,
       name,
-      name2: request.name2 ?? null,
+      name2,
       display_name: displayName,
       phone: normalizedPhone,
       email: 'email' in request ? request.email : null,
@@ -320,14 +331,30 @@ export async function createCustomer(
   const customerNumber = await generateCustomerNumber(tenantId);
   const profileStatus = request.type ?? 'guest';
   const phoneVerified = request.type === 'full' && !!normalizedPhone;
+  const sysFirstName =
+    request.type === 'b2b' && 'companyName' in request
+      ? (request.firstName?.trim() || request.companyName)
+      : request.firstName ?? '';
+  const sysDisplayName =
+    request.type === 'b2b' && 'companyName' in request
+      ? (request.displayName?.trim() || request.companyName)
+      : request.displayName ?? sysFirstName + ' ' + (('lastName' in request && request.lastName) ?? '');
+  const sysName =
+    request.type === 'b2b' && 'companyName' in request
+      ? (request.name ?? request.companyName)
+      : request.name ?? sysDisplayName;
+  const sysName2 =
+    request.type === 'b2b' && 'companyName2' in request
+      ? (request.name2 ?? request.companyName2 ?? null)
+      : request.name2 ?? null;
   const { data: customer, error: customerError } = await supabase
     .from('sys_customers_mst')
     .insert({
-      first_name: request.firstName,
+      first_name: sysFirstName,
       last_name: 'lastName' in request ? request.lastName : null,
-      name: request.name ?? request.firstName + ' ' + (('lastName' in request && request.lastName) ?? ''),
-      name2: request.name2 ?? null,
-      display_name: request.displayName ?? request.firstName + ' ' + (('lastName' in request && request.lastName) ?? ''),
+      name: sysName,
+      name2: sysName2,
+      display_name: sysDisplayName,
       phone: normalizedPhone,
       email: 'email' in request ? request.email : null,
       type: request.type,
