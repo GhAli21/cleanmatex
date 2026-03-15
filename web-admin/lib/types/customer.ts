@@ -300,6 +300,8 @@ export interface CustomerSearchParams {
   status?: 'active' | 'inactive'; // Filter by is_active
   sortBy?: 'name' | 'createdAt' | 'lastOrderAt' | 'totalOrders';
   sortOrder?: 'asc' | 'desc';
+  /** When true, exclude B2B customers (for /dashboard/customers - guest/stub/walk_in only) */
+  excludeB2b?: boolean;
 }
 
 /**

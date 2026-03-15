@@ -49,7 +49,7 @@ export class CustomerCategoryService {
   static async list(
     supabase: SupabaseClient,
     tenantId: string,
-    options?: { is_b2b?: boolean; active_only?: boolean }
+    options?: { is_b2b?: boolean; active_only?: boolean; /** Filter by system_type (guest, walk_in, stub, b2b) to match customer type */ system_type?: string }
   ): Promise<CustomerCategoryItem[]> {
     try {
       let query = supabase
@@ -62,6 +62,9 @@ export class CustomerCategoryService {
       }
       if (options?.active_only !== false) {
         query = query.eq('is_active', true);
+      }
+      if (options?.system_type) {
+        query = query.eq('system_type', options.system_type);
       }
 
       const { data, error } = await query.order('display_order', { ascending: true }).order('code', { ascending: true });

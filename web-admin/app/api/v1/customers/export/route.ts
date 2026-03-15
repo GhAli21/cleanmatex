@@ -140,6 +140,7 @@ export async function GET(request: NextRequest) {
       status: (searchParams.get('status') as 'active' | 'inactive') || undefined,
       startDate: searchParams.get('startDate') || undefined,
       endDate: searchParams.get('endDate') || undefined,
+      excludeB2b: searchParams.get('excludeB2b') === 'true',
     };
 
     // 4. Fetch customers (with server-side date filtering)

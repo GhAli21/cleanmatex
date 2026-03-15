@@ -48,6 +48,7 @@ export default function CustomersPage() {
     status: undefined,
     sortBy: 'createdAt',
     sortOrder: 'desc',
+    excludeB2b: true, // This screen is for guest/stub/walk_in only
   })
   const [pagination, setPagination] = useState({
     page: 1,
@@ -138,6 +139,7 @@ export default function CustomersPage() {
       const blob = await exportCustomers({
         type: filters.type,
         status: filters.status,
+        excludeB2b: true,
       })
 
       const filename = `customers_${new Date().toISOString().split('T')[0]}.csv`
@@ -271,6 +273,7 @@ export default function CustomersPage() {
         <CustomerCreateModal
           onClose={() => setShowCreateModal(false)}
           onSuccess={handleCustomerCreated}
+          hideB2B
         />
       )}
     </div>

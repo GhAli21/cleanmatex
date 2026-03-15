@@ -30,7 +30,7 @@ import {
   checkCodeAvailable,
   type CustomerCategoryItem,
 } from '@/lib/api/customer-categories';
-import { generateCode } from '@/lib/utils/generate-code';
+import { generateCode, generateCustomerCategoryCode } from '@/lib/utils/generate-code';
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 
 const SYSTEM_TYPES = [
@@ -81,14 +81,18 @@ export default function CustomerCategoriesPage() {
   const openCreate = () => {
     setEditingCode(null);
     setIsCodeDirty(false);
+    const nextDisplayOrder = categories.reduce(
+      (max, c) => Math.max(max, c.display_order ?? 0),
+      0
+    ) + 1;
     setFormData({
-      code: '',
+      code: generateCustomerCategoryCode('', categories),
       name: '',
       name2: '',
       system_type: 'walk_in',
       is_b2b: false,
       is_individual: true,
-      display_order: categories.length,
+      display_order: nextDisplayOrder,
       is_active: true,
     });
     setDialogOpen(true);
@@ -114,7 +118,9 @@ export default function CustomerCategoriesPage() {
     setFormData((prev) => ({
       ...prev,
       name,
-      ...(!isCodeDirty && !editingCode && { code: generateCode(name) }),
+      ...(!isCodeDirty && !editingCode && {
+        code: generateCustomerCategoryCode(name, categories),
+      }),
     }));
   };
 
@@ -130,7 +136,7 @@ export default function CustomerCategoriesPage() {
     setIsCodeDirty(false);
     setFormData((prev) => ({
       ...prev,
-      code: generateCode(prev.name),
+      code: generateCustomerCategoryCode(prev.name, categories),
     }));
   };
 
@@ -294,21 +300,22 @@ export default function CustomerCategoriesPage() {
       </CmxCard>
 
       <CmxDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <CmxDialogContent>
+        <CmxDialogContent className="max-w-2xl w-full mx-4">
           <CmxDialogHeader>
             <CmxDialogTitle>
               {editingCode ? 'Edit Customer Category' : 'New Customer Category'}
             </CmxDialogTitle>
           </CmxDialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4">
-              <div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <Label>Name (English) *</Label>
                 <CmxInput
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="Walk-in"
                   required
+                  className="w-full"
                 />
               </div>
               <div>
@@ -317,9 +324,9 @@ export default function CustomerCategoriesPage() {
                   <CmxInput
                     value={formData.code}
                     onChange={(e) => handleCodeChange(e.target.value)}
-                    placeholder="WALK_IN"
+                    placeholder="CUST_CTG_0001"
                     disabled={!!editingCode}
-                    className="font-mono"
+                    className="font-mono flex-1"
                   />
                   {!editingCode && isCodeDirty && (
                     <CmxButton type="button" variant="outline" size="icon" onClick={handleResetCode}>
@@ -335,6 +342,7 @@ export default function CustomerCategoriesPage() {
                   onChange={(e) => setFormData({ ...formData, name2: e.target.value })}
                   placeholder="عميل وافد"
                   dir="rtl"
+                  className="w-full"
                 />
               </div>
               <div>
@@ -367,9 +375,10 @@ export default function CustomerCategoriesPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })
                   }
+                  className="w-full"
                 />
               </div>
-              <div className="flex gap-4">
+              <div className="flex gap-4 sm:col-span-2">
                 <label className="flex items-center gap-2">
                   <input
                     type="checkbox"

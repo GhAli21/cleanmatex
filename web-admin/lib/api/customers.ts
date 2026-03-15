@@ -112,6 +112,7 @@ export async function fetchCustomers(
   if (params.status) queryParams.set('status', params.status);
   if (params.sortBy) queryParams.set('sortBy', params.sortBy);
   if (params.sortOrder) queryParams.set('sortOrder', params.sortOrder);
+  if (params.excludeB2b) queryParams.set('excludeB2b', 'true');
 
   const response = await fetch(`${API_BASE}?${queryParams.toString()}`);
 
@@ -466,6 +467,7 @@ export async function exportCustomers(params: {
   status?: string;
   startDate?: string;
   endDate?: string;
+  excludeB2b?: boolean;
 }): Promise<Blob> {
   const queryParams = new URLSearchParams();
 
@@ -473,6 +475,7 @@ export async function exportCustomers(params: {
   if (params.status) queryParams.set('status', params.status);
   if (params.startDate) queryParams.set('startDate', params.startDate);
   if (params.endDate) queryParams.set('endDate', params.endDate);
+  if (params.excludeB2b) queryParams.set('excludeB2b', 'true');
 
   const response = await fetch(`${API_BASE}/export?${queryParams.toString()}`);
 

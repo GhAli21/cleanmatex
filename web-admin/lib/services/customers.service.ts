@@ -627,6 +627,9 @@ export async function searchCustomers(
     query = query.or(orFilter);
   }
 
+  if (params.excludeB2b) {
+    query = query.neq('type', 'b2b');
+  }
   if (params.type) {
     query = query.eq('type', params.type);
   }
@@ -690,13 +693,14 @@ export async function searchCustomers(
  * Step 3: If still not found and searchAllOptions=true, search other tenants' org_customers_mst
  */
 export async function searchCustomersProgressive(
-  params: CustomerSearchParams & { searchAllOptions?: boolean; skipCount?: boolean }
+  params: CustomerSearchParams & { searchAllOptions?: boolean; skipCount?: boolean; excludeB2b?: boolean }
 ): Promise<{ customers: CustomerListItem[]; total: number }> {
   const supabase = await createClient();
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
   const searchAllOptions = params.searchAllOptions ?? false;
   const skipCount = params.skipCount ?? false;
+  const excludeB2b = params.excludeB2b ?? false;
   const searchTerm = params.search?.trim() || '';
   const searchPhone = params.searchPhone?.trim() || '';
   const searchName = params.searchName?.trim() || '';
@@ -709,8 +713,23 @@ export async function searchCustomersProgressive(
   let query = supabase
     .from('org_customers_mst')
     .select('id, customer_id, first_name, last_name, display_name, name, name2, phone, email, type, loyalty_points, created_at, tenant_org_id', selectOpts)
-    .eq('tenant_org_id', tenantId)
-    .eq('is_active', true);
+    .eq('tenant_org_id', tenantId);
+
+  // Status filter (default: active)
+  if (params.status === 'inactive') {
+    query = query.eq('is_active', false);
+  } else {
+    query = query.eq('is_active', true);
+  }
+
+  // Exclude B2B when requested (e.g. /dashboard/customers - guest/stub/walk_in only)
+  if (excludeB2b) {
+    query = query.neq('type', 'b2b');
+  }
+  // Filter by type when provided
+  if (params.type) {
+    query = query.eq('type', params.type);
+  }
 
   // Use field-specific search when provided; else fall back to combined search
   const hasFieldSearch = searchPhone.length > 0 || searchName.length > 0 || searchEmail.length > 0;

@@ -13,4 +13,10 @@ When the user asks to add a new UI screen or page to the navigation tree:
 
 5. If the new item is a child, ensure the parent's `is_leaf` is set to false (add UPDATE for parent if needed).
 
+6. **Add the screen to the frontend sidebar** in `web-admin/config/navigation.ts`:
+   - For a **child screen**: add a new `NavigationItem` to the parent section's `children` array. Match `key` to `comp_code`, `label` to `label`, `path` to `comp_path`, `roles` to roles, and `permissions` to `main_permission_code` (as array if present).
+   - For a **new top-level section**: add a new `NavigationSection` to `NAVIGATION_SECTIONS` with `icon` (import from `lucide-react`), `path`, `roles`, and optionally `children`.
+   - Insert in the correct position among siblings (align with `display_order`).
+   - See the skill's "Frontend sidebar: web-admin/config/navigation.ts" section for mapping and examples.
+
 This command is available in chat with /create-ui-screen-in-sys-tree.

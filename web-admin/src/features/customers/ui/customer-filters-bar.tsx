@@ -134,7 +134,7 @@ export default function CustomerFiltersBar({
               <option value="all">{t('all')}</option>
               <option value="guest">{t('types.guest')}</option>
               <option value="stub">{t('types.stub')}</option>
-              <option value="full">{t('types.full')}</option>
+              <option value="walk_in">{t('types.walk_in')}</option>
             </select>
           </div>
 

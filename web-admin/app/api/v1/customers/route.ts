@@ -223,6 +223,7 @@ export async function GET(request: NextRequest) {
     const searchEmail = searchParams.get('searchEmail') || '';
     const typeParam = searchParams.get('type');
     const type = typeParam && ['guest', 'stub', 'walk_in', 'full'].includes(typeParam) ? typeParam : undefined;
+    const excludeB2b = searchParams.get('excludeB2b') === 'true';
     const statusParam = searchParams.get('status');
     const status = statusParam && (statusParam === 'active' || statusParam === 'inactive') ? statusParam : 'active';
     const sortByParam = searchParams.get('sortBy');
@@ -244,6 +245,7 @@ export async function GET(request: NextRequest) {
       status,
       sortBy,
       sortOrder,
+      excludeB2b,
     });
 
     // Calculate pagination

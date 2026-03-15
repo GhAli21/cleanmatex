@@ -23,10 +23,13 @@ const API_BASE = '/api/v1/customer-categories';
 export async function fetchCustomerCategories(options?: {
   is_b2b?: boolean;
   active_only?: boolean;
+  /** Filter by system_type (guest, walk_in, stub, b2b) to match customer type */
+  system_type?: string;
 }): Promise<CustomerCategoryItem[]> {
   const params = new URLSearchParams();
   if (options?.is_b2b !== undefined) params.set('is_b2b', String(options.is_b2b));
   if (options?.active_only !== undefined) params.set('active_only', String(options.active_only));
+  if (options?.system_type) params.set('system_type', options.system_type);
 
   const url = params.toString() ? `${API_BASE}?${params}` : API_BASE;
   const res = await fetch(url, { credentials: 'include' });

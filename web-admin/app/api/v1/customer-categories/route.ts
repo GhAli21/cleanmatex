@@ -23,11 +23,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const isB2b = searchParams.get('is_b2b');
     const activeOnly = searchParams.get('active_only');
+    const systemType = searchParams.get('system_type') || undefined;
 
     const supabase = await createClient();
     const categories = await CustomerCategoryService.list(supabase, tenantId, {
       is_b2b: isB2b === 'true' ? true : isB2b === 'false' ? false : undefined,
       active_only: activeOnly === 'false' ? false : true,
+      system_type: systemType,
     });
 
     return NextResponse.json({ success: true, data: categories });

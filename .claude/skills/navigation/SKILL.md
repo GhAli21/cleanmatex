@@ -38,6 +38,9 @@
 7. **Permissions**
    - Set `main_permission_code`, `roles` (JSONB array), and optionally `feature_flag` so RLS and `get_navigation_with_parents_jh` show the item correctly.
 
+8. **Frontend sidebar (navigation.ts)**
+   - Add the new screen to `web-admin/config/navigation.ts` so it appears in the sidebar. See "Frontend sidebar: web-admin/config/navigation.ts" below.
+
 ## SQL script pattern (add_sys_comp.sql)
 
 - Use `INSERT INTO sys_components_cd (...) VALUES (...) ON CONFLICT (comp_code) DO UPDATE SET ...`.
@@ -58,9 +61,61 @@
 
 - if you create new supabase db migration file make it proper such as if needed Add BEGIN; at the start so the migration runs in a single transaction, and commit last.
 
+## Frontend sidebar: web-admin/config/navigation.ts
+
+When adding a new UI screen, **also add it to the frontend sidebar** so it appears in the web-admin sidebar. The file `web-admin/config/navigation.ts` defines `NAVIGATION_SECTIONS` (sidebar structure).
+
+### Structure
+
+- **NavigationSection** (parent): `key`, `label`, `icon`, `path`, `roles`, `permissions`, `featureFlag`, `children`
+- **NavigationItem** (child): `key`, `label`, `path`, `roles`, `permissions`, `featureFlag`
+
+### Mapping from sys_components_cd
+
+| sys_components_cd | navigation.ts |
+|------------------|---------------|
+| `comp_code` | `key` |
+| `label` | `label` |
+| `comp_path` | `path` |
+| `roles` (JSONB array) | `roles` (e.g. `['admin','super_admin','tenant_admin','operator']`) |
+| `main_permission_code` | `permissions` (e.g. `['config:preferences_manage']`) |
+| `feature_flag` (JSONB array) | `featureFlag` (e.g. `FLAG_KEYS.ADVANCED_ANALYTICS`) |
+| `comp_icon` | Lucide icon name (import from `lucide-react`) |
+
+### Flow: Add a new screen to navigation.ts
+
+1. **Identify parent section** — Find the `NAVIGATION_SECTIONS` entry whose `key` matches the parent `comp_code` (e.g. `catalog`, `billing`, `settings`).
+2. **Child screen** — Add a new object to the parent's `children` array:
+   ```ts
+   {
+     key: 'parent_child_name',   // matches comp_code
+     label: 'Screen Label',
+     path: '/dashboard/parent/child-path',
+     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+     permissions: ['permission:code'],  // optional
+     featureFlag: FLAG_KEYS.SOME_FLAG,   // optional
+   },
+   ```
+3. **New top-level section** — Add a new object to `NAVIGATION_SECTIONS` with `icon` (import from `lucide-react`), `path`, `roles`, and optionally `children`.
+4. **Display order** — Insert the new item in the correct position among siblings (same order as `display_order` in sys_components_cd).
+5. **i18n** — Prefer translation keys for labels; if using hardcoded labels, add keys to `messages/en.json` and `messages/ar.json` and use `t('catalog.customerCategories')` etc. where applicable.
+
+### Example (child under catalog)
+
+```ts
+{
+  key: 'catalog_customer_categories',
+  label: 'Customer Categories',
+  path: '/dashboard/catalog/customer-categories',
+  roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+  permissions: ['config:preferences_manage'],
+},
+```
+
 ## References
 
 - Schema: `supabase/migrations/0058_sys_components_cd_navigation.sql`
 - Example scripts: `docs/navigation/add_sys_comp.sql`, `supabase/migrations/0059_navigation_seed.sql`
 - API create/update: `web-admin/app/api/navigation/components/route.ts`, `web-admin/app/api/navigation/components/[id]/route.ts`
 - Tree build: `web-admin/lib/services/navigation.service.ts`
+- **Frontend sidebar:** `web-admin/config/navigation.ts`

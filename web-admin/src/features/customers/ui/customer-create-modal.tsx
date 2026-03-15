@@ -18,11 +18,14 @@ import type { CustomerType } from '@/lib/types/customer'
 interface CustomerCreateModalProps {
   onClose: () => void
   onSuccess: () => void
+  /** When true, hide B2B type option (e.g. /dashboard/customers - guest/stub/walk_in only) */
+  hideB2B?: boolean
 }
 
 export default function CustomerCreateModal({
   onClose,
   onSuccess,
+  hideB2B = false,
 }: CustomerCreateModalProps) {
   const t = useTranslations('customers')
   const tB2b = useTranslations('b2b')
@@ -46,14 +49,28 @@ export default function CustomerCreateModal({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Fetch B2B categories when B2B type is available
   useEffect(() => {
-    fetchCustomerCategories({ is_b2b: true, active_only: true })
-      .then(setB2bCategories)
-      .catch(() => setB2bCategories([]))
-    fetchCustomerCategories({ is_b2b: false, active_only: true })
+    if (!hideB2B && hasB2B) {
+      fetchCustomerCategories({ is_b2b: true, active_only: true, system_type: 'b2b' })
+        .then(setB2bCategories)
+        .catch(() => setB2bCategories([]))
+    } else {
+      setB2bCategories([])
+    }
+  }, [hideB2B, hasB2B])
+
+  // Fetch individual categories filtered by selected customer type (guest, stub, walk_in)
+  useEffect(() => {
+    if (customerType === 'b2b') {
+      setIndividualCategories([])
+      return
+    }
+    const sysType = customerType === 'full' ? 'walk_in' : customerType
+    fetchCustomerCategories({ is_b2b: false, active_only: true, system_type: sysType })
       .then(setIndividualCategories)
       .catch(() => setIndividualCategories([]))
-  }, [])
+  }, [customerType])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -213,7 +230,7 @@ export default function CustomerCreateModal({
               >
                 {t('stubRecommended')}
               </button>
-              {hasB2B && (
+              {hasB2B && !hideB2B && (
                 <button
                   type="button"
                   onClick={() => { setCustomerType('b2b'); setCategoryId(''); }}
