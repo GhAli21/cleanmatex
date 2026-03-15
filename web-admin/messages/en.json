@@ -2997,7 +2997,7 @@
         "success": "Gift card applied! Balance: OMR {balance}"
       },
       "b2b": {
-        "title": "B2B Details",
+        "title": "B2B Customers Details",
         "contract": "Contract",
         "contractOptional": "None (optional)",
         "costCenter": "Cost Center",

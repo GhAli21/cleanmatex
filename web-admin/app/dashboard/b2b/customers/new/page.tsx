@@ -1,5 +1,6 @@
+
 /**
- * B2B Customer Creation Page
+ * B2B Customer Creation Page screen
  * Dedicated screen to create B2B customers within the B2B section
  */
 

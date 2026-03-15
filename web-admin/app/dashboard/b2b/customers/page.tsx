@@ -1,5 +1,5 @@
 /**
- * B2B Customers List
+ * B2B Customers List screen
  * Filtered org_customers_mst where type = 'b2b'
  */
 
