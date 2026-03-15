@@ -51,6 +51,9 @@ export default function B2BCustomersPage() {
         <h1 className="text-2xl font-semibold">
           {t('customers') || 'B2B Customers'}
         </h1>
+        <Button variant="default" onClick={() => router.push('/dashboard/b2b/customers/new')}>
+          {t('createB2BCustomer') || 'Create B2B Customer'}
+        </Button>
       </div>
 
       <Card>
@@ -64,10 +67,10 @@ export default function B2BCustomersPage() {
                 {t('noCustomers') || 'No B2B customers yet. Create one to get started.'}
               </p>
               <Button
-                onClick={() => router.push('/dashboard/customers')}
+                onClick={() => router.push('/dashboard/b2b/customers/new')}
                 variant="default"
               >
-                {t('goToCustomers') || 'Go to Customers'}
+                {t('createB2BCustomer') || 'Create B2B Customer'}
               </Button>
             </div>
           ) : (
