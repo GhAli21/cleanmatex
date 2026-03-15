@@ -1988,6 +1988,7 @@
   "catalog": {
     "title": "الفهرس والتسعير",
     "categories": "فئات الخدمات",
+    "customerCategories": "فئات العملاء",
     "products": "المنتجات والخدمات",
     "pricing": "قوائم الأسعار",
     "newProduct": "منتج جديد",

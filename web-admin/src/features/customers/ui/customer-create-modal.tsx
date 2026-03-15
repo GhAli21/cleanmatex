@@ -5,11 +5,12 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { useMessage } from '@ui/feedback'
 import { createCustomer } from '@/lib/api/customers'
+import { fetchCustomerCategories, type CustomerCategoryItem } from '@/lib/api/customer-categories'
 import { useFeature } from '@/src/features/auth/ui/RequireFeature'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import type { CustomerType } from '@/lib/types/customer'
@@ -39,8 +40,20 @@ export default function CustomerCreateModal({
   const [taxId, setTaxId] = useState('')
   const [creditLimit, setCreditLimit] = useState('')
   const [paymentTermsDays, setPaymentTermsDays] = useState('')
+  const [categoryId, setCategoryId] = useState<string>('')
+  const [b2bCategories, setB2bCategories] = useState<CustomerCategoryItem[]>([])
+  const [individualCategories, setIndividualCategories] = useState<CustomerCategoryItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchCustomerCategories({ is_b2b: true, active_only: true })
+      .then(setB2bCategories)
+      .catch(() => setB2bCategories([]))
+    fetchCustomerCategories({ is_b2b: false, active_only: true })
+      .then(setIndividualCategories)
+      .catch(() => setIndividualCategories([]))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -62,6 +75,11 @@ export default function CustomerCreateModal({
       return
     }
 
+    if (customerType === 'b2b' && hasB2B && b2bCategories.length > 0 && !categoryId) {
+      setError('Please select a B2B category')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -71,6 +89,7 @@ export default function CustomerCreateModal({
           firstName: firstName.trim(),
           lastName: lastName.trim() || undefined,
           phone: phone.trim(),
+          categoryId: categoryId || undefined,
         })
       } else if (customerType === 'guest') {
         await createCustomer({
@@ -90,6 +109,7 @@ export default function CustomerCreateModal({
           taxId: taxId.trim() || undefined,
           creditLimit: creditLimit ? Number(creditLimit) : undefined,
           paymentTermsDays: paymentTermsDays ? Number(paymentTermsDays) : undefined,
+          categoryId: categoryId || undefined,
         })
       } else {
         setError(t('fullCustomerRequiresOTP'))
@@ -173,7 +193,7 @@ export default function CustomerCreateModal({
             <div className={`grid gap-3 ${hasB2B ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <button
                 type="button"
-                onClick={() => setCustomerType('guest')}
+                onClick={() => { setCustomerType('guest'); setCategoryId(''); }}
                 className={`px-4 py-2 text-sm font-medium rounded-md ${
                   customerType === 'guest'
                     ? 'bg-blue-600 text-white'
@@ -184,7 +204,7 @@ export default function CustomerCreateModal({
               </button>
               <button
                 type="button"
-                onClick={() => setCustomerType('stub')}
+                onClick={() => { setCustomerType('stub'); setCategoryId(''); }}
                 className={`px-4 py-2 text-sm font-medium rounded-md ${
                   customerType === 'stub'
                     ? 'bg-blue-600 text-white'
@@ -196,7 +216,7 @@ export default function CustomerCreateModal({
               {hasB2B && (
                 <button
                   type="button"
-                  onClick={() => setCustomerType('b2b')}
+                  onClick={() => { setCustomerType('b2b'); setCategoryId(''); }}
                   className={`px-4 py-2 text-sm font-medium rounded-md ${
                     customerType === 'b2b'
                       ? 'bg-blue-600 text-white'
@@ -300,6 +320,57 @@ export default function CustomerCreateModal({
                 className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
                 placeholder="customer@example.com"
               />
+            </div>
+          )}
+
+          {/* B2B Category Dropdown */}
+          {customerType === 'b2b' && hasB2B && b2bCategories.length > 0 && (
+            <div className="mb-4">
+              <label
+                htmlFor="categoryId"
+                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                B2B Category <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="categoryId"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                required
+                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                <option value="">Select category</option>
+                {b2bCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Individual Category (optional for guest/stub) */}
+          {(customerType === 'guest' || customerType === 'stub') && individualCategories.length > 0 && (
+            <div className="mb-4">
+              <label
+                htmlFor="categoryIdIndividual"
+                className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                Customer Category
+              </label>
+              <select
+                id="categoryIdIndividual"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${isRTL ? 'text-right' : 'text-left'}`}
+              >
+                <option value="">Select category (optional)</option>
+                {individualCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 

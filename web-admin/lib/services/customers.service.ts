@@ -238,6 +238,19 @@ export async function createCustomer(
   }
 
   if (!useSysCustomers()) {
+    // B2B: validate categoryId is B2B when provided
+    if (request.type === 'b2b' && 'categoryId' in request && request.categoryId) {
+      const { data: cat } = await supabase
+        .from('org_customer_category_cf')
+        .select('id, is_b2b')
+        .eq('tenant_org_id', tenantId)
+        .eq('id', request.categoryId)
+        .single();
+      if (!cat || !cat.is_b2b) {
+        throw new Error('Invalid category: B2B customers must use a B2B category');
+      }
+    }
+
     const displayName =
       request.type === 'b2b' && 'companyName' in request
         ? request.companyName
@@ -260,6 +273,10 @@ export async function createCustomer(
       created_by: curUserId,
       customer_source_type: 'DIRECT',
     };
+
+    if ('categoryId' in request && request.categoryId) {
+      insertPayload.customer_category_id = request.categoryId;
+    }
     if (request.type === 'b2b' && 'companyName' in request) {
       insertPayload.company_name = request.companyName;
       insertPayload.company_name2 = request.companyName2 ?? null;

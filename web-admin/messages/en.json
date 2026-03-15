@@ -1988,6 +1988,7 @@
   "catalog": {
     "title": "Catalog & Pricing",
     "categories": "Service Categories",
+    "customerCategories": "Customer Categories",
     "products": "Products & Services",
     "pricing": "Price Lists",
     "newProduct": "New Product",

@@ -183,7 +183,8 @@ export interface CreateGuestCustomerRequest {
   lastName?: string;
   displayName?: string;
   name?: string;
-  name2?: string; 
+  name2?: string;
+  categoryId?: string;
 }
 
 /**
@@ -196,7 +197,8 @@ export interface CreateStubCustomerRequest {
   phone: string;
   displayName?: string;
   name?: string;
-  name2?: string; 
+  name2?: string;
+  categoryId?: string;
 }
 
 /**
@@ -238,6 +240,7 @@ export interface CreateB2BCustomerRequest {
   area?: string;
   building?: string;
   floor?: string;
+  categoryId?: string; // Required for B2B: must be is_b2b=true category
 }
 
 /**

@@ -515,7 +515,9 @@ model org_customers_mst {
   updated_at             DateTime?                @db.Timestamp(6)
   updated_by             String?                  @db.Uuid
   updated_info           String?
+  customer_category_id   String?                  @db.Uuid
   org_customer_addresses org_customer_addresses[]
+  org_customer_category_cf org_customer_category_cf? @relation(fields: [customer_category_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cust_category")
   sys_customers_mst      sys_customers_mst?       @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
   org_tenants_mst        org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
   org_fin_vouchers_mst   org_fin_vouchers_mst[]
@@ -525,6 +527,65 @@ model org_customers_mst {
 
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
   @@index([tenant_org_id], map: "idx_org_customers_tenant")
+  @@index([tenant_org_id, customer_category_id], map: "idx_org_customers_category")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// Tenant customer category config; links to sys_customer_category_cd when system_category_code set
+model org_customer_category_cf {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String    @db.Uuid
+  code                 String    @db.VarChar(50)
+  name                 String    @db.VarChar(250)
+  name2                String?   @db.VarChar(250)
+  system_category_code String?   @db.VarChar(50)
+  system_type          String?   @db.VarChar(50)
+  is_b2b               Boolean   @default(false)
+  is_individual        Boolean   @default(true)
+  display_order        Int?      @default(0)
+  is_active            Boolean   @default(true)
+  created_at           DateTime? @default(now()) @db.Timestamp(6)
+  created_by           String?   @db.VarChar(120)
+  created_info         String?
+  updated_at           DateTime? @db.Timestamp(6)
+  updated_by           String?   @db.VarChar(120)
+  updated_info         String?
+  rec_status           Int?      @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?   @db.VarChar(200)
+  org_customers_mst    org_customers_mst[]
+  org_tenants_mst      org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_cat_tenant")
+  sys_customer_category_cd sys_customer_category_cd? @relation(fields: [system_category_code], references: [code], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cust_cat_sys")
+
+  @@unique([tenant_org_id, code], map: "uq_org_cust_cat_tenant_code")
+  @@index([tenant_org_id], map: "idx_org_cust_cat_tenant")
+  @@index([tenant_org_id, is_b2b], map: "idx_org_cust_cat_tenant_b2b")
+  @@schema("public")
+}
+
+/// System customer category catalog (guest, walk_in, stub, b2b)
+model sys_customer_category_cd {
+  code                String    @id @db.VarChar(50)
+  name                String    @db.VarChar(250)
+  name2               String?   @db.VarChar(250)
+  system_type         String    @db.VarChar(50)
+  is_b2b              Boolean   @default(false)
+  is_individual       Boolean   @default(true)
+  is_reserved_system  Boolean   @default(false)
+  display_order       Int?      @default(0)
+  is_active           Boolean   @default(true)
+  created_at          DateTime? @default(now()) @db.Timestamp(6)
+  created_by          String?   @db.VarChar(120)
+  created_info        String?
+  updated_at          DateTime? @db.Timestamp(6)
+  updated_by          String?   @db.VarChar(120)
+  updated_info        String?
+  rec_status          Int?      @default(1) @db.SmallInt
+  rec_order           Int?
+  rec_notes           String?   @db.VarChar(200)
+  org_customer_category_cf org_customer_category_cf[]
+
   @@schema("public")
 }
 
@@ -1263,6 +1324,7 @@ model org_tenants_mst {
   org_asm_tasks_mst                org_asm_tasks_mst[]
   org_branches_mst                 org_branches_mst[]
   org_customer_addresses           org_customer_addresses[]
+  org_customer_category_cf        org_customer_category_cf[]
   org_customer_merge_log           org_customer_merge_log[]
   org_customers_mst                org_customers_mst[]
   org_discount_rules_cf            org_discount_rules_cf[]
