@@ -18,6 +18,7 @@ export * from './methods/inline-method';
 // Alert dialog components and utilities
 export * from './components/cmx-alert-dialog';
 export * from './utils/alert-dialog-manager';
+export * from './utils/alert-dialog-provider';
 
 // Utility functions
 export * from './utils/error-extractor';

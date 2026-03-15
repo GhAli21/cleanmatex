@@ -1,5 +1,6 @@
 /**
- * Alert Dialog Manager - Manages custom alert dialogs programmatically
+ * Alert Dialog Provider - React component for custom alert dialogs
+ * Must be rendered at app root. Imports CmxAlertDialog here to avoid circular deps.
  * @module ui/feedback/utils
  */
 
@@ -8,6 +9,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { CmxAlertDialog } from '../components/cmx-alert-dialog';
+import { alertDialogManager } from './alert-dialog-manager';
 import type { ConfirmDialogOptions as ConfirmOptions } from '../types';
 
 interface AlertDialogState {
@@ -47,7 +49,7 @@ export function AlertDialogProvider({ children }: { children: React.ReactNode })
   React.useEffect(() => {
     alertDialogManager.setProvider({ showConfirm });
     return () => {
-      alertDialogManager.setProvider(null as any);
+      alertDialogManager.setProvider(null);
     };
   }, [showConfirm]);
 
@@ -103,37 +105,3 @@ export function useAlertDialog() {
   }
   return context;
 }
-
-/**
- * Global alert dialog manager instance
- * Uses a singleton pattern for programmatic access outside React components
- */
-class AlertDialogManager {
-  private providerRef: AlertDialogContextValue | null = null;
-
-  setProvider(provider: AlertDialogContextValue) {
-    this.providerRef = provider;
-  }
-
-  async showConfirm(options: ConfirmOptions): Promise<boolean> {
-    if (!this.providerRef) {
-      // Developer warning in development mode
-      if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-        console.warn(
-          '⚠️ AlertDialogProvider not found. Add <AlertDialogProvider> to your AppProviders.tsx\n' +
-          'This is required for custom alert dialogs. Falling back to native confirm dialog.'
-        );
-      }
-      
-      // Fallback to native confirm if provider not available
-      if (typeof window !== 'undefined') {
-        return window.confirm(options.title + (options.message ? `\n\n${options.message}` : ''));
-      }
-      return false;
-    }
-    return this.providerRef.showConfirm(options);
-  }
-}
-
-export const alertDialogManager = new AlertDialogManager();
-

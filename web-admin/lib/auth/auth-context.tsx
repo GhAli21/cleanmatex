@@ -346,7 +346,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear all auth state
       const currentUser = user
-      const currentTenantId = currentTenant?.id
+      const currentTenantId = currentTenant?.tenant_id
 
       setUser(null)
       setSession(null)

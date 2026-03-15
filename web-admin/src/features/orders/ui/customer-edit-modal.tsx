@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { getCustomerById, updateCustomer } from '@/lib/api/customers';
+import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import type { Customer, CustomerWithTenantData } from '@/lib/types/customer';
 
 interface CustomerEditModalProps {
@@ -26,6 +27,7 @@ export function CustomerEditModal({
   onSuccess,
 }: CustomerEditModalProps) {
   const t = useTranslations('customers');
+  const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   
@@ -41,6 +43,9 @@ export function CustomerEditModal({
   const [area, setArea] = useState('');
   const [building, setBuilding] = useState('');
   const [floor, setFloor] = useState('');
+  const [customerCategoryId, setCustomerCategoryId] = useState('');
+  const [b2bCategories, setB2bCategories] = useState<{ id: string; name: string }[]>([]);
+  const [customerType, setCustomerType] = useState<string>('');
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -77,6 +82,13 @@ export function CustomerEditModal({
         setArea(customer.area || '');
         setBuilding(customer.building || '');
         setFloor(customer.floor || '');
+        setCustomerType(customer.type || '');
+        setCustomerCategoryId(customer.customerCategoryId || '');
+        if (customer.type === 'b2b') {
+          fetchCustomerCategories({ is_b2b: true, active_only: true })
+            .then((data) => setB2bCategories(data.map((c) => ({ id: c.id, name: c.name }))))
+            .catch(() => { /* keep empty */ });
+        }
       } catch (err) {
         const errorMessage = err instanceof Error 
           ? err.message 
@@ -108,7 +120,7 @@ export function CustomerEditModal({
     setLoading(true);
 
     try {
-      const updatedCustomer = await updateCustomer(customerId, {
+      const updates: Parameters<typeof updateCustomer>[1] = {
         firstName: firstName.trim(),
         lastName: lastName.trim() || undefined,
         name: name.trim() || undefined,
@@ -119,7 +131,11 @@ export function CustomerEditModal({
         area: area.trim() || undefined,
         building: building.trim() || undefined,
         floor: floor.trim() || undefined,
-      });
+      };
+      if (customerType === 'b2b') {
+        updates.customerCategoryId = customerCategoryId.trim() || '';
+      }
+      const updatedCustomer = await updateCustomer(customerId, updates);
 
       // Reset loading state before calling onSuccess
       setLoading(false);
@@ -150,6 +166,8 @@ export function CustomerEditModal({
     setArea('');
     setBuilding('');
     setFloor('');
+    setCustomerCategoryId('');
+    setCustomerType('');
     setError(null);
     onClose();
   };
@@ -405,6 +423,37 @@ export function CustomerEditModal({
                   </div>
                 </div>
               </div>
+
+              {/* B2B Category Section */}
+              {customerType === 'b2b' && (
+                <div className="mb-6">
+                  <h4 className={`text-sm font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {tB2b('companyInfo') || 'Company'}
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        htmlFor="edit-customer-category"
+                        className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}
+                      >
+                        {t('category') || 'Category'}
+                      </label>
+                      <select
+                        id="edit-customer-category"
+                        value={customerCategoryId}
+                        onChange={(e) => setCustomerCategoryId(e.target.value)}
+                        disabled={loading}
+                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed ${isRTL ? 'text-right' : 'text-left'}`}
+                      >
+                        <option value="">{tCommon('select') || 'Select...'}</option>
+                        {b2bCategories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Address Information Section */}
               <div className="mb-6">

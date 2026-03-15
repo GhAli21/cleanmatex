@@ -73,6 +73,7 @@ function mapFromOrgRow(row: Record<string, unknown>, tenantId: string): Customer
     creditLimit: row.credit_limit != null ? Number(row.credit_limit) : null,
     paymentTermsDays: row.payment_terms_days != null ? Number(row.payment_terms_days) : null,
     costCenterCode: (row.cost_center_code as string) ?? null,
+    customerCategoryId: (row.customer_category_id as string) ?? null,
     createdAt: (row.created_at as string) ?? new Date().toISOString(),
     updatedAt: (row.updated_at as string) ?? (row.created_at as string) ?? new Date().toISOString(),
   };
@@ -1257,22 +1258,44 @@ export async function updateCustomer(
   const curUserId = session.userId;
 
   if (!useSysCustomers()) {
+    const updatePayload: Record<string, unknown> = {
+      first_name: updates.firstName,
+      last_name: updates.lastName,
+      name: updates.name ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
+      name2: updates.name2 ?? null,
+      display_name: updates.displayName ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
+      email: updates.email ?? undefined,
+      address: updates.address ?? undefined,
+      area: updates.area ?? undefined,
+      building: updates.building ?? undefined,
+      floor: updates.floor ?? undefined,
+      updated_at: new Date().toISOString(),
+      updated_by: curUserId,
+    };
+    if (updates.customerCategoryId !== undefined) {
+      if (updates.customerCategoryId) {
+        const { data: cat } = await supabase
+          .from('org_customer_category_cf')
+          .select('id, is_b2b')
+          .eq('tenant_org_id', tenantId)
+          .eq('id', updates.customerCategoryId)
+          .single();
+        if (!cat || !cat.is_b2b) {
+          throw new Error('Invalid category: B2B customers must use a B2B category');
+        }
+      }
+      updatePayload.customer_category_id = updates.customerCategoryId || null;
+    }
+    if (updates.companyName !== undefined) updatePayload.company_name = updates.companyName;
+    if (updates.companyName2 !== undefined) updatePayload.company_name2 = updates.companyName2;
+    if (updates.taxId !== undefined) updatePayload.tax_id = updates.taxId;
+    if (updates.creditLimit !== undefined) updatePayload.credit_limit = updates.creditLimit;
+    if (updates.paymentTermsDays !== undefined) updatePayload.payment_terms_days = updates.paymentTermsDays;
+    if (updates.costCenterCode !== undefined) updatePayload.cost_center_code = updates.costCenterCode;
+
     const { data: orgRow, error } = await supabase
       .from('org_customers_mst')
-      .update({
-        first_name: updates.firstName,
-        last_name: updates.lastName,
-        name: updates.name ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
-        name2: updates.name2 ?? null,
-        display_name: updates.displayName ?? (updates.firstName + ' ' + (updates.lastName ?? '')).trim(),
-        email: updates.email ?? undefined,
-        address: updates.address ?? undefined,
-        area: updates.area ?? undefined,
-        building: updates.building ?? undefined,
-        floor: updates.floor ?? undefined,
-        updated_at: new Date().toISOString(),
-        updated_by: curUserId,
-      })
+      .update(updatePayload)
       .eq('id', customerId)
       .eq('tenant_org_id', tenantId)
       .select()

@@ -1521,7 +1521,8 @@
     "building": "المبنى",
     "floor": "الطابق",
     "updating": "جاري التحديث...",
-    "saveChanges": "حفظ التغييرات"
+    "saveChanges": "حفظ التغييرات",
+    "category": "الفئة"
   },
   "settings": {
     "title": "الإعدادات",

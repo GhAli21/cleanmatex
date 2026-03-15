@@ -12,6 +12,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { createCustomer } from '@/lib/api/customers';
+import { fetchCustomerCategories } from '@/lib/api/customer-categories';
 import { getPhoneCountryCodeAction } from '@/app/actions/tenant/get-phone-country-code';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
@@ -54,8 +55,18 @@ export default function B2BCustomerCreatePage() {
   const [area, setArea] = useState('');
   const [building, setBuilding] = useState('');
   const [floor, setFloor] = useState('');
+  const [customerCategoryId, setCustomerCategoryId] = useState('');
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (currentTenant?.id) {
+      fetchCustomerCategories({ is_b2b: true, active_only: true })
+        .then((data) => setCategories(data.map((c) => ({ id: c.id, name: c.name }))))
+        .catch(() => { /* keep empty */ });
+    }
+  }, [currentTenant?.id]);
 
   useEffect(() => {
     if (currentTenant?.id) {
@@ -104,6 +115,7 @@ export default function B2BCustomerCreatePage() {
         area: area.trim() || undefined,
         building: building.trim() || undefined,
         floor: floor.trim() || undefined,
+        categoryId: customerCategoryId.trim() || undefined,
       });
       router.push('/dashboard/b2b/customers');
     } catch (err) {
@@ -196,6 +208,15 @@ export default function B2BCustomerCreatePage() {
                 <div>
                   <label htmlFor="costCenterCode" className={labelClass}>{tB2b('costCenterCode')}</label>
                   <input id="costCenterCode" type="text" value={costCenterCode} onChange={(e) => setCostCenterCode(e.target.value)} dir="ltr" className={inputClass()} placeholder={tB2b('costCenterCode')} disabled={loading} />
+                </div>
+                <div>
+                  <label htmlFor="customerCategoryId" className={labelClass}>{t('category') || 'Category'}</label>
+                  <select id="customerCategoryId" value={customerCategoryId} onChange={(e) => setCustomerCategoryId(e.target.value)} disabled={loading} className={inputClass()}>
+                    <option value="">{tCommon('select') || 'Select...'}</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>

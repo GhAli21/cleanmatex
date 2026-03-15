@@ -1521,7 +1521,8 @@
     "building": "Building",
     "floor": "Floor",
     "updating": "Updating...",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save Changes",
+    "category": "Category"
   },
   "settings": {
     "title": "Settings",

@@ -78,6 +78,7 @@ export interface Customer {
   creditLimit?: number | null;
   paymentTermsDays?: number | null;
   costCenterCode?: string | null;
+  customerCategoryId?: string | null;
 
   // Timestamps
   createdAt: string;
@@ -274,6 +275,7 @@ export interface CustomerUpdateRequest {
   creditLimit?: number;
   paymentTermsDays?: number;
   costCenterCode?: string;
+  customerCategoryId?: string;
 }
 
 /**

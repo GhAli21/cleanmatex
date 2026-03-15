@@ -54,6 +54,7 @@ export function NewOrderContent() {
     const router = useRouter();
     const isRTL = useRTL();
     const { currentTenant } = useAuth();
+    const state = useNewOrderStateWithDispatch();
     const { trackByPiece, packingPerPieceEnabled, enforcePrefCompatibility } = useTenantSettingsWithDefaults(
         currentTenant?.tenant_id || ''
     );
@@ -75,7 +76,6 @@ export function NewOrderContent() {
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
     const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
-    const state = useNewOrderStateWithDispatch();
     const { submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);

@@ -17,7 +17,7 @@ export default function B2BCustomersPage() {
   const t = useTranslations('b2b');
   const router = useRouter();
   const { currentTenant } = useAuth();
-  const tenantId = currentTenant?.id ?? null;
+  const tenantId = currentTenant?.tenant_id ?? null;
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ['b2b-customers', tenantId],
