@@ -16,6 +16,7 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 import { useRole } from '@/lib/auth/role-context'
+import { useFeatureOptional } from '@/src/features/auth/ui/RequireFeature'
 import type { UserRole } from '@/config/navigation'
 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
 
@@ -52,6 +53,7 @@ export function Widget({
   colSpan = 1,
 }: WidgetProps) {
   const { hasRole } = useRole()
+  const hasFeatureAccess = useFeatureOptional(featureFlag)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
   // Auto-refresh functionality (must be called before any early returns)
@@ -70,10 +72,9 @@ export function Widget({
     return null // Hide widget if user doesn't have required role
   }
 
-  // Feature flag check (TODO: integrate with actual feature flags service)
-  if (featureFlag) {
-    // For now, all features are enabled in development
-    // Later: check against actual feature flags
+  // Feature flag gating: hide widget if tenant lacks access (only when featureFlag is set)
+  if (featureFlag && !hasFeatureAccess) {
+    return null
   }
 
   // Manual refresh handler

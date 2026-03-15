@@ -8,7 +8,10 @@ author: CleanMateX Team
 
 Global feature flag definitions and plan mappings. **All flag resolution uses the HQ system** via RPCs.
 
-**Source:** `hq_ff_feature_flags_mst`, `sys_ff_pln_flag_mappings_dtl`, `org_ff_overrides_cf` — migrations 0062, 0066, 0067, 0140, 0158, 0159
+**Source:** `hq_ff_feature_flags_mst`, `sys_ff_pln_flag_mappings_dtl`, `org_ff_overrides_cf` — migrations 0062, 0066, 0067, 0140, **0158**, **0159**
+
+**Migrations 0158 & 0159:** See [MIGRATIONS_0158_0159](MIGRATIONS_0158_0159.md) for full RPC reference.
+**Migrations 0160–0162:** See [MIGRATIONS_0160_0161_0162](MIGRATIONS_0160_0161_0162.md) for settings layers and B2B_CONTRACTS_ENABLED.
 
 ## Tables
 
@@ -83,7 +86,7 @@ From migrations 0066, 0140:
 
 ## sys_ff_pln_flag_mappings_dtl
 
-Plan-specific values (e.g., max prefs per item):
+Plan-specific values (e.g., max prefs per item). **For boolean flags:** set `plan_specific_value = true` (not NULL) and `is_enabled = true` so the RPC returns `true`; otherwise it falls back to `default_value` (often `false`).
 
 | plan_code | flag_key | plan_specific_value | is_enabled |
 |-----------|----------|---------------------|------------|

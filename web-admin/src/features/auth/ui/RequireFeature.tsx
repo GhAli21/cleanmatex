@@ -168,25 +168,26 @@ export function UpgradePrompt({
 }
 
 /**
- * Hook to check feature availability
+ * Hook to check feature availability (returns true when no flag specified)
  *
  * @example
+ * const canShow = useFeatureOptional(featureFlag) // true when featureFlag undefined
  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
- * if (canExportPDF) {
- *   // Show export button
- * }
  */
-export function useFeature(feature: FeatureFlagKey): boolean {
+export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean {
   const { currentTenant } = useAuth()
-  const [hasAccess, setHasAccess] = useState(false)
+  const [hasAccess, setHasAccess] = useState(!feature)
 
   useEffect(() => {
+    if (!feature) {
+      setHasAccess(true)
+      return
+    }
     async function checkFeature() {
       if (!currentTenant) {
         setHasAccess(false)
         return
       }
-
       try {
         const res = await fetch('/api/feature-flags')
         if (!res.ok) {
@@ -196,13 +197,25 @@ export function useFeature(feature: FeatureFlagKey): boolean {
         const flags = (await res.json()) as Record<string, boolean>
         setHasAccess(flags[feature] === true)
       } catch (error) {
-        console.error('Error checking feature:', error)
+        console.error('Error checking feature access:', error)
         setHasAccess(false)
       }
     }
-
     checkFeature()
   }, [currentTenant, feature])
 
   return hasAccess
+}
+
+/**
+ * Hook to check feature availability
+ *
+ * @example
+ * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
+ * if (canExportPDF) {
+ *   // Show export button
+ * }
+ */
+export function useFeature(feature: FeatureFlagKey): boolean {
+  return useFeatureOptional(feature)
 }

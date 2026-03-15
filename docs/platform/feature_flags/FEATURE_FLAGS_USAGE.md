@@ -48,7 +48,7 @@ Where each feature flag is checked in the codebase. **All flags resolve via HQ s
 
 | File | Usage |
 |------|-------|
-| `web-admin/src/features/dashboard/ui/Widget.tsx` | `featureFlag?: FeatureFlagKey` — prop for future feature-flag gating (TODO: integrate with actual service) |
+| `web-admin/src/features/dashboard/ui/Widget.tsx` | `featureFlag?: FeatureFlagKey` — wired to `useFeatureOptional`; widget hidden when tenant lacks flag |
 
 ## Flag-by-Flag Usage
 

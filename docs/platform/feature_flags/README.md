@@ -17,6 +17,9 @@ Feature flags are resolved via the **HQ system** (`hq_ff_feature_flags_mst`, `sy
 | [TENANT_AND_PLAN_FLAGS](TENANT_AND_PLAN_FLAGS.md) | HQ system, resolution order, legacy deprecation |
 | [PLAN_FLAGS_IMPLEMENTATION](PLAN_FLAGS_IMPLEMENTATION.md) | Plan-bound flags (bundles_enabled, repeat_last_order, smart_suggestions) |
 | [NAVIGATION_FEATURE_FLAGS](NAVIGATION_FEATURE_FLAGS.md) | Navigation gating via sys_components_cd.feature_flag |
+| [MIGRATIONS_0158_0159](MIGRATIONS_0158_0159.md) | Batch & plan-defaults RPC reference (0158, 0159) |
+| [MIGRATIONS_0160_0161_0162](MIGRATIONS_0160_0161_0162.md) | Settings layers 3 & 4, B2B_CONTRACTS_ENABLED |
+| [ARCHITECTURE_RECOMMENDATIONS](ARCHITECTURE_RECOMMENDATIONS.md) | Best practices, gaps, UI/UX, migration checklist |
 
 ## Quick Reference
 
