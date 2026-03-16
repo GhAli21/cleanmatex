@@ -276,6 +276,7 @@ export default function CmxSidebar() {
       )}
 
       <aside
+        dir="ltr"
         role="navigation"
         aria-label={t('navLabel')}
         className={`
@@ -296,7 +297,7 @@ export default function CmxSidebar() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            <div className="min-w-0 overflow-hidden">
+            <div className={`min-w-0 overflow-hidden ${isCollapsed ? 'lg:hidden' : ''}`}>
               <span className="block text-xl font-bold text-gray-900 truncate whitespace-nowrap">CleanMateX</span>
               {currentTenant && (
                 <span className="block text-xs text-gray-500 font-medium mt-0.5 truncate whitespace-nowrap">
