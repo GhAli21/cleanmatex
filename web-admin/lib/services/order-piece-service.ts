@@ -13,6 +13,7 @@ import {
   mapOrderPiecesFromDb,
   type OrderPieceDbModel,
 } from '@/lib/mappers/order-piece.mapper';
+import { getConditionPrefKind, toUICode } from '@/lib/utils/condition-codes';
 
 /** Prisma transaction client — same shape used in order-service.ts */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -104,6 +105,7 @@ export class OrderPieceService {
       metadata?: Record<string, any>;
       packingPrefCode?: string;
       servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+      conditions?: string[];
     }>,
     branchId?: string
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
@@ -188,31 +190,66 @@ export class OrderPieceService {
         return { success: false, error: insertError.message };
       }
 
-      // Insert piece-level service prefs (org_order_item_pc_prefs)
+      // Insert piece-level service prefs and conditions (org_order_preferences_dtl, prefs_level=PIECE)
       const createdPieces = pieces as Array<{ id: string; piece_seq: number }>;
       for (const pieceData of piecesData ?? []) {
-        const prefs = pieceData.servicePrefs;
-        if (!prefs || prefs.length === 0) continue;
         const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
         if (!createdPiece) continue;
-        const rows = prefs.map((p) => ({
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          order_item_id: orderItemId,
-          order_item_piece_id: createdPiece.id,
-          preference_code: p.preference_code,
-          source: p.source ?? 'manual',
-          extra_price: Number(p.extra_price ?? 0),
-          branch_id: branchId ?? null,
-        }));
-        const { error: prefsError } = await supabase.from('org_order_item_pc_prefs').insert(rows);
-        if (prefsError) {
-          log.warn('[OrderPieceService] Failed to insert piece service prefs', {
-            feature: 'order_pieces',
-            action: 'create_piece_prefs',
-            pieceId: createdPiece.id,
-            error: prefsError.message,
+
+        // Service prefs
+        const prefs = pieceData.servicePrefs;
+        if (prefs && prefs.length > 0) {
+          const rows = prefs.map((p, idx) => ({
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            prefs_no: idx + 1,
+            prefs_level: 'PIECE' as const,
+            order_item_id: orderItemId,
+            order_item_piece_id: createdPiece.id,
+            preference_code: p.preference_code,
+            preference_sys_kind: 'service_prefs',
+            prefs_source: p.source ?? 'manual',
+            extra_price: Number(p.extra_price ?? 0),
+            branch_id: branchId ?? null,
+          }));
+          const { error: prefsError } = await supabase.from('org_order_preferences_dtl').insert(rows);
+          if (prefsError) {
+            log.warn('[OrderPieceService] Failed to insert piece service prefs', {
+              feature: 'order_pieces',
+              action: 'create_piece_prefs',
+              pieceId: createdPiece.id,
+              error: prefsError.message,
+            });
+          }
+        }
+
+        // Conditions (stains, damage, special)
+        const conditions = pieceData.conditions;
+        if (conditions && conditions.length > 0) {
+          const condRows = conditions.map((code, idx) => {
+            const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+            return {
+              tenant_org_id: tenantId,
+              order_id: orderId,
+              prefs_no: idx + 1,
+              prefs_level: 'PIECE' as const,
+              order_item_id: orderItemId,
+              order_item_piece_id: createdPiece.id,
+              preference_code,
+              preference_sys_kind,
+              prefs_source: 'ORDER_CREATE' as const,
+              branch_id: branchId ?? null,
+            };
           });
+          const { error: condError } = await supabase.from('org_order_preferences_dtl').insert(condRows);
+          if (condError) {
+            log.warn('[OrderPieceService] Failed to insert piece conditions', {
+              feature: 'order_pieces',
+              action: 'create_piece_conditions',
+              pieceId: createdPiece.id,
+              error: condError.message,
+            });
+          }
         }
       }
 
@@ -276,6 +313,7 @@ export class OrderPieceService {
       metadata?: Record<string, any>;
       packingPrefCode?: string;
       servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+      conditions?: string[];
     }>,
     branchId?: string
   ): Promise<{ success: boolean; error?: string }> {
@@ -328,8 +366,60 @@ export class OrderPieceService {
 
       await tx.org_order_item_pieces_dtl.createMany({ data: piecesToInsert });
 
-      // Note: Piece-level service prefs (org_order_item_pc_prefs) for order-update flow
-      // are not yet persisted here. New-order flow uses createPiecesForItem (Supabase) which does.
+      // Insert piece-level service prefs and conditions (org_order_preferences_dtl)
+      if (piecesData && piecesData.length > 0) {
+        const createdPieces = await tx.org_order_item_pieces_dtl.findMany({
+          where: {
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            order_item_id: orderItemId,
+          },
+          orderBy: { piece_seq: 'asc' },
+          select: { id: true, piece_seq: true },
+        });
+
+        for (const pieceData of piecesData) {
+          const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
+          if (!createdPiece) continue;
+
+          if (pieceData.servicePrefs && pieceData.servicePrefs.length > 0) {
+            await tx.org_order_preferences_dtl.createMany({
+              data: pieceData.servicePrefs.map((p, idx) => ({
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: idx + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code: p.preference_code,
+                preference_sys_kind: 'service_prefs',
+                prefs_source: p.source ?? 'manual',
+                extra_price: p.extra_price ?? 0,
+                branch_id: branchId ?? null,
+              })),
+            });
+          }
+
+          if (pieceData.conditions && pieceData.conditions.length > 0) {
+            const condData = pieceData.conditions.map((code, idx) => {
+              const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+              return {
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: idx + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code,
+                preference_sys_kind,
+                prefs_source: 'ORDER_CREATE',
+                branch_id: branchId ?? null,
+              };
+            });
+            await tx.org_order_preferences_dtl.createMany({ data: condData });
+          }
+        }
+      }
 
       // quantity_ready stays 0 — new pieces are "processing", not "ready"
 
@@ -389,7 +479,7 @@ export class OrderPieceService {
 
   /**
    * Get pieces by order ID
-   * Includes packing_pref_code from pieces table and service_prefs from org_order_item_pc_prefs
+   * Includes packing_pref_code from pieces table and service_prefs from org_order_preferences_dtl
    */
   static async getPiecesByOrder(
     tenantId: string,
@@ -417,23 +507,31 @@ export class OrderPieceService {
       }
 
       const pieceIds = (pieces ?? []).map((p: { id: string }) => p.id);
-      let piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
+      const piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
+      const pieceConditionsMap: Record<string, string[]> = {};
 
       if (pieceIds.length > 0) {
         const { data: prefs } = await supabase
-          .from('org_order_item_pc_prefs')
-          .select('order_item_piece_id, preference_code, source, extra_price')
+          .from('org_order_preferences_dtl')
+          .select('order_item_piece_id, preference_code, prefs_source, extra_price, preference_sys_kind')
           .eq('tenant_org_id', tenantId)
+          .eq('prefs_level', 'PIECE')
           .in('order_item_piece_id', pieceIds);
 
         for (const row of prefs ?? []) {
           const pieceId = row.order_item_piece_id as string;
-          if (!piecePrefsMap[pieceId]) piecePrefsMap[pieceId] = [];
-          piecePrefsMap[pieceId].push({
-            preference_code: row.preference_code,
-            source: row.source ?? 'manual',
-            extra_price: Number(row.extra_price ?? 0),
-          });
+          const sysKind = row.preference_sys_kind as string | null;
+          if (sysKind === 'service_prefs') {
+            if (!piecePrefsMap[pieceId]) piecePrefsMap[pieceId] = [];
+            piecePrefsMap[pieceId].push({
+              preference_code: row.preference_code,
+              source: row.prefs_source ?? 'manual',
+              extra_price: Number(row.extra_price ?? 0),
+            });
+          } else if (sysKind === 'condition_stain' || sysKind === 'condition_damag') {
+            if (!pieceConditionsMap[pieceId]) pieceConditionsMap[pieceId] = [];
+            pieceConditionsMap[pieceId].push(toUICode(row.preference_code));
+          }
         }
       }
 
@@ -441,6 +539,7 @@ export class OrderPieceService {
       const enriched = mapped.map((p) => ({
         ...p,
         service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
+        conditions: pieceConditionsMap[p.id]?.length ? pieceConditionsMap[p.id] : undefined,
       }));
 
       return { success: true, pieces: enriched };

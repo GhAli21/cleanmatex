@@ -72,6 +72,10 @@ interface OrderSummaryPanelProps {
   hasErrors?: boolean;
   /** Validation error messages (edit mode) */
   validationErrors?: string[];
+  /** Selected piece ID for Customer/Order/Item/Pieces Preferences panel */
+  selectedPieceId?: string | null;
+  /** Callback when user selects a piece in the cart */
+  onSelectPiece?: (pieceId: string | null) => void;
 }
 
 function OrderSummaryPanelComponent({
@@ -108,6 +112,8 @@ function OrderSummaryPanelComponent({
   isSaving = false,
   hasErrors = false,
   validationErrors = [],
+  selectedPieceId = null,
+  onSelectPiece,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -256,6 +262,8 @@ function OrderSummaryPanelComponent({
           onPiecesChange={onPiecesChange}
           trackByPiece={trackByPiece}
           currencyCode={currencyCode}
+          selectedPieceId={selectedPieceId}
+          onSelectPiece={onSelectPiece}
         />
       </div>
 

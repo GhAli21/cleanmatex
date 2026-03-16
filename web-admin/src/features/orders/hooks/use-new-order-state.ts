@@ -52,6 +52,8 @@ export interface UseNewOrderStateWithDispatchReturn {
   setProductsLoading: (loading: boolean) => void;
   setInitialLoading: (loading: boolean) => void;
   resetOrder: () => void;
+  setSelectedPiece: (pieceId: string | null) => void;
+  updatePieceConditions: (pieceId: string, conditions: string[]) => void;
 }
 
 /**
@@ -213,6 +215,14 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     resetOrder: () => {
       dispatch({ type: 'RESET_ORDER' });
+    },
+
+    setSelectedPiece: (pieceId: string | null) => {
+      dispatch({ type: 'SET_SELECTED_PIECE', payload: pieceId });
+    },
+
+    updatePieceConditions: (pieceId: string, conditions: string[]) => {
+      dispatch({ type: 'UPDATE_PIECE_CONDITIONS', payload: { pieceId, conditions } });
     },
   };
 

@@ -37,6 +37,8 @@ interface ItemCartItemProps {
   priceOverride?: number | null;
   overrideReason?: string | null;
   currencyCode?: string;
+  selectedPieceId?: string | null;
+  onSelectPiece?: (pieceId: string | null) => void;
 }
 
 function ItemCartItemComponent({
@@ -62,6 +64,8 @@ function ItemCartItemComponent({
   priceOverride,
   overrideReason,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
+  selectedPieceId = null,
+  onSelectPiece,
 }: ItemCartItemProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -74,9 +78,28 @@ function ItemCartItemComponent({
 
   const hasIssues = hasStain || hasDamage || conditions.length > 0;
   const showPieces = trackByPiece && pieces.length > 0;
+  const implicitPieceId = `temp-${itemId}-1`;
+  const isSelected = selectedPieceId === implicitPieceId || (showPieces && pieces.some((p) => p.id === selectedPieceId));
+
+  const handleSelectPiece = useCallback(
+    (pieceId: string) => {
+      onSelectPiece?.(pieceId);
+    },
+    [onSelectPiece]
+  );
 
   return (
-    <div className={`flex items-start gap-3 py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors group ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div
+      className={`flex items-start gap-3 py-3 border-b border-gray-100 transition-colors group ${isRTL ? 'flex-row-reverse' : ''} ${
+        onSelectPiece ? 'cursor-pointer hover:bg-gray-50' : ''
+      } ${isSelected ? 'ring-2 ring-orange-500 ring-inset rounded-lg bg-orange-50/50' : ''}`}
+      onClick={
+        onSelectPiece && !showPieces && quantity === 1
+          ? () => handleSelectPiece(implicitPieceId)
+          : undefined
+      }
+      role={onSelectPiece && !showPieces && quantity === 1 ? 'button' : undefined}
+    >
       {/* Item Number */}
       <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-bold text-gray-700">
         {itemNumber}
@@ -101,7 +124,10 @@ function ItemCartItemComponent({
           <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity md:opacity-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {onEdit && (
               <button
-                onClick={onEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit();
+                }}
                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                 aria-label={tCommon('edit')}
               >
@@ -109,7 +135,10 @@ function ItemCartItemComponent({
               </button>
             )}
             <button
-              onClick={onDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
               className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
               aria-label={tCommon('delete')}
             >
@@ -184,6 +213,8 @@ function ItemCartItemComponent({
                 itemId={itemId}
                 onPiecesChange={onPiecesChange}
                 readOnly={false}
+                selectedPieceId={selectedPieceId}
+                onSelectPiece={onSelectPiece}
               />
             )}
           </div>

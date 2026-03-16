@@ -30,6 +30,8 @@ interface PreSubmissionPiecesManagerProps {
   itemId: string;
   onPiecesChange: (pieces: PreSubmissionPiece[]) => void;
   readOnly?: boolean;
+  selectedPieceId?: string | null;
+  onSelectPiece?: (pieceId: string | null) => void;
 }
 
 export function PreSubmissionPiecesManager({
@@ -37,6 +39,8 @@ export function PreSubmissionPiecesManager({
   itemId,
   onPiecesChange,
   readOnly = false,
+  selectedPieceId = null,
+  onSelectPiece,
 }: PreSubmissionPiecesManagerProps) {
   const t = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
@@ -106,10 +110,16 @@ export function PreSubmissionPiecesManager({
       </div>
 
       <div className="space-y-2">
-        {pieces.map((piece) => (
+        {pieces.map((piece) => {
+          const isSelected = selectedPieceId === piece.id;
+          return (
           <div
             key={piece.id}
-            className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+            className={`p-3 rounded-lg border transition-colors ${
+              onSelectPiece ? 'cursor-pointer hover:bg-gray-100' : ''
+            } ${isSelected ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300' : 'bg-gray-50 border-gray-200'}`}
+            onClick={onSelectPiece ? () => onSelectPiece(piece.id) : undefined}
+            role={onSelectPiece ? 'button' : undefined}
           >
             <div className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
               <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -233,7 +243,8 @@ export function PreSubmissionPiecesManager({
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

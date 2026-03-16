@@ -236,6 +236,16 @@ export function NewOrderContent() {
 
             state.addItem(newItem);
             trackItemAddition();
+            // Set selected piece = last added piece (for Customer/Order/Item/Pieces Preferences panel)
+            if (trackByPiece && newItem.pieces && newItem.pieces.length > 0) {
+                const lastPiece = newItem.pieces[newItem.pieces.length - 1];
+                state.setSelectedPiece(lastPiece.id);
+            } else if (!trackByPiece && newItem.quantity === 1) {
+                // Implicit single piece
+                state.setSelectedPiece(`temp-${newItem.productId}-1`);
+            } else {
+                state.setSelectedPiece(null);
+            }
         },
         [state, trackByPiece, trackItemAddition, t, autoApplyCustomerPrefs, servicePrefs]
     );
@@ -251,9 +261,14 @@ export function NewOrderContent() {
     // Handle quantity change
     const handleQuantityChange = useCallback(
         (productId: string, quantity: number) => {
+            const item = state.state.items.find((i) => i.productId === productId);
+            const prevQty = item?.quantity ?? 0;
             state.updateItemQuantity(productId, quantity);
+            if (trackByPiece && quantity > prevQty) {
+                state.setSelectedPiece(`temp-${productId}-${quantity}`);
+            }
         },
-        [state]
+        [state, trackByPiece]
     );
 
     // Handle pieces change
@@ -262,6 +277,30 @@ export function NewOrderContent() {
             state.updateItemPieces(itemId, pieces);
         },
         [state]
+    );
+
+    // Customer/Order/Item/Pieces Preferences - condition toggle for selected piece
+    const selectedConditions = useMemo(() => {
+        const pieceId = state.state.selectedPieceId;
+        if (!pieceId) return [];
+        for (const item of state.state.items) {
+            const piece = item.pieces?.find((p) => p.id === pieceId);
+            if (piece) return piece.conditions ?? [];
+        }
+        return [];
+    }, [state.state.selectedPieceId, state.state.items]);
+
+    const handleConditionToggle = useCallback(
+        (conditionCode: string) => {
+            const pieceId = state.state.selectedPieceId;
+            if (!pieceId) return;
+            const current = selectedConditions;
+            const next = current.includes(conditionCode)
+                ? current.filter((c) => c !== conditionCode)
+                : [...current, conditionCode];
+            state.updatePieceConditions(pieceId, next);
+        },
+        [state, selectedConditions]
     );
 
     // Handle submit order click
@@ -378,7 +417,7 @@ export function NewOrderContent() {
         saveOrderUpdate();
     }, [hasErrors, warnings, saveOrderUpdate]);
 
-    // Memoized order items for OrderSummaryPanel (includes service pref charges in prices)
+    // Memoized order items for OrderSummaryPanel (includes service pref charges, conditions from pieces)
     const memoizedOrderItems = useMemo(
         () =>
             state.state.items.map((item) => {
@@ -390,6 +429,15 @@ export function NewOrderContent() {
                     prefCharge > 0
                         ? item.pricePerUnit + prefCharge / item.quantity
                         : item.pricePerUnit;
+                const conditions = item.pieces
+                    ? Array.from(new Set(item.pieces.flatMap((p) => p.conditions ?? [])))
+                    : [];
+                const hasStain = conditions.some((c) =>
+                    ['coffee', 'wine', 'blood', 'mud', 'oil', 'ink', 'grease', 'bleach', 'bubble'].includes(c.toLowerCase())
+                );
+                const hasDamage = conditions.some((c) =>
+                    ['button_broken', 'button_missing', 'collar_torn', 'zipper_broken', 'hole', 'tear', 'seam_open'].includes(c.toLowerCase())
+                );
                 return {
                     id: item.productId,
                     productId: item.productId,
@@ -400,6 +448,9 @@ export function NewOrderContent() {
                     totalPrice: calculateItemTotal(item),
                     notes: item.notes,
                     pieces: item.pieces,
+                    conditions,
+                    hasStain,
+                    hasDamage,
                     serviceCategoryCode: item.serviceCategoryCode,
                     serviceCategoryName: cat?.ctg_name ?? item.serviceCategoryCode ?? undefined,
                     serviceCategoryName2: cat?.ctg_name2 ?? undefined,
@@ -627,6 +678,9 @@ export function NewOrderContent() {
                                         onAddItem={handleAddItem}
                                         onRemoveItem={handleRemoveItem}
                                         onQuantityChange={handleQuantityChange}
+                                        selectedConditions={selectedConditions}
+                                        onConditionToggle={handleConditionToggle}
+                                        selectedPieceId={state.state.selectedPieceId}
                                         onOpenCustomItemModal={() => {
                                             state.openModal('customItem');
                                             trackModalOpen('customItem');
@@ -717,6 +771,8 @@ export function NewOrderContent() {
                         currencyCode={currencyCode}
                         trackByPiece={trackByPiece}
                         isRetailOnlyOrder={isRetailOnlyOrder}
+                        selectedPieceId={state.state.selectedPieceId}
+                        onSelectPiece={state.setSelectedPiece}
                     />
 
                     {/* Post-creation: Add New Order + Go to Order */}

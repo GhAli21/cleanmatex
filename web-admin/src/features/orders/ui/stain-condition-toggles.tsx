@@ -36,7 +36,7 @@ export function StainConditionToggles({
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-4`}>
         <h3 className={`font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-          {t('itemConditionsStains')}
+          {t('customerOrderItemPiecesPreferences')}
         </h3>
 
         {/* Filter Buttons */}

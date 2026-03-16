@@ -129,7 +129,7 @@ export class ReceiptService {
             total_price,
             packing_pref_code,
             service_pref_charge,
-            service_prefs:org_order_item_service_prefs(
+            service_prefs:org_order_preferences_dtl(
               preference_code,
               extra_price
             )

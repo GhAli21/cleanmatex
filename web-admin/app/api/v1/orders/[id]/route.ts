@@ -8,6 +8,7 @@ import { NextResponse } from 'next/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
+import { OrderPieceService } from '@/lib/services/order-piece-service';
 
 function toNumber(value: unknown): number | null {
   if (value === undefined || value === null) return null;
@@ -39,29 +40,45 @@ export async function GET(
       );
     }
 
-    // Load pieces for all order items (for edit screen)
+    // Load pieces for all order items (for edit screen) - includes service_prefs and conditions
     const itemIds = (order.items ?? []).map((i: { id: string }) => i.id);
-    const piecesList =
-      itemIds.length > 0
-        ? await prisma.org_order_item_pieces_dtl.findMany({
-            where: {
-              order_id: id,
-              tenant_org_id: tenantId,
-              order_item_id: { in: itemIds },
-            },
-            orderBy: [{ order_item_id: 'asc' }, { piece_seq: 'asc' }],
-          })
-        : [];
+    let piecesByItemId: Record<string, Array<{
+      id: string;
+      piece_seq: number;
+      color?: string | null;
+      brand?: string | null;
+      has_stain?: boolean;
+      has_damage?: boolean;
+      notes?: string | null;
+      rack_location?: string | null;
+      metadata?: Record<string, unknown>;
+      packing_pref_code?: string | null;
+      service_prefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+      conditions?: string[];
+    }>> = {};
 
-    const piecesByItemId = piecesList.reduce<Record<string, typeof piecesList>>(
-      (acc, p) => {
+    if (itemIds.length > 0) {
+      const piecesResult = await OrderPieceService.getPiecesByOrder(tenantId, id);
+      const piecesList = piecesResult.success && piecesResult.pieces ? piecesResult.pieces : [];
+      for (const p of piecesList) {
         const key = p.order_item_id;
-        if (!acc[key]) acc[key] = [];
-        acc[key].push(p);
-        return acc;
-      },
-      {}
-    );
+        if (!piecesByItemId[key]) piecesByItemId[key] = [];
+        piecesByItemId[key].push({
+          id: p.id,
+          piece_seq: p.piece_seq,
+          color: p.color ?? undefined,
+          brand: p.brand ?? undefined,
+          has_stain: p.has_stain ?? false,
+          has_damage: p.has_damage ?? false,
+          notes: p.notes ?? undefined,
+          rack_location: p.rack_location ?? undefined,
+          metadata: p.metadata ?? undefined,
+          packing_pref_code: p.packing_pref_code ?? undefined,
+          service_prefs: p.service_prefs,
+          conditions: p.conditions,
+        });
+      }
+    }
 
     // Option B: Fallback — resolve product names from catalog for items with null product_name
     const itemsMissingName = (order.items ?? []).filter(
@@ -124,6 +141,7 @@ export async function GET(
           default_express_sell_price: toNumber(item.default_express_sell_price) ?? null,
           pieces: itemPieces.map((p) => ({
             id: p.id,
+            piece_seq: p.piece_seq,
             color: p.color ?? undefined,
             brand: p.brand ?? undefined,
             has_stain: p.has_stain ?? false,
@@ -131,6 +149,9 @@ export async function GET(
             notes: p.notes ?? undefined,
             rack_location: p.rack_location ?? undefined,
             metadata: (p.metadata as Record<string, unknown>) ?? undefined,
+            packing_pref_code: p.packing_pref_code ?? undefined,
+            service_prefs: p.service_prefs,
+            conditions: p.conditions,
           })),
         };
       }),

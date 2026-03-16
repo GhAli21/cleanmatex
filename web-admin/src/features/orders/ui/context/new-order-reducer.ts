@@ -70,6 +70,9 @@ export const initialState: NewOrderState = {
   originalOrderData: null,
   lockInfo: null,
   expectedUpdatedAt: null,
+
+  // Customer/Order/Item/Pieces Preferences
+  selectedPieceId: null,
 };
 
 /**
@@ -439,6 +442,7 @@ export function newOrderReducer(
         isInitialLoading: false,
         categoriesLoading: false,
         productsLoading: false,
+        selectedPieceId: null,
       };
 
     case 'ENTER_EDIT_MODE':
@@ -519,6 +523,39 @@ export function newOrderReducer(
         ...state,
         expectedUpdatedAt: action.payload,
       };
+
+    case 'SET_SELECTED_PIECE':
+      return {
+        ...state,
+        selectedPieceId: action.payload,
+      };
+
+    case 'UPDATE_PIECE_CONDITIONS': {
+      const { pieceId, conditions } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          const match = pieceId.startsWith(`temp-${item.productId}-`);
+          if (!match) return item;
+          let pieces = item.pieces;
+          if (!pieces || pieces.length === 0) {
+            pieces = Array.from({ length: item.quantity }, (_, i) => ({
+              id: `temp-${item.productId}-${i + 1}`,
+              itemId: item.productId,
+              pieceSeq: i + 1,
+            }));
+          }
+          const hasPiece = pieces.some((p) => p.id === pieceId);
+          if (!hasPiece) return item;
+          return {
+            ...item,
+            pieces: pieces.map((p) =>
+              p.id === pieceId ? { ...p, conditions: [...conditions] } : p
+            ),
+          };
+        }),
+      };
+    }
 
     default:
       return state;

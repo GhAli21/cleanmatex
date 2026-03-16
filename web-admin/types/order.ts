@@ -274,8 +274,10 @@ export interface OrderItemPiece {
   // Service preferences (migration 0139)
   packing_pref_code?: string | null;
   service_pref_charge?: number | null;
-  /** Piece-level service prefs from org_order_item_pc_prefs */
+  /** Piece-level service prefs from org_order_preferences_dtl */
   service_prefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+  /** Piece-level conditions (stains, damage, special) from org_order_preferences_dtl */
+  conditions?: string[];
 
   // Audit fields
   created_at: Date | null;

@@ -35,6 +35,8 @@ export interface CreateOrderPieceData {
   metadata?: Record<string, any>;
   /** Piece-level service prefs (Enterprise-gated) */
   servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number }>;
+  /** Piece-level conditions (stains, damage, special) */
+  conditions?: string[];
 }
 
 /** Service preference for order item (processing prefs: starch, perfume, etc.) */
@@ -505,37 +507,41 @@ export class OrderService {
           const servicePrefsToInsert: Array<{
             tenant_org_id: string;
             order_id: string;
+            prefs_no: number;
+            prefs_level: string;
             order_item_id: string;
             preference_code: string;
-            source: string;
+            preference_sys_kind: string;
+            prefs_source: string;
             extra_price: number;
             branch_id: string | null;
             created_by: string;
-            created_info: string | null;
           }> = [];
           for (let i = 0; i < createdItems.length; i++) {
             const createdItem = createdItems[i];
             const itemData = items[i];
             const prefs = itemData?.servicePrefs;
             if (createdItem && prefs && prefs.length > 0) {
-              for (const pref of prefs) {
+              prefs.forEach((pref, idx) => {
                 servicePrefsToInsert.push({
                   tenant_org_id: tenantId,
                   order_id: order.id,
+                  prefs_no: idx + 1,
+                  prefs_level: 'ITEM',
                   order_item_id: createdItem.id,
                   preference_code: pref.preference_code,
-                  source: pref.source,
+                  preference_sys_kind: 'service_prefs',
+                  prefs_source: pref.source,
                   extra_price: pref.extra_price,
                   branch_id: branchId ?? null,
                   created_by: userId,
-                  created_info: userName,
                 });
-              }
+              });
             }
           }
           if (servicePrefsToInsert.length > 0) {
             const { error: prefsError } = await supabase
-              .from('org_order_item_service_prefs')
+              .from('org_order_preferences_dtl')
               .insert(servicePrefsToInsert);
             if (prefsError) {
               logger.warn('Failed to insert service preferences for order items', {
@@ -569,6 +575,7 @@ export class OrderService {
                     metadata: piece.metadata || {},
                     packingPrefCode: piece.packingPrefCode,
                     servicePrefs: piece.servicePrefs,
+                    conditions: piece.conditions,
                   }))
                   : undefined; // Will use baseData fallback
 
@@ -964,20 +971,22 @@ export class OrderService {
           },
         });
 
-        // Insert service preferences for this item
+        // Insert service preferences for this item (org_order_preferences_dtl, prefs_level=ITEM)
         const prefs = item.servicePrefs;
         if (prefs && prefs.length > 0) {
-          await tx.org_order_item_service_prefs.createMany({
-            data: prefs.map((pref) => ({
+          await tx.org_order_preferences_dtl.createMany({
+            data: prefs.map((pref, idx) => ({
               tenant_org_id: tenantId,
               order_id: order.id,
+              prefs_no: idx + 1,
+              prefs_level: 'ITEM',
               order_item_id: createdItem.id,
               preference_code: pref.preference_code,
-              source: pref.source,
+              preference_sys_kind: 'service_prefs',
+              prefs_source: pref.source,
               extra_price: pref.extra_price,
               branch_id: branchId ?? null,
               created_by: userId,
-              created_info: params.userName ?? null,
             })),
           });
         }
@@ -1853,6 +1862,7 @@ export class OrderService {
                 metadata: piece.metadata || {},
                 packingPrefCode: piece.packingPrefCode,
                 servicePrefs: piece.servicePrefs,
+                conditions: piece.conditions,
               }))
               : undefined;
 

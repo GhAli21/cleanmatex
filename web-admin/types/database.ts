@@ -4034,110 +4034,106 @@ export type Database = {
           },
         ]
       }
-      org_order_item_pc_prefs: {
+      org_order_preferences_dtl: {
         Row: {
+          id: string
+          tenant_org_id: string
+          order_id: string
           branch_id: string | null
-          confirmed_at: string | null
+          prefs_no: number
+          prefs_level: string
+          order_item_id: string | null
+          order_item_piece_id: string | null
+          preference_id: string | null
+          preference_code: string
+          preference_sys_kind: string | null
+          preference_category: string | null
+          prefs_owner_type: string
+          prefs_source: string
+          extra_price: number
+          processing_confirmed: boolean | null
           confirmed_by: string | null
+          confirmed_at: string | null
+          rec_status: number | null
           created_at: string | null
           created_by: string | null
-          created_info: string | null
-          extra_price: number
-          id: string
-          order_id: string
-          order_item_id: string
-          order_item_piece_id: string
-          preference_category: string | null
-          preference_code: string
-          processing_confirmed: boolean | null
-          rec_notes: string | null
-          rec_order: number | null
-          rec_status: number | null
-          source: string | null
-          tenant_org_id: string
           updated_at: string | null
           updated_by: string | null
-          updated_info: string | null
         }
         Insert: {
+          id?: string
+          tenant_org_id: string
+          order_id: string
           branch_id?: string | null
-          confirmed_at?: string | null
+          prefs_no: number
+          prefs_level: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          preference_id?: string | null
+          preference_code: string
+          preference_sys_kind?: string | null
+          preference_category?: string | null
+          prefs_owner_type?: string
+          prefs_source?: string
+          extra_price?: number
+          processing_confirmed?: boolean | null
           confirmed_by?: string | null
+          confirmed_at?: string | null
+          rec_status?: number | null
           created_at?: string | null
           created_by?: string | null
-          created_info?: string | null
-          extra_price?: number
-          id?: string
-          order_id: string
-          order_item_id: string
-          order_item_piece_id: string
-          preference_category?: string | null
-          preference_code: string
-          processing_confirmed?: boolean | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number | null
-          source?: string | null
-          tenant_org_id: string
           updated_at?: string | null
           updated_by?: string | null
-          updated_info?: string | null
         }
         Update: {
+          id?: string
+          tenant_org_id?: string
+          order_id?: string
           branch_id?: string | null
-          confirmed_at?: string | null
+          prefs_no?: number
+          prefs_level?: string
+          order_item_id?: string | null
+          order_item_piece_id?: string | null
+          preference_id?: string | null
+          preference_code?: string
+          preference_sys_kind?: string | null
+          preference_category?: string | null
+          prefs_owner_type?: string
+          prefs_source?: string
+          extra_price?: number
+          processing_confirmed?: boolean | null
           confirmed_by?: string | null
+          confirmed_at?: string | null
+          rec_status?: number | null
           created_at?: string | null
           created_by?: string | null
-          created_info?: string | null
-          extra_price?: number
-          id?: string
-          order_id?: string
-          order_item_id?: string
-          order_item_piece_id?: string
-          preference_category?: string | null
-          preference_code?: string
-          processing_confirmed?: boolean | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number | null
-          source?: string | null
-          tenant_org_id?: string
           updated_at?: string | null
           updated_by?: string | null
-          updated_info?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "org_order_item_pc_prefs_order_id_fkey"
+            foreignKeyName: "org_order_preferences_dtl_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "org_orders_mst"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_order_item_pc_prefs_order_item_id_fkey"
+            foreignKeyName: "org_order_preferences_dtl_order_item_id_fkey"
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "org_order_items_dtl"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_order_item_pc_prefs_order_item_piece_id_fkey"
+            foreignKeyName: "org_order_preferences_dtl_order_item_piece_id_fkey"
             columns: ["order_item_piece_id"]
             isOneToOne: false
             referencedRelation: "org_order_item_pieces_dtl"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_order_item_pc_prefs_preference_code_fkey"
-            columns: ["preference_code"]
-            isOneToOne: false
-            referencedRelation: "sys_service_preference_cd"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "org_order_item_pc_prefs_tenant_org_id_fkey"
+            foreignKeyName: "org_order_preferences_dtl_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "org_tenants_mst"
@@ -4150,7 +4146,7 @@ export type Database = {
           barcode: string | null
           branch_id: string | null
           brand: string | null
-          color: string | null
+          color: Json | null
           created_at: string | null
           created_by: string | null
           created_info: string | null
@@ -4192,7 +4188,7 @@ export type Database = {
           barcode?: string | null
           branch_id?: string | null
           brand?: string | null
-          color?: string | null
+          color?: Json | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -4234,7 +4230,7 @@ export type Database = {
           barcode?: string | null
           branch_id?: string | null
           brand?: string | null
-          color?: string | null
+          color?: Json | null
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
@@ -4422,107 +4418,6 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_step_tenant"
-            columns: ["tenant_org_id"]
-            isOneToOne: false
-            referencedRelation: "org_tenants_mst"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      org_order_item_service_prefs: {
-        Row: {
-          branch_id: string | null
-          confirmed_at: string | null
-          confirmed_by: string | null
-          created_at: string | null
-          created_by: string | null
-          created_info: string | null
-          extra_price: number
-          id: string
-          order_id: string
-          order_item_id: string
-          preference_category: string | null
-          preference_code: string
-          processing_confirmed: boolean | null
-          rec_notes: string | null
-          rec_order: number | null
-          rec_status: number | null
-          source: string | null
-          tenant_org_id: string
-          updated_at: string | null
-          updated_by: string | null
-          updated_info: string | null
-        }
-        Insert: {
-          branch_id?: string | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          extra_price?: number
-          id?: string
-          order_id: string
-          order_item_id: string
-          preference_category?: string | null
-          preference_code: string
-          processing_confirmed?: boolean | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number | null
-          source?: string | null
-          tenant_org_id: string
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-        }
-        Update: {
-          branch_id?: string | null
-          confirmed_at?: string | null
-          confirmed_by?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          created_info?: string | null
-          extra_price?: number
-          id?: string
-          order_id?: string
-          order_item_id?: string
-          preference_category?: string | null
-          preference_code?: string
-          processing_confirmed?: boolean | null
-          rec_notes?: string | null
-          rec_order?: number | null
-          rec_status?: number | null
-          source?: string | null
-          tenant_org_id?: string
-          updated_at?: string | null
-          updated_by?: string | null
-          updated_info?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "org_order_item_service_prefs_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "org_orders_mst"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_order_item_service_prefs_order_item_id_fkey"
-            columns: ["order_item_id"]
-            isOneToOne: false
-            referencedRelation: "org_order_items_dtl"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_order_item_service_prefs_preference_code_fkey"
-            columns: ["preference_code"]
-            isOneToOne: false
-            referencedRelation: "sys_service_preference_cd"
-            referencedColumns: ["code"]
-          },
-          {
-            foreignKeyName: "org_order_item_service_prefs_tenant_org_id_fkey"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "org_tenants_mst"

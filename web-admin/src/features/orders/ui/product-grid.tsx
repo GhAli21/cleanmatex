@@ -49,6 +49,7 @@ interface ProductGridProps {
   onQuantityChange: (productId: string, quantity: number) => void;
   selectedConditions?: string[];
   onConditionToggle?: (condition: string) => void;
+  selectedPieceId?: string | null;
   onOpenCustomItemModal?: () => void;
   onOpenPhotoCapture?: () => void;
 }
@@ -63,6 +64,7 @@ export const ProductGrid = memo(function ProductGrid({
   onQuantityChange,
   selectedConditions = [],
   onConditionToggle = () => {},
+  selectedPieceId = null,
   onOpenCustomItemModal,
   onOpenPhotoCapture,
 }: ProductGridProps) {
@@ -151,7 +153,7 @@ export const ProductGrid = memo(function ProductGrid({
       <StainConditionToggles
         selectedConditions={selectedConditions}
         onConditionToggle={onConditionToggle}
-        disabled={!hasItems}
+        disabled={!hasItems || !selectedPieceId}
       />
     </div>
   );

@@ -212,6 +212,7 @@ export function useOrderSubmission() {
                                 notes: piece.notes,
                                 rackLocation: piece.rackLocation,
                                 metadata: piece.metadata,
+                                conditions: piece.conditions,
                             })),
                         }),
                         ...(item.servicePrefs && item.servicePrefs.length > 0 && {
@@ -615,6 +616,7 @@ export function useOrderSubmission() {
                             notes: piece.notes,
                             rackLocation: piece.rackLocation,
                             metadata: piece.metadata,
+                            conditions: piece.conditions,
                             ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                 packingPrefCode: piece.packingPrefCode,
                             }),

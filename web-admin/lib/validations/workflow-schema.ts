@@ -160,6 +160,7 @@ export const CreateOrderPieceDataSchema = z.object({
   notes: z.string().optional(),
   rackLocation: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+  conditions: z.array(z.string()).optional(),
 });
 
 const CreateOrderTotalsSchema = z.object({

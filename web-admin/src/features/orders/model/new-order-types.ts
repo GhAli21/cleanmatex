@@ -94,6 +94,8 @@ export interface PreSubmissionPiece {
   notes?: string;
   rackLocation?: string;
   metadata?: Record<string, unknown>;
+  /** Piece-level conditions (stains, damage, special) - Customer/Order/Item/Pieces Preferences */
+  conditions?: string[];
   /** Piece-level service prefs (Enterprise-gated) */
   servicePrefs?: OrderItemServicePref[];
   /** Piece-level packing preference (Enterprise-gated, packingPerPieceEnabled) */
@@ -228,6 +230,9 @@ export interface NewOrderState {
   originalOrderData: any | null; // Snapshot of original order for comparison
   lockInfo: OrderLockInfo | null;
   expectedUpdatedAt: Date | null; // For optimistic locking
+
+  // Customer/Order/Item/Pieces Preferences - selected piece for applying conditions
+  selectedPieceId: string | null;
 }
 
 // ==================================================================
@@ -303,5 +308,7 @@ export type NewOrderAction =
   | { type: 'EXIT_EDIT_MODE' }
   | { type: 'SET_LOCK_INFO'; payload: OrderLockInfo | null }
   | { type: 'UPDATE_ORIGINAL_ORDER_DATA'; payload: Record<string, unknown> | null }
-  | { type: 'SET_EXPECTED_UPDATED_AT'; payload: Date };
+  | { type: 'SET_EXPECTED_UPDATED_AT'; payload: Date }
+  | { type: 'SET_SELECTED_PIECE'; payload: string | null }
+  | { type: 'UPDATE_PIECE_CONDITIONS'; payload: { pieceId: string; conditions: string[] } };
 

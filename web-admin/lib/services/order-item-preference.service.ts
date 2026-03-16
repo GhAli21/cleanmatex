@@ -25,10 +25,11 @@ export class OrderItemPreferenceService {
     orderItemId: string
   ): Promise<OrderItemServicePref[]> {
     const { data, error } = await supabase
-      .from('org_order_item_service_prefs')
-      .select('id, order_item_id, preference_code, preference_category, source, extra_price, branch_id')
+      .from('org_order_preferences_dtl')
+      .select('id, order_item_id, preference_code, preference_category, prefs_source, extra_price, branch_id')
       .eq('tenant_org_id', tenantId)
-      .eq('order_item_id', orderItemId);
+      .eq('order_item_id', orderItemId)
+      .eq('prefs_level', 'ITEM');
 
     if (error) {
       logger.error('Failed to get item service prefs', new Error(error.message), {
@@ -44,7 +45,7 @@ export class OrderItemPreferenceService {
       order_item_id: r.order_item_id,
       preference_code: r.preference_code,
       preference_category: r.preference_category,
-      source: (r.source || PREFERENCE_SOURCES.MANUAL) as PreferenceSource,
+      source: (r.prefs_source || PREFERENCE_SOURCES.MANUAL) as PreferenceSource,
       extra_price: Number(r.extra_price),
       branch_id: r.branch_id,
     }));
@@ -75,18 +76,32 @@ export class OrderItemPreferenceService {
         return { success: false, error: 'Order item not found' };
       }
 
+      const { data: maxNo } = await supabase
+        .from('org_order_preferences_dtl')
+        .select('prefs_no')
+        .eq('tenant_org_id', tenantId)
+        .eq('order_item_id', orderItemId)
+        .eq('prefs_level', 'ITEM')
+        .order('prefs_no', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const prefsNo = (maxNo?.prefs_no ?? 0) + 1;
+
       const { error: insertError } = await supabase
-        .from('org_order_item_service_prefs')
+        .from('org_order_preferences_dtl')
         .insert({
           tenant_org_id: tenantId,
           order_id: orderId,
+          prefs_no: prefsNo,
+          prefs_level: 'ITEM',
           order_item_id: orderItemId,
           preference_code: input.preference_code,
-          source: input.source || PREFERENCE_SOURCES.MANUAL,
+          preference_sys_kind: 'service_prefs',
+          prefs_source: input.source || PREFERENCE_SOURCES.MANUAL,
           extra_price: input.extra_price,
           branch_id: input.branch_id ?? null,
           created_by: userId,
-          created_info: userName,
         });
 
       if (insertError) {
@@ -121,10 +136,11 @@ export class OrderItemPreferenceService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
-        .from('org_order_item_service_prefs')
+        .from('org_order_preferences_dtl')
         .delete()
         .eq('tenant_org_id', tenantId)
         .eq('order_item_id', orderItemId)
+        .eq('prefs_level', 'ITEM')
         .eq('id', prefId);
 
       if (error) {
@@ -199,21 +215,14 @@ export class OrderItemPreferenceService {
     orderItemId: string
   ): Promise<void> {
     try {
-      const { data: itemPrefs } = await supabase
-        .from('org_order_item_service_prefs')
-        .select('extra_price')
+      const { data: prefs } = await supabase
+        .from('org_order_preferences_dtl')
+        .select('extra_price, preference_sys_kind')
         .eq('tenant_org_id', tenantId)
-        .eq('order_item_id', orderItemId);
+        .eq('order_item_id', orderItemId)
+        .eq('preference_sys_kind', 'service_prefs');
 
-      const { data: piecePrefs } = await supabase
-        .from('org_order_item_pc_prefs')
-        .select('extra_price')
-        .eq('tenant_org_id', tenantId)
-        .eq('order_item_id', orderItemId);
-
-      const itemSum = (itemPrefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
-      const pieceSum = (piecePrefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
-      const total = itemSum + pieceSum;
+      const total = (prefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
 
       await supabase
         .from('org_order_items_dtl')

@@ -62,6 +62,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
           source: p.source ?? 'manual',
           extra_price: Number(p.extra_price ?? 0),
         })),
+        conditions: piece.conditions,
       }));
 
       const servicePrefs = item.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number }) => ({

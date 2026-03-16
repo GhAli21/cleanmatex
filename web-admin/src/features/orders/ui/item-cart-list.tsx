@@ -39,6 +39,8 @@ interface ItemCartListProps {
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   trackByPiece?: boolean;
   currencyCode?: string;
+  selectedPieceId?: string | null;
+  onSelectPiece?: (pieceId: string | null) => void;
 }
 
 function ItemCartListComponent({ 
@@ -48,6 +50,8 @@ function ItemCartListComponent({
   onPiecesChange,
   trackByPiece = false,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
+  selectedPieceId = null,
+  onSelectPiece,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -109,6 +113,8 @@ function ItemCartListComponent({
             priceOverride={item.priceOverride}
             overrideReason={item.overrideReason}
             currencyCode={currencyCode}
+            selectedPieceId={selectedPieceId}
+            onSelectPiece={onSelectPiece}
           />
         ))}
       </div>

@@ -1,6 +1,6 @@
 /**
  * Order Piece Preference Service
- * CRUD for order piece service prefs (org_order_item_pc_prefs).
+ * CRUD for order piece service prefs (org_order_preferences_dtl, prefs_level=PIECE).
  * Recalculates service_pref_charge on piece and parent item.
  * Enterprise-gated: per-piece service prefs.
  */
@@ -28,10 +28,11 @@ export class OrderPiecePreferenceService {
     pieceId: string
   ): Promise<OrderPieceServicePref[]> {
     const { data, error } = await supabase
-      .from('org_order_item_pc_prefs')
-      .select('id, order_item_piece_id, preference_code, preference_category, source, extra_price, branch_id')
+      .from('org_order_preferences_dtl')
+      .select('id, order_item_piece_id, preference_code, preference_category, prefs_source, extra_price, branch_id')
       .eq('tenant_org_id', tenantId)
-      .eq('order_item_piece_id', pieceId);
+      .eq('order_item_piece_id', pieceId)
+      .eq('prefs_level', 'PIECE');
 
     if (error) {
       logger.error('Failed to get piece service prefs', new Error(error.message), {
@@ -47,7 +48,7 @@ export class OrderPiecePreferenceService {
       order_item_piece_id: r.order_item_piece_id,
       preference_code: r.preference_code,
       preference_category: r.preference_category,
-      source: (r.source || PREFERENCE_SOURCES.MANUAL) as PreferenceSource,
+      source: (r.prefs_source || PREFERENCE_SOURCES.MANUAL) as PreferenceSource,
       extra_price: Number(r.extra_price),
       branch_id: r.branch_id,
     }));
@@ -79,19 +80,33 @@ export class OrderPiecePreferenceService {
         return { success: false, error: 'Order piece not found' };
       }
 
+      const { data: maxNo } = await supabase
+        .from('org_order_preferences_dtl')
+        .select('prefs_no')
+        .eq('tenant_org_id', tenantId)
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
+        .order('prefs_no', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const prefsNo = (maxNo?.prefs_no ?? 0) + 1;
+
       const { error: insertError } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .insert({
           tenant_org_id: tenantId,
           order_id: orderId,
+          prefs_no: prefsNo,
+          prefs_level: 'PIECE',
           order_item_id: orderItemId,
           order_item_piece_id: pieceId,
           preference_code: input.preference_code,
-          source: input.source || PREFERENCE_SOURCES.MANUAL,
+          preference_sys_kind: 'service_prefs',
+          prefs_source: input.source || PREFERENCE_SOURCES.MANUAL,
           extra_price: input.extra_price,
           branch_id: input.branch_id ?? null,
           created_by: userId,
-          created_info: userName,
         });
 
       if (insertError) {
@@ -127,11 +142,12 @@ export class OrderPiecePreferenceService {
   ): Promise<{ success: boolean; orderItemId?: string; error?: string }> {
     try {
       const { data: pref } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .select('id, order_item_id')
         .eq('id', prefId)
         .eq('tenant_org_id', tenantId)
         .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
         .single();
 
       if (!pref) {
@@ -139,10 +155,11 @@ export class OrderPiecePreferenceService {
       }
 
       const { error } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .delete()
         .eq('tenant_org_id', tenantId)
         .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
         .eq('id', prefId);
 
       if (error) {
@@ -169,7 +186,7 @@ export class OrderPiecePreferenceService {
 
   /**
    * Confirm processing for all service prefs on a piece.
-   * Sets processing_confirmed=true, confirmed_by, confirmed_at on org_order_item_pc_prefs.
+   * Sets processing_confirmed=true, confirmed_by, confirmed_at on org_order_preferences_dtl.
    */
   static async confirmPiecePrefs(
     supabase: SupabaseClient,
@@ -180,26 +197,27 @@ export class OrderPiecePreferenceService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: prefs, error: fetchError } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .select('id')
         .eq('tenant_org_id', tenantId)
-        .eq('order_item_piece_id', pieceId);
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE');
 
       if (fetchError || !prefs?.length) {
         return { success: false, error: 'No service prefs to confirm' };
       }
 
       const { error: updateError } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .update({
           processing_confirmed: true,
           confirmed_by: userId,
           confirmed_at: new Date().toISOString(),
           updated_by: userId,
-          updated_info: userName,
         })
         .eq('tenant_org_id', tenantId)
-        .eq('order_item_piece_id', pieceId);
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE');
 
       if (updateError) {
         logger.error('Failed to confirm piece prefs', new Error(updateError.message), {
@@ -230,10 +248,12 @@ export class OrderPiecePreferenceService {
   ): Promise<void> {
     try {
       const { data: prefs } = await supabase
-        .from('org_order_item_pc_prefs')
+        .from('org_order_preferences_dtl')
         .select('extra_price')
         .eq('tenant_org_id', tenantId)
-        .eq('order_item_piece_id', pieceId);
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
+        .eq('preference_sys_kind', 'service_prefs');
 
       const total = (prefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
 

@@ -439,6 +439,48 @@ export class PreferenceCatalogService {
   }
 
   /**
+   * Get extra_turnaround_minutes for preference codes (tenant override or sys fallback).
+   * Used when inserting org_order_preferences_dtl to denormalize SLA for ready-by calculation.
+   */
+  static async getExtraTurnaroundMinutesBatch(
+    supabase: SupabaseClient,
+    tenantId: string,
+    preferenceCodes: string[]
+  ): Promise<Map<string, number>> {
+    const codes = [...new Set(preferenceCodes)].filter(Boolean);
+    if (codes.length === 0) return new Map();
+
+    try {
+      const { data: cfRows } = await supabase
+        .from('org_service_preference_cf')
+        .select('preference_code, extra_turnaround_minutes')
+        .eq('tenant_org_id', tenantId)
+        .in('preference_code', codes);
+
+      const { data: sysRows } = await supabase
+        .from('sys_service_preference_cd')
+        .select('code, extra_turnaround_minutes')
+        .in('code', codes);
+
+      const cfMap = new Map((cfRows || []).map((r) => [r.preference_code, r.extra_turnaround_minutes]));
+      const sysMap = new Map((sysRows || []).map((r) => [r.code, r.extra_turnaround_minutes]));
+
+      const result = new Map<string, number>();
+      for (const code of codes) {
+        const val = cfMap.get(code) ?? sysMap.get(code) ?? 0;
+        result.set(code, Number(val) || 0);
+      }
+      return result;
+    } catch (err) {
+      logger.error('PreferenceCatalogService.getExtraTurnaroundMinutesBatch failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return new Map();
+    }
+  }
+
+  /**
    * Upsert org_service_preference_cf (tenant override)
    */
   static async upsertServicePreferenceCf(
