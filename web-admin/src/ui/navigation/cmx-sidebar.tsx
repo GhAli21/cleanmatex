@@ -288,25 +288,44 @@ export default function CmxSidebar() {
         `}
         style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div
+          className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 overflow-hidden ${
+            isCollapsed ? 'px-2 lg:px-2 flex flex-col items-center gap-2' : `px-4 lg:px-4 flex flex-row items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`
+          }`}
+        >
           <Link
             href="/dashboard"
-            className={`flex items-center ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
+            className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
           >
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-lg">C</span>
             </div>
-            {!isCollapsed && (
-              <div className="min-w-0">
-                <span className="text-xl font-bold text-gray-900 block">CleanMateX</span>
-                {currentTenant && (
-                  <span className="text-xs text-gray-500 font-medium block mt-0.5">
-                    {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="min-w-0 overflow-hidden">
+              <span className="block text-xl font-bold text-gray-900 truncate whitespace-nowrap">CleanMateX</span>
+              {currentTenant && (
+                <span className="block text-xs text-gray-500 font-medium mt-0.5 truncate whitespace-nowrap">
+                  {t('currentPlan')}: {formatPlanDisplay(currentTenant.s_current_plan)}
+                </span>
+              )}
+            </div>
           </Link>
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            aria-expanded={!isCollapsed}
+            aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
+            title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
+            className="hidden lg:flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 flex-shrink-0"
+          >
+            {isCollapsed ? (
+              <PanelLeft className="h-5 w-5" />
+            ) : (
+              <>
+                <PanelLeftClose className="h-5 w-5" />
+                <span>{t('collapseSidebar')}</span>
+              </>
+            )}
+          </button>
         </div>
 
         {currentTenant && !isCollapsed && (
@@ -488,29 +507,7 @@ export default function CmxSidebar() {
         </nav>
 
         <div className={`border-t border-gray-200 flex-shrink-0 ${isCollapsed ? 'p-2' : 'p-4'}`}>
-          {!isCollapsed && (
-            <div className="text-xs text-gray-500 text-center mb-3">CleanMateX v1.0</div>
-          )}
-          <button
-            type="button"
-            onClick={toggleCollapse}
-            aria-expanded={!isCollapsed}
-            aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            className="hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-          >
-            {isCollapsed ? (
-              <PanelLeft className="h-5 w-5" />
-            ) : (
-              <>
-                <PanelLeftClose className="h-5 w-5" />
-                <span>{t('collapseSidebar')}</span>
-              </>
-            )}
-          </button>
-          {isCollapsed && (
-            <div className="text-[10px] text-gray-500 text-center mt-1">v1.0</div>
-          )}
+          <div className="text-xs text-gray-500 text-center">CleanMateX v1.0</div>
         </div>
       </aside>
     </>
