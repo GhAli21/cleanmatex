@@ -288,11 +288,7 @@ export default function CmxSidebar() {
         `}
         style={isRTL ? { left: 'auto', right: 0 } : { right: 'auto', left: 0 }}
       >
-        <div
-          className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 overflow-hidden ${
-            isCollapsed ? 'px-2 lg:px-2 flex flex-col items-center gap-2' : `px-4 lg:px-4 flex flex-row items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`
-          }`}
-        >
+        <div className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
             href="/dashboard"
             className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
@@ -309,13 +305,24 @@ export default function CmxSidebar() {
               )}
             </div>
           </Link>
+        </div>
+
+        {currentTenant && !isCollapsed && (
+          <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+            <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">{t('currentTenant')}</div>
+            <div className="mt-1 text-sm font-semibold text-gray-900 line-clamp-1 break-words">{currentTenant.tenant_name}</div>
+            <div className="mt-0.5 text-xs text-gray-600">{t('role')}: {currentTenant.user_role}</div>
+          </div>
+        )}
+
+        <div className={`flex-shrink-0 border-b border-gray-200 px-2 py-2 ${isCollapsed ? 'lg:px-1' : 'lg:px-2'}`}>
           <button
             type="button"
             onClick={toggleCollapse}
             aria-expanded={!isCollapsed}
             aria-label={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
             title={isCollapsed ? t('expandSidebar') : t('collapseSidebar')}
-            className="hidden lg:flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 flex-shrink-0"
+            className={`hidden lg:flex w-full items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             {isCollapsed ? (
               <PanelLeft className="h-5 w-5" />
@@ -327,14 +334,6 @@ export default function CmxSidebar() {
             )}
           </button>
         </div>
-
-        {currentTenant && !isCollapsed && (
-          <div className="px-4 py-3 bg-white border-b border-gray-200 flex-shrink-0">
-            <div className="text-xs font-medium text-blue-600 uppercase tracking-wide">{t('currentTenant')}</div>
-            <div className="mt-1 text-sm font-semibold text-gray-900 line-clamp-1 break-words">{currentTenant.tenant_name}</div>
-            <div className="mt-0.5 text-xs text-gray-600">{t('role')}: {currentTenant.user_role}</div>
-          </div>
-        )}
 
         <nav className={`flex-1 overflow-y-auto min-h-0 py-3 flex-shrink min-w-0 ${isCollapsed ? 'px-1' : 'px-2'}`}>
           {navigationLoading ? (
