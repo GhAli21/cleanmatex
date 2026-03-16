@@ -2745,7 +2745,9 @@
       "additionalServices": "Additional Services"
     },
     "preferences": {
+      "quickApply": "Quick Apply",
       "servicePrefs": "Service preferences",
+      "servicePrefsDesc": "Processing options: starch, perfume, delicate, etc.",
       "packingPref": "Packing",
       "none": "None",
       "carePackages": "Care Packages",

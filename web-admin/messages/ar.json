@@ -2745,7 +2745,9 @@
       "additionalServices": "خدمات إضافية"
     },
     "preferences": {
+      "quickApply": "تطبيق سريع",
       "servicePrefs": "تفضيلات الخدمة",
+      "servicePrefsDesc": "خيارات المعالجة: النشا، العطر، العناية الخاصة، إلخ.",
       "packingPref": "التغليف",
       "none": "لا شيء",
       "carePackages": "باقات العناية",

@@ -13,11 +13,8 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useOrderTotals } from '../hooks/use-order-totals';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
-import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
 import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
-import { CarePackageBundles } from './preferences/CarePackageBundles';
-import { RepeatLastOrderPanel } from './preferences/RepeatLastOrderPanel';
-import { SmartSuggestionsPanel } from './preferences/SmartSuggestionsPanel';
+import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
@@ -55,11 +52,10 @@ export function OrderDetailsSection({
     updateItemQuantity,
     updateItemNotes,
     updateItemPieces,
-    updateItemServicePrefs,
     updateItemPackingPref,
     removeItem,
   } = useNewOrderStateWithDispatch();
-  const { servicePrefs, packingPrefs, hasServicePrefs, hasPackingPrefs } =
+  const { packingPrefs, hasServicePrefs, hasPackingPrefs } =
     usePreferenceCatalog(state.branchId);
   const totals = useOrderTotals();
   const isRTL = useRTL();
@@ -219,13 +215,15 @@ export function OrderDetailsSection({
         </div>
       </div>
 
-      {(bundlesEnabled || repeatLastOrderEnabled || smartSuggestionsEnabled) && (
-        <div className="px-4 py-3 border-b border-gray-100 space-y-3">
-          <CarePackageBundles bundlesEnabled={bundlesEnabled} branchId={state.branchId} />
-          <RepeatLastOrderPanel repeatLastOrderEnabled={repeatLastOrderEnabled} branchId={state.branchId} />
-          <SmartSuggestionsPanel smartSuggestionsEnabled={smartSuggestionsEnabled} branchId={state.branchId} />
-        </div>
-      )}
+      <PreferencesTabsSection
+        trackByPiece={trackByPiece}
+        packingPerPieceEnabled={packingPerPieceEnabled}
+        bundlesEnabled={bundlesEnabled}
+        repeatLastOrderEnabled={repeatLastOrderEnabled}
+        smartSuggestionsEnabled={smartSuggestionsEnabled}
+        enforcePrefCompatibility={enforcePrefCompatibility}
+        hasServicePrefs={hasServicePrefs}
+      />
 
       <div className="overflow-x-auto max-h-[60vh]">
         <table className="min-w-full text-xs">
@@ -390,16 +388,6 @@ export function OrderDetailsSection({
                   {(hasServicePrefs || hasPackingPrefs) && (
                     <td className="px-3 py-2 align-top">
                       <div className="flex flex-col gap-2 min-w-[140px]">
-                        {hasServicePrefs && (
-                          <ServicePreferenceSelector
-                            selectedPrefs={item.servicePrefs ?? []}
-                            availablePrefs={servicePrefs}
-                            onChange={(prefs, charge) =>
-                              updateItemServicePrefs(item.productId, prefs, charge)
-                            }
-                            enforceCompatibility={enforcePrefCompatibility}
-                          />
-                        )}
                         {hasPackingPrefs && (
                           <>
                             <PackingPreferenceSelector
@@ -531,28 +519,15 @@ export function OrderDetailsSection({
                               />
                             </div>
 
-                            {packingPerPieceEnabled && (hasServicePrefs || hasPackingPrefs) && (
+                            {packingPerPieceEnabled && hasPackingPrefs && (
                               <div className="flex flex-wrap gap-3 min-w-[200px]">
-                                {hasServicePrefs && (
-                                  <ServicePreferenceSelector
-                                    selectedPrefs={piece.servicePrefs ?? []}
-                                    availablePrefs={servicePrefs}
-                                    onChange={(prefs, _charge) =>
-                                      handlePieceUpdate(item.productId, piece.id, { servicePrefs: prefs })
-                                    }
-                                    maxPrefs={5}
-                                    enforceCompatibility={enforcePrefCompatibility}
-                                  />
-                                )}
-                                {hasPackingPrefs && (
-                                  <PackingPreferenceSelector
-                                    value={piece.packingPrefCode}
-                                    availablePrefs={packingPrefs}
-                                    onChange={(code) =>
-                                      handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code })
-                                    }
-                                  />
-                                )}
+                                <PackingPreferenceSelector
+                                  value={piece.packingPrefCode}
+                                  availablePrefs={packingPrefs}
+                                  onChange={(code) =>
+                                    handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code })
+                                  }
+                                />
                               </div>
                             )}
 
