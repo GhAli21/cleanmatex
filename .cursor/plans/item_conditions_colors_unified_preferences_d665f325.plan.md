@@ -28,7 +28,7 @@ todos:
     status: completed
   - id: phase10-docs
     content: Phase 10 - Create/update documentation for the feature
-    status: pending
+    status: completed
   - id: tenant-init
     content: Update tenant initialization to seed org_service_preference_cf for conditions/colors
     status: cancelled

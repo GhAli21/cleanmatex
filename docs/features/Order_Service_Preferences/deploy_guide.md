@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-12
+version: v1.1.0
+last_updated: 2026-03-16
 author: CleanMateX Team
 ---
 
@@ -19,13 +19,22 @@ author: CleanMateX Team
 Apply migrations in order (user applies manually; do not run `supabase db reset`):
 
 ```bash
-# Migrations to apply (in sequence):
+# Base Service Preferences (in sequence):
 # 0139_order_service_preferences_schema.sql
 # 0140_order_service_preferences_flags_settings.sql
 # 0141_navigation_catalog_preferences.sql
 # 0142_* (get_last_order_preferences, suggest_preferences_from_history)
 # 0144_add_service_pref_processing_confirmation_setting.sql
+
+# Unified Customer/Order/Item/Pieces Preferences (0165–0169):
+# 0165_extend_sys_service_preference_cd_conditions_colors.sql
+# 0166_create_org_order_preferences_dtl.sql
+# 0167_org_order_item_pieces_color_jsonb.sql
+# 0168_item_conditions_colors_feature_flag.sql
+# 0169_update_preference_resolution_functions.sql
 ```
+
+See [preferences-unified-migrations-0165-0169.md](../../dev/preferences-unified-migrations-0165-0169.md) for details.
 
 Use your normal migration workflow (e.g., `supabase db push` or apply via Supabase dashboard).
 
