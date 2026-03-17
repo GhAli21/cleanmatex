@@ -606,7 +606,6 @@ export function NewOrderContent() {
                                     </p>
                                 )}
                             </div>
-                            </div>
                         )}
                         {/* Category Tabs - fixed at top when on Select Items */}
                         {activeTab === 'select' && (
