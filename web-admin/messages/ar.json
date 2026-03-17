@@ -2650,7 +2650,8 @@
       "label": "العميل",
       "selectPlaceholder": "اختر العميل",
       "addCustomer": "إضافة عميل",
-      "searchPlaceholder": "بحث بالاسم أو الهاتف"
+      "searchPlaceholder": "بحث بالاسم أو الهاتف",
+      "helper": "مطلوب لإرسال الطلب. انقر للبحث والاختيار."
     },
     "customerPicker": {
       "title": "اختر عميل",
@@ -2732,6 +2733,7 @@
       "note": "ملاحظة",
       "selectItems": "اختر العناصر",
       "noProductsAvailable": "لا توجد منتجات متاحة لهذه الفئة",
+      "noProductsHint": "لا توجد منتجات في هذه الفئة. جرب اختيار فئة أخرى أعلاه.",
       "customItem": "عنصر مخصص",
       "describeItem": "وصف العنصر",
       "captureItem": "التقاط العنصر",
@@ -2767,7 +2769,10 @@
       "categoryProcessing": "المعالجة",
       "categoryFinishing": "التشطيب",
       "extraTimeTooltip": "يضيف وقتًا لتقدير وقت الجاهزية",
-      "ecoPoints": "صديق للبيئة"
+      "ecoPoints": "صديق للبيئة",
+      "selectPieceHint": "اختر قطعة من السلة لتطبيق التفضيلات",
+      "selectPieceFromCart": "انقر على عنصر أو قطعة في السلة لتكوين الحالات والملاحظات.",
+      "forSelectedPiece": "تفضيلات القطعة المحددة"
     },
     "pieces": {
       "viewPieces": "عرض القطع",
@@ -2789,7 +2794,10 @@
       "colorPlaceholder": "أدخل اللون",
       "brandPlaceholder": "أدخل العلامة التجارية",
       "notesPlaceholder": "أضف ملاحظات...",
-      "rackLocationPlaceholder": "أدخل موقع الرف"
+      "rackLocationPlaceholder": "أدخل موقع الرف",
+      "editInCart": "تحرير القطع في السلة",
+      "addFirstPiece": "أضف قطعة لتتبع اللون والحالات والملاحظات",
+      "selectedForPreferences": "محدد للتفضيلات"
     },
     "notesPalette": {
       "title": "الملاحظات والبقع",
@@ -2831,7 +2839,8 @@
       "editCustomer": "تعديل العميل",
       "removeCustomer": "إزالة العميل",
       "addCustomer": "إضافة عميل",
-      "notSet": "غير محدد"
+      "notSet": "غير محدد",
+      "viewCart": "عرض السلة"
     },
     "schedule": {
       "title": "تاريخ الجاهزية / التوصيل",

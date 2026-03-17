@@ -64,10 +64,14 @@ function ItemCartListComponent({
   
   if (items.length === 0) {
     return (
-      <div className={`${isRTL ? 'text-right' : 'text-center'} py-8 text-gray-400`}>
-        <ShoppingCart className="w-12 h-12 mx-auto mb-2 opacity-50" />
-        <p className="text-sm">{t('noItemsAdded')}</p>
-        <p className={`text-xs mt-1 ${isRTL ? 'text-right' : 'text-center'}`}>{t('selectItemsFromGrid')}</p>
+      <div className={`flex flex-col items-center justify-center py-10 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
+        <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+          <ShoppingCart className="w-10 h-10 text-gray-400" aria-hidden="true" />
+        </div>
+        <p className="text-base font-medium text-gray-700 mb-1">{t('noItemsAdded')}</p>
+        <p className="text-sm text-gray-500 max-w-xs">
+          {t('selectItemsFromGrid') || 'Select items from the grid above to add to your order.'}
+        </p>
       </div>
     );
   }
@@ -75,7 +79,7 @@ function ItemCartListComponent({
   return (
     <div className="space-y-0">
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-3 pb-2 border-b-2 border-gray-200`}>
-        <h3 className={`font-semibold text-gray-900 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
+        <h3 className={`font-semibold text-gray-900 text-sm sm:text-base ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('orderItems')} ({items.length})
         </h3>
         <span className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>

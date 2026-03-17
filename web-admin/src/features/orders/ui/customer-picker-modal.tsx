@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect, useDeferredValue } from 'react';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -99,6 +100,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   const [focusedIndex, setFocusedIndex] = useState(0);
   const resultsRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
   // Fetch default guest customer when modal opens
   const { data: defaultGuest, isLoading: defaultGuestLoading } = useQuery({
@@ -304,6 +306,7 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
       aria-describedby="customer-picker-desc"
     >
       <div
+        ref={focusTrapRef}
         className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[85vh] flex flex-col overflow-hidden"
         onKeyDown={handleKeyDown}
       >

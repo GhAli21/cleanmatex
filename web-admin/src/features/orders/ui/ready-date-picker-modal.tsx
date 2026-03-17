@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { X, Calendar, Clock } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -130,6 +131,8 @@ export function ReadyDatePickerModal({
     return isSameDay(date, new Date());
   };
 
+  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
+
   const days = getDaysInMonth(currentMonth);
   const monthNames = [
     t('monthNames.january'),
@@ -190,6 +193,7 @@ export function ReadyDatePickerModal({
       onClick={handleBackdropClick}
     >
       <div
+        ref={focusTrapRef}
         className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >

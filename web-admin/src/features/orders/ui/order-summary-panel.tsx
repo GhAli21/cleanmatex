@@ -208,7 +208,7 @@ function OrderSummaryPanelComponent({
       {/* Header - Customer Section - Compact */}
       <div className="p-4 border-b border-gray-200 flex-shrink-0">
         <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <label className="block text-xs font-semibold text-gray-900">{tNewOrder('customer.label')}</label>
+          <label className="block text-sm font-semibold text-gray-700">{tNewOrder('customer.label')}</label>
           <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
             {customerName && (
               <>
@@ -234,10 +234,17 @@ function OrderSummaryPanelComponent({
         </div>
         <button
           onClick={onSelectCustomer}
+          id="order-summary-customer-select"
+          aria-describedby={!customerName ? 'order-summary-customer-helper' : undefined}
           className={`w-full px-2.5 py-1.5 text-sm border-2 border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'} hover:border-blue-500 hover:bg-blue-50 transition-all font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500`}
         >
           {customerName || tNewOrder('selectCustomer')}
         </button>
+        {!customerName && (
+          <p id="order-summary-customer-helper" className="text-xs text-gray-500 mt-1">
+            {tNewOrder('customer.helper') || 'Required to submit order. Tap to search and select.'}
+          </p>
+        )}
 
         {/* Express Toggle - Compact */}
         <div className="mt-2">
@@ -336,8 +343,14 @@ function OrderSummaryPanelComponent({
           </div>
           <div className={`flex items-stretch gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <div
+              role="button"
+              tabIndex={0}
+              aria-label={tNewOrder('readyBy') || 'Ready by date and time'}
+              aria-invalid={readyByAt && !readyByValidation.isFuture}
+              aria-describedby={readyByAt && !readyByValidation.isFuture ? 'ready-by-error' : readyByAt && readyByValidation.isTooFar ? 'ready-by-warning' : undefined}
               className={`flex-1 flex items-center gap-2 px-3 py-2.5 border rounded-lg bg-white ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} cursor-pointer hover:border-blue-400 transition-colors min-w-0`}
               onClick={onOpenReadyByModal}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenReadyByModal?.(); } }}
             >
               <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
               {readyByAt ? (
@@ -368,20 +381,21 @@ function OrderSummaryPanelComponent({
               onClick={onOpenReadyByModal}
               className={`px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
               title={tNewOrder('schedule.selectReadyDateTime') || 'Select Date & Time'}
+              aria-label={tNewOrder('schedule.selectReadyDateTime') || 'Select Date & Time'}
               type="button"
             >
-              <Calendar className="w-4 h-4" />
+              <Calendar className="w-4 h-4" aria-hidden />
             </button>
           </div>
           {/* Validation Messages */}
           {readyByAt && !readyByValidation.isFuture && (
-            <div className={`flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div id="ready-by-error" role="alert" aria-live="assertive" className={`flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{readyByValidation.message}</span>
             </div>
           )}
           {readyByAt && readyByValidation.isTooFar && (
-            <div className={`flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <div id="ready-by-warning" role="alert" aria-live="polite" className={`flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{readyByValidation.message}</span>
             </div>
@@ -396,7 +410,7 @@ function OrderSummaryPanelComponent({
               ? !isDirty || isSaving || loading || hasErrors
               : loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture
           }
-          className={`w-full h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
+          className={`w-full min-h-[48px] py-3 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
         >
           <span className="text-lg">
             {loading || isSaving
@@ -417,7 +431,7 @@ function OrderSummaryPanelComponent({
         {/* Validation Messages for Submit Button */}
         {isEditMode ? (
           hasErrors && validationErrors.length > 0 ? (
-            <p className="text-xs text-center text-red-600 font-medium">
+            <p role="alert" aria-live="assertive" className="text-xs text-center text-red-600 font-medium">
               {validationErrors[0]}
             </p>
           ) : isDirty && !isSaving && !loading ? (
@@ -432,22 +446,22 @@ function OrderSummaryPanelComponent({
         ) : (
           <>
             {!customerName && (
-              <p className="text-xs text-center text-red-600 font-medium">
+              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
                 {tNewOrder('errors.selectCustomer') || 'Please select a customer'}
               </p>
             )}
             {customerName && items.length === 0 && (
-              <p className="text-xs text-center text-red-600 font-medium">
+              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
                 {tNewOrder('errors.addItems') || 'Please add at least one item'}
               </p>
             )}
             {customerName && items.length > 0 && !readyByAt && (
-              <p className="text-xs text-center text-red-600 font-medium">
+              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
                 {tNewOrder('validation.readyByRequired') || 'Please set a ready-by date'}
               </p>
             )}
             {customerName && items.length > 0 && readyByAt && !readyByValidation.isFuture && (
-              <p className="text-xs text-center text-red-600 font-medium">
+              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
                 {readyByValidation.message || tNewOrder('validation.readyByMustBeFuture') || 'Ready-by date must be in the future'}
               </p>
             )}

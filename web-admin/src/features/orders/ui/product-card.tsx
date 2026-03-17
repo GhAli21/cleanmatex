@@ -57,8 +57,9 @@ export function ProductCard({
   return (
     <div
       className={`
-        relative border rounded-lg p-2 transition-all cursor-pointer
+        relative border rounded-lg p-2 transition-all duration-150 cursor-pointer
         flex flex-col
+        hover:scale-[1.02] active:scale-[0.98]
         ${
           hasQuantity
             ? 'border-blue-500 bg-blue-50 shadow-md'
@@ -66,9 +67,12 @@ export function ProductCard({
         }
       `}
     >
-      {/* Quantity Overlay Badge - Top Right/Left */}
+      {/* Quantity Overlay Badge - Top Right/Left, animates on change */}
       {hasQuantity && (
-        <div className={`absolute -top-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg z-10 border-2 border-white ${isRTL ? '-left-2' : '-right-2'}`}>
+        <div
+          key={quantity}
+          className="absolute -top-2 -end-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg z-10 border-2 border-white animate-in zoom-in-50 duration-200"
+        >
           {quantity}
         </div>
       )}
@@ -106,13 +110,13 @@ export function ProductCard({
       {/* Action Buttons - Touch Friendly (min 44px) */}
       {hasQuantity ? (
         <div className={`flex items-center justify-between gap-2 mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {/* Decrement Button */}
+          {/* Decrement Button - min 44px touch target */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onDecrement();
             }}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             aria-label={t('decreaseQuantity')}
           >
             <Minus className="w-3 h-3" />
@@ -123,13 +127,13 @@ export function ProductCard({
             {quantity}
           </span>
 
-          {/* Increment Button */}
+          {/* Increment Button - min 44px touch target */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onIncrement();
             }}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label={t('increaseQuantity')}
           >
             <Plus className="w-5 h-5" />
@@ -141,9 +145,10 @@ export function ProductCard({
             e.stopPropagation();
             onAdd();
           }}
-          className={`w-full h-8 px-2 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`w-full min-h-[44px] px-2 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          aria-label={t('add') || 'Add item'}
         >
-          <Plus className="w-3 h-3" />
+          <Plus className="w-3 h-3" aria-hidden />
           {t('add')}
         </button>
       )}

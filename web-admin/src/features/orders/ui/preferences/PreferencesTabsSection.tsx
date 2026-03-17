@@ -83,7 +83,7 @@ export function PreferencesTabsSection({
   return (
     <div className="border-b border-gray-100">
       <div
-        className={`flex gap-1 p-2 bg-gray-50 rounded-t-lg border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}
+        className={`flex gap-1 p-2 bg-gray-50 rounded-t-lg border-b border-gray-200 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}
         role="tablist"
         aria-label={t('preferences') || 'Preferences'}
       >
@@ -95,7 +95,7 @@ export function PreferencesTabsSection({
             aria-controls="prefs-quick-panel"
             id="prefs-quick-tab"
             onClick={() => setActivePrefTab('quick')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
               activePrefTab === 'quick'
                 ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -113,7 +113,7 @@ export function PreferencesTabsSection({
             aria-controls="prefs-service-panel"
             id="prefs-service-tab"
             onClick={() => setActivePrefTab('service')}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`inline-flex items-center gap-2 px-4 min-h-[44px] py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 ${
               activePrefTab === 'service'
                 ? 'bg-white text-blue-700 shadow-sm border border-gray-200'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -156,7 +156,7 @@ export function PreferencesTabsSection({
               {t('servicePrefsDesc') ||
                 'Configure service preferences (starch, perfume, delicate, etc.) per item or per piece.'}
             </p>
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto">
+            <div className="space-y-4 max-h-[50vh] sm:max-h-[40vh] overflow-y-auto">
               {state.items.map((item) => (
                 <div
                   key={item.productId}
@@ -169,7 +169,7 @@ export function PreferencesTabsSection({
                       tItems('unknownProduct') ||
                       'Item'}
                     {trackByPiece && (item.pieces?.length ?? 0) > 0 && (
-                      <span className="text-gray-500 font-normal ml-1">
+                      <span className="text-gray-500 font-normal ms-1">
                         ({item.pieces?.length} {tPieces('pieces')})
                       </span>
                     )}
@@ -189,7 +189,7 @@ export function PreferencesTabsSection({
                       {(item.pieces ?? []).map((piece) => (
                         <div
                           key={piece.id}
-                          className="flex flex-wrap items-center gap-3 pl-4 border-l-2 border-gray-200"
+                          className="flex flex-wrap items-center gap-3 ps-4 border-s-2 border-gray-200"
                         >
                           <span className="text-xs font-medium text-gray-600 min-w-[4rem]">
                             {tPieces('pieceNumber', { number: piece.pieceSeq })}

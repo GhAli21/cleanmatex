@@ -6,6 +6,7 @@
 'use client';
 
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useBreakpoint } from '@/lib/hooks/use-breakpoint';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { useCategories, useProducts } from '../hooks/use-category-products';
 import { useOrderTotals } from '../hooks/use-order-totals';
@@ -26,6 +27,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { Check } from 'lucide-react';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
@@ -36,6 +38,7 @@ import type { BranchOption } from '@/lib/services/inventory-service';
 import { CategoryTabs } from './category-tabs';
 import { ProductGrid } from './product-grid';
 import { OrderSummaryPanel } from './order-summary-panel';
+import { OrderSummaryBottomSheet } from './OrderSummaryBottomSheet';
 import { CategoryTabsSkeleton, ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import { OrderCustomerDetailsSection } from './order-customer-details-section';
@@ -71,6 +74,8 @@ export function NewOrderContent() {
         resetMetrics,
     } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details' | 'customer'>('select');
+    const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+    const { isDesktop } = useBreakpoint();
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
@@ -271,10 +276,19 @@ export function NewOrderContent() {
         [state, trackByPiece]
     );
 
-    // Handle pieces change
+    // Handle pieces change (auto-select new piece when added)
     const handlePiecesChange = useCallback(
         (itemId: string, pieces: PreSubmissionPiece[]) => {
+            const item = state.state.items.find((i) => i.productId === itemId);
+            const prevPieces = item?.pieces ?? [];
             state.updateItemPieces(itemId, pieces);
+            // Auto-select new piece when one is added
+            if (pieces.length > prevPieces.length) {
+                const newPiece = pieces.find((p) => !prevPieces.some((prev) => prev.id === p.id));
+                if (newPiece) {
+                    state.setSelectedPiece(newPiece.id);
+                }
+            }
         },
         [state]
     );
@@ -461,6 +475,23 @@ export function NewOrderContent() {
         [state.state.items, state.state.categories]
     );
 
+    // Submit button disabled state (for bottom sheet bar)
+    const isSubmitDisabled = useMemo(() => {
+        if (state.state.isEditMode) {
+            return !isDirty || isSubmitting || state.state.loading || hasErrors;
+        }
+        if (state.state.loading || isSubmitting || !state.state.customerName || state.state.items.length === 0 || !state.state.readyByAt) {
+            return true;
+        }
+        const readyByDate = new Date(state.state.readyByAt);
+        const now = new Date();
+        const threshold = isRetailOnlyOrder ? now.getTime() - 60000 : now.getTime();
+        const isFuture = isRetailOnlyOrder
+            ? readyByDate.getTime() >= threshold
+            : readyByDate > now;
+        return !isFuture;
+    }, [state.state.isEditMode, isDirty, isSubmitting, state.state.loading, hasErrors, state.state.customerName, state.state.items.length, state.state.readyByAt, isRetailOnlyOrder]);
+
     // Get unique service categories from items
     const serviceCategories = useMemo(() => {
         return Array.from(
@@ -528,7 +559,7 @@ export function NewOrderContent() {
                 {/* Left/Center Panel - Primary Content Area: categories fixed, Select Items scrollable */}
                 <div className="flex-1 min-h-0 flex flex-col">
                     {/* Fixed at top: edit bar (when editing), branch selector, then categories, then step tabs */}
-                    <div className="flex-shrink-0 p-6 space-y-4">
+                    <div className="flex-shrink-0 p-4 sm:p-6 space-y-4">
                         {/* Edit mode bar */}
                         {state.state.isEditMode && (
                             <EditOrderBar
@@ -540,10 +571,10 @@ export function NewOrderContent() {
                                 isSaving={isSubmitting}
                             />
                         )}
-                        {/* Branch Selector - at top */}
+                        {/* Branch Selector - at top, stacks vertically on narrow screens */}
                         {branches.length > 0 && (
                             <div className={`flex flex-col gap-1 ${isRTL ? 'items-end' : 'items-start'}`}>
-                                <div className={`flex items-center gap-3 w-full ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <div className={`flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 w-full ${isRTL ? 'sm:flex-row-reverse' : ''}`}>
                                     <label htmlFor="new-order-branch" className="text-sm font-medium text-gray-700 whitespace-nowrap">
                                         {tCommon('branch')} <span className="text-red-500">*</span>
                                     </label>
@@ -551,7 +582,8 @@ export function NewOrderContent() {
                                         id="new-order-branch"
                                         value={state.state.branchId ?? ''}
                                         onChange={(e) => state.setBranchId(e.target.value || null)}
-                                        className={`flex-1 max-w-xs px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!state.state.branchId && branches.length > 1 ? 'border-red-400 bg-red-50/50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
+                                        aria-describedby={!state.state.branchId && branches.length > 1 ? 'new-order-branch-error' : undefined}
+                                        className={`flex-1 w-full sm:max-w-xs px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!state.state.branchId && branches.length > 1 ? 'border-amber-400 bg-amber-50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
                                         dir={isRTL ? 'rtl' : 'ltr'}
                                         required
                                         aria-required="true"
@@ -569,10 +601,11 @@ export function NewOrderContent() {
                                     )}
                                 </div>
                                 {branches.length > 1 && !state.state.branchId && (
-                                    <p className="text-sm text-red-600" role="alert">
+                                    <p id="new-order-branch-error" className="text-sm text-amber-700 font-medium" role="alert">
                                         {t('chooseBranch')}
                                     </p>
                                 )}
+                            </div>
                             </div>
                         )}
                         {/* Category Tabs - fixed at top when on Select Items */}
@@ -618,11 +651,14 @@ export function NewOrderContent() {
                                     aria-controls="new-order-details-panel"
                                     tabIndex={activeTab === 'details' ? 0 : -1}
                                     onClick={() => setActiveTab('details')}
-                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'details'
+                                    className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'details'
                                             ? 'bg-blue-600 text-white shadow-md'
                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                         }`}
                                 >
+                                    {state.state.items.length > 0 && (
+                                        <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                                    )}
                                     2) {t('itemsGrid.orderItems') || 'Order Items'} (
                                     {state.state.items.length})
                                 </button>
@@ -634,11 +670,12 @@ export function NewOrderContent() {
                                         aria-controls="new-order-customer-panel"
                                         tabIndex={activeTab === 'customer' ? 0 : -1}
                                         onClick={() => setActiveTab('customer')}
-                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'customer'
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'customer'
                                                 ? 'bg-blue-600 text-white shadow-md'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
+                                        <Check className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                                         3) {t('customerDetails.title') || 'Customer Details'}
                                     </button>
                                 )}
@@ -663,10 +700,10 @@ export function NewOrderContent() {
                                     ? 'new-order-details-tab'
                                     : 'new-order-customer-tab'
                         }
-                        className="flex-1 min-h-0 overflow-y-auto"
+                        className={`flex-1 min-h-0 overflow-y-auto transition-opacity duration-200 ease-out ${!isDesktop && state.state.items.length > 0 ? 'pb-28' : ''}`}
                     >
                         {activeTab === 'select' && (
-                            <div className="p-6 pt-0">
+                            <div className="p-4 sm:p-6 pt-0">
                                 {state.state.productsLoading ? (
                                     <ProductGridSkeleton />
                                 ) : (
@@ -681,6 +718,7 @@ export function NewOrderContent() {
                                         selectedConditions={selectedConditions}
                                         onConditionToggle={handleConditionToggle}
                                         selectedPieceId={state.state.selectedPieceId}
+                                        enforcePrefCompatibility={enforcePrefCompatibility}
                                         onOpenCustomItemModal={() => {
                                             state.openModal('customItem');
                                             trackModalOpen('customItem');
@@ -695,106 +733,198 @@ export function NewOrderContent() {
                         )}
 
                         {activeTab === 'details' && (
-                            <div className="p-6 pt-0">
+                            <div className="p-4 sm:p-6 pt-0">
                                 <OrderDetailsSection trackByPiece={trackByPiece} currencyCode={currencyCode} packingPerPieceEnabled={packingPerPieceEnabled} bundlesEnabled={bundlesEnabled} repeatLastOrderEnabled={repeatLastOrderEnabled} smartSuggestionsEnabled={smartSuggestionsEnabled} enforcePrefCompatibility={enforcePrefCompatibility} />
                             </div>
                         )}
 
                         {activeTab === 'customer' && (
-                            <div className="p-6 pt-0">
+                            <div className="p-4 sm:p-6 pt-0">
                                 <OrderCustomerDetailsSection />
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right Sidebar - Order Summary */}
-                <div
-                    className={`w-96 ${isRTL ? 'border-r' : 'border-l'
-                        } border-gray-200 bg-white h-full flex flex-col overflow-hidden`}
-                >
-                    {/* Add New Order - compact link when not in post-creation state (hidden in edit mode) */}
-                    {!state.state.createdOrderId && !state.state.isEditMode && (
-                        <div className={`flex-shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
-                            <button
-                                type="button"
-                                onClick={handleAddNewOrder}
-                                className="text-sm text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
-                                aria-label={t('addNewOrder')}
-                            >
-                                + {t('addNewOrder')}
-                            </button>
-                        </div>
-                    )}
-                    <OrderSummaryPanel
-                        customerName={state.state.customerName}
-                        onSelectCustomer={() => state.openModal('customerPicker')}
-                        onEditCustomer={() => state.openModal('customerEdit')}
-                        items={memoizedOrderItems}
-                        onEditItem={(itemId) => {
-                            state.openPriceOverrideModal(itemId);
-                        }}
-                        onDeleteItem={handleRemoveItem}
-                        onPiecesChange={handlePiecesChange}
-                        isQuickDrop={state.state.isQuickDrop}
-                        onQuickDropToggle={state.setQuickDrop}
-                        quickDropQuantity={state.state.quickDropQuantity}
-                        onQuickDropQuantityChange={state.setQuickDropQuantity}
-                        express={state.state.express}
-                        onExpressToggle={state.setExpress}
-                        notes={state.state.notes}
-                        onNotesChange={state.setNotes}
-                        readyByAt={state.state.readyByAt}
-                        total={totals.subtotal}
-                        onSubmit={handleSubmitOrderClick}
-                        isEditMode={state.state.isEditMode}
-                        isDirty={isDirty}
-                        onSave={handleSaveEditOrder}
-                        isSaving={isSubmitting}
-                        hasErrors={hasErrors}
-                        validationErrors={warnings.filter((w) => w.severity === 'error').map((w) => w.message)}
-                        onOpenReadyByModal={() => state.openModal('readyBy')}
-                        onCalculateReadyBy={async () => {
-                            try {
-                                const result = await calculateReadyBy();
-                                if (result) {
-                                    cmxMessage.success(t('success.readyByCalculated') || 'Ready-by date calculated successfully');
-                                } else {
+                {/* Right Sidebar (desktop) or Bottom Sheet (mobile/tablet) */}
+                {isDesktop ? (
+                    <div
+                        className="w-96 flex-shrink-0 border-s border-gray-200 bg-white h-full flex flex-col overflow-hidden"
+                    >
+                        {/* Add New Order - compact link when not in post-creation state (hidden in edit mode) */}
+                        {!state.state.createdOrderId && !state.state.isEditMode && (
+                            <div className={`flex-shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
+                                <button
+                                    type="button"
+                                    onClick={handleAddNewOrder}
+                                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded"
+                                    aria-label={t('addNewOrder')}
+                                >
+                                    + {t('addNewOrder')}
+                                </button>
+                            </div>
+                        )}
+                        <OrderSummaryPanel
+                            customerName={state.state.customerName}
+                            onSelectCustomer={() => state.openModal('customerPicker')}
+                            onEditCustomer={() => state.openModal('customerEdit')}
+                            items={memoizedOrderItems}
+                            onEditItem={(itemId) => {
+                                state.openPriceOverrideModal(itemId);
+                            }}
+                            onDeleteItem={handleRemoveItem}
+                            onPiecesChange={handlePiecesChange}
+                            isQuickDrop={state.state.isQuickDrop}
+                            onQuickDropToggle={state.setQuickDrop}
+                            quickDropQuantity={state.state.quickDropQuantity}
+                            onQuickDropQuantityChange={state.setQuickDropQuantity}
+                            express={state.state.express}
+                            onExpressToggle={state.setExpress}
+                            notes={state.state.notes}
+                            onNotesChange={state.setNotes}
+                            readyByAt={state.state.readyByAt}
+                            total={totals.subtotal}
+                            onSubmit={handleSubmitOrderClick}
+                            isEditMode={state.state.isEditMode}
+                            isDirty={isDirty}
+                            onSave={handleSaveEditOrder}
+                            isSaving={isSubmitting}
+                            hasErrors={hasErrors}
+                            validationErrors={warnings.filter((w) => w.severity === 'error').map((w) => w.message)}
+                            onOpenReadyByModal={() => state.openModal('readyBy')}
+                            onCalculateReadyBy={async () => {
+                                try {
+                                    const result = await calculateReadyBy();
+                                    if (result) {
+                                        cmxMessage.success(t('success.readyByCalculated') || 'Ready-by date calculated successfully');
+                                    } else {
+                                        cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
+                                    }
+                                } catch (error) {
+                                    console.error('Error calculating ready-by:', error);
                                     cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
                                 }
-                            } catch (error) {
-                                console.error('Error calculating ready-by:', error);
-                                cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
-                            }
-                        }}
-                        loading={state.state.loading || isSubmitting}
-                        currencyCode={currencyCode}
-                        trackByPiece={trackByPiece}
-                        isRetailOnlyOrder={isRetailOnlyOrder}
-                        selectedPieceId={state.state.selectedPieceId}
-                        onSelectPiece={state.setSelectedPiece}
-                    />
+                            }}
+                            loading={state.state.loading || isSubmitting}
+                            currencyCode={currencyCode}
+                            trackByPiece={trackByPiece}
+                            isRetailOnlyOrder={isRetailOnlyOrder}
+                            selectedPieceId={state.state.selectedPieceId}
+                            onSelectPiece={state.setSelectedPiece}
+                        />
 
-                    {/* Post-creation: Add New Order + Go to Order */}
-                    {state.state.createdOrderId && (
-                        <div className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}>
-                            <CmxButton
-                                onClick={handleAddNewOrder}
-                                className="w-full"
-                                variant="secondary"
-                            >
-                                + {t('addNewOrder')}
-                            </CmxButton>
-                            <CmxButton
-                                onClick={handleNavigateToOrder}
-                                className="w-full"
-                                variant="primary"
-                            >
-                                {getNavigationLabel(state.state.createdOrderStatus)}
-                            </CmxButton>
-                        </div>
-                    )}
-                </div>
+                        {/* Post-creation: Add New Order + Go to Order */}
+                        {state.state.createdOrderId && (
+                            <div className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}>
+                                <CmxButton
+                                    onClick={handleAddNewOrder}
+                                    className="w-full"
+                                    variant="secondary"
+                                >
+                                    + {t('addNewOrder')}
+                                </CmxButton>
+                                <CmxButton
+                                    onClick={handleNavigateToOrder}
+                                    className="w-full"
+                                    variant="primary"
+                                >
+                                    {getNavigationLabel(state.state.createdOrderStatus)}
+                                </CmxButton>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <OrderSummaryBottomSheet
+                        itemCount={state.state.items.length}
+                        total={totals.subtotal}
+                        currencyCode={currencyCode}
+                        isOpen={bottomSheetOpen}
+                        onOpen={() => setBottomSheetOpen(true)}
+                        onClose={() => setBottomSheetOpen(false)}
+                        onPrimaryAction={handleSubmitOrderClick}
+                        primaryDisabled={isSubmitDisabled}
+                        primaryLabel={state.state.isEditMode ? (tEdit('saveChanges') || 'Save changes') : (t('submitOrder') || 'Add Order')}
+                        loading={state.state.loading || isSubmitting}
+                    >
+                        {!state.state.createdOrderId && !state.state.isEditMode && (
+                            <div className={`flex-shrink-0 px-4 pt-2 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
+                                <button
+                                    type="button"
+                                    onClick={handleAddNewOrder}
+                                    className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                    + {t('addNewOrder')}
+                                </button>
+                            </div>
+                        )}
+                        <OrderSummaryPanel
+                            customerName={state.state.customerName}
+                            onSelectCustomer={() => state.openModal('customerPicker')}
+                            onEditCustomer={() => state.openModal('customerEdit')}
+                            items={memoizedOrderItems}
+                            onEditItem={(itemId) => {
+                                state.openPriceOverrideModal(itemId);
+                            }}
+                            onDeleteItem={handleRemoveItem}
+                            onPiecesChange={handlePiecesChange}
+                            isQuickDrop={state.state.isQuickDrop}
+                            onQuickDropToggle={state.setQuickDrop}
+                            quickDropQuantity={state.state.quickDropQuantity}
+                            onQuickDropQuantityChange={state.setQuickDropQuantity}
+                            express={state.state.express}
+                            onExpressToggle={state.setExpress}
+                            notes={state.state.notes}
+                            onNotesChange={state.setNotes}
+                            readyByAt={state.state.readyByAt}
+                            total={totals.subtotal}
+                            onSubmit={handleSubmitOrderClick}
+                            isEditMode={state.state.isEditMode}
+                            isDirty={isDirty}
+                            onSave={handleSaveEditOrder}
+                            isSaving={isSubmitting}
+                            hasErrors={hasErrors}
+                            validationErrors={warnings.filter((w) => w.severity === 'error').map((w) => w.message)}
+                            onOpenReadyByModal={() => state.openModal('readyBy')}
+                            onCalculateReadyBy={async () => {
+                                try {
+                                    const result = await calculateReadyBy();
+                                    if (result) {
+                                        cmxMessage.success(t('success.readyByCalculated') || 'Ready-by date calculated successfully');
+                                    } else {
+                                        cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
+                                    }
+                                } catch (error) {
+                                    console.error('Error calculating ready-by:', error);
+                                    cmxMessage.error(t('errors.failedToCalculateReadyBy') || 'Failed to calculate ready-by date');
+                                }
+                            }}
+                            loading={state.state.loading || isSubmitting}
+                            currencyCode={currencyCode}
+                            trackByPiece={trackByPiece}
+                            isRetailOnlyOrder={isRetailOnlyOrder}
+                            selectedPieceId={state.state.selectedPieceId}
+                            onSelectPiece={state.setSelectedPiece}
+                        />
+                        {state.state.createdOrderId && (
+                            <div className={`p-4 border-t border-gray-200 bg-blue-50 space-y-2 ${isRTL ? 'space-y-reverse' : ''}`}>
+                                <CmxButton
+                                    onClick={handleAddNewOrder}
+                                    className="w-full"
+                                    variant="secondary"
+                                >
+                                    + {t('addNewOrder')}
+                                </CmxButton>
+                                <CmxButton
+                                    onClick={handleNavigateToOrder}
+                                    className="w-full"
+                                    variant="primary"
+                                >
+                                    {getNavigationLabel(state.state.createdOrderStatus)}
+                                </CmxButton>
+                            </div>
+                        )}
+                    </OrderSummaryBottomSheet>
+                )}
             </div>
 
             {/* Discard changes confirmation when adding new order with unsaved data */}

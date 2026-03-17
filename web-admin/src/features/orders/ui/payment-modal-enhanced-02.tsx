@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useForm, Controller } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -211,6 +212,7 @@ export function PaymentModalEnhanced02({
   } | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
   const [currencyConfig, setCurrencyConfig] = useState<{
     currencyCode: string;
@@ -563,7 +565,10 @@ export function PaymentModalEnhanced02({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div
+        ref={focusTrapRef}
+        className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden"
+      >
         {/* Header */}
         <header className={`flex flex-shrink-0 items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} p-4 border-b border-gray-200`}>
           <h2 className={`text-xl font-bold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{t('title')}</h2>

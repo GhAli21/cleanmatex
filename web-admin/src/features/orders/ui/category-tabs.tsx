@@ -82,7 +82,7 @@ export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCat
       role="tablist"
       aria-label={t('title') || 'Service categories'}
     >
-      <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex flex-nowrap gap-2 overflow-x-auto pb-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
         {categories.map((category, index) => {
           const IconComponent = getIconComponent(category.service_category_icon);
           const displayName = getBilingual(category.ctg_name, category.ctg_name2) || 'No Category Name';
@@ -96,7 +96,7 @@ export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCat
               aria-selected={isSelected}
               aria-controls={`category-${category.service_category_code}`}
               tabIndex={isSelected ? 0 : -1}
-              className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse gap-2' : 'gap-2'} ${isSelected
+              className={`min-h-[44px] px-4 py-2 rounded-lg font-medium transition-all flex items-center flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse gap-2' : 'gap-2'} ${isSelected
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}

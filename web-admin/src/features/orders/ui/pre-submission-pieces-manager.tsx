@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 export interface PreSubmissionPiece {
   id: string;
@@ -44,6 +44,7 @@ export function PreSubmissionPiecesManager({
 }: PreSubmissionPiecesManagerProps) {
   const t = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
+  const [expandedPieceIds, setExpandedPieceIds] = useState<Set<string>>(() => new Set());
 
   const handlePieceUpdate = (pieceId: string, updates: Partial<PreSubmissionPiece>) => {
     if (readOnly) return;
@@ -101,46 +102,96 @@ export function PreSubmissionPiecesManager({
             variant="outline"
             size="sm"
             onClick={handleAddPiece}
-            className={isRTL ? 'flex-row-reverse' : ''}
+            className={`min-h-[44px] ${isRTL ? 'flex-row-reverse' : ''}`}
+            aria-label={t('addPiece') || 'Add piece'}
           >
-            <Plus className={`w-4 h-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+            <Plus className={`w-4 h-4 ${isRTL ? 'ms-1' : 'me-1'}`} aria-hidden />
             {t('addPiece')}
           </CmxButton>
         )}
       </div>
 
-      <div className="space-y-2">
-        {pieces.map((piece) => {
+      <div className="space-y-2" role="list" aria-label={t('pieces') || 'Pieces'}>
+        {pieces.map((piece, index) => {
           const isSelected = selectedPieceId === piece.id;
+          const isExpanded = expandedPieceIds.has(piece.id);
+          const summaryText = [piece.color || piece.brand].filter(Boolean).join(' / ') || '—';
           return (
           <div
             key={piece.id}
-            className={`p-3 rounded-lg border transition-colors ${
+            role="listitem"
+            data-piece-index={index}
+            className={`rounded-lg border transition-colors ${
               onSelectPiece ? 'cursor-pointer hover:bg-gray-100' : ''
             } ${isSelected ? 'ring-2 ring-orange-500 bg-orange-50/50 border-orange-300' : 'bg-gray-50 border-gray-200'}`}
             onClick={onSelectPiece ? () => onSelectPiece(piece.id) : undefined}
-            role={onSelectPiece ? 'button' : undefined}
+            tabIndex={onSelectPiece ? 0 : undefined}
+            aria-label={onSelectPiece && isSelected ? `${t('pieceNumber', { number: piece.pieceSeq })} — ${t('selectedForPreferences') || 'Selected for preferences'}` : undefined}
+            onKeyDown={(e) => {
+              if (!onSelectPiece) return;
+              if (e.key === 'ArrowDown' && index < pieces.length - 1) {
+                e.preventDefault();
+                (document.querySelector(`[data-piece-index="${index + 1}"]`) as HTMLElement)?.focus();
+              } else if (e.key === 'ArrowUp' && index > 0) {
+                e.preventDefault();
+                (document.querySelector(`[data-piece-index="${index - 1}"]`) as HTMLElement)?.focus();
+              } else if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.preventDefault();
+                if (!readOnly) handleRemovePiece(piece.id);
+              }
+            }}
           >
-            <div className={`flex items-start justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <GripVertical className="w-4 h-4 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">
+            {/* Collapsed summary row */}
+            <div className={`flex items-center justify-between p-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-2 min-w-0 flex-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
+                  <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
+                )}
+                <span className="text-sm font-medium text-gray-700 truncate">
                   {t('pieceNumber', { number: piece.pieceSeq })}
+                  <span className="text-gray-500 font-normal ms-1">({summaryText})</span>
                 </span>
+                {isSelected && (
+                  <span className="text-xs text-orange-600 font-medium ms-1 shrink-0">
+                    — {t('selectedForPreferences') || 'Selected for preferences'}
+                  </span>
+                )}
               </div>
-              {!readOnly && (
-                <CmxButton
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleRemovePiece(piece.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              <div className={`flex items-center gap-1 shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpandedPieceIds((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(piece.id)) next.delete(piece.id);
+                      else next.add(piece.id);
+                      return next;
+                    });
+                  }}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-500 hover:text-gray-700 rounded transition-colors"
+                  aria-label={isExpanded ? (t('hidePieces') || 'Collapse') : (t('viewPieces') || 'Expand')}
+                  aria-expanded={isExpanded}
                 >
-                  <Trash2 className="w-4 h-4" />
-                </CmxButton>
-              )}
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {!readOnly && (
+                  <CmxButton
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleRemovePiece(piece.id); }}
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50"
+                    aria-label={t('removePiece') || 'Remove piece'}
+                  >
+                    <Trash2 className="w-4 h-4" aria-hidden />
+                  </CmxButton>
+                )}
+              </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            {/* Expanded details */}
+            {isExpanded && (
+            <div className="grid grid-cols-2 gap-3 px-3 pb-3 pt-0 border-t border-gray-100">
               {/* Color */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -242,6 +293,7 @@ export function PreSubmissionPiecesManager({
                 )}
               </div>
             </div>
+            )}
           </div>
           );
         })}

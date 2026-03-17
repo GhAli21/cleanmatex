@@ -17,7 +17,6 @@ import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelect
 import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
-import { CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
 const VIRTUALIZED_ITEM_LIMIT = 1000;
@@ -62,6 +61,7 @@ export function OrderDetailsSection({
   const tNewOrder = useTranslations('newOrder');
   const tItems = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
+  const tCommon = useTranslations('common');
   const getBilingual = useBilingual();
 
   const categoryNameMap = useMemo(() => {
@@ -177,7 +177,7 @@ export function OrderDetailsSection({
           }`}
       >
         <div className={isRTL ? 'text-right' : 'text-left'}>
-          <h2 className="text-sm font-semibold text-gray-900">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">
             {tItems('orderItems') || 'Order Items'}
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">
@@ -429,134 +429,55 @@ export function OrderDetailsSection({
                   </td>
                 </tr>
 
-                {/* Child rows: pieces */}
+                {/* Child rows: pieces (read-only; edit in cart per plan) */}
                 {trackByPiece &&
                   expandedPiecesItems.has(item.productId) &&
                   (item.pieces ?? []).map((piece) => (
                     <tr key={piece.id} className="bg-gray-50 border-t border-gray-100">
                       <td className="px-6 py-2 align-top" colSpan={hasServicePrefs || hasPackingPrefs ? 8 : 7}>
                         <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2 shadow-xs">
-                          {/* Top row: piece label + main fields */}
-                          <div
-                            className={`flex flex-wrap items-end gap-3 ${isRTL ? 'flex-row-reverse' : ''
-                              }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span className="inline-block w-1.5 h-1.5 rounded-full bg-gray-400" />
-                              <span className="text-[11px] font-medium text-gray-700">
-                                {tPieces('pieceNumber', {
-                                  number: piece.pieceSeq,
-                                })}
-                              </span>
-                            </div>
-
-                            <div className="min-w-[120px]">
-                              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
-                                {tPieces('color')}
-                              </label>
-                              <CmxInput
-                                value={piece.color || ''}
-                                onChange={(event) =>
-                                  handlePieceUpdate(item.productId, piece.id, {
-                                    color: event.target.value,
-                                  })
-                                }
-                                placeholder={tPieces('colorPlaceholder')}
-                                className="h-7 text-[11px]"
-                              />
-                            </div>
-
-                            <div className="min-w-[120px]">
-                              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
-                                {tPieces('brand')}
-                              </label>
-                              <CmxInput
-                                value={piece.brand || ''}
-                                onChange={(event) =>
-                                  handlePieceUpdate(item.productId, piece.id, {
-                                    brand: event.target.value,
-                                  })
-                                }
-                                placeholder={tPieces('brandPlaceholder')}
-                                className="h-7 text-[11px]"
-                              />
-                            </div>
-
-                            <div className="min-w-[140px]">
-                              <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
-                                {tPieces('rackLocation')}
-                              </label>
-                              <CmxInput
-                                value={piece.rackLocation || ''}
-                                onChange={(event) =>
-                                  handlePieceUpdate(item.productId, piece.id, {
-                                    rackLocation: event.target.value,
-                                  })
-                                }
-                                placeholder={tPieces('rackLocationPlaceholder')}
-                                className="h-7 text-[11px]"
-                              />
-                            </div>
-
-                            <div className="flex items-center gap-3">
-                              <CmxCheckbox
-                                checked={piece.hasStain || false}
-                                onChange={(e) =>
-                                  handlePieceUpdate(item.productId, piece.id, {
-                                    hasStain: e.target.checked,
-                                  })
-                                }
-                                label={tPieces('hasStain')}
-                              />
-                              <CmxCheckbox
-                                checked={piece.hasDamage || false}
-                                onChange={(e) =>
-                                  handlePieceUpdate(item.productId, piece.id, {
-                                    hasDamage: e.target.checked,
-                                  })
-                                }
-                                label={tPieces('hasDamage')}
-                              />
-                            </div>
-
-                            {packingPerPieceEnabled && hasPackingPrefs && (
-                              <div className="flex flex-wrap gap-3 min-w-[200px]">
-                                <PackingPreferenceSelector
-                                  value={piece.packingPrefCode}
-                                  availablePrefs={packingPrefs}
-                                  onChange={(code) =>
-                                    handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code })
-                                  }
-                                />
+                          <div className={`flex flex-wrap items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
+                                  <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
+                                )}
+                                <span>
+                                  <span className="text-xs font-medium text-gray-600">{tPieces('pieceNumber', { number: piece.pieceSeq })}</span>
+                                  <span className="text-xs text-gray-700 ms-1">{piece.color || tPieces('notSet')} / {piece.brand || tPieces('notSet')}</span>
+                                </span>
                               </div>
-                            )}
-
+                              <div>
+                                <span className="text-xs font-medium text-gray-600">{tPieces('rackLocation')}: </span>
+                                <span className="text-xs text-gray-700">{piece.rackLocation || tPieces('notSet')}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium text-gray-600">{tPieces('hasStain')}: </span>
+                                <span className="text-xs text-gray-700">{piece.hasStain ? tCommon('yes') : tCommon('no')}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs font-medium text-gray-600">{tPieces('hasDamage')}: </span>
+                                <span className="text-xs text-gray-700">{piece.hasDamage ? tCommon('yes') : tCommon('no')}</span>
+                              </div>
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleRemovePiece(item.productId, piece.id)}
-                              className="ml-auto inline-flex items-center justify-center rounded-full p-1.5 text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full p-2 text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
                               aria-label={tPieces('removePiece') || 'Remove piece'}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-
-                          {/* Notes row */}
-                          <div>
-                            <label className="block text-[10px] font-medium text-gray-600 mb-0.5">
-                              {tPieces('notes')}
-                            </label>
-                            <CmxTextarea
-                              value={piece.notes || ''}
-                              onChange={(event) =>
-                                handlePieceUpdate(item.productId, piece.id, {
-                                  notes: event.target.value,
-                                })
-                              }
-                              placeholder={tPieces('notesPlaceholder')}
-                              className="h-16 text-[11px] resize-none w-full"
-                            />
-                          </div>
+                          {piece.notes && (
+                            <div>
+                              <span className="text-xs font-medium text-gray-600">{tPieces('notes')}: </span>
+                              <span className="text-xs text-gray-700">{piece.notes}</span>
+                            </div>
+                          )}
+                          <p className="text-xs text-gray-500 italic">
+                            {tPieces('editInCart') || 'Edit pieces in the cart'}
+                          </p>
                         </div>
                       </td>
                     </tr>

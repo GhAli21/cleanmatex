@@ -2655,7 +2655,8 @@
       "label": "Customer",
       "selectPlaceholder": "Select customer",
       "addCustomer": "Add customer",
-      "searchPlaceholder": "Search name or phone"
+      "searchPlaceholder": "Search name or phone",
+      "helper": "Required to submit order. Tap to search and select."
     },
     "customerPicker": {
       "title": "Select Customer",
@@ -2732,6 +2733,7 @@
       "note": "Note",
       "selectItems": "Select Items",
       "noProductsAvailable": "No products available for this category",
+      "noProductsHint": "No products in this category. Try selecting another category above.",
       "customItem": "Custom Item",
       "describeItem": "Describe item",
       "captureItem": "Capture item",
@@ -2767,7 +2769,10 @@
       "categoryProcessing": "Processing",
       "categoryFinishing": "Finishing",
       "extraTimeTooltip": "Adds time to ready-by estimate",
-      "ecoPoints": "Eco-friendly"
+      "ecoPoints": "Eco-friendly",
+      "selectPieceHint": "Select a piece from the cart to apply preferences",
+      "selectPieceFromCart": "Tap an item or piece in the cart to configure conditions and notes.",
+      "forSelectedPiece": "Preferences for selected piece"
     },
     "pieces": {
       "viewPieces": "View Pieces",
@@ -2789,7 +2794,10 @@
       "colorPlaceholder": "Enter color",
       "brandPlaceholder": "Enter brand",
       "notesPlaceholder": "Add notes...",
-      "rackLocationPlaceholder": "Enter rack location"
+      "rackLocationPlaceholder": "Enter rack location",
+      "editInCart": "Edit pieces in the cart",
+      "addFirstPiece": "Add a piece to track color, conditions, and notes",
+      "selectedForPreferences": "Selected for preferences"
     },
     "notesPalette": {
       "title": "Notes & Stains",
@@ -2831,7 +2839,8 @@
       "editCustomer": "Edit customer",
       "removeCustomer": "Remove customer",
       "addCustomer": "Add customer",
-      "notSet": "Not set"
+      "notSet": "Not set",
+      "viewCart": "View cart"
     },
     "schedule": {
       "title": "Ready / Delivery date",

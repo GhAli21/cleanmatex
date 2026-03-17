@@ -11,7 +11,7 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
-import { Pencil, Trash2, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Pencil, Trash2, AlertCircle, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { PreSubmissionPiecesManager, type PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface ItemCartItemProps {
@@ -188,6 +188,24 @@ function ItemCartItemComponent({
           <p className={`text-xs text-gray-500 mt-1 italic line-clamp-2 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('note')}: {notes}
           </p>
+        )}
+
+        {/* Add first piece CTA when trackByPiece and no pieces */}
+        {trackByPiece && pieces.length === 0 && onPiecesChange && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPiecesChange([{ id: `temp-${itemId}-1`, itemId, pieceSeq: 1 }]);
+              }}
+              className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50/50 text-gray-600 hover:text-blue-700 transition-colors min-h-[44px] ${isRTL ? 'flex-row-reverse' : ''}`}
+              aria-label={tPieces('addFirstPiece') || 'Add first piece'}
+            >
+              <Plus className="w-4 h-4" aria-hidden />
+              <span className="text-sm font-medium">{tPieces('addFirstPiece') || 'Add a piece to track color, conditions, and notes'}</span>
+            </button>
+          </div>
         )}
 
         {/* Pieces Section - Expandable */}
