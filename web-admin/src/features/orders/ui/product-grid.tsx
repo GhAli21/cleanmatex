@@ -174,7 +174,6 @@ export const ProductGrid = memo(function ProductGrid({
         onConditionToggle={onConditionToggle}
         enforcePrefCompatibility={enforcePrefCompatibility}
       />
-      </div>
     </div>
   );
 });
