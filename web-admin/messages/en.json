@@ -2747,6 +2747,7 @@
       "additionalServices": "Additional Services"
     },
     "preferences": {
+      "preferences": "Preferences",
       "quickApply": "Quick Apply",
       "servicePrefs": "Service preferences",
       "servicePrefsDesc": "Processing options: starch, perfume, delicate, etc.",
@@ -2772,7 +2773,10 @@
       "ecoPoints": "Eco-friendly",
       "selectPieceHint": "Select a piece from the cart to apply preferences",
       "selectPieceFromCart": "Tap an item or piece in the cart to configure conditions and notes.",
-      "forSelectedPiece": "Preferences for selected piece"
+      "forSelectedPiece": "Preferences for selected piece",
+      "tabPrefs": "Preferences",
+      "tabNotes": "Notes",
+      "itemLevel": "Item"
     },
     "pieces": {
       "viewPieces": "View Pieces",
@@ -2797,7 +2801,14 @@
       "rackLocationPlaceholder": "Enter rack location",
       "editInCart": "Edit pieces in the cart",
       "addFirstPiece": "Add a piece to track color, conditions, and notes",
-      "selectedForPreferences": "Selected for preferences"
+      "selectedForPreferences": "Selected for preferences",
+      "copyToAllPieces": "Copy to all pieces",
+      "copyToAllItems": "Copy to all items"
+    },
+    "topBar": {
+      "expressLabel": "Express",
+      "expressOn": "Express On",
+      "expressOff": "Express Off"
     },
     "notesPalette": {
       "title": "Notes & Stains",

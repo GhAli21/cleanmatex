@@ -33,6 +33,7 @@ interface CategoryTabsProps {
   categories: ServiceCategory[];
   selectedCategory: string;
   onSelectCategory: (category: string) => void;
+  className?: string;
 }
 
 /**
@@ -71,14 +72,14 @@ function getIconComponent(iconName?: string): LucideIcon | null {
   return matchedKey ? iconMap[matchedKey] : null;
 }
 
-export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCategory, onSelectCategory }: CategoryTabsProps) {
+export const CategoryTabs = memo(function CategoryTabs({ categories, selectedCategory, onSelectCategory, className }: CategoryTabsProps) {
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const t = useTranslations('newOrder.serviceCategory');
 
   return (
     <div
-      className="bg-white rounded-lg border border-gray-200 p-4"
+      className={className ?? "bg-white rounded-lg border border-gray-200 p-4"}
       role="tablist"
       aria-label={t('title') || 'Service categories'}
     >

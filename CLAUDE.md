@@ -8,12 +8,13 @@
 
 1. **Never do Supabase db reset** - tell me, I'll run db migrations
 2. **Never modify existing migration files** - always create a NEW migration for fixes or changes
-3. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
-4. **After frontend changes: run `npm run build`** and fix until success
-5. **Bilingual support (EN/AR + RTL) is mandatory**
-6. **Use agents for exploration** - See efficiency guide below
-7. **Use `/clear` frequently** - When switching topics or context >70%
-8. **Check skills for detailed rules** - Use `/skill-name` for specifics
+3. **NEVER apply/run database migrations** - Create migration SQL files only, then STOP and ask me to review and apply them. Do NOT use Supabase MCP, CLI, or any tool to execute migrations.
+4. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
+5. **After frontend changes: run `npm run build`** and fix until success
+6. **Bilingual support (EN/AR + RTL) is mandatory**
+7. **Use agents for exploration** - See efficiency guide below
+8. **Use `/clear` frequently** - When switching topics or context >70%
+9. **Check skills for detailed rules** - Use `/skill-name` for specifics
 
 ## Agent-First Workflow
 
@@ -163,7 +164,8 @@ docs/         # All documentation
 
 ## Supabase MCPs
 
-- do not use to apply database migrations before you confirm with me if create db migration files only or apply them also
+- **NEVER apply migrations via MCP** — create the `.sql` migration file, then STOP and ask me to review and apply it
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`
-- **DROP ... CASCADE:** When writing migrations that use DROP FUNCTION/VIEW/etc. CASCADE, use MCP to run discovery queries against the target DB first, fetch affected policies/views, then include recreate statements in the same migration file. See `docs/dev/drop-cascade-migration-workflow.md`.
+- MCP may be used for **read-only discovery queries** (e.g. finding affected objects before DROP CASCADE) — never for writes or migration execution
+- **DROP ... CASCADE:** Use MCP read queries to discover affected objects, then include recreate statements in the migration file. See `docs/dev/drop-cascade-migration-workflow.md`.

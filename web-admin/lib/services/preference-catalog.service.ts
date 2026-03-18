@@ -24,7 +24,7 @@ export class PreferenceCatalogService {
     try {
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
-        .select('code, name, name2, description, description2, preference_category, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active')
+        .select('code, name, name2, description, description2, preference_category, preference_sys_kind, color_hex, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active')
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -59,6 +59,8 @@ export class PreferenceCatalogService {
             name2: cf?.name2 ?? s.name2,
             description: s.description,
             preference_category: s.preference_category,
+            preference_sys_kind: s.preference_sys_kind ?? null,
+            color_hex: s.color_hex ?? null,
             applies_to_fabric_types: s.applies_to_fabric_types,
             is_incompatible_with: s.is_incompatible_with,
             default_extra_price: cf ? Number(cf.extra_price) : Number(s.default_extra_price),

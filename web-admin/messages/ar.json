@@ -2747,6 +2747,7 @@
       "additionalServices": "خدمات إضافية"
     },
     "preferences": {
+      "preferences": "التفضيلات",
       "quickApply": "تطبيق سريع",
       "servicePrefs": "تفضيلات الخدمة",
       "servicePrefsDesc": "خيارات المعالجة: النشا، العطر، العناية الخاصة، إلخ.",
@@ -2772,7 +2773,10 @@
       "ecoPoints": "صديق للبيئة",
       "selectPieceHint": "اختر قطعة من السلة لتطبيق التفضيلات",
       "selectPieceFromCart": "انقر على عنصر أو قطعة في السلة لتكوين الحالات والملاحظات.",
-      "forSelectedPiece": "تفضيلات القطعة المحددة"
+      "forSelectedPiece": "تفضيلات القطعة المحددة",
+      "tabPrefs": "التفضيلات",
+      "tabNotes": "ملاحظات",
+      "itemLevel": "عنصر"
     },
     "pieces": {
       "viewPieces": "عرض القطع",
@@ -2797,7 +2801,14 @@
       "rackLocationPlaceholder": "أدخل موقع الرف",
       "editInCart": "تحرير القطع في السلة",
       "addFirstPiece": "أضف قطعة لتتبع اللون والحالات والملاحظات",
-      "selectedForPreferences": "محدد للتفضيلات"
+      "selectedForPreferences": "محدد للتفضيلات",
+      "copyToAllPieces": "نسخ لجميع القطع",
+      "copyToAllItems": "نسخ لجميع العناصر"
+    },
+    "topBar": {
+      "expressLabel": "سريع",
+      "expressOn": "الخدمة السريعة مفعّلة",
+      "expressOff": "الخدمة السريعة معطّلة"
     },
     "notesPalette": {
       "title": "الملاحظات والبقع",

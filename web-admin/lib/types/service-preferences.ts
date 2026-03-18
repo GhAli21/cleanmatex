@@ -41,6 +41,8 @@ export interface ServicePreference {
   name2?: string | null;
   description?: string | null;
   preference_category: PreferenceCategory;
+  preference_sys_kind?: string | null;
+  color_hex?: string | null;
   applies_to_fabric_types?: string[] | null;
   is_incompatible_with?: string[] | null;
   default_extra_price: number;

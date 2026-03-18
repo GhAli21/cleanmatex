@@ -49,11 +49,25 @@ export function usePreferenceCatalog(branchId?: string | null) {
     enabled: !!tenantId,
   });
 
+  const allPrefs = servicePrefsQuery.data ?? [];
+
+  const conditionCatalog = {
+    stains: allPrefs.filter((p) => p.preference_sys_kind === 'condition_stain'),
+    damages: allPrefs.filter((p) => p.preference_sys_kind === 'condition_damag'),
+    colors: allPrefs.filter((p) => p.preference_sys_kind === 'color'),
+  };
+
+  // service prefs only (exclude conditions and colors)
+  const servicePrefsOnly = allPrefs.filter(
+    (p) => !p.preference_sys_kind || p.preference_sys_kind === 'service_prefs'
+  );
+
   return {
-    servicePrefs: servicePrefsQuery.data ?? [],
+    servicePrefs: servicePrefsOnly,
     packingPrefs: packingPrefsQuery.data ?? [],
+    conditionCatalog,
     isLoading: servicePrefsQuery.isLoading || packingPrefsQuery.isLoading,
-    hasServicePrefs: (servicePrefsQuery.data?.length ?? 0) > 0,
+    hasServicePrefs: servicePrefsOnly.length > 0,
     hasPackingPrefs: (packingPrefsQuery.data?.length ?? 0) > 0,
   };
 }
