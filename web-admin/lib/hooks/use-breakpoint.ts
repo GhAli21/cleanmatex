@@ -43,7 +43,7 @@ function getBreakpoint(): Breakpoint {
  * - isDesktop: gte 1024px
  */
 export function useBreakpoint(): UseBreakpointResult {
-  const [breakpoint, setBreakpoint] = useState<Breakpoint>(() => getBreakpoint());
+  const [breakpoint, setBreakpoint] = useState<Breakpoint>('lg');
 
   useEffect(() => {
     const update = () => setBreakpoint(getBreakpoint());

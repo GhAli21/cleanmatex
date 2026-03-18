@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Suspense } from 'react';
 import { NewOrderLayout } from './new-order-layout';
 import { NewOrderContent } from './new-order-content';
@@ -18,9 +18,11 @@ import { NewOrderContentV2 } from './v2/new-order-content-v2';
  * New Order Screen Component
  */
 export function NewOrderScreen() {
-  const [useV2, setUseV2] = useState(() =>
-    typeof window !== 'undefined' && localStorage.getItem('newOrderV2') === 'true'
-  );
+  const [useV2, setUseV2] = useState(false);
+
+  useEffect(() => {
+    setUseV2(localStorage.getItem('newOrderV2') === 'true');
+  }, []);
 
   return (
     <NewOrderLayout>
