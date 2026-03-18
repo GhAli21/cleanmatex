@@ -8,6 +8,14 @@
 
 import { useState, useEffect } from 'react';
 
+/** Tailwind defaults: sm 640, md 768, lg 1024, xl 1280 */
+const BREAKPOINTS = {
+  sm: 640,
+  md: 768,
+  lg: 1024,
+  xl: 1280,
+} as const;
+
 export type Breakpoint = 'sm' | 'md' | 'lg' | 'xl';
 
 export interface UseBreakpointResult {
