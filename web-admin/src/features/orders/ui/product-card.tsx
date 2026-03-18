@@ -1,7 +1,7 @@
 /**
  * Product Card Component
- * Enhanced product card with quantity overlay and touch-friendly design
- * Re-Design: PRD-010 Advanced Orders - Section 3B
+ * Touch-friendly product card for new order UI
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -51,13 +51,12 @@ export function ProductCard({
   const getBilingual = useBilingual();
 
   const displayName = getBilingual(product.product_name, product.product_name2) || t('unknownProduct');
-
   const hasQuantity = quantity > 0;
 
   return (
     <div
       className={`
-        relative border rounded-lg p-2 transition-all duration-150 cursor-pointer
+        relative border rounded-lg p-3 transition-all duration-150 cursor-pointer
         flex flex-col
         hover:scale-[1.02] active:scale-[0.98]
         ${
@@ -67,18 +66,18 @@ export function ProductCard({
         }
       `}
     >
-      {/* Quantity Overlay Badge - Top Right/Left, animates on change */}
+      {/* Quantity Overlay Badge */}
       {hasQuantity && (
         <div
           key={quantity}
-          className="absolute -top-2 -end-2 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-sm shadow-lg z-10 border-2 border-white animate-in zoom-in-50 duration-200"
+          className="absolute -top-2 -end-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-base shadow-lg z-10 border-2 border-white animate-in zoom-in-50 duration-200"
         >
           {quantity}
         </div>
       )}
 
       {/* Product Image/Icon */}
-      <div className="w-full h-14 bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-full h-16 bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden shrink-0">
         {product.product_image ? (
           <img
             src={product.product_image}
@@ -93,7 +92,7 @@ export function ProductCard({
       </div>
 
       {/* Product Name */}
-      <h3 className={`font-medium text-xs mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>
+      <h3 className={`font-medium text-sm mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>
         {displayName}
       </h3>
 
@@ -107,32 +106,21 @@ export function ProductCard({
         )}
       </div>
 
-      {/* Action Buttons - Touch Friendly (min 44px) */}
+      {/* Action Buttons */}
       {hasQuantity ? (
         <div className={`flex items-center justify-between gap-2 mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
-          {/* Decrement Button - min 44px touch target */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDecrement();
-            }}
+            onClick={(e) => { e.stopPropagation(); onDecrement(); }}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             aria-label={t('decreaseQuantity')}
           >
             <Minus className="w-3 h-3" />
           </button>
-
-          {/* Quantity Display */}
-          <span className={`flex-1 text-center font-bold text-xl text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <span className={`flex-1 text-center font-bold text-xl text-gray-900`}>
             {quantity}
           </span>
-
-          {/* Increment Button - min 44px touch target */}
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onIncrement();
-            }}
+            onClick={(e) => { e.stopPropagation(); onIncrement(); }}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label={t('increaseQuantity')}
           >
@@ -141,10 +129,7 @@ export function ProductCard({
         </div>
       ) : (
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onAdd();
-          }}
+          onClick={(e) => { e.stopPropagation(); onAdd(); }}
           className={`w-full min-h-[44px] px-2 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
           aria-label={t('add') || 'Add item'}
         >

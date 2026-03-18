@@ -1,7 +1,7 @@
 /**
- * New Order Top Bar V2
+ * New Order Top Bar
  * Sticky top bar with branch, customer, express and category tabs
- * Re-Design: PRD-010 Advanced Orders - V2 Enhancement
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -9,8 +9,8 @@
 import { memo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { CategoryTabs } from '../category-tabs';
-import { CategoryTabsSkeleton } from '../loading-skeletons';
+import { CategoryTabs } from './category-tabs';
+import { CategoryTabsSkeleton } from './loading-skeletons';
 import { UserPlus, UserCheck, Edit2, Zap } from 'lucide-react';
 import type { BranchOption } from '@/lib/services/inventory-service';
 
@@ -22,7 +22,7 @@ interface ServiceCategory {
   service_category_color1?: string;
 }
 
-interface NewOrderTopBarV2Props {
+interface NewOrderTopBarProps {
   branches: BranchOption[];
   branchId: string | null;
   onBranchChange: (id: string | null) => void;
@@ -39,7 +39,7 @@ interface NewOrderTopBarV2Props {
   showCategories?: boolean;
 }
 
-export const NewOrderTopBarV2 = memo(function NewOrderTopBarV2({
+export const NewOrderTopBar = memo(function NewOrderTopBar({
   branches,
   branchId,
   onBranchChange,
@@ -54,7 +54,7 @@ export const NewOrderTopBarV2 = memo(function NewOrderTopBarV2({
   onSelectCategory,
   categoriesLoading = false,
   showCategories = true,
-}: NewOrderTopBarV2Props) {
+}: NewOrderTopBarProps) {
   const t = useTranslations('newOrder');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();

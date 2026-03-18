@@ -117,20 +117,31 @@ export default function OrdersPage() {
 <ChevronRight className="rtl:rotate-180" />
 ```
 
-## Import Rules
+## Import Rules (Always Apply — ESLint enforced)
 
 ### CORRECT
 ```typescript
-import { CmxButton } from '@ui/primitives/cmx-button'
+import { CmxButton } from '@ui/primitives'
+import { CmxCard, CmxCardHeader, CmxCardContent } from '@ui/primitives/cmx-card'
+import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
+import { CmxTabsPanel } from '@ui/navigation'
+import { CmxDataTable } from '@ui/data-display'
+import { CmxProgressBar, CmxSummaryMessage } from '@ui/feedback'
+import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
 import { OrderListScreen } from '@features/orders/ui/order-list-screen'
 import { supabaseClient } from '@lib/supabase/client'
 ```
 
-### FORBIDDEN
+### FORBIDDEN (will fail `npm run build`)
 ```typescript
-import X from '@/app/components/...'  // NO - never import from app
-import Y from '@/components/...'      // NO - components folder doesn't exist
+import X from '@ui/compat'            // NO - removed, causes build failure
+import Y from '@/components/ui'       // NO - doesn't exist
+import Z from '@/components/ui/*'     // NO - doesn't exist
+import W from '@/app/components/...'  // NO - never import from app
+import V from '@/components/...'      // NO - components folder doesn't exist
 ```
+
+> Full import snippets per component type: see `.claude/docs/web-admin-ui-imports.md`
 
 ## Common Patterns
 
@@ -162,6 +173,18 @@ import { CmxDataTable } from '@ui/data-display/cmx-datatable';
   onPageChange={handlePageChange}
 />
 ```
+
+## Report Naming Convention (Always Apply)
+
+When building or implementing a **report** (screen, component, page, tool):
+
+- Name pattern: `{feature}-{report-name}-rprt`
+- Examples: `orders-payments-print-rprt.tsx`, `customers-summary-rprt.tsx`, `financial-monthly-rprt.tsx`
+- Apply to ALL report artifacts: component files, screen names, route segments, tool names
+- The `-rprt` suffix identifies it as a report and separates it from regular UI components
+
+❌ `orders-payments-print.tsx` — missing suffix
+✅ `orders-payments-print-rprt.tsx` — correct
 
 ## Additional Resources
 

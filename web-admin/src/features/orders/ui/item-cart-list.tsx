@@ -1,7 +1,7 @@
 /**
  * Item Cart List Component
- * List of all items in the order with edit/delete capabilities
- * Re-Design: PRD-010 Advanced Orders - Section 4
+ * List of all items in the order with edit/delete and piece tracking
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -30,6 +30,15 @@ interface CartItem {
   serviceCategoryCode?: string;
   serviceCategoryName?: string;
   serviceCategoryName2?: string;
+  priceOverride?: number | null;
+  overrideReason?: string | null;
+}
+
+interface ColorCatalogEntry {
+  code: string;
+  name: string;
+  name2?: string | null;
+  color_hex?: string | null;
 }
 
 interface ItemCartListProps {
@@ -37,31 +46,34 @@ interface ItemCartListProps {
   onEditItem?: (itemId: string) => void;
   onDeleteItem: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
+  onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
   trackByPiece?: boolean;
   currencyCode?: string;
   selectedPieceId?: string | null;
   onSelectPiece?: (pieceId: string | null) => void;
+  colorCatalog?: ColorCatalogEntry[];
 }
 
-function ItemCartListComponent({ 
-  items, 
-  onEditItem, 
-  onDeleteItem, 
+function ItemCartListComponent({
+  items,
+  onEditItem,
+  onDeleteItem,
   onPiecesChange,
+  onCopyPieceToAll,
   trackByPiece = false,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
   selectedPieceId = null,
   onSelectPiece,
+  colorCatalog,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
-  
-  // Calculate total pieces count
+
   const totalPieces = trackByPiece && items.length > 0
     ? items.reduce((sum, item) => sum + (item.pieces?.length || item.quantity), 0)
     : items.reduce((sum, item) => sum + item.quantity, 0);
-  
+
   if (items.length === 0) {
     return (
       <div className={`flex flex-col items-center justify-center py-10 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
@@ -91,7 +103,7 @@ function ItemCartListComponent({
         </span>
       </div>
 
-      <div className="max-h-80 overflow-y-auto">
+      <div>
         {items.map((item, index) => (
           <ItemCartItem
             key={item.id}
@@ -111,6 +123,7 @@ function ItemCartListComponent({
             serviceCategoryName={item.serviceCategoryName}
             serviceCategoryName2={item.serviceCategoryName2}
             onPiecesChange={onPiecesChange ? (pieces) => onPiecesChange(item.id, pieces) : undefined}
+            onCopyPieceToAll={onCopyPieceToAll ? (pieceId) => onCopyPieceToAll(item.id, pieceId) : undefined}
             trackByPiece={trackByPiece}
             onEdit={onEditItem ? () => onEditItem(item.id) : undefined}
             onDelete={() => onDeleteItem(item.id)}
@@ -119,6 +132,7 @@ function ItemCartListComponent({
             currencyCode={currencyCode}
             selectedPieceId={selectedPieceId}
             onSelectPiece={onSelectPiece}
+            colorCatalog={colorCatalog}
           />
         ))}
       </div>

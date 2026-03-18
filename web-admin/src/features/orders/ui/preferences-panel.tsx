@@ -1,7 +1,7 @@
 /**
- * Preferences Panel V2
+ * Preferences Panel
  * Unified tabbed panel: Stains / Damage / Special / Prefs / Notes for selected item/piece
- * Re-Design: PRD-010 Advanced Orders - V2 Enhancement
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -9,29 +9,29 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
-import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
-import { ServicePreferenceSelector } from '../preferences/ServicePreferenceSelector';
-import { StainConditionToggles } from '../stain-condition-toggles';
+import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
+import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
+import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
+import { StainConditionToggles } from './stain-condition-toggles';
 import { CmxTextarea } from '@ui/primitives';
 import { ShoppingCart } from 'lucide-react';
-import type { PreSubmissionPiece } from '../../model/new-order-types';
+import type { PreSubmissionPiece } from '../model/new-order-types';
 
 type ActiveTab = 'stain' | 'damage' | 'special' | 'prefs' | 'notes';
 
-interface PreferencesPanelV2Props {
+interface PreferencesPanelProps {
   selectedPieceId: string | null;
   selectedConditions: string[];
   onConditionToggle: (conditionCode: string) => void;
   enforcePrefCompatibility?: boolean;
 }
 
-export function PreferencesPanelV2({
+export function PreferencesPanel({
   selectedPieceId,
   selectedConditions,
   onConditionToggle,
   enforcePrefCompatibility = false,
-}: PreferencesPanelV2Props) {
+}: PreferencesPanelProps) {
   const t = useTranslations('newOrder.preferences');
   const tPieces = useTranslations('newOrder.pieces');
   const tPalette = useTranslations('newOrder.notesPalette');

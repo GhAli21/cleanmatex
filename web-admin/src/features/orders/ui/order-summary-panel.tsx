@@ -1,7 +1,7 @@
 /**
- * Order Summary Panel Component - Enhanced
- * Right panel with customer, item cart, settings, and submit button
- * Re-Design: PRD-010 Advanced Orders - Section 4
+ * Order Summary Panel Component
+ * Streamlined right panel with cart, notes, ready-by, and submit
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { ItemCartList } from './item-cart-list';
-import { UserPlus, Edit, Trash2, Calendar, Calculator, AlertCircle, Clock } from 'lucide-react';
+import { Calendar, Calculator, AlertCircle, Clock } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
@@ -34,22 +34,23 @@ interface CartItem {
   overrideReason?: string | null;
 }
 
+interface ColorCatalogEntry {
+  code: string;
+  name: string;
+  name2?: string | null;
+  color_hex?: string | null;
+}
+
 interface OrderSummaryPanelProps {
-  customerName: string;
-  onSelectCustomer: () => void;
-  onEditCustomer?: () => void;
   items?: CartItem[];
   onEditItem?: (itemId: string) => void;
   onDeleteItem?: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
+  onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
   isQuickDrop: boolean;
   onQuickDropToggle: (value: boolean) => void;
   quickDropQuantity: number;
   onQuickDropQuantityChange: (value: number) => void;
-  express: boolean;
-  onExpressToggle: (value: boolean) => void;
-  retail?: boolean;
-  onRetailToggle?: (value: boolean) => void;
   notes: string;
   onNotesChange: (value: string) => void;
   readyByAt: string;
@@ -61,39 +62,29 @@ interface OrderSummaryPanelProps {
   onCalculateReadyBy?: () => Promise<void>;
   loading: boolean;
   trackByPiece?: boolean;
-  /** When true (retail orders), allow "now" as valid ready-by instead of requiring strict future */
   isRetailOnlyOrder?: boolean;
-  /** Edit mode: show Save instead of Add Order */
   isEditMode?: boolean;
   isDirty?: boolean;
   onSave?: () => void;
   isSaving?: boolean;
-  /** When true (edit mode), disable Save button */
   hasErrors?: boolean;
-  /** Validation error messages (edit mode) */
   validationErrors?: string[];
-  /** Selected piece ID for Customer/Order/Item/Pieces Preferences panel */
   selectedPieceId?: string | null;
-  /** Callback when user selects a piece in the cart */
   onSelectPiece?: (pieceId: string | null) => void;
+  canSubmit: boolean;
+  colorCatalog?: ColorCatalogEntry[];
 }
 
 function OrderSummaryPanelComponent({
-  customerName,
-  onSelectCustomer,
-  onEditCustomer,
   items = [],
   onEditItem,
   onDeleteItem,
   onPiecesChange,
-  isQuickDrop,
-  onQuickDropToggle,
-  quickDropQuantity,
-  onQuickDropQuantityChange,
-  express,
-  onExpressToggle,
-  retail = false,
-  onRetailToggle,
+  onCopyPieceToAll,
+  isQuickDrop: _isQuickDrop,
+  onQuickDropToggle: _onQuickDropToggle,
+  quickDropQuantity: _quickDropQuantity,
+  onQuickDropQuantityChange: _onQuickDropQuantityChange,
   notes,
   onNotesChange,
   readyByAt,
@@ -114,6 +105,8 @@ function OrderSummaryPanelComponent({
   validationErrors = [],
   selectedPieceId = null,
   onSelectPiece,
+  canSubmit,
+  colorCatalog,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -122,12 +115,10 @@ function OrderSummaryPanelComponent({
   const isRTL = useRTL();
   const [isCalculating, setIsCalculating] = useState(false);
 
-  // Validate ready_by date (retail allows "now", services require future)
   const readyByValidation = useMemo(() => {
     if (!readyByAt) {
       return { isValid: false, isFuture: false, isTooFar: false, message: '' };
     }
-
     const readyByDate = new Date(readyByAt);
     const now = new Date();
     const daysDiff = Math.ceil((readyByDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -136,7 +127,6 @@ function OrderSummaryPanelComponent({
       ? readyByDate.getTime() >= threshold
       : readyByDate > now;
     const isTooFar = daysDiff > 30;
-
     return {
       isValid: isFuture && !isTooFar,
       isFuture,
@@ -159,170 +149,46 @@ function OrderSummaryPanelComponent({
     }
   }, [onCalculateReadyBy]);
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return t('notSet');
-    const date = new Date(dateString);
-    return date.toLocaleString(isRTL ? 'ar-OM' : 'en-US', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-    });
-  };
-
-  const formatDateTime = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString(isRTL ? 'ar-OM' : 'en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-    const timeStr = date.toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    });
-    return `${dateStr} ${timeStr}`;
-  };
-
-  const formatDateInput = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toISOString().split('T')[0];
-  };
-
-  const formatTimeInput = (dateString: string) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toTimeString().slice(0, 5);
-  };
-
   const handleDeleteItem = useCallback((itemId: string) => {
-    if (onDeleteItem) {
-      onDeleteItem(itemId);
-    }
+    if (onDeleteItem) onDeleteItem(itemId);
   }, [onDeleteItem]);
 
   return (
     <div className="flex flex-col bg-white overflow-y-auto" style={{ height: '100%', maxHeight: '100vh' }}>
-      {/* Header - Customer Section - Compact */}
-      <div className="p-4 border-b border-gray-200 flex-shrink-0">
-        <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <label className="block text-sm font-semibold text-gray-700">{tNewOrder('customer.label')}</label>
-          <div className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            {customerName && (
-              <>
-                <button
-                  onClick={onEditCustomer || onSelectCustomer}
-                  className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                  aria-label={t('editCustomer')}
-                >
-                  <Edit className="w-3.5 h-3.5" />
-                </button>
-              </>
-            )}
-            {!customerName && (
-              <button
-                onClick={onSelectCustomer}
-                className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1"
-                aria-label={t('addCustomer')}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={onSelectCustomer}
-          id="order-summary-customer-select"
-          aria-describedby={!customerName ? 'order-summary-customer-helper' : undefined}
-          className={`w-full px-2.5 py-1.5 text-sm border-2 border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'} hover:border-blue-500 hover:bg-blue-50 transition-all font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500`}
-        >
-          {customerName || tNewOrder('selectCustomer')}
-        </button>
-        {!customerName && (
-          <p id="order-summary-customer-helper" className="text-xs text-gray-500 mt-1">
-            {tNewOrder('customer.helper') || 'Required to submit order. Tap to search and select.'}
-          </p>
-        )}
-
-        {/* Express Toggle - Compact */}
-        <div className="mt-2">
-          <label className={`flex items-center justify-between cursor-pointer p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="text-xs font-semibold text-gray-900">{t('expressService')}</span>
-            <input
-              type="checkbox"
-              checked={express}
-              onChange={(e) => onExpressToggle(e.target.checked)}
-              className="w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
-            />
-          </label>
-        </div>
-      </div>
-
       {/* Item Cart List - Scrollable */}
-      <div className="flex-1 p-4 border-b border-gray-200 min-h-0">
+      <div className="flex-1 p-4 border-b border-gray-200 min-h-0 overflow-y-auto">
         <ItemCartList
           items={items}
           onEditItem={onEditItem}
           onDeleteItem={handleDeleteItem}
           onPiecesChange={onPiecesChange}
+          onCopyPieceToAll={onCopyPieceToAll}
           trackByPiece={trackByPiece}
           currencyCode={currencyCode}
           selectedPieceId={selectedPieceId}
           onSelectPiece={onSelectPiece}
+          colorCatalog={colorCatalog}
         />
       </div>
 
-      {/* Footer Toggles - Compact */}
-      {/* NOTE: Quick Drop section is hidden for now. To re-enable, uncomment the Quick Drop label below and set SHOW_QUICK_DROP to true */}
-      {/* TODO: Add feature flag SHOW_QUICK_DROP when needed in the future */}
-      {false && (
-        <div className="px-4 py-2 space-y-1.5 border-b border-gray-200 bg-gray-50 flex-shrink-0">
-          {/* Quick Drop - Hidden for now, can be re-enabled by changing the condition above */}
-          <label className={`flex items-center cursor-pointer ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-            <span className="text-xs font-medium text-gray-700">{t('quickDrop')}</span>
-            <input
-              type="checkbox"
-              checked={isQuickDrop}
-              onChange={(e) => onQuickDropToggle(e.target.checked)}
-              className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300"
-            />
-          </label>
-
-          {/* Retail */}
-          {onRetailToggle && (
-            <label className={`flex items-center cursor-pointer ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <span className="text-xs font-medium text-gray-700">{t('retail')}</span>
-              <input
-                type="checkbox"
-                checked={retail}
-                onChange={(e) => onRetailToggle(e.target.checked)}
-                className="w-3.5 h-3.5 text-blue-600 rounded border-gray-300"
-              />
-            </label>
-          )}
-        </div>
-      )}
-
-      {/* Footer - Submit Bar */}
-      <div className="p-4 bg-white border-t-2 border-gray-200 space-y-2 flex-shrink-0">
-        {/* Notes Section - Simple Text Input - Moved to footer area */}
+      {/* Footer */}
+      <div className="p-4 bg-white border-t-2 border-gray-200 space-y-2 shrink-0">
+        {/* Notes as textarea */}
         <div className="space-y-1.5">
           <label className={`block text-xs font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('notes')}
           </label>
-          <input
-            type="text"
+          <textarea
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
-            className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isRTL ? 'text-right' : 'text-left'}`}
+            rows={2}
+            className={`w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none ${isRTL ? 'text-right' : 'text-left'}`}
             placeholder={t('addSpecialInstructions') || 'Add special instructions...'}
             dir={isRTL ? 'rtl' : 'ltr'}
           />
         </div>
 
-        {/* Ready By Date - Date/Time Input with Calendar Button */}
+        {/* Ready By */}
         <div className="space-y-2">
           <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
             <label className={`block text-xs font-semibold text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -333,7 +199,6 @@ function OrderSummaryPanelComponent({
                 onClick={handleCalculateReadyBy}
                 disabled={isCalculating || items.length === 0}
                 className={`px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 text-white text-xs rounded-lg transition-colors flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}
-                title={tNewOrder('calculateReadyBy') || 'Calculate Ready By'}
                 type="button"
               >
                 <Calculator className="w-3.5 h-3.5" />
@@ -345,14 +210,11 @@ function OrderSummaryPanelComponent({
             <div
               role="button"
               tabIndex={0}
-              aria-label={tNewOrder('readyBy') || 'Ready by date and time'}
-              aria-invalid={readyByAt && !readyByValidation.isFuture}
-              aria-describedby={readyByAt && !readyByValidation.isFuture ? 'ready-by-error' : readyByAt && readyByValidation.isTooFar ? 'ready-by-warning' : undefined}
               className={`flex-1 flex items-center gap-2 px-3 py-2.5 border rounded-lg bg-white ${readyByValidation.isTooFar ? 'border-red-500' : readyByValidation.isValid && readyByAt ? 'border-blue-300' : 'border-gray-300'} ${isRTL ? 'flex-row-reverse' : ''} cursor-pointer hover:border-blue-400 transition-colors min-w-0`}
               onClick={onOpenReadyByModal}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenReadyByModal?.(); } }}
             >
-              <Calendar className="w-4 h-4 text-gray-500 flex-shrink-0" />
+              <Calendar className="w-4 h-4 text-gray-500 shrink-0" />
               {readyByAt ? (
                 <>
                   <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -364,12 +226,10 @@ function OrderSummaryPanelComponent({
                       return `${day}/${month}/${year}`;
                     })()}
                   </span>
-                  <Clock className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                  <Clock className="w-4 h-4 text-gray-500 shrink-0" />
                   <span className={`flex-1 text-sm text-gray-900 min-w-0 ${isRTL ? 'text-right' : 'text-left'}`}>
                     {new Date(readyByAt).toLocaleTimeString(isRTL ? 'ar-OM' : 'en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true,
+                      hour: '2-digit', minute: '2-digit', hour12: true,
                     })}
                   </span>
                 </>
@@ -379,37 +239,24 @@ function OrderSummaryPanelComponent({
             </div>
             <button
               onClick={onOpenReadyByModal}
-              className={`px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center flex-shrink-0 ${isRTL ? 'flex-row-reverse' : ''}`}
-              title={tNewOrder('schedule.selectReadyDateTime') || 'Select Date & Time'}
-              aria-label={tNewOrder('schedule.selectReadyDateTime') || 'Select Date & Time'}
+              className="px-3 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center shrink-0"
               type="button"
             >
               <Calendar className="w-4 h-4" aria-hidden />
             </button>
           </div>
-          {/* Validation Messages */}
           {readyByAt && !readyByValidation.isFuture && (
-            <div id="ready-by-error" role="alert" aria-live="assertive" className={`flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span>{readyByValidation.message}</span>
-            </div>
-          )}
-          {readyByAt && readyByValidation.isTooFar && (
-            <div id="ready-by-warning" role="alert" aria-live="polite" className={`flex items-center gap-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div role="alert" className={`flex items-center gap-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{readyByValidation.message}</span>
             </div>
           )}
         </div>
 
-        {/* Submit Button: Save (edit mode) or Add Order (new order) */}
+        {/* Submit Button */}
         <button
           onClick={isEditMode ? (onSave ?? (() => {})) : (onOpenPaymentModal || onSubmit)}
-          disabled={
-            isEditMode
-              ? !isDirty || isSaving || loading || hasErrors
-              : loading || !customerName || items.length === 0 || !readyByAt || !readyByValidation.isFuture
-          }
+          disabled={isEditMode ? !isDirty || isSaving || loading || hasErrors : loading || !canSubmit}
           className={`w-full min-h-[48px] py-3 px-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center group ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}
         >
           <span className="text-lg">
@@ -428,52 +275,22 @@ function OrderSummaryPanelComponent({
           </div>
         </button>
 
-        {/* Validation Messages for Submit Button */}
+        {/* Validation hints */}
         {isEditMode ? (
           hasErrors && validationErrors.length > 0 ? (
-            <p role="alert" aria-live="assertive" className="text-xs text-center text-red-600 font-medium">
-              {validationErrors[0]}
-            </p>
+            <p role="alert" className="text-xs text-center text-red-600 font-medium">{validationErrors[0]}</p>
           ) : isDirty && !isSaving && !loading ? (
-            <p className="text-xs text-center text-green-600 font-medium">
-              ✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}
-            </p>
+            <p className="text-xs text-center text-green-600 font-medium">✓ {tEdit('unsavedChanges') || 'You have unsaved changes'}</p>
           ) : !isDirty ? (
-            <p className="text-xs text-center text-gray-500 font-medium">
-              {tEdit('noChangesToSave') || 'No changes to save'}
-            </p>
+            <p className="text-xs text-center text-gray-500 font-medium">{tEdit('noChangesToSave') || 'No changes to save'}</p>
           ) : null
         ) : (
-          <>
-            {!customerName && (
-              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
-                {tNewOrder('errors.selectCustomer') || 'Please select a customer'}
-              </p>
-            )}
-            {customerName && items.length === 0 && (
-              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
-                {tNewOrder('errors.addItems') || 'Please add at least one item'}
-              </p>
-            )}
-            {customerName && items.length > 0 && !readyByAt && (
-              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
-                {tNewOrder('validation.readyByRequired') || 'Please set a ready-by date'}
-              </p>
-            )}
-            {customerName && items.length > 0 && readyByAt && !readyByValidation.isFuture && (
-              <p role="alert" aria-live="polite" className="text-xs text-center text-red-600 font-medium">
-                {readyByValidation.message || tNewOrder('validation.readyByMustBeFuture') || 'Ready-by date must be in the future'}
-              </p>
-            )}
-            {customerName && items.length > 0 && readyByAt && readyByValidation.isFuture && (
-              <p className="text-xs text-center text-green-600 font-medium">
-                ✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}
-              </p>
-            )}
-          </>
+          canSubmit && readyByAt && readyByValidation.isFuture ? (
+            <p className="text-xs text-center text-green-600 font-medium">✓ {tNewOrder('validation.readyToSubmit') || 'Ready to submit'}</p>
+          ) : null
         )}
       </div>
-    </div> 
+    </div>
   );
 }
 

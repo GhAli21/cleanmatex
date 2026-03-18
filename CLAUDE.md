@@ -1,8 +1,8 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
-**Last Update** 10-03-2026
-**Last Update Description** Documentation refresh alignment for current stack, module boundaries, and planning authority cleanup
+**Last Update** 19-03-2026
+**Last Update Description** Ported cursor always-applied rules into Claude skills; removed broken .cursor/rules/ references; added exact UI import snippets, report naming convention, UX enforcement checklist
 
 ## CRITICAL RULES
 
@@ -45,7 +45,7 @@ npm run build                     # Build (run after changes)
 
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
-- **NEVER modify existing migration files** — always create a NEW migration for fixes or changes. See `.cursor/rules/database-migrations.mdc`.
+- **NEVER modify existing migration files** — always create a NEW migration for fixes or changes. See `/database` skill.
 - **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
 - **DROP ... CASCADE** — Before adding DROP CASCADE, fetch
   affected objects, prepare recreate statements, and include them
@@ -70,7 +70,7 @@ drop-cascade-migration-workflow.md`
 
 **See:** `/implementation` skill for coding standards
 
-**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.cursor/rules/prdimplementationrules.mdc` or `.claude/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
+**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
 
 ## Constants & Types (single source of truth)
 
@@ -92,7 +92,7 @@ drop-cascade-migration-workflow.md`
 
 **See:** `/i18n` skill for complete i18n rules
 **See:** `/frontend` skill for frontend developing rules
-**See:** `.cursor/rules/web-admin-ui-imports.mdc` (always-applied), `.claude/docs/web-admin-ui-imports.md`, `.cursor/rules/frontendstandards.mdc`, `docs/dev/ui-migration-guide.md`
+**See:** `.claude/docs/web-admin-ui-imports.md` for exact import snippets per component, `docs/dev/ui-migration-guide.md`
 
 ## Skills (Auto-loaded on demand)
 
@@ -155,12 +155,18 @@ docs/         # All documentation
 
 ## How to Make Cursor/Claude Follow the Rules
 
-1. **Always-applied rules:** `.cursor/rules/*.mdc` with `alwaysApply: true` (e.g. `uiuxrules.mdc`, `report-implement-or-build.mdc`, `web-admin-ui-imports.mdc`) are loaded into context automatically. Keep critical, short rules there.
-2. **CLAUDE.md:** This file is at repo root and is a primary source for CRITICAL RULES and quick rules. Any rule that must be followed should be stated here or referenced here.
-3. **Skills:** Use `/frontend`, `/i18n`, `/database`, etc. when working in that area so the detailed skill is loaded. CLAUDE.md points to the right skill per topic.
-4. **Enforcement at build time:** ESLint (`no-restricted-imports`) forbids `@ui/compat` and `@/components/ui`. TypeScript fails on invalid paths. Running `npm run build` in web-admin catches violations. So even if the AI suggests wrong imports, the build fails and the developer (or next edit) can fix.
-5. **.clauderc:** Keeps AI import suggestions aligned with the project; update it when adding or changing shared UI so generated code uses the right snippets.
-6. **Explicit prompts:** When you want a rule followed, say it (e.g. "Use Cmx components only and import from .clauderc" or "Follow frontendstandards.mdc").
+1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` (e.g. `uiuxrules.mdc`, `report-implement-or-build.mdc`, `web-admin-ui-imports.mdc`) are loaded into Cursor context automatically. Keep critical, short rules there.
+   **→ Claude equivalent:** The same rules are embedded in `.claude/skills/frontend/SKILL.md`, `.claude/skills/frontend/uiux-rules.md`, and `.claude/docs/web-admin-ui-imports.md` — Claude reads these when `/frontend` skill is active.
+
+2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
+
+3. **Skills (Claude):** Use `/frontend`, `/i18n`, `/database`, etc. so the detailed skill loads. CLAUDE.md points to the right skill per topic.
+
+4. **Enforcement at build time (both):** ESLint (`no-restricted-imports`) forbids `@ui/compat` and `@/components/ui`. TypeScript fails on invalid paths. Running `npm run build` in web-admin catches violations regardless of which tool suggested the code.
+
+5. **web-admin/.clauderc (both):** Authoritative import snippets for Cmx components. Update it when adding/changing shared UI. Claude reads it via `.claude/docs/web-admin-ui-imports.md` (extracted list).
+
+6. **Explicit prompts (both):** When you want a rule followed, say it (e.g. "Use Cmx components only and import from .clauderc" or "Follow frontendstandards").
 
 ## Supabase MCPs
 

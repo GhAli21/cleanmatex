@@ -1,4 +1,18 @@
-# UI/UX Design Rules
+# UI/UX Design Rules (Always Apply)
+
+> These rules apply to **every** screen, component, and page in web-admin. No exceptions.
+
+## Quick Enforcement Checklist
+
+- [ ] Loading state for every async action
+- [ ] Empty state with helpful prompt for every list/table
+- [ ] Error state with clear message
+- [ ] RTL layout works for Arabic
+- [ ] Mobile-first responsive (test 320px, 768px, 1024px, 1440px)
+- [ ] No hardcoded colors — use CSS variables or Tailwind tokens only
+- [ ] All user-facing text uses i18n keys
+
+---
 
 Guidelines for designing intuitive, scalable, and accessible interfaces for CleanMateX.
 

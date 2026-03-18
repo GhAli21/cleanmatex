@@ -1,7 +1,7 @@
 /**
  * Product Grid Component
- * Display products in a grid with add/remove functionality
- * Re-Design: PRD-010 Advanced Orders - Enhanced with ProductCard and StainConditionToggles
+ * Larger cards, capped columns, with PreferencesPanel
+ * PRD-010: Advanced Order Management
  */
 
 'use client';
@@ -11,13 +11,8 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ProductCard } from './product-card';
-import { PreferencesForSelectedPiecePanel } from './preferences/PreferencesForSelectedPiecePanel';
-import { Plus, Camera, Package } from 'lucide-react';
-
-/** Set to true to show the "Custom Item" button in the product grid. */
-const SHOW_CUSTOM_ITEM = false;
-/** Set to true to show the "Photo / Capture item" button in the product grid. */
-const SHOW_PHOTO_CAPTURE = false;
+import { PreferencesPanel } from './preferences-panel';
+import { Package } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -85,21 +80,25 @@ export const ProductGrid = memo(function ProductGrid({
     return product.default_sell_price || 0;
   };
 
-  const hasItems = items.length > 0;
   const prefsPanelRef = useRef<HTMLDivElement>(null);
 
-  // Scroll PreferencesForSelectedPiecePanel into view when piece is selected
   useEffect(() => {
     if (selectedPieceId && prefsPanelRef.current) {
       prefsPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, [selectedPieceId]);
 
+  // Suppress unused variable warnings — props passed for future use / API consistency
+  void onRemoveItem;
+  void onOpenCustomItemModal;
+  void onOpenPhotoCapture;
+
   return (
     <div className="space-y-4">
-      {/* Product Grid */}
       <div className="bg-white rounded-lg border border-gray-200 p-3">
-        <h2 className={`text-xl sm:text-2xl font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t('selectItems')}</h2>
+        <h2 className={`text-xl sm:text-2xl font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('selectItems')}
+        </h2>
 
         {products.length === 0 ? (
           <div className={`flex flex-col items-center justify-center py-12 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
@@ -114,12 +113,10 @@ export const ProductGrid = memo(function ProductGrid({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-2 sm:gap-3">
-            {/* Product Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {products.map((product) => {
               const quantity = getItemQuantity(product.id);
               const price = getItemPrice(product);
-
               return (
                 <ProductCard
                   key={product.id}
@@ -134,46 +131,19 @@ export const ProductGrid = memo(function ProductGrid({
                 />
               );
             })}
-
-            {/* Custom Item Button - hidden for now; set SHOW_CUSTOM_ITEM to true to re-enable */}
-            {SHOW_CUSTOM_ITEM && (
-              <button
-                onClick={onOpenCustomItemModal}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-500 hover:bg-blue-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:border-blue-500"
-              >
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Plus className="w-8 h-8" />
-                </div>
-                <span className="font-semibold">{t('customItem')}</span>
-                <span className="text-xs text-gray-500">{t('describeItem')}</span>
-              </button>
-            )}
-
-            {/* Photo Button - hidden for now; set SHOW_PHOTO_CAPTURE to true to re-enable */}
-            {SHOW_PHOTO_CAPTURE && (
-              <button
-                onClick={onOpenPhotoCapture}
-                disabled={!onOpenPhotoCapture}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-green-500 hover:bg-green-50 transition-all min-h-[200px] flex flex-col items-center justify-center gap-2 text-gray-600 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:border-green-500 disabled:focus:ring-0"
-              >
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Camera className="w-8 h-8" />
-                </div>
-                <span className="font-semibold">{t('addPhoto')}</span>
-                <span className="text-xs text-gray-500">{t('captureItem')}</span>
-              </button>
-            )}
           </div>
         )}
       </div>
 
-      {/* Preferences for Selected Piece (replaces StainConditionToggles) */}
-      <PreferencesForSelectedPiecePanel
-        selectedPieceId={selectedPieceId}
-        selectedConditions={selectedConditions}
-        onConditionToggle={onConditionToggle}
-        enforcePrefCompatibility={enforcePrefCompatibility}
-      />
+      {/* Preferences Panel */}
+      <div ref={prefsPanelRef}>
+        <PreferencesPanel
+          selectedPieceId={selectedPieceId}
+          selectedConditions={selectedConditions}
+          onConditionToggle={onConditionToggle}
+          enforcePrefCompatibility={enforcePrefCompatibility}
+        />
+      </div>
     </div>
   );
 });

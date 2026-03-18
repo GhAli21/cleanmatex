@@ -116,7 +116,7 @@ CREATE POLICY tenant_isolation ON org_example_mst
 - ❌ Editing `0160_*.sql` to fix a bug
 - ✅ Creating `0164_fix_description.sql` with the fix
 
-See `.cursor/rules/database-migrations.mdc` (always-applied).
+This rule is **always active** — no exceptions.
 
 ### Version (Last Seq)
 
