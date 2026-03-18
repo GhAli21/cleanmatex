@@ -2803,7 +2803,16 @@
       "addFirstPiece": "Add a piece to track color, conditions, and notes",
       "selectedForPreferences": "Selected for preferences",
       "copyToAllPieces": "Copy to all pieces",
-      "copyToAllItems": "Copy to all items"
+      "copyToAllItems": "Copy to all items",
+      "editItemNotes": "Edit Item Notes",
+      "showAllItems": "Show All Items",
+      "showMultiPieceOnly": "Multi-Piece Only",
+      "damage": "Damage",
+      "stains": "Stains",
+      "upcharge": "Upcharge",
+      "addUpcharge": "Add upcharge",
+      "noPiecesToShow": "No multi-piece items. Toggle \"Show All Items\" to view all.",
+      "focusPieceHint": "Click a row to edit its conditions in the palette below"
     },
     "topBar": {
       "expressLabel": "Express",

@@ -54,6 +54,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   resetOrder: () => void;
   setSelectedPiece: (pieceId: string | null) => void;
   updatePieceConditions: (pieceId: string, conditions: string[]) => void;
+  updatePieceColor: (pieceId: string, color: string | undefined) => void;
 }
 
 /**
@@ -223,6 +224,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     updatePieceConditions: (pieceId: string, conditions: string[]) => {
       dispatch({ type: 'UPDATE_PIECE_CONDITIONS', payload: { pieceId, conditions } });
+    },
+
+    updatePieceColor: (pieceId: string, color: string | undefined) => {
+      dispatch({ type: 'UPDATE_PIECE_COLOR', payload: { pieceId, color } });
     },
   };
 

@@ -41,6 +41,7 @@ import { OrderSummaryBottomSheet } from './OrderSummaryBottomSheet';
 import { ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import { OrderCustomerDetailsSection } from './order-customer-details-section';
+import { OrderPiecesNotesSection } from './order-pieces-notes-section';
 import { EditOrderBar } from './edit-order-bar';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
@@ -68,7 +69,7 @@ export function NewOrderContent() {
     });
     const { servicePrefs, conditionCatalog } = usePreferenceCatalog(state.state.branchId);
     const { trackItemAddition, trackModalOpen, resetMetrics } = useOrderPerformance();
-    const [activeTab, setActiveTab] = useState<'select' | 'details' | 'customer'>('select');
+    const [activeTab, setActiveTab] = useState<'select' | 'details' | 'pieces' | 'customer'>('select');
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
     const { isDesktop } = useBreakpoint();
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -101,7 +102,7 @@ export function NewOrderContent() {
     );
 
     useEffect(() => {
-        if (state.state.items.length === 0 && (activeTab === 'details' || activeTab === 'customer')) {
+        if (state.state.items.length === 0 && (activeTab === 'details' || activeTab === 'pieces' || activeTab === 'customer')) {
             setActiveTab('select');
         }
         if (state.state.customer === null && activeTab === 'customer') {
@@ -113,6 +114,11 @@ export function NewOrderContent() {
         () =>
             state.state.items.length > 0 &&
             state.state.items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS'),
+        [state.state.items]
+    );
+
+    const totalPieces = useMemo(
+        () => state.state.items.reduce((sum, item) => sum + (item.pieces?.length ?? item.quantity), 0),
         [state.state.items]
     );
 
@@ -264,6 +270,7 @@ export function NewOrderContent() {
             if (!item || !sourcePiece || !item.pieces) return;
             const updated = item.pieces.map((p) => ({
                 ...p,
+                color: sourcePiece.color,
                 conditions: sourcePiece.conditions,
                 notes: sourcePiece.notes,
                 servicePrefs: sourcePiece.servicePrefs,
@@ -536,6 +543,18 @@ export function NewOrderContent() {
                                     {state.state.items.length > 0 && <Check className="w-4 h-4 shrink-0" aria-hidden="true" />}
                                     2) {t('itemsGrid.orderItems') || 'Order Items'} ({state.state.items.length})
                                 </button>
+                                {trackByPiece && state.state.items.length > 0 && (
+                                    <button
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={activeTab === 'pieces'}
+                                        tabIndex={activeTab === 'pieces' ? 0 : -1}
+                                        onClick={() => setActiveTab('pieces')}
+                                        className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'pieces' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                                    >
+                                        3) {t('pieces.editItemNotes') || 'Pieces'} ({totalPieces})
+                                    </button>
+                                )}
                                 {state.state.customer !== null && (
                                     <button
                                         type="button"
@@ -546,7 +565,7 @@ export function NewOrderContent() {
                                         className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'customer' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                     >
                                         <Check className="w-4 h-4 shrink-0" aria-hidden="true" />
-                                        3) {t('customerDetails.title') || 'Customer Details'}
+                                        {trackByPiece ? '4)' : '3)'} {t('customerDetails.title') || 'Customer Details'}
                                     </button>
                                 )}
                             </div>
@@ -588,6 +607,17 @@ export function NewOrderContent() {
                                     repeatLastOrderEnabled={repeatLastOrderEnabled}
                                     smartSuggestionsEnabled={smartSuggestionsEnabled}
                                     enforcePrefCompatibility={enforcePrefCompatibility}
+                                />
+                            </div>
+                        )}
+                        {activeTab === 'pieces' && (
+                            <div className="p-4 sm:p-6 pt-2">
+                                <OrderPiecesNotesSection
+                                    conditionCatalog={conditionCatalog}
+                                    servicePrefs={servicePrefs}
+                                    enforcePrefCompatibility={enforcePrefCompatibility}
+                                    currencyCode={currencyCode}
+                                    onCopyPieceToAll={handleCopyPieceToAll}
                                 />
                             </div>
                         )}

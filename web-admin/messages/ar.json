@@ -2803,7 +2803,16 @@
       "addFirstPiece": "أضف قطعة لتتبع اللون والحالات والملاحظات",
       "selectedForPreferences": "محدد للتفضيلات",
       "copyToAllPieces": "نسخ لجميع القطع",
-      "copyToAllItems": "نسخ لجميع العناصر"
+      "copyToAllItems": "نسخ لجميع العناصر",
+      "editItemNotes": "تحرير ملاحظات العناصر",
+      "showAllItems": "عرض كل العناصر",
+      "showMultiPieceOnly": "القطع المتعددة فقط",
+      "damage": "الأضرار",
+      "stains": "البقع",
+      "upcharge": "رسوم إضافية",
+      "addUpcharge": "إضافة رسوم إضافية",
+      "noPiecesToShow": "لا توجد عناصر متعددة القطع. اضغط \"عرض كل العناصر\" لعرض الكل.",
+      "focusPieceHint": "انقر على صف لتعديل الحالات في اللوحة أدناه"
     },
     "topBar": {
       "expressLabel": "سريع",

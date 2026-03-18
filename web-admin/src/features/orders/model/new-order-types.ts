@@ -310,5 +310,6 @@ export type NewOrderAction =
   | { type: 'UPDATE_ORIGINAL_ORDER_DATA'; payload: Record<string, unknown> | null }
   | { type: 'SET_EXPECTED_UPDATED_AT'; payload: Date }
   | { type: 'SET_SELECTED_PIECE'; payload: string | null }
-  | { type: 'UPDATE_PIECE_CONDITIONS'; payload: { pieceId: string; conditions: string[] } };
+  | { type: 'UPDATE_PIECE_CONDITIONS'; payload: { pieceId: string; conditions: string[] } }
+  | { type: 'UPDATE_PIECE_COLOR'; payload: { pieceId: string; color: string | undefined } };
 

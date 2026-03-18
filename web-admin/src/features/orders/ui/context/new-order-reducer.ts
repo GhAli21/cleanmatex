@@ -557,6 +557,22 @@ export function newOrderReducer(
       };
     }
 
+    case 'UPDATE_PIECE_COLOR': {
+      const { pieceId, color } = action.payload;
+      return {
+        ...state,
+        items: state.items.map((item) => {
+          if (!item.pieces?.some((p) => p.id === pieceId)) return item;
+          return {
+            ...item,
+            pieces: item.pieces.map((p) =>
+              p.id === pieceId ? { ...p, color } : p
+            ),
+          };
+        }),
+      };
+    }
+
     default:
       return state;
   }
