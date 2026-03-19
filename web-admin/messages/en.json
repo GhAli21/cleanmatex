@@ -70,7 +70,8 @@
     "showing": "Showing",
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "warningCount": "{count, plural, one {# Warning} other {# Warnings}}",
-    "copied": "Copied"
+    "copied": "Copied",
+    "pieces": "Pieces"
   },
   "amountMismatch": {
     "title": "Amount Mismatch Detected",
@@ -2744,7 +2745,8 @@
       "preferences": "Preferences",
       "applyToAllPieces": "Apply to all pieces",
       "itemsSubtotal": "Items",
-      "additionalServices": "Additional Services"
+      "additionalServices": "Additional Services",
+      "item": "Item"
     },
     "preferences": {
       "preferences": "Preferences",

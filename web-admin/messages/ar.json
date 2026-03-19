@@ -70,7 +70,8 @@
     "showing": "عرض",
     "itemCount": "{count, plural, one {# عنصر} other {# عناصر}}",
     "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}",
-    "copied": "تم النسخ"
+    "copied": "تم النسخ",
+    "pieces": "قطع"
   },
   "amountMismatch": {
     "title": "تم اكتشاف عدم تطابق في المبالغ",
@@ -2744,7 +2745,8 @@
       "preferences": "التفضيلات",
       "applyToAllPieces": "تطبيق على جميع القطع",
       "itemsSubtotal": "العناصر",
-      "additionalServices": "خدمات إضافية"
+      "additionalServices": "خدمات إضافية",
+      "item": "عنصر"
     },
     "preferences": {
       "preferences": "التفضيلات",
