@@ -36,6 +36,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   setQuickDrop: (value: boolean) => void;
   setQuickDropQuantity: (quantity: number) => void;
   setExpress: (value: boolean) => void;
+  setBags: (count: number) => void;
   setNotes: (notes: string) => void;
   setCustomerNotes: (notes: string) => void;
   setPaymentNotes: (notes: string) => void;
@@ -149,6 +150,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
 
     setExpress: (value: boolean) => {
       dispatch({ type: 'SET_EXPRESS', payload: value });
+    },
+
+    setBags: (count: number) => {
+      dispatch({ type: 'SET_BAGS', payload: count });
     },
 
     setNotes: (notes: string) => {

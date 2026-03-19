@@ -474,6 +474,17 @@ export function NewOrderContent() {
         canSubmit,
         onOpenPaymentModal: () => state.openModal('payment'),
         colorCatalog: conditionCatalog.colors,
+        // Customer header
+        customerName: state.state.customerName,
+        onSelectCustomer: () => state.openModal('customerPicker'),
+        onEditCustomer: () => state.openModal('customerEdit'),
+        onClearCustomer: () => state.setCustomer(null, ''),
+        // Express toggle
+        express: state.state.express,
+        onExpressToggle: state.setExpress,
+        // Bags
+        bags: state.state.bags,
+        onBagsChange: state.setBags,
     };
 
     return (

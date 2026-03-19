@@ -2860,7 +2860,9 @@
       "removeCustomer": "إزالة العميل",
       "addCustomer": "إضافة عميل",
       "notSet": "غير محدد",
-      "viewCart": "عرض السلة"
+      "viewCart": "عرض السلة",
+      "bags": "أكياس",
+      "pieces": "قطع"
     },
     "schedule": {
       "title": "تاريخ الجاهزية / التوصيل",

@@ -35,6 +35,7 @@ export const initialState: NewOrderState = {
   express: false,
   notes: '',
   readyByAt: '',
+  bags: 0,
 
   // UI State
   loading: false,
@@ -327,6 +328,12 @@ export function newOrderReducer(
             totalPrice: item.quantity * newPricePerUnit,
           };
         }),
+      };
+
+    case 'SET_BAGS':
+      return {
+        ...state,
+        bags: action.payload,
       };
 
     case 'SET_NOTES':

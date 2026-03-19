@@ -203,6 +203,7 @@ export interface NewOrderState {
   /** Internal staff notes (org_orders_mst.internal_notes) */
   notes: string;
   readyByAt: string;
+  bags: number;
 
   // UI State
   loading: boolean;
@@ -268,6 +269,7 @@ export type NewOrderAction =
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
   | { type: 'SET_EXPRESS'; payload: boolean }
+  | { type: 'SET_BAGS'; payload: number }
   | { type: 'SET_NOTES'; payload: string }
   | { type: 'SET_CUSTOMER_NOTES'; payload: string }
   | { type: 'SET_PAYMENT_NOTES'; payload: string }

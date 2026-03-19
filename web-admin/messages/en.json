@@ -2860,7 +2860,9 @@
       "removeCustomer": "Remove customer",
       "addCustomer": "Add customer",
       "notSet": "Not set",
-      "viewCart": "View cart"
+      "viewCart": "View cart",
+      "bags": "Bags",
+      "pieces": "Pieces"
     },
     "schedule": {
       "title": "Ready / Delivery date",
