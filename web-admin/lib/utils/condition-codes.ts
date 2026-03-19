@@ -48,6 +48,7 @@ export function getConditionPrefKind(
   const preference_code = toCatalogCode(code);
   const condition = STAIN_CONDITIONS.find((c) => c.code.toLowerCase() === code.toLowerCase());
   const category = condition?.category ?? 'stain';
-  const preference_sys_kind = category === 'damage' ? 'condition_damag' : 'condition_stain';
+  const preference_sys_kind =
+    category === 'damage' || category === 'special' ? 'condition_damag' : 'condition_stain';
   return { preference_code, preference_sys_kind };
 }

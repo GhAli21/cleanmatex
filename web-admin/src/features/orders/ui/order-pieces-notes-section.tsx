@@ -289,32 +289,31 @@ export function OrderPiecesNotesSection({
                   return (
                     <tr
                       key={piece.id}
-                      onClick={() => setFocusedPieceId(piece.id)}
+                      onClick={() => setFocusedPieceId(isFocused ? null : piece.id)}
                       className={`border-b border-gray-100 cursor-pointer transition-colors ${
                         isFocused
-                          ? 'bg-blue-50 ring-2 ring-inset ring-blue-400'
+                          ? 'bg-blue-50 outline outline-2 outline-blue-400 outline-offset-[-2px]'
                           : 'hover:bg-gray-50'
                       }`}
                     >
-                      {/* Item column — only on first piece row */}
-                      {isFirst && (
-                        <td
-                          rowSpan={itemRowSpan}
-                          className={`px-3 py-2 align-top border-e border-gray-100 ${isRTL ? 'text-right' : 'text-left'}`}
-                        >
-                          <div className="font-medium text-gray-900 leading-snug">
+                      {/* Item column — repeated per piece row (no rowspan) for clear selectability */}
+                      <td
+                        className={`px-3 py-2 align-middle border-e border-gray-100 min-w-[130px] ${isRTL ? 'text-right' : 'text-left'}`}
+                      >
+                        {isFirst && (
+                          <div className="font-medium text-gray-900 leading-snug text-xs">
                             {getBilingual(item.productName, item.productName2) || '—'}
                           </div>
-                          <div className="text-gray-400 text-[10px] mt-0.5">
-                            {tPieces('pieceNumber', { number: piece.pieceSeq })}
-                            {itemRowSpan > 1 && (
-                              <span className="ms-1 text-gray-400">
-                                ({itemRowSpan} {tPieces('pieces') || 'pcs'})
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                      )}
+                        )}
+                        <div className={`text-[11px] font-semibold mt-0.5 ${isFocused ? 'text-blue-600' : 'text-gray-500'}`}>
+                          {tPieces('pieceNumber', { number: piece.pieceSeq })}
+                          {itemRowSpan > 1 && isFirst && (
+                            <span className="ms-1 font-normal text-gray-400">
+                              ({itemRowSpan} {tPieces('pieces') || 'pcs'})
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
                       {/* Color */}
                       <td className="px-3 py-2 align-middle">

@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -75,6 +75,11 @@ export function OrderDetailsSection({
   const [expandedPiecesItems, setExpandedPiecesItems] = useState<Set<string>>(
     () => new Set(),
   );
+  const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
+
+  const handleSelectPiece = useCallback((pieceId: string) => {
+    setSelectedPieceId((prev) => (prev === pieceId ? null : pieceId));
+  }, []);
 
   const hasItems = state.items.length > 0;
 
@@ -429,59 +434,80 @@ export function OrderDetailsSection({
                   </td>
                 </tr>
 
-                {/* Child rows: pieces (read-only; edit in cart per plan) */}
+                {/* Child rows: pieces — selectable rows */}
                 {trackByPiece &&
                   expandedPiecesItems.has(item.productId) &&
-                  (item.pieces ?? []).map((piece) => (
-                    <tr key={piece.id} className="bg-gray-50 border-t border-gray-100">
-                      <td className="px-6 py-2 align-top" colSpan={hasServicePrefs || hasPackingPrefs ? 8 : 7}>
-                        <div className="rounded-lg border border-gray-200 bg-white p-3 space-y-2 shadow-xs">
-                          <div className={`flex flex-wrap items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                                {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
-                                  <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
-                                )}
-                                <span>
-                                  <span className="text-xs font-medium text-gray-600">{tPieces('pieceNumber', { number: piece.pieceSeq })}</span>
-                                  <span className="text-xs text-gray-700 ms-1">{piece.color || tPieces('notSet')} / {piece.brand || tPieces('notSet')}</span>
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-gray-600">{tPieces('rackLocation')}: </span>
-                                <span className="text-xs text-gray-700">{piece.rackLocation || tPieces('notSet')}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-gray-600">{tPieces('hasStain')}: </span>
-                                <span className="text-xs text-gray-700">{piece.hasStain ? tCommon('yes') : tCommon('no')}</span>
-                              </div>
-                              <div>
-                                <span className="text-xs font-medium text-gray-600">{tPieces('hasDamage')}: </span>
-                                <span className="text-xs text-gray-700">{piece.hasDamage ? tCommon('yes') : tCommon('no')}</span>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePiece(item.productId, piece.id)}
-                              className="shrink-0 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-full p-2 text-red-600 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
-                              aria-label={tPieces('removePiece') || 'Remove piece'}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                  (item.pieces ?? []).map((piece) => {
+                    const isPieceSelected = selectedPieceId === piece.id;
+                    return (
+                      <tr
+                        key={piece.id}
+                        onClick={() => handleSelectPiece(piece.id)}
+                        className={`border-t border-gray-100 cursor-pointer transition-colors ${
+                          isPieceSelected
+                            ? 'bg-blue-50 outline outline-2 outline-blue-400 outline-offset-[-2px]'
+                            : 'bg-gray-50 hover:bg-blue-50/40'
+                        }`}
+                      >
+                        {/* Piece label */}
+                        <td className={`px-6 py-2 align-middle ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <span className={`text-xs font-semibold ${isPieceSelected ? 'text-blue-700' : 'text-gray-600'}`}>
+                              {tPieces('pieceNumber', { number: piece.pieceSeq })}
+                            </span>
+                            {piece.color && /^#[0-9A-Fa-f]{3,8}$/.test(piece.color) && (
+                              <span className="w-3 h-3 rounded-full shrink-0 border border-gray-300" style={{ backgroundColor: piece.color }} aria-hidden />
+                            )}
+                            {piece.color && (
+                              <span className="text-xs text-gray-500">{piece.color}</span>
+                            )}
                           </div>
-                          {piece.notes && (
-                            <div>
-                              <span className="text-xs font-medium text-gray-600">{tPieces('notes')}: </span>
-                              <span className="text-xs text-gray-700">{piece.notes}</span>
-                            </div>
-                          )}
-                          <p className="text-xs text-gray-500 italic">
-                            {tPieces('editInCart') || 'Edit pieces in the cart'}
-                          </p>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        {/* Service category */}
+                        <td className="px-3 py-2 align-middle" />
+                        {/* Qty placeholder */}
+                        <td className="px-3 py-2 align-middle" />
+                        {/* Stain / Damage badges */}
+                        <td className={`px-3 py-2 align-middle ${isRTL ? 'text-right' : 'text-left'}`} colSpan={2}>
+                          <div className={`flex flex-wrap gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            {piece.hasStain && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 text-[10px] font-medium">
+                                {tPieces('hasStain')}
+                              </span>
+                            )}
+                            {piece.hasDamage && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-red-100 text-red-700 text-[10px] font-medium">
+                                {tPieces('hasDamage')}
+                              </span>
+                            )}
+                            {piece.rackLocation && (
+                              <span className="text-[10px] text-gray-500">{piece.rackLocation}</span>
+                            )}
+                            {piece.notes && (
+                              <span className="text-[10px] text-gray-500 italic">{piece.notes}</span>
+                            )}
+                          </div>
+                        </td>
+                        {/* Note */}
+                        <td className="px-3 py-2 align-middle" />
+                        {/* Preferences placeholder */}
+                        {(hasServicePrefs || hasPackingPrefs) && (
+                          <td className="px-3 py-2 align-middle" />
+                        )}
+                        {/* Remove */}
+                        <td className="px-3 py-2 align-middle text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); handleRemovePiece(item.productId, piece.id); }}
+                            className="inline-flex items-center justify-center p-1.5 text-red-500 hover:bg-red-50 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1"
+                            aria-label={tPieces('removePiece') || 'Remove piece'}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
 
                 {/* Add piece row */}
                 {trackByPiece && expandedPiecesItems.has(item.productId) && (

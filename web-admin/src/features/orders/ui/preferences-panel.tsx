@@ -143,7 +143,7 @@ export function PreferencesPanel({
 
           {/* Tab Content */}
           <div className="p-4">
-            {(activeTab === 'stain' || activeTab === 'damage' || activeTab === 'special') && (
+            {(activeTab === 'stain' || activeTab === 'damage') && (
               <StainConditionToggles
                 selectedConditions={selectedConditions}
                 onConditionToggle={onConditionToggle}
@@ -152,7 +152,6 @@ export function PreferencesPanel({
                 hideFilterBar
                 stainCatalog={conditionCatalog.stains}
                 damageCatalog={conditionCatalog.damages}
-                specialCatalog={[]}
               />
             )}
 

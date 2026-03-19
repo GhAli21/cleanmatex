@@ -23,12 +23,11 @@ interface StainConditionTogglesProps {
   selectedConditions: string[];
   onConditionToggle: (conditionCode: string) => void;
   disabled?: boolean;
-  defaultFilter?: 'all' | 'stain' | 'damage' | 'special';
+  defaultFilter?: 'all' | 'stain' | 'damage';
   hideFilterBar?: boolean;
   // Catalog data from DB (falls back to STAIN_CONDITIONS if not provided or empty)
   stainCatalog?: CatalogEntry[];
   damageCatalog?: CatalogEntry[];
-  specialCatalog?: CatalogEntry[];
 }
 
 export function StainConditionToggles({
@@ -39,12 +38,11 @@ export function StainConditionToggles({
   hideFilterBar = false,
   stainCatalog,
   damageCatalog,
-  specialCatalog,
 }: StainConditionTogglesProps) {
   const t = useTranslations('newOrder.notesPalette');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
-  const [filter, setFilter] = useState<'all' | 'stain' | 'damage' | 'special'>(defaultFilter ?? 'all');
+  const [filter, setFilter] = useState<'all' | 'stain' | 'damage'>(defaultFilter ?? 'all');
 
   // Map catalog entries to StainCondition shape
   const toCondition = (
@@ -67,23 +65,16 @@ export function StainConditionToggles({
   const damages =
     damageCatalog && damageCatalog.length > 0
       ? toCondition(damageCatalog, 'damage')
-      : STAIN_CONDITIONS.filter((c) => c.category === 'damage');
+      : STAIN_CONDITIONS.filter((c) => c.category === 'damage' || c.category === 'special');
 
-  const specials =
-    specialCatalog && specialCatalog.length > 0
-      ? toCondition(specialCatalog, 'special')
-      : STAIN_CONDITIONS.filter((c) => c.category === 'special');
-
-  const allConditions = [...stains, ...damages, ...specials];
+  const allConditions = [...stains, ...damages];
 
   const filteredConditions =
     filter === 'all'
       ? allConditions
       : filter === 'stain'
       ? stains
-      : filter === 'damage'
-      ? damages
-      : specials;
+      : damages;
 
   const getLabel = (c: StainCondition) =>
     getBilingual(c.label, c.label2 ?? null) || c.label;
@@ -130,16 +121,6 @@ export function StainConditionToggles({
             >
               {t('damage')}
             </button>
-            <button
-              onClick={() => setFilter('special')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                filter === 'special'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {t('special')}
-            </button>
           </div>
         </div>
       )}
@@ -158,9 +139,7 @@ export function StainConditionToggles({
           const categoryColor = selected
             ? condition.category === 'stain'
               ? 'bg-orange-500 text-white border-orange-600'
-              : condition.category === 'damage'
-              ? 'bg-red-500 text-white border-red-600'
-              : 'bg-purple-500 text-white border-purple-600'
+              : 'bg-red-500 text-white border-red-600'
             : disabled
             ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-transparent'
             : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent';

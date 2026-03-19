@@ -20,6 +20,7 @@ import { checkOrderLock, unlockOrder, lockOrderForEdit } from '@/lib/services/or
 import { createEditAudit } from '@/lib/services/order-audit.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
+import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -994,23 +995,78 @@ export class OrderService {
         // Always create pieces for each order item
         if (item.quantity > 0) {
           const pricePerPiece = item.totalPrice / item.quantity;
-          const piecesData = Array.from({ length: item.quantity }, (_, i) => ({
-            tenant_org_id: tenantId,
-            order_id: order.id,
-            order_item_id: createdItem.id,
-            branch_id: branchId ?? null,
-            piece_seq: i + 1,
-            service_category_code: item.serviceCategoryCode,
-            product_id: item.productId,
-            scan_state: 'expected',
-            quantity: 1,
-            price_per_unit: pricePerPiece,
-            total_price: pricePerPiece,
-            piece_status: 'processing',
-            is_rejected: false,
-            is_ready: false,
-          }));
-          await tx.org_order_item_pieces_dtl.createMany({ data: piecesData });
+
+          for (let i = 0; i < item.quantity; i++) {
+            const pieceInput = item.pieces?.[i];
+
+            const createdPiece = await tx.org_order_item_pieces_dtl.create({
+              data: {
+                tenant_org_id: tenantId,
+                order_id: order.id,
+                order_item_id: createdItem.id,
+                branch_id: branchId ?? null,
+                piece_seq: i + 1,
+                service_category_code: item.serviceCategoryCode,
+                product_id: item.productId,
+                scan_state: 'expected',
+                quantity: 1,
+                price_per_unit: pricePerPiece,
+                total_price: pricePerPiece,
+                piece_status: 'processing',
+                is_rejected: false,
+                is_ready: false,
+                color: pieceInput?.color ? { codes: [pieceInput.color], primary: pieceInput.color } : undefined,
+                notes: pieceInput?.notes ?? null,
+                has_stain: pieceInput?.hasStain ?? false,
+                has_damage: pieceInput?.hasDamage ?? false,
+              },
+            });
+
+            // Save piece conditions to org_order_preferences_dtl
+            const conditions = pieceInput?.conditions ?? [];
+            if (conditions.length > 0) {
+              await tx.org_order_preferences_dtl.createMany({
+                data: conditions.map((code, cidx) => {
+                  const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+                  return {
+                    tenant_org_id: tenantId,
+                    order_id: order.id,
+                    prefs_no: cidx + 1,
+                    prefs_level: 'PIECE',
+                    order_item_id: createdItem.id,
+                    order_item_piece_id: createdPiece.id,
+                    preference_code,
+                    preference_sys_kind,
+                    prefs_source: 'ORDER_CREATE',
+                    extra_price: 0,
+                    branch_id: branchId ?? null,
+                    created_by: userId,
+                  };
+                }),
+              });
+            }
+
+            // Save piece-level service prefs to org_order_preferences_dtl
+            const piecePrefs = pieceInput?.servicePrefs ?? [];
+            if (piecePrefs.length > 0) {
+              await tx.org_order_preferences_dtl.createMany({
+                data: piecePrefs.map((pref, pidx) => ({
+                  tenant_org_id: tenantId,
+                  order_id: order.id,
+                  prefs_no: conditions.length + pidx + 1,
+                  prefs_level: 'PIECE',
+                  order_item_id: createdItem.id,
+                  order_item_piece_id: createdPiece.id,
+                  preference_code: pref.preference_code,
+                  preference_sys_kind: 'service_prefs',
+                  prefs_source: pref.source,
+                  extra_price: pref.extra_price,
+                  branch_id: branchId ?? null,
+                  created_by: userId,
+                })),
+              });
+            }
+          }
         }
       }
 

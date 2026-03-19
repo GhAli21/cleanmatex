@@ -29,7 +29,8 @@ export class OrderItemPreferenceService {
       .select('id, order_item_id, preference_code, preference_category, prefs_source, extra_price, branch_id')
       .eq('tenant_org_id', tenantId)
       .eq('order_item_id', orderItemId)
-      .eq('prefs_level', 'ITEM');
+      .eq('prefs_level', 'ITEM')
+      .eq('preference_sys_kind', 'service_prefs');
 
     if (error) {
       logger.error('Failed to get item service prefs', new Error(error.message), {

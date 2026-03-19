@@ -32,7 +32,8 @@ export class OrderPiecePreferenceService {
       .select('id, order_item_piece_id, preference_code, preference_category, prefs_source, extra_price, branch_id')
       .eq('tenant_org_id', tenantId)
       .eq('order_item_piece_id', pieceId)
-      .eq('prefs_level', 'PIECE');
+      .eq('prefs_level', 'PIECE')
+      .eq('preference_sys_kind', 'service_prefs');
 
     if (error) {
       logger.error('Failed to get piece service prefs', new Error(error.message), {
