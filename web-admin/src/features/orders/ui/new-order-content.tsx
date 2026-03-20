@@ -71,6 +71,7 @@ export function NewOrderContent() {
     const { trackItemAddition, trackModalOpen, resetMetrics } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details' | 'pieces' | 'customer'>('select');
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+    const [focusItemId, setFocusItemId] = useState<string | null>(null);
     const { isDesktop } = useBreakpoint();
     const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -420,6 +421,8 @@ export function NewOrderContent() {
     // Branch is required when there are multiple branches and none is selected yet
     const branchRequired = !branchesLoading && branches.length > 1 && !state.state.branchId;
 
+    const hasBranchDependentData = state.state.items.length > 0 || !!state.state.customer;
+
     useKeyboardNavigation({
         enabled: true,
         onKey: (key, event) => {
@@ -488,8 +491,11 @@ export function NewOrderContent() {
         // Bags
         bags: state.state.bags,
         onBagsChange: state.setBags,
-        // Edit item notes — navigate to pieces tab
-        onEditItemNotes: (_itemId: string) => { setActiveTab('pieces'); },
+        // Edit item notes — navigate to pieces tab and focus the item
+        onEditItemNotes: (itemId: string) => {
+            setFocusItemId(itemId);
+            setActiveTab('pieces');
+        },
     };
 
     return (
@@ -517,6 +523,7 @@ export function NewOrderContent() {
                 onSelectCategory={handleSelectCategory}
                 categoriesLoading={state.state.categoriesLoading}
                 showCategories={activeTab === 'select'}
+                hasBranchDependentData={hasBranchDependentData}
             />
 
             {/* Edit order bar */}
@@ -651,6 +658,8 @@ export function NewOrderContent() {
                                     enforcePrefCompatibility={enforcePrefCompatibility}
                                     currencyCode={currencyCode}
                                     onCopyPieceToAll={handleCopyPieceToAll}
+                                    focusItemId={focusItemId}
+                                    onFocusItemHandled={() => setFocusItemId(null)}
                                 />
                             </div>
                         )}

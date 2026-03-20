@@ -9,6 +9,7 @@
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
@@ -16,8 +17,9 @@ import { StainConditionToggles } from './stain-condition-toggles';
 import { CmxTextarea } from '@ui/primitives';
 import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from '../model/new-order-types';
+import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 
-type ActiveTab = 'stain' | 'damage' | 'special' | 'prefs' | 'notes';
+type ActiveTab = 'stain' | 'damage' | 'special' | 'color' | 'prefs' | 'notes';
 
 interface PreferencesPanelProps {
   selectedPieceId: string | null;
@@ -36,6 +38,7 @@ export function PreferencesPanel({
   const tPieces = useTranslations('newOrder.pieces');
   const tPalette = useTranslations('newOrder.notesPalette');
   const isRTL = useRTL();
+  const getBilingual = useBilingual();
   const [activeTab, setActiveTab] = useState<ActiveTab>('stain');
   const { state, updateItemPieces, updateItemServicePrefs, updateItemNotes } = useNewOrderStateWithDispatch();
   const { servicePrefs, conditionCatalog } = usePreferenceCatalog(state.branchId);
@@ -87,6 +90,7 @@ export function PreferencesPanel({
     { id: 'stain', label: tPalette('stains'), show: true },
     { id: 'damage', label: tPalette('damage'), show: true },
     { id: 'special', label: tPalette('special'), show: true },
+    { id: 'color' as ActiveTab, label: tPalette('colors'), show: conditionCatalog.colors.length > 0 },
     { id: 'prefs', label: t('preferences'), show: servicePrefs.length > 0 },
     { id: 'notes', label: tPieces('notes'), show: true },
   ];
@@ -153,6 +157,52 @@ export function PreferencesPanel({
                 stainCatalog={conditionCatalog.stains}
                 damageCatalog={conditionCatalog.damages}
               />
+            )}
+
+            {activeTab === 'special' && (
+              <StainConditionToggles
+                selectedConditions={selectedConditions}
+                onConditionToggle={onConditionToggle}
+                disabled={false}
+                defaultFilter="damage"
+                hideFilterBar
+                stainCatalog={[]}
+                damageCatalog={conditionCatalog.damages.filter((d) =>
+                  STAIN_CONDITIONS.some((s) => s.code === d.code && s.category === 'special')
+                )}
+              />
+            )}
+
+            {activeTab === 'color' && (
+              <div>
+                <div className="flex flex-wrap gap-2">
+                  {conditionCatalog.colors.map((color) => {
+                    const isSelected = selectedConditions.includes(color.code);
+                    const label = getBilingual(color.name, color.name2 ?? null) || color.name;
+                    return (
+                      <button
+                        key={color.code}
+                        type="button"
+                        title={label}
+                        onClick={() => onConditionToggle(color.code)}
+                        className={`w-9 h-9 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                          isSelected
+                            ? 'border-blue-600 ring-2 ring-blue-300 scale-110'
+                            : 'border-gray-300 hover:border-gray-500'
+                        }`}
+                        style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
+                        aria-label={label}
+                        aria-pressed={isSelected}
+                      />
+                    );
+                  })}
+                </div>
+                {conditionCatalog.colors.length === 0 && (
+                  <p className="text-xs text-gray-500 text-center py-4">
+                    {tPalette('colors') || 'No colors available'}
+                  </p>
+                )}
+              </div>
             )}
 
             {activeTab === 'prefs' && servicePrefs.length > 0 && (

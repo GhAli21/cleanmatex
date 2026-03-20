@@ -65,7 +65,7 @@ export function StainConditionToggles({
   const damages =
     damageCatalog && damageCatalog.length > 0
       ? toCondition(damageCatalog, 'damage')
-      : STAIN_CONDITIONS.filter((c) => c.category === 'damage' || c.category === 'special');
+      : STAIN_CONDITIONS.filter((c) => c.category === 'damage');
 
   const allConditions = [...stains, ...damages];
 

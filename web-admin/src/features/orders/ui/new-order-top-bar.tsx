@@ -37,6 +37,7 @@ interface NewOrderTopBarProps {
   onSelectCategory: (code: string) => void;
   categoriesLoading?: boolean;
   showCategories?: boolean;
+  hasBranchDependentData?: boolean;
 }
 
 export const NewOrderTopBar = memo(function NewOrderTopBar({
@@ -54,6 +55,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   onSelectCategory,
   categoriesLoading = false,
   showCategories = true,
+  hasBranchDependentData = false,
 }: NewOrderTopBarProps) {
   const t = useTranslations('newOrder');
   const tCommon = useTranslations('common');
@@ -67,7 +69,17 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
         {branches.length > 1 && (
           <select
             value={branchId ?? ''}
-            onChange={(e) => onBranchChange(e.target.value || null)}
+            autoFocus={!branchId}
+            onChange={(e) => {
+              const newId = e.target.value || null;
+              if (hasBranchDependentData && newId && newId !== branchId) {
+                const confirmed = window.confirm(
+                  t('warnings.changeBranchConfirm') || 'Changing the branch will clear your current order data. Continue?'
+                );
+                if (!confirmed) return;
+              }
+              onBranchChange(newId);
+            }}
             className={`max-w-[180px] px-3 py-1.5 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!branchId ? 'border-amber-400 bg-amber-50' : 'border-gray-300'} ${isRTL ? 'text-right' : 'text-left'}`}
             dir={isRTL ? 'rtl' : 'ltr'}
             aria-label={tCommon('branch')}

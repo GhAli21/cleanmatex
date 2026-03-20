@@ -6,12 +6,12 @@
 
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
-import { StainConditionToggles } from './stain-condition-toggles';
+import { PreferencesPanel } from './preferences-panel';
 import { Copy } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import type { OrderItem, PreSubmissionPiece, OrderItemServicePref } from '../model/new-order-types';
@@ -36,6 +36,8 @@ interface OrderPiecesNotesSectionProps {
   enforcePrefCompatibility?: boolean;
   currencyCode?: string;
   onCopyPieceToAll: (itemId: string, pieceId: string) => void;
+  focusItemId?: string | null;
+  onFocusItemHandled?: () => void;
 }
 
 interface ItemGroup {
@@ -47,6 +49,8 @@ export function OrderPiecesNotesSection({
   conditionCatalog,
   servicePrefs,
   onCopyPieceToAll,
+  focusItemId,
+  onFocusItemHandled,
 }: OrderPiecesNotesSectionProps) {
   const t = useTranslations('newOrder');
   const tPieces = useTranslations('newOrder.pieces');
@@ -56,6 +60,30 @@ export function OrderPiecesNotesSection({
 
   const [showAllItems, setShowAllItems] = useState(false);
   const [focusedPieceId, setFocusedPieceId] = useState<string | null>(null);
+
+  const itemCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  useEffect(() => {
+    if (!focusItemId) return;
+    // Make all items visible
+    setShowAllItems(true);
+    // Find the target item and its first piece
+    const targetItem = state.items.find((item) => item.productId === focusItemId);
+    if (targetItem) {
+      const firstPiece = targetItem.pieces?.[0];
+      if (firstPiece) {
+        setFocusedPieceId(firstPiece.id);
+      } else {
+        setFocusedPieceId(`temp-${targetItem.productId}-1`);
+      }
+    }
+    // Scroll after next render
+    setTimeout(() => {
+      const ref = itemCardRefs.current.get(focusItemId);
+      if (ref) ref.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      onFocusItemHandled?.();
+    }, 100);
+  }, [focusItemId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Upcharge prefs: service prefs with extra price > 0
   const upchargePrefs = useMemo(
@@ -216,6 +244,10 @@ export function OrderPiecesNotesSection({
             <div
               key={item.productId}
               className="rounded-lg border border-gray-200 overflow-hidden"
+              ref={(el) => {
+                if (el) itemCardRefs.current.set(item.productId, el);
+                else itemCardRefs.current.delete(item.productId);
+              }}
             >
               {/* Item header */}
               <div className={`flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -427,13 +459,13 @@ export function OrderPiecesNotesSection({
       {focusedPieceId && (
         <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
           <p className="text-xs text-blue-600 font-medium mb-2">
-            {tPieces('focusPieceHint') || 'Click a row to edit conditions in the palette below'}
+            {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
           </p>
-          <StainConditionToggles
+          <PreferencesPanel
+            selectedPieceId={focusedPieceId}
             selectedConditions={focusedConditions}
             onConditionToggle={handleConditionToggle}
-            stainCatalog={conditionCatalog.stains}
-            damageCatalog={conditionCatalog.damages}
+            enforcePrefCompatibility={false}
           />
         </div>
       )}

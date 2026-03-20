@@ -44,7 +44,7 @@ Manual testing checklist for the New Order UI/UX enhancements. Test at each brea
 
 ### 5. Preferences Panel
 
-- [ ] PreferencesForSelectedPiecePanel scrolls into view when piece selected
+- [ ] PreferencesForSelectedPiecePanel scrolls into view when piece selecteed
 - [ ] "Selected for preferences" label on selected piece
 - [ ] Panel shows Service Prefs + Conditions + Notes
 
