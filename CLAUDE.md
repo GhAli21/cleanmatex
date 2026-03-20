@@ -1,12 +1,12 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
-**Last Update** 19-03-2026
-**Last Update Description** Ported cursor always-applied rules into Claude skills; removed broken .cursor/rules/ references; added exact UI import snippets, report naming convention, UX enforcement checklist
+**Last Update** 20-03-2026
+**Last Update Description** Added mandatory skill loading rule before writing any code
 
 ## CRITICAL RULES
 
-1. **Never do Supabase db reset** - tell me, I'll run db migrations
+1. **Never do Supabase db reset** - tell the user, I'll run db migrations
 2. **Never modify existing migration files** - always create a NEW migration for fixes or changes or new objects
 3. **NEVER apply/run database migrations** - Create migration SQL files only, then STOP and ask me to review and apply them. Do NOT use Supabase MCP, CLI, or any tool to execute migrations.
 4. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
@@ -15,6 +15,24 @@
 7. **Use agents for exploration** - See efficiency guide below
 8. **Use `/clear` frequently** - When switching topics or context >70%
 9. **Check skills for detailed rules** - Use `/skill-name` for specifics
+
+## Mandatory Skill Loading Before Writing Code
+
+Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
+
+| Task type | Load skill first |
+|---|---|
+| Any SQL, migration, table, index, function | `/database` |
+| Any frontend component, page, hook, JSX | `/frontend` |
+| Any i18n key, translation, bilingual text | `/i18n` |
+| Any API route, service, backend logic | `/backend` |
+| Any query touching `org_*` tables | `/multitenancy` |
+| Any new feature implementation | `/implementation` |
+
+**How to enforce:**
+- In plan mode: load skills during Phase 1 exploration, before Phase 2 design
+- In execution mode: load skills before writing the first line of code for that domain
+- If a skill was not loaded and you wrote code — stop, load the skill, verify compliance, fix if needed
 
 ## Agent-First Workflow
 

@@ -32,6 +32,32 @@ export {
 };
 
 // ============================================================================
+// Preference Kind
+// ============================================================================
+
+export const PREFERENCE_MAIN_TYPES = {
+  PREFERENCES: 'preferences',
+  CONDITIONS:  'conditions',
+  COLOR:       'color',
+  NOTES:       'notes',
+} as const;
+
+export type PreferenceMainType = (typeof PREFERENCE_MAIN_TYPES)[keyof typeof PREFERENCE_MAIN_TYPES];
+
+export interface PreferenceKind {
+  kind_code:            string;
+  name:                 string | null;
+  name2:                string | null;
+  kind_bg_color:        string | null;
+  main_type_code:       PreferenceMainType | null;
+  icon:                 string | null;
+  is_show_in_quick_bar: boolean;
+  is_show_for_customer: boolean;
+  is_active:            boolean;
+  rec_order:            number | null;
+}
+
+// ============================================================================
 // Catalog Entities
 // ============================================================================
 

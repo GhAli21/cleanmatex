@@ -9,6 +9,8 @@ import type {
   ServicePreference,
   PackingPreference,
   PreferenceBundle,
+  PreferenceKind,
+  PreferenceMainType,
 } from '@/lib/types/service-preferences';
 import { logger } from '@/lib/utils/logger';
 
@@ -677,6 +679,75 @@ export class PreferenceCatalogService {
         feature: 'preference_catalog',
       });
       return { success: false, error: 'Failed to reset packing preference' };
+    }
+  }
+
+  /**
+   * Get preference kinds for tenant (sys catalog + org overrides merged).
+   * @param quickBarOnly - When true, only return kinds with is_show_in_quick_bar=true
+   */
+  static async getPreferenceKinds(
+    supabase: SupabaseClient,
+    tenantId: string,
+    quickBarOnly = false
+  ): Promise<PreferenceKind[]> {
+    try {
+      const { data: sysKinds, error: sysError } = await supabase
+        .from('sys_preference_kind_cd')
+        .select('kind_code, name, name2, kind_bg_color, main_type_code, icon, is_show_in_quick_bar, is_show_for_customer, rec_order, is_active')
+        .eq('is_active', true)
+        .order('rec_order', { ascending: true });
+
+      if (sysError) {
+        logger.error('Failed to fetch sys_preference_kind_cd', new Error(sysError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_preference_kinds',
+        });
+        return [];
+      }
+
+      const { data: tenantCf } = await supabase
+        .from('org_preference_kind_cf')
+        .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas')
+        .eq('tenant_org_id', tenantId);
+
+      const cfMap = new Map(
+        (tenantCf || []).map((c) => [c.kind_code, c])
+      );
+
+      return (sysKinds || [])
+        .filter((s) => {
+          const cf = cfMap.get(s.kind_code);
+          if (cf && cf.is_stopped_by_saas) return false;
+          if (cf && !cf.is_active) return false;
+          if (quickBarOnly) {
+            const show = cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar;
+            if (!show) return false;
+          }
+          return true;
+        })
+        .map((s) => {
+          const cf = cfMap.get(s.kind_code);
+          return {
+            kind_code:            s.kind_code,
+            name:                 cf?.name ?? s.name,
+            name2:                cf?.name2 ?? s.name2,
+            kind_bg_color:        cf?.kind_bg_color ?? s.kind_bg_color,
+            main_type_code:       s.main_type_code as PreferenceMainType | null,
+            icon:                 s.icon,
+            is_show_in_quick_bar: cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar,
+            is_show_for_customer: cf ? cf.is_show_for_customer : s.is_show_for_customer,
+            is_active:            true,
+            rec_order:            s.rec_order,
+          } as PreferenceKind;
+        });
+    } catch (err) {
+      logger.error('PreferenceCatalogService.getPreferenceKinds failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return [];
     }
   }
 

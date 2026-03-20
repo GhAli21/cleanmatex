@@ -2836,7 +2836,20 @@
       "addItemFirst": "أضف عنصراً أولاً لتطبيق الحالات",
       "clickToApply": "انقر لتطبيق الحالة على العنصر المضاف مؤخراً",
       "appliedConditions": "الحالات المطبقة",
-      "removeCondition": "إزالة الحالة"
+      "removeCondition": "إزالة الحالة",
+      "noItemsAvailable": "لا توجد عناصر متاحة",
+      "loading": "جارٍ تحميل التفضيلات...",
+      "kinds": {
+        "service_prefs": "تفضيلات الخدمة",
+        "packing_prefs": "التعبئة",
+        "condition_stain": "البقع",
+        "condition_damag": "التلف",
+        "condition_special": "عناية خاصة",
+        "condition_pattern": "الأنماط",
+        "condition_material": "المادة",
+        "color": "الألوان",
+        "note": "الملاحظات"
+      }
     },
     "orderSummary": {
       "title": "ملخص الطلب",
