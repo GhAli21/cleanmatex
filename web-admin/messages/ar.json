@@ -2105,7 +2105,19 @@
       "category": "الفئة",
       "packagingType": "نوع التغليف",
       "edit": "تعديل",
-      "delete": "حذف"
+      "delete": "حذف",
+      "tabKinds": "أنواع التفضيلات",
+      "preferenceKinds": "أنواع التفضيلات",
+      "preferenceKindsDesc": "تكوين علامات تبويب التفضيلات التي تظهر في لوحة الطلب",
+      "noPreferenceKinds": "لم يتم تكوين أنواع التفضيلات",
+      "editPreferenceKind": "تعديل نوع التفضيل",
+      "showInQuickBar": "عرض في الشريط السريع",
+      "showForCustomer": "عرض للعميل",
+      "bgColor": "لون الخلفية",
+      "mainType": "النوع الرئيسي",
+      "kindCode": "رمز النوع",
+      "yes": "نعم",
+      "no": "لا"
     }
   },
   "validation": {

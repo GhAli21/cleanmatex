@@ -35,7 +35,7 @@ async function fetchPackingPreferences(tenantId: string): Promise<PackingPrefere
 }
 
 async function fetchPreferenceKinds(tenantId: string): Promise<PreferenceKind[]> {
-  const res = await fetch('/api/v1/catalog/preference-kinds?quickBarOnly=true', {
+  const res = await fetch('/api/v1/catalog/preference-kinds?quickBarOnly=false', {
     credentials: 'include',
   });
   if (!res.ok) return [];

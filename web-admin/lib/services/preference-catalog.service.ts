@@ -752,6 +752,149 @@ export class PreferenceCatalogService {
   }
 
   /**
+   * Get preference kinds for admin (sys catalog + org overrides merged, all records)
+   */
+  static async getPreferenceKindsForAdmin(
+    supabase: SupabaseClient,
+    tenantId: string
+  ): Promise<
+    Array<{
+      kind_code: string;
+      name: string | null;
+      name2: string | null;
+      kind_bg_color: string | null;
+      icon: string | null;
+      main_type_code: string | null;
+      rec_order: number | null;
+      sys_is_active: boolean;
+      cf_id: string | null;
+      cf_name: string | null;
+      cf_name2: string | null;
+      cf_kind_bg_color: string | null;
+      cf_is_show_in_quick_bar: boolean | null;
+      cf_is_show_for_customer: boolean | null;
+      cf_is_active: boolean | null;
+    }>
+  > {
+    try {
+      const { data: sysKinds, error: sysError } = await supabase
+        .from('sys_preference_kind_cd')
+        .select('kind_code, name, name2, kind_bg_color, icon, main_type_code, rec_order, is_active')
+        .order('rec_order', { ascending: true });
+
+      if (sysError) {
+        logger.error('Failed to fetch sys_preference_kind_cd for admin', new Error(sysError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_preference_kinds_for_admin',
+        });
+        return [];
+      }
+
+      const { data: tenantCf } = await supabase
+        .from('org_preference_kind_cf')
+        .select('id, kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active')
+        .eq('tenant_org_id', tenantId);
+
+      const cfMap = new Map(
+        (tenantCf || []).map((c) => [c.kind_code, c])
+      );
+
+      return (sysKinds || []).map((s) => {
+        const cf = cfMap.get(s.kind_code);
+        return {
+          kind_code: s.kind_code,
+          name: s.name,
+          name2: s.name2,
+          kind_bg_color: s.kind_bg_color,
+          icon: s.icon,
+          main_type_code: s.main_type_code,
+          rec_order: s.rec_order,
+          sys_is_active: s.is_active ?? true,
+          cf_id: cf?.id ?? null,
+          cf_name: cf?.name ?? null,
+          cf_name2: cf?.name2 ?? null,
+          cf_kind_bg_color: cf?.kind_bg_color ?? null,
+          cf_is_show_in_quick_bar: cf?.is_show_in_quick_bar ?? null,
+          cf_is_show_for_customer: cf?.is_show_for_customer ?? null,
+          cf_is_active: cf?.is_active ?? null,
+        };
+      });
+    } catch (err) {
+      logger.error('PreferenceCatalogService.getPreferenceKindsForAdmin failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Upsert org_preference_kind_cf (tenant override for a preference kind)
+   */
+  static async upsertPreferenceKindCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    kindCode: string,
+    input: {
+      name?: string | null;
+      name2?: string | null;
+      kind_bg_color?: string | null;
+      is_show_in_quick_bar?: boolean;
+      is_show_for_customer?: boolean;
+      is_active?: boolean;
+    },
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const now = new Date().toISOString();
+      const payload = {
+        tenant_org_id: tenantId,
+        kind_code: kindCode,
+        name: input.name ?? null,
+        name2: input.name2 ?? null,
+        kind_bg_color: input.kind_bg_color ?? null,
+        is_show_in_quick_bar: input.is_show_in_quick_bar ?? true,
+        is_show_for_customer: input.is_show_for_customer ?? true,
+        is_active: input.is_active ?? true,
+        created_by: userId,
+        created_info: userName,
+        updated_at: now,
+        updated_by: userId,
+        updated_info: userName,
+      };
+
+      const { error } = await supabase
+        .from('org_preference_kind_cf')
+        .upsert(payload, {
+          onConflict: 'tenant_org_id,kind_code',
+          ignoreDuplicates: false,
+        });
+
+      if (error) {
+        if (error.code === '23503') {
+          return { success: false, error: 'Invalid preference kind code' };
+        }
+        logger.error('Failed to upsert org_preference_kind_cf', new Error(error.message), {
+          tenantId,
+          kindCode,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.upsertPreferenceKindCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        kindCode,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to save preference kind' };
+    }
+  }
+
+  /**
    * Delete (soft: is_active=false) or hard delete preference bundle
    */
   static async deletePreferenceBundle(

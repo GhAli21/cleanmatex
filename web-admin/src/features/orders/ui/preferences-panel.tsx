@@ -13,6 +13,7 @@ import { useBilingual } from '@/lib/utils/bilingual';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
+import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelector';
 import { StainConditionToggles } from './stain-condition-toggles';
 import { CmxTextarea } from '@ui/primitives';
 import { ShoppingCart } from 'lucide-react';
@@ -41,7 +42,7 @@ export function PreferencesPanel({
 
   const [activeKindCode, setActiveKindCode] = useState<string | null>(null);
 
-  const { state, updateItemPieces, updateItemServicePrefs, updateItemNotes } = useNewOrderStateWithDispatch();
+  const { state, updateItemPieces, updateItemServicePrefs, updateItemNotes, updateItemPackingPref } = useNewOrderStateWithDispatch();
   const {
     servicePrefs,
     packingPrefs,
@@ -112,12 +113,32 @@ export function PreferencesPanel({
 
     switch (kind.main_type_code) {
       case PREFERENCE_MAIN_TYPES.PREFERENCES: {
+        if (kind.kind_code === 'packing_prefs') {
+          return (
+            <>
+              {isItemLevel && item ? (
+                <PackingPreferenceSelector
+                  value={item.packingPrefCode}
+                  availablePrefs={packingPrefs}
+                  onChange={(code) =>
+                    updateItemPackingPref(item.productId, code)
+                  }
+                />
+              ) : piece && item ? (
+                <PackingPreferenceSelector
+                  value={piece.packingPrefCode}
+                  availablePrefs={packingPrefs}
+                  onChange={(code) =>
+                    handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code || undefined })
+                  }
+                />
+              ) : null}
+            </>
+          );
+        }
+
         const prefsToShow: ServicePreference[] =
-          kind.kind_code === 'packing_prefs'
-            ? (packingPrefs as unknown as ServicePreference[])
-            : kindPrefs.length > 0
-              ? kindPrefs
-              : servicePrefs;
+          kindPrefs.length > 0 ? kindPrefs : servicePrefs;
 
         return (
           <>
@@ -214,20 +235,24 @@ export function PreferencesPanel({
                 const isSelected = selectedConditions.includes(color.code);
                 const label = getBilingual(color.name, color.name2 ?? null) || color.name;
                 return (
-                  <button
-                    key={color.code}
-                    type="button"
-                    title={label}
-                    onClick={() => onConditionToggle(color.code)}
-                    className={`w-9 h-9 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${
-                      isSelected
-                        ? 'border-blue-600 ring-2 ring-blue-300 scale-110'
-                        : 'border-gray-300 hover:border-gray-500'
-                    }`}
-                    style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
-                    aria-label={label}
-                    aria-pressed={isSelected}
-                  />
+                  <div key={color.code} className="flex flex-col items-center gap-0.5">
+                    <button
+                      type="button"
+                      title={label}
+                      onClick={() => onConditionToggle(color.code)}
+                      className={`w-9 h-9 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                        isSelected
+                          ? 'border-blue-600 ring-2 ring-blue-300 scale-110'
+                          : 'border-gray-300 hover:border-gray-500'
+                      }`}
+                      style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
+                      aria-label={label}
+                      aria-pressed={isSelected}
+                    />
+                    {!color.color_hex && (
+                      <span className="text-[9px] text-gray-500 max-w-9 truncate text-center">{label}</span>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -317,7 +342,7 @@ export function PreferencesPanel({
                     key={kind.kind_code}
                     type="button"
                     onClick={() => setActiveKindCode(kind.kind_code)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors focus:outline-none flex-shrink-0 ${
+                    className={`px-3 py-1.5 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors focus:outline-none flex-shrink-0 flex items-center gap-1.5 ${
                       isActive
                         ? 'text-white'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
@@ -328,6 +353,13 @@ export function PreferencesPanel({
                         : undefined
                     }
                   >
+                    {kind.kind_bg_color && !isActive && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: kind.kind_bg_color }}
+                        aria-hidden="true"
+                      />
+                    )}
                     {label}
                   </button>
                 );

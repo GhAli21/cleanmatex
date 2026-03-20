@@ -2105,7 +2105,19 @@
       "category": "Category",
       "packagingType": "Packaging Type",
       "edit": "Edit",
-      "delete": "Delete"
+      "delete": "Delete",
+      "tabKinds": "Preference Kinds",
+      "preferenceKinds": "Preference Kinds",
+      "preferenceKindsDesc": "Configure which preference tabs show in the order panel",
+      "noPreferenceKinds": "No preference kinds configured",
+      "editPreferenceKind": "Edit Preference Kind",
+      "showInQuickBar": "Show in Quick Bar",
+      "showForCustomer": "Show for Customer",
+      "bgColor": "Background Color",
+      "mainType": "Main Type",
+      "kindCode": "Kind Code",
+      "yes": "Yes",
+      "no": "No"
     }
   },
   "validation": {
