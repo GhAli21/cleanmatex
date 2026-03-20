@@ -6,7 +6,7 @@
 
 'use client';
 
-import { memo, useEffect, useRef } from 'react';
+import { memo, useRef } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -82,11 +82,7 @@ export const ProductGrid = memo(function ProductGrid({
 
   const prefsPanelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (selectedPieceId && prefsPanelRef.current) {
-      prefsPanelRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [selectedPieceId]);
+  // Scroll removed: was auto-scrolling to preferences panel on every card click
 
   // Suppress unused variable warnings — props passed for future use / API consistency
   void onRemoveItem;

@@ -84,6 +84,8 @@ interface OrderSummaryPanelProps {
   // Bags
   bags?: number;
   onBagsChange?: (count: number) => void;
+  // Edit item notes (navigates to pieces tab)
+  onEditItemNotes?: (itemId: string) => void;
 }
 
 function OrderSummaryPanelComponent({
@@ -126,6 +128,7 @@ function OrderSummaryPanelComponent({
   onExpressToggle,
   bags = 0,
   onBagsChange,
+  onEditItemNotes,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -246,6 +249,7 @@ function OrderSummaryPanelComponent({
         <ItemCartList
           items={items}
           onEditItem={onEditItem}
+          onEditItemNotes={onEditItemNotes}
           onDeleteItem={handleDeleteItem}
           onPiecesChange={onPiecesChange}
           onCopyPieceToAll={onCopyPieceToAll}

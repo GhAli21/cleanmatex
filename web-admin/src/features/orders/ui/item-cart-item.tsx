@@ -6,12 +6,12 @@
 
 'use client';
 
-import { useState, memo, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
-import { Trash2, ChevronDown, ChevronUp, Plus, Copy } from 'lucide-react';
+import { Trash2, Plus, Copy } from 'lucide-react';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
@@ -104,7 +104,6 @@ function ItemCartItemComponent({
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const displayName = getBilingual(productName, productName2) || 'Unknown Product';
-  const [piecesExpanded, setPiecesExpanded] = useState(false);
 
   const showPieces = trackByPiece && pieces.length > 0;
   const implicitPieceId = `temp-${itemId}-1`;
@@ -237,18 +236,12 @@ function ItemCartItemComponent({
         </div>
       )}
 
-      {/* Piece Table — expandable */}
+      {/* Piece count indicator (no expand table — use Pieces tab for editing) */}
       {showPieces && (
-        <div className="mx-2 mt-2 border-t border-gray-100 pt-2">
-          <button
-            onClick={(e) => { e.stopPropagation(); setPiecesExpanded(!piecesExpanded); }}
-            className={`w-full flex items-center justify-between text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <span>{tPieces('viewPieces')} ({pieces.length})</span>
-            {piecesExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
+        <div className="mx-2 mt-1 border-t border-gray-100 pt-1">
+          <span className="text-xs text-gray-400">{tPieces('viewPieces')} ({pieces.length})</span>
 
-          {piecesExpanded && (
+          {false && (
             <div className="mt-1 overflow-x-auto">
               <table className="w-full text-xs border-collapse min-w-[360px]">
                 <thead>

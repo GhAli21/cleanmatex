@@ -60,7 +60,7 @@ export const NewOrderTopBar = memo(function NewOrderTopBar({
   const isRTL = useRTL();
 
   return (
-    <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
+    <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm flex-shrink-0">
       {/* Row 1: Branch + Customer + Express */}
       <div className={`px-4 py-2 flex items-center gap-3 flex-wrap ${isRTL ? 'flex-row-reverse' : ''}`}>
         {/* Branch Selector — only if multiple branches */}

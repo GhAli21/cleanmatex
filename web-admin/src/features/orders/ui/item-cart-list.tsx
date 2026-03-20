@@ -1,6 +1,6 @@
 /**
  * Item Cart List Component
- * List of all items in the order with edit/delete and piece tracking
+ * List of all items in the order summary panel
  * PRD-010: Advanced Order Management
  */
 
@@ -10,7 +10,7 @@ import { memo } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
-import { ItemCartItem } from './item-cart-item';
+import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
@@ -44,6 +44,7 @@ interface ColorCatalogEntry {
 interface ItemCartListProps {
   items: CartItem[];
   onEditItem?: (itemId: string) => void;
+  onEditItemNotes?: (itemId: string) => void;
   onDeleteItem: (itemId: string) => void;
   onPiecesChange?: (itemId: string, pieces: PreSubmissionPiece[]) => void;
   onCopyPieceToAll?: (itemId: string, pieceId: string) => void;
@@ -57,13 +58,10 @@ interface ItemCartListProps {
 function ItemCartListComponent({
   items,
   onEditItem,
+  onEditItemNotes,
   onDeleteItem,
-  onPiecesChange,
-  onCopyPieceToAll,
   trackByPiece = false,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
-  selectedPieceId = null,
-  onSelectPiece,
   colorCatalog,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
@@ -89,9 +87,10 @@ function ItemCartListComponent({
   }
 
   return (
-    <div className="space-y-0">
-      <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-3 pb-2 border-b-2 border-gray-200`}>
-        <h3 className={`font-semibold text-gray-900 text-sm sm:text-base ${isRTL ? 'text-right' : 'text-left'}`}>
+    <div>
+      {/* Header */}
+      <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-2 pb-2 border-b-2 border-gray-200`}>
+        <h3 className={`font-semibold text-gray-900 text-sm ${isRTL ? 'text-right' : 'text-left'}`}>
           {t('orderItems')} ({items.length})
         </h3>
         <span className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
@@ -103,36 +102,28 @@ function ItemCartListComponent({
         </span>
       </div>
 
-      <div>
+      {/* Items */}
+      <div className="rounded-lg border border-gray-200 overflow-hidden">
         {items.map((item, index) => (
-          <ItemCartItem
+          <SummaryCartItem
             key={item.id}
             itemNumber={index + 1}
             itemId={item.id}
             productName={item.productName}
             productName2={item.productName2}
             quantity={item.quantity}
-            price={item.pricePerUnit}
             totalPrice={item.totalPrice}
             conditions={item.conditions}
-            hasStain={item.hasStain}
-            hasDamage={item.hasDamage}
             notes={item.notes}
             pieces={item.pieces}
-            serviceCategoryCode={item.serviceCategoryCode}
-            serviceCategoryName={item.serviceCategoryName}
-            serviceCategoryName2={item.serviceCategoryName2}
-            onPiecesChange={onPiecesChange ? (pieces) => onPiecesChange(item.id, pieces) : undefined}
-            onCopyPieceToAll={onCopyPieceToAll ? (pieceId) => onCopyPieceToAll(item.id, pieceId) : undefined}
             trackByPiece={trackByPiece}
-            onEdit={onEditItem ? () => onEditItem(item.id) : undefined}
-            onDelete={() => onDeleteItem(item.id)}
             priceOverride={item.priceOverride}
             overrideReason={item.overrideReason}
             currencyCode={currencyCode}
-            selectedPieceId={selectedPieceId}
-            onSelectPiece={onSelectPiece}
             colorCatalog={colorCatalog}
+            onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
+            onEditNotes={onEditItemNotes ? () => onEditItemNotes(item.id) : undefined}
+            onDelete={() => onDeleteItem(item.id)}
           />
         ))}
       </div>

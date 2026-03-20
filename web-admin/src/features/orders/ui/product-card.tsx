@@ -56,7 +56,7 @@ export function ProductCard({
   return (
     <div
       className={`
-        relative border rounded-lg p-3 transition-all duration-150 cursor-pointer
+        relative border rounded-lg p-2 transition-all duration-150 cursor-pointer
         flex flex-col
         hover:scale-[1.02] active:scale-[0.98]
         ${
@@ -70,14 +70,14 @@ export function ProductCard({
       {hasQuantity && (
         <div
           key={quantity}
-          className="absolute -top-2 -end-2 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-base shadow-lg z-10 border-2 border-white animate-in zoom-in-50 duration-200"
+          className="absolute -top-2 -end-2 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xs shadow-lg z-10 border-2 border-white animate-in zoom-in-50 duration-200"
         >
           {quantity}
         </div>
       )}
 
       {/* Product Image/Icon */}
-      <div className="w-full h-16 bg-gray-100 rounded-lg mb-2 flex items-center justify-center overflow-hidden shrink-0">
+      <div className="w-full h-10 bg-gray-100 rounded-lg mb-1.5 flex items-center justify-center overflow-hidden shrink-0">
         {product.product_image ? (
           <img
             src={product.product_image}
@@ -92,7 +92,7 @@ export function ProductCard({
       </div>
 
       {/* Product Name */}
-      <h3 className={`font-medium text-sm mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>
+      <h3 className={`font-medium text-xs mb-1 text-gray-900 line-clamp-2 grow ${isRTL ? 'text-right' : 'text-left'}`}>
         {displayName}
       </h3>
 
@@ -111,7 +111,7 @@ export function ProductCard({
         <div className={`flex items-center justify-between gap-2 mt-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
           <button
             onClick={(e) => { e.stopPropagation(); onDecrement(); }}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            className="min-h-9 min-w-9 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
             aria-label={t('decreaseQuantity')}
           >
             <Minus className="w-3 h-3" />
@@ -121,7 +121,7 @@ export function ProductCard({
           </span>
           <button
             onClick={(e) => { e.stopPropagation(); onIncrement(); }}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="min-h-9 min-w-9 flex items-center justify-center rounded-full bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label={t('increaseQuantity')}
           >
             <Plus className="w-5 h-5" />
@@ -130,7 +130,7 @@ export function ProductCard({
       ) : (
         <button
           onClick={(e) => { e.stopPropagation(); onAdd(); }}
-          className={`w-full min-h-[44px] px-2 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+          className={`w-full min-h-9 px-2 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 font-semibold text-xs transition-colors shadow-sm flex items-center justify-center gap-1 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 ${isRTL ? 'flex-row-reverse' : ''}`}
           aria-label={t('add') || 'Add item'}
         >
           <Plus className="w-3 h-3" aria-hidden />

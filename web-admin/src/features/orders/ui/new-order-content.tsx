@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useEffect, useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
-import { Check } from 'lucide-react';
+import { Check, GitBranch } from 'lucide-react';
 import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
@@ -417,6 +417,9 @@ export function NewOrderContent() {
 
     const canSubmit = useMemo(() => !isSubmitDisabled, [isSubmitDisabled]);
 
+    // Branch is required when there are multiple branches and none is selected yet
+    const branchRequired = !branchesLoading && branches.length > 1 && !state.state.branchId;
+
     useKeyboardNavigation({
         enabled: true,
         onKey: (key, event) => {
@@ -485,6 +488,8 @@ export function NewOrderContent() {
         // Bags
         bags: state.state.bags,
         onBagsChange: state.setBags,
+        // Edit item notes — navigate to pieces tab
+        onEditItemNotes: (_itemId: string) => { setActiveTab('pieces'); },
     };
 
     return (
@@ -529,6 +534,23 @@ export function NewOrderContent() {
             <div className={`flex-1 min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Left/Center Panel */}
                 <div className="flex-1 min-h-0 flex flex-col">
+                    {/* Branch Required Gate */}
+                    {branchRequired ? (
+                        <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">
+                            <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+                                <GitBranch className="w-8 h-8 text-amber-500" aria-hidden />
+                            </div>
+                            <div>
+                                <p className="text-lg font-semibold text-gray-800">
+                                    {t('errors.selectBranch') || 'Please select a branch'}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    {tCommon('selectBranch') || 'Select a branch to continue'}
+                                </p>
+                            </div>
+                        </div>
+                    ) : (
+                    <>
                     {/* Step Tabs */}
                     <div className="shrink-0 px-4 pt-4 pb-2">
                         <div className="bg-white rounded-lg border border-gray-200 p-2" role="tablist" aria-label={t('title') || 'New order steps'}>
@@ -638,11 +660,13 @@ export function NewOrderContent() {
                             </div>
                         )}
                     </div>
+                    </>
+                    )}
                 </div>
 
                 {/* Right Sidebar (desktop) */}
                 {isDesktop ? (
-                    <div className="w-96 shrink-0 border-s border-gray-200 bg-white h-full flex flex-col overflow-hidden">
+                    <div className="w-[28rem] shrink-0 border-s border-gray-200 bg-white h-full flex flex-col overflow-hidden">
                         {!state.state.createdOrderId && !state.state.isEditMode && (
                             <div className={`shrink-0 px-4 pt-3 pb-2 border-b border-gray-100 ${isRTL ? 'text-left' : 'text-right'}`}>
                                 <button
