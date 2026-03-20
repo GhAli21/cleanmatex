@@ -2800,6 +2800,7 @@
       "pieceNumber": "Piece {number}",
       "totalPieces": "total pieces",
       "pieces": "Pieces",
+      "piece": "Piece",
       "color": "Color",
       "brand": "Brand",
       "hasStain": "Has Stain",

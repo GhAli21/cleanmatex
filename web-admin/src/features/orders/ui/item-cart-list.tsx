@@ -127,6 +127,14 @@ function ItemCartListComponent({
           />
         ))}
       </div>
+
+      {/* Total row */}
+      <div className={`flex items-center justify-between pt-2 mt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <span className="text-xs text-gray-500">{t('total') || 'Total'}</span>
+        <span className="text-sm font-semibold text-gray-900 tabular-nums">
+          {currencyCode} {items.reduce((sum, item) => sum + item.totalPrice, 0).toFixed(3)}
+        </span>
+      </div>
     </div>
   );
 }

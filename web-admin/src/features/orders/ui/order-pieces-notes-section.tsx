@@ -59,14 +59,15 @@ export function OrderPiecesNotesSection({
   const { state, updateItemPieces, updatePieceConditions, updatePieceColor } = useNewOrderStateWithDispatch();
 
   const [showAllItems, setShowAllItems] = useState(false);
+  const [filterItemId, setFilterItemId] = useState<string | null>(null);
   const [focusedPieceId, setFocusedPieceId] = useState<string | null>(null);
 
   const itemCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     if (!focusItemId) return;
-    // Make all items visible
-    setShowAllItems(true);
+    // Filter to only the focused item
+    setFilterItemId(focusItemId);
     // Find the target item and its first piece
     const targetItem = state.items.find((item) => item.productId === focusItemId);
     if (targetItem) {
@@ -105,8 +106,11 @@ export function OrderPiecesNotesSection({
               }));
         return { item, pieces };
       })
-      .filter(({ pieces }) => showAllItems || pieces.length > 1);
-  }, [state.items, showAllItems]);
+      .filter(({ item, pieces }) => {
+        if (filterItemId) return item.productId === filterItemId;
+        return showAllItems || pieces.length > 1;
+      });
+  }, [state.items, showAllItems, filterItemId]);
 
   // Focused piece conditions for bottom palette
   const focusedConditions = useMemo(() => {
@@ -224,9 +228,16 @@ export function OrderPiecesNotesSection({
         <CmxButton
           variant="outline"
           size="sm"
-          onClick={() => setShowAllItems((v) => !v)}
+          onClick={() => {
+            if (filterItemId) {
+              setFilterItemId(null);
+              setShowAllItems(false);
+            } else {
+              setShowAllItems((v) => !v);
+            }
+          }}
         >
-          {showAllItems ? tPieces('showMultiPieceOnly') || 'Multi-Piece Only' : tPieces('showAllItems') || 'Show All Items'}
+          {filterItemId || !showAllItems ? tPieces('showAllItems') || 'Show All Items' : tPieces('showMultiPieceOnly') || 'Multi-Piece Only'}
         </CmxButton>
       </div>
 
@@ -234,7 +245,7 @@ export function OrderPiecesNotesSection({
       {itemGroups.length === 0 ? (
         <div className={`text-center py-10 text-gray-500 space-y-3 ${isRTL ? 'text-right' : ''}`}>
           <p className="text-sm">{tPieces('noPiecesToShow') || 'No multi-piece items. Toggle "Show All Items" to view all.'}</p>
-          <CmxButton variant="outline" size="sm" onClick={() => setShowAllItems(true)}>
+          <CmxButton variant="outline" size="sm" onClick={() => { setFilterItemId(null); setShowAllItems(true); }}>
             {tPieces('showAllItems') || 'Show All Items'}
           </CmxButton>
         </div>

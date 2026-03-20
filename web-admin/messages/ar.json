@@ -2800,6 +2800,7 @@
       "pieceNumber": "قطعة {number}",
       "totalPieces": "إجمالي القطع",
       "pieces": "القطع",
+      "piece": "قطعة",
       "color": "اللون",
       "brand": "العلامة التجارية",
       "hasStain": "يحتوي على بقع",

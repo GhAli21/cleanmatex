@@ -110,7 +110,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditNotes(); }}
-            className="shrink-0 p-0.5 text-gray-300 hover:text-purple-500 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-purple-400"
+            className="shrink-0 p-0.5 text-gray-500 hover:text-purple-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-purple-400"
             title="Edit notes / pieces"
           >
             <Pencil className="w-3 h-3" />
@@ -138,7 +138,7 @@ function SummaryCartItemComponent({
           <button
             type="button"
             onClick={(e) => { e.stopPropagation(); onEditPrice(); }}
-            className="shrink-0 p-0.5 text-gray-300 hover:text-blue-500 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="shrink-0 p-0.5 text-gray-500 hover:text-blue-600 rounded transition-colors focus:outline-none focus:ring-1 focus:ring-blue-400"
             title="Override price"
           >
             <Pencil className="w-3 h-3" />
