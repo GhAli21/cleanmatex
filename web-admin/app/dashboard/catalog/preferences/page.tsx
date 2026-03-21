@@ -683,7 +683,8 @@ export default function PreferencesCatalogPage() {
   const tCatalog = useTranslations('catalog');
   const locale = useLocale();
   const isRtl = useMemo(() => locale === 'ar', [locale]);
-  const { currentTenant } = useAuth();
+  const { currentTenant, permissions } = useAuth();
+  const [showPermsDialog, setShowPermsDialog] = useState(false);
   const queryClient = useQueryClient();
   const { bundles } = usePreferenceBundles();
   const [loading, setLoading] = useState(true);
@@ -869,6 +870,56 @@ export default function PreferencesCatalogPage() {
       fallback={
         <CmxCard className="p-6">
           <p className="text-gray-600">You do not have permission to view the preferences catalog.</p>
+          <CmxButton
+            variant="outline"
+            size="sm"
+            className="mt-4"
+            onClick={() => setShowPermsDialog(true)}
+          >
+            🔍 Debug: Show My Permissions
+          </CmxButton>
+          {showPermsDialog && (
+            <CmxDialog open={showPermsDialog} onOpenChange={setShowPermsDialog}>
+              <CmxDialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+                <CmxDialogHeader>
+                  <CmxDialogTitle>Current User Permissions</CmxDialogTitle>
+                </CmxDialogHeader>
+                <div className="py-2">
+                  <p className="text-xs text-gray-500 mb-3">
+                    Total: <strong>{permissions?.length ?? 0}</strong> permissions
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2 font-semibold">
+                    Required (any of):
+                  </p>
+                  {['orders:service_prefs_view', 'orders:read', 'config:preferences_manage'].map((p) => (
+                    <div key={p} className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded font-mono ${permissions?.includes(p) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-700'}`}>
+                        {permissions?.includes(p) ? '✓' : '✗'} {p}
+                      </span>
+                    </div>
+                  ))}
+                  <hr className="my-3" />
+                  <p className="text-xs text-gray-500 mb-2 font-semibold">All permissions:</p>
+                  {(permissions ?? []).length === 0 ? (
+                    <p className="text-sm text-red-600">No permissions found.</p>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      {[...(permissions ?? [])].sort().map((p) => (
+                        <span key={p} className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-0.5 rounded">
+                          {p}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <CmxDialogFooter>
+                  <CmxDialogClose asChild>
+                    <CmxButton variant="outline" size="sm">Close</CmxButton>
+                  </CmxDialogClose>
+                </CmxDialogFooter>
+              </CmxDialogContent>
+            </CmxDialog>
+          )}
         </CmxCard>
       }
     >
