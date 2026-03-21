@@ -102,8 +102,6 @@ export function PreferencesPanel({
   const hasItems = state.items.length > 0;
   const hasPieceSelected = !!selectedPieceId && !!(item && (piece || isItemLevel));
 
-  if (!hasItems) return null;
-
   const pieceLabel = item
     ? `${item.productName || 'Item'}${piece ? ` — ${tPieces('pieceNumber', { number: piece.pieceSeq })}` : ''}`
     : '';
@@ -299,80 +297,82 @@ export function PreferencesPanel({
 
   return (
     <div className="bg-white rounded-lg border border-gray-200">
-      {!hasPieceSelected ? (
-        <div className={`flex flex-col items-center justify-center py-8 px-4 ${isRTL ? 'text-right' : 'text-center'}`}>
-          <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-            <ShoppingCart className="w-7 h-7 text-gray-400" aria-hidden="true" />
-          </div>
-          <p className="text-sm font-medium text-gray-700 mb-1">
-            {t('selectPieceHint') || 'Select a piece from the cart to apply preferences'}
-          </p>
-          <p className="text-xs text-gray-500">
-            {t('selectPieceFromCart') || 'Tap an item or piece in the cart to configure conditions and notes.'}
-          </p>
+      {/* Context header — shows piece label when selected, title when not */}
+      <div className={`px-4 pt-3 pb-2 border-b border-gray-100 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <h3 className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {hasPieceSelected ? pieceLabel : (t('preferences') || 'Preferences')}
+        </h3>
+        {hasPieceSelected && isItemLevel && (
+          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+            {t('itemLevel') || 'Item'}
+          </span>
+        )}
+      </div>
+
+      {/* Dynamic Tab Bar — always visible once kinds loaded */}
+      {kindsLoading ? (
+        <div className={`flex gap-1 px-3 pt-2 pb-1 border-b border-gray-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-7 w-16 rounded-lg bg-gray-100 animate-pulse" />
+          ))}
         </div>
-      ) : (
-        <div>
-          {/* Context header */}
-          <div className={`px-4 pt-3 pb-2 border-b border-gray-100 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <h3 className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {pieceLabel}
-            </h3>
-            {isItemLevel && (
-              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                {t('itemLevel') || 'Item'}
-              </span>
+      ) : preferenceKinds.length > 0 ? (
+        <div className={`flex gap-1 px-3 pt-2 border-b border-gray-100 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
+          {preferenceKinds.map((kind) => {
+            const label = getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code;
+            const isActive = kind.kind_code === activeKindCode;
+            return (
+              <button
+                key={kind.kind_code}
+                type="button"
+                onClick={() => setActiveKindCode(kind.kind_code)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors focus:outline-none shrink-0 flex items-center gap-1.5 ${
+                  isActive
+                    ? 'text-white'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+                style={
+                  isActive && kind.kind_bg_color
+                    ? { backgroundColor: kind.kind_bg_color }
+                    : undefined
+                }
+              >
+                {kind.kind_bg_color && !isActive && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: kind.kind_bg_color }}
+                    aria-hidden="true"
+                  />
+                )}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {/* Tab Content — placeholder when no piece selected, actual content when piece selected */}
+      <div className="p-4">
+        {!hasPieceSelected ? (
+          <div className={`flex flex-col items-center justify-center py-6 ${isRTL ? 'text-right' : 'text-center'}`}>
+            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+              <ShoppingCart className="w-6 h-6 text-gray-400" aria-hidden="true" />
+            </div>
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              {hasItems
+                ? (t('selectPieceHint') || 'Select a piece from the cart to apply preferences')
+                : (t('addItemFirst') || 'Add an item to get started')}
+            </p>
+            {hasItems && (
+              <p className="text-xs text-gray-500">
+                {t('selectPieceFromCart') || 'Tap an item or piece in the cart to configure conditions and notes.'}
+              </p>
             )}
           </div>
-
-          {/* Dynamic Tab Bar */}
-          {kindsLoading ? (
-            <div className={`flex gap-1 px-3 pt-2 pb-1 border-b border-gray-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-7 w-16 rounded-lg bg-gray-100 animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className={`flex gap-1 px-3 pt-2 border-b border-gray-100 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
-              {preferenceKinds.map((kind) => {
-                const label = getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code;
-                const isActive = kind.kind_code === activeKindCode;
-                return (
-                  <button
-                    key={kind.kind_code}
-                    type="button"
-                    onClick={() => setActiveKindCode(kind.kind_code)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors focus:outline-none flex-shrink-0 flex items-center gap-1.5 ${
-                      isActive
-                        ? 'text-white'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                    style={
-                      isActive && kind.kind_bg_color
-                        ? { backgroundColor: kind.kind_bg_color }
-                        : undefined
-                    }
-                  >
-                    {kind.kind_bg_color && !isActive && (
-                      <span
-                        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                        style={{ backgroundColor: kind.kind_bg_color }}
-                        aria-hidden="true"
-                      />
-                    )}
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Tab Content */}
-          <div className="p-4">
-            {activeKind && renderKindContent(activeKind)}
-          </div>
-        </div>
-      )}
+        ) : (
+          activeKind && renderKindContent(activeKind)
+        )}
+      </div>
     </div>
   );
 }

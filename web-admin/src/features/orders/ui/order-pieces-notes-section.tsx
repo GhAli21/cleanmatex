@@ -466,12 +466,14 @@ export function OrderPiecesNotesSection({
         </div>
       )}
 
-      {/* Bottom condition palette for focused piece */}
-      {focusedPieceId && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-3">
-          <p className="text-xs text-blue-600 font-medium mb-2">
-            {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
-          </p>
+      {/* Bottom condition palette — always mounted so data is pre-fetched; shows hint when no piece focused */}
+      {itemGroups.length > 0 && (
+        <div className={`rounded-lg border transition-colors ${focusedPieceId ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-white'}`}>
+          {focusedPieceId && (
+            <p className={`text-xs text-blue-600 font-medium px-3 pt-3 pb-0 ${isRTL ? 'text-right' : 'text-left'}`}>
+              {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
+            </p>
+          )}
           <PreferencesPanel
             selectedPieceId={focusedPieceId}
             selectedConditions={focusedConditions}
@@ -479,11 +481,6 @@ export function OrderPiecesNotesSection({
             enforcePrefCompatibility={false}
           />
         </div>
-      )}
-      {!focusedPieceId && itemGroups.length > 0 && (
-        <p className="text-xs text-gray-400 text-center">
-          {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
-        </p>
       )}
 
       {/* i18n key reference — used for menu label */}

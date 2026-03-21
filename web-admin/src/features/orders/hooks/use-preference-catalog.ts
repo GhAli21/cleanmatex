@@ -47,23 +47,27 @@ export function usePreferenceCatalog(branchId?: string | null) {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
 
+  const STALE_TIME = 5 * 60 * 1000; // 5 minutes — catalog data rarely changes
+
   const servicePrefsQuery = useQuery({
     queryKey: ['preference-catalog', 'service', tenantId, branchId],
     queryFn: () => fetchServicePreferences(tenantId, branchId),
     enabled: !!tenantId,
+    staleTime: STALE_TIME,
   });
 
   const packingPrefsQuery = useQuery({
     queryKey: ['preference-catalog', 'packing', tenantId],
     queryFn: () => fetchPackingPreferences(tenantId),
     enabled: !!tenantId,
+    staleTime: STALE_TIME,
   });
 
   const kindsQuery = useQuery<PreferenceKind[]>({
     queryKey: ['preference-kinds', tenantId],
     queryFn: () => fetchPreferenceKinds(tenantId),
-    staleTime: 5 * 60 * 1000,
     enabled: !!tenantId,
+    staleTime: STALE_TIME,
   });
 
   const allPrefs = servicePrefsQuery.data ?? [];
