@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Bell, ChevronDown, Search, User, LogOut, Settings } from 'lucide-react'
+import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { findNavigationByPath } from '@/config/navigation'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
@@ -17,13 +17,14 @@ import { useRTL } from '@/lib/hooks/useRTL'
 export default function CmxTopBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, currentTenant, availableTenants, signOut, switchTenant } = useAuth()
+  const { user, currentTenant, availableTenants, signOut, switchTenant, permissions } = useAuth()
   const isRTL = useRTL()
   const t = useTranslations('layout.topBar')
   const tCommon = useTranslations('common')
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showPermsDialog, setShowPermsDialog] = useState(false)
 
   const currentSection = findNavigationByPath(pathname)
   const pageTitle = currentSection?.label || 'Dashboard'
@@ -65,6 +66,16 @@ export default function CmxTopBar() {
             </div>
 
             <CmxLanguageSwitcher />
+
+            {/* Debug: Permissions Inspector */}
+            <button
+              type="button"
+              onClick={() => setShowPermsDialog(true)}
+              title="Debug: Show My Permissions"
+              className="p-2 text-gray-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
+            >
+              <ShieldCheck className="h-5 w-5" />
+            </button>
 
             <div className="relative">
               <button
@@ -176,6 +187,43 @@ export default function CmxTopBar() {
           </div>
         </div>
       </div>
+
+      {/* Permissions Debug Dialog */}
+      {showPermsDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPermsDialog(false)}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-blue-600" />
+                <h2 className="text-base font-semibold text-gray-900">My Permissions</h2>
+              </div>
+              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
+                {permissions?.length ?? 0} total
+              </span>
+            </div>
+            <div className="overflow-y-auto px-5 py-4 flex flex-col gap-1">
+              {(permissions ?? []).length === 0 ? (
+                <p className="text-sm text-red-600 text-center py-8">No permissions found.</p>
+              ) : (
+                [...(permissions ?? [])].sort().map((p) => (
+                  <span key={p} className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                    {p}
+                  </span>
+                ))
+              )}
+            </div>
+            <div className="px-5 py-3 border-t border-gray-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowPermsDialog(false)}
+                className="px-4 py-1.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }
