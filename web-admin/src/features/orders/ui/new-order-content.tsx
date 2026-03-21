@@ -540,7 +540,7 @@ export function NewOrderContent() {
 
             <div className={`flex-1 min-h-0 flex ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Left/Center Panel */}
-                <div className="flex-1 min-h-0 flex flex-col">
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col">
                     {/* Branch Required Gate */}
                     {branchRequired ? (
                         <div className="flex-1 flex flex-col items-center justify-center gap-4 p-8 text-center">

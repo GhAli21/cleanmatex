@@ -2785,6 +2785,7 @@
       "categoryFinishing": "Finishing",
       "extraTimeTooltip": "Adds time to ready-by estimate",
       "ecoPoints": "Eco-friendly",
+      "addItemFirst": "Add an item to get started",
       "selectPieceHint": "Select a piece from the cart to apply preferences",
       "selectPieceFromCart": "Tap an item or piece in the cart to configure conditions and notes.",
       "forSelectedPiece": "Preferences for selected piece",
