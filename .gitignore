@@ -72,10 +72,6 @@ build/
 .branches/
 .temp/
 
-# Extraction backup folder — created by storybook-generator agent during app/ component extraction
-# Delete manually after verifying build and stories work
-web-admin/app/_backup/
-
 # Misc
 *.pem
 *.key

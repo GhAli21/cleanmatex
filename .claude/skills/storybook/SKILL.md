@@ -346,6 +346,8 @@ src/features/orders/
 
 Stories in `src/stories/` are Storybook init samples — they can be deleted once real stories exist.
 
+> **`F:\jhapp\cleanmatex_Bkp\storyboard_extraction_backup\` is outside the workspace.** Never read, search, or reference files there — it is a temporary extraction backup folder completely external to the project. Treat it as if it does not exist.
+
 ---
 
 ## app/ Components — Eligibility Rules
@@ -377,7 +379,7 @@ When asked to generate stories for an `app/` component:
 
 1. **Check eligibility** — is it a `-client.tsx`, `-form.tsx`, or `components/*.tsx`?
 2. **Search all importers** — grep for the component name across `app/` and `src/` before proposing. Update ALL matched files, not just the parent `page.tsx`.
-3. **Copy to new path + backup original** — write content to `src/features/<domain>/ComponentName.tsx`, copy original to `app/_backup/` (mirroring its path). Do NOT delete the original. User deletes `app/_backup/` manually after confirming build and stories work.
+3. **Copy to new path + backup original** — write content to `src/features/<domain>/ComponentName.tsx`, copy original to `F:\jhapp\cleanmatex_Bkp\storyboard_extraction_backup\` (mirroring its relative path). Do NOT delete the original from `app/`. User deletes it manually after confirming build and stories work.
 4. **Import path after move** — use `@features/<domain>/ComponentName` (alias defined in `tsconfig.json`), never relative paths.
 5. **Update barrel file** — if `src/features/<domain>/ui/index.ts` or `index.ts` exists, add the export. If neither exists, ask the user whether to create one.
 6. **Verify `'use client'`** — must remain on line 1 if it was there before.

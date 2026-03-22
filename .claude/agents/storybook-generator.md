@@ -124,10 +124,10 @@ Then ask the user:
 
 **Step 1 — Copy to new location + backup original:**
 - Write the component content to `src/features/<domain>/ComponentName.tsx`
-- Copy the original to `app/_backup/ComponentName.tsx` (preserve original path structure inside `_backup/` for clarity)
+- Copy the original to `F:\jhapp\cleanmatex_Bkp\storyboard_extraction_backup\<original-relative-path>` (mirror the original path structure for easy reference, e.g. `app\dashboard\billing\payments\new\create-payment-form.tsx`)
 - Repeat for each co-located file found in pre-flight step D
-- **Do NOT delete the original** — user will delete `app/_backup/` manually after verifying everything works
-- Tell the user: *"Original backed up to `app/_backup/...`. Delete it once you've confirmed the build and stories work correctly."*
+- **Do NOT delete the original from `app/`** — user deletes it manually after verifying build and stories work
+- Tell the user: *"Original backed up to `F:\jhapp\cleanmatex_Bkp\storyboard_extraction_backup\...`. Delete the original from `app/` once you've confirmed everything works."*
 
 **Step 2 — Verify `'use client'`** — if the original had `'use client'` on line 1, confirm it is still line 1 after the move.
 
@@ -359,3 +359,4 @@ export const SubmitForm: Story = {
 - `.storybook/main.ts` or `.storybook/preview.ts` — already configured
 - Any existing `.stories.tsx` file unless explicitly asked to update it
 - `package.json` or any config file
+- `F:\jhapp\cleanmatex_Bkp\storyboard_extraction_backup\` — never read, modify, or include in any search results; this is an external temporary backup folder outside the workspace

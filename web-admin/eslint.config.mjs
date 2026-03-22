@@ -20,7 +20,6 @@ const eslintConfig = [...compat.extends("next/core-web-vitals"), {
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "app/_backup/**",  // extraction backups — not real code, skip all linting
   ],
 }, {
   // JSDoc enforcement — warn only, does not block builds or commits
