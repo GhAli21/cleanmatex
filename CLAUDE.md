@@ -1,8 +1,8 @@
 # CLAUDE.md — CleanMateX AI Assistant
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
-**Last Update** 20-03-2026
-**Last Update Description** Added mandatory skill loading rule before writing any code
+**Last Update** 22-03-2026
+**Last Update Description** Added /storybook skill + storybook-generator agent to mandatory loading table
 
 ## CRITICAL RULES
 
@@ -28,6 +28,8 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any API route, service, backend logic | `/backend` |
 | Any query touching `org_*` tables | `/multitenancy` |
 | Any new feature implementation | `/implementation` |
+| Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
+| Any `.stories.tsx` file, new Cmx component | `/storybook` |
 
 **How to enforce:**
 - In plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -87,6 +89,7 @@ drop-cascade-migration-workflow.md`
 - In `cmx-api`, pass tenant context explicitly through guards/request context and service boundaries
 
 **See:** `/implementation` skill for coding standards
+**See:** `/code-documentation` skill for JSDoc patterns, SQL migration comments, Tailwind annotations, and config file documentation rules.
 
 **Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
 
@@ -139,6 +142,7 @@ drop-cascade-migration-workflow.md`
 
 - `/explain-code` - Code explanations with diagrams
 - `/codebase-visualizer` - Interactive codebase tree
+- `/storybook` - Story generation for Cmx components (RTL, a11y, variants) — also triggers `storybook-generator` agent
 
 ## Structure
 

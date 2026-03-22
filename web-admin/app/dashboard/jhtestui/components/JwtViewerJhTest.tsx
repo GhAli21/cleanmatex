@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
-import type { Database } from '@/types/database';
+import { createClient } from '@/lib/supabase/client';
 import { Clock, Copy, CheckCircle, AlertCircle, User, Building2, Key, RefreshCw } from 'lucide-react';
 
 interface DecodedJWT {
@@ -19,7 +18,7 @@ export default function JwtViewerJhTest() {
   const [copied, setCopied] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
   const [showRawToken, setShowRawToken] = useState(false);
-  const supabase = createClientComponentClient<Database>();
+  const supabase = createClient();
 
   const decodeJWT = (token: string): DecodedJWT | null => {
     try {

@@ -41,3 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# Generated documentation (run npm run docs:generate to rebuild)
+docs/typedoc/
+docs/storybook/
+storybook-static/
+
+# Extraction backup folder — created by storybook-generator agent during app/ component extraction
+# Delete manually after verifying build and stories work
+app/_backup/
+
+*storybook.log

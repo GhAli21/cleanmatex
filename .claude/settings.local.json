@@ -34,7 +34,8 @@
       "Bash(if [ -f build.log ])",
       "Bash(then tail -100 build.log)",
       "Bash(else echo \"Build log not found. Running build...\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "Edit(/.claude/skills/storybook/**)"
     ],
     "deny": [
       "Read(node_modules)",

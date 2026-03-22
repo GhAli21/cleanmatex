@@ -26,7 +26,12 @@
     "docs:extract-settings": "npx tsx ../scripts/docs/extract-settings-usage.ts",
     "docs:extract-feature-flags": "npx tsx ../scripts/docs/extract-feature-flags.ts",
     "docs:extract-api-auth-audit": "npx tsx ../scripts/docs/extract-api-auth-audit.ts",
-    "docs:validate": "npx tsx ../scripts/docs/validate-docs.ts"
+    "docs:validate": "npx tsx ../scripts/docs/validate-docs.ts",
+    "docs:typedoc": "typedoc",
+    "docs:storybook": "storybook build -o docs/storybook --quiet",
+    "docs:generate": "npm run docs:typedoc && npm run docs:storybook",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@alloc/quick-lru": "^5.2.0",
@@ -74,6 +79,10 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@playwright/test": "^1.40.0",
+    "@storybook/addon-a11y": "^10.3.1",
+    "@storybook/addon-docs": "^10.3.1",
+    "@storybook/addon-onboarding": "^10.3.1",
+    "@storybook/nextjs": "^10.3.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
@@ -86,11 +95,16 @@
     "baseline-browser-mapping": "^2.9.18",
     "eslint": "^9",
     "eslint-config-next": "^16.1.0",
+    "eslint-plugin-jsdoc": "^50.8.0",
+    "eslint-plugin-storybook": "^10.3.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "prisma": "^6.17.1",
+    "storybook": "^10.3.1",
     "tailwindcss": "^4",
     "ts-jest": "^29.1.1",
+    "typedoc": "^0.26.11",
+    "typedoc-plugin-missing-exports": "^3.1.0",
     "typescript": "^5"
   }
 }

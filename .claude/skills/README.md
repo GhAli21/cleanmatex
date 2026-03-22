@@ -36,6 +36,7 @@ Each skill is organized in its own directory with:
 | **dev-commands** | Task | Supabase, Prisma, Next.js commands |
 | **testing** | Task | Testing strategy, multi-tenant tests |
 | **documentation** | Task | Documentation standards and structure |
+| **code-documentation** | Reference | JSDoc/TSDoc, SQL migration comments, Tailwind annotations, config file documentation |
 
 ### Utility Skills
 
@@ -44,6 +45,7 @@ Each skill is organized in its own directory with:
 | **explain-code** | Task | Explain code with diagrams and analogies |
 | **codebase-visualizer** | Task | Generate interactive codebase tree |
 | **navigation** | Reference | Navigation tree management |
+| **storybook** | Task | Storybook story generation — Cmx components, RTL, a11y, interaction stories |
 
 ## How to Use Skills
 
@@ -93,6 +95,14 @@ Claude automatically invokes relevant skills based on context:
 │   ├── standards.md
 │   ├── ui-blueprint.md
 │   └── uiux-rules.md
+├── code-documentation/
+│   ├── SKILL.md
+│   ├── typescript-jsdoc.md
+│   ├── sql-migration.md
+│   ├── css-tailwind.md
+│   └── config-files.md
+├── storybook/
+│   └── SKILL.md
 └── [other skills...]
 ```
 

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["lib", "src/ui", "src/features"],
+  "entryPointStrategy": "expand",
+  "out": "docs/typedoc",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "plugin": ["typedoc-plugin-missing-exports"],
+  "name": "CleanMateX Web Admin",
+  "readme": "README.md",
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": ["UI Components", "Features", "Services", "Hooks", "Utilities", "*"],
+  "skipErrorChecking": true
+}
