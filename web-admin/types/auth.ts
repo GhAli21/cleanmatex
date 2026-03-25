@@ -56,6 +56,11 @@ export interface AuthState {
   workflowRoles: string[] // Workflow roles
   isLoading: boolean
   isAuthenticated: boolean
+  /**
+   * False until the first tenant list fetch finishes for the signed-in session
+   * (avoids feature gates treating a transient null currentTenant as “no access”).
+   */
+  isTenantContextReady: boolean
 }
 
 /**

@@ -1,21 +1,40 @@
 /**
  * B2B Contracts List
- * Lists org_b2b_contracts_mst for the tenant
+ * Lists org_b2b_contracts_mst for the tenant; create new contracts via dialog.
  */
 
 'use client';
 
+import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useHasPermission } from '@/lib/hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 import { createClient } from '@/lib/supabase/client';
+import { B2bCreateContractDialog } from '@/src/features/b2b/ui/b2b-create-contract-dialog';
+
+type ContractRow = {
+  id: string;
+  contract_no: string;
+  customer_id: string;
+  effective_from: string | null;
+  effective_to: string | null;
+};
+
+type B2bCustomerRow = {
+  id: string;
+  company_name: string | null;
+  display_name: string | null;
+};
 
 export default function B2BContractsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? null;
+  const canCreate = useHasPermission('b2b_contracts', 'create');
+  const [createOpen, setCreateOpen] = useState(false);
 
   const { data: contracts, isLoading } = useQuery({
     queryKey: ['b2b-contracts', tenantId],
@@ -28,10 +47,34 @@ export default function B2BContractsPage() {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as ContractRow[];
     },
     enabled: !!tenantId && !!currentTenant,
   });
+
+  const { data: b2bCustomers = [] } = useQuery({
+    queryKey: ['b2b-customers', tenantId],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('org_customers_mst')
+        .select('id, company_name, display_name')
+        .eq('tenant_org_id', tenantId)
+        .eq('type', 'b2b')
+        .eq('is_active', true);
+      if (error) throw error;
+      return (data ?? []) as B2bCustomerRow[];
+    },
+    enabled: !!tenantId && !!currentTenant,
+  });
+
+  const customerLabelById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const c of b2bCustomers) {
+      m.set(c.id, c.company_name || c.display_name || c.id);
+    }
+    return m;
+  }, [b2bCustomers]);
 
   if (isLoading) {
     return (
@@ -44,10 +87,15 @@ export default function B2BContractsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">
           {t('contracts') || 'Contracts'}
         </h1>
+        {canCreate ? (
+          <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+            {t('createContract')}
+          </Button>
+        ) : null}
       </div>
 
       <Card>
@@ -57,15 +105,23 @@ export default function B2BContractsPage() {
         <CardContent>
           {!contracts?.length ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-gray-500 mb-4">
-                No contracts yet. Create a B2B customer and add contracts from the customer detail page.
+              <p className="text-gray-500 mb-4 max-w-md">
+                {t('contractsEmptyHint')}
               </p>
-              <Button
-                variant="default"
-                onClick={() => window.location.assign('/dashboard/b2b/customers')}
-              >
-                {t('goToCustomers') || 'Go to B2B Customers'}
-              </Button>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {canCreate ? (
+                  <Button type="button" variant="default" onClick={() => setCreateOpen(true)}>
+                    {t('createContract')}
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant={canCreate ? 'outline' : 'default'}
+                  onClick={() => window.location.assign('/dashboard/b2b/customers')}
+                >
+                  {t('goToCustomers') || 'Go to B2B Customers'}
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -73,6 +129,7 @@ export default function B2BContractsPage() {
                 <thead>
                   <tr className="border-b">
                     <th className="text-left py-2 px-3">{t('contractNo') || 'Contract No'}</th>
+                    <th className="text-left py-2 px-3">{t('company')}</th>
                     <th className="text-left py-2 px-3">{t('effectiveFrom') || 'Effective From'}</th>
                     <th className="text-left py-2 px-3">{t('effectiveTo') || 'Effective To'}</th>
                     <th className="text-left py-2 px-3">{t('actions') || 'Actions'}</th>
@@ -83,6 +140,9 @@ export default function B2BContractsPage() {
                     <tr key={c.id} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-3">{c.contract_no}</td>
                       <td className="py-2 px-3">
+                        {customerLabelById.get(c.customer_id) ?? '—'}
+                      </td>
+                      <td className="py-2 px-3">
                         {c.effective_from ? new Date(c.effective_from).toLocaleDateString() : '-'}
                       </td>
                       <td className="py-2 px-3">
@@ -92,7 +152,9 @@ export default function B2BContractsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.location.assign(`/dashboard/customers/${c.customer_id}`)}
+                          onClick={() =>
+                            window.location.assign(`/dashboard/b2b/customers/${c.customer_id}`)
+                          }
                         >
                           {t('view') || 'View Customer'}
                         </Button>
@@ -105,6 +167,10 @@ export default function B2BContractsPage() {
           )}
         </CardContent>
       </Card>
+
+      {canCreate ? (
+        <B2bCreateContractDialog open={createOpen} onOpenChange={setCreateOpen} />
+      ) : null}
     </div>
   );
 }

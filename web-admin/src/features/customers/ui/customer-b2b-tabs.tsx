@@ -90,7 +90,7 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
         <div className="py-8 text-center bg-gray-50 rounded-lg">
           <p className="text-gray-500">No contracts yet</p>
           <p className="text-sm text-gray-400 mt-1">
-            Create contracts from the B2B Contracts page.
+            {t('contractsEmptyHint')}
           </p>
           <Button
             variant="outline"

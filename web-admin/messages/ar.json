@@ -3460,6 +3460,16 @@
     "dunningAction": "الإجراء",
     "statementTitle": "كشف حساب",
     "statementDetails": "تفاصيل كشف الحساب",
-    "editB2BCustomer": "تعديل عميل B2B"
+    "editB2BCustomer": "تعديل عميل B2B",
+    "createContract": "إنشاء عقد",
+    "createContractDescription": "اختر عميل B2B وتواريخ اختيارية. يُولَّد رقم العقد تلقائياً إذا تركته فارغاً.",
+    "selectB2bCustomer": "عميل B2B",
+    "selectCustomerPlaceholder": "اختر عميلاً…",
+    "selectCustomerFirst": "يرجى اختيار عميل B2B أولاً.",
+    "optionalContractNo": "رقم العقد (اختياري)",
+    "optionalContractNoHint": "اتركه فارغاً للتوليد التلقائي",
+    "contractCreated": "تم إنشاء العقد",
+    "contractCreateFailed": "تعذر إنشاء العقد",
+    "contractsEmptyHint": "لا توجد عقود بعد. أنشئ عميل B2B إن لزم، ثم أضف عقداً من هنا أو من تبويب العقود في صفحة العميل."
   }
 }

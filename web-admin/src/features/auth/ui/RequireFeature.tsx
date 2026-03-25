@@ -11,6 +11,15 @@ import { ReactNode, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
 
+function FeatureGateSkeleton() {
+  return (
+    <div className="space-y-6 p-4" role="status" aria-live="polite" aria-busy="true">
+      <div className="h-8 bg-gray-200 rounded w-1/3 max-w-xs animate-pulse" />
+      <div className="h-40 bg-gray-200 rounded animate-pulse" />
+    </div>
+  )
+}
+
 interface RequireFeatureProps {
   feature: FeatureFlagKey | FeatureFlagKey[]
   fallback?: ReactNode
@@ -41,18 +50,35 @@ export function RequireFeature({
   requireAll = true,
   children,
 }: RequireFeatureProps) {
-  const { currentTenant } = useAuth()
+  const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
   const [hasAccess, setHasAccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     async function checkFeatureAccess() {
+      if (authLoading) {
+        setIsLoading(true)
+        return
+      }
+
+      if (!user) {
+        setHasAccess(false)
+        setIsLoading(false)
+        return
+      }
+
+      if (!isTenantContextReady) {
+        setIsLoading(true)
+        return
+      }
+
       if (!currentTenant) {
         setHasAccess(false)
         setIsLoading(false)
         return
       }
 
+      setIsLoading(true)
       try {
         const res = await fetch('/api/feature-flags')
         if (!res.ok) {
@@ -80,11 +106,11 @@ export function RequireFeature({
       }
     }
 
-    checkFeatureAccess()
-  }, [currentTenant, feature, requireAll])
+    void checkFeatureAccess()
+  }, [currentTenant, feature, requireAll, authLoading, user, isTenantContextReady])
 
-  if (isLoading) {
-    return null // Or a loading skeleton
+  if (authLoading || isLoading) {
+    return <FeatureGateSkeleton />
   }
 
   if (!hasAccess) {
@@ -175,7 +201,7 @@ export function UpgradePrompt({
  * const canExportPDF = useFeature(FEATURE_FLAG_KEYS.PDF_INVOICES)
  */
 export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean {
-  const { currentTenant } = useAuth()
+  const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
   const [hasAccess, setHasAccess] = useState(!feature)
 
   useEffect(() => {
@@ -184,7 +210,7 @@ export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean
       return
     }
     async function checkFeature() {
-      if (!currentTenant) {
+      if (authLoading || !user || !isTenantContextReady || !currentTenant) {
         setHasAccess(false)
         return
       }
@@ -201,8 +227,8 @@ export function useFeatureOptional(feature: FeatureFlagKey | undefined): boolean
         setHasAccess(false)
       }
     }
-    checkFeature()
-  }, [currentTenant, feature])
+    void checkFeature()
+  }, [currentTenant, feature, authLoading, user, isTenantContextReady])
 
   return hasAccess
 }

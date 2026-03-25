@@ -3460,6 +3460,16 @@
     "dunningAction": "Action",
     "statementTitle": "Statement",
     "statementDetails": "Statement Details",
-    "editB2BCustomer": "Edit B2B Customer"
+    "editB2BCustomer": "Edit B2B Customer",
+    "createContract": "Create contract",
+    "createContractDescription": "Choose a B2B customer and optional dates. The contract number is generated if you leave it blank.",
+    "selectB2bCustomer": "B2B customer",
+    "selectCustomerPlaceholder": "Select a customer…",
+    "selectCustomerFirst": "Select a B2B customer first.",
+    "optionalContractNo": "Contract number (optional)",
+    "optionalContractNoHint": "Leave blank to auto-generate",
+    "contractCreated": "Contract created",
+    "contractCreateFailed": "Could not create contract",
+    "contractsEmptyHint": "No contracts yet. Create a B2B customer if needed, then add a contract here or from the customer’s Contracts tab."
   }
 }

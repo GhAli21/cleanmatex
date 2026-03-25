@@ -49,6 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [permissions, setPermissions] = useState<string[]>([])
   const [workflowRoles, setWorkflowRoles] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  /** First get_user_tenants (or login batch) completed for this session */
+  const [isTenantContextReady, setIsTenantContextReady] = useState(false)
   
   // Track if we're in the middle of a login to prevent duplicate fetching
   const isLoggingInRef = useRef(false)
@@ -77,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAvailableTenants([])
       setCurrentTenant(null)
       tenantFetchFailedRef.current = false
+      setIsTenantContextReady(true)
       return
     }
 
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     isFetchingTenantsRef.current = true
+    setIsTenantContextReady(false)
 
     try {
       const { data, error } = await supabase.rpc('get_user_tenants')
@@ -130,6 +134,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Don't clear availableTenants - this would trigger the useEffect to retry again
       tenantFetchFailedRef.current = true
     } finally {
+      setIsTenantContextReady(true)
       isFetchingTenantsRef.current = false
       // Update ref after function completes
       refreshTenantsRef.current = refreshTenants
@@ -141,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Using getUser() instead of getSession() as recommended by Supabase
    */
   const initializeAuth = useCallback(async () => {
+    let sessionHasUser = false
     try {
       // Use getUser() instead of getSession() - more reliable server-side
       const { data: { user: currentUser }, error } = await supabase.auth.getUser()
@@ -159,6 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
       if (currentUser) {
+        sessionHasUser = true
         setUser(currentUser as AuthUser)
 
         // Get session for tokens
@@ -184,6 +191,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Error initializing auth:', error)
     } finally {
       setIsLoading(false)
+      if (!sessionHasUser) {
+        setIsTenantContextReady(true)
+      }
     }
   }, [])
 
@@ -267,6 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (authData.tenants.length > 0) {
         permissionsLoadedForTenantRef.current = authData.tenants[0].tenant_id
       }
+
+      setIsTenantContextReady(true)
 
       // Redirect after state is set
       router.push('/dashboard')
@@ -356,6 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPermissions([])
       setWorkflowRoles([])
       permissionsLoadedForTenantRef.current = null
+      setIsTenantContextReady(true)
 
       // Clear browser storage
       localStorage.removeItem('permissions_cache')
@@ -613,6 +626,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             expires_at: currentSession.expires_at ?? null,
             expires_in: currentSession.expires_in ?? null,
           })
+          if (!isLoggingInRef.current) {
+            setIsTenantContextReady(false)
+          }
           // Tenants and permissions will be fetched via useEffect hooks
         } else if (event === 'SIGNED_OUT') {
           setUser(null)
@@ -623,6 +639,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setPermissions([])
           setWorkflowRoles([])
           permissionsLoadedForTenantRef.current = null
+          setIsTenantContextReady(true)
           invalidatePermissionCache()
           sessionStorage.clear()
           // Redirect to login with reason when session expired (not user-initiated)
@@ -720,6 +737,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     permissions,
     workflowRoles,
     isLoading,
+    isTenantContextReady,
     isAuthenticated: !!user,
 
     // Methods
