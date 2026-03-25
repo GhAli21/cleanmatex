@@ -88,10 +88,8 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
     <div className="space-y-4">
       {!contracts?.length ? (
         <div className="py-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No contracts yet</p>
-          <p className="text-sm text-gray-400 mt-1">
-            {t('contractsEmptyHint')}
-          </p>
+          <p className="text-gray-500">{t('customerContractsEmptyTitle')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('customerContractsEmptyHint')}</p>
           <Button
             variant="outline"
             className="mt-4"

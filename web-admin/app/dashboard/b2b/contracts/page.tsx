@@ -52,7 +52,10 @@ export default function B2BContractsPage() {
     enabled: !!tenantId && !!currentTenant,
   });
 
-  const { data: b2bCustomers = [] } = useQuery({
+  const {
+    data: b2bCustomers,
+    isPending: b2bCustomersPending,
+  } = useQuery({
     queryKey: ['b2b-customers', tenantId],
     queryFn: async () => {
       const supabase = createClient();
@@ -68,13 +71,21 @@ export default function B2BContractsPage() {
     enabled: !!tenantId && !!currentTenant,
   });
 
+  const b2bCustomerRows = b2bCustomers ?? [];
+
+  const contractsListEmptyHint = b2bCustomersPending
+    ? t('contractsListEmptyHintPending')
+    : b2bCustomerRows.length === 0
+      ? t('contractsListEmptyHintNoCustomers')
+      : t('contractsListEmptyHintHasCustomers');
+
   const customerLabelById = useMemo(() => {
     const m = new Map<string, string>();
-    for (const c of b2bCustomers) {
+    for (const c of b2bCustomerRows) {
       m.set(c.id, c.company_name || c.display_name || c.id);
     }
     return m;
-  }, [b2bCustomers]);
+  }, [b2bCustomerRows]);
 
   if (isLoading) {
     return (
@@ -106,7 +117,7 @@ export default function B2BContractsPage() {
           {!contracts?.length ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <p className="text-gray-500 mb-4 max-w-md">
-                {t('contractsEmptyHint')}
+                {contractsListEmptyHint}
               </p>
               <div className="flex flex-wrap gap-2 justify-center">
                 {canCreate ? (
