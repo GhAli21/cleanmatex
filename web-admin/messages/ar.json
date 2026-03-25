@@ -3470,6 +3470,12 @@
     "optionalContractNoHint": "اتركه فارغاً للتوليد التلقائي",
     "contractCreated": "تم إنشاء العقد",
     "contractCreateFailed": "تعذر إنشاء العقد",
-    "contractsEmptyHint": "لا توجد عقود بعد. أنشئ عميل B2B إن لزم، ثم أضف عقداً من هنا أو من تبويب العقود في صفحة العميل."
+    "contractsEmptyHint": "لا توجد عقود بعد. أنشئ عميل B2B إن لزم، ثم أضف عقداً من هنا أو من تبويب العقود في صفحة العميل.",
+    "noContactsYet": "لا توجد جهات اتصال لهذا العميل بعد.",
+    "contactsEmptySubtext": "أضف جهات الاتصال عبر إدارة جهات اتصال B2B أو واجهة البرمجة عند توفرها.",
+    "customerContractsEmptyTitle": "لا توجد عقود مرتبطة بهذا العميل بعد.",
+    "customerContractsEmptyHint": "استخدم صفحة عقود B2B لإنشاء عقد واختيار هذا العميل.",
+    "customerStatementsEmptyTitle": "لا توجد كشوف حساب لهذا العميل بعد.",
+    "customerStatementsEmptyHint": "استخدم صفحة كشوف حساب B2B لإنشاء كشوف لهذا العميل."
   }
 }

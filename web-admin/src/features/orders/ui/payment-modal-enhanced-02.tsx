@@ -42,7 +42,7 @@ function B2BContractsSelect({
 }) {
   const t = useTranslations('newOrder.payment');
   const { data: contracts = [], isLoading } = useQuery({
-    queryKey: ['b2b-contracts', customerId],
+    queryKey: ['b2b-contracts', 'customer', customerId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/b2b-contracts?customer_id=${customerId}`);
       if (!res.ok) return [];

@@ -37,7 +37,7 @@ export default function B2BContractsPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: contracts, isLoading } = useQuery({
-    queryKey: ['b2b-contracts', tenantId],
+    queryKey: ['b2b-contracts', 'list', tenantId],
     queryFn: async () => {
       const supabase = createClient();
       const { data, error } = await supabase

@@ -89,7 +89,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     isFetchingTenantsRef.current = true
-    setIsTenantContextReady(false)
+    // Only block feature gates while the *first* tenant context is loading — not on every
+    // refresh — otherwise B2B (and other RequireFeature) pages unmount and “flash” empty.
+    if (!currentTenantRef.current) {
+      setIsTenantContextReady(false)
+    }
 
     try {
       const { data, error } = await supabase.rpc('get_user_tenants')
@@ -626,9 +630,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             expires_at: currentSession.expires_at ?? null,
             expires_in: currentSession.expires_in ?? null,
           })
-          if (!isLoggingInRef.current) {
-            setIsTenantContextReady(false)
-          }
+          // Do not toggle isTenantContextReady here: duplicate SIGNED_IN events would block
+          // RequireFeature while availableTenants is already loaded (refreshTenants won't re-run).
           // Tenants and permissions will be fetched via useEffect hooks
         } else if (event === 'SIGNED_OUT') {
           setUser(null)

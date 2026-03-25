@@ -17,7 +17,7 @@ interface CustomerB2BContactsTabProps {
 export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: contacts, isLoading } = useQuery({
-    queryKey: ['b2b-contacts', customerId],
+    queryKey: ['b2b-contacts', 'customer', customerId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/b2b-contacts?customer_id=${customerId}`);
       if (!res.ok) throw new Error('Failed to load contacts');
@@ -70,7 +70,7 @@ export function CustomerB2BContactsTab({ customerId }: CustomerB2BContactsTabPro
 export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: contracts, isLoading } = useQuery({
-    queryKey: ['b2b-contracts', customerId],
+    queryKey: ['b2b-contracts', 'customer', customerId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/b2b-contracts?customer_id=${customerId}`);
       if (!res.ok) throw new Error('Failed to load contracts');
@@ -131,7 +131,7 @@ export function CustomerB2BContractsTab({ customerId }: CustomerB2BContactsTabPr
 export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabProps) {
   const t = useTranslations('b2b');
   const { data: statements, isLoading } = useQuery({
-    queryKey: ['b2b-statements', customerId],
+    queryKey: ['b2b-statements', 'customer', customerId],
     queryFn: async () => {
       const res = await fetch(`/api/v1/b2b-statements?customer_id=${customerId}`);
       if (!res.ok) throw new Error('Failed to load statements');
@@ -149,10 +149,8 @@ export function CustomerB2BStatementsTab({ customerId }: CustomerB2BContactsTabP
     <div className="space-y-4">
       {!statements?.length ? (
         <div className="py-8 text-center bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No statements yet</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Generate statements from the B2B Statements page.
-          </p>
+          <p className="text-gray-500">{t('customerStatementsEmptyTitle')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('customerStatementsEmptyHint')}</p>
           <Button
             variant="outline"
             className="mt-4"

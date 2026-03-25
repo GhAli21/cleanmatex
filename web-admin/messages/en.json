@@ -3470,6 +3470,12 @@
     "optionalContractNoHint": "Leave blank to auto-generate",
     "contractCreated": "Contract created",
     "contractCreateFailed": "Could not create contract",
-    "contractsEmptyHint": "No contracts yet. Create a B2B customer if needed, then add a contract here or from the customer’s Contracts tab."
+    "contractsEmptyHint": "No contracts yet. Create a B2B customer if needed, then add a contract here or from the customer’s Contracts tab.",
+    "noContactsYet": "No contacts yet for this customer.",
+    "contactsEmptySubtext": "Add contacts using B2B contacts management or the API when it is available.",
+    "customerContractsEmptyTitle": "No contracts linked to this customer yet.",
+    "customerContractsEmptyHint": "Use the B2B Contracts page to create a contract and select this customer.",
+    "customerStatementsEmptyTitle": "No statements for this customer yet.",
+    "customerStatementsEmptyHint": "Use the B2B Statements page to generate statements for this customer."
   }
 }

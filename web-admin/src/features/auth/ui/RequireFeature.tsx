@@ -7,7 +7,7 @@
  * Integrates with subscription plan-based feature flags
  */
 
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { FeatureFlagKey } from '@/lib/services/feature-flags.service'
 
@@ -53,6 +53,7 @@ export function RequireFeature({
   const { currentTenant, isLoading: authLoading, user, isTenantContextReady } = useAuth()
   const [hasAccess, setHasAccess] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const lastResolvedKeyRef = useRef<string | null>(null)
 
   useEffect(() => {
     async function checkFeatureAccess() {
@@ -62,6 +63,7 @@ export function RequireFeature({
       }
 
       if (!user) {
+        lastResolvedKeyRef.current = null
         setHasAccess(false)
         setIsLoading(false)
         return
@@ -78,7 +80,15 @@ export function RequireFeature({
         return
       }
 
-      setIsLoading(true)
+      const featurePart = Array.isArray(feature)
+        ? [...feature].sort().join('|')
+        : feature
+      const resolveKey = `${currentTenant.tenant_id}:${featurePart}:${requireAll}`
+      const showBlockingLoad = lastResolvedKeyRef.current !== resolveKey
+      if (showBlockingLoad) {
+        setIsLoading(true)
+      }
+
       try {
         const res = await fetch('/api/feature-flags')
         if (!res.ok) {
@@ -87,17 +97,18 @@ export function RequireFeature({
         }
         const flags = (await res.json()) as Record<string, boolean>
 
+        let nextAccess = false
         if (Array.isArray(feature)) {
           if (requireAll) {
-            const allEnabled = feature.every((f) => flags[f] === true)
-            setHasAccess(allEnabled)
+            nextAccess = feature.every((f) => flags[f] === true)
           } else {
-            const anyEnabled = feature.some((f) => flags[f] === true)
-            setHasAccess(anyEnabled)
+            nextAccess = feature.some((f) => flags[f] === true)
           }
         } else {
-          setHasAccess(flags[feature] === true)
+          nextAccess = flags[feature] === true
         }
+        setHasAccess(nextAccess)
+        lastResolvedKeyRef.current = resolveKey
       } catch (error) {
         console.error('Error checking feature access:', error)
         setHasAccess(false)
