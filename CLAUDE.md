@@ -16,6 +16,236 @@
 8. **Use `/clear` frequently** - When switching topics or context >70%
 9. **Check skills for detailed rules** - Use `/skill-name` for specifics
 
+## Cross-Project Work Protocol (CRITICAL - MANDATORY)
+
+### Context Awareness Rule
+
+**YOU ARE IN**: `cleanmatex` (Tenant-Facing Application)
+**SIBLING PROJECT**: `cleanmatexsaas` (Platform HQ Console)
+
+These are **separate projects** with **different rules**, even though they share the same database.
+
+**This Project cleanmatex Folder**: F:\jhapp\cleanmatex
+**Sibling cleanmatexsaas project**: F:\jhapp\cleanmatexsaas
+
+**BEFORE implementing ANY feature**: Use the [Feature Placement Guide](.claude/docs/Dev/FEATURE_PLACEMENT_GUIDE.md) to determine correct placement:
+1. Q1: Who are the primary users? (Tenant users / Platform admins / Both)
+2. Q2: What is the data scope? (Single tenant / Cross-tenant / Both)
+3. Q3: What is the access pattern? (RLS enforced / Service role key / Both)
+
+**Decision Matrix Quick Reference**:
+- **Tenant Operations** (Orders, Customers, Inventory, Lite ERP) → **cleanmatex** (this project)
+- **Platform Admin** (Tenant Management, Billing, Analytics) → **cleanmatexsaas**
+- **Dual-Purpose** (Settings, Feature Flags, Audit Logs) → **Both projects**
+
+**For complex decisions**: Create an ADR using [ADR Template](.claude/docs/Dev/ADR_TEMPLATE.md) and follow [ADR Process](.claude/docs/Dev/ADR_PROCESS.md)
+
+### When Work Spans Both Projects
+
+If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
+
+**Use the [Cross-Project Feature Checklist](.claude/docs/Dev/CROSS_PROJECT_FEATURE_CHECKLIST.md)** - 200+ checkpoints covering all phases.
+
+#### MANDATORY STEP 1: Declare Intent First
+
+**BEFORE any implementation**, output this analysis:
+
+```markdown
+## Cross-Project Feature: [Feature Name]
+
+### Scope Analysis
+
+**cleanmatex Components** (Tenant App):
+- Database: [migrations, tables, RLS policies, functions]
+- Backend: [tenant-scoped APIs, services]
+- Frontend: [tenant-facing UI components]
+- Access Pattern: RLS + anon key (tenant-scoped only)
+
+**cleanmatexsaas Components** (Platform HQ):
+- Backend: [platform admin APIs, cross-tenant queries]
+- Frontend: [platform admin UI, dashboards]
+- Type Regeneration: [Required after cleanmatex migrations? Y/N]
+- Access Pattern: Service role key (cross-tenant allowed)
+
+**Shared Resources**:
+- Database schema: [list tables, functions, views]
+- Settings: [list new settings]
+- Feature flags: [list new flags]
+- RLS Policies: [list policies - created in cleanmatex]
+
+**User Confirmation Required Before Proceeding**
+```
+
+**WAIT for user approval before proceeding.**
+
+#### MANDATORY STEP 2: Context Switch Protocol
+
+**When switching to cleanmatexsaas context:**
+
+```markdown
+---
+🔄 **CONTEXT SWITCH: cleanmatex → cleanmatexsaas**
+---
+
+**New Active Project**: cleanmatexsaas (Platform HQ Console)
+**Directory**: F:/jhapp/cleanmatexsaas
+**Active CLAUDE.md**: F:/jhapp/cleanmatexsaas/CLAUDE.md
+**Active Skills**: F:/jhapp/cleanmatexsaas/.claude/skills/
+**Active Standards**: F:/jhapp/cleanmatexsaas/.claude/docs/
+
+**Rules Now in Effect**:
+- ✅ Use service role key Supabase client
+- ✅ Cross-tenant queries allowed (for admin features)
+- ✅ Regenerate types after cleanmatex migrations
+- ✅ Implement platform admin features
+- ❌ NEVER create migrations here
+- ❌ NEVER use RLS-only patterns (we bypass RLS)
+```
+
+**When switching back to cleanmatex context:**
+
+```markdown
+---
+🔄 **CONTEXT SWITCH: cleanmatexsaas → cleanmatex**
+---
+
+**New Active Project**: cleanmatex (Tenant-Facing Application)
+**Directory**: F:/jhapp/cleanmatex
+**Active CLAUDE.md**: F:/jhapp/cleanmatex/CLAUDE.md
+**Active Skills**: F:/jhapp/cleanmatex/.claude/skills/
+**Active Standards**: F:/jhapp/cleanmatex/.claude/docs/
+
+**Rules Now in Effect**:
+- ✅ Use RLS policies for ALL org_* tables
+- ✅ Use anon key Supabase client
+- ✅ Filter ALL queries by tenant_org_id
+- ✅ Create migrations HERE (source of truth)
+- ✅ Implement tenant-scoped features only
+- ❌ NO cross-tenant queries
+- ❌ NO service role key usage
+```
+
+#### MANDATORY STEP 3: Database Migrations Protocol
+
+**ABSOLUTE RULES (NEVER VIOLATE)**:
+
+| Rule | cleanmatex | cleanmatexsaas |
+|------|-----------|----------------|
+| **Create migrations** | ✅ ALWAYS HERE (source of truth) | ❌ NEVER HERE |
+| **Migration location** | `F:/jhapp/cleanmatex/supabase/migrations/` | N/A |
+| **Apply migrations** | ✅ User applies here | ❌ Never |
+| **RLS policies** | ✅ MUST implement for org_* tables | ❌ Not applicable (service role bypasses) |
+| **Type generation** | ✅ After migration | ✅ After migration (run update-types.ps1) |
+
+**Workflow for database changes**:
+
+1. **Create migration** in `F:/jhapp/cleanmatex/supabase/migrations/` (THIS PROJECT)
+2. **Add RLS policies** if creating org_* tables
+3. **Stop and tell user** to review and apply migration
+4. **Wait for user confirmation** that migration is applied
+5. **Tell user** to regenerate types in cleanmatexsaas: Run `F:/jhapp/cleanmatexsaas/scripts/dev/update-types.ps1`
+6. **Verify types** in both codebases build successfully
+
+#### MANDATORY STEP 4: Verification After Each Context
+
+**Before executing ANY code**, verify:
+
+```markdown
+### Current Context Verification
+
+- **Active Project**: [cleanmatex | cleanmatexsaas]
+- **Current Directory**: [F:/jhapp/cleanmatex | F:/jhapp/cleanmatexsaas]
+- **Active CLAUDE.md**: [project]/CLAUDE.md
+- **Active Skills Directory**: [project]/.claude/skills/
+- **Active Standards Directory**: [project]/.claude/docs/
+- **Database Access Pattern**: [RLS + anon key | Service role key]
+- **Tenant Filtering**: [ALWAYS filter | Filter only when tenant-specific]
+- **Cross-Tenant Queries**: [FORBIDDEN | ALLOWED for admin]
+
+**Action**: [What I'm about to do]
+**Correct Context**: [✅ Yes | ❌ No - MUST SWITCH]
+```
+
+#### MANDATORY STEP 5: Skills and Standards Selection
+
+**When in cleanmatex context** (THIS PROJECT), use:
+- Skills from: `F:/jhapp/cleanmatex/.claude/skills/`
+- Standards from: `F:/jhapp/cleanmatex/.claude/docs/`
+- Examples: `/database`, `/create-rls-policy`, `/frontend` (cleanmatex version)
+
+**When in cleanmatexsaas context**, use:
+- Skills from: `F:/jhapp/cleanmatexsaas/.claude/skills/`
+- Standards from: `F:/jhapp/cleanmatexsaas/.claude/docs/`
+- Examples: `/backend-hq`, `/frontend` (cleanmatexsaas version), `/cross-project-sync`
+
+**NEVER mix skills/standards across projects.**
+
+#### MANDATORY STEP 6: Code Sharing Strategy
+
+**When code needs to be shared** between projects, follow [Code Sharing Guide](.claude/docs/Dev/CODE_SHARING_GUIDE.md):
+
+**Share (Copy with Source Tracking)**:
+- Constants (payment methods, order statuses)
+- Types/Interfaces (domain models that match exactly)
+- Validation schemas (Zod schemas)
+- Utility functions (pure functions, no side effects)
+- Cmx Design System components
+
+**Duplicate (Different Implementations)**:
+- Business logic (different rules for tenant vs platform)
+- API clients (different endpoints, different auth)
+- Auth logic (TenantAuthGuard vs PlatformAuthGuard)
+- Data access (Prisma + RLS vs Supabase-js + service role)
+
+**API-Based Sharing (MANDATORY for Settings/Feature Flags)**:
+- Settings: cleanmatexsaas manages (`sys_stng_*`) → cleanmatex consumes via HQ API
+- Feature Flags: cleanmatexsaas manages (`sys_feature_flags_*`) → cleanmatex consumes via HQ API
+- ❌ **NEVER** query `sys_stng_*` or `sys_feature_flags_*` directly from cleanmatex
+
+### Error Recovery Protocol
+
+**If I violate context** (e.g., use service role patterns in cleanmatex, forget to filter by tenant_org_id):
+
+1. **User flags violation**: "Wrong context!"
+2. **I immediately stop** and acknowledge error
+3. **I delete/revert** incorrect work
+4. **I announce correct context**
+5. **I re-do work** in correct context with correct rules
+
+### Cross-Project Feature Implementation Checklist
+
+**Use the comprehensive [Cross-Project Feature Checklist](.claude/docs/Dev/CROSS_PROJECT_FEATURE_CHECKLIST.md)** for complete implementation guidance (200+ checkpoints across 12 phases).
+
+**Quick Summary**:
+
+- [ ] Feature placement determined using [Feature Placement Guide](.claude/docs/Dev/FEATURE_PLACEMENT_GUIDE.md)
+- [ ] ADR created (if complex cross-project feature) using [ADR Template](.claude/docs/Dev/ADR_TEMPLATE.md)
+- [ ] Scope analysis completed and user-approved
+- [ ] Context switches announced explicitly
+- [ ] Migrations created in cleanmatex (THIS PROJECT - if needed)
+- [ ] RLS policies added in cleanmatex (if new org_* tables)
+- [ ] User applied migrations
+- [ ] Types regenerated in both projects (if migrations applied)
+- [ ] Code sharing strategy followed ([Code Sharing Guide](.claude/docs/Dev/CODE_SHARING_GUIDE.md))
+- [ ] cleanmatex implementation follows cleanmatex rules
+- [ ] cleanmatexsaas implementation follows cleanmatexsaas rules
+- [ ] Both projects build successfully
+- [ ] No context violations occurred
+
+### Quick Reference: Project Differences
+
+| Aspect | cleanmatex (this project) | cleanmatexsaas |
+|--------|-----------|----------------|
+| **Purpose** | Tenant-facing application | Platform admin console |
+| **Users** | Tenant users (managers, operators, staff) | Platform administrators |
+| **Database Access** | Anon key + RLS | Service role key (bypasses RLS) |
+| **Tenant Scope** | Single tenant only (ALWAYS filter) | All tenants (cross-tenant admin) |
+| **Migrations** | ✅ Create here (source of truth) | ❌ Never create, only consume |
+| **RLS Policies** | ✅ REQUIRED for org_* tables | ❌ Not applicable |
+| **Query Filtering** | ALWAYS by tenant_org_id | Only when tenant-specific |
+| **Port** | 3000 | 3001 (web), 3002 (api) |
+| **CLAUDE.md** | F:/jhapp/cleanmatex/CLAUDE.md | F:/jhapp/cleanmatexsaas/CLAUDE.md |
+
 ## Mandatory Skill Loading Before Writing Code
 
 Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
@@ -80,6 +310,27 @@ drop-cascade-migration-workflow.md`
 - No default value for any countery or locale related such as currency_code, country, city, timezone ...etc
 
 **See:** `/database` skill for complete rules
+
+## Hard Truth (Critical Mistakes to Avoid)
+
+❌ Mistake 1:
+
+Putting logic in controllers
+→ You kill scalability
+
+❌ Mistake 2:
+Mixing orders + workflow
+→ You lose flexibility forever
+
+❌ Mistake 3:
+
+No use-cases layer
+→ Business logic becomes unmaintainable
+
+❌ Mistake 4:
+
+Ignoring events
+→ Tight coupling everywhere
 
 ## Code Quick Rules
 

@@ -134,6 +134,33 @@ export function CmxButton(/* props */) {
 }
 ```
 
+#### Cmx Design System Sync (Cross-Project)
+
+**Important**: The Cmx Design System is shared between cleanmatex (THIS PROJECT) and cleanmatexsaas projects.
+
+**Sync Strategy**:
+- Core Cmx components should be kept in sync across both projects
+- Use "Copy with Source Tracking" approach
+- Add source comment: `// Synced from: cleanmatex/web-admin/src/ui/...` or `// Synced from: cleanmatexsaas/platform-web/src/ui/...`
+- Update sync log in both projects when changes are made
+
+**When to Sync**:
+- New Cmx component created (copy to both projects)
+- Existing Cmx component modified (update in both projects)
+- Breaking changes to Cmx API (coordinate across projects)
+
+**Components That Should Be Synced**:
+- `CmxButton`, `CmxInput`, `CmxForm`, `CmxDataTable`, `CmxEditableDataTable`
+- All primitives, forms, data-display, navigation components
+- Theme foundations and tokens
+
+**Components That Should NOT Be Synced**:
+- Feature-specific components (stay in `src/features/`)
+- Project-specific UI (tenant vs admin views)
+- Project-specific layouts or patterns
+
+**See**: [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) for complete sync strategy
+
 ---
 
 ### 2.3 `src/features/` – Feature Modules

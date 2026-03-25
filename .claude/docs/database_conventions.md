@@ -1,5 +1,12 @@
 # Database Conventions
 
+**Quick Links**:
+- [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) - Decide where features should be implemented
+- [Feature Abbreviations](./database_feature_abbreviations.md) - Complete list of module prefixes
+- [Grandfathered Objects Registry](./database_grandfathered_objects.md) - Existing objects using old naming
+
+---
+
 ## Naming
 
 - Suffixes: `_mst` master, `_dtl` detail, `_tr` transactions, `_cd` codes, `_cf` config
@@ -44,6 +51,78 @@ DECIMAL(19, 4)
 ## Composite FKs
 
 Tenant isolation via composite references on `(tenant_org_id, ...)`.
+
+**cleanmatex note:** ALL queries in this project MUST filter by `tenant_org_id` to enforce RLS and tenant isolation. See multitenancy skill for details.
+
+---
+
+## Universal Catalog Pattern (sys_* → org_*)
+
+**Pattern**: System-wide catalog (sys_*) copied to tenant-specific catalog (org_*) on tenant initialization.
+
+### Anatomy
+
+1. **System Catalog (sys_*)** - Global baseline maintained by platform admins (in cleanmatexsaas)
+   - No `tenant_org_id` column
+   - Managed by platform admins (service role key)
+   - Defines what options EXIST platform-wide
+   - Examples: sys_service_preference_cd, sys_gl_chart_template, sys_pch_vendor_types_cd
+
+2. **Tenant Catalog (org_*)** - Per-tenant customizable copy (managed HERE in cleanmatex)
+   - Has `tenant_org_id` column
+   - FK to sys_* table (e.g., preference_code → sys_service_preference_cd.code)
+   - Managed by tenants via cleanmatex (anon key + RLS)
+   - UNIQUE constraint: `(tenant_org_id, code)` - one entry per tenant per code
+   - Tenants can customize: pricing, names, availability, display order
+
+### Real Example: Service Preferences
+
+**System Catalog**: `sys_service_preference_cd` (managed by platform admins)
+- Columns: code (PK), name/name2, preference_category, default_extra_price, extra_turnaround_minutes, workflow_impact
+- Seeded data: STARCH_LIGHT, STARCH_HEAVY, PERFUME, SEPARATE_WASH, DELICATE, STEAM_PRESS, etc.
+- No tenant_org_id - this is global
+- Migration: `0139_order_service_preferences_schema.sql`
+
+**Tenant Catalog**: `org_service_preference_cf` (managed HERE by tenants)
+- Columns: id (UUID), tenant_org_id, preference_code (FK to sys_service_preference_cd), name/name2, extra_price, is_active, display_order
+- UNIQUE(tenant_org_id, preference_code)
+- RLS policy: tenant_isolation_org_service_preference_cf (enforced in cleanmatex)
+- Migration: `0139_order_service_preferences_schema.sql`
+
+**Workflow**:
+1. **Platform admins** (cleanmatexsaas) maintain sys_service_preference_cd
+2. **On tenant creation**: Copy sys_service_preference_cd → org_service_preference_cf for new tenant
+3. **Tenant customization** (cleanmatex - THIS PROJECT): Override extra_price, rename, toggle is_active, reorder
+4. **Order usage**: org_order_preferences_dtl references org_service_preference_cf (tenant's configured preferences)
+
+**Tenant Side** (cleanmatex - THIS PROJECT):
+- Backend: web-admin/lib/services/preference-catalog.service.ts - Merge sys + org catalogs
+- Frontend: web-admin/app/dashboard/catalog/preferences/ - View + customize tenant catalog
+- Access: Anon key + RLS (tenant-scoped)
+- **CRITICAL**: Always filter by tenant_org_id, RLS enforced
+
+**Platform Admin Side** (cleanmatexsaas):
+- Backend: platform-api/src/modules/catalog/ - CRUD on sys_service_preference_cd (service role key)
+- Frontend: platform-web/app/catalog/service-preferences/ - Manage global catalog
+- Access: Service role key (bypasses RLS)
+
+### Same Pattern Applies To
+
+- **Chart of Accounts**: sys_gl_chart_template → org_gl_accounts_mst
+- **Vendor Types**: sys_pch_vendor_types_cd → org_pch_vendor_types_cd
+- **Pay Item Types**: sys_hrm_pay_item_types_cd → org_hrm_pay_items_dtl
+- **Product Categories**: sys_product_types_cd → org_product_types_cf
+- **Packing Preferences**: sys_packing_preference_cd → org_packing_preference_cf
+
+### Key Decisions
+
+**When to use this pattern**:
+- Feature needs platform-wide baseline definitions
+- Tenants need to customize/extend the baseline
+- Platform admins manage what options exist (cleanmatexsaas)
+- Tenants manage how options work for them (cleanmatex - THIS PROJECT)
+
+**See Also**: [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) - Decision framework for catalog features
 
 ## Indexing
 
@@ -133,6 +212,15 @@ SELECT * FROM org_ord_orders_mst;  -- Wrong: This doesn't exist yet!
 - **`cat`** - Catalog/Products (e.g., `org_cat_`)
 - **`rpt`** - Reports (e.g., `org_rpt_`)
 - **`usr`** - Users (e.g., `sys_usr_`, `org_usr_`)
+
+**Lite ERP Module Abbreviations:**
+
+- **`pch`** - Purchasing (e.g., `org_pch_purchase_orders_mst`, `org_pch_vendors_mst`)
+- **`hrm`** - Human Resources Management (e.g., `org_hrm_employees_mst`, `org_hrm_payroll_tr`)
+- **`gl`** - General Ledger (e.g., `org_gl_accounts_mst`, `org_gl_journal_entries_tr`)
+- **`ap`** - Accounts Payable (e.g., `org_ap_vendor_invoices_mst`, `org_ap_payments_tr`)
+- **`ar`** - Accounts Receivable (e.g., `org_ar_customer_invoices_mst`, `org_ar_receipts_tr`)
+- **`inv`** - Inventory Management (e.g., `org_inv_stock_items_mst`, `org_inv_movements_tr`)
 
 **⚠️ IMPORTANT**: Always check [Feature Abbreviations](./database_feature_abbreviations.md) before creating new objects to ensure consistent abbreviations.
 

@@ -1,5 +1,3 @@
-> Combined from `@.claude/docs/architecture.md` and `@.claude/docs/02-architecture.md` on 2025-10-17
-
 # System Architecture
 
 ## Dual-Layer Data Model
@@ -13,7 +11,7 @@ Core entities use composite keys like `(tenant_org_id, entity_id)` to enforce is
 ## Stack
 - **DB:** PostgreSQL 16 (Supabase Local on port 54322), JSONB, composite PKs, RLS, planned partitioning
 - **Data Access:** shared Supabase workspace plus module-specific access patterns
-- **Web Admin:** Next.js 16, React 19, TS 5, Tailwind v4, React Query + Zustand, next-intl
+- **Web Admin:** Laundry dashboard and all operations , Next.js 16, React 19, TS 5, Tailwind v4, React Query + Zustand, next-intl
 - **Mobile (planned):** Flutter apps for customer, driver, store; Riverpod, Dio, Hive
 - **Backend:** `cmx-api` NestJS module with Supabase-based backend patterns
 - **Infra:** Supabase Local (includes Postgres on port 54322), Docker Compose for Redis & MinIO only

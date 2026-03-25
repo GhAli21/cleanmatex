@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabase/client';
 export default function B2BContractsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();
-  const tenantId = currentTenant?.id ?? null;
+  const tenantId = currentTenant?.tenant_id ?? null;
 
   const { data: contracts, isLoading } = useQuery({
     queryKey: ['b2b-contracts', tenantId],

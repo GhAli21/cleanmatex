@@ -473,7 +473,212 @@ async createOrder(dto: CreateOrderDto, idempotencyKey: string) {
 
 ---
 
-## 13. Priority Rules for AI
+## 13. Cross-Project Backend Patterns
+
+**Context**: This backend (cleanmatex/cmx-api and web-admin) is part of a dual-project architecture:
+- **cleanmatex** (Tenant App) - THIS PROJECT, uses anon key + RLS, single-tenant operations
+- **cleanmatexsaas** (Platform HQ) - Sibling project, uses service role key, cross-tenant operations
+
+### 13.1 When to Use Anon Key + RLS (cleanmatex - THIS PROJECT)
+
+**Tenant Operations** - Use anon key + RLS for:
+- Tenant-scoped operations (Orders, Customers, Inventory)
+- Lite ERP features (Purchasing, Payroll, GL, AP, AR)
+- ALL queries MUST filter by tenant_org_id
+- RLS policies MUST be enforced
+
+**Example - Tenant Orders Query**:
+```ts
+// ✅ Correct: Tenant-scoped query with RLS enforcement
+@Get('orders')
+async listOrders(@TenantId() tenantId: string, @Query() filters: OrderFiltersDto) {
+  // MUST filter by tenant_org_id - RLS enforced
+  const { data } = await this.prisma.org_orders_mst.findMany({
+    where: {
+      tenant_org_id: tenantId,
+      status: filters.status,
+    },
+    orderBy: { created_at: 'desc' },
+  });
+
+  return data;
+}
+```
+
+### 13.2 When to ALWAYS Filter by tenant_org_id (cleanmatex - THIS PROJECT)
+
+**CRITICAL RULE**: EVERY query touching org_* tables MUST filter by tenant_org_id.
+
+**Pattern**:
+```ts
+// ✅ Correct: Always filter by tenant_org_id
+async findOrder(tenantId: string, orderId: string) {
+  return this.prisma.org_orders_mst.findUnique({
+    where: {
+      id: orderId,
+      tenant_org_id: tenantId, // MANDATORY
+    },
+  });
+}
+
+// ❌ Wrong: Missing tenant filter
+async findOrder(orderId: string) {
+  return this.prisma.org_orders_mst.findUnique({
+    where: { id: orderId }, // VIOLATION: No tenant_org_id filter
+  });
+}
+```
+
+### 13.3 Database Migrations (ALWAYS in cleanmatex)
+
+**CRITICAL**: Database migrations are ALWAYS created in THIS PROJECT.
+
+**Migration Source of Truth**: `F:/jhapp/cleanmatex/supabase/migrations/`
+
+**Workflow**:
+1. Create migration in THIS PROJECT (cleanmatex)
+2. Add RLS policies for org_* tables in same migration
+3. Tell user to review and apply migration
+4. User regenerates types in both projects
+5. Both projects build successfully
+
+**See**: [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) for database decision framework
+
+### 13.4 Code Sharing Strategy
+
+**When code needs to be shared** between cleanmatex and cleanmatexsaas backends:
+
+**Share (Copy with Source Tracking)**:
+- DTOs for shared domain models (Order, Customer, Invoice)
+- Validation schemas (Zod, class-validator)
+- Constants (payment methods, order statuses, enums)
+- Utility functions (pure functions, formatters, validators)
+
+**Example**:
+```ts
+// ✅ Shared DTO (copy to both projects)
+// cmx-api/src/shared/dto/order-status.dto.ts
+// Synced from: cleanmatexsaas/platform-api/src/shared/dto/order-status.dto.ts
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+```
+
+**Duplicate (Different Implementations)**:
+- Auth guards (TenantAuthGuard vs PlatformAuthGuard)
+- Business logic (different rules for tenant vs platform)
+- API clients (different endpoints, different auth)
+- Data access patterns (Prisma + RLS vs Supabase-js + service role)
+
+**Example**:
+```ts
+// ❌ Do NOT share: Different auth logic per project
+
+// cleanmatex/cmx-api/src/auth/tenant-auth.guard.ts
+// Validates tenant_org_id from JWT, enforces single-tenant scope
+export class TenantAuthGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    // Validate tenant_org_id from JWT
+    if (!user.tenant_org_id) {
+      throw new UnauthorizedException('Missing tenant context');
+    }
+
+    // Attach tenant_org_id to request
+    request.tenantId = user.tenant_org_id;
+    return true;
+  }
+}
+
+// cleanmatexsaas/platform-api/src/auth/platform-auth.guard.ts
+// Validates platform admin role, allows cross-tenant access
+export class PlatformAuthGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+
+    // Validate platform admin role
+    if (!user.is_platform_admin) {
+      throw new ForbiddenException('Platform admin access required');
+    }
+
+    return true;
+  }
+}
+```
+
+**API-Based Sharing** (Settings/Feature Flags):
+- Settings: cleanmatexsaas manages (sys_stng_*), cleanmatex consumes via HQ API
+- Feature Flags: cleanmatexsaas manages (sys_feature_flags_*), cleanmatex consumes via HQ API
+- ❌ **NEVER** query sys_stng_* or sys_feature_flags_* directly from cleanmatex backend
+
+**See**: [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) for complete strategy
+
+### 13.5 Catalog Pattern Backend Implementation (cleanmatex - THIS PROJECT)
+
+**Tenant Catalog Operations** (cleanmatex):
+```ts
+// cleanmatex/cmx-api/src/modules/catalog/preference-catalog.service.ts
+@Injectable()
+export class PreferenceCatalogService {
+  // Tenants customize org_service_preference_cf
+  async getServicePreferences(tenantId: string) {
+    // Merge sys catalog + tenant overrides
+    // Uses Prisma with RLS enforcement
+    const sysPrefs = await this.prisma.sys_service_preference_cd.findMany({
+      where: { is_active: true }
+    });
+
+    const tenantOverrides = await this.prisma.org_service_preference_cf.findMany({
+      where: {
+        tenant_org_id: tenantId // MANDATORY filter
+      }
+    });
+
+    // Merge logic: sys baseline + tenant customizations
+    return this.mergePreferences(sysPrefs, tenantOverrides);
+  }
+
+  async updatePreference(
+    tenantId: string,
+    preferenceCode: string,
+    dto: UpdatePreferenceDto
+  ) {
+    // Tenant updates their org_service_preference_cf entry
+    return this.prisma.org_service_preference_cf.update({
+      where: {
+        tenant_org_id_preference_code: {
+          tenant_org_id: tenantId, // MANDATORY
+          preference_code: preferenceCode,
+        }
+      },
+      data: {
+        extra_price: dto.extraPrice,
+        name: dto.name,
+        name2: dto.name2,
+        is_active: dto.isActive,
+        display_order: dto.displayOrder,
+      }
+    });
+  }
+}
+```
+
+**System Catalog CRUD** (cleanmatexsaas only):
+- Platform admins manage sys_service_preference_cd via cleanmatexsaas
+- cleanmatex NEVER modifies sys_* catalog tables directly
+- cleanmatex only reads sys_* for baseline + merges with org_* overrides
+
+---
+
+## 14. Priority Rules for AI
 
 When generating backend code for this Project:
 
@@ -482,10 +687,13 @@ When generating backend code for this Project:
    - Use DTOs + ValidationPipe.
    - Use typed Supabase clients and repositories, not inline queries.
    - Map Supabase rows into domain/DTO models before returning.
+   - Filter ALL org_* queries by tenant_org_id (NO EXCEPTIONS).
+   - Check [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) for where features should be implemented.
 2. PREFER:
    - Extending existing repositories/services over creating ad-hoc data access.
    - Reusing common utilities for pagination, filtering, and logging.
-   - Pagination Always should be Server-Side Pagination (API-Driven)
+   - Pagination Always should be Server-Side Pagination (API-Driven).
+   - Referring to [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) when code needs to be shared.
 3. ONLY DEVIATE if:
    - The user explicitly asks for a simplified example or POC-style snippet,
    - You clearly localize the deviation and do not treat it as a new standard.

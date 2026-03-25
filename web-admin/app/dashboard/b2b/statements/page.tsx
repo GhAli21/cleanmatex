@@ -17,7 +17,7 @@ import { AlertCircle } from 'lucide-react';
 export default function B2BStatementsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();
-  const tenantId = currentTenant?.id ?? null;
+  const tenantId = currentTenant?.tenant_id ?? null;
 
   const { data: overdueStatements } = useQuery({
     queryKey: ['b2b-overdue-statements', tenantId],

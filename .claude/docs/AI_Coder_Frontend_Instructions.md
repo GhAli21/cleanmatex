@@ -300,4 +300,106 @@ export default function OrdersPage() {
 }
 ```
 
+---
+
+## 8. Feature Placement Rules (Cross-Project)
+
+**CRITICAL**: Before implementing ANY feature, determine correct project placement.
+
+### 8.1 Decision Framework
+
+**Use the [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md)** to answer:
+
+1. **Q1: Who are the primary users?**
+   - Tenant users (managers, operators, staff) → cleanmatex (THIS PROJECT)
+   - Platform admins (our team) → cleanmatexsaas
+   - Both → Implement in both with different access patterns
+
+2. **Q2: What is the data scope?**
+   - Single tenant operations → cleanmatex (THIS PROJECT)
+   - Cross-tenant administration → cleanmatexsaas
+   - Both → Both projects
+
+3. **Q3: What is the access pattern?**
+   - Must enforce RLS (tenant isolation) → cleanmatex (THIS PROJECT)
+   - Must bypass RLS (cross-tenant queries) → cleanmatexsaas
+   - Both → Both projects
+
+### 8.2 cleanmatex Frontend Context (THIS PROJECT)
+
+**Primary Users**: Tenant users (laundry managers, operators, staff)
+
+**Typical Features**:
+- Order management (create, track, process orders)
+- Customer management (CRM for laundry customers)
+- Inventory management (stock tracking, supplies)
+- Delivery management (route planning, driver tracking)
+- Lite ERP features (Purchasing, Payroll, GL, AP, AR)
+- Tenant-specific catalogs (service types, preferences)
+- Tenant settings and configuration
+
+**Access Pattern**:
+- Anon key + RLS (enforced tenant isolation)
+- ALWAYS filter queries by tenant_org_id
+- NO cross-tenant queries (forbidden)
+- Single tenant scope only
+
+**Example - Tenant Order Management**:
+```tsx
+// ✅ Correct: Tenant-scoped order list (no cross-tenant access)
+export function OrderListScreen() {
+  const { data: orders, isLoading } = useQuery({
+    queryKey: ['orders', 'list'],
+    queryFn: async () => {
+      // Backend enforces tenant_org_id filter via RLS
+      // Frontend never sees orders from other tenants
+      const response = await fetch('/api/orders');
+      return response.json();
+    }
+  });
+
+  return <CmxDataTable data={orders} loading={isLoading} />;
+}
+```
+
+**Example - Tenant Settings**:
+```tsx
+// ✅ Correct: Tenant customizes their own settings
+export function TenantSettingsScreen() {
+  const { data: settings } = useQuery({
+    queryKey: ['settings', 'tenant'],
+    queryFn: async () => {
+      // Fetches only this tenant's settings (RLS enforced)
+      const response = await fetch('/api/settings/effective');
+      return response.json();
+    }
+  });
+
+  return <TenantSettingsForm settings={settings} />;
+}
+```
+
+### 8.3 Context Switching Reminder
+
+**When working on cleanmatexsaas features** (sibling project):
+
+1. ✅ Announce context switch explicitly
+2. ✅ Use cleanmatexsaas CLAUDE.md and skills
+3. ✅ Use service role key patterns (cross-tenant access allowed)
+4. ✅ Filter by tenant_org_id only when tenant-specific
+5. ❌ NO migrations creation (migrations only in cleanmatex)
+
+**When working on cleanmatex features** (THIS PROJECT):
+
+1. ✅ Use THIS CLAUDE.md and skills
+2. ✅ Use anon key + RLS patterns
+3. ✅ ALWAYS filter by tenant_org_id (NO EXCEPTIONS)
+4. ✅ Create migrations HERE (source of truth)
+5. ❌ NO service role key usage
+6. ❌ NO cross-tenant queries
+
+**See**: [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) for complete decision framework
+
+---
+
 Follow these rules consistently for ALL frontend code generation in CleanMateX/CleanMateXSAAS.
