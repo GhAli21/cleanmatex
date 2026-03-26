@@ -80,6 +80,7 @@ When implementing any feature, document the following in the feature's implement
   - RBAC roles that need these permissions
   - Permission scope (tenant-level, global, resource-specific)
   - Contract-aligned route/action access coverage in `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`
+  - Contract-aligned API route/server-action coverage in `docs/platform/permissions/PERMISSIONS_BY_API.md`
 
 ### Navigation & UI Structure
 - [ ] **Navigation Tree** - New screens/menu items to be added

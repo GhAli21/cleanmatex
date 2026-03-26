@@ -20,6 +20,10 @@ The complete UI inventory lives in:
 
 - [all_contract-aligned_UI_Permissions.md](./all_contract-aligned_UI_Permissions.md)
 
+Page-linked backend permissions are documented separately in:
+
+- [PERMISSIONS_BY_API.md](./PERMISSIONS_BY_API.md)
+
 ## What This Covers
 
 - Active `web-admin/app/dashboard/**/page.tsx` routes
@@ -34,6 +38,7 @@ The complete UI inventory lives in:
 - A page can intentionally have no explicit UI permission gate. That is valid and must still be represented by a contract.
 - Backend authorization remains the final authority.
 - Navigation metadata is not the primary source of truth once a route has an explicit contract.
+- Linked APIs may be declared on the page contract through `apiDependencies`, but their required permissions still come from backend route or server-action enforcement.
 
 ## Representative Explicit UI Gates
 

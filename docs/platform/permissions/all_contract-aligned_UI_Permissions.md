@@ -8,6 +8,8 @@ author: CleanMateX Team
 
 Master inventory for active `web-admin` dashboard route and action access contracts.
 
+Linked backend APIs for these pages are documented in [PERMISSIONS_BY_API.md](./PERMISSIONS_BY_API.md). Page contracts may include `apiDependencies`, but this inventory stays focused on UI route and action access.
+
 Legend:
 - `None` = no explicit UI permission gate
 - `Flag:` = feature-flag requirement

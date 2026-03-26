@@ -12,7 +12,7 @@ user-invocable: true
 2. **Pagination must be server-side** (API-driven)
 3. **Use CmxEditableDataTable** for editable tables
 4. **NEVER create `components/` folder** - use `src/ui/` or `src/features/*/ui/`
-5. **Use `/rebuild-ui-access-contract`** when changing dashboard route access, permission-gated actions, feature-flag gates, workflow-role gates, or the permissions inspector popup
+5. **Use `/rebuild-ui-access-contract`** when changing dashboard route access, permission-gated actions, feature-flag gates, workflow-role gates, linked page APIs, or the permissions inspector popup
 
 ## Folder Structure
 
@@ -194,3 +194,4 @@ When building or implementing a **report** (screen, component, page, tool):
 - [ui-blueprint.md](./ui-blueprint.md) - UI layer blueprint
 - [uiux-rules.md](./uiux-rules.md) - UI/UX design guidelines
 - `web-admin/src/features/*/access/` - Feature-local UI access contracts for dashboard routes and gated actions
+- `docs/platform/permissions/PERMISSIONS_BY_API.md` - Contract-aligned API permission inventory for page-linked APIs

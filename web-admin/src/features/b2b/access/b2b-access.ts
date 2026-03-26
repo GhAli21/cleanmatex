@@ -14,6 +14,17 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'List customers',
+        method: 'GET',
+        path: '/api/v1/customers?type=b2b',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
   },
   {
     routePattern: '/dashboard/b2b/customers/new',
@@ -24,6 +35,26 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Create customer',
+        method: 'POST',
+        path: '/api/v1/customers',
+        requirement: {
+          permissions: ['customers:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List B2B customer categories',
+        method: 'GET',
+        path: '/api/v1/customer-categories?is_b2b=true&active_only=true',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: B2B_NOTES,
   },
   {
@@ -35,6 +66,44 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Get customer details',
+        method: 'GET',
+        path: '/api/v1/customers/[id]',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List customer B2B contacts',
+        method: 'GET',
+        path: '/api/v1/b2b-contacts?customer_id=[id]',
+        requirement: {
+          permissions: ['b2b_contacts:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List customer B2B contracts',
+        method: 'GET',
+        path: '/api/v1/b2b-contracts?customer_id=[id]',
+        requirement: {
+          permissions: ['b2b_contracts:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List customer B2B statements',
+        method: 'GET',
+        path: '/api/v1/b2b-statements?customer_id=[id]',
+        requirement: {
+          permissions: ['b2b_statements:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: B2B_NOTES,
   },
   {
@@ -46,6 +115,35 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Get customer details',
+        method: 'GET',
+        path: '/api/v1/customers/[id]',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Update customer',
+        method: 'PATCH',
+        path: '/api/v1/customers/[id]',
+        requirement: {
+          permissions: ['customers:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'List B2B customer categories',
+        method: 'GET',
+        path: '/api/v1/customer-categories?is_b2b=true&active_only=true',
+        requirement: {
+          permissions: ['customers:read'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: B2B_NOTES,
   },
   {
@@ -98,6 +196,17 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'List overdue statements',
+        method: 'GET',
+        path: '/api/v1/b2b/overdue-statements',
+        requirement: {
+          permissions: ['b2b_statements:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
   },
   {
     routePattern: '/dashboard/b2b/statements/[id]',
@@ -108,6 +217,26 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
       requireAllPermissions: true,
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Get statement details',
+        method: 'GET',
+        path: '/api/v1/b2b-statements/[id]',
+        requirement: {
+          permissions: ['b2b_statements:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Print statement',
+        method: 'GET',
+        path: '/api/v1/b2b-statements/[id]/print',
+        requirement: {
+          permissions: ['b2b_statements:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: B2B_NOTES,
   },
 ]

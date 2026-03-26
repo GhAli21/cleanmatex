@@ -18,6 +18,18 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
     },
+    apiDependencies: [
+      {
+        label: 'Filter B2B invoices',
+        method: 'GET',
+        path: '/api/v1/b2b-contracts?customer_id=[customerId]',
+        requirement: {
+          permissions: ['b2b_contracts:view'],
+          requireAllPermissions: true,
+        },
+        notes: ['Used only when the B2B invoices filter is enabled on the screen.'],
+      },
+    ],
     notes: BILLING_NOTES,
   },
   {
@@ -46,6 +58,28 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
     },
+    apiDependencies: [
+      {
+        label: 'Cancel payment',
+        method: 'POST',
+        path: 'app/actions/payments/payment-crud-actions.cancelPaymentAction',
+        requirement: {
+          permissions: ['payments:cancel'],
+          requireAllPermissions: true,
+        },
+        notes: ['Server action used by the payments table row action.'],
+      },
+      {
+        label: 'Refund payment',
+        method: 'POST',
+        path: 'app/actions/payments/payment-crud-actions.refundPaymentAction',
+        requirement: {
+          permissions: ['payments:refund'],
+          requireAllPermissions: true,
+        },
+        notes: ['Server action used by the payments table row action.'],
+      },
+    ],
     notes: BILLING_NOTES,
   },
   {
@@ -74,6 +108,28 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
     },
+    apiDependencies: [
+      {
+        label: 'Cancel payment',
+        method: 'POST',
+        path: 'app/actions/payments/payment-crud-actions.cancelPaymentAction',
+        requirement: {
+          permissions: ['payments:cancel'],
+          requireAllPermissions: true,
+        },
+        notes: ['Server action used by the payment details screen.'],
+      },
+      {
+        label: 'Refund payment',
+        method: 'POST',
+        path: 'app/actions/payments/payment-crud-actions.refundPaymentAction',
+        requirement: {
+          permissions: ['payments:refund'],
+          requireAllPermissions: true,
+        },
+        notes: ['Server action used by the payment details screen.'],
+      },
+    ],
     notes: BILLING_NOTES,
   },
   {

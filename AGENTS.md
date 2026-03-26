@@ -254,7 +254,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 |---|---|
 | Any SQL, migration, table, index, function | `/database` |
 | Any frontend component, page, hook, JSX | `/frontend` |
-| Any dashboard route access, permission-gated action, feature-flag gate, workflow-role gate, permissions inspector change | `/rebuild-ui-access-contract` |
+| Any dashboard route access, permission-gated action, linked page API permission, feature-flag gate, workflow-role gate, permissions inspector change | `/rebuild-ui-access-contract` |
 | Any i18n key, translation, bilingual text | `/i18n` |
 | Any API route, service, backend logic | `/backend` |
 | Any query touching `org_*` tables | `/multitenancy` |
@@ -343,7 +343,7 @@ Ignoring events
 **See:** `/implementation` skill for coding standards
 **See:** `/code-documentation` skill for JSDoc patterns, SQL migration comments, Tailwind annotations, and config file documentation rules.
 
-**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. For dashboard UI access changes, also update `docs/platform/permissions/PERMISSIONS_BY_SCREEN.md` and `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`. See `.codex/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
+**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. For dashboard UI/API access changes, also update `docs/platform/permissions/PERMISSIONS_BY_SCREEN.md`, `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`, and `docs/platform/permissions/PERMISSIONS_BY_API.md`. See `.codex/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
 
 ## Constants & Types (single source of truth)
 
@@ -376,7 +376,7 @@ Ignoring events
 - `/frontend` - for frontend developing rules, Next.js 16, React 19, Cmx Design System
 - `/backend` - API routes, service layer, Supabase patterns
 - `/i18n` - Bilingual support (EN/AR), RTL layout
-- `/rebuild-ui-access-contract` - dashboard route/action access contracts, permissions inspector alignment, contract-aligned UI permissions docs
+- `/rebuild-ui-access-contract` - dashboard route/action/API access contracts, permissions inspector alignment, contract-aligned UI/API permissions docs
 
 ### Architecture & Planning
 

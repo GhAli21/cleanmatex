@@ -173,7 +173,7 @@ START: You have a task
 
 ### UI Access Contract Work
 
-When dashboard route access or gated UI actions change:
+When dashboard route access, gated UI actions, or page-linked APIs change:
 
 - Use the `rebuild-ui-access-contract` skill
 - Update feature-local contracts under `web-admin/src/features/*/access/`
@@ -182,6 +182,7 @@ When dashboard route access or gated UI actions change:
 - Update:
   - `docs/platform/permissions/PERMISSIONS_BY_SCREEN.md`
   - `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`
+  - `docs/platform/permissions/PERMISSIONS_BY_API.md`
 
 ---
 
