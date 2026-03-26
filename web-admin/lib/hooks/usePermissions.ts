@@ -34,9 +34,9 @@ export function useHasPermission(resource: string, action: string): boolean {
     // Check exact permission
     if (permissions.includes(permission)) return true
     
-    // Check wildcard permissions
-    if (permissions.includes('*:*')) return true // Super admin
-    if (permissions.includes(`${resource}:*`)) return true // All actions on resource
+    // Wildcards only if returned by get_user_permissions (same rules for every user)
+    if (permissions.includes('*:*')) return true
+    if (permissions.includes(`${resource}:*`)) return true
     
     return false
   }, [permissions, resource, action])
@@ -54,7 +54,6 @@ export function useHasAnyPermission(permissions: string[]): boolean {
     if (!userPermissions || userPermissions.length === 0) return false
     if (!permissions || permissions.length === 0) return false
     
-    // Check for super admin
     if (userPermissions.includes('*:*')) return true
     
     // Check if any permission matches
@@ -82,10 +81,8 @@ export function useHasAllPermissions(permissions: string[]): boolean {
     if (!userPermissions || userPermissions.length === 0) return false
     if (!permissions || permissions.length === 0) return true
     
-    // Super admin has all permissions
     if (userPermissions.includes('*:*')) return true
-    
-    // Check if all permissions are present
+
     return permissions.every(perm => {
       if (userPermissions.includes(perm)) return true
       
