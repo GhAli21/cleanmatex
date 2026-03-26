@@ -26,7 +26,9 @@ import {
 } from '@/lib/api/roles'
 import PermissionAssignmentModal from '@features/auth/ui/PermissionAssignmentModal'
 import { useAuth } from '@/lib/auth/auth-context'
+import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantRole } from '@/lib/api/roles'
+import { SETTINGS_ROLES_ACCESS } from '@features/settings/access/settings-access'
 
 export default function RolesManagementPage() {
   const t = useTranslations('settings')
@@ -169,13 +171,12 @@ export default function RolesManagementPage() {
   }
 
   // Access control check
-  const isAdmin =
-    currentTenant?.user_role?.toLowerCase() === 'admin' ||
-    currentTenant?.user_role?.toLowerCase() === 'tenant_admin' ||
-    permissions?.includes('*:*') ||
-    permissions?.includes('settings:*') ||
-    permissions?.includes('roles:*') ||
-    permissions?.some((p) => p.startsWith('roles:'))
+  const isAdmin = evaluateAccessRequirement(SETTINGS_ROLES_ACCESS.page, {
+    userPermissions: permissions ?? [],
+    userWorkflowRoles: [],
+    userTenantRole: currentTenant?.user_role ?? null,
+    featureFlags: {},
+  }).passed
 
   if (loading) {
     return (

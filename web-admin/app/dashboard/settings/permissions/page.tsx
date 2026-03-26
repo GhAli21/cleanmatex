@@ -25,7 +25,9 @@ import {
   isValidPermissionCode,
 } from '@/lib/api/permissions'
 import { useAuth } from '@/lib/auth/auth-context'
+import { evaluateAccessRequirement } from '@/lib/auth/access-contracts'
 import type { TenantPermission, PermissionsByCategory } from '@/lib/api/permissions'
+import { SETTINGS_PERMISSIONS_ACCESS } from '@features/settings/access/settings-access'
 
 export default function PermissionsManagementPage() {
   const { currentTenant, permissions, session } = useAuth()
@@ -174,13 +176,12 @@ export default function PermissionsManagementPage() {
   }
 
   // Access control check
-  const isAdmin =
-    currentTenant?.user_role?.toLowerCase() === 'admin' ||
-    currentTenant?.user_role?.toLowerCase() === 'tenant_admin' ||
-    permissions?.includes('*:*') ||
-    permissions?.includes('settings:*') ||
-    permissions?.includes('permissions:*') ||
-    permissions?.some((p) => p.startsWith('permissions:'))
+  const isAdmin = evaluateAccessRequirement(SETTINGS_PERMISSIONS_ACCESS.page, {
+    userPermissions: permissions ?? [],
+    userWorkflowRoles: [],
+    userTenantRole: currentTenant?.user_role ?? null,
+    featureFlags: {},
+  }).passed
 
   if (loading) {
     return (

@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { PaymentListItem } from '@/lib/types/payment';
-import { RequirePermission } from '@features/auth/ui/RequirePermission';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { BILLING_PAYMENTS_ACCESS } from '@features/billing/access/billing-access';
 import CancelPaymentDialog from './cancel-payment-dialog';
 import RefundPaymentDialog from './refund-payment-dialog';
 
@@ -316,7 +317,9 @@ export default function PaymentsTable({
               {t('table.viewDetails')}
             </Link>
             {p.status !== 'cancelled' && p.status !== 'refunded' && !p.hasRefunds && (
-              <RequirePermission resource="payments" action="cancel">
+              <RequireAnyPermission
+                permissions={BILLING_PAYMENTS_ACCESS.actions?.cancelPayment.requirement.permissions ?? []}
+              >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -326,10 +329,12 @@ export default function PaymentsTable({
                 >
                   {t('table.cancel')}
                 </button>
-              </RequirePermission>
+              </RequireAnyPermission>
             )}
             {p.status === 'completed' && p.paid_amount > 0 && (
-              <RequirePermission resource="payments" action="refund">
+              <RequireAnyPermission
+                permissions={BILLING_PAYMENTS_ACCESS.actions?.refundPayment.requirement.permissions ?? []}
+              >
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -339,7 +344,7 @@ export default function PaymentsTable({
                 >
                   {t('table.refund')}
                 </button>
-              </RequirePermission>
+              </RequireAnyPermission>
             )}
           </div>
         );

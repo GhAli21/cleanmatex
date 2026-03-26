@@ -13,6 +13,7 @@ user-invocable: true
 3. **Understand multi-tenancy**: Use `/multitenancy` skill
 4. **Review database conventions**: Use `/database` skill
 5. **for frontend rules follow**: Use `/frontend` skill
+6. **for dashboard route/action access changes follow**: Use `/rebuild-ui-access-contract` skill
 
 ## Implementation Checklist
 

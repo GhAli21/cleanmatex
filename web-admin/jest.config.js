@@ -25,6 +25,9 @@ const customJestConfig = {
   // Module name mapping for absolute imports
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    '^@features/(.*)$': '<rootDir>/src/features/$1',
+    '^@ui/(.*)$': '<rootDir>/src/ui/$1',
+    '^@lib/(.*)$': '<rootDir>/lib/$1',
   },
 
   // Coverage configuration

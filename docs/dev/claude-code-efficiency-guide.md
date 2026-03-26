@@ -163,12 +163,25 @@ START: You have a task
 - Creating API documentation
 - Updating feature docs
 - Adding inline code comments
+- Updating contract-aligned route/action access documentation after UI access changes
 
 **Example:**
 ```
 "Document the new pricing API endpoints"
 → Agent creates comprehensive API docs with examples
 ```
+
+### UI Access Contract Work
+
+When dashboard route access or gated UI actions change:
+
+- Use the `rebuild-ui-access-contract` skill
+- Update feature-local contracts under `web-admin/src/features/*/access/`
+- Update `web-admin/src/features/access/page-access-registry.ts`
+- Keep the shield popup aligned with the active contract
+- Update:
+  - `docs/platform/permissions/PERMISSIONS_BY_SCREEN.md`
+  - `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`
 
 ---
 

@@ -11,7 +11,8 @@ import {
   updatePaymentNotesAction,
   cancelPaymentAction,
 } from '@/app/actions/payments/payment-crud-actions';
-import { RequirePermission } from '@features/auth/ui/RequirePermission';
+import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
+import { BILLING_PAYMENT_DETAIL_ACCESS } from '@features/billing/access/billing-access';
 import CancelPaymentDialog from '@features/billing/ui/cancel-payment-dialog';
 import RefundPaymentDialog from '@features/billing/ui/refund-payment-dialog';
 
@@ -361,26 +362,30 @@ export default function PaymentDetailClient({
 
               {/* Cancel Payment Button (permission-gated; hidden if already refunded) */}
               {!isCancelledOrRefunded && !hasRefunds && (
-                <RequirePermission resource="payments" action="cancel">
+                <RequireAnyPermission
+                  permissions={BILLING_PAYMENT_DETAIL_ACCESS.actions?.cancelPayment.requirement.permissions ?? []}
+                >
                   <button
                     onClick={() => setShowCancelDialog(true)}
                     className="w-full rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
                   >
                     {t('cancel.title')}
                   </button>
-                </RequirePermission>
+                </RequireAnyPermission>
               )}
 
               {/* Refund Payment Button (permission-gated, only for completed payments with amount > 0) */}
               {payment.status === 'completed' && payment.paid_amount > 0 && (
-                <RequirePermission resource="payments" action="refund">
+                <RequireAnyPermission
+                  permissions={BILLING_PAYMENT_DETAIL_ACCESS.actions?.refundPayment.requirement.permissions ?? []}
+                >
                   <button
                     onClick={() => setShowRefundDialog(true)}
                     className="w-full rounded-md border border-blue-300 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50"
                   >
                     {t('refund.title')}
                   </button>
-                </RequirePermission>
+                </RequireAnyPermission>
               )}
 
               {/* Print Receipt Voucher Button */}

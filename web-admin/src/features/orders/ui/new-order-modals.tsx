@@ -14,7 +14,7 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
-import { useHasPermission } from '@/lib/hooks/use-has-permission';
+import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import type { MinimalCustomer } from '../model/new-order-types';
@@ -26,6 +26,7 @@ import { PhotoCaptureModal } from './components/photo-capture-modal';
 import { ReadyDatePickerModal } from './ready-date-picker-modal';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
+import { NEW_ORDER_ACCESS } from '@features/orders/access/orders-access';
 
 // Lazy load heavy modals for code splitting
 const CustomerPickerModal = dynamic(
@@ -79,7 +80,9 @@ export function NewOrderModals() {
   });
   const { servicePrefs } = usePreferenceCatalog(state.state.branchId);
   const t = useTranslations('newOrder');
-  const hasPriceOverridePermission = useHasPermission('pricing', 'override');
+  const hasPriceOverridePermission = useHasAnyPermission(
+    NEW_ORDER_ACCESS.actions?.priceOverride.requirement.permissions ?? []
+  );
 
   // Get unique service categories from items
   const serviceCategories = useMemo(() => {

@@ -32,6 +32,7 @@ import {
 } from '@/lib/api/customer-categories';
 import { generateCode, generateCustomerCategoryCode } from '@/lib/utils/generate-code';
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
+import { CATALOG_CUSTOMER_CATEGORIES_ACCESS } from '@features/catalog/access/catalog-access';
 
 const SYSTEM_TYPES = [
   { value: 'guest', label: 'Guest' },
@@ -211,7 +212,10 @@ export default function CustomerCategoriesPage() {
         <h1 className="text-2xl font-semibold">
           {t('customerCategories') || 'Customer Categories'}
         </h1>
-        <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+        <RequireAnyPermission
+          permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
+          fallback={null}
+        >
           <CmxButton onClick={openCreate}>
             <Plus className="h-4 w-4 mr-2" />
             {tCommon('add') || 'Add'}
@@ -238,7 +242,10 @@ export default function CustomerCategoriesPage() {
                     <th className="text-left py-2 px-3 font-medium">Type</th>
                     <th className="text-left py-2 px-3 font-medium">B2B</th>
                     <th className="text-left py-2 px-3 font-medium">Status</th>
-                    <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<th />}>
+                    <RequireAnyPermission
+                      permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
+                      fallback={<th />}
+                    >
                       <th className="text-right py-2 px-3 font-medium">Actions</th>
                     </RequireAnyPermission>
                   </tr>
@@ -271,7 +278,10 @@ export default function CustomerCategoriesPage() {
                           )}
                         </div>
                       </td>
-                      <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<td />}>
+                      <RequireAnyPermission
+                        permissions={CATALOG_CUSTOMER_CATEGORIES_ACCESS.actions?.manageCustomerCategories.requirement.permissions ?? []}
+                        fallback={<td />}
+                      >
                         <td className="py-2 px-3 text-right">
                           <CmxButton
                             variant="ghost"

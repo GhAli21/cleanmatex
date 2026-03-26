@@ -8,73 +8,153 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import { useQuery } from '@tanstack/react-query'
 import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { findNavigationByPath, NAVIGATION_SECTIONS } from '@/config/navigation'
-import { getPageAccessContractByPath } from '@/src/features/access/page-access-registry'
-import { hasPermissionRequirement } from '@/lib/auth/access-contracts'
+import {
+  evaluateAccessRequirement,
+  hasExplicitPermissionGate,
+  type AccessEvaluationDetail,
+  type AccessRequirement,
+} from '@/lib/auth/access-contracts'
+import { getAllPageAccessContracts, getPageAccessContractByPath } from '@features/access/page-access-registry'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
+
+function RequirementBadge({
+  passed,
+  label,
+}: {
+  passed: boolean
+  label: string
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-xs font-medium ${
+        passed ? 'text-green-700' : 'text-red-600'
+      }`}
+    >
+      {passed ? <Check className="h-4 w-4" /> : <X className="h-4 w-4" />}
+      {label}
+    </span>
+  )
+}
+
+function RequirementDetailRow({ detail }: { detail: AccessEvaluationDetail }) {
+  const labels: Record<AccessEvaluationDetail['kind'], string> = {
+    permission: 'Permission',
+    permission_prefix: 'Permission Prefix',
+    feature_flag: 'Feature Flag',
+    workflow_role: 'Workflow Role',
+    tenant_role: 'Tenant Role',
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+      <div className="min-w-0">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+          {labels[detail.kind]}
+        </p>
+        <p className="break-all text-xs font-mono text-gray-700">{detail.value}</p>
+      </div>
+      <RequirementBadge passed={detail.passed} label={detail.passed ? 'Allowed' : 'Missing'} />
+    </div>
+  )
+}
+
+function RequirementBlock({
+  title,
+  requirement,
+  details,
+  passed,
+  showNoExplicitPermissions = false,
+}: {
+  title: string
+  requirement: AccessRequirement
+  details: AccessEvaluationDetail[]
+  passed: boolean
+  showNoExplicitPermissions?: boolean
+}) {
+  const explicitPermissionGate = hasExplicitPermissionGate(requirement)
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+        <span className="text-xs font-medium text-gray-700">{title}</span>
+        <RequirementBadge passed={passed} label={passed ? 'Allowed' : 'Missing'} />
+      </div>
+
+      {showNoExplicitPermissions && !explicitPermissionGate ? (
+        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+          No explicit page permissions.
+        </p>
+      ) : null}
+
+      {details.map((detail) => (
+        <RequirementDetailRow key={`${detail.kind}:${detail.value}`} detail={detail} />
+      ))}
+    </div>
+  )
+}
 
 export default function CmxTopBar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, currentTenant, availableTenants, signOut, switchTenant, permissions } = useAuth()
+  const {
+    user,
+    currentTenant,
+    availableTenants,
+    signOut,
+    switchTenant,
+    permissions,
+    workflowRoles,
+  } = useAuth()
   const isRTL = useRTL()
   const t = useTranslations('layout.topBar')
-  const tCommon = useTranslations('common')
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
 
-  const currentSection = findNavigationByPath(pathname)
-  const pageTitle = currentSection?.label || 'Dashboard'
-  const currentPageContract = getPageAccessContractByPath(pathname)
-  const currentPageDetails = (() => {
-    for (const section of NAVIGATION_SECTIONS) {
-      if (section.path === pathname) {
-        return {
-          label: section.label,
-          path: section.path,
-          permissions: section.permissions ?? [],
-        }
+  const { data: featureFlags = {} } = useQuery({
+    queryKey: ['feature-flags', currentTenant?.tenant_id],
+    queryFn: async () => {
+      const response = await fetch('/api/feature-flags')
+      if (!response.ok) {
+        throw new Error('Failed to fetch feature flags')
       }
 
-      const child = section.children?.find((item) => item.path === pathname)
-      if (child) {
-        return {
-          label: child.label,
-          path: child.path,
-          permissions: child.permissions ?? [],
-        }
-      }
-    }
-
-    return {
-      label: pageTitle,
-      path: pathname,
-      permissions: [] as string[],
-    }
-  })()
-  const currentPagePermissionSource = currentPageContract?.page.permissions ?? currentPageDetails.permissions
-  const currentPageHasAccess = hasPermissionRequirement(
-    currentPageContract?.page ?? {
-      permissions: currentPageDetails.permissions,
-      requireAllPermissions: false,
+      return (await response.json()) as Record<string, boolean>
     },
-    permissions ?? []
-  )
+    enabled: !!currentTenant?.tenant_id && showPermsDialog,
+  })
+
+  const currentPageContract = getPageAccessContractByPath(pathname)
+  const pageTitle = currentPageContract?.label ?? 'Dashboard'
+  const pageEvaluation = currentPageContract
+    ? evaluateAccessRequirement(currentPageContract.page, {
+        userPermissions: permissions ?? [],
+        userWorkflowRoles: workflowRoles ?? [],
+        userTenantRole: currentTenant?.user_role ?? null,
+        featureFlags,
+      })
+    : null
 
   const handleSignOut = async () => {
-    try { await signOut() } catch (error) { console.error('Error signing out:', error) }
+    try {
+      await signOut()
+    } catch (error) {
+      console.error('Error signing out:', error)
+    }
   }
 
   const handleTenantSwitch = async (tenantId: string) => {
     try {
       await switchTenant(tenantId)
       setShowTenantMenu(false)
-    } catch (error) { console.error('Error switching tenant:', error) }
+    } catch (error) {
+      console.error('Error switching tenant:', error)
+    }
   }
 
   return (
@@ -104,7 +184,6 @@ export default function CmxTopBar() {
 
             <CmxLanguageSwitcher />
 
-            {/* Debug: Permissions Inspector */}
             <button
               type="button"
               onClick={() => setShowPermsDialog(true)}
@@ -225,10 +304,9 @@ export default function CmxTopBar() {
         </div>
       </div>
 
-      {/* Permissions Debug Dialog */}
       {showPermsDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowPermsDialog(false)}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-blue-600" />
@@ -238,146 +316,112 @@ export default function CmxTopBar() {
                 {permissions?.length ?? 0} total
               </span>
             </div>
-            <div className="overflow-y-auto px-5 py-4 flex flex-col gap-1">
-              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+
+            <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <ShieldCheck className="h-4 w-4 text-blue-600" />
                   <h3 className="text-sm font-semibold text-gray-900">Current Page Access</h3>
                 </div>
-                <div className="space-y-1 text-sm text-gray-700">
-                  <p>
-                    <span className="font-medium">Page:</span> {currentPageDetails.label}
-                  </p>
-                  <p className="break-all">
-                    <span className="font-medium">Path:</span> {currentPageDetails.path}
-                  </p>
-                </div>
-                <div className="mt-3 space-y-2">
-                  <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
-                    <span className="text-xs font-medium text-gray-700">Page access</span>
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-medium ${
-                        currentPageHasAccess ? 'text-green-700' : 'text-red-600'
-                      }`}
-                    >
-                      {currentPageHasAccess ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <X className="h-4 w-4" />
-                      )}
-                      {currentPageHasAccess ? 'Allowed' : 'Missing'}
-                    </span>
-                  </div>
 
-                  {currentPagePermissionSource.length === 0 ? (
-                    <p className="text-xs text-gray-500">
-                      No explicit page permissions are defined for this route.
-                    </p>
-                  ) : (
-                    currentPagePermissionSource.map((permissionCode) => {
-                      const hasAccess = hasPermissionRequirement(
-                        { permissions: [permissionCode], requireAllPermissions: true },
-                        permissions ?? []
-                      )
+                {currentPageContract && pageEvaluation ? (
+                  <div className="space-y-4">
+                    <div className="space-y-1 text-sm text-gray-700">
+                      <p>
+                        <span className="font-medium">Page:</span> {currentPageContract.label}
+                      </p>
+                      <p className="break-all">
+                        <span className="font-medium">Path:</span> {pathname}
+                      </p>
+                      <p className="break-all">
+                        <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
+                      </p>
+                    </div>
 
-                      return (
-                        <div
-                          key={permissionCode}
-                          className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2"
-                        >
-                          <span className="text-xs font-mono text-gray-700">{permissionCode}</span>
-                          <span
-                            className={`inline-flex items-center gap-1 text-xs font-medium ${
-                              hasAccess ? 'text-green-700' : 'text-red-600'
-                            }`}
-                          >
-                            {hasAccess ? (
-                              <Check className="h-4 w-4" />
-                            ) : (
-                              <X className="h-4 w-4" />
-                            )}
-                            {hasAccess ? 'Allowed' : 'Missing'}
-                          </span>
-                        </div>
-                      )
-                    })
-                  )}
-                </div>
-                {currentPageContract?.actions && Object.keys(currentPageContract.actions).length > 0 ? (
-                  <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
-                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                      Actions
-                    </h4>
-                    {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
-                      const hasAccess = hasPermissionRequirement(action.requirement, permissions ?? [])
-                      const actionPermissions = action.requirement.permissions ?? []
+                    <RequirementBlock
+                      title="Page access"
+                      requirement={currentPageContract.page}
+                      details={pageEvaluation.details}
+                      passed={pageEvaluation.passed}
+                      showNoExplicitPermissions
+                    />
 
-                      return (
-                        <div key={actionKey} className="rounded-md bg-white px-3 py-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="text-xs font-medium text-gray-700">{action.label}</span>
-                            <span
-                              className={`inline-flex items-center gap-1 text-xs font-medium ${
-                                hasAccess ? 'text-green-700' : 'text-red-600'
-                              }`}
-                            >
-                              {hasAccess ? (
-                                <Check className="h-4 w-4" />
+                    {currentPageContract.actions && Object.keys(currentPageContract.actions).length > 0 ? (
+                      <div className="space-y-3 border-t border-gray-200 pt-4">
+                        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Actions
+                        </h4>
+                        {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
+                          const actionEvaluation = evaluateAccessRequirement(action.requirement, {
+                            userPermissions: permissions ?? [],
+                            userWorkflowRoles: workflowRoles ?? [],
+                            userTenantRole: currentTenant?.user_role ?? null,
+                            featureFlags,
+                          })
+
+                          return (
+                            <div key={actionKey} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-sm font-medium text-gray-800">{action.label}</span>
+                                <RequirementBadge
+                                  passed={actionEvaluation.passed}
+                                  label={actionEvaluation.passed ? 'Allowed' : 'Missing'}
+                                />
+                              </div>
+                              {actionEvaluation.details.length === 0 ? (
+                                <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                                  No explicit action requirements.
+                                </p>
                               ) : (
-                                <X className="h-4 w-4" />
+                                actionEvaluation.details.map((detail) => (
+                                  <RequirementDetailRow key={`${actionKey}:${detail.kind}:${detail.value}`} detail={detail} />
+                                ))
                               )}
-                              {hasAccess ? 'Allowed' : 'Missing'}
-                            </span>
-                          </div>
-                          {actionPermissions.length > 0 ? (
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {actionPermissions.map((permissionCode) => {
-                                const hasActionPermission = hasPermissionRequirement(
-                                  { permissions: [permissionCode], requireAllPermissions: true },
-                                  permissions ?? []
-                                )
-
-                                return (
-                                  <span
-                                    key={permissionCode}
-                                    className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-mono ${
-                                      hasActionPermission
-                                        ? 'bg-green-50 text-green-700'
-                                        : 'bg-red-50 text-red-600'
-                                    }`}
-                                  >
-                                    {hasActionPermission ? (
-                                      <Check className="h-3.5 w-3.5" />
-                                    ) : (
-                                      <X className="h-3.5 w-3.5" />
-                                    )}
-                                    {permissionCode}
-                                  </span>
-                                )
-                              })}
+                              {action.notes?.map((note) => (
+                                <p key={note} className="text-xs text-gray-500">
+                                  {note}
+                                </p>
+                              ))}
                             </div>
-                          ) : (
-                            <p className="mt-2 text-xs text-gray-500">
-                              No explicit action permissions are defined.
-                            </p>
-                          )}
-                        </div>
-                      )
-                    })}
+                          )
+                        })}
+                      </div>
+                    ) : null}
+
+                    {currentPageContract.notes?.length ? (
+                      <div className="space-y-1 border-t border-gray-200 pt-3">
+                        {currentPageContract.notes.map((note) => (
+                          <p key={note} className="text-xs text-gray-500">
+                            {note}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-red-600">
+                      Missing route access contract for this page.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Registered contracts: {getAllPageAccessContracts().length}
+                    </p>
+                    <p className="text-xs font-mono text-gray-700 break-all">{pathname}</p>
+                  </div>
+                )}
               </div>
 
               {(permissions ?? []).length === 0 ? (
                 <p className="text-sm text-red-600 text-center py-8">No permissions found.</p>
               ) : (
-                [...(permissions ?? [])].sort().map((p) => (
-                  <span key={p} className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                    {p}
+                [...(permissions ?? [])].sort().map((permissionCode) => (
+                  <span key={permissionCode} className="text-xs font-mono bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                    {permissionCode}
                   </span>
                 ))
               )}
             </div>
+
             <div className="px-5 py-3 border-t border-gray-200 flex justify-end">
               <button
                 type="button"

@@ -79,6 +79,7 @@ When implementing any feature, document the following in the feature's implement
   - Permission codes (e.g., `orders.create`, `invoices.view`)
   - RBAC roles that need these permissions
   - Permission scope (tenant-level, global, resource-specific)
+  - Contract-aligned route/action access coverage in `docs/platform/permissions/all_contract-aligned_UI_Permissions.md`
 
 ### Navigation & UI Structure
 - [ ] **Navigation Tree** - New screens/menu items to be added

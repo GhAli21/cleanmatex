@@ -30,6 +30,7 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { Package, Shirt, Plus, Pencil, Trash2, Gift, ChevronRight, Layers } from 'lucide-react';
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
 
 interface ServicePref {
   code: string;
@@ -199,7 +200,10 @@ function ServicePrefsTable({
                 </td>
                 {isAdmin && adminRow && (
                   <td className="px-4 py-3 text-right">
-                    <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                    <RequireAnyPermission
+                      permissions={CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? []}
+                      fallback={null}
+                    >
                       <CmxButton
                         variant="ghost"
                         size="sm"
@@ -296,7 +300,10 @@ function PackingPrefsTable({
                 </td>
                 {isAdmin && adminRow && (
                   <td className="px-4 py-3 text-right">
-                    <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                    <RequireAnyPermission
+                      permissions={CATALOG_PREFERENCES_ACCESS.actions?.editPackingPreferences.requirement.permissions ?? []}
+                      fallback={null}
+                    >
                       <CmxButton
                         variant="ghost"
                         size="sm"
@@ -363,7 +370,10 @@ function BundlesTable({
             <th className="px-4 py-3 text-left font-medium">{t('preferences', 'Preferences')}</th>
             <th className="px-4 py-3 text-left font-medium">{t('discount', 'Discount')}</th>
             <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
-            <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<th />}>
+            <RequireAnyPermission
+              permissions={CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? []}
+              fallback={<th />}
+            >
               <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
             </RequireAnyPermission>
           </tr>
@@ -388,7 +398,10 @@ function BundlesTable({
                   {b.is_active ? t('active', 'Active') : t('inactive', 'Inactive')}
                 </Badge>
               </td>
-              <RequireAnyPermission permissions={['config:preferences_manage']} fallback={<td />}>
+              <RequireAnyPermission
+                permissions={CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? []}
+                fallback={<td />}
+              >
                 <td className="px-4 py-3 text-right">
                   <div className="flex justify-end gap-1">
                     <CmxButton
@@ -534,7 +547,10 @@ function PreferenceKindsTable({
                   </Badge>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+                  <RequireAnyPermission
+                    permissions={CATALOG_PREFERENCES_ACCESS.actions?.editPreferenceKinds.requirement.permissions ?? []}
+                    fallback={null}
+                  >
                     <CmxButton
                       variant="ghost"
                       size="sm"
@@ -797,7 +813,10 @@ export default function PreferencesCatalogPage() {
               <p className="text-sm text-gray-600">
                 {t('bundlesDesc', 'Preference bundles for quick apply (Growth+)')}
               </p>
-              <RequireAnyPermission permissions={['config:preferences_manage']} fallback={null}>
+              <RequireAnyPermission
+                permissions={CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? []}
+                fallback={null}
+              >
                 <CmxButton
                   size="sm"
                   onClick={() => {
@@ -865,7 +884,7 @@ export default function PreferencesCatalogPage() {
 
   return (
     <RequireAnyPermission
-      permissions={['orders:service_prefs_view', 'orders:read', 'config:preferences_manage']}
+      permissions={CATALOG_PREFERENCES_ACCESS.page.permissions ?? []}
       fallback={
         <CmxCard className="p-6">
           <p className="text-gray-600">You do not have permission to view the preferences catalog.</p>

@@ -1,0 +1,3 @@
+display_name: Rebuild UI Access Contract
+short_description: Roll out or repair contract-first route and action access for web-admin, including inspector and docs.
+default_prompt: Rebuild or fix the web-admin UI access contracts for the affected routes and gated actions, then update the contract-aligned permissions docs and inspector output.
