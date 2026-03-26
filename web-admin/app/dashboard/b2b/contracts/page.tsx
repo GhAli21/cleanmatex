@@ -9,11 +9,12 @@ import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth/auth-context';
-import { useHasPermission } from '@/lib/hooks/usePermissions';
+import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 import { createClient } from '@/lib/supabase/client';
 import { B2bCreateContractDialog } from '@/src/features/b2b/ui/b2b-create-contract-dialog';
+import { B2B_CONTRACTS_ACCESS } from '@/src/features/b2b/access/b2b-contracts-access';
 
 type ContractRow = {
   id: string;
@@ -33,7 +34,9 @@ export default function B2BContractsPage() {
   const t = useTranslations('b2b');
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? null;
-  const canCreate = useHasPermission('b2b_contracts', 'create');
+  const createContractRequirement =
+    B2B_CONTRACTS_ACCESS.actions?.createContract.requirement.permissions ?? [];
+  const canCreate = useHasAnyPermission(createContractRequirement);
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data: contracts, isLoading } = useQuery({

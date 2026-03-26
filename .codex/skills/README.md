@@ -46,6 +46,7 @@ Each skill is organized in its own directory with:
 | **codebase-visualizer** | Task | Generate interactive codebase tree |
 | **navigation** | Reference | Navigation tree management |
 | **storybook** | Task | Storybook story generation — Cmx components, RTL, a11y, interaction stories |
+| **supabase-project-map** | Task | Connect to local/remote Supabase safely and map Supabase usage across CleanMateX |
 
 ## How to Use Skills
 

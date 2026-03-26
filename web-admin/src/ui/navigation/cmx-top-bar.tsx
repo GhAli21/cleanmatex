@@ -8,9 +8,11 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck } from 'lucide-react'
+import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { findNavigationByPath } from '@/config/navigation'
+import { findNavigationByPath, NAVIGATION_SECTIONS } from '@/config/navigation'
+import { getPageAccessContractByPath } from '@/src/features/access/page-access-registry'
+import { hasPermissionRequirement } from '@/lib/auth/access-contracts'
 import { CmxLanguageSwitcher } from './cmx-language-switcher'
 import { useRTL } from '@/lib/hooks/useRTL'
 
@@ -28,6 +30,41 @@ export default function CmxTopBar() {
 
   const currentSection = findNavigationByPath(pathname)
   const pageTitle = currentSection?.label || 'Dashboard'
+  const currentPageContract = getPageAccessContractByPath(pathname)
+  const currentPageDetails = (() => {
+    for (const section of NAVIGATION_SECTIONS) {
+      if (section.path === pathname) {
+        return {
+          label: section.label,
+          path: section.path,
+          permissions: section.permissions ?? [],
+        }
+      }
+
+      const child = section.children?.find((item) => item.path === pathname)
+      if (child) {
+        return {
+          label: child.label,
+          path: child.path,
+          permissions: child.permissions ?? [],
+        }
+      }
+    }
+
+    return {
+      label: pageTitle,
+      path: pathname,
+      permissions: [] as string[],
+    }
+  })()
+  const currentPagePermissionSource = currentPageContract?.page.permissions ?? currentPageDetails.permissions
+  const currentPageHasAccess = hasPermissionRequirement(
+    currentPageContract?.page ?? {
+      permissions: currentPageDetails.permissions,
+      requireAllPermissions: false,
+    },
+    permissions ?? []
+  )
 
   const handleSignOut = async () => {
     try { await signOut() } catch (error) { console.error('Error signing out:', error) }
@@ -202,6 +239,135 @@ export default function CmxTopBar() {
               </span>
             </div>
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-1">
+              <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-gray-900">Current Page Access</h3>
+                </div>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p>
+                    <span className="font-medium">Page:</span> {currentPageDetails.label}
+                  </p>
+                  <p className="break-all">
+                    <span className="font-medium">Path:</span> {currentPageDetails.path}
+                  </p>
+                </div>
+                <div className="mt-3 space-y-2">
+                  <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+                    <span className="text-xs font-medium text-gray-700">Page access</span>
+                    <span
+                      className={`inline-flex items-center gap-1 text-xs font-medium ${
+                        currentPageHasAccess ? 'text-green-700' : 'text-red-600'
+                      }`}
+                    >
+                      {currentPageHasAccess ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                      {currentPageHasAccess ? 'Allowed' : 'Missing'}
+                    </span>
+                  </div>
+
+                  {currentPagePermissionSource.length === 0 ? (
+                    <p className="text-xs text-gray-500">
+                      No explicit page permissions are defined for this route.
+                    </p>
+                  ) : (
+                    currentPagePermissionSource.map((permissionCode) => {
+                      const hasAccess = hasPermissionRequirement(
+                        { permissions: [permissionCode], requireAllPermissions: true },
+                        permissions ?? []
+                      )
+
+                      return (
+                        <div
+                          key={permissionCode}
+                          className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2"
+                        >
+                          <span className="text-xs font-mono text-gray-700">{permissionCode}</span>
+                          <span
+                            className={`inline-flex items-center gap-1 text-xs font-medium ${
+                              hasAccess ? 'text-green-700' : 'text-red-600'
+                            }`}
+                          >
+                            {hasAccess ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <X className="h-4 w-4" />
+                            )}
+                            {hasAccess ? 'Allowed' : 'Missing'}
+                          </span>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+                {currentPageContract?.actions && Object.keys(currentPageContract.actions).length > 0 ? (
+                  <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Actions
+                    </h4>
+                    {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
+                      const hasAccess = hasPermissionRequirement(action.requirement, permissions ?? [])
+                      const actionPermissions = action.requirement.permissions ?? []
+
+                      return (
+                        <div key={actionKey} className="rounded-md bg-white px-3 py-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-xs font-medium text-gray-700">{action.label}</span>
+                            <span
+                              className={`inline-flex items-center gap-1 text-xs font-medium ${
+                                hasAccess ? 'text-green-700' : 'text-red-600'
+                              }`}
+                            >
+                              {hasAccess ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <X className="h-4 w-4" />
+                              )}
+                              {hasAccess ? 'Allowed' : 'Missing'}
+                            </span>
+                          </div>
+                          {actionPermissions.length > 0 ? (
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {actionPermissions.map((permissionCode) => {
+                                const hasActionPermission = hasPermissionRequirement(
+                                  { permissions: [permissionCode], requireAllPermissions: true },
+                                  permissions ?? []
+                                )
+
+                                return (
+                                  <span
+                                    key={permissionCode}
+                                    className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-mono ${
+                                      hasActionPermission
+                                        ? 'bg-green-50 text-green-700'
+                                        : 'bg-red-50 text-red-600'
+                                    }`}
+                                  >
+                                    {hasActionPermission ? (
+                                      <Check className="h-3.5 w-3.5" />
+                                    ) : (
+                                      <X className="h-3.5 w-3.5" />
+                                    )}
+                                    {permissionCode}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          ) : (
+                            <p className="mt-2 text-xs text-gray-500">
+                              No explicit action permissions are defined.
+                            </p>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                ) : null}
+              </div>
+
               {(permissions ?? []).length === 0 ? (
                 <p className="text-sm text-red-600 text-center py-8">No permissions found.</p>
               ) : (
