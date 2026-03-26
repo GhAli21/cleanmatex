@@ -66,6 +66,28 @@ export const B2B_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
     },
+    apiDependencies: [
+      {
+        label: 'List contracts',
+        method: 'GET',
+        path: '/api/v1/b2b-contracts',
+        requirement: {
+          permissions: ['b2b_contracts:view'],
+          requireAllPermissions: true,
+        },
+        notes: ['Used to load the contracts table and empty state.'],
+      },
+      {
+        label: 'Create contract',
+        method: 'POST',
+        path: '/api/v1/b2b-contracts',
+        requirement: {
+          permissions: ['b2b_contracts:create'],
+          requireAllPermissions: true,
+        },
+        notes: ['Used when submitting the create contract dialog.'],
+      },
+    ],
   },
   {
     routePattern: '/dashboard/b2b/statements',

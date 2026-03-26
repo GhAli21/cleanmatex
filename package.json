@@ -4,21 +4,40 @@
   "description": "Multi-tenant SaaS for Laundry & Dry Cleaning Management",
   "private": true,
   "scripts": {
-    "services:start": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/start-services.ps1",
-    "services:stop": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/stop-services.ps1",
-    "db:reset": "powershell -ExecutionPolicy Bypass -File ./scripts/dev/reset-db.sh",
-    "test:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-test.ps1",
     "validate:env": "node scripts/validate-env.js",
+
+    "services:start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/start-services.ps1",
+    "services:stop:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/stop-services.ps1",
+    "test:smoke:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-test.ps1",
+
+
     "supabase:start": "cd supabase && supabase start",
     "supabase:stop": "cd supabase && supabase stop",
     "supabase:status": "cd supabase && supabase status",
-    "supabase:reset": "cd supabase && supabase db reset",
+    
     "supabase:types": "cd supabase && supabase gen types typescript --local > ../web-admin/types/database.ts",
+
     "docs:extract-permissions": "tsx scripts/docs/extract-permissions.ts",
     "docs:extract-settings": "tsx scripts/docs/extract-settings-usage.ts",
     "docs:extract-feature-flags": "tsx scripts/docs/extract-feature-flags.ts",
     "docs:extract-api-auth-audit": "tsx scripts/docs/extract-api-auth-audit.ts",
-    "docs:validate": "tsx scripts/docs/validate-docs.ts"
+    "docs:validate": "tsx scripts/docs/validate-docs.ts",
+
+    "web-admin:dev": "npm run dev --workspace=web-admin",
+    "web-admin:build": "npm run build --workspace=web-admin",
+    "web-admin:build:safe": "npm run build:safe --workspace=web-admin",
+    "web-admin:typecheck": "npm run typecheck --workspace=web-admin",
+    "web-admin:lint": "npm run lint --workspace=web-admin",
+    "web-admin:lint:fix": "npm run lint:fix --workspace=web-admin",
+    "web-admin:prisma:generate": "npm run prisma:generate --workspace=web-admin",
+    "web-admin:test": "npm run test --workspace=web-admin",
+    "web-admin:test:e2e": "npm run test:e2e --workspace=web-admin",
+    "web-admin:verify": "npm run verify --workspace=web-admin",
+
+    "build": "npm run web-admin:build",
+    "typecheck": "npm run web-admin:typecheck",
+    "lint": "npm run web-admin:lint",
+    "verify": "npm run web-admin:verify"
   },
   "keywords": [
     "laundry",
@@ -39,9 +58,5 @@
   ],
   "devDependencies": {
     "tsx": "^4.19.0"
-  },
-  "dependencies": {
-    "@tanstack/react-query": "^5.90.7",
-    "ioredis": "^5.8.2"
   }
 }

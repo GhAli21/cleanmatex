@@ -24,11 +24,20 @@ export interface AccessActionContract {
   notes?: string[]
 }
 
+export interface ApiAccessDependency {
+  label: string
+  method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
+  path: string
+  requirement?: AccessRequirement
+  notes?: string[]
+}
+
 export interface PageAccessContract {
   routePattern: string
   label: string
   page: AccessRequirement
   actions?: Record<string, AccessActionContract>
+  apiDependencies?: ApiAccessDependency[]
   notes?: string[]
 }
 

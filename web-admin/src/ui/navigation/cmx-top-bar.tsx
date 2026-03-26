@@ -14,6 +14,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import {
   evaluateAccessRequirement,
   hasExplicitPermissionGate,
+  type ApiAccessDependency,
   type AccessEvaluationDetail,
   type AccessRequirement,
 } from '@/lib/auth/access-contracts'
@@ -97,6 +98,49 @@ function RequirementBlock({
   )
 }
 
+function ApiDependencyCard({
+  dependency,
+  passed,
+  details,
+}: {
+  dependency: ApiAccessDependency
+  passed: boolean
+  details: AccessEvaluationDetail[]
+}) {
+  return (
+    <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-gray-800">{dependency.label}</p>
+          <p className="break-all text-xs font-mono text-gray-600">
+            {dependency.method} {dependency.path}
+          </p>
+        </div>
+        <RequirementBadge passed={passed} label={passed ? 'Allowed' : 'Missing'} />
+      </div>
+
+      {!dependency.requirement || details.length === 0 ? (
+        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+          No explicit API permission requirement recorded.
+        </p>
+      ) : (
+        details.map((detail) => (
+          <RequirementDetailRow
+            key={`${dependency.method}:${dependency.path}:${detail.kind}:${detail.value}`}
+            detail={detail}
+          />
+        ))
+      )}
+
+      {dependency.notes?.map((note) => (
+        <p key={note} className="text-xs text-gray-500">
+          {note}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export default function CmxTopBar() {
   const pathname = usePathname()
   const router = useRouter()
@@ -115,6 +159,7 @@ export default function CmxTopBar() {
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
+  const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api'>('ui')
 
   const { data: featureFlags = {} } = useQuery({
     queryKey: ['feature-flags', currentTenant?.tenant_id],
@@ -186,7 +231,10 @@ export default function CmxTopBar() {
 
             <button
               type="button"
-              onClick={() => setShowPermsDialog(true)}
+              onClick={() => {
+                setActiveInspectorTab('ui')
+                setShowPermsDialog(true)
+              }}
               title="Debug: Show My Permissions"
               className="p-2 text-gray-400 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md"
             >
@@ -319,85 +367,150 @@ export default function CmxTopBar() {
 
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
-                <div className="mb-2 flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-blue-600" />
-                  <h3 className="text-sm font-semibold text-gray-900">Current Page Access</h3>
+                <div className="mb-4 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-blue-600" />
+                    <h3 className="text-sm font-semibold text-gray-900">Current Page Access</h3>
+                  </div>
+                  <div className="inline-flex rounded-md border border-gray-200 bg-white p-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveInspectorTab('ui')}
+                      className={`rounded px-3 py-1 text-xs font-medium ${
+                        activeInspectorTab === 'ui'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      UI Access
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveInspectorTab('api')}
+                      className={`rounded px-3 py-1 text-xs font-medium ${
+                        activeInspectorTab === 'api'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      API Access
+                    </button>
+                  </div>
                 </div>
 
                 {currentPageContract && pageEvaluation ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1 text-sm text-gray-700">
-                      <p>
-                        <span className="font-medium">Page:</span> {currentPageContract.label}
-                      </p>
-                      <p className="break-all">
-                        <span className="font-medium">Path:</span> {pathname}
-                      </p>
-                      <p className="break-all">
-                        <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
-                      </p>
-                    </div>
+                  activeInspectorTab === 'ui' ? (
+                    <div className="space-y-4">
+                      <div className="space-y-1 text-sm text-gray-700">
+                        <p>
+                          <span className="font-medium">Page:</span> {currentPageContract.label}
+                        </p>
+                        <p className="break-all">
+                          <span className="font-medium">Path:</span> {pathname}
+                        </p>
+                        <p className="break-all">
+                          <span className="font-medium">Route Pattern:</span> {currentPageContract.routePattern}
+                        </p>
+                      </div>
 
-                    <RequirementBlock
-                      title="Page access"
-                      requirement={currentPageContract.page}
-                      details={pageEvaluation.details}
-                      passed={pageEvaluation.passed}
-                      showNoExplicitPermissions
-                    />
+                      <RequirementBlock
+                        title="Page access"
+                        requirement={currentPageContract.page}
+                        details={pageEvaluation.details}
+                        passed={pageEvaluation.passed}
+                        showNoExplicitPermissions
+                      />
 
-                    {currentPageContract.actions && Object.keys(currentPageContract.actions).length > 0 ? (
-                      <div className="space-y-3 border-t border-gray-200 pt-4">
-                        <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                          Actions
-                        </h4>
-                        {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
-                          const actionEvaluation = evaluateAccessRequirement(action.requirement, {
-                            userPermissions: permissions ?? [],
-                            userWorkflowRoles: workflowRoles ?? [],
-                            userTenantRole: currentTenant?.user_role ?? null,
-                            featureFlags,
-                          })
+                      {currentPageContract.actions && Object.keys(currentPageContract.actions).length > 0 ? (
+                        <div className="space-y-3 border-t border-gray-200 pt-4">
+                          <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            Actions
+                          </h4>
+                          {Object.entries(currentPageContract.actions).map(([actionKey, action]) => {
+                            const actionEvaluation = evaluateAccessRequirement(action.requirement, {
+                              userPermissions: permissions ?? [],
+                              userWorkflowRoles: workflowRoles ?? [],
+                              userTenantRole: currentTenant?.user_role ?? null,
+                              featureFlags,
+                            })
 
-                          return (
-                            <div key={actionKey} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
-                              <div className="flex items-center justify-between gap-3">
-                                <span className="text-sm font-medium text-gray-800">{action.label}</span>
-                                <RequirementBadge
-                                  passed={actionEvaluation.passed}
-                                  label={actionEvaluation.passed ? 'Allowed' : 'Missing'}
-                                />
+                            return (
+                              <div key={actionKey} className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span className="text-sm font-medium text-gray-800">{action.label}</span>
+                                  <RequirementBadge
+                                    passed={actionEvaluation.passed}
+                                    label={actionEvaluation.passed ? 'Allowed' : 'Missing'}
+                                  />
+                                </div>
+                                {actionEvaluation.details.length === 0 ? (
+                                  <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                                    No explicit action requirements.
+                                  </p>
+                                ) : (
+                                  actionEvaluation.details.map((detail) => (
+                                    <RequirementDetailRow key={`${actionKey}:${detail.kind}:${detail.value}`} detail={detail} />
+                                  ))
+                                )}
+                                {action.notes?.map((note) => (
+                                  <p key={note} className="text-xs text-gray-500">
+                                    {note}
+                                  </p>
+                                ))}
                               </div>
-                              {actionEvaluation.details.length === 0 ? (
-                                <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
-                                  No explicit action requirements.
-                                </p>
-                              ) : (
-                                actionEvaluation.details.map((detail) => (
-                                  <RequirementDetailRow key={`${actionKey}:${detail.kind}:${detail.value}`} detail={detail} />
-                                ))
-                              )}
-                              {action.notes?.map((note) => (
-                                <p key={note} className="text-xs text-gray-500">
-                                  {note}
-                                </p>
-                              ))}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    ) : null}
+                            )
+                          })}
+                        </div>
+                      ) : null}
 
-                    {currentPageContract.notes?.length ? (
-                      <div className="space-y-1 border-t border-gray-200 pt-3">
-                        {currentPageContract.notes.map((note) => (
-                          <p key={note} className="text-xs text-gray-500">
-                            {note}
-                          </p>
-                        ))}
+                      {currentPageContract.notes?.length ? (
+                        <div className="space-y-1 border-t border-gray-200 pt-3">
+                          {currentPageContract.notes.map((note) => (
+                            <p key={note} className="text-xs text-gray-500">
+                              {note}
+                            </p>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-1 text-sm text-gray-700">
+                        <p>
+                          <span className="font-medium">Page:</span> {currentPageContract.label}
+                        </p>
+                        <p className="break-all">
+                          <span className="font-medium">Path:</span> {pathname}
+                        </p>
                       </div>
-                    ) : null}
-                  </div>
+
+                      {currentPageContract.apiDependencies?.length ? (
+                        <div className="space-y-3">
+                          {currentPageContract.apiDependencies.map((dependency) => {
+                            const apiEvaluation = evaluateAccessRequirement(dependency.requirement, {
+                              userPermissions: permissions ?? [],
+                              userWorkflowRoles: workflowRoles ?? [],
+                              userTenantRole: currentTenant?.user_role ?? null,
+                              featureFlags,
+                            })
+
+                            return (
+                              <ApiDependencyCard
+                                key={`${dependency.method}:${dependency.path}`}
+                                dependency={dependency}
+                                passed={apiEvaluation.passed}
+                                details={apiEvaluation.details}
+                              />
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                          No API dependencies recorded for this page yet.
+                        </p>
+                      )}
+                    </div>
+                  )
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-red-600">
