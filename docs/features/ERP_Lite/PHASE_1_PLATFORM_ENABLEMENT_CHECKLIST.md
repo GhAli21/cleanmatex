@@ -53,7 +53,24 @@ Phase 1 is complete only when all of the following are true:
 - flags, permissions, navigation, and settings are frozen
 - route shells exist without premature finance logic
 - migration ownership split is explicit
-- implementation can move to Phase 1A without ambiguity
+- implementation can move to Phase 2 and Phase 3 without ambiguity
+
+## 3.1 Current Execution Status
+
+Current status: `Complete`
+
+Completed implementation/results:
+
+- feature flags were seeded and applied via migrations `0175` to `0178`
+- ERP-Lite permissions, navigation, and allowed settings were seeded and applied
+- tenant runtime shell routes were created under `/dashboard/erp-lite/*`
+- route access contracts and runtime page/layout guards were implemented
+- feature flag constants/types and settings constants were aligned to the applied seeds
+- EN/AR shell and access-state messages were added
+
+Open environment note:
+
+- `npm run build` and `npm run check:i18n` could not be completed on this machine because local Node/npm execution is blocked by `WSL 1 is not supported`
 
 ---
 
@@ -108,10 +125,10 @@ Use the following flag keys:
 
 ## 5.2 Phase 1 Required Actions
 
-- [ ] confirm these flag keys remain canonical
-- [ ] confirm parent-child gating model
-- [ ] define flag dependency behavior in tenant runtime nav and route checks
-- [ ] define plan-binding assumptions in HQ governance
+- [x] confirm these flag keys remain canonical
+- [x] confirm parent-child gating model
+- [x] define flag dependency behavior in tenant runtime nav and route checks
+- [x] define plan-binding assumptions in HQ governance
 
 ## 5.3 Phase 1 Notes
 
@@ -175,10 +192,10 @@ Strong recommendation:
 
 ## 6.4 Phase 1 Required Actions
 
-- [ ] freeze the final permission code list for Phase 0
-- [ ] decide whether future-safe permissions will be seeded now or in Phase 1
-- [ ] map each screen shell to one main permission code
-- [ ] confirm role-default strategy for `super_admin`, `tenant_admin`, and finance roles
+- [x] freeze the final permission code list for Phase 1
+- [x] decide whether future-safe permissions will be seeded now or in Phase 1
+- [x] map each screen shell to one main permission code
+- [x] confirm role-default strategy for `super_admin`, `tenant_admin`, and finance roles
 
 ---
 
@@ -215,10 +232,10 @@ Recommended treatment:
 
 ## 7.3 Phase 1 Required Actions
 
-- [ ] freeze the allowed tenant setting list
-- [ ] explicitly exclude tenant-owned core auto-post settings from current Phase 0 implementation
-- [ ] confirm settings category code `ERP_LITE`
-- [ ] define which settings are shell-only vs runtime-active in v1
+- [x] freeze the allowed tenant setting list
+- [x] explicitly exclude tenant-owned core auto-post settings from current Phase 1 implementation
+- [x] confirm settings category code `ERP_LITE`
+- [x] define which settings are shell-only vs runtime-active in v1
 
 ---
 
@@ -252,10 +269,10 @@ Use the following child shells:
 
 ## 8.3 Phase 1 Required Actions
 
-- [ ] freeze parent and child `comp_code` values
-- [ ] freeze route path pattern under `/dashboard/erp-lite/*`
-- [ ] decide whether any child routes stay hidden until later phases even if placeholders exist
-- [ ] confirm EN/AR labels for parent and child nodes
+- [x] freeze parent and child `comp_code` values
+- [x] freeze route path pattern under `/dashboard/erp-lite/*`
+- [x] decide whether any child routes stay hidden until later phases even if placeholders exist
+- [x] confirm EN/AR labels for parent and child nodes
 
 ---
 

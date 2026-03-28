@@ -23,9 +23,9 @@ The blocking policy determines what happens when auto-posting fails for a given 
 This table is the authoritative reference for:
 - HQ auto-post policy configuration (cleanmatexsaas)
 - Runtime exception handling behavior (cleanmatex)
-- Finance team review before Phase 1C implementation
+- Finance team review before Phase 5 implementation
 
-> **Gate:** V1 policies in §3 must be human-approved before Phase 1C auto-post integration begins. V2 and V3 policies require a separate ADR approval.
+> **Gate:** V1 policies in §3 must be human-approved before Phase 5 auto-post integration begins. V2 and V3 policies require a separate ADR approval.
 
 ---
 
@@ -54,7 +54,7 @@ When `blocking_mode = NON_BLOCKING`:
 ## 3. V1 Event Blocking Policy
 
 > These are the approved default policies for all 9 v1 locked events (Runtime Domain Contract §5).
-> Any deviation from the defaults below requires explicit policy approval before Phase 1C.
+> Any deviation from the defaults below requires explicit policy approval before Phase 5.
 
 | `txn_event_code` | `blocking_mode` | `required_success` | `retry_allowed` | `repost_allowed` | `failure_action` |
 |---|---|---|---|---|---|
@@ -112,7 +112,7 @@ When `blocking_mode = NON_BLOCKING`:
 ## 6. Approval Note
 
 - V1 blocking policies in §3 are approved as part of the v1.0 canonical document pack (2026-03-28)
-- V1 policies must be reviewed by the project owner before Phase 1C auto-post integration
+- V1 policies must be reviewed by the project owner before Phase 5 auto-post integration
 - Any deviation from the BLOCKING default for revenue-impacting events requires explicit approval
 - V2 and V3 entries are planning guides only — each requires a separate ADR approval before configuration
 

@@ -22,13 +22,17 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | Phase | Name | Status | Notes | Last Updated |
 |---|---|---|---|---|
-| Phase 0 | Governance & Approval | In Progress | Documentation pack approved 2026-03-28. Checklist sign-off pending. | 2026-03-28 |
-| Phase 1A | COA & Account Types | Not Started | Blocked on Phase 0 completion | — |
-| Phase 1B | Posting Engine & Rules | Not Started | Blocked on Phase 1A + ACCOUNT_USAGE_CODE_CATALOG approval | — |
-| Phase 1C | Auto-Post Integration | Not Started | Blocked on Phase 1B + BLOCKING_POLICY_TABLE approval | — |
-| Phase 1D | VAT Runtime | Not Started | Blocked on Phase 1B | — |
-| Phase 2 | Reporting (GL, P&L, BS, AR) | Not Started | Blocked on Phase 1A completion | — |
-| Phase 3 | Advanced Features | Not Started | Scope pending v3 ADR approval | — |
+| Phase 0 | Decision Freeze | Complete | Canonical PRD/ADR/runtime-rule/approval pack completed and formally approved. | 2026-03-28 |
+| Phase 1 | Platform Enablement | Complete | Phase 1 migrations were applied, ERP-Lite shell routes were created, route guards were wired, flags/settings/constants were aligned, and EN/AR shell messages were added. Node-based validation remains environment-blocked on local WSL 1. | 2026-03-28 |
+| Phase 2 | HQ Governance Foundation | In Progress | Phase 2 checklist and execution package are now drafted. Shared governance migration drafts `0179` to `0182` exist but are provisional pending review. | 2026-03-28 |
+| Phase 3 | Tenant Finance Schema | Not Started | Ready to begin after Phase 2 governance foundations are defined. | — |
+| Phase 4 | Posting Engine | Not Started | Blocked on Phase 3 + ACCOUNT_USAGE_CODE_CATALOG approval. | — |
+| Phase 5 | Core Auto-Post Integration | Not Started | Blocked on Phase 4 + BLOCKING_POLICY_TABLE approval. | — |
+| Phase 6 | V1 Finance Inquiry and Reports | Not Started | Blocked on Phase 5 completion. | — |
+| Phase 7 | Basic Expenses and Petty Cash | Not Started | Blocked on Phase 6 completion. | — |
+| Phase 8 | V1 Pilot and Hardening | Not Started | Blocked on complete v1 runtime scope. | — |
+| Phase 9 | V2 Treasury + Suppliers + AP/PO | Not Started | Starts only after v1 is trusted in pilot. | — |
+| Phase 10 | V3 Advanced Controls + Profitability + Costing | Not Started | Starts only after v2 is stable. | — |
 
 ### Phase Status Key
 
@@ -46,7 +50,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | # | Blocker | Affects | Owner | Opened |
 |---|---|---|---|---|
-| B-001 | APPROVAL_CHECKLIST_FOR_PHASE_0.md human sign-off not yet complete | Phase 0 completion / Phase 1A start | Project owner | 2026-03-28 |
+| B-001 | Local Node/npm validation tooling cannot run in current environment (`WSL 1 is not supported`) | Build validation for completed Phase 1 work and future frontend slices | Environment owner | 2026-03-28 |
 
 ---
 
@@ -54,7 +58,14 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | Migration File | Description | Status | Applied Date | Notes |
 |---|---|---|---|---|
-| _(none yet)_ | — | — | — | First migration created when Phase 1A begins |
+| `0175_erp_lite_phase1_feature_flags.sql` | Phase 1 ERP-Lite feature flags and plan mappings | Applied | 2026-03-28 | Phase 1 platform enablement |
+| `0176_erp_lite_phase1_permissions.sql` | Phase 1 ERP-Lite permissions and role defaults | Applied | 2026-03-28 | Phase 1 platform enablement |
+| `0177_erp_lite_phase1_navigation.sql` | Phase 1 ERP-Lite navigation seed entries | Applied | 2026-03-28 | Phase 1 platform enablement |
+| `0178_erp_lite_phase1_settings.sql` | Phase 1 ERP-Lite settings category and allowed setting keys | Applied | 2026-03-28 | Phase 1 platform enablement |
+| `0179_erp_lite_phase2_account_governance.sql` | Phase 2 HQ account type and group governance schema | Drafted | — | Provisional draft pending Phase 2 package review |
+| `0180_erp_lite_phase2_event_usage.sql` | Phase 2 event catalog and usage code schema | Drafted | — | Provisional draft pending Phase 2 package review |
+| `0181_erp_lite_phase2_gov_rules.sql` | Phase 2 governance package and mapping rule schema | Drafted | — | Provisional draft pending Phase 2 package review |
+| `0182_erp_lite_phase2_auto_post_policy.sql` | Phase 2 HQ auto-post policy schema and v1 draft defaults | Drafted | — | Provisional draft pending Phase 2 package review |
 
 ---
 
@@ -62,7 +73,32 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | Branch | Description | Status | Opened | Merged | Notes |
 |---|---|---|---|---|---|
-| _(none yet)_ | — | — | — | — | First PR created when Phase 1A begins |
+| _(tracking not recorded in this doc)_ | Phase 0 and Phase 1 were completed in the current implementation stream | Active | 2026-03-28 | — | Use git history/PR system as the source of truth for branch-level detail |
+
+---
+
+## 5.1 Completed Scope Snapshot
+
+### Phase 0 Completed
+
+- canonical ERP-Lite PRD/ADR pack approved
+- finance core rules approved
+- runtime domain contract approved
+- governance publication contract approved
+- approval checklist finalized and recorded
+
+### Phase 1 Completed
+
+- ERP-Lite feature flags seeded and applied
+- ERP-Lite permissions seeded and applied
+- ERP-Lite navigation seed entries applied
+- ERP-Lite settings seed entries applied
+- tenant runtime shell routes added under `/dashboard/erp-lite/*`
+- route contracts and page registry entries added
+- runtime page/layout feature and permission guards added
+- feature flag constants/types aligned to applied flags
+- EN/AR shell and access-state messages added
+- permission documentation updated
 
 ---
 

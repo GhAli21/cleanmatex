@@ -181,16 +181,19 @@ Do not begin implementation work for a phase until its required approval inputs 
 
 ## 5. Phase Map
 
-| Phase | Goal | Outcome |
-|---|---|---|
-| Phase 0 | Platform enablement | ERP-Lite can be gated, navigated, permissioned, and configured |
-| Phase 1A | Finance schema foundation | COA, GL, periods/settings, constants/types exist |
-| Phase 1B | Posting engine | Balanced and idempotent journal batches can be created |
-| Phase 1C | Auto-post core flows | Invoices, payments, refunds create GL entries |
-| Phase 1D | Finance inquiry + reports | GL inquiry, trial balance, P&L, balance sheet, AR aging |
-| Phase 1E | Basic expenses and petty cash | simple expense entry, petty cash entry/top-up, posting, listing |
-| Phase 2 | Bank + suppliers + AP/PO | treasury and procurement layers |
-| Phase 3 | Advanced expenses + advanced petty cash + branch profitability + costing | differentiator phase |
+| Phase | Goal | Outcome | Current Status |
+|---|---|---|---|
+| Phase 0 | Decision freeze and approval | Canonical ERP-Lite direction, governance, and runtime control model are approved | Complete |
+| Phase 1 | Platform enablement | ERP-Lite can be gated, navigated, permissioned, and configured | Complete |
+| Phase 2 | HQ governance foundation | Account types, rule governance, publication model, and HQ auto-post policy foundations are defined | Not Started |
+| Phase 3 | Tenant finance schema | COA, GL, periods/settings, constants/types exist | Not Started |
+| Phase 4 | Posting engine | Balanced and idempotent journal batches can be created | Not Started |
+| Phase 5 | Core auto-post integration | Invoices, payments, refunds create GL entries | Not Started |
+| Phase 6 | V1 finance inquiry and reports | GL inquiry, trial balance, P&L, balance sheet, AR aging | Not Started |
+| Phase 7 | Basic expenses and petty cash | simple expense entry, petty cash entry/top-up, posting, listing | Not Started |
+| Phase 8 | V1 pilot and hardening | v1 is validated with controlled tenant scenarios | Not Started |
+| Phase 9 | V2 treasury + suppliers + AP/PO | treasury and procurement layers | Not Started |
+| Phase 10 | V3 advanced controls + profitability + costing | differentiator phase | Not Started |
 
 ---
 
@@ -259,7 +262,20 @@ Create the platform shell so ERP-Lite can exist safely as an optional add-on.
 
 ### Human Review Gate
 
-Review before Phase 1A:
+### Current Status
+
+Phase 1 is complete in `cleanmatex`:
+
+- Phase 1 migrations `0175` through `0178` were created and applied
+- ERP-Lite shell routes and navigation are in place
+- feature flag and permission consumption is wired
+- runtime route/layout guards are implemented
+- EN/AR shell and access-state i18n is in place
+
+Remaining validation note:
+- Node-based frontend validation is environment-blocked on the current machine (`WSL 1 is not supported`)
+
+Review before Phase 2:
 
 - flag naming
 - permission naming
@@ -276,7 +292,54 @@ Review before Phase 1A:
 
 ---
 
-## 7. Phase 1A: Finance Schema Foundation
+## 7. Phase 2: HQ Governance Foundation
+
+### Objective
+
+Define the publishable HQ-governed accounting layer that tenant runtime will consume.
+
+### Canonical prerequisites
+
+- Phase 1 exit criteria met
+- ADR-001 to ADR-003 approved
+- governance publication contract approved
+
+### Dependency marker
+
+`HQ-first`
+
+### In Scope
+
+- account type master governance
+- posting rule governance model
+- rule versioning/publication model
+- HQ auto-post runtime policy model
+- governance package publication readiness
+
+### Validation
+
+- governance ownership remains platform-level
+- tenant runtime consumption assumptions are explicit
+- no tenant-owned override model is introduced accidentally
+
+### Human Review Gate
+
+Review before Phase 3:
+
+- account type governance boundaries
+- publishing/versioning model
+- HQ auto-post policy ownership
+- tenant consumption constraints
+
+### Exit Criteria
+
+- governance package model is defined
+- HQ policy ownership is explicit
+- tenant schema work can start without governance ambiguity
+
+---
+
+## 8. Phase 3: Tenant Finance Schema Foundation
 
 ### Objective
 
@@ -284,7 +347,7 @@ Create the minimum persistent accounting model for v1.
 
 ### Canonical prerequisites
 
-- Phase 0 exit criteria met
+- Phase 2 exit criteria met
 - runtime domain contract approved
 - finance core rules approved
 
@@ -297,7 +360,7 @@ Create the minimum persistent accounting model for v1.
 - `org_fin_chart_of_accounts_mst`
 - `org_fin_gl_batches_mst` if batch header is used
 - `org_fin_gl_entries_tr`
-- optional period/fiscal metadata tables if needed for clean design
+- yes do it optional period/fiscal metadata tables if needed for clean design , yes do it 
 - `web-admin/lib/constants/erp-lite.ts`
 - `web-admin/lib/types/erp-lite.ts`
 - Zod schemas for finance inputs
@@ -339,7 +402,7 @@ Mandatory review of:
 
 ---
 
-## 8. Phase 1B: Posting Engine
+## 9. Phase 4: Posting Engine
 
 ### Objective
 
@@ -347,7 +410,7 @@ Create the governed posting engine that resolves approved rules into balanced jo
 
 ### Canonical prerequisites
 
-- Phase 1A exit criteria met
+- Phase 3 exit criteria met
 - ADR-002 approved
 - finance core rules approved
 - runtime domain contract approved
@@ -375,7 +438,7 @@ Create the governed posting engine that resolves approved rules into balanced jo
 
 ### Human Review Gate
 
-Review before Phase 1C:
+Review before Phase 5:
 
 - rule determinism
 - duplicate prevention
@@ -391,7 +454,7 @@ Review before Phase 1C:
 
 ---
 
-## 9. Phase 1C: Auto-Post Core Flows
+## 10. Phase 5: Auto-Post Core Flows
 
 ### Objective
 
@@ -399,7 +462,7 @@ Connect invoices, payments, and refunds to the governed posting path.
 
 ### Canonical prerequisites
 
-- Phase 1B exit criteria met
+- Phase 4 exit criteria met
 - ADR-003 approved
 - published auto-post policy model approved
 
@@ -429,7 +492,7 @@ Connect invoices, payments, and refunds to the governed posting path.
 
 ---
 
-## 10. Phase 1D: Finance Inquiry and Reports
+## 11. Phase 6: Finance Inquiry and Reports
 
 ### Objective
 
@@ -437,7 +500,7 @@ Provide finance-safe inquiry and v1 reports based on approved source-of-truth ru
 
 ### Canonical prerequisites
 
-- Phase 1C exit criteria met
+- Phase 5 exit criteria met
 - report source-of-truth rules approved in finance core rules and runtime contract
 
 ### Dependency marker
@@ -465,7 +528,7 @@ Provide finance-safe inquiry and v1 reports based on approved source-of-truth ru
 
 ---
 
-## 11. Phase 1E: Basic Expenses and Basic Petty Cash
+## 12. Phase 7: Basic Expenses and Basic Petty Cash
 
 ### Objective
 
@@ -473,7 +536,7 @@ Add basic expense and petty cash behavior on top of the approved GL foundation.
 
 ### Canonical prerequisites
 
-- Phase 1D exit criteria met
+- Phase 6 exit criteria met
 - v1 scope approval includes basic expenses and basic petty cash
 
 ### Dependency marker
@@ -501,7 +564,7 @@ Add basic expense and petty cash behavior on top of the approved GL foundation.
 
 ---
 
-## 8. Phase 1B: Posting Engine
+## 9. Phase 4: Posting Engine
 
 ### Objective
 
@@ -544,7 +607,7 @@ Mandatory review of accounting mappings before auto-post is enabled.
 
 ---
 
-## 9. Phase 1C: Auto-Post Core Flows
+## 10. Phase 5: Auto-Post Core Flows
 
 ### Objective
 
@@ -585,12 +648,12 @@ Recommended initial rule:
 
 ### Human Review Gate
 
-Review actual end-to-end journal results from sample tenant scenarios before Phase 1D.
+Review actual end-to-end journal results from sample tenant scenarios before Phase 6.
 Review HQ-governed auto-post policy before runtime activation.
 
 ---
 
-## 10. Phase 1D: Finance Inquiry and Reports
+## 11. Phase 6: Finance Inquiry and Reports
 
 ### Objective
 
@@ -635,7 +698,7 @@ Finance review required for:
 
 ---
 
-## 11. Phase 1E: Basic Expenses and Basic Petty Cash
+## 12. Phase 7: Basic Expenses and Basic Petty Cash
 
 ### Objective
 
@@ -693,13 +756,13 @@ Review:
 
 ---
 
-## 12. Phase 2: Bank, Suppliers, AP, PO
+## 13. Phase 9: V2 Treasury, Suppliers, AP, PO
 
 ### Objective
 
 Expand ERP-Lite from receivables/accounting core into treasury and procurement control.
 
-### Phase 2A: Bank Reconciliation
+### Phase 9A: Bank Reconciliation
 
 Deliverables:
 
@@ -709,7 +772,7 @@ Deliverables:
 - reconciliation status model
 - reconciliation UI
 
-### Phase 2B: Supplier Master
+### Phase 9B: Supplier Master
 
 Deliverables:
 
@@ -717,7 +780,7 @@ Deliverables:
 - payment terms
 - branch/vendor references as needed
 
-### Phase 2C: Purchase Orders
+### Phase 9C: Purchase Orders
 
 Deliverables:
 
@@ -726,7 +789,7 @@ Deliverables:
 - receiving linkage
 - inventory impact integration where approved
 
-### Phase 2D: Accounts Payable
+### Phase 9D: Accounts Payable
 
 Deliverables:
 
@@ -750,7 +813,7 @@ Mandatory review of:
 
 ---
 
-## 13. Phase 3: Advanced Expenses, Advanced Petty Cash, Branch P&L, Costing
+## 14. Phase 10: V3 Advanced Expenses, Petty Cash, Branch P&L, Costing
 
 ### Objective
 
@@ -779,7 +842,7 @@ Do not release branch P&L as “profitability” until cost logic is credible.
 
 ---
 
-## 14. Micro-Delivery Backlog Structure
+## 15. Micro-Delivery Backlog Structure
 
 Every phase should be split into tickets or implementation slices using this template:
 
@@ -812,7 +875,7 @@ This reduces AI drift and makes review easier.
 
 ---
 
-## 15. Validation Strategy
+## 16. Validation Strategy
 
 ### Required Validation Order
 
@@ -841,7 +904,7 @@ For finance-related deliveries, also require:
 
 ---
 
-## 16. Human Approval Gates
+## 17. Human Approval Gates
 
 These are mandatory stop points.
 
@@ -890,7 +953,7 @@ Approve:
 
 ---
 
-## 17. Suggested File and Module Targets
+## 18. Suggested File and Module Targets
 
 ### Likely New Documentation
 
@@ -920,21 +983,21 @@ Approve:
 
 ---
 
-## 18. Estimated Sequence
+## 19. Estimated Sequence
 
 ### Phase 0
 
 - 1 to 2 weeks
 
-### Phase 1A to 1E
+### Phase 2 to Phase 7
 
 - 8 to 12 weeks total with AI-assisted delivery and disciplined review
 
-### Phase 2
+### Phase 9
 
 - 6 to 10 weeks
 
-### Phase 3
+### Phase 10
 
 - 6 to 10 weeks
 
@@ -942,17 +1005,17 @@ These are planning estimates only and depend heavily on review speed and how muc
 
 ---
 
-## 19. Recommended Immediate Next Actions
+## 20. Recommended Immediate Next Actions
 
 1. Approve this plan and the validated scope together
-2. Convert Phase 0 into a concrete implementation checklist
+2. Execute the Phase 1 platform enablement checklist
 3. Define the v1 accounting mappings explicitly before coding
-4. Create the Phase 0 migrations and route shell first
+4. Start Phase 2 HQ governance foundations before creating Phase 3 schema migrations
 5. Do not begin reports before posting engine design is approved
 
 ---
 
-## 20. Final Execution Recommendation
+## 21. Final Execution Recommendation
 
 Proceed with ERP-Lite using an AI-assisted, phased delivery model.
 

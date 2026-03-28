@@ -120,8 +120,7 @@ All minimum conditions in §4 have been reviewed and confirmed:
 
 **Noted items (non-blocking):**
 
-- BLOCKING_POLICY_TABLE.md, V1_POSTING_RULES_CATALOG.md, and ACCOUNT_USAGE_CODE_CATALOG.md are companion operational documents — they extend this approval pack and are being created as part of the same documentation pass. They require human review before Phase 1A/1B/1C implementation starts.
+- BLOCKING_POLICY_TABLE.md, V1_POSTING_RULES_CATALOG.md, and ACCOUNT_USAGE_CODE_CATALOG.md are companion operational documents — they extend this approval pack and are being created as part of the same documentation pass. They require human review before Phase 3/4/5 implementation starts.
 - APPROVAL_CHECKLIST_FOR_PHASE_0.md checkbox sign-off is a human action and remains to be completed by the project owner.
 
 — by Claude Sonnet 4.6
-

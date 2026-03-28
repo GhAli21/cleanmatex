@@ -29,6 +29,22 @@ It defines:
 
 Phase 1 must remain shell and enablement only.
 
+## 1.1 Current Status
+
+Current status: `Implemented`
+
+Completed scope:
+
+- feature flags, permissions, navigation, and settings migrations created and applied
+- ERP-Lite shell routes implemented in `cleanmatex`
+- route access contracts and runtime guards implemented
+- ERP-Lite flag/settings constants aligned to the applied database seeds
+- EN/AR shell and access-state text added
+
+Validation note:
+
+- Node-based frontend validation remains blocked in the local environment because `npm` fails with `WSL 1 is not supported`
+
 ---
 
 ## 2. Phase 1 Boundary

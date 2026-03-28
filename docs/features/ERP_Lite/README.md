@@ -64,6 +64,8 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [APPROVAL_CHECKLIST_FOR_PHASE_0.md](APPROVAL_CHECKLIST_FOR_PHASE_0.md) | ✅ Approved | Phase 0 gate checklist — approval recorded |
 | [PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md](PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md) | ✅ Approved | Exact Phase 1 platform enablement checklist for flags, permissions, settings, nav, shells, and migration ownership |
 | [PHASE_1_EXECUTION_PACKAGE.md](PHASE_1_EXECUTION_PACKAGE.md) | ✅ Approved | Implementation-ready Phase 1 package with exact route, seed, setting, and migration plan |
+| [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](PHASE_2_HQ_GOVERNANCE_CHECKLIST.md) | Draft | Exact Phase 2 HQ governance checklist for shared governance schema and package modeling |
+| [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 2 package for governance catalogs, package model, rules, and auto-post policy |
 
 ### 2. Product & Scope
 
@@ -96,9 +98,9 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 
 | Document | Status | Description |
 |---|---|---|
-| [ACCOUNT_USAGE_CODE_CATALOG.md](ACCOUNT_USAGE_CODE_CATALOG.md) | ✅ Approved | All usage codes v1/v2/v3 — required before Phase 1A |
-| [V1_POSTING_RULES_CATALOG.md](V1_POSTING_RULES_CATALOG.md) | ✅ Approved | DR/CR rules per event v1/v2/v3 — required before Phase 1B |
-| [BLOCKING_POLICY_TABLE.md](BLOCKING_POLICY_TABLE.md) | ✅ Approved | Auto-post blocking policy v1/v2/v3 — required before Phase 1C |
+| [ACCOUNT_USAGE_CODE_CATALOG.md](ACCOUNT_USAGE_CODE_CATALOG.md) | ✅ Approved | All usage codes v1/v2/v3 — required before Phase 3 |
+| [V1_POSTING_RULES_CATALOG.md](V1_POSTING_RULES_CATALOG.md) | ✅ Approved | DR/CR rules per event v1/v2/v3 — required before Phase 4 |
+| [BLOCKING_POLICY_TABLE.md](BLOCKING_POLICY_TABLE.md) | ✅ Approved | Auto-post blocking policy v1/v2/v3 — required before Phase 5 |
 | [HQ_TENANT_RESPONSIBILITY_MATRIX.md](HQ_TENANT_RESPONSIBILITY_MATRIX.md) | ✅ Approved | HQ vs Tenant responsibility split for accounting |
 | [GL_POSTING_EXECUTION_VS_AUTO_POST.md](GL_POSTING_EXECUTION_VS_AUTO_POST.md) | Draft | Conceptual separation: GL engine vs auto-post policy |
 

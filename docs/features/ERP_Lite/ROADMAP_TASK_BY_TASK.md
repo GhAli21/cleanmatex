@@ -164,6 +164,14 @@ Dependency marker values:
 | Phase 9 | 6-10 weeks | V2 complete |
 | Phase 10 | 6-10 weeks | V3 complete |
 
+## 4.1 Current Implementation Status
+
+| Phase | Current Status | Notes |
+|---|---|---|
+| Phase 0 | Complete | Canonical approval pack and operational freeze documents are approved. |
+| Phase 1 | Complete | Feature flags, permissions, navigation, settings, ERP-Lite shell routes, access contracts, route guards, and EN/AR shell messages are implemented in `cleanmatex`. |
+| Phase 2+ | Not Started | Next implementation start point is Phase 2 HQ governance foundation, followed by Phase 3 tenant finance schema. |
+
 ---
 
 ## 5. Phase 0: Decision Freeze

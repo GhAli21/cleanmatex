@@ -19,9 +19,9 @@ This catalog defines the debit/credit rules for all ERP-Lite transaction events 
 It is the authoritative reference for:
 - HQ rule package authoring (cleanmatexsaas)
 - posting engine validation (cleanmatex)
-- Finance team review before Phase 1B implementation
+- Finance team review before Phase 4 implementation
 
-> **Gate:** V1 posting rules in §3 must be human-approved before mapping rule configuration begins in Phase 1B. V2 and V3 rules require a separate ADR approval before implementation.
+> **Gate:** V1 posting rules in §3 must be human-approved before mapping rule configuration begins in Phase 4. V2 and V3 rules require a separate ADR approval before implementation.
 
 ---
 
@@ -142,7 +142,7 @@ When `tax_amount = 0`:
 ## 8. Approval Note
 
 - V1 posting rules in §3 are approved as part of the v1.0 canonical document pack (2026-03-28)
-- V1 rules must be reviewed by the project owner before mapping rule configuration begins in Phase 1B
+- V1 rules must be reviewed by the project owner before mapping rule configuration begins in Phase 4
 - V2 and V3 entries in §6 and §7 are planning guides only — each requires a separate ADR approval before any rule authoring or DB configuration
 
 ---
