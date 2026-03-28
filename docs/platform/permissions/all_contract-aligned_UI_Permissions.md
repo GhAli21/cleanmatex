@@ -31,6 +31,16 @@ Legend:
 | `/dashboard/users/[userId]` | User Details | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/inventory` | Inventory | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/inventory/stock` | Inventory Stock | None | None | None | None | No explicit UI permission gate |
+| `/dashboard/erp-lite` | Finance & Accounting | `erp_lite:view` | `erp_lite_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/coa` | Chart of Accounts | `erp_lite_coa:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/gl` | General Ledger | `erp_lite_gl:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/reports` | Financial Reports | `erp_lite_reports:view` | `erp_lite_enabled`, `erp_lite_reports_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/ar` | AR Aging | `erp_lite_ar:view` | `erp_lite_enabled`, `erp_lite_ar_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/expenses` | Expenses | `erp_lite_expenses:view` | `erp_lite_enabled`, `erp_lite_expenses_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/bank-recon` | Bank Reconciliation | `erp_lite_bank_recon:view` | `erp_lite_enabled`, `erp_lite_bank_recon_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/ap` | Accounts Payable | `erp_lite_ap:view` | `erp_lite_enabled`, `erp_lite_ap_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/po` | Purchase Orders | `erp_lite_po:view` | `erp_lite_enabled`, `erp_lite_po_enabled` | None | None | Phase 1 shell route |
+| `/dashboard/erp-lite/branch-pl` | Branch P&L | `erp_lite_branch_pl:view` | `erp_lite_enabled`, `erp_lite_branch_pl_enabled` | None | None | Phase 1 shell route |
 | `/dashboard/reports` | Reports | None | `advanced_analytics` | None | None | Feature-flag page gate |
 | `/dashboard/reports/orders` | Orders Report | None | `advanced_analytics` | None | None | Feature-flag page gate |
 | `/dashboard/reports/payments` | Payments Report | None | `advanced_analytics` | None | None | Feature-flag page gate |

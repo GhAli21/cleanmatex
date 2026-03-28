@@ -63,6 +63,7 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [V1_0_APPROVAL_PACK.md](V1_0_APPROVAL_PACK.md) | ✅ Approved | Canonical approval index — v1.0 outcome and conditions |
 | [APPROVAL_CHECKLIST_FOR_PHASE_0.md](APPROVAL_CHECKLIST_FOR_PHASE_0.md) | ✅ Approved | Phase 0 gate checklist — approval recorded |
 | [PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md](PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md) | ✅ Approved | Exact Phase 1 platform enablement checklist for flags, permissions, settings, nav, shells, and migration ownership |
+| [PHASE_1_EXECUTION_PACKAGE.md](PHASE_1_EXECUTION_PACKAGE.md) | ✅ Approved | Implementation-ready Phase 1 package with exact route, seed, setting, and migration plan |
 
 ### 2. Product & Scope
 

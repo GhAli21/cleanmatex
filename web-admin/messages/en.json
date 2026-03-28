@@ -3479,5 +3479,56 @@
     "customerContractsEmptyHint": "Use the B2B Contracts page to create a contract and select this customer.",
     "customerStatementsEmptyTitle": "No statements for this customer yet.",
     "customerStatementsEmptyHint": "Use the B2B Statements page to generate statements for this customer."
+  },
+  "erpLite": {
+    "eyebrow": "ERP-Lite",
+    "access": {
+      "upgradeTitle": "This ERP-Lite module is not enabled",
+      "upgradeDescription": "Your current plan or published platform policy does not enable this ERP-Lite area yet.",
+      "deniedTitle": "You do not have access to this ERP-Lite module",
+      "deniedDescription": "Ask your tenant administrator to grant the required ERP-Lite permission for this area."
+    },
+    "shell": {
+      "title": "Phase 1 shell is ready",
+      "description": "This section is enabled for platform wiring, permissions, and navigation. Finance runtime logic will arrive in the next implementation phases."
+    },
+    "modules": {
+      "coa": {
+        "title": "Chart of Accounts",
+        "subtitle": "Set up the governed account structure that later finance posting and reporting will use."
+      },
+      "gl": {
+        "title": "General Ledger",
+        "subtitle": "Review the shell for tenant-facing ledger inquiry and posting controls before the finance engine is implemented."
+      },
+      "reports": {
+        "title": "Financial Reports",
+        "subtitle": "Prepare the reporting space for trial balance, profit and loss, balance sheet, and finance inquiry screens."
+      },
+      "ar": {
+        "title": "AR Aging",
+        "subtitle": "Reserve the receivables workspace for customer balances, aging buckets, and follow-up review."
+      },
+      "expenses": {
+        "title": "Expenses",
+        "subtitle": "Reserve the expense and petty cash workspace for the basic v1 cost-control flows."
+      },
+      "bankRecon": {
+        "title": "Bank Reconciliation",
+        "subtitle": "Reserve the future bank matching and reconciliation workspace for the v2 treasury phase."
+      },
+      "ap": {
+        "title": "Accounts Payable",
+        "subtitle": "Reserve the supplier payable workspace for v2 invoice, payment, and aging flows."
+      },
+      "po": {
+        "title": "Purchase Orders",
+        "subtitle": "Reserve the procurement workspace for supplier ordering and receipt controls planned for v2."
+      },
+      "branchPl": {
+        "title": "Branch P&L",
+        "subtitle": "Reserve the profitability workspace for branch-level performance views planned for later phases."
+      }
+    }
   }
 }

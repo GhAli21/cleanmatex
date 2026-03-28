@@ -107,6 +107,15 @@ export interface FeatureFlags {
     sla_adjustment: boolean;
     accounting_export_enabled: number;
     accounting_integration: number;
+    erp_lite_enabled: boolean;
+    erp_lite_gl_enabled: boolean;
+    erp_lite_reports_enabled: boolean;
+    erp_lite_ar_enabled: boolean;
+    erp_lite_expenses_enabled: boolean;
+    erp_lite_bank_recon_enabled: boolean;
+    erp_lite_ap_enabled: boolean;
+    erp_lite_po_enabled: boolean;
+    erp_lite_branch_pl_enabled: boolean;
     address_management: boolean;
     audit_logs: boolean;
     advance_payments_enabled: boolean;

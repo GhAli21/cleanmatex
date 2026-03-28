@@ -74,6 +74,42 @@ export const FEATURE_FLAGS: Partial<Record<FeatureFlagKey, { name: string; descr
     name: 'API Access',
     description: 'REST API access for integrations',
   },
+  erp_lite_enabled: {
+    name: 'ERP-Lite',
+    description: 'Tenant runtime access to Finance & Accounting navigation and ERP-Lite shell screens',
+  },
+  erp_lite_gl_enabled: {
+    name: 'ERP-Lite General Ledger',
+    description: 'Chart of accounts and general ledger shell access',
+  },
+  erp_lite_reports_enabled: {
+    name: 'ERP-Lite Financial Reports',
+    description: 'Financial report shell access for trial balance and related views',
+  },
+  erp_lite_ar_enabled: {
+    name: 'ERP-Lite AR Aging',
+    description: 'Receivables aging shell access',
+  },
+  erp_lite_expenses_enabled: {
+    name: 'ERP-Lite Expenses',
+    description: 'Expense and petty cash shell access',
+  },
+  erp_lite_bank_recon_enabled: {
+    name: 'ERP-Lite Bank Reconciliation',
+    description: 'Treasury and bank reconciliation shell access',
+  },
+  erp_lite_ap_enabled: {
+    name: 'ERP-Lite Accounts Payable',
+    description: 'Supplier payables shell access',
+  },
+  erp_lite_po_enabled: {
+    name: 'ERP-Lite Purchase Orders',
+    description: 'Procurement shell access',
+  },
+  erp_lite_branch_pl_enabled: {
+    name: 'ERP-Lite Branch P&L',
+    description: 'Branch profitability shell access',
+  },
 };
 
 // ========================

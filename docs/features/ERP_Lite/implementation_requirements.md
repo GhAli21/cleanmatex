@@ -123,13 +123,13 @@ Create **new** migrations (do not modify existing):
 
 | Migration | Purpose |
 |-----------|---------|
-| `0XXX_erp_lite_feature_flags.sql` | hq_ff_feature_flags_mst, sys_ff_pln_flag_mappings_dtl |
-| `0XXX_erp_lite_permissions_navigation.sql` | sys_auth_permissions, sys_components_cd |
-| `0XXX_erp_lite_settings.sql` | sys_tenant_settings_cd (ERP_LITE category + settings) |
-| `0XXX_erp_lite_schema.sql` | org_fin_chart_of_accounts_mst, org_fin_gl_entries_tr, RLS |
+| `NNNN_erp_lite_feature_flags.sql` | hq_ff_feature_flags_mst, sys_ff_pln_flag_mappings_dtl |
+| `NNNN_erp_lite_permissions_navigation.sql` | sys_auth_permissions, sys_components_cd |
+| `NNNN_erp_lite_settings.sql` | sys_tenant_settings_cd (ERP_LITE category + settings) |
+| `NNNN_erp_lite_schema.sql` | org_fin_chart_of_accounts_mst, org_fin_gl_entries_tr, RLS |
 | (Phase 2+) | org_fin_bank_*, org_fin_ap_*, org_fin_po_*, org_fin_expenses_* |
 
-**Rule:** Never modify existing migration files. Use next version number from `supabase/migrations/`.
+**Rule:** Never modify existing migration files. Use the latest numeric sequence from `supabase/migrations/` and increment by `+1` for each new file, for example after `0174_...` use `0175_...`.
 
 ---
 

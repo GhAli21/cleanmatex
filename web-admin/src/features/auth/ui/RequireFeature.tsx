@@ -159,6 +159,15 @@ export function UpgradePrompt({
     multi_branch: 'Multi-Branch',
     advanced_analytics: 'Advanced Analytics',
     api_access: 'API Access',
+    erp_lite_enabled: 'ERP-Lite',
+    erp_lite_gl_enabled: 'ERP-Lite General Ledger',
+    erp_lite_reports_enabled: 'ERP-Lite Financial Reports',
+    erp_lite_ar_enabled: 'ERP-Lite AR Aging',
+    erp_lite_expenses_enabled: 'ERP-Lite Expenses',
+    erp_lite_bank_recon_enabled: 'ERP-Lite Bank Reconciliation',
+    erp_lite_ap_enabled: 'ERP-Lite Accounts Payable',
+    erp_lite_po_enabled: 'ERP-Lite Purchase Orders',
+    erp_lite_branch_pl_enabled: 'ERP-Lite Branch P&L',
   }
 
   return (
