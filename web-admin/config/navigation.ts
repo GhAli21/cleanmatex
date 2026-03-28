@@ -352,7 +352,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard/erp-lite',
     roles: ['admin', 'super_admin', 'tenant_admin'],
     permissions: ['erp_lite:view'],
-    featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
+    //featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
     children: [
       {
         key: 'erp_lite_coa',
@@ -360,7 +360,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/coa',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_coa:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
       },
       {
         key: 'erp_lite_gl',
@@ -368,7 +368,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/gl',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_gl:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
       },
       {
         key: 'erp_lite_reports',
@@ -376,7 +376,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/reports',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_reports:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_REPORTS_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_REPORTS_ENABLED,
       },
       {
         key: 'erp_lite_ar',
@@ -384,7 +384,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/ar',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_ar:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,
       },
       {
         key: 'erp_lite_expenses',
@@ -392,7 +392,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/expenses',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_expenses:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,
       },
       {
         key: 'erp_lite_bank_recon',
@@ -400,7 +400,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/bank-recon',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_bank_recon:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,
       },
       {
         key: 'erp_lite_ap',
@@ -408,7 +408,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/ap',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_ap:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,
       },
       {
         key: 'erp_lite_po',
@@ -416,7 +416,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/po',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_po:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,
       },
       {
         key: 'erp_lite_branch_pl',
@@ -424,7 +424,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/branch-pl',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_branch_pl:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,
+        //featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,
       },
     ],
   },
