@@ -6,7 +6,11 @@
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "build:safe": "npm run prisma:generate && npm run build",
+    
     "typecheck": "tsc --noEmit",
+    "typecheck:clean": "rm -rf .next && tsc --noEmit",
+    "validate": "rm -rf .next && next typegen && tsc --noEmit",
+
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

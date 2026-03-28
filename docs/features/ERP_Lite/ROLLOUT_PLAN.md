@@ -1,126 +1,159 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-16
-author: CleanMateX Team
+last_updated: 2026-03-28
+author: CleanMateX AI Assistant
+document_id: ERP_LITE_ROLLOUT_PLAN_2026_03_28
+status: Approved
+approved_date: 2026-03-28
+implementation_project: cross-project
+project_context:
+  - cleanmatexsaas (Platform Level HQ)
+  - cleanmatex (Tenant Runtime)
 ---
 
 # ERP-Lite Rollout Plan
 
-Phased implementation plan for the ERP-Lite module.
+## 1. Purpose
+
+This document defines the rollout sequence for ERP-Lite using the current canonical approval pack and the approved v1/v2/v3 scope.
+
+It is a rollout and milestone document, not the detailed task tracker.
+
+Use it together with:
+
+- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ROADMAP_TASK_BY_TASK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
 
 ---
 
-## Overview
+## 2. Rollout Principles
 
-| Phase | Focus | Duration | Dependencies |
-|-------|--------|----------|--------------|
-| 1 | Foundation (COA + GL + Auto-Post) | 8–10 weeks | None |
-| 2 | Financial Reports + AR Aging | 4–6 weeks | Phase 1 |
-| 3 | Bank Reconciliation | 4 weeks | Phase 1, 2 |
-| 4 | AP + Purchase Orders | 6–8 weeks | Phase 1 |
-| 5 | Expense Management + Branch P&L | 4–6 weeks | Phase 1, 4 |
-| 6 | Payroll + Fixed Assets (Optional) | 8–12 weeks | Phase 1–5 |
+- do not start coding before operational approval gates are satisfied
+- do not build tenant runtime against mutable draft governance rules
+- do not release reports before source-of-truth rules are frozen
+- do not expand into v2 or v3 until v1 runtime behavior is trusted
+- use AI heavily for drafting and scaffolding, but require human approval at finance-critical gates
 
 ---
 
-## Phase 1: Foundation (8–10 weeks)
+## 3. Phase Summary
 
-**Goal:** Chart of Accounts, General Ledger, auto-post from invoices and payments.
-
-### Week 1–2: Schema & COA
-
-- Design `org_fin_chart_of_accounts_mst`
-- Design `org_fin_gl_entries_tr`
-- Migration for COA + GL tables (RLS, indexes, audit fields)
-- Seed COA template for laundry
-- COA setup UI
-
-### Week 3–4: GL Posting Engine
-
-- Posting rules for `org_invoice_mst`
-- Posting rules for payments
-- Posting rules for refunds/credit notes
-- Idempotency
-- GL entry service
-
-### Week 5–6: Integration & Validation
-
-- Trigger/hook on invoice create/update
-- Trigger/hook on payment create
-- Validation (Debits = Credits)
-- GL viewer UI
-- Feature flag `erp_lite_enabled`, `erp_lite_gl_enabled`
-
-### Week 7–8: Testing & Soft Launch
-
-- Unit tests, integration tests, tenant isolation tests
-- Pilot with 1–2 tenants
+| Phase | Focus | Duration | Dependency Marker | Cannot Start Before |
+|---|---|---:|---|---|
+| 0 | Decision and approval freeze | 1 week | Review-blocked | canonical pack reviewed |
+| 1 | Platform enablement and shells | 1-2 weeks | Parallel | Phase 0 approval gate |
+| 2 | Governance + runtime finance foundation | 4-6 weeks | HQ-first | Phase 1 exit + control docs approved |
+| 3 | Posting engine + core auto-post | 5-7 weeks | HQ-first | published governance model ready |
+| 4 | v1 reports + expenses + petty cash | 5-6 weeks | Runtime-first | posting engine and source-of-truth validated |
+| 5 | Pilot and hardening | 2 weeks | Parallel | complete v1 scope available |
+| 6 | v2 treasury + suppliers + AP/PO | 6-10 weeks | HQ-first | v1 trusted in pilot |
+| 7 | v3 advanced controls + profitability + costing | 6-10 weeks | Runtime-first | v2 stable |
 
 ---
 
-## Phase 2: Financial Reports + AR Aging (4–6 weeks)
+## 4. Phase Details
 
-- P&L, Balance Sheet, Cash Flow queries
-- AR aging logic
-- Report UI, export (PDF, Excel)
-- Feature flags: `erp_lite_reports_enabled`, `erp_lite_ar_enabled`
+### Phase 0: Decision and Approval Freeze
+
+Goal:
+- approve the canonical pack
+- freeze scope, finance control rules, runtime contract, and governance publication model
+
+Exit criteria:
+- approval checklist accepted
+- no unresolved contradictions across canonical documents
+
+### Phase 1: Platform Enablement and Shells
+
+Goal:
+- prepare flags, permissions, settings, navigation, and route shells
+
+Exit criteria:
+- ERP-Lite shell is gated correctly
+- no finance logic implemented yet
+
+### Phase 2: Governance + Runtime Finance Foundation
+
+Goal:
+- define publishable governance model in HQ
+- draft finance schema and runtime object model
+
+Exit criteria:
+- governance package model is defined
+- finance schema package is ready for review
+- runtime model aligns with approved contract
+
+### Phase 3: Posting Engine + Core Auto-Post
+
+Goal:
+- implement governed posting path
+- connect invoice, payment, and refund auto-post
+
+Exit criteria:
+- deterministic posting works
+- duplicate posting is prevented
+- failures produce visible exceptions
+
+### Phase 4: v1 Reports + Expenses + Petty Cash
+
+Goal:
+- deliver v1 reporting and basic operational finance controls
+
+Exit criteria:
+- trial balance, P&L, balance sheet, and AR aging align with approved source-of-truth model
+- basic expense and petty cash flows post through GL
+
+### Phase 5: Pilot and Hardening
+
+Goal:
+- validate v1 in controlled tenant scenarios
+
+Exit criteria:
+- finance reviewer or business owner accepts tested outputs
+- critical defects resolved or explicitly deferred
+
+### Phase 6: v2 Treasury + Suppliers + AP/PO
+
+Goal:
+- add bank reconciliation, suppliers, AP, and purchase orders
+
+Exit criteria:
+- v2 scope operates on the same governed finance foundation without introducing parallel finance logic
+
+### Phase 7: v3 Advanced Controls + Profitability + Costing
+
+Goal:
+- add advanced expense controls, advanced petty cash controls, branch profitability, and laundry-specific costing
+
+Exit criteria:
+- profitability and costing outputs are accepted as business-credible
 
 ---
 
-## Phase 3: Bank Reconciliation (4 weeks)
-
-- `org_fin_bank_accounts_mst`, `org_fin_bank_transactions_tr`
-- CSV import, matching logic
-- Reconciliation UI
-- Feature flag: `erp_lite_bank_recon_enabled`
-
----
-
-## Phase 4: AP + Purchase Orders (6–8 weeks)
-
-- AP schema, PO schema
-- PO workflow, AP workflow
-- GL posting for AP
-- Feature flags: `erp_lite_ap_enabled`, `erp_lite_po_enabled`
-
----
-
-## Phase 5: Expense Management + Branch P&L (4–6 weeks)
-
-- Expense claims, approval workflow
-- Branch P&L report
-- Feature flags: `erp_lite_expenses_enabled`, `erp_lite_branch_pl_enabled`
-
----
-
-## Phase 6: Payroll + Fixed Assets (Optional, 8–12 weeks)
-
-- Basic payroll
-- Fixed assets register, depreciation
-
----
-
-## Milestones
+## 5. Milestones
 
 | Milestone | After Phase | Success Criteria |
-|-----------|-------------|-------------------|
-| M1: GL Live | Phase 1 | Invoices and payments post to GL; balances correct |
-| M2: Reports Live | Phase 2 | P&L, Balance Sheet, AR aging available |
-| M3: Bank Recon Live | Phase 3 | Bank import and matching working |
-| M4: AP Live | Phase 4 | POs and AP invoices recorded and paid |
-| M5: Full ERP-Lite | Phase 5 | Expenses and branch P&L available |
+|---|---|---|
+| M0: Canonical Approval | Phase 0 | Canonical pack approved or approved with explicit bounded revisions |
+| M1: Shell Ready | Phase 1 | ERP-Lite shell, flags, permissions, settings, and navigation are ready |
+| M2: Foundation Ready | Phase 2 | Governance publication model and finance schema package are ready |
+| M3: Core Posting Live | Phase 3 | Invoices, payments, and refunds post correctly with governed policy |
+| M4: v1 Finance Live | Phase 4 | Reports, expenses, and petty cash operate on approved GL truth |
+| M5: v1 Pilot Accepted | Phase 5 | Pilot tenants validate core behavior |
+| M6: v2 Live | Phase 6 | Treasury and procurement layers operate on the same controlled foundation |
+| M7: v3 Live | Phase 7 | Advanced control and profitability layer is available |
 
 ---
 
-## Resource Estimate
+## 6. Explicitly Out of Scope for This Rollout
 
-| Phase | Dev Weeks | Roles |
-|-------|-----------|-------|
-| Phase 1 | 8–10 | 1 full-stack + 0.5 QA |
-| Phase 2 | 4–6 | 1 full-stack |
-| Phase 3 | 4 | 1 full-stack |
-| Phase 4 | 6–8 | 1 full-stack + 0.5 backend |
-| Phase 5 | 4–6 | 1 full-stack |
-| Phase 6 | 8–12 | 1 full-stack (optional) |
+This rollout does not include:
 
-**Total (Phases 1–5):** ~26–34 weeks (6–8 months) with one full-stack developer.
+- payroll
+- fixed assets
+- multi-company consolidation
+- advanced statutory compliance engine
+- full treasury suite beyond approved v2 scope
+
+If any of these are reconsidered later, they require separate scope approval.

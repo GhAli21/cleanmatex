@@ -48,3 +48,5 @@ docs/storybook/
 storybook-static/
 
 *storybook.log
+
+*:Zone.Identifier
