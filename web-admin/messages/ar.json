@@ -3245,7 +3245,19 @@
       "settings": "الإعدادات",
       "signOut": "تسجيل الخروج",
       "currentTenant": "المستأجر الحالي",
-      "role": "الدور"
+      "role": "الدور",
+      "permissionsDialog": {
+        "title": "صلاحياتي",
+        "total": "الإجمالي {count}",
+        "apiAccessTab": "وصول API",
+        "featureFlagsTab": "علامات الميزات",
+        "pageLabel": "الصفحة:",
+        "pathLabel": "المسار:",
+        "flagKeyLabel": "مفتاح العلامة",
+        "enabled": "مفعّل",
+        "disabled": "معطّل",
+        "noFeatureFlags": "لم يتم العثور على علامات ميزات لهذا المستأجر."
+      }
     },
     "sidebar": {
       "currentTenant": "المستأجر الحالي",

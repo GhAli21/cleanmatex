@@ -3245,7 +3245,19 @@
       "settings": "Settings",
       "signOut": "Sign Out",
       "currentTenant": "Current Tenant",
-      "role": "Role"
+      "role": "Role",
+      "permissionsDialog": {
+        "title": "My Permissions",
+        "total": "{count} total",
+        "apiAccessTab": "API Access",
+        "featureFlagsTab": "Feature Flags",
+        "pageLabel": "Page:",
+        "pathLabel": "Path:",
+        "flagKeyLabel": "Flag Key",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "noFeatureFlags": "No feature flags found for this tenant."
+      }
     },
     "sidebar": {
       "currentTenant": "Current Tenant",

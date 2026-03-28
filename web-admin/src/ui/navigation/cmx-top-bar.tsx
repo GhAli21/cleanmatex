@@ -159,7 +159,7 @@ export default function CmxTopBar() {
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
-  const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api'>('ui')
+  const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api' | 'flags'>('ui')
 
   const { data: featureFlags = {} } = useQuery({
     queryKey: ['feature-flags', currentTenant?.tenant_id],
@@ -176,6 +176,9 @@ export default function CmxTopBar() {
 
   const currentPageContract = getPageAccessContractByPath(pathname)
   const pageTitle = currentPageContract?.label ?? 'Dashboard'
+  const sortedFeatureFlags = Object.entries(featureFlags).sort(([leftKey], [rightKey]) =>
+    leftKey.localeCompare(rightKey),
+  )
   const pageEvaluation = currentPageContract
     ? evaluateAccessRequirement(currentPageContract.page, {
         userPermissions: permissions ?? [],
@@ -358,10 +361,10 @@ export default function CmxTopBar() {
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-blue-600" />
-                <h2 className="text-base font-semibold text-gray-900">My Permissions</h2>
+                <h2 className="text-base font-semibold text-gray-900">{t('permissionsDialog.title')}</h2>
               </div>
               <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
-                {permissions?.length ?? 0} total
+                {t('permissionsDialog.total', { count: permissions?.length ?? 0 })}
               </span>
             </div>
 
@@ -393,7 +396,18 @@ export default function CmxTopBar() {
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      API Access
+                      {t('permissionsDialog.apiAccessTab')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveInspectorTab('flags')}
+                      className={`rounded px-3 py-1 text-xs font-medium ${
+                        activeInspectorTab === 'flags'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {t('permissionsDialog.featureFlagsTab')}
                     </button>
                   </div>
                 </div>
@@ -473,14 +487,14 @@ export default function CmxTopBar() {
                         </div>
                       ) : null}
                     </div>
-                  ) : (
+                  ) : activeInspectorTab === 'api' ? (
                     <div className="space-y-4">
                       <div className="space-y-1 text-sm text-gray-700">
                         <p>
-                          <span className="font-medium">Page:</span> {currentPageContract.label}
+                          <span className="font-medium">{t('permissionsDialog.pageLabel')}</span> {currentPageContract.label}
                         </p>
                         <p className="break-all">
-                          <span className="font-medium">Path:</span> {pathname}
+                          <span className="font-medium">{t('permissionsDialog.pathLabel')}</span> {pathname}
                         </p>
                       </div>
 
@@ -507,6 +521,40 @@ export default function CmxTopBar() {
                       ) : (
                         <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
                           No API dependencies recorded for this page yet.
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-1 text-sm text-gray-700">
+                        <p>
+                          <span className="font-medium">{t('permissionsDialog.pageLabel')}</span> {currentPageContract.label}
+                        </p>
+                        <p className="break-all">
+                          <span className="font-medium">{t('permissionsDialog.pathLabel')}</span> {pathname}
+                        </p>
+                      </div>
+
+                      {sortedFeatureFlags.length ? (
+                        <div className="space-y-3">
+                          {sortedFeatureFlags.map(([flagKey, enabled]) => (
+                            <div key={flagKey} className="flex items-center justify-between gap-3 rounded-md border border-gray-200 bg-white px-3 py-2">
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                                  {t('permissionsDialog.flagKeyLabel')}
+                                </p>
+                                <p className="break-all text-xs font-mono text-gray-700">{flagKey}</p>
+                              </div>
+                              <RequirementBadge
+                                passed={enabled}
+                                label={enabled ? t('permissionsDialog.enabled') : t('permissionsDialog.disabled')}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="rounded-md bg-white px-3 py-2 text-xs text-gray-500">
+                          {t('permissionsDialog.noFeatureFlags')}
                         </p>
                       )}
                     </div>
