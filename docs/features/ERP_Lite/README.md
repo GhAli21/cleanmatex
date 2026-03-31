@@ -64,8 +64,20 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [APPROVAL_CHECKLIST_FOR_PHASE_0.md](APPROVAL_CHECKLIST_FOR_PHASE_0.md) | ✅ Approved | Phase 0 gate checklist — approval recorded |
 | [PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md](PHASE_1_PLATFORM_ENABLEMENT_CHECKLIST.md) | ✅ Approved | Exact Phase 1 platform enablement checklist for flags, permissions, settings, nav, shells, and migration ownership |
 | [PHASE_1_EXECUTION_PACKAGE.md](PHASE_1_EXECUTION_PACKAGE.md) | ✅ Approved | Implementation-ready Phase 1 package with exact route, seed, setting, and migration plan |
-| [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](PHASE_2_HQ_GOVERNANCE_CHECKLIST.md) | Draft | Exact Phase 2 HQ governance checklist for shared governance schema and package modeling |
-| [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 2 package for governance catalogs, package model, rules, and auto-post policy |
+| [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](PHASE_2_HQ_GOVERNANCE_CHECKLIST.md) | ✅ Complete | Exact Phase 2 HQ governance checklist for shared governance schema and package modeling |
+| [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 2 package for governance catalogs, package model, rules, and auto-post policy |
+| [PHASE_2B_HQ_GOVERNANCE_APP_CHECKLIST.md](PHASE_2B_HQ_GOVERNANCE_APP_CHECKLIST.md) | In Progress | Exact Phase 2B checklist for HQ governance backend/frontend in `cleanmatexsaas` |
+| [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md) | In Progress | Implementation-ready Phase 2B package for HQ governance app work in `cleanmatexsaas` |
+| [PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md](PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md) | ✅ Complete | Exact Phase 3 checklist for tenant finance schema work in `cleanmatex` |
+| [PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md](PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 3 package for tenant finance schema work in `cleanmatex` |
+| [PHASE_4_POSTING_ENGINE_CHECKLIST.md](PHASE_4_POSTING_ENGINE_CHECKLIST.md) | Draft | Exact Phase 4 checklist for posting-engine work in `cleanmatex` |
+| [PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md](PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 4 package for posting-engine work in `cleanmatex` |
+| [PHASE_5_CORE_AUTO_POST_CHECKLIST.md](PHASE_5_CORE_AUTO_POST_CHECKLIST.md) | Draft | Exact Phase 5 checklist for invoice, payment, and refund auto-post integration in `cleanmatex` |
+| [PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md](PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 5 package for governed auto-post integration in `cleanmatex` |
+| [PHASE_6_FINANCE_INQUIRY_REPORTS_CHECKLIST.md](PHASE_6_FINANCE_INQUIRY_REPORTS_CHECKLIST.md) | ✅ Complete | Exact Phase 6 checklist for finance inquiry and journal-driven reporting in `cleanmatex` |
+| [PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md](PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 6 package for GL inquiry, trial balance, P&L, balance sheet, and AR aging in `cleanmatex` |
+| [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md) | In Progress | Exact Phase 7 checklist for basic expenses and petty cash in `cleanmatex` |
+| [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md) | In Progress | Implementation-ready Phase 7 package for expense source documents and petty cash runtime foundations in `cleanmatex` |
 
 ### 2. Product & Scope
 

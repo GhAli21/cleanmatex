@@ -211,7 +211,7 @@ export function newOrderReducer(
           return {
             ...item,
             quantity,
-            totalPrice: quantity * item.pricePerUnit,
+            totalPrice: quantity * item.pricePerUnit + (item.servicePrefCharge ?? 0),
             pieces,
           };
         }),
@@ -234,7 +234,7 @@ export function newOrderReducer(
             ...item,
             pieces,
             quantity,
-            totalPrice: quantity * item.pricePerUnit,
+            totalPrice: quantity * item.pricePerUnit + (item.servicePrefCharge ?? 0),
           };
         }),
       };

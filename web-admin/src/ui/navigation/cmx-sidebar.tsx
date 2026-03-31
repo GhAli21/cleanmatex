@@ -164,6 +164,16 @@ export default function CmxSidebar() {
       'reports_orders': 'reportsAndAnalytics', 'reports_payments': 'payments', 'reports_invoices': 'invoices',
       'reports_revenue': 'reportsAndAnalytics', 'reports_customers': 'customers',
       'settings_permissions': 'rolesAndPermissions',
+      'erp_lite': 'financeAndAccounting',
+      'erp_lite_coa': 'chartOfAccounts',
+      'erp_lite_gl': 'generalLedger',
+      'erp_lite_reports': 'financialReports',
+      'erp_lite_ar': 'arAging',
+      'erp_lite_expenses': 'expenses',
+      'erp_lite_bank_recon': 'bankReconciliation',
+      'erp_lite_ap': 'accountsPayable',
+      'erp_lite_po': 'purchaseOrders',
+      'erp_lite_branch_pl': 'branchPL',
     }
     const translationKey = translationKeyMap[key]
     if (translationKey) {

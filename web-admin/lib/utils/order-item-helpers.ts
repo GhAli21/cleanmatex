@@ -91,13 +91,19 @@ export function updateItemQuantity(
 }
 
 /**
- * Calculates total price for a single item (base + service pref charge)
+ * Calculates total price for a single item.
+ * `totalPrice` already includes `servicePrefCharge` when service prefs are applied,
+ * so we must not add the charge again. Fall back to base × qty + charge only when
+ * totalPrice is absent (item built without the combined field).
  * @param item - Order item
  * @returns Total price
  */
 export function calculateItemTotal(item: OrderItem): number {
-  const baseTotal = item.totalPrice ?? item.quantity * item.pricePerUnit;
-  return baseTotal + (item.servicePrefCharge ?? 0);
+  if (item.totalPrice != null) {
+    // totalPrice was stored as (basePrice + servicePrefCharge) — use as-is
+    return item.totalPrice;
+  }
+  return item.quantity * item.pricePerUnit + (item.servicePrefCharge ?? 0);
 }
 
 /**

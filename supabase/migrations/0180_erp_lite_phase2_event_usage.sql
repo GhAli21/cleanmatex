@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS public.sys_fin_evt_cd (
 CREATE TABLE IF NOT EXISTS public.sys_fin_usage_code_cd (
   usage_code_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   usage_code VARCHAR(60) NOT NULL,
-  exp_acc_type_id UUID NOT NULL,
+  primary_acc_type_id UUID NOT NULL,
   name VARCHAR(250) NOT NULL,
   name2 VARCHAR(250),
   description TEXT,
@@ -53,16 +53,40 @@ CREATE TABLE IF NOT EXISTS public.sys_fin_usage_code_cd (
   rec_notes VARCHAR(200),
   is_active BOOLEAN NOT NULL DEFAULT true,
   CONSTRAINT uq_sfuc_code UNIQUE (usage_code),
-  CONSTRAINT fk_sfuc_type FOREIGN KEY (exp_acc_type_id)
+  CONSTRAINT fk_sfuc_type FOREIGN KEY (primary_acc_type_id)
     REFERENCES public.sys_fin_acc_type_cd(acc_type_id),
   CONSTRAINT chk_sfuc_bal CHECK (normal_balance IN ('DEBIT', 'CREDIT', 'EITHER')),
   CONSTRAINT chk_sfuc_phase CHECK (phase_code IN ('V1', 'V2', 'V3'))
 );
 
+CREATE TABLE IF NOT EXISTS public.sys_fin_usage_type_dtl (
+  usage_type_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  usage_code_id UUID NOT NULL,
+  acc_type_id UUID NOT NULL,
+  is_primary BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_by VARCHAR(120),
+  created_info TEXT,
+  updated_at TIMESTAMP,
+  updated_by VARCHAR(120),
+  updated_info TEXT,
+  rec_status SMALLINT NOT NULL DEFAULT 1,
+  rec_order INTEGER,
+  rec_notes VARCHAR(200),
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  CONSTRAINT uq_sfut_usage_type UNIQUE (usage_code_id, acc_type_id),
+  CONSTRAINT fk_sfut_usage FOREIGN KEY (usage_code_id)
+    REFERENCES public.sys_fin_usage_code_cd(usage_code_id),
+  CONSTRAINT fk_sfut_type FOREIGN KEY (acc_type_id)
+    REFERENCES public.sys_fin_acc_type_cd(acc_type_id)
+);
+
 CREATE INDEX IF NOT EXISTS idx_sfe_code ON public.sys_fin_evt_cd(evt_code);
 CREATE INDEX IF NOT EXISTS idx_sfe_phase ON public.sys_fin_evt_cd(phase_code, is_active);
 CREATE INDEX IF NOT EXISTS idx_sfuc_code ON public.sys_fin_usage_code_cd(usage_code);
-CREATE INDEX IF NOT EXISTS idx_sfuc_type ON public.sys_fin_usage_code_cd(exp_acc_type_id, phase_code);
+CREATE INDEX IF NOT EXISTS idx_sfuc_type ON public.sys_fin_usage_code_cd(primary_acc_type_id, phase_code);
+CREATE INDEX IF NOT EXISTS idx_sfut_usage ON public.sys_fin_usage_type_dtl(usage_code_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_sfut_type ON public.sys_fin_usage_type_dtl(acc_type_id, is_primary);
 
 INSERT INTO public.sys_fin_evt_cd (
   evt_code,
@@ -104,7 +128,7 @@ ON CONFLICT (evt_code) DO UPDATE SET
 
 INSERT INTO public.sys_fin_usage_code_cd (
   usage_code,
-  exp_acc_type_id,
+  primary_acc_type_id,
   name,
   name2,
   description,
@@ -153,7 +177,7 @@ FROM (
 JOIN public.sys_fin_acc_type_cd t
   ON t.acc_type_code = seed.acc_type_code
 ON CONFLICT (usage_code) DO UPDATE SET
-  exp_acc_type_id = EXCLUDED.exp_acc_type_id,
+  primary_acc_type_id = EXCLUDED.primary_acc_type_id,
   name = EXCLUDED.name,
   name2 = EXCLUDED.name2,
   description = EXCLUDED.description,
@@ -161,6 +185,56 @@ ON CONFLICT (usage_code) DO UPDATE SET
   normal_balance = EXCLUDED.normal_balance,
   phase_code = EXCLUDED.phase_code,
   is_required_v1 = EXCLUDED.is_required_v1,
+  rec_order = EXCLUDED.rec_order,
+  is_active = EXCLUDED.is_active,
+  rec_status = EXCLUDED.rec_status,
+  updated_at = CURRENT_TIMESTAMP,
+  updated_by = 'system_admin',
+  updated_info = 'Migration 0180';
+
+INSERT INTO public.sys_fin_usage_type_dtl (
+  usage_code_id,
+  acc_type_id,
+  is_primary,
+  rec_order,
+  created_at,
+  created_by,
+  created_info,
+  is_active,
+  rec_status
+)
+SELECT
+  uc.usage_code_id,
+  t.acc_type_id,
+  seed.is_primary,
+  seed.rec_order,
+  CURRENT_TIMESTAMP,
+  'system_admin',
+  'Migration 0180',
+  true,
+  1
+FROM (
+  VALUES
+    ('SALES_REVENUE', 'REVENUE', true, 10),
+    ('VAT_OUTPUT', 'LIABILITY', true, 20),
+    ('VAT_INPUT', 'ASSET', true, 30),
+    ('ACCOUNTS_RECEIVABLE', 'ASSET', true, 40),
+    ('CASH_MAIN', 'ASSET', true, 50),
+    ('BANK_CARD_CLEARING', 'ASSET', true, 60),
+    ('PETTY_CASH_MAIN', 'ASSET', true, 70),
+    ('WALLET_CLEARING', 'LIABILITY', true, 80),
+    ('REFUND_PAYABLE', 'LIABILITY', true, 90),
+    ('EXPENSE_GENERAL', 'EXPENSE', true, 100),
+    ('PETTY_CASH_EXPENSE', 'EXPENSE', true, 110),
+    ('ROUNDING_ADJUSTMENT', 'EXPENSE', true, 120),
+    ('ROUNDING_ADJUSTMENT', 'REVENUE', false, 121)
+) AS seed(usage_code, acc_type_code, is_primary, rec_order)
+JOIN public.sys_fin_usage_code_cd uc
+  ON uc.usage_code = seed.usage_code
+JOIN public.sys_fin_acc_type_cd t
+  ON t.acc_type_code = seed.acc_type_code
+ON CONFLICT (usage_code_id, acc_type_id) DO UPDATE SET
+  is_primary = EXCLUDED.is_primary,
   rec_order = EXCLUDED.rec_order,
   is_active = EXCLUDED.is_active,
   rec_status = EXCLUDED.rec_status,

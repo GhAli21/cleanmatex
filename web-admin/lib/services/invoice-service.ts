@@ -9,6 +9,8 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -39,79 +41,105 @@ export async function createInvoice(
     throw new Error('Unauthorized: Tenant ID required');
   }
 
-  const db = tx ?? prisma;
-
   return withTenantContext(tenantId, async () => {
-    const order = await db.org_orders_mst.findUnique({
-      where: { id: input.order_id },
-      include: {
-        org_order_items_dtl: true,
-        org_customers_mst: true,
-      },
-    });
+    const createInvoiceInDb = async (db: PrismaTx): Promise<Invoice> => {
+      const order = await db.org_orders_mst.findUnique({
+        where: { id: input.order_id },
+        include: {
+          org_order_items_dtl: true,
+          org_customers_mst: true,
+        },
+      });
 
-    if (!order) {
-      throw new Error('Order not found');
-    }
+      if (!order) {
+        throw new Error('Order not found');
+      }
 
-    const customer = order.org_customers_mst;
-    const isB2B =
-      customer?.type === 'b2b' ||
-      (order as { b2b_contract_id?: string | null }).b2b_contract_id != null;
+      const customer = order.org_customers_mst;
+      const isB2B =
+        customer?.type === 'b2b' ||
+        (order as { b2b_contract_id?: string | null }).b2b_contract_id != null;
 
-    const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
+      const invoiceNo = await generateInvoiceNumber(order.tenant_org_id, db);
 
-    const vatAmount = input.vatAmount ?? Number(order.vat_amount ?? 0);
-    const additionalTax = input.tax ?? 0;
-    const total = calculateInvoiceTotal({
-      subtotal: input.subtotal,
-      discount: input.discount || 0,
-      vatAmount,
-      additionalTax,
-    });
-
-    const orderWithB2B = order as {
-      b2b_contract_id?: string | null;
-      cost_center_code?: string | null;
-      po_number?: string | null;
-    };
-
-    const now = new Date();
-    const invoice = await db.org_invoice_mst.create({
-      data: {
-        order_id: input.order_id,
-        customer_id: order.customer_id ?? input.customer_id,
-        tenant_org_id: order.tenant_org_id,
-        branch_id: order.branch_id ?? undefined,
-        invoice_no: invoiceNo,
-        invoice_date: now,
+      const vatAmount = input.vatAmount ?? Number(order.vat_amount ?? 0);
+      const additionalTax = input.tax ?? 0;
+      const total = calculateInvoiceTotal({
         subtotal: input.subtotal,
         discount: input.discount || 0,
-        tax: additionalTax,
-        tax_rate: order.tax_rate ?? undefined,
-        vat_amount: vatAmount,
-        total,
-        status: 'pending',
-        due_date: input.due_date ? new Date(input.due_date) : undefined,
-        payment_method_code: input.payment_method_code,
-        payment_terms: order.payment_terms ?? undefined,
-        paid_amount: 0,
-        service_charge: order.service_charge ?? undefined,
-        service_charge_type: order.service_charge_type ?? undefined,
-        gift_card_id: order.gift_card_id ?? undefined,
-        gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
-        vat_rate: order.vat_rate ?? undefined,
-        metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
-        rec_notes: input.rec_notes,
-        created_at: now,
-        invoice_type_cd: isB2B ? 'B2B' : null,
-        b2b_contract_id: orderWithB2B.b2b_contract_id ?? null,
-        cost_center_code: orderWithB2B.cost_center_code ?? null,
-        po_number: orderWithB2B.po_number ?? null,
-      },
-    });
+        vatAmount,
+        additionalTax,
+      });
 
-    return mapInvoiceToType(invoice);
+      const orderWithB2B = order as {
+        b2b_contract_id?: string | null;
+        cost_center_code?: string | null;
+        po_number?: string | null;
+      };
+
+      const now = new Date();
+      const invoice = await db.org_invoice_mst.create({
+        data: {
+          order_id: input.order_id,
+          customer_id: order.customer_id ?? input.customer_id,
+          tenant_org_id: order.tenant_org_id,
+          branch_id: order.branch_id ?? undefined,
+          invoice_no: invoiceNo,
+          invoice_date: now,
+          subtotal: input.subtotal,
+          discount: input.discount || 0,
+          tax: additionalTax,
+          tax_rate: order.tax_rate ?? undefined,
+          vat_amount: vatAmount,
+          total,
+          currency_code: order.currency_code ?? undefined,
+          currency_ex_rate: order.currency_ex_rate ?? undefined,
+          status: 'pending',
+          due_date: input.due_date ? new Date(input.due_date) : undefined,
+          payment_method_code: input.payment_method_code,
+          payment_terms: order.payment_terms ?? undefined,
+          paid_amount: 0,
+          service_charge: order.service_charge ?? undefined,
+          service_charge_type: order.service_charge_type ?? undefined,
+          gift_card_id: order.gift_card_id ?? undefined,
+          gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
+          vat_rate: order.vat_rate ?? undefined,
+          metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+          rec_notes: input.rec_notes,
+          created_at: now,
+          invoice_type_cd: isB2B ? 'B2B' : null,
+          b2b_contract_id: orderWithB2B.b2b_contract_id ?? null,
+          cost_center_code: orderWithB2B.cost_center_code ?? null,
+          po_number: orderWithB2B.po_number ?? null,
+        },
+      });
+
+      await assertBlockingInvoiceAutoPostSucceeded(
+        await ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction(db, {
+          invoice_id: invoice.id,
+          invoice_no: invoice.invoice_no ?? null,
+          order_id: invoice.order_id ?? null,
+          branch_id: invoice.branch_id ?? null,
+          currency_code: invoice.currency_code ?? 'OMR',
+          exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
+          invoice_date: now.toISOString().slice(0, 10),
+          subtotal: Number(invoice.subtotal ?? 0),
+          discount_amount: Number(invoice.discount ?? 0),
+          tax_amount: Number(invoice.tax ?? 0),
+          vat_amount: Number(invoice.vat_amount ?? 0),
+          total_amount: Number(invoice.total ?? 0),
+          created_by: input.metadata?.created_by ?? null,
+        })
+      );
+
+      return mapInvoiceToType(invoice);
+    };
+
+    if (tx) {
+      return createInvoiceInDb(tx);
+    }
+
+    return prisma.$transaction(async (dbTx) => createInvoiceInDb(dbTx));
   });
 }
 
@@ -744,6 +772,34 @@ function parseInvoiceMetadata(metadata: unknown): InvoiceMetadata | undefined {
   if (typeof metadata === 'object') return metadata as InvoiceMetadata;
   if (typeof metadata === 'string') return JSON.parse(metadata) as InvoiceMetadata;
   return undefined;
+}
+
+function assertBlockingInvoiceAutoPostSucceeded(
+  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchInvoiceCreated>>
+): void {
+  const shouldBlock =
+    !dispatchResult.policy ||
+    dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+    dispatchResult.policy.required_success === true;
+
+  if (!shouldBlock) {
+    return;
+  }
+
+  const success =
+    dispatchResult.status === 'executed' && dispatchResult.execute_result?.success === true;
+
+  if (success) {
+    return;
+  }
+
+  const failureMessage =
+    dispatchResult.status === 'skipped'
+      ? `ERP-Lite auto-post policy prevented invoice completion (${dispatchResult.skip_reason}).`
+      : dispatchResult.execute_result?.error_message ??
+        'ERP-Lite auto-post failed for the invoice.';
+
+  throw new Error(failureMessage);
 }
 
 /**

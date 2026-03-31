@@ -1,9 +1,9 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-28
+last_updated: 2026-03-29
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_2_HQ_GOV_EXEC_PKG_2026_03_28
-status: Draft
+status: Complete
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -22,20 +22,25 @@ It defines:
 - exact migration group names
 - exact governance catalogs to create
 - exact package/rule/policy model boundaries
+- exact future-safe boundaries for v1/v2/v3 governance growth
 - project-by-project implementation ownership
 - the status of current Phase 2 migration drafts
 
 Phase 2 must remain governance foundation only.
 
+Operating rule:
+
+- schema must be future-safe for v1, v2, and v3 from now
+- only v1 data may be seeded now
+
 ## 1.1 Current Status
 
-Current status: `Drafted / review required`
+Current status: `Complete`
 
 Current implementation note:
 
-- migrations `0179` to `0182` already exist as provisional drafts
-- they were created before this execution package was written
-- they must be treated as review-pending drafts, not final approved Phase 2 outputs
+- migrations `0179` to `0182` were reviewed, revised, and applied
+- this package now reflects the applied Phase 2 governance baseline
 
 ---
 
@@ -47,6 +52,7 @@ Phase 2 includes:
 - HQ account group schema
 - locked v1 event catalog schema and seed set
 - v1 usage code catalog schema and seed set
+- v1 resolver catalog schema and seed set
 - governance package schema
 - mapping rule header/line schema
 - HQ auto-post policy schema
@@ -70,6 +76,7 @@ Phase 2 does not include:
 Phase 2 HQ work:
 
 - govern account types, groups, events, usage codes
+- govern resolver catalog
 - govern package lifecycle
 - govern mapping rules
 - govern auto-post policy
@@ -123,6 +130,7 @@ Must cover:
 
 - `sys_fin_evt_cd`
 - `sys_fin_usage_code_cd`
+- `sys_fin_usage_type_dtl`
 
 Seed scope:
 
@@ -134,7 +142,18 @@ Do not seed:
 - planned v2/v3 event codes
 - planned v2/v3 usage codes
 
-## 5.3 Migration `0181`
+## 5.3 Resolver Governance
+
+Must cover:
+
+- `sys_fin_resolver_cd`
+
+Seed scope:
+
+- approved v1 resolver codes only
+- no speculative v2/v3 resolver seeds
+
+## 5.4 Migration `0181`
 
 Must cover:
 
@@ -147,8 +166,10 @@ Seed scope:
 - one draft v1 core governance package
 - one draft rule header per approved v1 event
 - draft rule lines aligned with the approved v1 posting rules catalog
+- deterministic rule selection support
+- governed resolver references only
 
-## 5.4 Migration `0182`
+## 5.5 Migration `0182`
 
 Must cover:
 
@@ -158,6 +179,7 @@ Seed scope:
 
 - one draft auto-post policy row per locked v1 event
 - v1 approved blocking defaults only
+- versionable policy rows for later v2/v3 growth
 
 ---
 
@@ -174,11 +196,13 @@ Seed scope:
 - must be deterministic by event + package + priority
 - must support multi-line entries
 - must support conditional account resolution via resolver code
+- resolver references must be HQ-governed, not free text
 
 ### Policy rows
 
 - must remain HQ-owned
 - must capture blocking mode, required success, retry, repost, and failure action
+- must support version traceability without redesign
 
 ---
 
@@ -204,6 +228,4 @@ Do not:
 
 You should review and decide one of these outcomes for `0179` to `0182`:
 
-1. `Accept as Phase 2 baseline drafts`
-2. `Revise before approval`
-3. `Discard and replace with new follow-up migrations`
+1. `Applied as Phase 2 baseline`

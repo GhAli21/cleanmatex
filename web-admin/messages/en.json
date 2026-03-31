@@ -170,7 +170,17 @@
     "categories": "Categories",
     "users": "Users",
     "logout": "Logout",
-    "profile": "Profile"
+    "profile": "Profile",
+    "financeAndAccounting": "Finance & Accounting",
+    "chartOfAccounts": "Chart of Accounts",
+    "generalLedger": "General Ledger",
+    "financialReports": "Financial Reports",
+    "arAging": "AR Aging",
+    "expenses": "Expenses",
+    "bankReconciliation": "Bank Reconciliation",
+    "accountsPayable": "Accounts Payable",
+    "purchaseOrders": "Purchase Orders",
+    "branchPL": "Branch P&L"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -3494,6 +3504,76 @@
   },
   "erpLite": {
     "eyebrow": "ERP-Lite",
+    "reports": {
+      "title": "Financial Reports",
+      "subtitle": "Journal-driven finance inquiry derived only from posted ERP-Lite journals.",
+      "summary": {
+        "totalDebit": "Total Debit",
+        "totalCredit": "Total Credit",
+        "netProfit": "Net Profit"
+      },
+      "columns": {
+        "journal": "Journal",
+        "postingDate": "Posting Date",
+        "event": "Event",
+        "account": "Account",
+        "side": "Side",
+        "amount": "Amount",
+        "debit": "Debit",
+        "credit": "Credit",
+        "balance": "Balance"
+      },
+      "gl": {
+        "title": "General Ledger Inquiry",
+        "subtitle": "Latest posted journal lines for the current tenant.",
+        "empty": "No posted journal lines found."
+      },
+      "trialBalance": {
+        "title": "Trial Balance",
+        "subtitle": "Balances derived from posted journal entries only.",
+        "empty": "No posted ledger balances found."
+      },
+      "profitAndLoss": {
+        "title": "Profit and Loss",
+        "subtitle": "Revenue and expense balances derived from posted journals.",
+        "empty": "No profit and loss balances found."
+      },
+      "balanceSheet": {
+        "title": "Balance Sheet",
+        "subtitle": "Asset, liability, and equity balances derived from posted journals.",
+        "empty": "No balance sheet balances found."
+      },
+      "arAging": {
+        "title": "AR Aging",
+        "subtitle": "Open customer invoices with successful ERP-Lite posting, grouped by aging bucket.",
+        "empty": "No open posted receivable balances found.",
+        "summary": {
+          "totalOutstanding": "Total Outstanding",
+          "customerCount": "Customers"
+        },
+        "columns": {
+          "customer": "Customer",
+          "invoice": "Invoice",
+          "dueDate": "Due Date",
+          "daysOverdue": "Days Overdue",
+          "outstanding": "Outstanding"
+        },
+        "buckets": {
+          "CURRENT": "Current",
+          "DUE_1_30": "1-30 Days",
+          "DUE_31_60": "31-60 Days",
+          "DUE_61_90": "61-90 Days",
+          "DUE_91_PLUS": "91+ Days"
+        }
+      },
+      "sections": {
+        "ASSETS": "Assets",
+        "LIABILITIES": "Liabilities",
+        "EQUITY": "Equity",
+        "REVENUE": "Revenue",
+        "EXPENSES": "Expenses"
+      }
+    },
     "access": {
       "upgradeTitle": "This ERP-Lite module is not enabled",
       "upgradeDescription": "Your current plan or published platform policy does not enable this ERP-Lite area yet.",
@@ -3540,6 +3620,106 @@
       "branchPl": {
         "title": "Branch P&L",
         "subtitle": "Reserve the profitability workspace for branch-level performance views planned for later phases."
+      }
+    },
+    "expenses": {
+      "eyebrow": "ERP-Lite Expenses",
+      "title": "Basic Expenses and Petty Cash",
+      "subtitle": "Record simple operating expenses, manage petty cash boxes, and keep the operational cash trail aligned with governed ERP-Lite posting.",
+      "notices": {
+        "expense-created": "Expense saved and queued through ERP-Lite posting.",
+        "expense-created-post-failed": "Expense saved, but finance posting failed and entered the exception path.",
+        "expense-created-post-skipped": "Expense saved, but auto-post policy was not active for this event.",
+        "cashbox-created": "Petty cash box created successfully.",
+        "cash-txn-created": "Petty cash transaction saved and queued through ERP-Lite posting.",
+        "cash-txn-post-failed": "Petty cash transaction saved, but finance posting failed and entered the exception path.",
+        "cash-txn-post-skipped": "Petty cash transaction saved, but auto-post policy was not active for this event."
+      },
+      "settlement": {
+        "cash": "Cash",
+        "bank": "Bank"
+      },
+      "txnType": {
+        "topup": "Top-up",
+        "spend": "Spend"
+      },
+      "forms": {
+        "placeholders": {
+          "optionalSelect": "No branch override",
+          "selectAccount": "Select petty cash account",
+          "selectCashbox": "Select petty cash box"
+        },
+        "expense": {
+          "title": "Record Expense",
+          "subtitle": "Basic v1 expense entry. This flow currently supports cash or bank settlement only.",
+          "submit": "Save Expense",
+          "fields": {
+            "expenseDate": "Expense Date",
+            "currencyCode": "Currency Code",
+            "branch": "Branch",
+            "settlement": "Settlement",
+            "subtotal": "Expense Amount",
+            "tax": "Tax Amount",
+            "payee": "Payee",
+            "description": "Description"
+          }
+        },
+        "cashbox": {
+          "title": "Create Cash Box",
+          "subtitle": "Create an operational petty cash box linked to the governed petty cash account mapping.",
+          "submit": "Create Cash Box",
+          "help": {
+            "code": "Leave blank to generate the next petty cash code automatically."
+          },
+          "fields": {
+            "code": "Cash Box Code",
+            "name": "Cash Box Name",
+            "name2": "Cash Box Name (Arabic)",
+            "branch": "Branch",
+            "account": "Linked Account",
+            "currencyCode": "Currency Code",
+            "openingBalance": "Opening Balance"
+          }
+        },
+        "cashTxn": {
+          "title": "Record Petty Cash Movement",
+          "subtitle": "Top-up or spend from an existing petty cash box. Posting remains non-blocking and governed by HQ policy.",
+          "submit": "Save Petty Cash Transaction",
+          "fields": {
+            "cashbox": "Cash Box",
+            "type": "Transaction Type",
+            "txnDate": "Transaction Date",
+            "currencyCode": "Currency Code",
+            "amount": "Amount",
+            "description": "Description"
+          }
+        }
+      },
+      "lists": {
+        "expenses": {
+          "title": "Recent Expenses",
+          "subtitle": "Latest recorded expense documents for the current tenant.",
+          "empty": "No expenses recorded yet.",
+          "columns": {
+            "no": "Expense No",
+            "date": "Date",
+            "payee": "Payee",
+            "branch": "Branch",
+            "settlement": "Settlement",
+            "amount": "Amount"
+          }
+        },
+        "cashboxes": {
+          "title": "Petty Cash Boxes",
+          "subtitle": "Operational cash boxes with running balances derived from petty cash transactions.",
+          "empty": "No petty cash boxes created yet.",
+          "currentBalance": "Current Balance"
+        },
+        "cashTxns": {
+          "title": "Recent Petty Cash Transactions",
+          "subtitle": "Latest petty cash top-up and spend entries.",
+          "empty": "No petty cash transactions recorded yet."
+        }
       }
     }
   }

@@ -191,7 +191,7 @@ const PieceCardComponent = function PieceCard({
       {/* Additional Info */}
       {(piece.color || piece.brand || piece.has_stain || piece.has_damage) && (
         <div className="mt-3 pt-3 border-t text-xs text-gray-500">
-          {piece.color && <span>{t('color')}: {piece.color}</span>}
+          {piece.color && <span>{t('color')}: {typeof piece.color === 'object' ? (piece.color as { primary?: string })?.primary ?? '' : piece.color}</span>}
           {piece.brand && <span className="ml-2">{t('brand')}: {piece.brand}</span>}
           {piece.has_stain && <span className="ml-2">{t('hasStain')}</span>}
           {piece.has_damage && <span className="ml-2">{t('hasDamage')}</span>}

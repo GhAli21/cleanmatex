@@ -1,9 +1,9 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-28
+last_updated: 2026-03-29
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_2_HQ_GOV_CHECKLIST_2026_03_28
-status: Draft
+status: Complete
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -22,6 +22,7 @@ Phase 2 is limited to:
 - governance package model
 - mapping rule model
 - auto-post policy model
+- resolver governance model
 - migration drafting only
 
 Phase 2 must not:
@@ -55,21 +56,23 @@ Phase 2 is complete only when all of the following are true:
 
 - account types are modeled as HQ-governed system data
 - usage code and event catalogs exist as governed system data
+- resolver catalog exists as governed system data
 - governance package and mapping rule models are defined
 - auto-post policy model is defined at HQ level
 - new shared schema migrations are drafted in `cleanmatex`
 - no migration is applied by the agent
 - implementation can move to Phase 3 without governance ambiguity
+- implementation can move through v2 and v3 without redesigning Phase 2 governance tables
 
 ## 3.1 Current Execution Status
 
-Current status: `In Progress`
+Current status: `Complete`
 
 Current work state:
 
 - Phase 2 cross-project start is approved
-- provisional migration drafts `0179` to `0182` were created
-- those drafts must now be reviewed against this checklist and the execution package before they are treated as final
+- migrations `0179` to `0182` were created, revised, and applied
+- Phase 2 is now the accepted future-safe governance baseline for v1/v2/v3 growth
 
 ---
 
@@ -118,14 +121,17 @@ Phase 2 must define:
 - account groups
 - event catalog
 - usage code catalog
+- resolver catalog
 
 ## 5.2 Required Actions
 
-- [ ] freeze the account type seed set
-- [ ] freeze the account group seed set
-- [ ] freeze the locked v1 event catalog seed set
-- [ ] freeze the v1 usage code seed set
-- [ ] explicitly exclude speculative v2/v3 seed data unless approved for DB storage now
+- [x] freeze the account type seed set
+- [x] freeze the account group seed set
+- [x] freeze the locked v1 event catalog seed set
+- [x] freeze the v1 usage code seed set
+- [x] freeze the v1 resolver seed set
+- [x] explicitly exclude speculative v2/v3 seed data unless approved for DB storage now
+- [x] ensure schema extensibility for v2/v3 without redesign
 
 ---
 
@@ -140,10 +146,11 @@ Phase 2 must define:
 
 Required actions:
 
-- [ ] freeze the package status values
-- [ ] freeze the package compatibility field
-- [ ] freeze which catalog versions are tracked on package rows
-- [ ] ensure runtime cannot consume draft packages
+- [x] freeze the package status values
+- [x] freeze the package compatibility field
+- [x] freeze which catalog versions are tracked on package rows
+- [x] ensure runtime cannot consume draft packages
+- [x] ensure resolver catalog version can be traced with the package
 
 ---
 
@@ -159,11 +166,13 @@ Phase 2 must define:
 
 Required actions:
 
-- [ ] freeze the rule header fields
-- [ ] freeze the rule line fields
-- [ ] support multi-line entries
-- [ ] support conditional account resolution
-- [ ] support rule version tracking
+- [x] freeze the rule header fields
+- [x] freeze the rule line fields
+- [x] support multi-line entries
+- [x] support conditional account resolution
+- [x] support rule version tracking
+- [x] prevent free-text resolver drift
+- [x] enforce deterministic rule priority within package/event scope
 
 ---
 
@@ -179,10 +188,11 @@ Phase 2 must define:
 
 Required actions:
 
-- [ ] freeze the v1 blocking policy fields
-- [ ] ensure policy remains HQ-owned
-- [ ] ensure runtime can trace policy version/package
-- [ ] ensure non-blocking flows still produce visible finance exceptions
+- [x] freeze the v1 blocking policy fields
+- [x] ensure policy remains HQ-owned
+- [x] ensure runtime can trace policy version/package
+- [x] ensure non-blocking flows still produce visible finance exceptions
+- [x] ensure policy rows can evolve in v2/v3 without redesign
 
 ---
 
@@ -197,10 +207,10 @@ Phase 2 migration drafting should currently use:
 
 Required actions:
 
-- [ ] review all four drafts against approved docs
-- [ ] confirm object names remain within repo DB naming rules
-- [ ] confirm no tenant runtime tables leaked into Phase 2
-- [ ] confirm no migration is applied by the agent
+- [x] review all four drafts against approved docs
+- [x] confirm object names remain within repo DB naming rules
+- [x] confirm no tenant runtime tables leaked into Phase 2
+- [x] confirm no migration is applied by the agent
 
 ---
 
@@ -225,5 +235,4 @@ Phase 2 can proceed safely only when:
 
 - this checklist is accepted
 - the Phase 2 execution package is accepted
-- the provisional migration drafts are reviewed against both
-- you approve whether to keep, revise, or replace the current `0179` to `0182` drafts
+- migrations `0179` to `0182` are reviewed, approved, and applied

@@ -19,6 +19,8 @@ import { createTenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
 import { createReceiptVoucherForPayment } from './voucher-service';
 import { createRefundVoucherForPayment } from './refund-voucher-service';
+import { ErpLiteAutoPostService } from './erp-lite-auto-post.service';
+import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 import type {
   PaymentMethod,
   PaymentMethodCode,
@@ -280,6 +282,11 @@ export async function processPayment(
           .filter((inv) => inv.remaining > 0);
 
         if (withBalance.length > 0) {
+          // Phase 5 note: this branch creates multiple payment rows inside one
+          // business transaction. It needs batch-safe finance orchestration so
+          // a later posting failure cannot leave earlier journal entries
+          // orphaned. Keep the current business behavior intact until that
+          // batch-aware posting design is implemented.
           const totalRemaining = withBalance.reduce((sum, inv) => sum + inv.remaining, 0);
           if (amountToPay > totalRemaining) {
             return {
@@ -307,7 +314,7 @@ export async function processPayment(
               const apply = Math.min(inv.remaining, amountLeft);
               if (apply <= 0) continue;
 
-              await recordPaymentTransaction(
+              const txn = await recordPaymentTransaction(
                 {
                   invoice_id: inv.id,
                   order_id: input.order_id,
@@ -362,6 +369,23 @@ export async function processPayment(
                 },
               });
 
+              await runBlockingPaymentAutoPost(dbTx, {
+                paymentId: txn.id,
+                invoiceId: inv.id,
+                orderId: input.order_id ?? null,
+                branchId: input.branch_id ?? null,
+                currencyCode: input.currency_code ?? 'OMR',
+                currencyExRate: Number(input.currency_ex_rate ?? 1),
+                paymentDate: new Date().toISOString().slice(0, 10),
+                paymentMethodCode: input.payment_method_code,
+                paidAmount: apply,
+                subtotal: apply,
+                discountAmount: 0,
+                taxAmount: 0,
+                vatAmount: 0,
+                createdBy: input.processed_by,
+              });
+
               amountLeft -= apply;
               totalApplied += apply;
               lastInvoiceId = inv.id;
@@ -399,52 +423,6 @@ export async function processPayment(
         // No invoices with balance: fall through to create one invoice and pay
       }
 
-      if (!invoiceId) {
-        if (!input.order_id) {
-          return failResult(input, 0, 'Order or invoice required for invoice payment', 'ORDER_OR_INVOICE_REQUIRED');
-        }
-        const breakdown =
-          input.subtotal != null && input.final_total != null
-            ? {
-                subtotal: input.subtotal,
-                discount: input.discount_amount ?? 0,
-                tax: (input.tax_amount ?? 0) + (input.vat_amount ?? 0),
-                total: input.final_total,
-                vat_rate: input.vat_rate,
-                vat_amount: input.vat_amount,
-              }
-            : undefined;
-        const invoice = await createInvoiceForOrder(
-          input.order_id,
-          input.amount,
-          breakdown
-        );
-        if (!invoice) {
-          return failResult(input, 0, 'Failed to create invoice', 'INVOICE_CREATION_FAILED');
-        }
-        invoiceId = invoice.id;
-      }
-
-      const invoice = await prisma.org_invoice_mst.findUnique({
-        where: { id: invoiceId },
-      });
-      if (!invoice) {
-        return failResult(input, 0, 'Invoice not found', 'INVOICE_NOT_FOUND');
-      }
-
-      const remainingBalance = Number(invoice.total) - Number(invoice.paid_amount);
-      if (amountToPay > remainingBalance) {
-        return {
-          success: false,
-          invoice_id: invoiceId,
-          payment_status: 'failed',
-          amount_paid: 0,
-          remaining_balance: remainingBalance,
-          error: 'Payment amount exceeds remaining balance',
-          errorCode: 'AMOUNT_EXCEEDS_BALANCE',
-        };
-      }
-
       const paymentResult = await processPaymentByMethod(input);
       if (!paymentResult.success) {
         return paymentResult;
@@ -462,46 +440,91 @@ export async function processPayment(
         }
       }
 
-      const paymentPayload = {
-        invoice_id: invoiceId,
-        order_id: input.order_id,
-        customer_id: vCustomerid,
-        paid_amount: amountToPay,
-        payment_method_code: input.payment_method_code,
-        payment_type_code: input.payment_type_code,
-        paid_by: input.processed_by,
-        branch_id: input.branch_id,
-        subtotal: input.subtotal,
-        discount_rate: input.discount_rate,
-        discount_amount: input.discount_amount,
-        manual_discount_amount: input.manual_discount_amount,
-        promo_discount_amount: input.promo_discount_amount,
-        gift_card_applied_amount: input.gift_card_applied_amount,
-        vat_rate: input.vat_rate,
-        vat_amount: input.vat_amount,
-        tax_rate: input.tax_rate,
-        tax_amount: input.tax_amount,
-        currency_code: input.currency_code,
-        currency_ex_rate: input.currency_ex_rate,
-        check_number: input.check_number,
-        check_bank: input.check_bank,
-        check_date: input.check_date,
-        promo_code_id: input.promo_code_id,
-        gift_card_id: input.gift_card_id,
-        metadata: {
-          check_number: input.check_number,
-          gateway_token: input.gateway_token,
-          promo_code: input.promo_code,
-          gift_card_number: input.gift_card_number,
-          gift_card_amount: input.gift_card_amount,
-        },
-        rec_notes: input.notes,
-        trans_desc: input.trans_desc,
-        payment_channel: input.payment_channel ?? 'web_admin',
-      };
+      const breakdown =
+        input.subtotal != null && input.final_total != null
+          ? {
+              subtotal: input.subtotal,
+              discount: input.discount_amount ?? 0,
+              tax: (input.tax_amount ?? 0) + (input.vat_amount ?? 0),
+              total: input.final_total,
+              vat_rate: input.vat_rate,
+              vat_amount: input.vat_amount,
+            }
+          : undefined;
 
       const transaction = await prisma.$transaction(async (dbTx) => {
-        const txn = await recordPaymentTransaction(paymentPayload, dbTx);
+        let effectiveInvoiceId = invoiceId;
+        if (!effectiveInvoiceId) {
+          if (!input.order_id) {
+            throw new Error('Order or invoice required for invoice payment');
+          }
+
+          const createdInvoice = await createInvoiceForOrder(
+            input.order_id,
+            input.amount,
+            breakdown,
+            dbTx
+          );
+
+          if (!createdInvoice) {
+            throw new Error('Failed to create invoice');
+          }
+
+          effectiveInvoiceId = createdInvoice.id;
+        }
+
+        const invoice = await dbTx.org_invoice_mst.findUnique({
+          where: { id: effectiveInvoiceId },
+        });
+        if (!invoice) {
+          throw new Error('Invoice not found');
+        }
+
+        const remainingBalance = Number(invoice.total) - Number(invoice.paid_amount);
+        if (amountToPay > remainingBalance) {
+          throw new Error('Payment amount exceeds remaining balance');
+        }
+
+        const txn = await recordPaymentTransaction(
+          {
+            invoice_id: effectiveInvoiceId,
+            order_id: input.order_id,
+            customer_id: vCustomerid,
+            paid_amount: amountToPay,
+            payment_method_code: input.payment_method_code,
+            payment_type_code: input.payment_type_code,
+            paid_by: input.processed_by,
+            branch_id: input.branch_id,
+            subtotal: input.subtotal,
+            discount_rate: input.discount_rate,
+            discount_amount: input.discount_amount,
+            manual_discount_amount: input.manual_discount_amount,
+            promo_discount_amount: input.promo_discount_amount,
+            gift_card_applied_amount: input.gift_card_applied_amount,
+            vat_rate: input.vat_rate,
+            vat_amount: input.vat_amount,
+            tax_rate: input.tax_rate,
+            tax_amount: input.tax_amount,
+            currency_code: input.currency_code,
+            currency_ex_rate: input.currency_ex_rate,
+            check_number: input.check_number,
+            check_bank: input.check_bank,
+            check_date: input.check_date,
+            promo_code_id: input.promo_code_id,
+            gift_card_id: input.gift_card_id,
+            metadata: {
+              check_number: input.check_number,
+              gateway_token: input.gateway_token,
+              promo_code: input.promo_code,
+              gift_card_number: input.gift_card_number,
+              gift_card_amount: input.gift_card_amount,
+            },
+            rec_notes: input.notes,
+            trans_desc: input.trans_desc,
+            payment_channel: input.payment_channel ?? 'web_admin',
+          },
+          dbTx
+        );
 
         const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
         const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
@@ -546,22 +569,44 @@ export async function processPayment(
           }
         }
 
-        return txn;
+        await runBlockingPaymentAutoPost({
+          tx: dbTx,
+          paymentId: txn.id,
+          invoiceId: effectiveInvoiceId,
+          orderId: input.order_id ?? null,
+          branchId: input.branch_id ?? invoice.branch_id ?? null,
+          currencyCode: invoice.currency_code ?? input.currency_code ?? 'OMR',
+          currencyExRate:
+            invoice.currency_ex_rate != null
+              ? Number(invoice.currency_ex_rate)
+              : Number(input.currency_ex_rate ?? 1),
+          paymentDate: new Date().toISOString().slice(0, 10),
+          paymentMethodCode: input.payment_method_code,
+          paidAmount: amountToPay,
+          subtotal: input.subtotal,
+          discountAmount: input.discount_amount,
+          taxAmount: input.tax_amount,
+          vatAmount: input.vat_amount,
+          createdBy: input.processed_by,
+        });
+
+        return { txn, invoice, invoiceId: effectiveInvoiceId };
       });
 
-      const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
-      const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+      const updatedPaidAmount = Number(transaction.invoice.paid_amount) + amountToPay;
+      const newStatus =
+        updatedPaidAmount >= Number(transaction.invoice.total) ? 'paid' : 'partial';
 
       return {
         success: true,
-        invoice_id: invoiceId,
-        transaction_id: transaction.id,
+        invoice_id: transaction.invoiceId,
+        transaction_id: transaction.txn.id,
         payment_status: newStatus === 'paid' ? 'completed' : 'completed',
         amount_paid: amountToPay,
-        remaining_balance: Number(invoice.total) - updatedPaidAmount,
+        remaining_balance: Number(transaction.invoice.total) - updatedPaidAmount,
         payment_kind: 'invoice',
         metadata: {
-          transaction_id: transaction.id,
+          transaction_id: transaction.txn.id,
           payment_method: input.payment_method_code,
         },
       };
@@ -592,6 +637,141 @@ function failResult(
     error,
     errorCode: code,
   };
+}
+
+async function runBlockingPaymentAutoPost(input: {
+  tx?: PrismaTx;
+  paymentId: string;
+  invoiceId?: string | null;
+  orderId?: string | null;
+  branchId?: string | null;
+  currencyCode: string;
+  currencyExRate?: number;
+  paymentDate: string;
+  paymentMethodCode: PaymentMethodCode;
+  paidAmount: number;
+  subtotal?: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  vatAmount?: number;
+  createdBy?: string;
+}): Promise<void> {
+  const dispatchResult = input.tx
+    ? await ErpLiteAutoPostService.dispatchPaymentReceivedInTransaction(input.tx, {
+        payment_id: input.paymentId,
+        invoice_id: input.invoiceId ?? null,
+        order_id: input.orderId ?? null,
+        branch_id: input.branchId ?? null,
+        currency_code: input.currencyCode,
+        exchange_rate: input.currencyExRate ?? 1,
+        payment_date: input.paymentDate,
+        payment_method_code: input.paymentMethodCode,
+        paid_amount: input.paidAmount,
+        subtotal: input.subtotal,
+        discount_amount: input.discountAmount,
+        tax_amount: input.taxAmount,
+        vat_amount: input.vatAmount,
+        created_by: input.createdBy,
+      })
+    : await ErpLiteAutoPostService.dispatchPaymentReceived({
+    payment_id: input.paymentId,
+    invoice_id: input.invoiceId ?? null,
+    order_id: input.orderId ?? null,
+    branch_id: input.branchId ?? null,
+    currency_code: input.currencyCode,
+    exchange_rate: input.currencyExRate ?? 1,
+    payment_date: input.paymentDate,
+    payment_method_code: input.paymentMethodCode,
+    paid_amount: input.paidAmount,
+    subtotal: input.subtotal,
+    discount_amount: input.discountAmount,
+    tax_amount: input.taxAmount,
+    vat_amount: input.vatAmount,
+    created_by: input.createdBy,
+  });
+
+  assertBlockingAutoPostSucceeded(dispatchResult, 'payment');
+}
+
+async function runBlockingRefundAutoPost(input: {
+  tx?: PrismaTx;
+  refundPaymentId: string;
+  originalPaymentId: string;
+  invoiceId?: string | null;
+  orderId?: string | null;
+  branchId?: string | null;
+  currencyCode: string;
+  currencyExRate?: number;
+  refundDate: string;
+  paymentMethodCode: PaymentMethodCode;
+  refundAmount: number;
+  taxAmount?: number;
+  vatAmount?: number;
+  createdBy?: string;
+}): Promise<void> {
+  const dispatchResult = input.tx
+    ? await ErpLiteAutoPostService.dispatchRefundIssuedInTransaction(input.tx, {
+        refund_payment_id: input.refundPaymentId,
+        original_payment_id: input.originalPaymentId,
+        invoice_id: input.invoiceId ?? null,
+        order_id: input.orderId ?? null,
+        branch_id: input.branchId ?? null,
+        currency_code: input.currencyCode,
+        exchange_rate: input.currencyExRate ?? 1,
+        refund_date: input.refundDate,
+        payment_method_code: input.paymentMethodCode,
+        refund_amount: input.refundAmount,
+        tax_amount: input.taxAmount,
+        vat_amount: input.vatAmount,
+        created_by: input.createdBy,
+      })
+    : await ErpLiteAutoPostService.dispatchRefundIssued({
+    refund_payment_id: input.refundPaymentId,
+    original_payment_id: input.originalPaymentId,
+    invoice_id: input.invoiceId ?? null,
+    order_id: input.orderId ?? null,
+    branch_id: input.branchId ?? null,
+    currency_code: input.currencyCode,
+    exchange_rate: input.currencyExRate ?? 1,
+    refund_date: input.refundDate,
+    payment_method_code: input.paymentMethodCode,
+    refund_amount: input.refundAmount,
+    tax_amount: input.taxAmount,
+    vat_amount: input.vatAmount,
+    created_by: input.createdBy,
+  });
+
+  assertBlockingAutoPostSucceeded(dispatchResult, 'refund');
+}
+
+function assertBlockingAutoPostSucceeded(
+  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchPaymentReceived>>,
+  flowName: 'invoice' | 'payment' | 'refund'
+): void {
+  const shouldBlock =
+    !dispatchResult.policy ||
+    dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+    dispatchResult.policy.required_success === true;
+
+  if (!shouldBlock) {
+    return;
+  }
+
+  const success =
+    dispatchResult.status === 'executed' &&
+    dispatchResult.execute_result?.success === true;
+
+  if (success) {
+    return;
+  }
+
+  const failureMessage =
+    dispatchResult.status === 'skipped'
+      ? `ERP-Lite auto-post policy prevented ${flowName} completion (${dispatchResult.skip_reason}).`
+      : dispatchResult.execute_result?.error_message ??
+        `ERP-Lite auto-post failed for the ${flowName}.`;
+
+  throw new Error(failureMessage);
 }
 
 /**
@@ -1526,6 +1706,24 @@ export async function refundPayment(
           tx as Parameters<typeof recordPaymentAudit>[1]
         );
 
+        await runBlockingRefundAutoPost({
+          tx: tx,
+          refundPaymentId: refundTransaction.id,
+          originalPaymentId: transaction.id,
+          invoiceId: transaction.invoice_id ?? null,
+          orderId: transaction.order_id ?? null,
+          branchId: transaction.branch_id ?? null,
+          currencyCode: transaction.currency_code,
+          currencyExRate:
+            transaction.currency_ex_rate != null ? Number(transaction.currency_ex_rate) : 1,
+          refundDate: new Date().toISOString().slice(0, 10),
+          paymentMethodCode: transaction.payment_method_code as PaymentMethodCode,
+          refundAmount: input.amount,
+          taxAmount: transaction.tax_amount != null ? Number(transaction.tax_amount) : 0,
+          vatAmount: transaction.vat_amount != null ? Number(transaction.vat_amount) : 0,
+          createdBy: input.processed_by,
+        });
+
         return {
           success: true,
           refund_transaction_id: refundTransaction.id,
@@ -2203,10 +2401,13 @@ interface InvoiceBreakdown {
 async function createInvoiceForOrder(
   orderId: string,
   amount: number,
-  breakdown?: InvoiceBreakdown
+  breakdown?: InvoiceBreakdown,
+  tx?: PrismaTx
 ): Promise<{ id: string } | null> {
   try {
-    const order = await prisma.org_orders_mst.findUnique({
+    const db = tx ?? prisma;
+
+    const order = await db.org_orders_mst.findUnique({
       where: { id: orderId },
     });
 
@@ -2228,7 +2429,7 @@ async function createInvoiceForOrder(
     const currencyExRate = Number(order.currency_ex_rate ?? 1);
 
     const now = new Date();
-    const invoice = await prisma.org_invoice_mst.create({
+    const invoice = await db.org_invoice_mst.create({
       data: {
         order_id: orderId,
         customer_id: order.customer_id,
@@ -2255,6 +2456,40 @@ async function createInvoiceForOrder(
         created_at: now,
       },
     });
+
+    const invoiceDispatchResult = tx
+      ? await ErpLiteAutoPostService.dispatchInvoiceCreatedInTransaction(tx, {
+          invoice_id: invoice.id,
+          invoice_no: invoice.invoice_no ?? null,
+          order_id: invoice.order_id ?? null,
+          branch_id: invoice.branch_id ?? null,
+          currency_code: invoice.currency_code ?? 'OMR',
+          exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
+          invoice_date: now.toISOString().slice(0, 10),
+          subtotal: Number(invoice.subtotal ?? 0),
+          discount_amount: Number(invoice.discount ?? 0),
+          tax_amount: Number(invoice.tax ?? 0),
+          vat_amount: Number(invoice.vat_amount ?? 0),
+          total_amount: Number(invoice.total ?? 0),
+          created_by: undefined,
+        })
+      : await ErpLiteAutoPostService.dispatchInvoiceCreated({
+          invoice_id: invoice.id,
+          invoice_no: invoice.invoice_no ?? null,
+          order_id: invoice.order_id ?? null,
+          branch_id: invoice.branch_id ?? null,
+          currency_code: invoice.currency_code ?? 'OMR',
+          exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
+          invoice_date: now.toISOString().slice(0, 10),
+          subtotal: Number(invoice.subtotal ?? 0),
+          discount_amount: Number(invoice.discount ?? 0),
+          tax_amount: Number(invoice.tax ?? 0),
+          vat_amount: Number(invoice.vat_amount ?? 0),
+          total_amount: Number(invoice.total ?? 0),
+          created_by: undefined,
+        });
+
+    assertBlockingAutoPostSucceeded(invoiceDispatchResult, 'invoice');
 
     return { id: invoice.id };
   } catch (error) {

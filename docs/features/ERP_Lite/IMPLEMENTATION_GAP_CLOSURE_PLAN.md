@@ -185,8 +185,8 @@ Do not begin implementation work for a phase until its required approval inputs 
 |---|---|---|---|
 | Phase 0 | Decision freeze and approval | Canonical ERP-Lite direction, governance, and runtime control model are approved | Complete |
 | Phase 1 | Platform enablement | ERP-Lite can be gated, navigated, permissioned, and configured | Complete |
-| Phase 2 | HQ governance foundation | Account types, rule governance, publication model, and HQ auto-post policy foundations are defined | Not Started |
-| Phase 3 | Tenant finance schema | COA, GL, periods/settings, constants/types exist | Not Started |
+| Phase 2 | HQ governance foundation | Phase 2A DB foundation is complete; Phase 2B HQ app layer remains pending in `cleanmatexsaas` | Complete |
+| Phase 3 | Tenant finance schema | COA, GL, periods/settings, constants/types exist | Complete |
 | Phase 4 | Posting engine | Balanced and idempotent journal batches can be created | Not Started |
 | Phase 5 | Core auto-post integration | Invoices, payments, refunds create GL entries | Not Started |
 | Phase 6 | V1 finance inquiry and reports | GL inquiry, trial balance, P&L, balance sheet, AR aging | Not Started |

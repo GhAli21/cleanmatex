@@ -12,11 +12,15 @@ CREATE TABLE IF NOT EXISTS public.sys_fin_auto_post_mst (
   auto_post_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   pkg_id UUID NOT NULL,
   evt_id UUID NOT NULL,
+  policy_ver INTEGER NOT NULL DEFAULT 1,
   is_enabled BOOLEAN NOT NULL DEFAULT true,
   blocking_mode VARCHAR(20) NOT NULL,
   required_success BOOLEAN NOT NULL DEFAULT true,
   retry_allowed BOOLEAN NOT NULL DEFAULT true,
   repost_allowed BOOLEAN NOT NULL DEFAULT true,
+  status_code VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+  effective_from DATE,
+  effective_to DATE,
   failure_action_code VARCHAR(40) NOT NULL,
   notes TEXT,
   notes2 TEXT,
@@ -30,13 +34,14 @@ CREATE TABLE IF NOT EXISTS public.sys_fin_auto_post_mst (
   rec_order INTEGER,
   rec_notes VARCHAR(200),
   is_active BOOLEAN NOT NULL DEFAULT true,
-  CONSTRAINT uq_sfap_pkg_evt UNIQUE (pkg_id, evt_id),
+  CONSTRAINT uq_sfap_pkg_evt UNIQUE (pkg_id, evt_id, policy_ver),
   CONSTRAINT fk_sfap_pkg FOREIGN KEY (pkg_id)
     REFERENCES public.sys_fin_gov_pkg_mst(pkg_id),
   CONSTRAINT fk_sfap_evt FOREIGN KEY (evt_id)
     REFERENCES public.sys_fin_evt_cd(evt_id),
   CONSTRAINT chk_sfap_mode CHECK (blocking_mode IN ('BLOCKING', 'NON_BLOCKING')),
-  CONSTRAINT chk_sfap_act CHECK (failure_action_code IN ('BLOCK_TXN', 'FINANCE_EXCEPTION'))
+  CONSTRAINT chk_sfap_act CHECK (failure_action_code IN ('BLOCK_TXN', 'FINANCE_EXCEPTION')),
+  CONSTRAINT chk_sfap_stat CHECK (status_code IN ('DRAFT', 'ACTIVE', 'INACTIVE', 'SUPERSEDED'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_sfap_pkg_evt ON public.sys_fin_auto_post_mst(pkg_id, evt_id);
@@ -45,11 +50,13 @@ CREATE INDEX IF NOT EXISTS idx_sfap_mode ON public.sys_fin_auto_post_mst(blockin
 INSERT INTO public.sys_fin_auto_post_mst (
   pkg_id,
   evt_id,
+  policy_ver,
   is_enabled,
   blocking_mode,
   required_success,
   retry_allowed,
   repost_allowed,
+  status_code,
   failure_action_code,
   notes,
   notes2,
@@ -63,11 +70,13 @@ INSERT INTO public.sys_fin_auto_post_mst (
 SELECT
   p.pkg_id,
   e.evt_id,
+  1,
   true,
   seed.blocking_mode,
   seed.required_success,
   true,
   true,
+  'DRAFT',
   seed.failure_action_code,
   seed.notes,
   seed.notes2,
@@ -93,12 +102,13 @@ JOIN public.sys_fin_gov_pkg_mst p
   ON p.pkg_code = 'ERP_LITE_V1_CORE' AND p.version_no = 1
 JOIN public.sys_fin_evt_cd e
   ON e.evt_code = seed.evt_code
-ON CONFLICT (pkg_id, evt_id) DO UPDATE SET
+ON CONFLICT (pkg_id, evt_id, policy_ver) DO UPDATE SET
   is_enabled = EXCLUDED.is_enabled,
   blocking_mode = EXCLUDED.blocking_mode,
   required_success = EXCLUDED.required_success,
   retry_allowed = EXCLUDED.retry_allowed,
   repost_allowed = EXCLUDED.repost_allowed,
+  status_code = EXCLUDED.status_code,
   failure_action_code = EXCLUDED.failure_action_code,
   notes = EXCLUDED.notes,
   notes2 = EXCLUDED.notes2,
