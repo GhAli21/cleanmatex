@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
+import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import {
   type ErpLiteStatementRow,
   ErpLiteReportingService,
@@ -22,6 +23,16 @@ function groupStatementRows(rows: ErpLiteStatementRow[]) {
 export default async function ErpLiteReportsPage() {
   const t = await getTranslations('erpLite.reports')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED)
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED} permissions={['erp_lite_reports:view']}>
+        {null}
+      </ErpLitePageGuard>
+    )
+  }
+
   const [trialBalanceRows, profitAndLossRows, balanceSheetRows] = await Promise.all([
     ErpLiteReportingService.getTrialBalance(locale),
     ErpLiteReportingService.getProfitAndLoss(locale),

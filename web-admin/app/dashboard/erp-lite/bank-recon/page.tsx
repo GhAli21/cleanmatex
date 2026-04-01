@@ -13,6 +13,7 @@ import {
   CmxTextarea,
 } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import {
@@ -43,6 +44,16 @@ export default async function ErpLiteBankReconPage({
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED);
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED} permissions={['erp_lite_bank_recon:view']}>
+        {null}
+      </ErpLitePageGuard>
+    );
+  }
+
   const snapshot = await ErpLiteV2Service.getBankDashboardSnapshot(locale);
 
   return (

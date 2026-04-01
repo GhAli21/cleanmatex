@@ -416,11 +416,11 @@ export function OrderDetailClient({
               <div className={isRTL ? 'text-right' : 'text-left'}>
                 <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.name}</div>
                 <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.org_customers_mst.sys_customers_mst.first_name}{' '}
-                  {order.org_customers_mst.sys_customers_mst.last_name || ''}
+                  {order.org_customers_mst.sys_customers_mst?.first_name}{' '}
+                  {order.org_customers_mst.sys_customers_mst?.last_name || ''}
                 </div>
               </div>
-              {order.org_customers_mst.sys_customers_mst.phone && (
+              {order.org_customers_mst.sys_customers_mst?.phone && (
                 <div className={isRTL ? 'text-right' : 'text-left'}>
                   <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.phone}</div>
                   <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -428,7 +428,7 @@ export function OrderDetailClient({
                   </div>
                 </div>
               )}
-              {order.org_customers_mst.sys_customers_mst.email && (
+              {order.org_customers_mst.sys_customers_mst?.email && (
                 <div className={isRTL ? 'text-right' : 'text-left'}>
                   <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.email}</div>
                   <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -436,7 +436,7 @@ export function OrderDetailClient({
                   </div>
                 </div>
               )}
-              {order.org_customers_mst.sys_customers_mst.address && (
+              {order.org_customers_mst.sys_customers_mst?.address && (
                 <div className={isRTL ? 'text-right' : 'text-left'}>
                   <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.address}</div>
                   <div className={`text-base text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>

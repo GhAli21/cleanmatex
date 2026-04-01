@@ -1,11 +1,22 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
+import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteReportingService } from '@/lib/services/erp-lite-reporting.service'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 
 export default async function ErpLiteGlPage() {
   const t = await getTranslations('erpLite.reports')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED)
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED} permissions={['erp_lite_gl:view']}>
+        {null}
+      </ErpLitePageGuard>
+    )
+  }
+
   const lines = await ErpLiteReportingService.getGlInquiry(50, locale)
 
   return (

@@ -1,5 +1,6 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
+import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import { ErpLiteReportingService } from '@/lib/services/erp-lite-reporting.service'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 
@@ -8,6 +9,16 @@ const BUCKET_ORDER = ['CURRENT', 'DUE_1_30', 'DUE_31_60', 'DUE_61_90', 'DUE_91_P
 export default async function ErpLiteArPage() {
   const t = await getTranslations('erpLite.reports.arAging')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_AR_ENABLED)
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_AR_ENABLED} permissions={['erp_lite_ar:view']}>
+        {null}
+      </ErpLitePageGuard>
+    )
+  }
+
   const rows = await ErpLiteReportingService.getArAging(locale)
   const grouped = new Map<string, typeof rows>()
 

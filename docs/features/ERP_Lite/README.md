@@ -135,6 +135,11 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | Document | Status | Description |
 |---|---|---|
 | [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) | Active | Live implementation status tracker — updated continuously |
+| [ERP_LITE_REMAINING_ITEMS.md](ERP_LITE_REMAINING_ITEMS.md) | Active | Exact remaining operational close-out items after implementation |
+| [ERP_LITE_UAT_PACK.md](ERP_LITE_UAT_PACK.md) | Active | UAT checklist and signoff pack for pilot / rollout readiness |
+| [ERP_LITE_PILOT_TENANT_CHECKLIST.md](ERP_LITE_PILOT_TENANT_CHECKLIST.md) | Active | Short tenant-by-tenant pilot rollout checklist |
+| [PILOT_TENANT_001_FILLED_TEMPLATE.md](PILOT_TENANT_001_FILLED_TEMPLATE.md) | Template | Ready-to-fill first pilot tenant record |
+| [GO_LIVE_CHECKLIST.md](GO_LIVE_CHECKLIST.md) | Active | Production rollout-day checklist |
 | [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](IMPLEMENTATION_GAP_CLOSURE_PLAN.md) | Draft | Gap closure plan with canonical dependencies |
 | [CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md](CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md) | Draft | Runtime implementation plan (cleanmatex) |
 | [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md) | Draft | Governance implementation plan (cleanmatexsaas) |
