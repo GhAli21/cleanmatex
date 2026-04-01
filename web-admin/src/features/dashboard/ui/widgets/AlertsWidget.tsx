@@ -96,11 +96,10 @@ export function AlertsWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-16 bg-gray-200 rounded"></div>
-          <div className="h-16 bg-gray-200 rounded"></div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', marginBottom: 8, width: '50%' }} />
+        <div className="win2k-progress-track">
+          <div className="win2k-progress-fill" style={{ width: '40%' }} />
         </div>
       </div>
     )
@@ -111,77 +110,42 @@ export function AlertsWidget() {
   const hasAlerts = alerts.length > 0
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">{t('alerts')}</h3>
-        <div
-          className={`p-2 rounded-lg ${
-            criticalCount > 0
-              ? 'bg-red-50 text-red-600'
-              : warningCount > 0
-              ? 'bg-yellow-50 text-yellow-600'
-              : 'bg-gray-50 text-gray-600'
-          }`}
-        >
-          <Bell className="h-5 w-5" />
-          {hasAlerts && (
-            <span className="absolute -mt-2 -mr-2 px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
-              {alerts.length}
-            </span>
-          )}
-        </div>
-      </div>
-
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
       {hasAlerts ? (
-        <div className="space-y-3">
+        <div>
           {/* Alert Summary */}
-          <div className="grid grid-cols-3 gap-2 pb-4 border-b border-gray-200">
-            <div className="text-center">
-              <p className="text-2xl font-bold text-red-600">{criticalCount}</p>
-              <p className="text-xs text-gray-600">{t('critical')}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-yellow-600">
-                {warningCount}
-              </p>
-              <p className="text-xs text-gray-600">{t('warning')}</p>
-            </div>
-            <div className="text-center">
-              <p className="text-2xl font-bold text-blue-600">
-                {alerts.filter((a) => a.type === 'info').length}
-              </p>
-              <p className="text-xs text-gray-600">{t('info')}</p>
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 8 }}>
+            {[
+              { count: criticalCount, label: t('critical'), color: '#cc0000' },
+              { count: warningCount, label: t('warning'), color: '#886600' },
+              { count: alerts.filter(a => a.type === 'info').length, label: t('info'), color: 'var(--win2k-titlebar-start)' },
+            ].map(({ count, label, color }) => (
+              <div key={label} className="win2k-inset" style={{ padding: '4px 8px', textAlign: 'center' }}>
+                <p style={{ fontSize: 18, fontWeight: 'bold', color, fontFamily: 'Courier New, monospace' }}>{count}</p>
+                <p className="win2k-text">{label}</p>
+              </div>
+            ))}
           </div>
 
+          <hr className="win2k-separator" />
+
           {/* Alert List */}
-          <div className="space-y-2 max-h-64 overflow-y-auto">
+          <div className="win2k-scroll" style={{ maxHeight: 200, overflowY: 'auto' }}>
             {alerts.slice(0, 5).map((alert) => (
-              <div
-                key={alert.id}
-                className={`p-3 rounded-lg ${getAlertColor(alert.type)} border border-current border-opacity-20`}
-              >
-                <div className={`flex items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex-shrink-0 ${isRTL ? 'ml-3' : 'mr-3'}`}>
+              <div key={alert.id} className="win2k-panel" style={{ padding: '4px 8px', marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+                  <div style={{ color: alert.type === 'critical' ? '#cc0000' : alert.type === 'warning' ? '#886600' : '#000080', flexShrink: 0 }}>
                     {getAlertIcon(alert.type)}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 line-clamp-1 break-words">
-                      {alert.title}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1 line-clamp-2 break-words">
-                      {alert.message}
-                    </p>
-                    <div className={`flex items-center mt-2 text-xs text-gray-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <Clock className={`h-3 w-3 ${isRTL ? 'ml-1' : 'mr-1'}`} />
+                  <div style={{ flex: 1 }}>
+                    <p className="win2k-label">{alert.title}</p>
+                    <p className="win2k-text">{alert.message}</p>
+                    <p className="win2k-text" style={{ color: '#666', marginTop: 2 }}>
                       {formatTimestamp(alert.timestamp)}
-                    </div>
+                    </p>
                   </div>
                   {alert.actionUrl && (
-                    <a
-                      href={alert.actionUrl}
-                      className={`${isRTL ? 'mr-3' : 'ml-3'} text-xs font-medium underline`}
-                    >
+                    <a href={alert.actionUrl} style={{ color: 'var(--win2k-link)', textDecoration: 'underline', fontSize: 11 }}>
                       {t('view')}
                     </a>
                   )}
@@ -190,27 +154,19 @@ export function AlertsWidget() {
             ))}
           </div>
 
-          {/* View All Link */}
           {alerts.length > 5 && (
-            <div className="pt-3 border-t border-gray-200">
-              <a
-                href="/alerts"
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
+            <div style={{ marginTop: 6, borderTop: '1px solid var(--win2k-shadow)', paddingTop: 4 }}>
+              <a href="/alerts" style={{ color: 'var(--win2k-link)', textDecoration: 'underline', fontSize: 11 }}>
                 {t('viewAll', { count: alerts.length })} {isRTL ? '←' : '→'}
               </a>
             </div>
           )}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Bell className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-sm font-medium text-gray-900 mb-1">
-            {t('noAlerts')}
-          </p>
-          <p className="text-xs text-gray-600">
-            {t('allSystemsRunning')}
-          </p>
+        <div className="win2k-inset" style={{ padding: '12px 8px', textAlign: 'center' }}>
+          <Bell style={{ width: 24, height: 24, color: '#808080', margin: '0 auto 6px' }} />
+          <p className="win2k-label" style={{ marginBottom: 2 }}>{t('noAlerts')}</p>
+          <p className="win2k-text">{t('allSystemsRunning')}</p>
         </div>
       )}
     </div>

@@ -91,24 +91,37 @@ export function Widget({
 
   return (
     <div
-      className={`bg-white rounded-lg shadow ${className}`}
-      style={{ gridColumn: `span ${colSpan}` }}
+      className={`win2k-panel ${className}`}
+      style={{ gridColumn: `span ${colSpan}`, borderRadius: 0 }}
     >
-      {/* Widget Header */}
-      <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <div className="flex items-center space-x-2">
+      {/* Widget Header — Win2K title bar style */}
+      <div
+        style={{
+          background: 'linear-gradient(to right, #000080, #1084d0)',
+          color: '#ffffff',
+          padding: '3px 6px',
+          fontFamily: "'Trebuchet MS', 'MS Sans Serif', Arial, sans-serif",
+          fontSize: 11,
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+        }}
+      >
+        <span style={{ flex: 1 }}>{title}</span>
+        <div className="flex items-center space-x-1">
           {titleAction}
           {onRefresh && (
             <button
               type="button"
               onClick={handleRefresh}
               disabled={isRefreshing || isLoading}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded transition-colors"
+              className="win2k-btn"
+              style={{ minWidth: 'unset', padding: '0 4px', height: 16, fontSize: 9, color: '#000' }}
               aria-label="Refresh widget"
             >
               <RefreshCw
-                className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`}
+                className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`}
               />
             </button>
           )}
@@ -116,7 +129,7 @@ export function Widget({
       </div>
 
       {/* Widget Content */}
-      <div className="p-6">
+      <div style={{ padding: '6px', backgroundColor: 'var(--win2k-face)' }}>
         {error ? (
           <ErrorState error={error} onRetry={onRefresh} />
         ) : isLoading ? (
@@ -134,13 +147,13 @@ export function Widget({
  */
 function SkeletonLoader() {
   return (
-    <div className="animate-pulse space-y-4">
-      <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-      <div className="space-y-3">
-        <div className="h-4 bg-gray-200 rounded"></div>
-        <div className="h-4 bg-gray-200 rounded w-5/6"></div>
-        <div className="h-4 bg-gray-200 rounded w-4/6"></div>
+    <div style={{ padding: 4 }}>
+      <div style={{ height: 10, background: '#c0bdb5', marginBottom: 6, width: '50%' }} />
+      <div className="win2k-progress-track" style={{ marginBottom: 6 }}>
+        <div className="win2k-progress-fill" style={{ width: '60%' }} />
       </div>
+      <div style={{ height: 8, background: '#c0bdb5', width: '80%', marginBottom: 4 }} />
+      <div style={{ height: 8, background: '#c0bdb5', width: '65%' }} />
     </div>
   )
 }
@@ -157,21 +170,21 @@ function ErrorState({
 }) {
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
-  
+
   return (
-    <div className="flex flex-col items-center justify-center py-8 text-center">
-      <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-      <h4 className="text-lg font-medium text-gray-900 mb-2">
+    <div className="win2k-inset" style={{ padding: 8, textAlign: 'center' }}>
+      <AlertCircle style={{ width: 24, height: 24, color: '#cc0000', margin: '0 auto 6px' }} />
+      <p className="win2k-label" style={{ color: '#cc0000', marginBottom: 4 }}>
         {t('failedToLoad')}
-      </h4>
-      <p className="text-sm text-gray-600 mb-4">{error}</p>
+      </p>
+      <p className="win2k-text" style={{ marginBottom: 8 }}>{error}</p>
       {onRetry && (
         <button
           type="button"
           onClick={onRetry}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="win2k-btn"
         >
-          <RefreshCw className={`h-4 w-4 ${isRTL ? 'ml-2' : 'mr-2'}`} />
+          <RefreshCw style={{ width: 10, height: 10, display: 'inline', marginRight: isRTL ? 0 : 4, marginLeft: isRTL ? 4 : 0 }} />
           {t('tryAgain')}
         </button>
       )}
@@ -194,11 +207,11 @@ export function WidgetEmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      {Icon && <Icon className="h-16 w-16 text-gray-400 mb-4" />}
-      <h4 className="text-lg font-medium text-gray-900 mb-2">{title}</h4>
+    <div className="win2k-inset" style={{ padding: '16px 8px', textAlign: 'center' }}>
+      {Icon && <Icon style={{ width: 32, height: 32, color: '#808080', margin: '0 auto 8px' }} />}
+      <p className="win2k-label" style={{ marginBottom: 4 }}>{title}</p>
       {description && (
-        <p className="text-sm text-gray-600 mb-4 max-w-sm">{description}</p>
+        <p className="win2k-text" style={{ marginBottom: 8 }}>{description}</p>
       )}
       {action}
     </div>
@@ -254,41 +267,51 @@ export function StatCard({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 12, background: '#c0bdb5', marginBottom: 8, width: '60%' }} />
+        <div className="win2k-inset" style={{ padding: '4px 8px' }}>
+          <div style={{ height: 20, background: '#e0e0e0', width: '50%' }} />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-gray-600">{label}</p>
+    <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <p className="win2k-label">{label}</p>
         {Icon && (
-          <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
-            <Icon className="h-5 w-5" />
+          <div
+            style={{
+              padding: '3px',
+              border: '2px solid',
+              borderColor: 'var(--win2k-dark-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-dark-shadow)',
+              background: 'var(--win2k-face)',
+            }}
+          >
+            <Icon style={{ width: 14, height: 14, color: 'var(--win2k-titlebar-start)' }} />
           </div>
         )}
       </div>
-      <div className="flex items-baseline">
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <div className="win2k-inset" style={{ padding: '4px 8px', marginBottom: 4 }}>
+        <p className="win2k-value">{value}</p>
       </div>
       {(trend !== undefined || trendLabel) && (
-        <div className="mt-2 flex items-center">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {trend !== undefined && (
             <span
-              className={`text-sm font-medium ${
-                trend >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}
+              style={{
+                fontSize: 11,
+                fontFamily: "'MS Sans Serif', Arial, sans-serif",
+                fontWeight: 'bold',
+                color: trend >= 0 ? '#006400' : '#cc0000',
+              }}
             >
-              {trend >= 0 ? '+' : ''}
-              {trend}%
+              {trend >= 0 ? '▲' : '▼'} {Math.abs(trend)}%
             </span>
           )}
           {trendLabel && (
-            <span className="text-sm text-gray-600 ml-2">{trendLabel}</span>
+            <span className="win2k-text" style={{ color: '#555' }}>{trendLabel}</span>
           )}
         </div>
       )}

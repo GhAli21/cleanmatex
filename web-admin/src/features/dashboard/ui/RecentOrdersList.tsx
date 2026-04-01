@@ -38,38 +38,53 @@ export function RecentOrdersList() {
 
   if (loading) {
     return (
-      <div className="text-sm text-gray-500">
-        {tCommon('loading')}
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '50%' }} /></div>
       </div>
     )
   }
 
   if (orders.length === 0) {
-    return <p className="text-gray-500">{t('noOrdersYet')}</p>
+    return (
+      <div className="win2k-inset" style={{ padding: '12px 8px', textAlign: 'center' }}>
+        <p className="win2k-text">{t('noOrdersYet')}</p>
+      </div>
+    )
   }
 
   return (
-    <ul className="space-y-2">
-      {orders.map((order) => (
-        <li key={order.id}>
-          <Link
-            href={`/dashboard/orders/${order.id}`}
-            className={`flex items-center justify-between py-2 px-3 rounded hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <span className="font-medium text-gray-900">{order.order_no}</span>
-            <span className="text-sm text-gray-500">{order.status}</span>
-          </Link>
-        </li>
-      ))}
-      <li>
+    <div>
+      <table className="win2k-table">
+        <thead>
+          <tr>
+            <th>Order #</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((order) => (
+            <tr key={order.id}>
+              <td>
+                <Link
+                  href={`/dashboard/orders/${order.id}`}
+                  style={{ color: 'var(--win2k-link)', textDecoration: 'underline', fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}
+                >
+                  {order.order_no}
+                </Link>
+              </td>
+              <td className="win2k-text">{order.status}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div style={{ marginTop: 6, borderTop: '1px solid var(--win2k-shadow)', paddingTop: 4 }}>
         <Link
           href="/dashboard/orders"
-          className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+          style={{ color: 'var(--win2k-link)', textDecoration: 'underline', fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}
         >
-          {t('viewAllOrders') || 'View all orders'}
-          {isRTL ? ' ←' : ' →'}
+          {t('viewAllOrders') || 'View all orders'}{isRTL ? ' ←' : ' →'}
         </Link>
-      </li>
-    </ul>
+      </div>
+    </div>
   )
 }

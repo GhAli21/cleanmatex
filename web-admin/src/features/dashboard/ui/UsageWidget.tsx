@@ -73,227 +73,88 @@ export function UsageWidget({ tenantId, compact = false }: UsageWidgetProps) {
 
   if (isLoading) {
     return (
-      <CmxCard className={compact ? 'p-4' : 'p-6'}>
-        <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded w-1/2 mb-4" />
-          <div className="space-y-3">
-            <div className="h-4 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded" />
-            <div className="h-4 bg-gray-200 rounded" />
-          </div>
-        </div>
-      </CmxCard>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', width: '50%', marginBottom: 6 }} />
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '40%' }} /></div>
+      </div>
     );
   }
 
   if (error || !usage) {
     return (
-      <CmxCard className={compact ? 'p-4' : 'p-6'}>
-        <div className="text-center">
-          <p className="text-sm text-red-600">
-            {error || 'Failed to load usage data'}
-          </p>
-          <CmxButton
-            variant="secondary"
-            size="sm"
-            onClick={fetchUsage}
-            className="mt-3"
-          >
-            Retry
-          </CmxButton>
-        </div>
-      </CmxCard>
+      <div className="win2k-inset" style={{ padding: 8, textAlign: 'center' }}>
+        <p className="win2k-text" style={{ color: '#cc0000', marginBottom: 6 }}>{error || 'Failed to load usage data'}</p>
+        <button className="win2k-btn" onClick={fetchUsage}>Retry</button>
+      </div>
     );
   }
 
   return (
-    <CmxCard className={compact ? 'p-4' : 'p-6'}>
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h3 className={`font-semibold text-gray-900 ${compact ? 'text-base' : 'text-lg'}`}>
-            Usage & Limits
-          </h3>
-          <p className={`text-gray-500 ${compact ? 'text-xs' : 'text-sm'}`}>
-            {new Date(usage.currentPeriod.start).toLocaleDateString()} -{' '}
-            {new Date(usage.currentPeriod.end).toLocaleDateString()}
-          </p>
-        </div>
-        {hasWarnings && (
-          <Badge variant="warning" className="text-xs">
-            {tCommon('warningCount', { count: usage.warnings.length })}
-          </Badge>
-        )}
+      <div style={{ marginBottom: 8 }}>
+        <p className="win2k-label">Usage &amp; Limits</p>
+        <p className="win2k-text" style={{ color: '#555' }}>
+          {new Date(usage.currentPeriod.start).toLocaleDateString()} -{' '}
+          {new Date(usage.currentPeriod.end).toLocaleDateString()}
+        </p>
       </div>
 
-      {/* Top 3 Metrics */}
-      <div className="space-y-4">
-        {/* Orders */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
-              Orders
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
-                {usage.usage.ordersCount} / {usage.limits.ordersLimit}
-              </span>
-              <Badge
-                variant={
-                  usage.usage.ordersPercentage >= 90
-                    ? 'destructive'
-                    : usage.usage.ordersPercentage >= 70
-                    ? 'warning'
-                    : 'success'
-                }
-                className="text-xs"
-              >
-                {usage.usage.ordersPercentage.toFixed(0)}%
-              </Badge>
-            </div>
+      {/* Metrics */}
+      {[
+        { label: 'Orders', used: usage.usage.ordersCount, limit: usage.limits.ordersLimit, pct: usage.usage.ordersPercentage },
+        { label: 'Users', used: usage.usage.usersCount, limit: usage.limits.usersLimit, pct: usage.usage.usersPercentage },
+        { label: 'Branches', used: usage.usage.branchesCount, limit: usage.limits.branchesLimit, pct: usage.usage.branchesPercentage },
+      ].map(({ label, used, limit, pct }) => (
+        <div key={label} style={{ marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+            <p className="win2k-label">{label}</p>
+            <p className="win2k-text" style={{ fontFamily: 'Courier New, monospace' }}>
+              {used} / {limit} ({pct.toFixed(0)}%)
+            </p>
           </div>
-          <CmxProgressBar
-            value={usage.usage.ordersPercentage}
-            max={100}
-            variant={getProgressVariant(usage.usage.ordersPercentage)}
-            size={compact ? 'sm' : 'md'}
-          />
-        </div>
-
-        {/* Users */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
-              Users
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
-                {usage.usage.usersCount} / {usage.limits.usersLimit}
-              </span>
-              <Badge
-                variant={
-                  usage.usage.usersPercentage >= 90
-                    ? 'destructive'
-                    : usage.usage.usersPercentage >= 70
-                    ? 'warning'
-                    : 'success'
-                }
-                className="text-xs"
-              >
-                {usage.usage.usersPercentage.toFixed(0)}%
-              </Badge>
-            </div>
+          <div className="win2k-progress-track">
+            <div
+              className="win2k-progress-fill"
+              style={{
+                width: `${Math.min(pct, 100)}%`,
+                background: pct >= 90
+                  ? 'repeating-linear-gradient(90deg,#cc0000 0,#cc0000 8px,#aa0000 8px,#aa0000 10px)'
+                  : pct >= 70 ? 'repeating-linear-gradient(90deg,#886600 0,#886600 8px,#664400 8px,#664400 10px)' : undefined,
+              }}
+            />
           </div>
-          <CmxProgressBar
-            value={usage.usage.usersPercentage}
-            max={100}
-            variant={getProgressVariant(usage.usage.usersPercentage)}
-            size={compact ? 'sm' : 'md'}
-          />
         </div>
+      ))}
 
-        {/* Branches */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <span className={`font-medium text-gray-700 ${compact ? 'text-xs' : 'text-sm'}`}>
-              Branches
-            </span>
-            <div className="flex items-center space-x-2">
-              <span className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>
-                {usage.usage.branchesCount} / {usage.limits.branchesLimit}
-              </span>
-              <Badge
-                variant={
-                  usage.usage.branchesPercentage >= 90
-                    ? 'destructive'
-                    : usage.usage.branchesPercentage >= 70
-                    ? 'warning'
-                    : 'success'
-                }
-                className="text-xs"
-              >
-                {usage.usage.branchesPercentage.toFixed(0)}%
-              </Badge>
-            </div>
-          </div>
-          <CmxProgressBar
-            value={usage.usage.branchesPercentage}
-            max={100}
-            variant={getProgressVariant(usage.usage.branchesPercentage)}
-            size={compact ? 'sm' : 'md'}
-          />
-        </div>
-      </div>
-
-      {/* Warnings Section */}
-      {hasWarnings && !compact && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
-          <div className="space-y-2">
-            {usage.warnings.slice(0, 2).map((warning, idx) => (
-              <div
-                key={idx}
-                className={`flex items-start space-x-2 p-2 rounded-lg ${
-                  warning.type === 'limit_exceeded'
-                    ? 'bg-red-50'
-                    : warning.type === 'limit_reached'
-                    ? 'bg-orange-50'
-                    : 'bg-yellow-50'
-                }`}
-              >
-                <span className="text-lg">
-                  {warning.type === 'limit_exceeded' ? '🔴' : '⚠️'}
-                </span>
-                <div className="flex-1">
-                  <p className="text-xs font-medium text-gray-900">
-                    {warning.resource.toUpperCase()}
-                  </p>
-                  <p className="text-xs text-gray-600">{warning.message}</p>
-                </div>
-              </div>
-            ))}
-            {usage.warnings.length > 2 && (
-              <p className="text-xs text-gray-500 text-center">
-                +{usage.warnings.length - 2} more warnings
+      {/* Warnings */}
+      {hasWarnings && (
+        <div style={{ marginTop: 6, borderTop: '1px solid var(--win2k-shadow)', paddingTop: 4 }}>
+          {usage.warnings.slice(0, 2).map((warning, idx) => (
+            <div key={idx} className="win2k-panel" style={{ padding: '3px 6px', marginBottom: 3, borderColor: warning.type === 'limit_exceeded' ? '#cc0000 #fff #fff #cc0000' : undefined }}>
+              <p className="win2k-label" style={{ color: warning.type === 'limit_exceeded' ? '#cc0000' : '#886600' }}>
+                {warning.type === 'limit_exceeded' ? '⚠' : '!'} {warning.resource.toUpperCase()}
               </p>
-            )}
-          </div>
+              <p className="win2k-text">{warning.message}</p>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Quick Actions */}
-      <div className={`flex items-center justify-between ${compact ? 'mt-3 space-x-2' : 'mt-6 space-x-3'}`}>
-        <Link href="/dashboard/subscription" className="flex-1">
-          <CmxButton
-            variant="secondary"
-            size={compact ? 'sm' : 'md'}
-            className="w-full"
-          >
-            View Details
-          </CmxButton>
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 4, marginTop: 8, borderTop: '1px solid var(--win2k-shadow)', paddingTop: 6 }}>
+        <Link href="/dashboard/subscription">
+          <button className="win2k-btn">View Details</button>
         </Link>
         {highUsageCount > 0 && (
-          <Link href="/dashboard/subscription" className="flex-1">
-            <CmxButton
-              variant="primary"
-              size={compact ? 'sm' : 'md'}
-              className="w-full"
-            >
+          <Link href="/dashboard/subscription">
+            <button className="win2k-btn" style={{ background: 'var(--win2k-titlebar-start)', color: '#fff', borderColor: '#0000aa #000044 #000044 #0000aa' }}>
               Upgrade Plan
-            </CmxButton>
+            </button>
           </Link>
         )}
+        <button className="win2k-btn" onClick={fetchUsage} style={{ marginLeft: 'auto' }}>↻</button>
       </div>
-
-      {/* Refresh indicator */}
-      <div className="mt-3 text-center">
-        <button
-          onClick={fetchUsage}
-          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-          title="Refresh usage data"
-        >
-          🔄 Refresh
-        </button>
-      </div>
-    </CmxCard>
+    </div>
   );
 }

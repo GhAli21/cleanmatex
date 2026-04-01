@@ -51,54 +51,41 @@ export function OrderStatusWidget() {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+          <div key={i} className="win2k-panel" style={{ padding: '6px 10px' }}>
+            <div style={{ height: 10, background: '#c0bdb5', marginBottom: 6, width: '60%' }} />
+            <div className="win2k-inset" style={{ padding: '4px 8px' }}>
+              <div style={{ height: 18, background: '#e0e0e0', width: '40%' }} />
+            </div>
           </div>
         ))}
       </div>
     )
   }
 
+  const statuses = [
+    { label: t('inProcess'), value: data.inProcess, detail: t('currentlyProcessing'), color: 'var(--win2k-titlebar-start)', Icon: Clock },
+    { label: t('ready'), value: data.ready, detail: t('readyForPickup'), color: '#006400', Icon: CheckCircle },
+    { label: t('outForDelivery'), value: data.outForDelivery, detail: t('enRoute'), color: '#886600', Icon: Truck },
+  ]
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {/* In Process */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <p className="text-sm font-medium text-gray-600">{t('inProcess')}</p>
-          <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-            <Clock className="h-5 w-5" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 4 }}>
+      {statuses.map(({ label, value, detail, color, Icon }) => (
+        <div key={label} className="win2k-panel" style={{ padding: '6px 10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+            <p className="win2k-label">{label}</p>
+            <div style={{ border: '2px solid', borderColor: 'var(--win2k-dark-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-dark-shadow)', padding: 2, background: 'var(--win2k-face)' }}>
+              <Icon style={{ width: 12, height: 12, color }} />
+            </div>
           </div>
-        </div>
-        <p className="text-3xl font-bold text-gray-900">{data.inProcess}</p>
-        <p className="mt-2 text-sm text-gray-600">{t('currentlyProcessing')}</p>
-      </div>
-
-      {/* Ready */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <p className="text-sm font-medium text-gray-600">{t('ready')}</p>
-          <div className="p-2 rounded-lg bg-green-50 text-green-600">
-            <CheckCircle className="h-5 w-5" />
+          <div className="win2k-inset" style={{ padding: '4px 8px', marginBottom: 4 }}>
+            <p className="win2k-value" style={{ color }}>{value}</p>
           </div>
+          <p className="win2k-text" style={{ color: '#555' }}>{detail}</p>
         </div>
-        <p className="text-3xl font-bold text-gray-900">{data.ready}</p>
-        <p className="mt-2 text-sm text-gray-600">{t('readyForPickup')}</p>
-      </div>
-
-      {/* Out for Delivery */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <p className="text-sm font-medium text-gray-600">{t('outForDelivery')}</p>
-          <div className="p-2 rounded-lg bg-yellow-50 text-yellow-600">
-            <Truck className="h-5 w-5" />
-          </div>
-        </div>
-        <p className="text-3xl font-bold text-gray-900">{data.outForDelivery}</p>
-        <p className="mt-2 text-sm text-gray-600">{t('enRoute')}</p>
-      </div>
+      ))}
     </div>
   )
 }

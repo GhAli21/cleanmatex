@@ -7,19 +7,43 @@
 :root { color-scheme: light only; }
 
 :root {
-  /* Brand/base tokens (LIGHT) */
-  --background: #ffffff;
-  --foreground: #111827; /* gray-900 */
-  --muted: #f3f4f6; /* gray-100 */
-  --muted-foreground: #6b7280; /* gray-500 */
-  --border: #d1d5db; /* gray-300 */
-  --ring: #3b82f6; /* blue-500 */ 
+  /* ============================================================
+   * Windows 2000 / Office 2000 Design Tokens
+   * ============================================================ */
+
+  /* Core system palette */
+  --win2k-desktop:        #008080;   /* Classic teal desktop */
+  --win2k-face:           #d4d0c8;   /* Button/panel face (light gray) */
+  --win2k-face-dark:      #c0bdb5;   /* Slightly darker face */
+  --win2k-light:          #ffffff;   /* Highlight (top-left bevel) */
+  --win2k-shadow:         #808080;   /* Shadow (bottom-right bevel) */
+  --win2k-dark-shadow:    #404040;   /* Darker shadow */
+  --win2k-titlebar-start: #000080;   /* Title bar gradient start (navy) */
+  --win2k-titlebar-end:   #1084d0;   /* Title bar gradient end (blue) */
+  --win2k-titlebar-text:  #ffffff;
+  --win2k-menu-bg:        #d4d0c8;
+  --win2k-menu-text:      #000000;
+  --win2k-selected-bg:    #000080;
+  --win2k-selected-text:  #ffffff;
+  --win2k-disabled:       #808080;
+  --win2k-focus:          #000080;
+  --win2k-inset:          #808080;
+  --win2k-text:           #000000;
+  --win2k-link:           #0000ee;
+
+  /* Brand/base tokens mapped to Win2K */
+  --background: var(--win2k-face);
+  --foreground: var(--win2k-text);
+  --muted: #c0bdb5;
+  --muted-foreground: #444444;
+  --border: var(--win2k-shadow);
+  --ring: var(--win2k-focus);
 
   /* Form tokens */
   --input-bg: #ffffff;
-  --input-text: #111827;
-  --input-placeholder: #9ca3af; /* gray-400 */
-  --focus-ring: #3b82f6; /* blue-500 */
+  --input-text: #000000;
+  --input-placeholder: #808080;
+  --focus-ring: var(--win2k-focus);
 }
 
 @theme inline {
@@ -32,6 +56,185 @@
   --color-ring: var(--ring);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* ============================================================
+ * Windows 2000 Component System
+ * Classic raised/sunken 3-D borders, system fonts, teal desktop
+ * ============================================================ */
+
+/* Desktop / page background */
+.win2k-desktop {
+  background-color: var(--win2k-desktop) !important;
+}
+
+/* Window panel — raised bevel (looks "up") */
+.win2k-panel {
+  background-color: var(--win2k-face);
+  border: 2px solid;
+  border-color: var(--win2k-light) var(--win2k-dark-shadow) var(--win2k-dark-shadow) var(--win2k-light);
+  box-shadow: inset -1px -1px 0 var(--win2k-shadow), inset 1px 1px 0 var(--win2k-face-dark);
+  border-radius: 0 !important;
+}
+
+/* Sunken / inset box (like a text field or depressed well) */
+.win2k-inset {
+  background-color: #ffffff;
+  border: 2px solid;
+  border-color: var(--win2k-dark-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-dark-shadow);
+  box-shadow: inset 1px 1px 0 var(--win2k-shadow);
+  border-radius: 0 !important;
+}
+
+/* Title bar with the iconic Win2K gradient */
+.win2k-titlebar {
+  background: linear-gradient(to right, var(--win2k-titlebar-start), var(--win2k-titlebar-end));
+  color: var(--win2k-titlebar-text);
+  padding: 3px 6px;
+  font-family: 'Trebuchet MS', 'MS Sans Serif', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 0;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+/* Classic push button */
+.win2k-btn {
+  background-color: var(--win2k-face);
+  border: 2px solid;
+  border-color: var(--win2k-light) var(--win2k-dark-shadow) var(--win2k-dark-shadow) var(--win2k-light);
+  box-shadow: inset -1px -1px 0 var(--win2k-shadow), inset 1px 1px 0 #ffffff;
+  padding: 3px 10px;
+  font-family: 'MS Sans Serif', 'Trebuchet MS', Arial, sans-serif;
+  font-size: 11px;
+  color: var(--win2k-text);
+  cursor: pointer;
+  border-radius: 0;
+  min-width: 75px;
+  text-align: center;
+}
+.win2k-btn:hover {
+  background-color: #e4e0d8;
+}
+.win2k-btn:active {
+  border-color: var(--win2k-dark-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-dark-shadow);
+  box-shadow: inset 1px 1px 0 var(--win2k-shadow);
+  padding: 4px 9px 2px 11px;
+}
+.win2k-btn:focus {
+  outline: 1px dotted var(--win2k-text);
+  outline-offset: -4px;
+}
+
+/* GroupBox (the labelled bordered group) */
+.win2k-groupbox {
+  border: 2px solid;
+  border-color: var(--win2k-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-shadow);
+  padding: 12px 8px 8px 8px;
+  margin-top: 8px;
+  position: relative;
+  background-color: var(--win2k-face);
+  border-radius: 0 !important;
+}
+
+/* Status bar at the bottom */
+.win2k-statusbar {
+  background-color: var(--win2k-face);
+  border-top: 1px solid var(--win2k-shadow);
+  font-size: 11px;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+  color: var(--win2k-text);
+  padding: 2px 8px;
+}
+
+/* Separator line (like a menu separator) */
+.win2k-separator {
+  border: none;
+  border-top: 1px solid var(--win2k-shadow);
+  border-bottom: 1px solid var(--win2k-light);
+  margin: 4px 0;
+}
+
+/* Text styles */
+.win2k-text {
+  font-family: 'MS Sans Serif', 'Trebuchet MS', 'Segoe UI', Arial, sans-serif;
+  font-size: 11px;
+  color: var(--win2k-text);
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+.win2k-label {
+  font-family: 'MS Sans Serif', 'Trebuchet MS', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--win2k-text);
+}
+.win2k-value {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--win2k-titlebar-start);
+}
+
+/* Progress-like sunken stat bar */
+.win2k-progress-track {
+  background-color: #ffffff;
+  border: 2px solid;
+  border-color: var(--win2k-dark-shadow) var(--win2k-light) var(--win2k-light) var(--win2k-dark-shadow);
+  height: 14px;
+  overflow: hidden;
+}
+.win2k-progress-fill {
+  height: 100%;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--win2k-selected-bg) 0px,
+    var(--win2k-selected-bg) 8px,
+    #1084d0 8px,
+    #1084d0 10px
+  );
+}
+
+/* Scrollbar Win2K-ish */
+.win2k-scroll::-webkit-scrollbar { width: 16px; height: 16px; }
+.win2k-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--win2k-face);
+  border: 2px solid;
+  border-color: var(--win2k-light) var(--win2k-dark-shadow) var(--win2k-dark-shadow) var(--win2k-light);
+}
+.win2k-scroll::-webkit-scrollbar-track {
+  background-color: var(--win2k-face-dark);
+}
+
+/* Table / list styling */
+.win2k-table {
+  border-collapse: collapse;
+  font-family: 'MS Sans Serif', Arial, sans-serif;
+  font-size: 11px;
+  width: 100%;
+}
+.win2k-table th {
+  background-color: var(--win2k-face);
+  border: 1px solid var(--win2k-shadow);
+  padding: 2px 6px;
+  font-weight: bold;
+  text-align: left;
+}
+.win2k-table td {
+  border: 1px solid var(--win2k-shadow);
+  padding: 2px 6px;
+  background: #ffffff;
+}
+.win2k-table tr:nth-child(even) td {
+  background: #f0f0f0;
+}
+.win2k-table tr:hover td {
+  background: var(--win2k-selected-bg);
+  color: var(--win2k-selected-text);
 }
 
 /* Disable dark mode for now
@@ -55,12 +258,12 @@
 */
 
 body {
-  background: var(--background);
+  background: var(--win2k-desktop);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+  font-family: 'MS Sans Serif', 'Trebuchet MS', Arial, sans-serif;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  text-rendering: auto;
 }
 
 /* Base typography */

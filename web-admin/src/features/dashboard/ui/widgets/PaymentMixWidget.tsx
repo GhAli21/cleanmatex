@@ -61,9 +61,9 @@ export function PaymentMixWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-        <div className="h-48 bg-gray-200 rounded"></div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', width: '60%', marginBottom: 6 }} />
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '45%' }} /></div>
       </div>
     )
   }
@@ -95,62 +95,48 @@ export function PaymentMixWidget() {
   const hasData = chartData.length > 0 && chartData.some((item) => item.value > 0)
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('paymentMix')}</h3>
-        <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-          <CreditCard className="h-5 w-5" />
-        </div>
-      </div>
-
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
       {hasData ? (
-        <div className="space-y-4">
-          {/* Pie Chart */}
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                 label={(props: any) => {
-                   const { name, percent } = props;
-                   return `${name} ${((percent as number) * 100).toFixed(0)}%`;
-                 }}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
-            </PieChart>
-          </ResponsiveContainer>
-
-          {/* Payment Method List */}
-          <div className="space-y-2">
-            {chartData.map((item) => (
-              <div key={item.name} className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div
-                    className={`w-3 h-3 rounded-full ${isRTL ? 'ml-2' : 'mr-2'}`}
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm text-gray-700 line-clamp-1 break-words">{item.name}</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  {item.value.toFixed(1)}%
-                </span>
-              </div>
-            ))}
+        <div>
+          {/* Chart */}
+          <div className="win2k-inset" style={{ padding: 4, marginBottom: 6, height: 160 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={60}
+                  dataKey="value"
+                  labelLine={false}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
+          {/* List */}
+          <table className="win2k-table" style={{ fontSize: 11 }}>
+            <tbody>
+              {chartData.map((item) => (
+                <tr key={item.name}>
+                  <td style={{ width: 14 }}>
+                    <div style={{ width: 10, height: 10, backgroundColor: item.color, border: '1px solid #808080' }} />
+                  </td>
+                  <td className="win2k-text">{item.name}</td>
+                  <td style={{ fontWeight: 'bold', textAlign: 'right' }}>{item.value.toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-8 text-center">
-          <Wallet className="h-12 w-12 text-gray-400 mb-2" />
-          <p className="text-sm text-gray-600">{t('noPaymentData')}</p>
+        <div className="win2k-inset" style={{ padding: '12px 8px', textAlign: 'center' }}>
+          <Wallet style={{ width: 24, height: 24, color: '#808080', margin: '0 auto 6px' }} />
+          <p className="win2k-text">{t('noPaymentData')}</p>
         </div>
       )}
     </div>
