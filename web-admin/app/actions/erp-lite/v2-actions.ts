@@ -26,6 +26,45 @@ function getRequiredNumber(formData: FormData, key: string): number {
   return value;
 }
 
+function parseOptionalNumber(raw: string | null): number | null {
+  if (!raw || !raw.trim()) return null;
+  const value = Number(raw.trim());
+  if (Number.isNaN(value)) {
+    throw new Error(`Invalid number value: ${raw}`);
+  }
+  return value;
+}
+
+function parseBankStatementImportRows(raw: string) {
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  if (lines.length === 0) {
+    throw new Error('Missing required field: import_rows');
+  }
+
+  return lines.map((line, index) => {
+    const parts = line.split('|').map((part) => part.trim());
+    if (parts.length < 5 || parts.length > 7) {
+      throw new Error(
+        `Invalid bank statement import row ${index + 1}. Expected 5 to 7 pipe-separated columns`
+      );
+    }
+
+    return {
+      txn_date: parts[0],
+      ext_ref_no: parts[1] || null,
+      description: parts[2] || null,
+      debit_amount: parseOptionalNumber(parts[3]),
+      credit_amount: parseOptionalNumber(parts[4]),
+      value_date: parts[5] || null,
+      balance_amount: parseOptionalNumber(parts[6] ?? null),
+    };
+  });
+}
+
 function redirectWithParams(path: string, notice?: string, error?: string) {
   const params = new URLSearchParams();
   if (notice) params.set('notice', notice);
@@ -187,6 +226,49 @@ export async function createErpLiteBankStatementAction(formData: FormData) {
   redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-statement-created');
 }
 
+export async function createErpLiteBankStatementLineAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.createBankStatementLine({
+      bank_stmt_id: getRequiredString(formData, 'bank_stmt_id'),
+      bank_account_id: getRequiredString(formData, 'bank_account_id'),
+      txn_date: getRequiredString(formData, 'txn_date'),
+      value_date: getOptionalString(formData, 'value_date'),
+      ext_ref_no: getOptionalString(formData, 'ext_ref_no'),
+      description: getOptionalString(formData, 'description'),
+      debit_amount: getOptionalString(formData, 'debit_amount')
+        ? getRequiredNumber(formData, 'debit_amount')
+        : null,
+      credit_amount: getOptionalString(formData, 'credit_amount')
+        ? getRequiredNumber(formData, 'credit_amount')
+        : null,
+      balance_amount: getOptionalString(formData, 'balance_amount')
+        ? getRequiredNumber(formData, 'balance_amount')
+        : null,
+    });
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-statement-line-create-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-statement-line-created');
+}
+
+export async function importErpLiteBankStatementLinesAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.importBankStatementLines({
+      bank_stmt_id: getRequiredString(formData, 'bank_stmt_id'),
+      rows: parseBankStatementImportRows(getRequiredString(formData, 'import_rows')),
+    });
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-statement-import-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-statement-imported');
+}
+
 export async function createErpLiteBankReconAction(formData: FormData) {
   try {
     await ErpLiteV2Service.createBankRecon({
@@ -212,4 +294,57 @@ export async function createErpLiteBankReconAction(formData: FormData) {
 
   revalidatePath('/dashboard/erp-lite/bank-recon');
   redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-recon-created');
+}
+
+export async function createErpLiteBankMatchAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.createBankMatch({
+      bank_stmt_line_id: getRequiredString(formData, 'bank_stmt_line_id'),
+      bank_recon_id: getOptionalString(formData, 'bank_recon_id'),
+      ap_payment_id: getRequiredString(formData, 'ap_payment_id'),
+      match_amount: getRequiredNumber(formData, 'match_amount'),
+    });
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-match-create-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-match-created');
+}
+
+export async function closeErpLiteBankReconAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.closeBankRecon(getRequiredString(formData, 'bank_recon_id'));
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-recon-close-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-recon-closed');
+}
+
+export async function lockErpLiteBankReconAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.lockBankRecon(getRequiredString(formData, 'bank_recon_id'));
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-recon-lock-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-recon-locked');
+}
+
+export async function reverseErpLiteBankMatchAction(formData: FormData) {
+  try {
+    await ErpLiteV2Service.reverseBankMatch(getRequiredString(formData, 'bank_match_id'));
+  } catch (error) {
+    if (isFrameworkRedirect(error)) throw error;
+    redirectWithParams('/dashboard/erp-lite/bank-recon', undefined, error instanceof Error ? error.message : 'bank-match-reverse-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/bank-recon');
+  redirectWithParams('/dashboard/erp-lite/bank-recon', 'bank-match-reversed');
 }

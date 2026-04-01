@@ -161,4 +161,215 @@ describe('ErpLiteV2Service', () => {
       })
     ).rejects.toThrow('Selected bank account currency must match the AP payment currency');
   });
+
+  it('returns AP aging rows on the AP dashboard snapshot', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'aging-1',
+          ap_inv_no: 'API-202604-00001',
+          supplier_name: 'Vendor A',
+          due_date: '2026-03-01',
+          days_overdue: 31,
+          open_amount: 12,
+          currency_code: 'OMR',
+          aging_bucket: 'DUE_31_60',
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    const snapshot = await ErpLiteV2Service.getApDashboardSnapshot('en');
+
+    expect(snapshot.ap_aging_list).toHaveLength(1);
+    expect(snapshot.ap_aging_list[0]).toEqual(
+      expect.objectContaining({
+        ap_inv_no: 'API-202604-00001',
+        aging_bucket: 'DUE_31_60',
+        open_amount: 12,
+      })
+    );
+  });
+
+  it('creates a bank match and reduces unmatched reconciliation amount', async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: { $queryRaw: typeof mockTxQueryRaw }) => Promise<unknown>) =>
+        fn({ $queryRaw: mockTxQueryRaw })
+    );
+
+    mockTxQueryRaw
+      .mockResolvedValueOnce([
+        {
+          id: 'stmt-line-1',
+          bank_stmt_id: 'stmt-1',
+          bank_account_id: 'bank-1',
+          debit_amount: 10,
+          credit_amount: 0,
+          match_status: 'UNMATCHED',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'pmt-1',
+          amount_total: 10,
+          status_code: 'POSTED',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'recon-1',
+          status_code: 'OPEN',
+          unmatched_amount: 10,
+        },
+      ])
+      .mockResolvedValueOnce([{ amount: 0 }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteV2Service.createBankMatch({
+      bank_stmt_line_id: 'stmt-line-1',
+      bank_recon_id: 'recon-1',
+      ap_payment_id: 'pmt-1',
+      match_amount: 10,
+    });
+
+    const updateStmtLineQuery = mockTxQueryRaw.mock.calls[5]?.[0];
+    expect(updateStmtLineQuery?.values).toContain('MATCHED');
+
+    const updateReconQuery = mockTxQueryRaw.mock.calls[6]?.[0];
+    expect(updateReconQuery?.values).toContain(0);
+  });
+
+  it('rejects bank reconciliation close when unmatched amount remains', async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      {
+        id: 'recon-1',
+        status_code: 'OPEN',
+        unmatched_amount: 2,
+      },
+    ]);
+
+    await expect(ErpLiteV2Service.closeBankRecon('recon-1')).rejects.toThrow(
+      'Bank reconciliation cannot be closed while unmatched amount remains'
+    );
+  });
+
+  it('imports statement lines into the selected statement batch', async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: { $queryRaw: typeof mockTxQueryRaw }) => Promise<unknown>) =>
+        fn({ $queryRaw: mockTxQueryRaw })
+    );
+
+    mockTxQueryRaw
+      .mockResolvedValueOnce([{ id: 'stmt-1', bank_account_id: 'bank-1' }])
+      .mockResolvedValueOnce([{ next_line_no: 1 }])
+      .mockResolvedValueOnce([{ id: 'line-1', line_no: 1 }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ next_line_no: 2 }])
+      .mockResolvedValueOnce([{ id: 'line-2', line_no: 2 }])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteV2Service.importBankStatementLines({
+      bank_stmt_id: 'stmt-1',
+      rows: [
+        {
+          bank_account_id: 'bank-1',
+          txn_date: '2026-04-01',
+          description: 'Deposit',
+          debit_amount: 10,
+          credit_amount: 0,
+        },
+        {
+          bank_account_id: 'bank-1',
+          txn_date: '2026-04-02',
+          description: 'Fee',
+          debit_amount: 0,
+          credit_amount: 1,
+        },
+      ],
+    });
+
+    expect(mockTxQueryRaw).toHaveBeenCalledTimes(7);
+    const secondInsert = mockTxQueryRaw.mock.calls[5]?.[0];
+    expect(secondInsert?.values).toContain(2);
+  });
+
+  it('reverses a confirmed bank match and reopens reconciliation balances', async () => {
+    mockTransaction.mockImplementation(
+      async (fn: (tx: { $queryRaw: typeof mockTxQueryRaw }) => Promise<unknown>) =>
+        fn({ $queryRaw: mockTxQueryRaw })
+    );
+
+    mockTxQueryRaw
+      .mockResolvedValueOnce([
+        {
+          id: 'match-1',
+          bank_stmt_line_id: 'stmt-line-1',
+          bank_recon_id: 'recon-1',
+          match_amount: 10,
+          status_code: 'CONFIRMED',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'recon-1',
+          status_code: 'CLOSED',
+          unmatched_amount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ amount: 0 }])
+      .mockResolvedValueOnce([
+        {
+          id: 'stmt-line-1',
+          bank_stmt_id: 'stmt-1',
+          bank_account_id: 'bank-1',
+          debit_amount: 10,
+          credit_amount: 0,
+          match_status: 'MATCHED',
+        },
+      ])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'recon-1',
+          status_code: 'CLOSED',
+          unmatched_amount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteV2Service.reverseBankMatch('match-1');
+
+    const stmtUpdate = mockTxQueryRaw.mock.calls[5]?.[0];
+    expect(stmtUpdate?.values).toContain('UNMATCHED');
+
+    const reconUpdate = mockTxQueryRaw.mock.calls[7]?.[0];
+    expect(reconUpdate?.values).toContain(10);
+  });
+
+  it('locks a closed bank reconciliation', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([
+        {
+          id: 'recon-1',
+          status_code: 'CLOSED',
+          unmatched_amount: 0,
+        },
+      ])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteV2Service.lockBankRecon('recon-1');
+
+    const updateQuery = mockQueryRaw.mock.calls[1]?.[0];
+    expect(updateQuery?.values).toContain('recon-1');
+  });
 });

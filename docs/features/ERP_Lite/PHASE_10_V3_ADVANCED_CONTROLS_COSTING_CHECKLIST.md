@@ -3,7 +3,7 @@ version: v1.0.0
 last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_10_V3_CHECKLIST_2026_04_01
-status: Planned
+status: In Progress
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -33,17 +33,23 @@ Phase 10 is complete only when all of the following are true:
 
 ## 4. Pre-Implementation Checklist
 
-- [ ] create v3 ADR pack for profitability and costing
-- [ ] define profitability truth model
-- [ ] define costing and allocation rules
-- [ ] define advanced expense approval boundaries
-- [ ] define advanced petty-cash reconciliation boundaries
+- [x] create v3 ADR pack for profitability and costing
+- [x] define profitability truth model
+- [x] define costing and allocation rules
+- [x] define advanced expense approval boundaries
+- [x] define advanced petty-cash reconciliation boundaries
+
+## 4.1 Current Implemented Slice
+
+- [x] direct-posted branch profitability view implemented from posted finance truth only
+- [ ] allocation-aware branch profitability
+- [ ] advanced controls workflow depth
+- [ ] costing runtime
 
 ## 5. Final Readiness Gate
 
 Phase 10 can start safely only when:
 
-- Phase 9 is complete and trusted
-- the profitability/costing ADR pack is approved
-- allocation assumptions are explicitly accepted
-
+- [ ] Phase 9 is complete and trusted
+- [x] the profitability/costing ADR pack is approved
+- [x] allocation assumptions are explicitly accepted

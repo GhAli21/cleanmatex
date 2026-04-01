@@ -107,6 +107,19 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | PATCH | `/api/v1/customers/[id]/service-prefs` | `customers:update` | Customer preferences mutate |
 | ACTION | POST | `app/actions/payments/payment-crud-actions.cancelPaymentAction` | `payments:cancel` | Permission checked with `hasPermissionServer(...)` |
 | ACTION | POST | `app/actions/payments/payment-crud-actions.refundPaymentAction` | `payments:refund` | Permission checked with `hasPermissionServer(...)` |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteSupplierAction` | `erp_lite_ap:view` | ERP-Lite supplier master create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteApInvoiceAction` | `erp_lite_ap:view` | ERP-Lite AP invoice create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteApPaymentAction` | `erp_lite_ap:view` | ERP-Lite AP payment create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLitePurchaseOrderAction` | `erp_lite_po:view` | ERP-Lite PO create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteBankAccountAction` | `erp_lite_bank_recon:view` | ERP-Lite bank account create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteBankStatementAction` | `erp_lite_bank_recon:view` | ERP-Lite bank statement batch create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteBankStatementLineAction` | `erp_lite_bank_recon:view` | ERP-Lite manual bank statement line action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.importErpLiteBankStatementLinesAction` | `erp_lite_bank_recon:view` | ERP-Lite bulk bank statement line import action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteBankReconAction` | `erp_lite_bank_recon:view` | ERP-Lite reconciliation header create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteBankMatchAction` | `erp_lite_bank_recon:view` | ERP-Lite bank match create action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.reverseErpLiteBankMatchAction` | `erp_lite_bank_recon:view` | ERP-Lite bank match reversal action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.closeErpLiteBankReconAction` | `erp_lite_bank_recon:view` | ERP-Lite reconciliation close action |
+| ACTION | POST | `app/actions/erp-lite/v2-actions.lockErpLiteBankReconAction` | `erp_lite_bank_recon:view` | ERP-Lite reconciliation lock action |
 
 ## Auth-Only Or Mixed-Guard APIs
 

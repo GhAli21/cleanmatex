@@ -3617,10 +3617,27 @@
         "title": "Purchase Orders",
         "subtitle": "Reserve the procurement workspace for supplier ordering and receipt controls planned for v2."
       },
-      "branchPl": {
-        "title": "Branch P&L",
-        "subtitle": "Reserve the profitability workspace for branch-level performance views planned for later phases."
+    "branchPl": {
+      "title": "Branch P&L",
+      "subtitle": "Direct-posted branch profitability derived from posted ERP-Lite revenue and expense journals only.",
+      "eyebrow": "ERP-Lite Branch P&L",
+      "summary": {
+        "revenue": "Direct Revenue",
+        "expense": "Direct Expense",
+        "profit": "Direct Profit"
+      },
+      "list": {
+        "title": "Branch Profitability",
+        "subtitle": "This view excludes future allocation logic and shows only posted branch-attributed finance truth.",
+        "empty": "No posted branch profitability data found.",
+        "columns": {
+          "branch": "Branch",
+          "revenue": "Revenue",
+          "expense": "Expense",
+          "profit": "Profit"
+        }
       }
+    }
     },
     "expenses": {
       "eyebrow": "ERP-Lite Expenses",
@@ -3731,6 +3748,14 @@
         "ap-invoice-created": "AP invoice created successfully.",
         "ap-payment-created": "AP payment created and allocated successfully."
       },
+      "agingDays": "{days} days overdue",
+      "agingBuckets": {
+        "CURRENT": "Current",
+        "DUE_1_30": "1-30 Days",
+        "DUE_31_60": "31-60 Days",
+        "DUE_61_90": "61-90 Days",
+        "DUE_91_PLUS": "91+ Days"
+      },
       "settlement": {
         "cash": "Cash",
         "bank": "Bank"
@@ -3807,6 +3832,11 @@
           "title": "Recent AP Payments",
           "subtitle": "Latest AP settlements created for this tenant.",
           "empty": "No AP payments created yet."
+        },
+        "aging": {
+          "title": "AP Aging",
+          "subtitle": "Open AP invoices grouped by overdue bucket.",
+          "empty": "No open AP balances found."
         }
       }
     },
@@ -3862,12 +3892,19 @@
       "notices": {
         "bank-account-created": "Bank account created successfully.",
         "bank-statement-created": "Bank statement batch created successfully.",
-        "bank-recon-created": "Bank reconciliation header created successfully."
+        "bank-statement-line-created": "Bank statement line created successfully.",
+        "bank-statement-imported": "Bank statement lines imported successfully.",
+        "bank-match-created": "Bank match created successfully.",
+        "bank-match-reversed": "Bank match reversed successfully.",
+        "bank-recon-created": "Bank reconciliation header created successfully.",
+        "bank-recon-closed": "Bank reconciliation closed successfully.",
+        "bank-recon-locked": "Bank reconciliation locked successfully."
       },
       "forms": {
         "placeholders": {
           "optionalSelect": "No branch override",
-          "optionalPeriod": "No period link"
+          "optionalPeriod": "No period link",
+          "optionalRecon": "No reconciliation link"
         },
         "bankAccount": {
           "title": "Create Bank Account",
@@ -3897,6 +3934,44 @@
             "sourceFile": "Source File Name",
             "openingBalance": "Opening Balance",
             "closingBalance": "Closing Balance"
+          }
+        },
+        "statementLine": {
+          "title": "Create Statement Line",
+          "subtitle": "Add a manual statement line for matching and reconciliation review.",
+          "submit": "Create Statement Line",
+          "fields": {
+            "statement": "Statement Batch",
+            "bankAccount": "Bank Account",
+            "txnDate": "Transaction Date",
+            "valueDate": "Value Date",
+            "referenceNo": "Reference No",
+            "description": "Description",
+            "debitAmount": "Debit Amount",
+            "creditAmount": "Credit Amount",
+            "balanceAmount": "Balance Amount"
+          }
+        },
+        "statementImport": {
+          "title": "Bulk Import Statement Lines",
+          "subtitle": "Paste one statement line per row using the approved pipe-separated format.",
+          "submit": "Import Statement Lines",
+          "placeholder": "2026-04-01|REF-1001|Deposit from branch|125.5000|0||125.5000\n2026-04-02|REF-1002|Bank fee|0|5.0000||120.5000",
+          "hint": "Format: txn_date|reference_no|description|debit_amount|credit_amount|value_date(optional)|balance_amount(optional)",
+          "fields": {
+            "statement": "Statement Batch",
+            "rows": "Import Rows"
+          }
+        },
+        "match": {
+          "title": "Create Bank Match",
+          "subtitle": "Link an unmatched statement line to a posted AP payment and optional reconciliation header.",
+          "submit": "Create Bank Match",
+          "fields": {
+            "statementLine": "Statement Line",
+            "apPayment": "AP Payment",
+            "reconciliation": "Reconciliation",
+            "matchAmount": "Match Amount"
           }
         },
         "recon": {
@@ -3929,7 +4004,20 @@
         "recons": {
           "title": "Recent Reconciliations",
           "subtitle": "Latest bank reconciliation headers for this tenant.",
-          "empty": "No bank reconciliations created yet."
+          "empty": "No bank reconciliations created yet.",
+          "close": "Close Reconciliation",
+          "lock": "Lock Reconciliation"
+        },
+        "statementLines": {
+          "title": "Recent Statement Lines",
+          "subtitle": "Latest statement lines ready for matching review.",
+          "empty": "No statement lines created yet."
+        },
+        "matches": {
+          "title": "Recent Matches",
+          "subtitle": "Latest confirmed and reversed bank matches.",
+          "empty": "No bank matches created yet.",
+          "reverse": "Reverse Match"
         }
       }
     }

@@ -92,12 +92,13 @@ Implemented now in `cleanmatex`:
 - AP payment create/list foundation with open-balance reduction
 - bank account create/list foundation
 - bank statement header create/list foundation
-- bank reconciliation header create/list foundation
+- bank statement manual line entry and bulk line import foundation
+- bank reconciliation header create/list/close/lock foundation
+- bank match create/reverse flow with reconciliation balance restoration
+- AP aging inquiry
 - tenant-scoped Phase 9 numbering and targeted service tests
+- tenant `web-admin` production build validation
 
 Still pending before Phase 9 can close:
-- AP aging inquiry
-- bank statement line import
-- bank matching and confirmation/reversal flows
-- reconciliation close/lock flows
+- richer external bank statement import workflow beyond textarea-driven line import
 - related Phase 9 governance publication extension in `cleanmatexsaas`

@@ -138,4 +138,32 @@ describe('ErpLiteReportingService', () => {
     expect(JSON.stringify(query.strings)).toContain('org_fin_post_log_tr');
     expect(JSON.stringify(query.strings)).toContain("log.txn_event_code = 'ORDER_INVOICED'");
   });
+
+  it('returns branch profitability rows from posted revenue and expense journals', async () => {
+    mockQueryRaw.mockResolvedValueOnce([
+      {
+        branch_id: 'branch-1',
+        branch_name: 'Main Branch',
+        direct_revenue: '120.0000',
+        direct_expense: '35.2500',
+        direct_profit: '84.7500',
+      },
+    ]);
+
+    const rows = await ErpLiteReportingService.getBranchProfitability('en');
+
+    expect(rows).toEqual([
+      {
+        branch_id: 'branch-1',
+        branch_name: 'Main Branch',
+        direct_revenue: 120,
+        direct_expense: 35.25,
+        direct_profit: 84.75,
+      },
+    ]);
+
+    const query = mockQueryRaw.mock.calls[0][0];
+    expect(JSON.stringify(query.strings)).toContain('COALESCE(d.branch_id, j.branch_id)');
+    expect(JSON.stringify(query.strings)).toContain("t.acc_type_code IN ('REVENUE', 'EXPENSE')");
+  });
 });

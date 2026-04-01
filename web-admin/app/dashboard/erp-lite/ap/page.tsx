@@ -187,7 +187,7 @@ export default async function ErpLiteApPage({
           </CmxCard>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr_1fr_1fr]">
           <CmxCard>
             <CmxCardHeader>
               <CmxCardTitle>{t('lists.suppliers.title')}</CmxCardTitle>
@@ -248,6 +248,31 @@ export default async function ErpLiteApPage({
                     <div className="mt-2 text-xs text-muted-foreground">{item.branch_name ?? '—'} · {item.status_code}</div>
                     <div className="mt-3 text-sm font-semibold">
                       {item.amount_total.toFixed(4)} {item.currency_code} · {t(`settlement.${item.settlement_code.toLowerCase()}`)}
+                    </div>
+                  </div>
+                ))
+              )}
+            </CmxCardContent>
+          </CmxCard>
+
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t('lists.aging.title')}</CmxCardTitle>
+              <CmxCardDescription>{t('lists.aging.subtitle')}</CmxCardDescription>
+            </CmxCardHeader>
+            <CmxCardContent className="space-y-3">
+              {snapshot.ap_aging_list.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('lists.aging.empty')}</p>
+              ) : (
+                snapshot.ap_aging_list.map((item) => (
+                  <div key={item.id} className="rounded-lg border border-border p-3">
+                    <div className="font-medium">{item.ap_inv_no}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">{item.supplier_name}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {(item.due_date ?? '—')} · {t(`agingBuckets.${item.aging_bucket}`)}
+                    </div>
+                    <div className="mt-3 text-sm font-semibold">
+                      {item.open_amount.toFixed(4)} {item.currency_code} · {t('agingDays', { days: item.days_overdue })}
                     </div>
                   </div>
                 ))

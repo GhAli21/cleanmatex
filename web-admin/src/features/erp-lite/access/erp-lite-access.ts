@@ -86,6 +86,89 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_bank_recon_enabled'],
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Create bank account',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteBankAccountAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create statement batch',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteBankStatementAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create manual statement line',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteBankStatementLineAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Bulk import statement lines',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.importErpLiteBankStatementLinesAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create bank reconciliation',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteBankReconAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create bank match',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteBankMatchAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Reverse bank match',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.reverseErpLiteBankMatchAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close bank reconciliation',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.closeErpLiteBankReconAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Lock bank reconciliation',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.lockErpLiteBankReconAction',
+        requirement: {
+          permissions: ['erp_lite_bank_recon:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
@@ -119,6 +202,6 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_branch_pl_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_SHELL_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
 ]

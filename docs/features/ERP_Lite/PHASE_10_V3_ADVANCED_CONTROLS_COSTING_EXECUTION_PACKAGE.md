@@ -3,7 +3,7 @@ version: v1.0.0
 last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_10_V3_EXEC_PKG_2026_04_01
-status: Planned
+status: In Progress
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -30,13 +30,13 @@ Phase 10 does not include:
 
 ## 3. Implementation Rule
 
-Phase 10 is intentionally blocked on explicit design approval.
+Phase 10 is no longer blocked on design approval only.
 
-The next required artifacts before coding are:
-- ADR: advanced expenses workflow
-- ADR: advanced petty-cash controls
-- ADR: branch profitability source-of-truth model
-- ADR: laundry-specific costing model
+The governing design pack now exists:
+- [V3_SCOPE_AND_DECISION_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V3_SCOPE_AND_DECISION_PACK.md)
+- [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md)
+- [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md)
+- [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md)
 
 ## 4. Data and Reporting Rule
 
@@ -49,6 +49,16 @@ The next required artifacts before coding are:
 Current status:
 
 1. v3 direction is validated
-2. v3 execution documents now exist
-3. v3 coding should not start until Phase 9 is complete and the v3 ADR pack is approved
+2. v3 decision and ADR pack exists
+3. the first safe v3 slice is implemented where current schema already supports direct-posted truth without allocation logic
 
+## 6. Current Runtime Slice
+
+Implemented now in `cleanmatex`:
+- direct-posted Branch P&L based on posted ERP-Lite revenue and expense journals
+
+Still blocked:
+- allocation-aware branch profitability
+- advanced expense workflow depth
+- advanced petty-cash control depth
+- laundry-specific costing runtime

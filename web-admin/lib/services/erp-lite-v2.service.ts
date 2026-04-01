@@ -1,27 +1,34 @@
 import 'server-only';
 
+import { createHash } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import type {
+  CreateErpLiteBankMatchInput,
   CreateErpLiteApInvoiceInput,
   CreateErpLiteApPaymentInput,
   CreateErpLiteBankAccountInput,
   CreateErpLiteBankReconInput,
+  CreateErpLiteBankStatementLineInput,
   CreateErpLiteBankStatementInput,
   CreateErpLitePurchaseOrderInput,
   CreateErpLiteSupplierInput,
+  ErpLiteApAgingListItem,
   ErpLiteApDashboardSnapshot,
   ErpLiteApInvoiceListItem,
   ErpLiteApPaymentListItem,
   ErpLiteBankAccountListItem,
   ErpLiteBankDashboardSnapshot,
+  ErpLiteBankMatchListItem,
   ErpLiteBankReconciliationListItem,
+  ErpLiteBankStatementLineListItem,
   ErpLiteBankStatementListItem,
   ErpLitePoDashboardSnapshot,
   ErpLitePoListItem,
   ErpLiteSupplierListItem,
   ErpLiteV2OptionItem,
+  ImportErpLiteBankStatementLinesInput,
 } from '@/lib/types/erp-lite-v2';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -64,6 +71,11 @@ interface BankStatementInsertRow {
   import_batch_no: string;
 }
 
+interface BankStatementLineInsertRow {
+  id: string;
+  line_no: number;
+}
+
 interface BankReconInsertRow {
   id: string;
   recon_code: string;
@@ -100,6 +112,35 @@ interface CashboxValidationRow {
   currency_code: string;
 }
 
+interface StatementLineValidationRow {
+  id: string;
+  bank_stmt_id: string;
+  bank_account_id: string;
+  debit_amount: number;
+  credit_amount: number;
+  match_status: string;
+}
+
+interface ApPaymentValidationRow {
+  id: string;
+  amount_total: number;
+  status_code: string;
+}
+
+interface BankReconValidationRow {
+  id: string;
+  status_code: string;
+  unmatched_amount: number | null;
+}
+
+interface BankMatchValidationRow {
+  id: string;
+  bank_stmt_line_id: string;
+  bank_recon_id: string | null;
+  match_amount: number;
+  status_code: string;
+}
+
 const DEFAULT_PO_USAGE_CODE = 'EXPENSE_GENERAL';
 const PREFIX_SUPPLIER = 'SUP';
 const PREFIX_PO = 'PO';
@@ -108,6 +149,7 @@ const PREFIX_AP_PMT = 'APP';
 const PREFIX_BANK = 'BNK';
 const PREFIX_STMT = 'BST';
 const PREFIX_RECON = 'BRC';
+const AP_AGING_BUCKET_ORDER = ['CURRENT', 'DUE_1_30', 'DUE_31_60', 'DUE_61_90', 'DUE_91_PLUS'] as const;
 
 export class ErpLiteV2Service {
   static async getApDashboardSnapshot(
@@ -120,6 +162,7 @@ export class ErpLiteV2Service {
         supplierList,
         apInvoiceList,
         apPaymentList,
+        apAgingList,
         branchOptions,
         supplierOptions,
         payableAccountOptions,
@@ -130,6 +173,7 @@ export class ErpLiteV2Service {
         this.listSuppliers(tenantId, locale),
         this.listApInvoices(tenantId, locale),
         this.listApPayments(tenantId, locale),
+        this.listApAging(tenantId, locale),
         this.listBranchOptions(tenantId, locale),
         this.listSupplierOptions(tenantId, locale),
         this.listPayableAccountOptions(tenantId, locale),
@@ -142,6 +186,7 @@ export class ErpLiteV2Service {
         supplier_list: supplierList,
         ap_invoice_list: apInvoiceList,
         ap_payment_list: apPaymentList,
+        ap_aging_list: apAgingList,
         branch_options: branchOptions,
         supplier_options: supplierOptions,
         payable_account_options: payableAccountOptions,
@@ -183,28 +228,46 @@ export class ErpLiteV2Service {
       const [
         bankAccountList,
         bankStatementList,
+        bankStatementLineList,
+        bankMatchList,
         bankReconList,
         branchOptions,
         bankGlAccountOptions,
         bankAccountOptions,
+        bankStmtOptions,
+        bankStmtLineOptions,
+        apPaymentOptions,
+        bankReconOpenOptions,
         periodOptions,
       ] = await Promise.all([
         this.listBankAccounts(tenantId, locale),
         this.listBankStatements(tenantId, locale),
+        this.listBankStatementLines(tenantId),
+        this.listBankMatches(tenantId, locale),
         this.listBankReconciliations(tenantId, locale),
         this.listBranchOptions(tenantId, locale),
         this.listBankGlAccountOptions(tenantId, locale),
         this.listBankAccountOptions(tenantId, locale),
+        this.listBankStatementOptions(tenantId),
+        this.listBankStatementLineOptions(tenantId),
+        this.listApPaymentOptions(tenantId),
+        this.listOpenBankReconOptions(tenantId),
         this.listPeriodOptions(tenantId),
       ]);
 
       return {
         bank_account_list: bankAccountList,
         bank_statement_list: bankStatementList,
+        bank_statement_line_list: bankStatementLineList,
+        bank_match_list: bankMatchList,
         bank_recon_list: bankReconList,
         branch_options: branchOptions,
         bank_gl_account_options: bankGlAccountOptions,
         bank_account_options: bankAccountOptions,
+        bank_stmt_options: bankStmtOptions,
+        bank_stmt_line_options: bankStmtLineOptions,
+        ap_payment_options: apPaymentOptions,
+        bank_recon_open_options: bankReconOpenOptions,
         period_options: periodOptions,
       };
     });
@@ -808,6 +871,286 @@ export class ErpLiteV2Service {
     });
   }
 
+  static async createBankStatementLine(
+    input: CreateErpLiteBankStatementLineInput
+  ): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await prisma.$transaction(async (tx) => {
+        const bankStatement = await this.requireBankStatement(tenantId, input.bank_stmt_id, tx);
+        const bankAccount = await this.requireActiveBankAccount(tenantId, input.bank_account_id, tx);
+        if (bankStatement.bank_account_id !== bankAccount.id) {
+          throw new Error('Selected bank statement does not belong to the selected bank account');
+        }
+        const normalizedInput = this.normalizeStatementLineRow(input, 'bank statement line');
+        await this.insertBankStatementLine(
+          tenantId,
+          {
+            ...normalizedInput,
+            bank_stmt_id: input.bank_stmt_id,
+            bank_account_id: input.bank_account_id,
+            created_by: input.created_by ?? null,
+          },
+          tx,
+          'ERP-Lite Phase 9 bank statement line create'
+        );
+      });
+    });
+  }
+
+  static async importBankStatementLines(input: ImportErpLiteBankStatementLinesInput): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      if (input.rows.length === 0) {
+        throw new Error('At least one bank statement import row is required');
+      }
+
+      await prisma.$transaction(async (tx) => {
+        const bankStatement = await this.requireBankStatement(tenantId, input.bank_stmt_id, tx);
+        for (const [index, row] of input.rows.entries()) {
+          const normalizedInput = this.normalizeStatementLineRow(row, `bank statement import row ${index + 1}`);
+          const bankAccountId = row.bank_account_id || bankStatement.bank_account_id;
+          if (bankAccountId !== bankStatement.bank_account_id) {
+            throw new Error(`Bank statement import row ${index + 1} does not belong to the selected statement bank account`);
+          }
+
+          await this.insertBankStatementLine(
+            tenantId,
+            {
+              ...normalizedInput,
+              bank_stmt_id: input.bank_stmt_id,
+              bank_account_id: bankAccountId,
+              created_by: input.created_by ?? null,
+            },
+            tx,
+            'ERP-Lite Phase 9 bank statement line import'
+          );
+        }
+      });
+    });
+  }
+
+  static async createBankMatch(input: CreateErpLiteBankMatchInput): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await prisma.$transaction(async (tx) => {
+        const statementLine = await this.requireBankStatementLine(tenantId, input.bank_stmt_line_id, tx);
+        const apPayment = await this.requirePostedApPayment(tenantId, input.ap_payment_id, tx);
+        const bankRecon = input.bank_recon_id
+          ? await this.requireOpenBankRecon(tenantId, input.bank_recon_id, tx)
+          : null;
+
+        const matchAmount = this.roundAmount(input.match_amount);
+        this.assertPositiveAmount(matchAmount, 'match_amount');
+        const lineAbsoluteAmount = this.roundAmount(
+          statementLine.debit_amount > 0 ? statementLine.debit_amount : statementLine.credit_amount
+        );
+
+        if (matchAmount > lineAbsoluteAmount) {
+          throw new Error('Bank match amount cannot exceed the selected statement-line amount');
+        }
+        if (matchAmount > apPayment.amount_total) {
+          throw new Error('Bank match amount cannot exceed the selected AP payment amount');
+        }
+
+        const existingMatches = await tx.$queryRaw<{ amount: number }[]>(Prisma.sql`
+          SELECT COALESCE(SUM(match_amount), 0)::float8 AS amount
+          FROM public.org_fin_bank_match_tr
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND bank_stmt_line_id = ${input.bank_stmt_line_id}::uuid
+            AND status_code = 'CONFIRMED'
+            AND is_active = true
+            AND rec_status = 1
+        `);
+
+        const newMatchedAmount = this.roundAmount((existingMatches[0]?.amount ?? 0) + matchAmount);
+        const nextMatchStatus = newMatchedAmount >= lineAbsoluteAmount ? 'MATCHED' : 'PARTIAL';
+
+        await tx.$queryRaw(Prisma.sql`
+          INSERT INTO public.org_fin_bank_match_tr (
+            tenant_org_id,
+            bank_stmt_line_id,
+            bank_recon_id,
+            source_doc_type,
+            source_doc_id,
+            match_amount,
+            status_code,
+            created_by,
+            created_info,
+            rec_status,
+            is_active
+          ) VALUES (
+            ${tenantId}::uuid,
+            ${input.bank_stmt_line_id}::uuid,
+            ${input.bank_recon_id ?? null}::uuid,
+            'AP_PAYMENT',
+            ${input.ap_payment_id}::uuid,
+            ${matchAmount},
+            'CONFIRMED',
+            ${input.created_by ?? null},
+            'ERP-Lite Phase 9 bank match create',
+            1,
+            true
+          )
+        `);
+
+        await tx.$queryRaw(Prisma.sql`
+          UPDATE public.org_fin_bank_stmt_dtl
+          SET
+            match_status = ${nextMatchStatus},
+            updated_at = CURRENT_TIMESTAMP,
+            updated_by = ${input.created_by ?? null},
+            updated_info = 'ERP-Lite Phase 9 bank statement line match update'
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND id = ${input.bank_stmt_line_id}::uuid
+        `);
+
+        if (bankRecon) {
+          const nextUnmatched = this.roundAmount(Math.max((bankRecon.unmatched_amount ?? 0) - matchAmount, 0));
+          await tx.$queryRaw(Prisma.sql`
+            UPDATE public.org_fin_bank_recon_mst
+            SET
+              unmatched_amount = ${nextUnmatched},
+              updated_at = CURRENT_TIMESTAMP,
+              updated_by = ${input.created_by ?? null},
+              updated_info = 'ERP-Lite Phase 9 bank recon unmatched update'
+            WHERE tenant_org_id = ${tenantId}::uuid
+              AND id = ${input.bank_recon_id}::uuid
+          `);
+        }
+      });
+    });
+  }
+
+  static async closeBankRecon(bankReconId: string, closedBy?: string | null): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      const bankRecon = await this.requireOpenBankRecon(tenantId, bankReconId);
+      if ((bankRecon.unmatched_amount ?? 0) > 0) {
+        throw new Error('Bank reconciliation cannot be closed while unmatched amount remains');
+      }
+
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE public.org_fin_bank_recon_mst
+        SET
+          status_code = 'CLOSED',
+          closed_at = CURRENT_TIMESTAMP,
+          closed_by = ${closedBy ?? null},
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${closedBy ?? null},
+          updated_info = 'ERP-Lite Phase 9 bank reconciliation close'
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${bankReconId}::uuid
+      `);
+    });
+  }
+
+  static async lockBankRecon(bankReconId: string, lockedBy?: string | null): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      const bankRecon = await this.requireBankRecon(tenantId, bankReconId);
+      if (bankRecon.status_code !== 'CLOSED') {
+        throw new Error('Bank reconciliation must be closed before it can be locked');
+      }
+
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE public.org_fin_bank_recon_mst
+        SET
+          status_code = 'LOCKED',
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${lockedBy ?? null},
+          updated_info = 'ERP-Lite Phase 9 bank reconciliation lock'
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${bankReconId}::uuid
+      `);
+    });
+  }
+
+  static async reverseBankMatch(bankMatchId: string, reversedBy?: string | null): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await prisma.$transaction(async (tx) => {
+        const bankMatch = await this.requireConfirmedBankMatch(tenantId, bankMatchId, tx);
+        if (bankMatch.bank_recon_id) {
+          const bankRecon = await this.requireBankRecon(tenantId, bankMatch.bank_recon_id, tx);
+          if (bankRecon.status_code === 'LOCKED') {
+            throw new Error('Locked bank reconciliation matches cannot be reversed');
+          }
+        }
+
+        await tx.$queryRaw(Prisma.sql`
+          UPDATE public.org_fin_bank_match_tr
+          SET
+            status_code = 'REVERSED',
+            updated_at = CURRENT_TIMESTAMP,
+            updated_by = ${reversedBy ?? null},
+            updated_info = 'ERP-Lite Phase 9 bank match reversal'
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND id = ${bankMatchId}::uuid
+        `);
+
+        const remainingMatches = await tx.$queryRaw<{ amount: number }[]>(Prisma.sql`
+          SELECT COALESCE(SUM(match_amount), 0)::float8 AS amount
+          FROM public.org_fin_bank_match_tr
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND bank_stmt_line_id = ${bankMatch.bank_stmt_line_id}::uuid
+            AND status_code = 'CONFIRMED'
+            AND is_active = true
+            AND rec_status = 1
+        `);
+
+        const statementLine = await this.requireBankStatementLineForUpdate(
+          tenantId,
+          bankMatch.bank_stmt_line_id,
+          tx
+        );
+        const lineAbsoluteAmount = this.roundAmount(
+          statementLine.debit_amount > 0 ? statementLine.debit_amount : statementLine.credit_amount
+        );
+        const remainingMatchedAmount = this.roundAmount(remainingMatches[0]?.amount ?? 0);
+        const nextMatchStatus =
+          remainingMatchedAmount <= 0
+            ? 'UNMATCHED'
+            : remainingMatchedAmount >= lineAbsoluteAmount
+              ? 'MATCHED'
+              : 'PARTIAL';
+
+        await tx.$queryRaw(Prisma.sql`
+          UPDATE public.org_fin_bank_stmt_dtl
+          SET
+            match_status = ${nextMatchStatus},
+            updated_at = CURRENT_TIMESTAMP,
+            updated_by = ${reversedBy ?? null},
+            updated_info = 'ERP-Lite Phase 9 bank statement line reversal update'
+          WHERE tenant_org_id = ${tenantId}::uuid
+            AND id = ${bankMatch.bank_stmt_line_id}::uuid
+        `);
+
+        if (bankMatch.bank_recon_id) {
+          const bankRecon = await this.requireBankRecon(tenantId, bankMatch.bank_recon_id, tx);
+          const nextUnmatched = this.roundAmount((bankRecon.unmatched_amount ?? 0) + bankMatch.match_amount);
+          await tx.$queryRaw(Prisma.sql`
+            UPDATE public.org_fin_bank_recon_mst
+            SET
+              unmatched_amount = ${nextUnmatched},
+              status_code = CASE WHEN status_code = 'CLOSED' THEN 'OPEN' ELSE status_code END,
+              updated_at = CURRENT_TIMESTAMP,
+              updated_by = ${reversedBy ?? null},
+              updated_info = 'ERP-Lite Phase 9 bank reconciliation reversal update'
+            WHERE tenant_org_id = ${tenantId}::uuid
+              AND id = ${bankMatch.bank_recon_id}::uuid
+          `);
+        }
+      });
+    });
+  }
+
   private static async listSuppliers(
     tenantId: string,
     locale: 'en' | 'ar'
@@ -921,6 +1264,48 @@ export class ErpLiteV2Service {
     `);
   }
 
+  private static async listApAging(
+    tenantId: string,
+    locale: 'en' | 'ar'
+  ): Promise<ErpLiteApAgingListItem[]> {
+    const rows = await prisma.$queryRaw<ErpLiteApAgingListItem[]>(Prisma.sql`
+      SELECT
+        i.id::text AS id,
+        i.ap_inv_no,
+        CASE
+          WHEN ${locale} = 'ar' THEN COALESCE(NULLIF(s.name2, ''), s.name)
+          ELSE s.name
+        END AS supplier_name,
+        CASE WHEN i.due_date IS NULL THEN NULL ELSE TO_CHAR(i.due_date, 'YYYY-MM-DD') END AS due_date,
+        GREATEST(CURRENT_DATE - COALESCE(i.due_date, i.invoice_date), 0)::int AS days_overdue,
+        i.open_amount::float8 AS open_amount,
+        i.currency_code,
+        CASE
+          WHEN COALESCE(i.due_date, i.invoice_date) >= CURRENT_DATE THEN 'CURRENT'
+          WHEN CURRENT_DATE - COALESCE(i.due_date, i.invoice_date) BETWEEN 1 AND 30 THEN 'DUE_1_30'
+          WHEN CURRENT_DATE - COALESCE(i.due_date, i.invoice_date) BETWEEN 31 AND 60 THEN 'DUE_31_60'
+          WHEN CURRENT_DATE - COALESCE(i.due_date, i.invoice_date) BETWEEN 61 AND 90 THEN 'DUE_61_90'
+          ELSE 'DUE_91_PLUS'
+        END AS aging_bucket
+      FROM public.org_fin_ap_inv_mst i
+      JOIN public.org_fin_supp_mst s
+        ON s.tenant_org_id = i.tenant_org_id
+       AND s.id = i.supplier_id
+      WHERE i.tenant_org_id = ${tenantId}::uuid
+        AND i.is_active = true
+        AND i.rec_status = 1
+        AND i.open_amount > 0
+        AND i.status_code IN ('POSTED', 'PARTIAL')
+      ORDER BY COALESCE(i.due_date, i.invoice_date) ASC, i.created_at DESC
+      LIMIT 10
+    `);
+
+    return rows.sort(
+      (a, b) =>
+        AP_AGING_BUCKET_ORDER.indexOf(a.aging_bucket) - AP_AGING_BUCKET_ORDER.indexOf(b.aging_bucket)
+    );
+  }
+
   private static async listPurchaseOrders(
     tenantId: string,
     locale: 'en' | 'ar'
@@ -1012,6 +1397,66 @@ export class ErpLiteV2Service {
         AND s.is_active = true
         AND s.rec_status = 1
       ORDER BY s.imported_at DESC, s.created_at DESC
+      LIMIT 8
+    `);
+  }
+
+  private static async listBankStatementLines(
+    tenantId: string
+  ): Promise<ErpLiteBankStatementLineListItem[]> {
+    return prisma.$queryRaw<ErpLiteBankStatementLineListItem[]>(Prisma.sql`
+      SELECT
+        l.id::text AS id,
+        l.bank_stmt_id::text AS bank_stmt_id,
+        l.line_no,
+        TO_CHAR(l.txn_date, 'YYYY-MM-DD') AS txn_date,
+        l.ext_ref_no,
+        l.description,
+        l.debit_amount::float8 AS debit_amount,
+        l.credit_amount::float8 AS credit_amount,
+        l.match_status
+      FROM public.org_fin_bank_stmt_dtl l
+      WHERE l.tenant_org_id = ${tenantId}::uuid
+        AND l.is_active = true
+        AND l.rec_status = 1
+      ORDER BY l.txn_date DESC, l.created_at DESC
+      LIMIT 8
+    `);
+  }
+
+  private static async listBankMatches(
+    tenantId: string,
+    locale: 'en' | 'ar'
+  ): Promise<ErpLiteBankMatchListItem[]> {
+    return prisma.$queryRaw<ErpLiteBankMatchListItem[]>(Prisma.sql`
+      SELECT
+        m.id::text AS id,
+        m.bank_stmt_line_id::text AS bank_stmt_line_id,
+        m.bank_recon_id::text AS bank_recon_id,
+        m.source_doc_id::text AS source_doc_id,
+        CASE
+          WHEN m.source_doc_type = 'AP_PAYMENT' THEN
+            CASE
+              WHEN ${locale} = 'ar' THEN COALESCE(p.ap_pmt_no, 'دفعة دائنين')
+              ELSE COALESCE(p.ap_pmt_no, 'AP Payment')
+            END
+          ELSE m.source_doc_type
+        END AS source_doc_label,
+        CONCAT('#', l.line_no, ' · ', TO_CHAR(l.txn_date, 'YYYY-MM-DD')) AS statement_line_label,
+        m.match_amount::float8 AS match_amount,
+        m.status_code
+      FROM public.org_fin_bank_match_tr m
+      JOIN public.org_fin_bank_stmt_dtl l
+        ON l.tenant_org_id = m.tenant_org_id
+       AND l.id = m.bank_stmt_line_id
+      LEFT JOIN public.org_fin_ap_pmt_mst p
+        ON p.tenant_org_id = m.tenant_org_id
+       AND p.id = m.source_doc_id
+       AND m.source_doc_type = 'AP_PAYMENT'
+      WHERE m.tenant_org_id = ${tenantId}::uuid
+        AND m.is_active = true
+        AND m.rec_status = 1
+      ORDER BY m.created_at DESC
       LIMIT 8
     `);
   }
@@ -1210,6 +1655,73 @@ export class ErpLiteV2Service {
         AND is_active = true
         AND rec_status = 1
       ORDER BY start_date DESC
+    `);
+
+    return rows.map((row) => ({ id: row.id, label: row.label }));
+  }
+
+  private static async listBankStatementOptions(tenantId: string): Promise<ErpLiteV2OptionItem[]> {
+    const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        import_batch_no || ' · ' || TO_CHAR(stmt_date_to, 'YYYY-MM-DD') AS label
+      FROM public.org_fin_bank_stmt_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      ORDER BY imported_at DESC, created_at DESC
+    `);
+
+    return rows.map((row) => ({ id: row.id, label: row.label }));
+  }
+
+  private static async listBankStatementLineOptions(tenantId: string): Promise<ErpLiteV2OptionItem[]> {
+    const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
+      SELECT
+        l.id::text AS id,
+        s.import_batch_no || ' · #' || l.line_no::text || ' · ' ||
+        COALESCE(l.ext_ref_no, TO_CHAR(l.txn_date, 'YYYY-MM-DD')) AS label
+      FROM public.org_fin_bank_stmt_dtl l
+      JOIN public.org_fin_bank_stmt_mst s
+        ON s.tenant_org_id = l.tenant_org_id
+       AND s.id = l.bank_stmt_id
+      WHERE l.tenant_org_id = ${tenantId}::uuid
+        AND l.is_active = true
+        AND l.rec_status = 1
+        AND l.match_status IN ('UNMATCHED', 'PARTIAL')
+      ORDER BY l.txn_date DESC, l.created_at DESC
+    `);
+
+    return rows.map((row) => ({ id: row.id, label: row.label }));
+  }
+
+  private static async listApPaymentOptions(tenantId: string): Promise<ErpLiteV2OptionItem[]> {
+    const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        ap_pmt_no || ' · ' || amount_total::text || ' ' || currency_code AS label
+      FROM public.org_fin_ap_pmt_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+        AND status_code = 'POSTED'
+      ORDER BY payment_date DESC, created_at DESC
+    `);
+
+    return rows.map((row) => ({ id: row.id, label: row.label }));
+  }
+
+  private static async listOpenBankReconOptions(tenantId: string): Promise<ErpLiteV2OptionItem[]> {
+    const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        recon_code || ' · ' || TO_CHAR(recon_date, 'YYYY-MM-DD') AS label
+      FROM public.org_fin_bank_recon_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+        AND status_code = 'OPEN'
+      ORDER BY recon_date DESC, created_at DESC
     `);
 
     return rows.map((row) => ({ id: row.id, label: row.label }));
@@ -1501,6 +2013,338 @@ export class ErpLiteV2Service {
       throw new Error('Selected cash box was not found for this tenant');
     }
     return cashbox;
+  }
+
+  private static async requireBankStatement(
+    tenantId: string,
+    bankStmtId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<{ id: string; bank_account_id: string }> {
+    const rows = await db.$queryRaw<{ id: string; bank_account_id: string }[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        bank_account_id::text AS bank_account_id
+      FROM public.org_fin_bank_stmt_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${bankStmtId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const bankStmt = rows[0];
+    if (!bankStmt) {
+      throw new Error('Selected bank statement batch was not found for this tenant');
+    }
+    return bankStmt;
+  }
+
+  private static async requireBankStatementLine(
+    tenantId: string,
+    bankStmtLineId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<StatementLineValidationRow> {
+    const rows = await db.$queryRaw<StatementLineValidationRow[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        bank_stmt_id::text AS bank_stmt_id,
+        bank_account_id::text AS bank_account_id,
+        debit_amount::float8 AS debit_amount,
+        credit_amount::float8 AS credit_amount,
+        match_status
+      FROM public.org_fin_bank_stmt_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${bankStmtLineId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const stmtLine = rows[0];
+    if (!stmtLine) {
+      throw new Error('Selected bank statement line was not found for this tenant');
+    }
+    if (stmtLine.match_status === 'MATCHED') {
+      throw new Error('Selected bank statement line is already fully matched');
+    }
+    return stmtLine;
+  }
+
+  private static async requireBankStatementLineForUpdate(
+    tenantId: string,
+    bankStmtLineId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<StatementLineValidationRow> {
+    const rows = await db.$queryRaw<StatementLineValidationRow[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        bank_stmt_id::text AS bank_stmt_id,
+        bank_account_id::text AS bank_account_id,
+        debit_amount::float8 AS debit_amount,
+        credit_amount::float8 AS credit_amount,
+        match_status
+      FROM public.org_fin_bank_stmt_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${bankStmtLineId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const stmtLine = rows[0];
+    if (!stmtLine) {
+      throw new Error('Selected bank statement line was not found for this tenant');
+    }
+    return stmtLine;
+  }
+
+  private static async requirePostedApPayment(
+    tenantId: string,
+    apPaymentId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<ApPaymentValidationRow> {
+    const rows = await db.$queryRaw<ApPaymentValidationRow[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        amount_total::float8 AS amount_total,
+        status_code
+      FROM public.org_fin_ap_pmt_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${apPaymentId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const apPayment = rows[0];
+    if (!apPayment || apPayment.status_code !== 'POSTED') {
+      throw new Error('Selected AP payment is not available for bank matching');
+    }
+    return apPayment;
+  }
+
+  private static async requireOpenBankRecon(
+    tenantId: string,
+    bankReconId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<BankReconValidationRow> {
+    const bankRecon = await this.requireBankRecon(tenantId, bankReconId, db);
+    if (!bankRecon || bankRecon.status_code !== 'OPEN') {
+      throw new Error('Selected bank reconciliation is not open for updates');
+    }
+    return bankRecon;
+  }
+
+  private static async requireBankRecon(
+    tenantId: string,
+    bankReconId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<BankReconValidationRow> {
+    const rows = await db.$queryRaw<BankReconValidationRow[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        status_code,
+        unmatched_amount::float8 AS unmatched_amount
+      FROM public.org_fin_bank_recon_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${bankReconId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const bankRecon = rows[0];
+    if (!bankRecon) {
+      throw new Error('Selected bank reconciliation was not found for this tenant');
+    }
+    return bankRecon;
+  }
+
+  private static async requireConfirmedBankMatch(
+    tenantId: string,
+    bankMatchId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<BankMatchValidationRow> {
+    const rows = await db.$queryRaw<BankMatchValidationRow[]>(Prisma.sql`
+      SELECT
+        id::text AS id,
+        bank_stmt_line_id::text AS bank_stmt_line_id,
+        bank_recon_id::text AS bank_recon_id,
+        match_amount::float8 AS match_amount,
+        status_code
+      FROM public.org_fin_bank_match_tr
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${bankMatchId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    const bankMatch = rows[0];
+    if (!bankMatch || bankMatch.status_code !== 'CONFIRMED') {
+      throw new Error('Selected bank match is not available for reversal');
+    }
+    return bankMatch;
+  }
+
+  private static async nextStatementLineNo(
+    tenantId: string,
+    bankStmtId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<number> {
+    const rows = await db.$queryRaw<{ next_line_no: number }[]>(Prisma.sql`
+      SELECT COALESCE(MAX(line_no), 0)::int + 1 AS next_line_no
+      FROM public.org_fin_bank_stmt_dtl
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND bank_stmt_id = ${bankStmtId}::uuid
+    `);
+
+    return rows[0]?.next_line_no ?? 1;
+  }
+
+  private static buildStatementLineHash(input: {
+    tenantId: string;
+    bankStmtId: string;
+    bankAccountId: string;
+    txnDate: string;
+    valueDate: string | null;
+    extRefNo: string | null;
+    description: string | null;
+    debitAmount: number;
+    creditAmount: number;
+    lineNo: number;
+  }): string {
+    return createHash('sha256')
+      .update(
+        [
+          input.tenantId,
+          input.bankStmtId,
+          input.bankAccountId,
+          input.txnDate,
+          input.valueDate ?? '',
+          input.extRefNo ?? '',
+          input.description ?? '',
+          input.debitAmount.toFixed(4),
+          input.creditAmount.toFixed(4),
+          String(input.lineNo),
+        ].join('|')
+      )
+      .digest('hex');
+  }
+
+  private static normalizeStatementLineRow(
+    input: Pick<
+      CreateErpLiteBankStatementLineInput,
+      | 'txn_date'
+      | 'value_date'
+      | 'ext_ref_no'
+      | 'description'
+      | 'debit_amount'
+      | 'credit_amount'
+      | 'balance_amount'
+    >,
+    fieldLabel: string
+  ) {
+    this.assertRequiredString(input.txn_date, `${fieldLabel}.txn_date`);
+    const debitAmount = this.roundAmount(input.debit_amount ?? 0);
+    const creditAmount = this.roundAmount(input.credit_amount ?? 0);
+    if (debitAmount === 0 && creditAmount === 0) {
+      throw new Error(`${fieldLabel} requires debit_amount or credit_amount`);
+    }
+
+    return {
+      txn_date: input.txn_date,
+      value_date: input.value_date ?? null,
+      ext_ref_no: input.ext_ref_no?.trim() || null,
+      description: input.description?.trim() || null,
+      debit_amount: debitAmount,
+      credit_amount: creditAmount,
+      balance_amount: input.balance_amount ?? null,
+    };
+  }
+
+  private static async insertBankStatementLine(
+    tenantId: string,
+    input: {
+      bank_stmt_id: string;
+      bank_account_id: string;
+      txn_date: string;
+      value_date: string | null;
+      ext_ref_no: string | null;
+      description: string | null;
+      debit_amount: number;
+      credit_amount: number;
+      balance_amount: number | null;
+      created_by: string | null;
+    },
+    db: PrismaTx,
+    createdInfo: string
+  ): Promise<void> {
+    const nextLineNo = await this.nextStatementLineNo(tenantId, input.bank_stmt_id, db);
+    const sourceHash = this.buildStatementLineHash({
+      tenantId,
+      bankStmtId: input.bank_stmt_id,
+      bankAccountId: input.bank_account_id,
+      txnDate: input.txn_date,
+      valueDate: input.value_date,
+      extRefNo: input.ext_ref_no,
+      description: input.description,
+      debitAmount: input.debit_amount,
+      creditAmount: input.credit_amount,
+      lineNo: nextLineNo,
+    });
+
+    await db.$queryRaw<BankStatementLineInsertRow[]>(Prisma.sql`
+      INSERT INTO public.org_fin_bank_stmt_dtl (
+        tenant_org_id,
+        bank_stmt_id,
+        bank_account_id,
+        line_no,
+        txn_date,
+        value_date,
+        ext_ref_no,
+        description,
+        debit_amount,
+        credit_amount,
+        balance_amount,
+        source_hash,
+        match_status,
+        created_by,
+        created_info,
+        rec_status,
+        is_active
+      ) VALUES (
+        ${tenantId}::uuid,
+        ${input.bank_stmt_id}::uuid,
+        ${input.bank_account_id}::uuid,
+        ${nextLineNo},
+        ${input.txn_date}::date,
+        ${input.value_date}::date,
+        ${input.ext_ref_no},
+        ${input.description},
+        ${input.debit_amount},
+        ${input.credit_amount},
+        ${input.balance_amount},
+        ${sourceHash},
+        'UNMATCHED',
+        ${input.created_by},
+        ${createdInfo},
+        1,
+        true
+      )
+      RETURNING id, line_no
+    `);
+
+    await db.$queryRaw(Prisma.sql`
+      UPDATE public.org_fin_bank_stmt_mst
+      SET
+        line_count = line_count + 1,
+        updated_at = CURRENT_TIMESTAMP,
+        updated_by = ${input.created_by},
+        updated_info = ${createdInfo}
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${input.bank_stmt_id}::uuid
+    `);
   }
 
   private static async generateSequentialNo(

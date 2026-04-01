@@ -83,8 +83,9 @@ Phase 9 is complete only when all of the following are true:
 - [x] implement PO write/read services
 - [x] implement AP invoice write/read services
 - [x] implement AP payment write/read services
-- [ ] implement bank import and line-matching services
-- [ ] implement AP aging and bank-reconciliation inquiry views
+- [x] implement bank import and line-matching services
+- [x] implement AP aging and bank-reconciliation inquiry views
+- [x] implement bulk statement-line import, reversible matching, and reconciliation lock flow
 
 ## 8. Final Readiness Gate
 
@@ -93,3 +94,4 @@ Phase 9 can continue safely because:
 - [x] Phase 8 is complete
 - [x] the Phase 9 execution package is accepted
 - [x] Phase 9 migrations are reviewed and applied
+- [x] tenant-side Phase 9 runtime validation passes through ERP-Lite regression tests and `web-admin` production build

@@ -50,6 +50,17 @@ export interface ErpLiteApPaymentListItem {
   status_code: string;
 }
 
+export interface ErpLiteApAgingListItem {
+  id: string;
+  ap_inv_no: string;
+  supplier_name: string;
+  due_date: string | null;
+  days_overdue: number;
+  open_amount: number;
+  currency_code: string;
+  aging_bucket: 'CURRENT' | 'DUE_1_30' | 'DUE_31_60' | 'DUE_61_90' | 'DUE_91_PLUS';
+}
+
 export interface ErpLiteBankAccountListItem {
   id: string;
   bank_code: string;
@@ -71,6 +82,29 @@ export interface ErpLiteBankStatementListItem {
   status_code: string;
 }
 
+export interface ErpLiteBankStatementLineListItem {
+  id: string;
+  bank_stmt_id: string;
+  line_no: number;
+  txn_date: string;
+  ext_ref_no: string | null;
+  description: string | null;
+  debit_amount: number;
+  credit_amount: number;
+  match_status: string;
+}
+
+export interface ErpLiteBankMatchListItem {
+  id: string;
+  bank_stmt_line_id: string;
+  bank_recon_id: string | null;
+  source_doc_id: string;
+  source_doc_label: string;
+  statement_line_label: string;
+  match_amount: number;
+  status_code: string;
+}
+
 export interface ErpLiteBankReconciliationListItem {
   id: string;
   recon_code: string;
@@ -86,6 +120,7 @@ export interface ErpLiteApDashboardSnapshot {
   supplier_list: ErpLiteSupplierListItem[];
   ap_invoice_list: ErpLiteApInvoiceListItem[];
   ap_payment_list: ErpLiteApPaymentListItem[];
+  ap_aging_list: ErpLiteApAgingListItem[];
   branch_options: ErpLiteV2OptionItem[];
   supplier_options: ErpLiteV2OptionItem[];
   payable_account_options: ErpLiteV2OptionItem[];
@@ -104,10 +139,16 @@ export interface ErpLitePoDashboardSnapshot {
 export interface ErpLiteBankDashboardSnapshot {
   bank_account_list: ErpLiteBankAccountListItem[];
   bank_statement_list: ErpLiteBankStatementListItem[];
+  bank_statement_line_list: ErpLiteBankStatementLineListItem[];
+  bank_match_list: ErpLiteBankMatchListItem[];
   bank_recon_list: ErpLiteBankReconciliationListItem[];
   branch_options: ErpLiteV2OptionItem[];
   bank_gl_account_options: ErpLiteV2OptionItem[];
   bank_account_options: ErpLiteV2OptionItem[];
+  bank_stmt_options: ErpLiteV2OptionItem[];
+  bank_stmt_line_options: ErpLiteV2OptionItem[];
+  ap_payment_options: ErpLiteV2OptionItem[];
+  bank_recon_open_options: ErpLiteV2OptionItem[];
   period_options: ErpLiteV2OptionItem[];
 }
 
@@ -195,6 +236,37 @@ export interface CreateErpLiteBankStatementInput {
   created_by?: string | null;
 }
 
+export interface CreateErpLiteBankStatementLineInput {
+  bank_stmt_id: string;
+  bank_account_id: string;
+  txn_date: string;
+  value_date?: string | null;
+  ext_ref_no?: string | null;
+  description?: string | null;
+  debit_amount?: number | null;
+  credit_amount?: number | null;
+  balance_amount?: number | null;
+  created_by?: string | null;
+}
+
+export interface ImportErpLiteBankStatementLineInput {
+  bank_stmt_id: string;
+  bank_account_id: string;
+  txn_date: string;
+  value_date?: string | null;
+  ext_ref_no?: string | null;
+  description?: string | null;
+  debit_amount?: number | null;
+  credit_amount?: number | null;
+  balance_amount?: number | null;
+}
+
+export interface ImportErpLiteBankStatementLinesInput {
+  bank_stmt_id: string;
+  rows: ImportErpLiteBankStatementLineInput[];
+  created_by?: string | null;
+}
+
 export interface CreateErpLiteBankReconInput {
   bank_account_id: string;
   period_id?: string | null;
@@ -204,5 +276,13 @@ export interface CreateErpLiteBankReconInput {
   gl_balance?: number | null;
   stmt_balance?: number | null;
   unmatched_amount?: number | null;
+  created_by?: string | null;
+}
+
+export interface CreateErpLiteBankMatchInput {
+  bank_stmt_line_id: string;
+  bank_recon_id?: string | null;
+  ap_payment_id: string;
+  match_amount: number;
   created_by?: string | null;
 }

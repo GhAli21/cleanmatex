@@ -778,9 +778,9 @@ function assertBlockingInvoiceAutoPostSucceeded(
   dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchInvoiceCreated>>
 ): void {
   const shouldBlock =
-    !dispatchResult.policy ||
-    dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
-    dispatchResult.policy.required_success === true;
+    !!dispatchResult.policy &&
+    (dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+      dispatchResult.policy.required_success === true);
 
   if (!shouldBlock) {
     return;

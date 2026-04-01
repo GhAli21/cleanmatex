@@ -349,27 +349,11 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     key: 'erp_lite',
     label: 'Finance & Accounting',
     icon: Landmark,
-    path: '/dashboard/erp-lite',
+    path: '/dashboard/erp-lite/reports',
     roles: ['admin', 'super_admin', 'tenant_admin'],
     permissions: ['erp_lite:view'],
     //featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
     children: [
-      {
-        key: 'erp_lite_coa',
-        label: 'Chart of Accounts',
-        path: '/dashboard/erp-lite/coa',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_coa:view'],
-        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
-      },
-      {
-        key: 'erp_lite_gl',
-        label: 'General Ledger',
-        path: '/dashboard/erp-lite/gl',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_gl:view'],
-        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
-      },
       {
         key: 'erp_lite_reports',
         label: 'Financial Reports',
@@ -385,6 +369,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_ar:view'],
         //featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,
+      },
+      {
+        key: 'erp_lite_gl',
+        label: 'General Ledger',
+        path: '/dashboard/erp-lite/gl',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_gl:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
       },
       {
         key: 'erp_lite_expenses',
@@ -417,6 +409,14 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_po:view'],
         //featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,
+      },
+      {
+        key: 'erp_lite_coa',
+        label: 'Chart of Accounts',
+        path: '/dashboard/erp-lite/coa',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_coa:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
       },
       {
         key: 'erp_lite_branch_pl',

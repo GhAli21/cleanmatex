@@ -52,6 +52,14 @@ export interface ErpLiteArAgingRow {
   currency_code: string | null;
 }
 
+export interface ErpLiteBranchProfitabilityRow {
+  branch_id: string | null;
+  branch_name: string;
+  direct_revenue: number;
+  direct_expense: number;
+  direct_profit: number;
+}
+
 export class ErpLiteReportingService {
   static async getGlInquiry(limit = 50, locale: ErpLiteReportLocale = 'en'): Promise<ErpLiteGlInquiryRow[]> {
     const tenantId = await this.requireTenantId();
@@ -215,6 +223,83 @@ export class ErpLiteReportingService {
         ...row,
         days_overdue: Number(row.days_overdue ?? 0),
         outstanding_amount: Number(row.outstanding_amount ?? 0),
+      }));
+    });
+  }
+
+  static async getBranchProfitability(
+    locale: ErpLiteReportLocale = 'en'
+  ): Promise<ErpLiteBranchProfitabilityRow[]> {
+    const tenantId = await this.requireTenantId();
+    const branchNameSql =
+      locale === 'ar'
+        ? Prisma.sql`COALESCE(NULLIF(b.name2, ''), b.name, 'Unassigned')`
+        : Prisma.sql`COALESCE(b.name, 'Unassigned')`;
+
+    return withTenantContext(tenantId, async () => {
+      const rows = await prisma.$queryRaw<ErpLiteBranchProfitabilityRow[]>(Prisma.sql`
+        SELECT
+          COALESCE(d.branch_id, j.branch_id)::text AS branch_id,
+          ${branchNameSql} AS branch_name,
+          COALESCE(SUM(
+            CASE
+              WHEN t.acc_type_code = 'REVENUE' AND d.entry_side = 'CREDIT' THEN d.amount_base_currency
+              WHEN t.acc_type_code = 'REVENUE' AND d.entry_side = 'DEBIT' THEN -d.amount_base_currency
+              ELSE 0
+            END
+          ), 0) AS direct_revenue,
+          COALESCE(SUM(
+            CASE
+              WHEN t.acc_type_code = 'EXPENSE' AND d.entry_side = 'DEBIT' THEN d.amount_base_currency
+              WHEN t.acc_type_code = 'EXPENSE' AND d.entry_side = 'CREDIT' THEN -d.amount_base_currency
+              ELSE 0
+            END
+          ), 0) AS direct_expense,
+          COALESCE(SUM(
+            CASE
+              WHEN t.acc_type_code = 'REVENUE' AND d.entry_side = 'CREDIT' THEN d.amount_base_currency
+              WHEN t.acc_type_code = 'REVENUE' AND d.entry_side = 'DEBIT' THEN -d.amount_base_currency
+              WHEN t.acc_type_code = 'EXPENSE' AND d.entry_side = 'DEBIT' THEN -d.amount_base_currency
+              WHEN t.acc_type_code = 'EXPENSE' AND d.entry_side = 'CREDIT' THEN d.amount_base_currency
+              ELSE 0
+            END
+          ), 0) AS direct_profit
+        FROM public.org_fin_journal_dtl d
+        JOIN public.org_fin_journal_mst j
+          ON j.id = d.journal_id
+         AND j.tenant_org_id = d.tenant_org_id
+        JOIN public.org_fin_acct_mst a
+          ON a.id = d.account_id
+         AND a.tenant_org_id = d.tenant_org_id
+        JOIN public.sys_fin_acc_type_cd t
+          ON t.acc_type_id = a.acc_type_id
+        LEFT JOIN public.org_branches_mst b
+          ON b.tenant_org_id = d.tenant_org_id
+         AND b.id = COALESCE(d.branch_id, j.branch_id)
+        WHERE d.tenant_org_id = ${tenantId}::uuid
+          AND d.is_active = true
+          AND d.rec_status = 1
+          AND j.status_code = 'POSTED'
+          AND j.is_active = true
+          AND j.rec_status = 1
+          AND t.acc_type_code IN ('REVENUE', 'EXPENSE')
+          AND t.is_active = true
+          AND t.rec_status = 1
+        GROUP BY COALESCE(d.branch_id, j.branch_id), ${branchNameSql}
+        HAVING COALESCE(SUM(
+          CASE
+            WHEN t.acc_type_code IN ('REVENUE', 'EXPENSE') THEN d.amount_base_currency
+            ELSE 0
+          END
+        ), 0) <> 0
+        ORDER BY branch_name ASC
+      `);
+
+      return rows.map((row) => ({
+        ...row,
+        direct_revenue: Number(row.direct_revenue ?? 0),
+        direct_expense: Number(row.direct_expense ?? 0),
+        direct_profit: Number(row.direct_profit ?? 0),
       }));
     });
   }
