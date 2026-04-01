@@ -3,7 +3,7 @@ version: v1.0.0
 last_updated: 2026-03-31
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_7_EXPENSES_EXEC_PKG_2026_03_30
-status: In Progress
+status: Complete
 implementation_project: cleanmatex
 project_context: Tenant Runtime
 ---
@@ -70,8 +70,10 @@ Current implementation progress after `0187` and `0188` apply:
 2. petty cash service and top-up/spend/list flow are implemented
 3. governed non-blocking ERP-Lite event dispatch is implemented
 4. the ERP-Lite expenses shell page is replaced with a real runtime screen
-5. targeted auto-post regression tests pass
-6. full Next build validation is still blocked by the stale `.next/lock` file
+5. sequential numbering is tenant-scoped for expense, cashbox, and petty-cash documents
+6. targeted auto-post regression tests pass
+7. targeted expense-service tests pass
+8. full Next build validation starts cleanly but still times out during Next production compile without a diagnostic
 
 ## 6. Validation Gate
 

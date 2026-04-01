@@ -35,6 +35,7 @@ function redirectExpenses(notice?: string, error?: string) {
 }
 
 export async function createErpLiteExpenseAction(formData: FormData) {
+  let notice: string;
   try {
     const result = await ErpLiteExpensesService.createExpense({
       branch_id: getOptionalString(formData, 'branch_id'),
@@ -47,17 +48,18 @@ export async function createErpLiteExpenseAction(formData: FormData) {
       settlement_code: getRequiredString(formData, 'settlement_code') as 'CASH' | 'BANK',
     });
 
-    revalidatePath('/dashboard/erp-lite/expenses');
-    redirectExpenses(
+    notice =
       result.posting_status === 'executed' && result.posting_success === false
         ? 'expense-created-post-failed'
         : result.posting_status === 'skipped'
           ? 'expense-created-post-skipped'
-          : 'expense-created'
-    );
+          : 'expense-created';
   } catch (error) {
     redirectExpenses(undefined, error instanceof Error ? error.message : 'expense-create-failed');
   }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses(notice);
 }
 
 export async function createErpLiteCashboxAction(formData: FormData) {
@@ -72,14 +74,16 @@ export async function createErpLiteCashboxAction(formData: FormData) {
       opening_balance: Number(getOptionalString(formData, 'opening_balance') ?? '0'),
     });
 
-    revalidatePath('/dashboard/erp-lite/expenses');
-    redirectExpenses('cashbox-created');
   } catch (error) {
     redirectExpenses(undefined, error instanceof Error ? error.message : 'cashbox-create-failed');
   }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('cashbox-created');
 }
 
 export async function createErpLiteCashTxnAction(formData: FormData) {
+  let notice: string;
   try {
     const result = await ErpLiteExpensesService.createCashTransaction({
       cashbox_id: getRequiredString(formData, 'cashbox_id'),
@@ -90,15 +94,16 @@ export async function createErpLiteCashTxnAction(formData: FormData) {
       description: getOptionalString(formData, 'description'),
     });
 
-    revalidatePath('/dashboard/erp-lite/expenses');
-    redirectExpenses(
+    notice =
       result.posting_status === 'executed' && result.posting_success === false
         ? 'cash-txn-post-failed'
         : result.posting_status === 'skipped'
           ? 'cash-txn-post-skipped'
-          : 'cash-txn-created'
-    );
+          : 'cash-txn-created';
   } catch (error) {
     redirectExpenses(undefined, error instanceof Error ? error.message : 'cash-txn-create-failed');
   }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses(notice);
 }

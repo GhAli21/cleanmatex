@@ -170,7 +170,7 @@ Dependency marker values:
 |---|---|---|
 | Phase 0 | Complete | Canonical approval pack and operational freeze documents are approved. |
 | Phase 1 | Complete | Feature flags, permissions, navigation, settings, ERP-Lite shell routes, access contracts, route guards, and EN/AR shell messages are implemented in `cleanmatex`. |
-| Phase 2 | Complete | Phase 2A DB foundation is applied through migrations `0179` to `0182`. Phase 2B HQ app layer in `cleanmatexsaas` is still pending. |
+| Phase 2 | Complete | Phase 2A DB foundation is applied through migrations `0179` to `0182`. Phase 2B HQ app layer in `cleanmatexsaas` now includes dashboard, detail, authoring/editing, validate, approve, and publish flows. |
 | Phase 3 | Complete | Tenant finance schema is applied in `cleanmatex` through migrations `0183` to `0186`. |
 | Phase 4+ | Not Started | Next implementation start point is Phase 4 posting engine in `cleanmatex`. |
 

@@ -217,8 +217,8 @@ export function useOrderSubmission() {
                         }),
                         ...(item.servicePrefs && item.servicePrefs.length > 0 && {
                             servicePrefs: item.servicePrefs,
-                            servicePrefCharge: item.servicePrefCharge ?? 0,
                         }),
+                        servicePrefCharge: item.servicePrefCharge ?? 0,
                         ...(item.packingPrefCode && {
                             packingPrefCode: item.packingPrefCode,
                             packingPrefIsOverride: item.packingPrefIsOverride,

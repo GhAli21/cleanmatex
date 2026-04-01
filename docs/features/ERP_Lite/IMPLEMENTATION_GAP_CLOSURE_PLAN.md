@@ -185,7 +185,7 @@ Do not begin implementation work for a phase until its required approval inputs 
 |---|---|---|---|
 | Phase 0 | Decision freeze and approval | Canonical ERP-Lite direction, governance, and runtime control model are approved | Complete |
 | Phase 1 | Platform enablement | ERP-Lite can be gated, navigated, permissioned, and configured | Complete |
-| Phase 2 | HQ governance foundation | Phase 2A DB foundation is complete; Phase 2B HQ app layer remains pending in `cleanmatexsaas` | Complete |
+| Phase 2 | HQ governance foundation | Phase 2A DB foundation is complete; Phase 2B HQ app layer is implemented in `cleanmatexsaas`, with local sibling build validation limited by missing `nest` and `next` binaries in this environment | Complete |
 | Phase 3 | Tenant finance schema | COA, GL, periods/settings, constants/types exist | Complete |
 | Phase 4 | Posting engine | Balanced and idempotent journal batches can be created | Not Started |
 | Phase 5 | Core auto-post integration | Invoices, payments, refunds create GL entries | Not Started |

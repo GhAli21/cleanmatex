@@ -43,6 +43,7 @@ interface ExpenseInsertRow {
 interface CashboxInsertRow {
   id: string;
   branch_id: string | null;
+  currency_code?: string;
 }
 
 interface CashTxnInsertRow {
@@ -98,8 +99,17 @@ export class ErpLiteExpensesService {
 
     return withTenantContext(tenantId, async () => {
       return prisma.$transaction(async (tx) => {
+        await this.assertValidBranch(tenantId, input.branch_id, tx);
+        this.assertPositiveAmount(input.subtotal_amount, 'subtotal_amount');
+        this.assertNonNegativeAmount(input.tax_amount ?? 0, 'tax_amount');
         const usageCodeId = await this.findUsageCodeId(EXPENSE_USAGE_CODE, tx);
-        const expenseNo = await this.generateSequentialNo('EXP', 'expense_no', 'org_fin_exp_mst', tx);
+        const expenseNo = await this.generateSequentialNo(
+          tenantId,
+          'EXP',
+          'expense_no',
+          'org_fin_exp_mst',
+          tx
+        );
         const subtotalAmount = this.roundAmount(input.subtotal_amount);
         const taxAmount = this.roundAmount(input.tax_amount ?? 0);
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
@@ -223,9 +233,17 @@ export class ErpLiteExpensesService {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
+      await this.assertValidBranch(tenantId, input.branch_id);
+      await this.assertValidCashboxAccount(tenantId, input.account_id);
+      this.assertNonNegativeAmount(input.opening_balance ?? 0, 'opening_balance');
       const cashboxCode =
         input.cashbox_code?.trim() ||
-        (await this.generateSequentialNo('PCB', 'cashbox_code', 'org_fin_cashbox_mst'));
+        (await this.generateSequentialNo(
+          tenantId,
+          'PCB',
+          'cashbox_code',
+          'org_fin_cashbox_mst'
+        ));
 
       await prisma.$queryRaw(Prisma.sql`
         INSERT INTO public.org_fin_cashbox_mst (
@@ -268,9 +286,19 @@ export class ErpLiteExpensesService {
 
     return withTenantContext(tenantId, async () => {
       return prisma.$transaction(async (tx) => {
-        const txnNo = await this.generateSequentialNo('PCT', 'txn_no', 'org_fin_cash_txn_tr', tx);
+        this.assertPositiveAmount(input.amount_total, 'amount_total');
+        const txnNo = await this.generateSequentialNo(
+          tenantId,
+          'PCT',
+          'txn_no',
+          'org_fin_cash_txn_tr',
+          tx
+        );
         const amountTotal = this.roundAmount(input.amount_total);
         const cashbox = await this.findCashbox(input.cashbox_id, tenantId, tx);
+        if (cashbox.currency_code && cashbox.currency_code !== input.currency_code) {
+          throw new Error('Petty cash transaction currency must match the cashbox currency');
+        }
 
         const inserted = await tx.$queryRaw<CashTxnInsertRow[]>(Prisma.sql`
           INSERT INTO public.org_fin_cash_txn_tr (
@@ -597,7 +625,8 @@ export class ErpLiteExpensesService {
     const rows = await db.$queryRaw<CashboxInsertRow[]>(Prisma.sql`
       SELECT
         id::text AS id,
-        branch_id::text AS branch_id
+        branch_id::text AS branch_id,
+        currency_code
       FROM public.org_fin_cashbox_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND id = ${cashboxId}::uuid
@@ -614,7 +643,62 @@ export class ErpLiteExpensesService {
     return row;
   }
 
+  private static async assertValidBranch(
+    tenantId: string,
+    branchId: string | null | undefined,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<void> {
+    if (!branchId) {
+      return;
+    }
+
+    const rows = await db.$queryRaw<{ id: string }[]>(Prisma.sql`
+      SELECT id::text AS id
+      FROM public.org_branches_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND id = ${branchId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+      LIMIT 1
+    `);
+
+    if (!rows[0]) {
+      throw new Error('Selected branch is not available for this tenant');
+    }
+  }
+
+  private static async assertValidCashboxAccount(
+    tenantId: string,
+    accountId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<void> {
+    const rows = await db.$queryRaw<{ account_id: string }[]>(Prisma.sql`
+      SELECT a.id::text AS account_id
+      FROM public.org_fin_acct_mst a
+      INNER JOIN public.org_fin_usage_map_mst m
+        ON m.account_id = a.id
+       AND m.tenant_org_id = a.tenant_org_id
+      INNER JOIN public.sys_fin_usage_code_cd u
+        ON u.usage_code_id = m.usage_code_id
+      WHERE a.tenant_org_id = ${tenantId}::uuid
+        AND a.id = ${accountId}::uuid
+        AND a.is_active = true
+        AND a.rec_status = 1
+        AND a.is_postable = true
+        AND m.is_active = true
+        AND m.rec_status = 1
+        AND m.status_code = 'ACTIVE'
+        AND u.usage_code = ${PETTY_CASH_USAGE_CODE}
+      LIMIT 1
+    `);
+
+    if (!rows[0]) {
+      throw new Error('Selected account is not an active petty cash account for this tenant');
+    }
+  }
+
   private static async generateSequentialNo(
+    tenantId: string,
     prefix: string,
     columnName: 'expense_no' | 'cashbox_code' | 'txn_no',
     tableName: 'org_fin_exp_mst' | 'org_fin_cashbox_mst' | 'org_fin_cash_txn_tr',
@@ -640,7 +724,10 @@ export class ErpLiteExpensesService {
     const rows = await db.$queryRaw<{ count: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS count
       FROM ${tableSql}
-      WHERE ${countColumn} LIKE ${`${serialPrefix}%`}
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND is_active = true
+        AND rec_status = 1
+        AND ${countColumn} LIKE ${`${serialPrefix}%`}
     `);
 
     const seq = String((rows[0]?.count ?? 0) + 1).padStart(5, '0');
@@ -657,5 +744,17 @@ export class ErpLiteExpensesService {
 
   private static roundAmount(value: number): number {
     return Number(Number(value ?? 0).toFixed(4));
+  }
+
+  private static assertPositiveAmount(value: number, fieldName: string): void {
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`${fieldName} must be greater than zero`);
+    }
+  }
+
+  private static assertNonNegativeAmount(value: number, fieldName: string): void {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new Error(`${fieldName} must not be negative`);
+    }
   }
 }

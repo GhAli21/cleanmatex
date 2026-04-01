@@ -1,9 +1,9 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-29
+last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_2B_HQ_APP_CHECKLIST_2026_03_29
-status: In Progress
+status: Complete
 implementation_project: cleanmatexsaas
 project_context: Platform Level HQ
 ---
@@ -53,38 +53,38 @@ Phase 2B is complete only when all of the following are true:
 
 ## 3.1 Current Execution Status
 
-Current status: `Pending`
+Current status: `Complete`
 
 ---
 
 ## 4. Backend Checklist
 
-- [ ] add service-role data access layer in `cleanmatexsaas`
-- [ ] expose read APIs for account types, groups, events, usage codes, resolvers
-- [ ] expose CRUD APIs for draft packages, rules, and policies
-- [ ] expose package validation API
-- [ ] expose approve/publish workflow API
-- [ ] prevent runtime use of unpublished packages
+- [x] add service-role data access layer in `cleanmatexsaas`
+- [x] expose read APIs for account types, groups, events, usage codes, resolvers
+- [x] expose CRUD APIs for draft packages, rules, and policies
+- [x] expose package validation API
+- [x] expose approve/publish workflow API
+- [x] prevent runtime use of unpublished packages
 
 ---
 
 ## 5. Frontend Checklist
 
-- [ ] add HQ navigation entry for ERP-Lite Governance
-- [ ] add catalog screens for governed masters
-- [ ] add governance package list/detail screens
-- [ ] add mapping rule list/detail/editor screens
-- [ ] add auto-post policy management screens
-- [ ] add validate/approve/publish actions with audit visibility
+- [x] add HQ navigation entry for ERP-Lite Governance
+- [x] add catalog screens for governed masters
+- [x] add governance package list/detail screens
+- [x] add mapping rule list/detail/editor screens
+- [x] add auto-post policy management screens
+- [x] add validate/approve/publish actions with audit visibility
 
 ---
 
 ## 6. Critical Rules
 
-- [ ] use `cleanmatexsaas` context only
-- [ ] do not create migrations in `cleanmatexsaas`
-- [ ] use service-role admin patterns, not tenant runtime RLS patterns
-- [ ] treat Phase 2A DB structure as the source of truth
+- [x] use `cleanmatexsaas` context only
+- [x] do not create migrations in `cleanmatexsaas`
+- [x] use service-role admin patterns, not tenant runtime RLS patterns
+- [x] treat Phase 2A DB structure as the source of truth
 
 ---
 

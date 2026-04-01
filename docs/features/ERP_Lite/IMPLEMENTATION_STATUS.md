@@ -3,7 +3,7 @@ document_id: ERP_LITE_IMPLEMENTATION_STATUS_001
 title: ERP-Lite Implementation Status Tracker
 version: "1.0"
 status: Active
-last_updated: 2026-03-31
+last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 note: This document is updated continuously during implementation. It is not a planning document — use ROADMAP_TASK_BY_TASK.md for the implementation plan.
 ---
@@ -24,13 +24,13 @@ This document tracks the live implementation status of ERP-Lite across all phase
 |---|---|---|---|---|
 | Phase 0 | Decision Freeze | Complete | Canonical PRD/ADR/runtime-rule/approval pack completed and formally approved. | 2026-03-28 |
 | Phase 1 | Platform Enablement | Complete | Phase 1 migrations were applied, ERP-Lite shell routes were created, route guards were wired, flags/settings/constants were aligned, and EN/AR shell messages were added. Node-based validation remains environment-blocked on local WSL 1. | 2026-03-28 |
-| Phase 2 | HQ Governance Foundation | Complete | Phase 2A DB foundation is complete through migrations `0179` to `0182`. Phase 2B HQ app/backend layer in `cleanmatexsaas` remains pending. | 2026-03-29 |
+| Phase 2 | HQ Governance Foundation | Complete | Phase 2A DB foundation is complete through migrations `0179` to `0182`. Phase 2B in `cleanmatexsaas` now includes dashboard, package detail, draft package creation/editing, draft rule editing, draft auto-post policy editing, validation, approve, and publish flows. Local sibling build validation remains limited because the `cleanmatexsaas` environment is missing `nest` and `next` binaries. | 2026-04-01 |
 | Phase 3 | Tenant Finance Schema | Complete | Migrations `0183` to `0186` were reviewed and applied in `cleanmatex`. | 2026-03-29 |
 | Phase 4 | Posting Engine | Complete | Governed posting engine, replay paths, validation flow, and targeted test coverage are implemented in `cleanmatex`. | 2026-03-30 |
 | Phase 5 | Core Auto-Post Integration | Complete | Invoice creation, invoice-on-demand payment creation, direct payment, distributed multi-invoice payment, and refund completion now all use the governed auto-post path with transaction-aware blocking behavior. | 2026-03-30 |
 | Phase 6 | V1 Finance Inquiry and Reports | Complete | GL inquiry, trial balance, profit and loss, balance sheet, and AR aging are implemented in `cleanmatex`, with targeted reporting tests passing. | 2026-03-31 |
-| Phase 7 | Basic Expenses and Petty Cash | In Progress | Phase 7 schema is applied and the tenant expenses route now has basic expense, cashbox, and petty-cash transaction runtime implementation in `cleanmatex`. | 2026-03-31 |
-| Phase 8 | V1 Pilot and Hardening | Not Started | Blocked on complete v1 runtime scope. | — |
+| Phase 7 | Basic Expenses and Petty Cash | Complete | Phase 7 schema is applied, the tenant expenses route now has basic expense, cashbox, and petty-cash transaction runtime implementation in `cleanmatex`, and targeted service/action tests are passing. | 2026-03-31 |
+| Phase 8 | V1 Pilot and Hardening | In Progress | Hardening docs are in place, the ERP-Lite regression suite and i18n parity checks pass, and the remaining active item is final build classification. | 2026-03-31 |
 | Phase 9 | V2 Treasury + Suppliers + AP/PO | Not Started | Starts only after v1 is trusted in pilot. | — |
 | Phase 10 | V3 Advanced Controls + Profitability + Costing | Not Started | Starts only after v2 is stable. | — |
 
@@ -50,7 +50,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | # | Blocker | Affects | Owner | Opened |
 |---|---|---|---|---|
-| B-001 | `npm run build` in `web-admin` is blocked by a stale [`.next/lock`](/home/dellunix/jhapp/cleanmatex/web-admin/.next/lock) file even though no active `next build` process remains | Final build validation for current ERP-Lite slice | Environment owner | 2026-03-31 |
+| B-001 | `npm run web-admin:build` now starts cleanly and generates `.next` compile artifacts, but Next production build still does not finish or emit a diagnostic before a 900-second timeout in the current environment | Final build validation for current ERP-Lite slice | Environment owner | 2026-03-31 |
 
 ---
 
@@ -122,7 +122,14 @@ This document tracks the live implementation status of ERP-Lite across all phase
 - `cleanmatexsaas` read-only ERP-Lite governance backend module is implemented for dashboard/catalog/package visibility
 - `cleanmatexsaas` read-only ERP-Lite governance route is implemented in platform web navigation
 - HQ package detail drill-down is implemented for mapping rules and auto-post policy visibility
-- governance authoring, validation, and publish actions remain pending
+- HQ draft package creation is implemented
+- HQ draft package metadata editing is implemented
+- HQ draft mapping rule editing is implemented
+- HQ draft auto-post policy editing is implemented
+- HQ package validation is implemented
+- HQ package approval is implemented
+- HQ package publication is implemented
+- local sibling build validation remains blocked because `cleanmatexsaas` is missing `nest` and `next` binaries in this environment
 
 ### Phase 3 Completed
 
@@ -163,7 +170,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 - report pages are now bilingual in EN/AR
 - targeted reporting tests now pass for trial balance, profit and loss, and AR aging
 
-### Phase 7 Current Progress
+### Phase 7 Completed
 
 - Phase 7 checklist is created and active
 - Phase 7 execution package is created
@@ -171,9 +178,21 @@ This document tracks the live implementation status of ERP-Lite across all phase
 - petty cash cashbox and transaction schema is applied in `0188`
 - tenant-scoped expense service is implemented
 - tenant-scoped petty cash cashbox and transaction service is implemented
+- Phase 7 sequential numbering is now tenant-scoped instead of global across all organizations
 - ERP-Lite auto-post adapter now supports `EXPENSE_RECORDED`, `PETTY_CASH_TOPUP`, and `PETTY_CASH_SPENT`
 - `/dashboard/erp-lite/expenses` now renders real Phase 7 forms and list views instead of the shell page
 - targeted auto-post regression tests pass for the new Phase 7 posting request builders
+- targeted service tests pass for expense creation and petty-cash transaction creation
+- targeted action tests pass for expense, cashbox, and petty-cash redirects
+
+### Phase 8 Current Progress
+
+- Phase 8 checklist is created and active
+- Phase 8 execution package is created
+- canonical ERP-Lite regression command is added in `web-admin/package.json`
+- canonical ERP-Lite regression command passes with 7 suites and 22 tests
+- `check:i18n` passes
+- the remaining active hardening work is the unresolved long-running production build timeout classification
 
 ---
 
