@@ -53,7 +53,7 @@ Page-linked backend permissions are documented separately in:
 | `/dashboard/settings/permissions` | wildcard/settings/permission-prefix/tenant-role contract | none | Page gate is declarative in the contract |
 | `/dashboard/orders/new` | no explicit page permission | `Use price override controls` → `pricing:override` | Action-only gate |
 | `/dashboard/reports/*` | feature flag `advanced_analytics` | none | Feature-flag page gate |
-| `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | page-linked ERP-Lite server actions inherit the same route permission unless a stricter action gate is declared | Finance routes are contract-backed; live runtime routes and remaining placeholders are explicitly marked in the contracts |
+| `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | page-linked ERP-Lite server actions inherit the same route permission unless a stricter action gate is declared | Finance routes are contract-backed and now include live runtime coverage for COA, reports, expenses, treasury, AP/PO, and profitability screens |
 | `/dashboard/erp-lite/branch-pl` | `erp_lite_branch_pl:view` + `erp_lite_enabled`, `erp_lite_branch_pl_enabled` | create/post allocation and cost runs inherit `erp_lite_branch_pl:view` | Branch profitability now includes audited allocation and costing controls with linked server actions |
 
 ## Related Docs

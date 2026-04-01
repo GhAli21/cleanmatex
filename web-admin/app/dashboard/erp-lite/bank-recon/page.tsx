@@ -16,6 +16,7 @@ import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
+import type { ErpLiteBankDashboardSnapshot } from '@/lib/types/erp-lite-v2';
 import {
   createErpLiteBankAccountAction,
   createErpLiteBankMatchAction,
@@ -40,6 +41,7 @@ export default async function ErpLiteBankReconPage({
   searchParams?: Promise<Record<string, SearchParamsValue>>;
 }) {
   const t = await getTranslations('erpLite.bankRecon');
+  const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
@@ -54,7 +56,31 @@ export default async function ErpLiteBankReconPage({
     );
   }
 
-  const snapshot = await ErpLiteV2Service.getBankDashboardSnapshot(locale);
+  let loadError: string | null = null;
+  let snapshot: ErpLiteBankDashboardSnapshot = {
+    bank_account_list: [],
+    bank_statement_list: [],
+    bank_statement_line_list: [],
+    bank_match_list: [],
+    bank_recon_list: [],
+    branch_options: [],
+    bank_gl_account_options: [],
+    bank_account_options: [],
+    bank_stmt_options: [],
+    bank_stmt_line_options: [],
+    ap_payment_options: [],
+    bank_recon_open_options: [],
+    period_options: [],
+  };
+
+  try {
+    snapshot = await ErpLiteV2Service.getBankDashboardSnapshot(locale);
+  } catch (loadFailure) {
+    loadError =
+      loadFailure instanceof Error
+        ? loadFailure.message
+        : tCommon('loadError');
+  }
 
   return (
     <ErpLitePageGuard
@@ -77,6 +103,12 @@ export default async function ErpLiteBankReconPage({
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {loadError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
           </Alert>
         ) : null}
 

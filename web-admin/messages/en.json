@@ -3504,6 +3504,9 @@
   },
   "erpLite": {
     "eyebrow": "ERP-Lite",
+    "common": {
+      "loadError": "ERP-Lite could not load this screen completely. Review tenant finance setup and ERP-Lite reference data, then try again."
+    },
     "reports": {
       "title": "Financial Reports",
       "subtitle": "Journal-driven finance inquiry derived only from posted ERP-Lite journals.",
@@ -3579,6 +3582,66 @@
       "upgradeDescription": "Your current plan or published platform policy does not enable this ERP-Lite area yet.",
       "deniedTitle": "You do not have access to this ERP-Lite module",
       "deniedDescription": "Ask your tenant administrator to grant the required ERP-Lite permission for this area."
+    },
+    "coa": {
+      "eyebrow": "ERP-Lite COA",
+      "title": "Chart of Accounts",
+      "subtitle": "Manage the tenant chart of accounts that ERP-Lite posting, mapping, and reporting consume at runtime.",
+      "notices": {
+        "account-created": "Account created successfully."
+      },
+      "forms": {
+        "placeholders": {
+          "optionalGroup": "No account group override",
+          "optionalParent": "No parent account",
+          "optionalBranch": "No branch override"
+        },
+        "account": {
+          "title": "Create Account",
+          "subtitle": "Create a tenant account under the HQ-governed account type and group structure.",
+          "submit": "Create Account",
+          "postableOptions": {
+            "postable": "Postable account",
+            "headerOnly": "Header-only account"
+          },
+          "fields": {
+            "code": "Account Code",
+            "name": "Account Name",
+            "name2": "Account Name (Arabic)",
+            "accountType": "Account Type",
+            "accountGroup": "Account Group",
+            "parentAccount": "Parent Account",
+            "branch": "Branch",
+            "postable": "Posting Behavior",
+            "description": "Description"
+          }
+        }
+      },
+      "lists": {
+        "accounts": {
+          "title": "Tenant Accounts",
+          "subtitle": "Live tenant chart of accounts with type, group, hierarchy, and control flags.",
+          "empty": "No tenant accounts created yet.",
+          "errorEmpty": "Accounts could not be loaded for this tenant.",
+          "columns": {
+            "code": "Code",
+            "name": "Name",
+            "type": "Type",
+            "group": "Group",
+            "parent": "Parent",
+            "branch": "Branch",
+            "flags": "Flags"
+          }
+        }
+      },
+      "flags": {
+        "postable": "Postable",
+        "headerOnly": "Header",
+        "control": "Control",
+        "system": "System",
+        "manualLocked": "Manual Locked",
+        "inactive": "Inactive"
+      }
     },
     "shell": {
       "title": "Phase 1 shell is ready",

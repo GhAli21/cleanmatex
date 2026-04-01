@@ -1,13 +1,18 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'
-import { ErpLiteReportingService } from '@/lib/services/erp-lite-reporting.service'
+import {
+  ErpLiteReportingService,
+  type ErpLiteArAgingRow,
+} from '@/lib/services/erp-lite-reporting.service'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
+import { Alert, AlertDescription } from '@ui/primitives'
 
 const BUCKET_ORDER = ['CURRENT', 'DUE_1_30', 'DUE_31_60', 'DUE_61_90', 'DUE_91_PLUS'] as const
 
 export default async function ErpLiteArPage() {
   const t = await getTranslations('erpLite.reports.arAging')
+  const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_AR_ENABLED)
 
@@ -19,7 +24,14 @@ export default async function ErpLiteArPage() {
     )
   }
 
-  const rows = await ErpLiteReportingService.getArAging(locale)
+  let loadError: string | null = null
+  let rows: ErpLiteArAgingRow[] = []
+
+  try {
+    rows = await ErpLiteReportingService.getArAging(locale)
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : tCommon('loadError')
+  }
   const grouped = new Map<string, typeof rows>()
 
   for (const row of rows) {
@@ -41,6 +53,12 @@ export default async function ErpLiteArPage() {
           <h1 className="text-2xl font-semibold">{t('title')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
+
+        {loadError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="rounded-lg border border-border bg-background p-4">

@@ -32,7 +32,7 @@ Legend:
 | `/dashboard/inventory` | Inventory | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/inventory/stock` | Inventory Stock | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/erp-lite` | Finance & Accounting | `erp_lite:view` | `erp_lite_enabled` | None | None | Live ERP-Lite module landing route |
-| `/dashboard/erp-lite/coa` | Chart of Accounts | `erp_lite_coa:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Placeholder route; runtime still pending |
+| `/dashboard/erp-lite/coa` | Chart of Accounts | `erp_lite_coa:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Live tenant COA route with linked create-account server action |
 | `/dashboard/erp-lite/gl` | General Ledger | `erp_lite_gl:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Live GL inquiry/reporting route |
 | `/dashboard/erp-lite/reports` | Financial Reports | `erp_lite_reports:view` | `erp_lite_enabled`, `erp_lite_reports_enabled` | None | None | Live finance reporting route |
 | `/dashboard/erp-lite/ar` | AR Aging | `erp_lite_ar:view` | `erp_lite_enabled`, `erp_lite_ar_enabled` | None | None | Live AR aging route |

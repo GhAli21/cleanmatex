@@ -1,10 +1,5 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts'
 
-const ERP_LITE_SHELL_NOTES = [
-  'This ERP-Lite area is still a routed placeholder and remains limited to shell-level enablement.',
-  'The page contract keeps navigation, permissions inspector, and rollout docs aligned until runtime implementation is added.',
-]
-
 const ERP_LITE_RUNTIME_NOTES = [
   'This ERP-Lite area has active tenant runtime implementation behind the declared permission and feature-flag gate.',
   'The page contract is still the navigation and permissions-inspector source of truth for this route.',
@@ -31,7 +26,18 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_SHELL_NOTES,
+    apiDependencies: [
+      {
+        label: 'Create tenant account',
+        method: 'POST',
+        path: 'app/actions/erp-lite/coa-actions.createErpLiteAccountAction',
+        requirement: {
+          permissions: ['erp_lite_coa:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/gl',

@@ -15,6 +15,8 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
+import type { ErpLiteExpensesDashboardSnapshot } from '@/lib/types/erp-lite-expenses';
 import {
   approveErpLiteApprovalAction,
   createErpLiteCashTxnAction,
@@ -40,11 +42,46 @@ export default async function ErpLiteExpensesPage({
   searchParams?: Promise<Record<string, SearchParamsValue>>;
 }) {
   const t = await getTranslations('erpLite.expenses');
+  const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
-  const snapshot = await ErpLiteExpensesService.getDashboardSnapshot(locale);
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED);
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard
+        feature={FEATURE_FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED}
+        permissions={['erp_lite_expenses:view']}
+      >
+        {null}
+      </ErpLitePageGuard>
+    );
+  }
+
+  let loadError: string | null = null;
+  let snapshot: ErpLiteExpensesDashboardSnapshot = {
+    expense_list: [],
+    cashbox_list: [],
+    cash_txn_list: [],
+    approval_list: [],
+    cash_recon_list: [],
+    branch_options: [],
+    cashbox_account_options: [],
+    cashbox_options: [],
+    expense_options: [],
+    cash_txn_options: [],
+  };
+
+  try {
+    snapshot = await ErpLiteExpensesService.getDashboardSnapshot(locale);
+  } catch (loadFailure) {
+    loadError =
+      loadFailure instanceof Error
+        ? loadFailure.message
+        : tCommon('loadError');
+  }
 
   return (
     <ErpLitePageGuard
@@ -69,6 +106,12 @@ export default async function ErpLiteExpensesPage({
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {loadError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
           </Alert>
         ) : null}
 

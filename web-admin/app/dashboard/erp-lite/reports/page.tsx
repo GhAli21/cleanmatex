@@ -2,10 +2,12 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'
 import {
+  type ErpLiteTrialBalanceRow,
   type ErpLiteStatementRow,
   ErpLiteReportingService,
 } from '@/lib/services/erp-lite-reporting.service'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
+import { Alert, AlertDescription } from '@ui/primitives'
 
 const BALANCE_SHEET_SECTION_ORDER = ['ASSETS', 'LIABILITIES', 'EQUITY']
 const PROFIT_AND_LOSS_SECTION_ORDER = ['REVENUE', 'EXPENSES']
@@ -22,6 +24,7 @@ function groupStatementRows(rows: ErpLiteStatementRow[]) {
 
 export default async function ErpLiteReportsPage() {
   const t = await getTranslations('erpLite.reports')
+  const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED)
 
@@ -33,11 +36,20 @@ export default async function ErpLiteReportsPage() {
     )
   }
 
-  const [trialBalanceRows, profitAndLossRows, balanceSheetRows] = await Promise.all([
-    ErpLiteReportingService.getTrialBalance(locale),
-    ErpLiteReportingService.getProfitAndLoss(locale),
-    ErpLiteReportingService.getBalanceSheet(locale),
-  ])
+  let loadError: string | null = null
+  let trialBalanceRows: ErpLiteTrialBalanceRow[] = []
+  let profitAndLossRows: ErpLiteStatementRow[] = []
+  let balanceSheetRows: ErpLiteStatementRow[] = []
+
+  try {
+    ;[trialBalanceRows, profitAndLossRows, balanceSheetRows] = await Promise.all([
+      ErpLiteReportingService.getTrialBalance(locale),
+      ErpLiteReportingService.getProfitAndLoss(locale),
+      ErpLiteReportingService.getBalanceSheet(locale),
+    ])
+  } catch (error) {
+    loadError = error instanceof Error ? error.message : tCommon('loadError')
+  }
   const totalDebit = trialBalanceRows.reduce((sum, row) => sum + row.total_debit, 0)
   const totalCredit = trialBalanceRows.reduce((sum, row) => sum + row.total_credit, 0)
   const profitAndLossBySection = groupStatementRows(profitAndLossRows)
@@ -64,6 +76,12 @@ export default async function ErpLiteReportsPage() {
             {t('subtitle')}
           </p>
         </div>
+
+        {loadError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
+          </Alert>
+        ) : null}
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-lg border border-border bg-background p-4">

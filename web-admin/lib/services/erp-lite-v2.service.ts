@@ -1546,11 +1546,11 @@ export class ErpLiteV2Service {
     const rows = await prisma.$queryRaw<LocalizedOptionRow[]>(Prisma.sql`
       SELECT
         a.id::text AS id,
-        a.acct_code AS code,
+        a.account_code AS code,
         a.name,
         a.name2
       FROM public.org_fin_acct_mst a
-      JOIN public.org_fin_usage_map_dtl m
+      JOIN public.org_fin_usage_map_mst m
         ON m.tenant_org_id = a.tenant_org_id
        AND m.account_id = a.id
        AND m.is_active = true
@@ -1560,8 +1560,9 @@ export class ErpLiteV2Service {
       WHERE a.tenant_org_id = ${tenantId}::uuid
         AND a.is_active = true
         AND a.rec_status = 1
+        AND m.status_code = 'ACTIVE'
         AND u.usage_code = 'AP_CONTROL'
-      ORDER BY a.acct_code ASC
+      ORDER BY a.account_code ASC
     `);
 
     return this.mapLocalizedOptions(rows, locale);
@@ -1624,11 +1625,11 @@ export class ErpLiteV2Service {
     const rows = await prisma.$queryRaw<LocalizedOptionRow[]>(Prisma.sql`
       SELECT
         a.id::text AS id,
-        a.acct_code AS code,
+        a.account_code AS code,
         a.name,
         a.name2
       FROM public.org_fin_acct_mst a
-      JOIN public.org_fin_usage_map_dtl m
+      JOIN public.org_fin_usage_map_mst m
         ON m.tenant_org_id = a.tenant_org_id
        AND m.account_id = a.id
        AND m.is_active = true
@@ -1638,8 +1639,9 @@ export class ErpLiteV2Service {
       WHERE a.tenant_org_id = ${tenantId}::uuid
         AND a.is_active = true
         AND a.rec_status = 1
+        AND m.status_code = 'ACTIVE'
         AND u.usage_code = 'BANK_ACCOUNT'
-      ORDER BY a.acct_code ASC
+      ORDER BY a.account_code ASC
     `);
 
     return this.mapLocalizedOptions(rows, locale);
@@ -1649,7 +1651,7 @@ export class ErpLiteV2Service {
     const rows = await prisma.$queryRaw<{ id: string; label: string }[]>(Prisma.sql`
       SELECT
         id::text AS id,
-        period_code || ' · ' || period_name AS label
+        period_code || ' · ' || name AS label
       FROM public.org_fin_period_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true
@@ -1790,13 +1792,14 @@ export class ErpLiteV2Service {
 
     const rows = await db.$queryRaw<{ count: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS count
-      FROM public.org_fin_usage_map_dtl m
+      FROM public.org_fin_usage_map_mst m
       JOIN public.sys_fin_usage_code_cd u
         ON u.usage_code_id = m.usage_code_id
       WHERE m.tenant_org_id = ${tenantId}::uuid
         AND m.account_id = ${accountId}::uuid
         AND m.is_active = true
         AND m.rec_status = 1
+        AND m.status_code = 'ACTIVE'
         AND u.usage_code = 'AP_CONTROL'
     `);
 

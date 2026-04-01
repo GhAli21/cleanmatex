@@ -108,6 +108,7 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | ACTION | POST | `app/actions/payments/payment-crud-actions.cancelPaymentAction` | `payments:cancel` | Permission checked with `hasPermissionServer(...)` |
 | ACTION | POST | `app/actions/payments/payment-crud-actions.refundPaymentAction` | `payments:refund` | Permission checked with `hasPermissionServer(...)` |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteSupplierAction` | `erp_lite_ap:view` | ERP-Lite supplier master create action |
+| ACTION | POST | `app/actions/erp-lite/coa-actions.createErpLiteAccountAction` | `erp_lite_coa:view` | ERP-Lite tenant chart-of-accounts create action |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteApInvoiceAction` | `erp_lite_ap:view` | ERP-Lite AP invoice create action |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteApPaymentAction` | `erp_lite_ap:view` | ERP-Lite AP payment create action |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLitePurchaseOrderAction` | `erp_lite_po:view` | ERP-Lite PO create action |

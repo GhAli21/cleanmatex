@@ -14,6 +14,8 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLitePhase10Service } from '@/lib/services/erp-lite-phase10.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
+import { currentTenantCan } from '@/lib/services/feature-flags.service';
+import type { ErpLitePhase10DashboardSnapshot } from '@/lib/types/erp-lite-phase10';
 import {
   addErpLiteAllocationRunLineAction,
   addErpLiteCostRunDetailAction,
@@ -37,11 +39,49 @@ export default async function ErpLiteBranchPlPage({
   searchParams?: Promise<Record<string, SearchParamsValue>>;
 }) {
   const t = await getTranslations('erpLite.branchPl');
+  const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
-  const snapshot = await ErpLitePhase10Service.getDashboardSnapshot(locale);
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED);
+
+  if (!isEnabled) {
+    return (
+      <ErpLitePageGuard
+        feature={FEATURE_FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED}
+        permissions={['erp_lite_branch_pl:view']}
+      >
+        {null}
+      </ErpLitePageGuard>
+    );
+  }
+
+  let loadError: string | null = null;
+  let snapshot: ErpLitePhase10DashboardSnapshot = {
+    profitability_rows: [],
+    allocation_rules: [],
+    allocation_runs: [],
+    cost_components: [],
+    cost_runs: [],
+    cost_summary_rows: [],
+    branch_options: [],
+    allocation_rule_options: [],
+    allocation_run_options: [],
+    cost_component_options: [],
+    cost_run_options: [],
+    latest_alloc_run_no: null,
+    latest_cost_run_no: null,
+  };
+
+  try {
+    snapshot = await ErpLitePhase10Service.getDashboardSnapshot(locale);
+  } catch (loadFailure) {
+    loadError =
+      loadFailure instanceof Error
+        ? loadFailure.message
+        : tCommon('loadError');
+  }
   const rows = snapshot.profitability_rows;
   const totalRevenue = rows.reduce((sum, row) => sum + row.direct_revenue, 0);
   const totalExpense = rows.reduce((sum, row) => sum + row.direct_expense, 0);
@@ -71,6 +111,12 @@ export default async function ErpLiteBranchPlPage({
         {error ? (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+
+        {loadError ? (
+          <Alert variant="destructive">
+            <AlertDescription>{loadError}</AlertDescription>
           </Alert>
         ) : null}
 
