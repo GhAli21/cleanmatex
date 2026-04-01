@@ -4,15 +4,21 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import type {
+  CreateErpLiteApprovalRequestInput,
   CreateErpLiteCashTxnInput,
+  CreateErpLiteCashReconciliationExceptionInput,
+  CreateErpLiteCashReconciliationInput,
   CreateErpLiteCashboxInput,
   CreateErpLiteExpenseInput,
+  ErpLiteApprovalListItem,
+  ErpLiteCashReconciliationListItem,
   ErpLiteCashTxnListItem,
   ErpLiteCashboxListItem,
   ErpLiteExpenseListItem,
   ErpLiteExpenseMutationResult,
   ErpLiteExpensesDashboardSnapshot,
   ErpLiteOptionItem,
+  ProcessErpLiteApprovalInput,
 } from '@/lib/types/erp-lite-expenses';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 
@@ -59,6 +65,11 @@ interface CashTxnInsertRow {
   cashbox_id: string;
 }
 
+interface CashReconciliationInsertRow {
+  id: string;
+  recon_no: string;
+}
+
 const EXPENSE_USAGE_CODE = 'EXPENSE_GENERAL';
 const PETTY_CASH_USAGE_CODE = 'PETTY_CASH_MAIN';
 
@@ -69,11 +80,13 @@ export class ErpLiteExpensesService {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
-      const [expenseList, cashboxList, cashTxnList, branchOptions, cashboxAccountOptions] =
+      const [expenseList, cashboxList, cashTxnList, approvalList, cashReconList, branchOptions, cashboxAccountOptions] =
         await Promise.all([
           this.listRecentExpenses(tenantId, locale),
           this.listCashboxes(tenantId, locale),
           this.listRecentCashTransactions(tenantId, locale),
+          this.listRecentApprovals(tenantId),
+          this.listCashReconciliations(tenantId, locale),
           this.listBranchOptions(tenantId, locale),
           this.listCashboxAccountOptions(tenantId, locale),
         ]);
@@ -82,11 +95,21 @@ export class ErpLiteExpensesService {
         expense_list: expenseList,
         cashbox_list: cashboxList,
         cash_txn_list: cashTxnList,
+        approval_list: approvalList,
+        cash_recon_list: cashReconList,
         branch_options: branchOptions,
         cashbox_account_options: cashboxAccountOptions,
         cashbox_options: cashboxList.map((item) => ({
           id: item.id,
           label: `${item.cashbox_code} · ${item.cashbox_name}`,
+        })),
+        expense_options: expenseList.map((item) => ({
+          id: item.id,
+          label: `${item.expense_no} · ${item.payee_name ?? item.expense_date}`,
+        })),
+        cash_txn_options: cashTxnList.map((item) => ({
+          id: item.id,
+          label: `${item.txn_no} · ${item.cashbox_name}`,
         })),
       };
     });
@@ -384,6 +407,225 @@ export class ErpLiteExpensesService {
     });
   }
 
+  static async createApprovalRequest(input: CreateErpLiteApprovalRequestInput): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await this.assertApprovalSourceExists(tenantId, input.source_doc_type, input.source_doc_id);
+      const existingRows = await prisma.$queryRaw<{ count: number }[]>(Prisma.sql`
+        SELECT COUNT(*)::int AS count
+        FROM public.org_fin_doc_appr_tr
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND source_doc_type = ${input.source_doc_type}
+          AND source_doc_id = ${input.source_doc_id}::uuid
+          AND status_code = 'PENDING'
+          AND is_active = true
+          AND rec_status = 1
+      `);
+
+      if ((existingRows[0]?.count ?? 0) > 0) {
+        throw new Error('A pending approval request already exists for the selected document');
+      }
+
+      await prisma.$queryRaw(Prisma.sql`
+        INSERT INTO public.org_fin_doc_appr_tr (
+          tenant_org_id,
+          source_doc_type,
+          source_doc_id,
+          step_no,
+          status_code,
+          action_note,
+          created_by,
+          created_info,
+          rec_status,
+          is_active
+        ) VALUES (
+          ${tenantId}::uuid,
+          ${input.source_doc_type},
+          ${input.source_doc_id}::uuid,
+          1,
+          'PENDING',
+          ${input.action_note ?? null},
+          ${input.created_by ?? null},
+          'ERP-Lite Phase 10 approval request create',
+          1,
+          true
+        )
+      `);
+    });
+  }
+
+  static async processApproval(input: ProcessErpLiteApprovalInput): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      const rows = await prisma.$queryRaw<{ id: string; status_code: string }[]>(Prisma.sql`
+        SELECT id::text AS id, status_code
+        FROM public.org_fin_doc_appr_tr
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${input.approval_id}::uuid
+          AND is_active = true
+          AND rec_status = 1
+        LIMIT 1
+      `);
+
+      const approval = rows[0];
+      if (!approval || approval.status_code !== 'PENDING') {
+        throw new Error('Selected approval request is not pending');
+      }
+
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE public.org_fin_doc_appr_tr
+        SET
+          status_code = ${input.decision},
+          action_at = CURRENT_TIMESTAMP,
+          action_note = ${input.action_note ?? null},
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${input.acted_by ?? null},
+          updated_info = 'ERP-Lite Phase 10 approval decision'
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${input.approval_id}::uuid
+      `);
+    });
+  }
+
+  static async createCashReconciliation(
+    input: CreateErpLiteCashReconciliationInput
+  ): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      const cashbox = await this.findCashbox(input.cashbox_id, tenantId);
+      const balances = await this.findCashboxBalances(input.cashbox_id, tenantId);
+      const countedBalance = this.roundAmount(input.counted_balance);
+      const expectedBalance = this.roundAmount(balances.current_balance);
+      const varianceAmount = this.roundAmount(countedBalance - expectedBalance);
+      const reconNo = await this.generateSequentialNo(
+        tenantId,
+        'PCR',
+        'recon_no',
+        'org_fin_cash_rec_mst'
+      );
+
+      await prisma.$queryRaw<CashReconciliationInsertRow[]>(Prisma.sql`
+        INSERT INTO public.org_fin_cash_rec_mst (
+          tenant_org_id,
+          cashbox_id,
+          branch_id,
+          recon_no,
+          recon_date,
+          opening_balance,
+          expected_balance,
+          counted_balance,
+          variance_amount,
+          status_code,
+          rec_notes,
+          created_by,
+          created_info,
+          rec_status,
+          is_active
+        ) VALUES (
+          ${tenantId}::uuid,
+          ${input.cashbox_id}::uuid,
+          ${cashbox.branch_id ?? null}::uuid,
+          ${reconNo},
+          ${input.recon_date}::date,
+          ${this.roundAmount(balances.opening_balance)},
+          ${expectedBalance},
+          ${countedBalance},
+          ${varianceAmount},
+          'OPEN',
+          ${input.note ?? null},
+          ${input.created_by ?? null},
+          'ERP-Lite Phase 10 petty cash reconciliation create',
+          1,
+          true
+        )
+        RETURNING id, recon_no
+      `);
+    });
+  }
+
+  static async addCashReconciliationException(
+    input: CreateErpLiteCashReconciliationExceptionInput
+  ): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      this.assertNonNegativeAmount(Math.abs(input.amount), 'amount');
+      const nextLine = await prisma.$queryRaw<{ next_line_no: number }[]>(Prisma.sql`
+        SELECT COALESCE(MAX(line_no), 0)::int + 1 AS next_line_no
+        FROM public.org_fin_cash_exc_tr
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND cash_recon_id = ${input.cash_recon_id}::uuid
+      `);
+
+      await prisma.$queryRaw(Prisma.sql`
+        INSERT INTO public.org_fin_cash_exc_tr (
+          tenant_org_id,
+          cash_recon_id,
+          line_no,
+          reason_code,
+          amount,
+          note,
+          created_by,
+          created_info,
+          rec_status,
+          is_active
+        ) VALUES (
+          ${tenantId}::uuid,
+          ${input.cash_recon_id}::uuid,
+          ${nextLine[0]?.next_line_no ?? 1},
+          ${input.reason_code},
+          ${this.roundAmount(input.amount)},
+          ${input.note ?? null},
+          ${input.created_by ?? null},
+          'ERP-Lite Phase 10 petty cash reconciliation exception create',
+          1,
+          true
+        )
+      `);
+    });
+  }
+
+  static async closeCashReconciliation(cashReconId: string, closedBy?: string | null): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE public.org_fin_cash_rec_mst
+        SET
+          status_code = 'CLOSED',
+          closed_at = CURRENT_TIMESTAMP,
+          closed_by = ${closedBy ?? null},
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${closedBy ?? null},
+          updated_info = 'ERP-Lite Phase 10 petty cash reconciliation close'
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${cashReconId}::uuid
+          AND status_code = 'OPEN'
+      `);
+    });
+  }
+
+  static async lockCashReconciliation(cashReconId: string, lockedBy?: string | null): Promise<void> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      await prisma.$queryRaw(Prisma.sql`
+        UPDATE public.org_fin_cash_rec_mst
+        SET
+          status_code = 'LOCKED',
+          updated_at = CURRENT_TIMESTAMP,
+          updated_by = ${lockedBy ?? null},
+          updated_info = 'ERP-Lite Phase 10 petty cash reconciliation lock'
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND id = ${cashReconId}::uuid
+          AND status_code = 'CLOSED'
+      `);
+    });
+  }
+
   private static async requireTenantId(): Promise<string> {
     const tenantId = await getTenantIdFromSession();
     if (!tenantId) {
@@ -596,6 +838,76 @@ export class ErpLiteExpensesService {
     }));
   }
 
+  private static async listRecentApprovals(
+    tenantId: string
+  ): Promise<ErpLiteApprovalListItem[]> {
+    return prisma.$queryRaw<ErpLiteApprovalListItem[]>(Prisma.sql`
+      SELECT
+        a.id::text AS id,
+        a.source_doc_type,
+        a.source_doc_id::text AS source_doc_id,
+        CASE
+          WHEN a.source_doc_type = 'EXPENSE' THEN e.expense_no
+          WHEN a.source_doc_type = 'CASH_TXN' THEN c.txn_no
+          ELSE a.source_doc_id::text
+        END AS source_doc_no,
+        a.step_no,
+        a.status_code,
+        a.action_note
+      FROM public.org_fin_doc_appr_tr a
+      LEFT JOIN public.org_fin_exp_mst e
+        ON a.source_doc_type = 'EXPENSE'
+       AND e.id = a.source_doc_id
+       AND e.tenant_org_id = a.tenant_org_id
+      LEFT JOIN public.org_fin_cash_txn_tr c
+        ON a.source_doc_type = 'CASH_TXN'
+       AND c.id = a.source_doc_id
+       AND c.tenant_org_id = a.tenant_org_id
+      WHERE a.tenant_org_id = ${tenantId}::uuid
+        AND a.is_active = true
+        AND a.rec_status = 1
+      ORDER BY a.created_at DESC
+      LIMIT 12
+    `);
+  }
+
+  private static async listCashReconciliations(
+    tenantId: string,
+    locale: 'en' | 'ar'
+  ): Promise<ErpLiteCashReconciliationListItem[]> {
+    const cashboxNameSql = locale === 'ar'
+      ? Prisma.sql`COALESCE(NULLIF(c.name2, ''), c.name)`
+      : Prisma.sql`c.name`;
+
+    const rows = await prisma.$queryRaw<ErpLiteCashReconciliationListItem[]>(Prisma.sql`
+      SELECT
+        r.id::text AS id,
+        r.recon_no,
+        ${cashboxNameSql} AS cashbox_name,
+        TO_CHAR(r.recon_date, 'YYYY-MM-DD') AS recon_date,
+        r.expected_balance::float8 AS expected_balance,
+        r.counted_balance::float8 AS counted_balance,
+        r.variance_amount::float8 AS variance_amount,
+        r.status_code
+      FROM public.org_fin_cash_rec_mst r
+      INNER JOIN public.org_fin_cashbox_mst c
+        ON c.id = r.cashbox_id
+       AND c.tenant_org_id = r.tenant_org_id
+      WHERE r.tenant_org_id = ${tenantId}::uuid
+        AND r.is_active = true
+        AND r.rec_status = 1
+      ORDER BY r.recon_date DESC, r.created_at DESC
+      LIMIT 12
+    `);
+
+    return rows.map((row) => ({
+      ...row,
+      expected_balance: Number(row.expected_balance ?? 0),
+      counted_balance: Number(row.counted_balance ?? 0),
+      variance_amount: Number(row.variance_amount ?? 0),
+    }));
+  }
+
   private static async findUsageCodeId(
     usageCode: string,
     db: PrismaSqlExecutor = prisma
@@ -641,6 +953,79 @@ export class ErpLiteExpensesService {
     }
 
     return row;
+  }
+
+  private static async findCashboxBalances(
+    cashboxId: string,
+    tenantId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<{ opening_balance: number; current_balance: number }> {
+    const rows = await db.$queryRaw<{ opening_balance: number; current_balance: number }[]>(Prisma.sql`
+      SELECT
+        c.opening_balance::float8 AS opening_balance,
+        (
+          c.opening_balance
+          + COALESCE(SUM(
+              CASE
+                WHEN t.status_code <> 'RECORDED' THEN 0
+                WHEN t.txn_type_code = 'TOPUP' THEN t.amount_total
+                WHEN t.txn_type_code = 'SPEND' THEN -t.amount_total
+                ELSE 0
+              END
+            ), 0)
+        )::float8 AS current_balance
+      FROM public.org_fin_cashbox_mst c
+      LEFT JOIN public.org_fin_cash_txn_tr t
+        ON t.cashbox_id = c.id
+       AND t.tenant_org_id = c.tenant_org_id
+       AND t.is_active = true
+       AND t.rec_status = 1
+      WHERE c.tenant_org_id = ${tenantId}::uuid
+        AND c.id = ${cashboxId}::uuid
+        AND c.is_active = true
+        AND c.rec_status = 1
+      GROUP BY c.id, c.opening_balance
+    `);
+
+    const row = rows[0];
+    if (!row) {
+      throw new Error('Petty cash cashbox not found');
+    }
+    return {
+      opening_balance: Number(row.opening_balance ?? 0),
+      current_balance: Number(row.current_balance ?? 0),
+    };
+  }
+
+  private static async assertApprovalSourceExists(
+    tenantId: string,
+    sourceDocType: 'EXPENSE' | 'CASH_TXN',
+    sourceDocId: string,
+    db: PrismaSqlExecutor = prisma
+  ): Promise<void> {
+    const rows =
+      sourceDocType === 'EXPENSE'
+        ? await db.$queryRaw<{ id: string }[]>(Prisma.sql`
+            SELECT id::text AS id
+            FROM public.org_fin_exp_mst
+            WHERE tenant_org_id = ${tenantId}::uuid
+              AND id = ${sourceDocId}::uuid
+              AND is_active = true
+              AND rec_status = 1
+            LIMIT 1
+          `)
+        : await db.$queryRaw<{ id: string }[]>(Prisma.sql`
+            SELECT id::text AS id
+            FROM public.org_fin_cash_txn_tr
+            WHERE tenant_org_id = ${tenantId}::uuid
+              AND id = ${sourceDocId}::uuid
+              AND is_active = true
+              AND rec_status = 1
+            LIMIT 1
+          `);
+    if (!rows[0]) {
+      throw new Error('Selected approval document was not found for this tenant');
+    }
   }
 
   private static async assertValidBranch(

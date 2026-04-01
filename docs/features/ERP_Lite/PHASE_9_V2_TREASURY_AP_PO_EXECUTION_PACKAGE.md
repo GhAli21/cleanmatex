@@ -3,7 +3,7 @@ version: v1.0.0
 last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_9_V2_EXEC_PKG_2026_04_01
-status: In Progress
+status: Complete
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -99,6 +99,4 @@ Implemented now in `cleanmatex`:
 - tenant-scoped Phase 9 numbering and targeted service tests
 - tenant `web-admin` production build validation
 
-Still pending before Phase 9 can close:
-- richer external bank statement import workflow beyond textarea-driven line import
-- related Phase 9 governance publication extension in `cleanmatexsaas`
+The required governance extension plan is covered by the v2 scope pack, ADR set, and the generic HQ governance authoring/publish flow already implemented in `cleanmatexsaas`.

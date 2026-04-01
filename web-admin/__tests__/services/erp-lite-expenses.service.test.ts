@@ -44,6 +44,8 @@ describe('ErpLiteExpensesService', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-03-31T12:00:00.000Z'));
     jest.clearAllMocks();
+    mockQueryRaw.mockReset();
+    mockTxQueryRaw.mockReset();
     mockTransaction.mockImplementation(async (fn: (tx: { $queryRaw: typeof mockTxQueryRaw }) => Promise<unknown>) =>
       fn({ $queryRaw: mockTxQueryRaw })
     );
@@ -196,5 +198,41 @@ describe('ErpLiteExpensesService', () => {
         currency_code: 'OMR',
       })
     ).rejects.toThrow('Selected account is not an active petty cash account for this tenant');
+  });
+
+  it('creates an approval request for an expense document', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([{ id: 'expense-1' }])
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([]);
+
+    await ErpLiteExpensesService.createApprovalRequest({
+      source_doc_type: 'EXPENSE',
+      source_doc_id: 'expense-1',
+      action_note: 'Need manager review',
+    });
+
+    const insertQuery = mockQueryRaw.mock.calls[2]?.[0];
+    expect(insertQuery?.values).toContain('EXPENSE');
+    expect(insertQuery?.values).toContain('expense-1');
+  });
+
+  it('creates a petty cash reconciliation using the derived cashbox balance', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([{ id: 'cashbox-1', branch_id: 'branch-2', currency_code: 'OMR' }])
+      .mockResolvedValueOnce([{ opening_balance: 10, current_balance: 18 }])
+      .mockResolvedValueOnce([{ count: 0 }])
+      .mockResolvedValueOnce([{ id: 'recon-1', recon_no: 'PCR-202603-00001' }]);
+
+    await ErpLiteExpensesService.createCashReconciliation({
+      cashbox_id: 'cashbox-1',
+      recon_date: '2026-03-31',
+      counted_balance: 16,
+      note: 'Counted at shift close',
+    });
+
+    const insertQuery = mockQueryRaw.mock.calls.at(-1)?.[0];
+    expect(insertQuery?.values).toContain(16);
+    expect(insertQuery?.values).toContain('Counted at shift close');
   });
 });

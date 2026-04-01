@@ -107,3 +107,102 @@ export async function createErpLiteCashTxnAction(formData: FormData) {
   revalidatePath('/dashboard/erp-lite/expenses');
   redirectExpenses(notice);
 }
+
+export async function createErpLiteApprovalRequestAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.createApprovalRequest({
+      source_doc_type: getRequiredString(formData, 'source_doc_type') as 'EXPENSE' | 'CASH_TXN',
+      source_doc_id: getRequiredString(formData, 'source_doc_id'),
+      action_note: getOptionalString(formData, 'action_note'),
+    });
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'approval-request-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('approval-request-created');
+}
+
+export async function approveErpLiteApprovalAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.processApproval({
+      approval_id: getRequiredString(formData, 'approval_id'),
+      decision: 'APPROVED',
+      action_note: getOptionalString(formData, 'action_note'),
+    });
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'approval-process-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('approval-approved');
+}
+
+export async function rejectErpLiteApprovalAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.processApproval({
+      approval_id: getRequiredString(formData, 'approval_id'),
+      decision: 'REJECTED',
+      action_note: getOptionalString(formData, 'action_note'),
+    });
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'approval-process-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('approval-rejected');
+}
+
+export async function createErpLiteCashReconciliationAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.createCashReconciliation({
+      cashbox_id: getRequiredString(formData, 'cashbox_id'),
+      recon_date: getRequiredString(formData, 'recon_date'),
+      counted_balance: getRequiredNumber(formData, 'counted_balance'),
+      note: getOptionalString(formData, 'note'),
+    });
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'cash-recon-create-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('cash-recon-created');
+}
+
+export async function createErpLiteCashReconciliationExceptionAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.addCashReconciliationException({
+      cash_recon_id: getRequiredString(formData, 'cash_recon_id'),
+      reason_code: getRequiredString(formData, 'reason_code'),
+      amount: getRequiredNumber(formData, 'amount'),
+      note: getOptionalString(formData, 'note'),
+    });
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'cash-recon-exception-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('cash-recon-exception-created');
+}
+
+export async function closeErpLiteCashReconciliationAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.closeCashReconciliation(getRequiredString(formData, 'cash_recon_id'));
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'cash-recon-close-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('cash-recon-closed');
+}
+
+export async function lockErpLiteCashReconciliationAction(formData: FormData) {
+  try {
+    await ErpLiteExpensesService.lockCashReconciliation(getRequiredString(formData, 'cash_recon_id'));
+  } catch (error) {
+    redirectExpenses(undefined, error instanceof Error ? error.message : 'cash-recon-lock-failed');
+  }
+
+  revalidatePath('/dashboard/erp-lite/expenses');
+  redirectExpenses('cash-recon-locked');
+}

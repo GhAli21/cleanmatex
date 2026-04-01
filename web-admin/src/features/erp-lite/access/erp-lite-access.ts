@@ -202,6 +202,80 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_branch_pl_enabled'],
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Create allocation rule',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRuleAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create allocation run',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRunAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Add allocation line',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.addErpLiteAllocationRunLineAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Post allocation run',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.postErpLiteAllocationRunAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create cost component',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteCostComponentAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create cost run',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteCostRunAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Add cost run detail',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.addErpLiteCostRunDetailAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Post cost run',
+        method: 'POST',
+        path: 'app/actions/erp-lite/branch-pl-actions.postErpLiteCostRunAction',
+        requirement: {
+          permissions: ['erp_lite_branch_pl:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: ERP_LITE_RUNTIME_NOTES,
   },
 ]

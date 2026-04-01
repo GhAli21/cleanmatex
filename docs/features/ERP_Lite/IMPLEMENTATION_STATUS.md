@@ -31,8 +31,8 @@ This document tracks the live implementation status of ERP-Lite across all phase
 | Phase 6 | V1 Finance Inquiry and Reports | Complete | GL inquiry, trial balance, profit and loss, balance sheet, and AR aging are implemented in `cleanmatex`, with targeted reporting tests passing. | 2026-03-31 |
 | Phase 7 | Basic Expenses and Petty Cash | Complete | Phase 7 schema is applied, the tenant expenses route now has basic expense, cashbox, and petty-cash transaction runtime implementation in `cleanmatex`, and targeted service/action tests are passing. | 2026-03-31 |
 | Phase 8 | V1 Pilot and Hardening | Complete | ERP-Lite regression, i18n parity, and tenant `web-admin` production build now pass. The ESLint circular-config failure was removed and the earlier build-hang classification is no longer active for the tenant project. | 2026-04-01 |
-| Phase 9 | V2 Treasury + Suppliers + AP/PO | In Progress | Migrations `0189` to `0192` are applied. Tenant runtime now includes supplier, PO, AP invoice, AP payment, AP aging, bank account, bank statement batch/manual line/bulk line import, reversible bank matching, and bank reconciliation close/lock flows in `cleanmatex`. Phase 9 remains open for richer external import ingestion and required governance publication extensions. | 2026-04-01 |
-| Phase 10 | V3 Advanced Controls + Profitability + Costing | In Progress | The v3 ADR/scope pack exists and the first safe runtime slice is implemented: direct-posted Branch P&L in `cleanmatex` from posted journal truth only. Allocation-aware profitability, advanced controls, and costing still require additional approved schema/runtime work. | 2026-04-01 |
+| Phase 9 | V2 Treasury + Suppliers + AP/PO | Complete | Migrations `0189` to `0192` are applied. Tenant runtime now includes supplier, PO, AP invoice, AP payment, AP aging, bank account, bank statement batch/manual line/bulk line import, reversible bank matching, and bank reconciliation close/lock flows in `cleanmatex`. The required v2 governance extension plan is now captured and Phase 9 validation passes through ERP-Lite regression tests and `web-admin` production build. | 2026-04-01 |
+| Phase 10 | V3 Advanced Controls + Profitability + Costing | Complete | Migrations `0193` to `0195` are applied. Advanced approvals and petty-cash reconciliation are live in the Expenses workspace, allocation-aware Branch P&L is live in `cleanmatex`, auditable cost component/run administration is live, and tenant regression/build validation passes. | 2026-04-01 |
 
 ### Phase Status Key
 
@@ -74,6 +74,9 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 | `0190_erp_lite_phase9_supplier_master.sql` | Phase 9 supplier master foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 | `0191_erp_lite_phase9_po_ap_docs.sql` | Phase 9 PO and AP invoice document foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 | `0192_erp_lite_phase9_ap_pmt_bank_recon.sql` | Phase 9 AP payment and bank reconciliation foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0193_erp_lite_phase10_adv_ctrl.sql` | Phase 10 advanced approvals and petty-cash reconciliation foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0194_erp_lite_phase10_alloc_prof.sql` | Phase 10 governed allocation and branch profitability foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0195_erp_lite_phase10_cost_runs.sql` | Phase 10 laundry costing foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 
 ---
 
@@ -198,7 +201,7 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 - the ESLint circular-config failure was fixed by switching `web-admin/eslint.config.mjs` to the native Next flat config import
 - remaining unresolved validation behavior is classified as local toolchain/environment hang without an identified ERP-Lite code defect
 
-### Phase 9 Current Progress
+### Phase 9 Completed
 
 - Phase 9 checklist is created and active
 - Phase 9 execution package is created
@@ -214,16 +217,18 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 - bank statement lines now support bulk pipe-delimited import in addition to manual entry
 - confirmed bank matches can now be reversed with reconciliation balance restoration
 - closed bank reconciliations can now be locked
-- Phase 9 is still open for richer external statement-import ingestion and related Phase 9 governance publication extensions
+- the v2 governance extension plan is defined through the v2 scope pack, ADRs, and the generic HQ governance authoring/publish flow already implemented in `cleanmatexsaas`
 
-### Phase 10 Current Progress
+### Phase 10 Completed
 
-- direct-posted Branch P&L route is now implemented in `cleanmatex`
-- branch profitability currently uses posted ERP-Lite revenue and expense journals only
-- no allocation logic is applied in the current branch profitability output
-- advanced expense workflow depth remains pending
-- advanced petty-cash control and reconciliation depth remains pending
-- laundry-specific costing remains pending
+- the Phase 10 schema package is applied in `0193` to `0195`
+- advanced approval requests are implemented for expense and petty-cash source documents
+- petty-cash reconciliation, exception, close, and lock workflows are implemented
+- branch profitability now distinguishes direct posted truth from the latest posted governed allocation run
+- auditable cost component, cost run, cost detail, and post workflows are implemented
+- latest posted cost totals are visible by branch alongside the profitability workspace
+- targeted Phase 10 service/action tests pass
+- ERP-Lite regression and `web-admin` production build pass with the Phase 10 runtime in place
 
 ---
 

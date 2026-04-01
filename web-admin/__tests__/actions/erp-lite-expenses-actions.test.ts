@@ -12,6 +12,12 @@ jest.mock('next/navigation', () => ({
 
 jest.mock('@/lib/services/erp-lite-expenses.service', () => ({
   ErpLiteExpensesService: {
+    createApprovalRequest: jest.fn(),
+    processApproval: jest.fn(),
+    createCashReconciliation: jest.fn(),
+    addCashReconciliationException: jest.fn(),
+    closeCashReconciliation: jest.fn(),
+    lockCashReconciliation: jest.fn(),
     createExpense: jest.fn(),
     createCashbox: jest.fn(),
     createCashTransaction: jest.fn(),
@@ -20,15 +26,26 @@ jest.mock('@/lib/services/erp-lite-expenses.service', () => ({
 
 import { revalidatePath } from 'next/cache';
 import {
+  approveErpLiteApprovalAction,
+  createErpLiteApprovalRequestAction,
+  createErpLiteCashReconciliationAction,
+  createErpLiteCashReconciliationExceptionAction,
   createErpLiteCashTxnAction,
   createErpLiteCashboxAction,
   createErpLiteExpenseAction,
+  lockErpLiteCashReconciliationAction,
+  rejectErpLiteApprovalAction,
 } from '@/app/actions/erp-lite/expenses-actions';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 
+const mockCreateApprovalRequest = ErpLiteExpensesService.createApprovalRequest as jest.Mock;
+const mockProcessApproval = ErpLiteExpensesService.processApproval as jest.Mock;
+const mockCreateCashReconciliation = ErpLiteExpensesService.createCashReconciliation as jest.Mock;
+const mockAddCashReconciliationException = ErpLiteExpensesService.addCashReconciliationException as jest.Mock;
 const mockCreateExpense = ErpLiteExpensesService.createExpense as jest.Mock;
 const mockCreateCashbox = ErpLiteExpensesService.createCashbox as jest.Mock;
 const mockCreateCashTransaction = ErpLiteExpensesService.createCashTransaction as jest.Mock;
+const mockLockCashReconciliation = ErpLiteExpensesService.lockCashReconciliation as jest.Mock;
 const mockRevalidatePath = revalidatePath as jest.Mock;
 
 function buildFormData(entries: Record<string, string>): FormData {
@@ -101,5 +118,70 @@ describe('ERP-Lite expenses actions', () => {
     ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=cash-txn-post-skipped');
 
     expect(mockRevalidatePath).toHaveBeenCalledWith('/dashboard/erp-lite/expenses');
+  });
+
+  it('redirects approval request success with the created notice', async () => {
+    mockCreateApprovalRequest.mockResolvedValue(undefined);
+
+    await expect(
+      createErpLiteApprovalRequestAction(
+        buildFormData({
+          source_doc_type: 'EXPENSE',
+          source_doc_id: 'expense-1',
+        })
+      )
+    ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=approval-request-created');
+  });
+
+  it('redirects approval rejection success with the rejected notice', async () => {
+    mockProcessApproval.mockResolvedValue(undefined);
+
+    await expect(
+      rejectErpLiteApprovalAction(
+        buildFormData({
+          approval_id: 'approval-1',
+        })
+      )
+    ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=approval-rejected');
+  });
+
+  it('redirects cash reconciliation creation success with the created notice', async () => {
+    mockCreateCashReconciliation.mockResolvedValue(undefined);
+
+    await expect(
+      createErpLiteCashReconciliationAction(
+        buildFormData({
+          cashbox_id: 'cashbox-1',
+          recon_date: '2026-03-31',
+          counted_balance: '10',
+        })
+      )
+    ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=cash-recon-created');
+  });
+
+  it('redirects cash reconciliation exception creation success', async () => {
+    mockAddCashReconciliationException.mockResolvedValue(undefined);
+
+    await expect(
+      createErpLiteCashReconciliationExceptionAction(
+        buildFormData({
+          cash_recon_id: 'recon-1',
+          reason_code: 'SHORTAGE',
+          amount: '2',
+        })
+      )
+    ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=cash-recon-exception-created');
+  });
+
+  it('redirects cash reconciliation lock success', async () => {
+    mockLockCashReconciliation.mockResolvedValue(undefined);
+
+    await expect(
+      lockErpLiteCashReconciliationAction(
+        buildFormData({
+          cash_recon_id: 'recon-1',
+        })
+      )
+    ).rejects.toThrow('REDIRECT:/dashboard/erp-lite/expenses?notice=cash-recon-locked');
   });
 });

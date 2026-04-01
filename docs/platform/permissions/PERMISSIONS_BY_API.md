@@ -1,6 +1,6 @@
 ---
 version: v2.0.0
-last_updated: 2026-03-26
+last_updated: 2026-04-01
 author: CleanMateX Team
 ---
 
@@ -120,6 +120,14 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | ACTION | POST | `app/actions/erp-lite/v2-actions.reverseErpLiteBankMatchAction` | `erp_lite_bank_recon:view` | ERP-Lite bank match reversal action |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.closeErpLiteBankReconAction` | `erp_lite_bank_recon:view` | ERP-Lite reconciliation close action |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.lockErpLiteBankReconAction` | `erp_lite_bank_recon:view` | ERP-Lite reconciliation lock action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRuleAction` | `erp_lite_branch_pl:view` | ERP-Lite branch profitability allocation rule create action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRunAction` | `erp_lite_branch_pl:view` | ERP-Lite branch profitability allocation run create action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.addErpLiteAllocationRunLineAction` | `erp_lite_branch_pl:view` | ERP-Lite branch profitability allocation line action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.postErpLiteAllocationRunAction` | `erp_lite_branch_pl:view` | ERP-Lite branch profitability allocation run post action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.createErpLiteCostComponentAction` | `erp_lite_branch_pl:view` | ERP-Lite laundry cost component create action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.createErpLiteCostRunAction` | `erp_lite_branch_pl:view` | ERP-Lite laundry cost run create action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.addErpLiteCostRunDetailAction` | `erp_lite_branch_pl:view` | ERP-Lite laundry cost detail action |
+| ACTION | POST | `app/actions/erp-lite/branch-pl-actions.postErpLiteCostRunAction` | `erp_lite_branch_pl:view` | ERP-Lite laundry cost run post action |
 
 ## Auth-Only Or Mixed-Guard APIs
 

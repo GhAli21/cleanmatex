@@ -3619,22 +3619,135 @@
       },
     "branchPl": {
       "title": "Branch P&L",
-      "subtitle": "Direct-posted branch profitability derived from posted ERP-Lite revenue and expense journals only.",
+      "subtitle": "Branch profitability combines direct posted finance truth with the latest posted governed allocation run, while costing remains visible as a separate audited layer.",
       "eyebrow": "ERP-Lite Branch P&L",
+      "notices": {
+        "allocation-rule-created": "Allocation rule created successfully.",
+        "allocation-run-created": "Allocation run draft created successfully.",
+        "allocation-line-created": "Allocation run line added successfully.",
+        "allocation-run-posted": "Allocation run posted successfully.",
+        "cost-component-created": "Cost component created successfully.",
+        "cost-run-created": "Cost run draft created successfully.",
+        "cost-run-detail-created": "Cost run detail added successfully.",
+        "cost-run-posted": "Cost run posted successfully."
+      },
       "summary": {
         "revenue": "Direct Revenue",
         "expense": "Direct Expense",
-        "profit": "Direct Profit"
+        "directProfit": "Direct Profit",
+        "allocatedProfit": "Final Profit After Allocations"
       },
       "list": {
         "title": "Branch Profitability",
-        "subtitle": "This view excludes future allocation logic and shows only posted branch-attributed finance truth.",
+        "subtitle": "This view preserves direct finance truth, then layers the latest posted governed allocation run on top of it.",
         "empty": "No posted branch profitability data found.",
         "columns": {
           "branch": "Branch",
           "revenue": "Revenue",
           "expense": "Expense",
-          "profit": "Profit"
+          "directProfit": "Direct Profit",
+          "allocatedIn": "Allocated In",
+          "allocatedOut": "Allocated Out",
+          "finalProfit": "Final Profit"
+        }
+      },
+      "forms": {
+        "allocationRule": {
+          "title": "Create Allocation Rule",
+          "subtitle": "Define a governed branch profitability allocation rule without hiding direct finance truth.",
+          "submit": "Create Allocation Rule",
+          "fields": {
+            "code": "Rule Code",
+            "name": "Rule Name",
+            "name2": "Rule Name (Arabic)",
+            "basis": "Allocation Basis",
+            "effectiveFrom": "Effective From"
+          }
+        },
+        "allocationRun": {
+          "title": "Create Allocation Run",
+          "subtitle": "Open a draft allocation run before adding branch allocation lines.",
+          "submit": "Create Allocation Run",
+          "fields": {
+            "runDate": "Run Date"
+          }
+        },
+        "allocationLine": {
+          "title": "Add Allocation Line",
+          "subtitle": "Capture an auditable manual allocation line into a draft run.",
+          "submit": "Add Allocation Line",
+          "fields": {
+            "run": "Allocation Run",
+            "rule": "Allocation Rule",
+            "sourceBranch": "Source Branch",
+            "targetBranch": "Target Branch",
+            "sourceAmount": "Source Amount",
+            "allocAmount": "Allocated Amount"
+          }
+        },
+        "costComponent": {
+          "title": "Create Cost Component",
+          "subtitle": "Define the approved laundry cost component catalog for rerunnable cost runs.",
+          "submit": "Create Cost Component",
+          "fields": {
+            "code": "Component Code",
+            "name": "Component Name",
+            "name2": "Component Name (Arabic)",
+            "class": "Cost Class",
+            "basis": "Cost Basis"
+          }
+        },
+        "costRun": {
+          "title": "Create Cost Run",
+          "subtitle": "Open a draft cost run before loading detailed cost rows.",
+          "submit": "Create Cost Run",
+          "fields": {
+            "runDate": "Run Date"
+          }
+        },
+        "costRunDetail": {
+          "title": "Add Cost Run Detail",
+          "subtitle": "Record audited costing detail rows into a draft cost run.",
+          "submit": "Add Cost Detail",
+          "fields": {
+            "run": "Cost Run",
+            "component": "Cost Component",
+            "branch": "Branch",
+            "basisValue": "Basis Value",
+            "allocAmount": "Allocated Amount",
+            "unitCost": "Unit Cost",
+            "totalCost": "Total Cost"
+          }
+        }
+      },
+      "lists": {
+        "allocationRules": {
+          "title": "Allocation Rules",
+          "subtitle": "Active profitability allocation rules available for new draft runs.",
+          "empty": "No allocation rules created yet."
+        },
+        "allocationRuns": {
+          "title": "Allocation Runs",
+          "subtitle": "Draft and posted branch profitability allocation runs.",
+          "empty": "No allocation runs found.",
+          "lines": "lines",
+          "post": "Post Allocation Run"
+        },
+        "costRuns": {
+          "title": "Cost Runs",
+          "subtitle": "Draft and posted laundry cost runs with auditable totals.",
+          "empty": "No cost runs found.",
+          "lines": "lines",
+          "post": "Post Cost Run"
+        },
+        "costSummary": {
+          "title": "Latest Cost Summary",
+          "subtitle": "Branch totals from the latest posted cost run.",
+          "empty": "No posted cost summary found.",
+          "columns": {
+            "branch": "Branch",
+            "totalCost": "Total Cost"
+          }
         }
       }
     }
@@ -3650,7 +3763,14 @@
         "cashbox-created": "Petty cash box created successfully.",
         "cash-txn-created": "Petty cash transaction saved and queued through ERP-Lite posting.",
         "cash-txn-post-failed": "Petty cash transaction saved, but finance posting failed and entered the exception path.",
-        "cash-txn-post-skipped": "Petty cash transaction saved, but auto-post policy was not active for this event."
+        "cash-txn-post-skipped": "Petty cash transaction saved, but auto-post policy was not active for this event.",
+        "approval-request-created": "Approval request created successfully.",
+        "approval-approved": "Approval request approved.",
+        "approval-rejected": "Approval request rejected.",
+        "cash-recon-created": "Petty cash reconciliation created successfully.",
+        "cash-recon-exception-created": "Petty cash reconciliation exception created successfully.",
+        "cash-recon-closed": "Petty cash reconciliation closed successfully.",
+        "cash-recon-locked": "Petty cash reconciliation locked successfully."
       },
       "settlement": {
         "cash": "Cash",
@@ -3710,6 +3830,42 @@
             "amount": "Amount",
             "description": "Description"
           }
+        },
+        "approval": {
+          "title": "Request Approval",
+          "subtitle": "Create an advanced approval step for an expense or petty cash document.",
+          "submit": "Create Approval Request",
+          "docTypes": {
+            "expense": "Expense",
+            "cashTxn": "Petty Cash Transaction"
+          },
+          "fields": {
+            "docType": "Document Type",
+            "document": "Document",
+            "note": "Approval Note"
+          }
+        },
+        "cashRecon": {
+          "title": "Create Cash Reconciliation",
+          "subtitle": "Capture counted petty cash against the expected cashbox balance.",
+          "submit": "Create Reconciliation",
+          "fields": {
+            "cashbox": "Cash Box",
+            "reconDate": "Reconciliation Date",
+            "countedBalance": "Counted Balance",
+            "note": "Reconciliation Note"
+          }
+        },
+        "cashReconException": {
+          "title": "Record Reconciliation Exception",
+          "subtitle": "Log a shortage, overage, or other audited petty cash variance.",
+          "submit": "Create Exception",
+          "fields": {
+            "reconciliation": "Reconciliation",
+            "reasonCode": "Reason Code",
+            "amount": "Variance Amount",
+            "note": "Exception Note"
+          }
         }
       },
       "lists": {
@@ -3736,6 +3892,23 @@
           "title": "Recent Petty Cash Transactions",
           "subtitle": "Latest petty cash top-up and spend entries.",
           "empty": "No petty cash transactions recorded yet."
+        },
+        "approvals": {
+          "title": "Approval Queue",
+          "subtitle": "Recent advanced approval requests for ERP-Lite expense and petty cash documents.",
+          "empty": "No approval requests created yet.",
+          "approve": "Approve",
+          "reject": "Reject"
+        },
+        "cashRecons": {
+          "title": "Petty Cash Reconciliations",
+          "subtitle": "Recent petty cash reconciliation headers with expected and counted balances.",
+          "empty": "No petty cash reconciliations created yet.",
+          "expected": "Expected",
+          "counted": "Counted",
+          "variance": "Variance",
+          "close": "Close Reconciliation",
+          "lock": "Lock Reconciliation"
         }
       }
     },

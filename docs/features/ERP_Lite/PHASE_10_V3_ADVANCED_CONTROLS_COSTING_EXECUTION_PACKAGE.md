@@ -3,7 +3,7 @@ version: v1.0.0
 last_updated: 2026-04-01
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_10_V3_EXEC_PKG_2026_04_01
-status: In Progress
+status: Complete
 implementation_project: cross-project
 project_context:
   - cleanmatexsaas (Platform Level HQ)
@@ -50,15 +50,15 @@ Current status:
 
 1. v3 direction is validated
 2. v3 decision and ADR pack exists
-3. the first safe v3 slice is implemented where current schema already supports direct-posted truth without allocation logic
+3. the v3 runtime slice is implemented on top of the applied Phase 10 schema package with audited advanced controls, governed allocation runs, and rerunnable cost runs
 
 ## 6. Current Runtime Slice
 
 Implemented now in `cleanmatex`:
-- direct-posted Branch P&L based on posted ERP-Lite revenue and expense journals
-
-Still blocked:
-- allocation-aware branch profitability
-- advanced expense workflow depth
-- advanced petty-cash control depth
-- laundry-specific costing runtime
+- advanced expense approvals and petty-cash reconciliation controls in the Expenses workspace
+- allocation-aware Branch P&L based on posted ERP-Lite revenue and expense journals plus the latest posted governed allocation run
+- latest posted cost summary and auditable cost-run administration in the Branch P&L workspace
+- Phase 10 schema package applied:
+  - `0193_erp_lite_phase10_adv_ctrl.sql`
+  - `0194_erp_lite_phase10_alloc_prof.sql`
+  - `0195_erp_lite_phase10_cost_runs.sql`

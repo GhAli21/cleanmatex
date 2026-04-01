@@ -1,6 +1,6 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-26
+last_updated: 2026-04-01
 author: CleanMateX Team
 ---
 
@@ -40,7 +40,7 @@ Legend:
 | `/dashboard/erp-lite/bank-recon` | Bank Reconciliation | `erp_lite_bank_recon:view` | `erp_lite_enabled`, `erp_lite_bank_recon_enabled` | None | None | Live Phase 9 treasury foundation route |
 | `/dashboard/erp-lite/ap` | Accounts Payable | `erp_lite_ap:view` | `erp_lite_enabled`, `erp_lite_ap_enabled` | None | None | Live Phase 9 supplier/AP foundation route |
 | `/dashboard/erp-lite/po` | Purchase Orders | `erp_lite_po:view` | `erp_lite_enabled`, `erp_lite_po_enabled` | None | None | Live Phase 9 procurement foundation route |
-| `/dashboard/erp-lite/branch-pl` | Branch P&L | `erp_lite_branch_pl:view` | `erp_lite_enabled`, `erp_lite_branch_pl_enabled` | None | None | Live direct-posted branch profitability route |
+| `/dashboard/erp-lite/branch-pl` | Branch P&L | `erp_lite_branch_pl:view` | `erp_lite_enabled`, `erp_lite_branch_pl_enabled` | None | None | Live allocation-aware profitability and costing controls route; linked server actions are documented in the API inventory |
 | `/dashboard/reports` | Reports | None | `advanced_analytics` | None | None | Feature-flag page gate |
 | `/dashboard/reports/orders` | Orders Report | None | `advanced_analytics` | None | None | Feature-flag page gate |
 | `/dashboard/reports/payments` | Payments Report | None | `advanced_analytics` | None | None | Feature-flag page gate |

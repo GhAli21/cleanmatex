@@ -16,9 +16,16 @@ import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import {
+  approveErpLiteApprovalAction,
   createErpLiteCashTxnAction,
+  createErpLiteApprovalRequestAction,
+  createErpLiteCashReconciliationAction,
+  createErpLiteCashReconciliationExceptionAction,
   createErpLiteCashboxAction,
   createErpLiteExpenseAction,
+  closeErpLiteCashReconciliationAction,
+  lockErpLiteCashReconciliationAction,
+  rejectErpLiteApprovalAction,
 } from '@/app/actions/erp-lite/expenses-actions';
 
 type SearchParamsValue = string | string[] | undefined;
@@ -255,6 +262,127 @@ export default async function ErpLiteExpensesPage({
           </CmxCard>
         </div>
 
+        <div className="grid gap-4 xl:grid-cols-3">
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t('forms.approval.title')}</CmxCardTitle>
+              <CmxCardDescription>{t('forms.approval.subtitle')}</CmxCardDescription>
+            </CmxCardHeader>
+            <CmxCardContent>
+              <form action={createErpLiteApprovalRequestAction} className="space-y-3">
+                <CmxSelect
+                  name="source_doc_type"
+                  label={t('forms.approval.fields.docType')}
+                  defaultValue="EXPENSE"
+                  options={[
+                    { value: 'EXPENSE', label: t('forms.approval.docTypes.expense') },
+                    { value: 'CASH_TXN', label: t('forms.approval.docTypes.cashTxn') },
+                  ]}
+                />
+                <CmxSelect
+                  name="source_doc_id"
+                  label={t('forms.approval.fields.document')}
+                  defaultValue=""
+                  options={[
+                    ...snapshot.expense_options.map((item) => ({ value: item.id, label: `${t('forms.approval.docTypes.expense')}: ${item.label}` })),
+                    ...snapshot.cash_txn_options.map((item) => ({ value: item.id, label: `${t('forms.approval.docTypes.cashTxn')}: ${item.label}` })),
+                  ]}
+                  required
+                />
+                <CmxTextarea
+                  name="action_note"
+                  label={t('forms.approval.fields.note')}
+                />
+                <CmxButton type="submit" className="w-full">
+                  {t('forms.approval.submit')}
+                </CmxButton>
+              </form>
+            </CmxCardContent>
+          </CmxCard>
+
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t('forms.cashRecon.title')}</CmxCardTitle>
+              <CmxCardDescription>{t('forms.cashRecon.subtitle')}</CmxCardDescription>
+            </CmxCardHeader>
+            <CmxCardContent>
+              <form action={createErpLiteCashReconciliationAction} className="space-y-3">
+                <CmxSelect
+                  name="cashbox_id"
+                  label={t('forms.cashRecon.fields.cashbox')}
+                  defaultValue=""
+                  options={snapshot.cashbox_options.map((item) => ({
+                    value: item.id,
+                    label: item.label,
+                  }))}
+                  required
+                />
+                <CmxInput
+                  name="recon_date"
+                  type="date"
+                  label={t('forms.cashRecon.fields.reconDate')}
+                  required
+                />
+                <CmxInput
+                  name="counted_balance"
+                  type="number"
+                  step="0.0001"
+                  label={t('forms.cashRecon.fields.countedBalance')}
+                  required
+                />
+                <CmxTextarea
+                  name="note"
+                  label={t('forms.cashRecon.fields.note')}
+                />
+                <CmxButton type="submit" className="w-full">
+                  {t('forms.cashRecon.submit')}
+                </CmxButton>
+              </form>
+            </CmxCardContent>
+          </CmxCard>
+
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t('forms.cashReconException.title')}</CmxCardTitle>
+              <CmxCardDescription>{t('forms.cashReconException.subtitle')}</CmxCardDescription>
+            </CmxCardHeader>
+            <CmxCardContent>
+              <form action={createErpLiteCashReconciliationExceptionAction} className="space-y-3">
+                <CmxSelect
+                  name="cash_recon_id"
+                  label={t('forms.cashReconException.fields.reconciliation')}
+                  defaultValue=""
+                  options={snapshot.cash_recon_list.map((item) => ({
+                    value: item.id,
+                    label: `${item.recon_no} · ${item.cashbox_name}`,
+                  }))}
+                  required
+                />
+                <CmxInput
+                  name="reason_code"
+                  label={t('forms.cashReconException.fields.reasonCode')}
+                  placeholder="SHORTAGE"
+                  required
+                />
+                <CmxInput
+                  name="amount"
+                  type="number"
+                  step="0.0001"
+                  label={t('forms.cashReconException.fields.amount')}
+                  required
+                />
+                <CmxTextarea
+                  name="note"
+                  label={t('forms.cashReconException.fields.note')}
+                />
+                <CmxButton type="submit" className="w-full">
+                  {t('forms.cashReconException.submit')}
+                </CmxButton>
+              </form>
+            </CmxCardContent>
+          </CmxCard>
+        </div>
+
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
           <CmxCard>
             <CmxCardHeader>
@@ -304,6 +432,46 @@ export default async function ErpLiteExpensesPage({
           <div className="space-y-4">
             <CmxCard>
               <CmxCardHeader>
+                <CmxCardTitle>{t('lists.approvals.title')}</CmxCardTitle>
+                <CmxCardDescription>{t('lists.approvals.subtitle')}</CmxCardDescription>
+              </CmxCardHeader>
+              <CmxCardContent className="space-y-3">
+                {snapshot.approval_list.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('lists.approvals.empty')}</p>
+                ) : (
+                  snapshot.approval_list.map((item) => (
+                    <div key={item.id} className="rounded-lg border border-border p-3">
+                      <div className="font-medium">{item.source_doc_no}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {t(`forms.approval.docTypes.${item.source_doc_type === 'EXPENSE' ? 'expense' : 'cashTxn'}`)} · {item.status_code}
+                      </div>
+                      {item.action_note ? (
+                        <div className="mt-2 text-xs text-muted-foreground">{item.action_note}</div>
+                      ) : null}
+                      {item.status_code === 'PENDING' ? (
+                        <div className="mt-3 grid gap-2 md:grid-cols-2">
+                          <form action={approveErpLiteApprovalAction}>
+                            <input type="hidden" name="approval_id" value={item.id} />
+                            <CmxButton type="submit" variant="outline" className="w-full">
+                              {t('lists.approvals.approve')}
+                            </CmxButton>
+                          </form>
+                          <form action={rejectErpLiteApprovalAction}>
+                            <input type="hidden" name="approval_id" value={item.id} />
+                            <CmxButton type="submit" variant="outline" className="w-full">
+                              {t('lists.approvals.reject')}
+                            </CmxButton>
+                          </form>
+                        </div>
+                      ) : null}
+                    </div>
+                  ))
+                )}
+              </CmxCardContent>
+            </CmxCard>
+
+            <CmxCard>
+              <CmxCardHeader>
                 <CmxCardTitle>{t('lists.cashboxes.title')}</CmxCardTitle>
                 <CmxCardDescription>{t('lists.cashboxes.subtitle')}</CmxCardDescription>
               </CmxCardHeader>
@@ -326,6 +494,49 @@ export default async function ErpLiteExpensesPage({
                           {item.current_balance.toFixed(4)} {item.currency_code}
                         </span>
                       </div>
+                    </div>
+                  ))
+                )}
+              </CmxCardContent>
+            </CmxCard>
+
+            <CmxCard>
+              <CmxCardHeader>
+                <CmxCardTitle>{t('lists.cashRecons.title')}</CmxCardTitle>
+                <CmxCardDescription>{t('lists.cashRecons.subtitle')}</CmxCardDescription>
+              </CmxCardHeader>
+              <CmxCardContent className="space-y-3">
+                {snapshot.cash_recon_list.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">{t('lists.cashRecons.empty')}</p>
+                ) : (
+                  snapshot.cash_recon_list.map((item) => (
+                    <div key={item.id} className="rounded-lg border border-border p-3">
+                      <div className="font-medium">{item.recon_no} · {item.cashbox_name}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">{item.recon_date}</div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {t('lists.cashRecons.expected')}: {item.expected_balance.toFixed(4)} ·
+                        {' '}
+                        {t('lists.cashRecons.counted')}: {item.counted_balance.toFixed(4)}
+                      </div>
+                      <div className="mt-3 text-sm font-semibold">
+                        {t('lists.cashRecons.variance')}: {item.variance_amount.toFixed(4)} · {item.status_code}
+                      </div>
+                      {item.status_code === 'OPEN' ? (
+                        <form action={closeErpLiteCashReconciliationAction} className="mt-3">
+                          <input type="hidden" name="cash_recon_id" value={item.id} />
+                          <CmxButton type="submit" variant="outline" className="w-full">
+                            {t('lists.cashRecons.close')}
+                          </CmxButton>
+                        </form>
+                      ) : null}
+                      {item.status_code === 'CLOSED' ? (
+                        <form action={lockErpLiteCashReconciliationAction} className="mt-3">
+                          <input type="hidden" name="cash_recon_id" value={item.id} />
+                          <CmxButton type="submit" variant="outline" className="w-full">
+                            {t('lists.cashRecons.lock')}
+                          </CmxButton>
+                        </form>
+                      ) : null}
                     </div>
                   ))
                 )}

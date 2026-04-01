@@ -1,6 +1,6 @@
 ---
 version: v1.1.0
-last_updated: 2026-03-28
+last_updated: 2026-04-01
 author: CleanMateX Team
 ---
 
@@ -70,20 +70,20 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md) | Complete | Implementation-ready Phase 2B package for HQ governance app work in `cleanmatexsaas`; authoring/editing is implemented and local sibling build validation is limited only by missing `nest` and `next` binaries |
 | [PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md](PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md) | ✅ Complete | Exact Phase 3 checklist for tenant finance schema work in `cleanmatex` |
 | [PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md](PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 3 package for tenant finance schema work in `cleanmatex` |
-| [PHASE_4_POSTING_ENGINE_CHECKLIST.md](PHASE_4_POSTING_ENGINE_CHECKLIST.md) | Draft | Exact Phase 4 checklist for posting-engine work in `cleanmatex` |
-| [PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md](PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 4 package for posting-engine work in `cleanmatex` |
-| [PHASE_5_CORE_AUTO_POST_CHECKLIST.md](PHASE_5_CORE_AUTO_POST_CHECKLIST.md) | Draft | Exact Phase 5 checklist for invoice, payment, and refund auto-post integration in `cleanmatex` |
-| [PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md](PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md) | Draft | Implementation-ready Phase 5 package for governed auto-post integration in `cleanmatex` |
+| [PHASE_4_POSTING_ENGINE_CHECKLIST.md](PHASE_4_POSTING_ENGINE_CHECKLIST.md) | ✅ Complete | Exact Phase 4 checklist for posting-engine work in `cleanmatex` |
+| [PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md](PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 4 package for posting-engine work in `cleanmatex` |
+| [PHASE_5_CORE_AUTO_POST_CHECKLIST.md](PHASE_5_CORE_AUTO_POST_CHECKLIST.md) | ✅ Complete | Exact Phase 5 checklist for invoice, payment, and refund auto-post integration in `cleanmatex` |
+| [PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md](PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 5 package for governed auto-post integration in `cleanmatex` |
 | [PHASE_6_FINANCE_INQUIRY_REPORTS_CHECKLIST.md](PHASE_6_FINANCE_INQUIRY_REPORTS_CHECKLIST.md) | ✅ Complete | Exact Phase 6 checklist for finance inquiry and journal-driven reporting in `cleanmatex` |
 | [PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md](PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 6 package for GL inquiry, trial balance, P&L, balance sheet, and AR aging in `cleanmatex` |
 | [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md) | ✅ Complete | Exact Phase 7 checklist for basic expenses and petty cash in `cleanmatex` |
 | [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 7 package for expense source documents and petty cash runtime foundations in `cleanmatex` |
-| [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md) | Complete | Exact Phase 8 checklist for v1 pilot and hardening in `cleanmatex` |
-| [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md) | Complete | Implementation-ready Phase 8 package for ERP-Lite regression and final hardening in `cleanmatex` |
-| [PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md](PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md) | In Progress | Exact Phase 9 checklist for treasury, suppliers, AP, and PO across `cleanmatexsaas` governance extension and `cleanmatex` runtime |
-| [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md) | In Progress | Implementation-ready Phase 9 package with the first v2 schema package split and validation rules |
-| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md) | Planned | Exact Phase 10 checklist for advanced controls, profitability, and costing |
-| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md) | Planned | Implementation-ready Phase 10 structure, blocked on a dedicated v3 ADR pack |
+| [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md) | ✅ Complete | Exact Phase 8 checklist for v1 pilot and hardening in `cleanmatex` |
+| [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 8 package for ERP-Lite regression and final hardening in `cleanmatex` |
+| [PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md](PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md) | ✅ Complete | Exact Phase 9 checklist for treasury, suppliers, AP, and PO across `cleanmatexsaas` governance extension and `cleanmatex` runtime |
+| [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 9 package with the applied v2 schema/runtime split and validation rules |
+| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md) | ✅ Complete | Exact Phase 10 checklist for advanced controls, profitability, and costing |
+| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 10 structure with applied schema, allocation-aware profitability, and audited costing runtime |
 | [V2_SCOPE_AND_DECISION_PACK.md](V2_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v2 business and implementation boundaries for treasury, suppliers, AP, and PO |
 | [V3_SCOPE_AND_DECISION_PACK.md](V3_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v3 business and implementation boundaries for advanced controls, profitability, and costing |
 | [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md) | Draft | Supplier and AP governance model for v2 |
