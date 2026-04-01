@@ -5,24 +5,18 @@
   "private": true,
   "scripts": {
     "validate:env": "node scripts/validate-env.js",
-
     "services:start:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/start-services.ps1",
     "services:stop:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/dev/stop-services.ps1",
     "test:smoke:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/smoke-test.ps1",
-
-
     "supabase:start": "cd supabase && supabase start",
     "supabase:stop": "cd supabase && supabase stop",
     "supabase:status": "cd supabase && supabase status",
-    
     "supabase:types": "cd supabase && supabase gen types typescript --local > ../web-admin/types/database.ts",
-
     "docs:extract-permissions": "tsx scripts/docs/extract-permissions.ts",
     "docs:extract-settings": "tsx scripts/docs/extract-settings-usage.ts",
     "docs:extract-feature-flags": "tsx scripts/docs/extract-feature-flags.ts",
     "docs:extract-api-auth-audit": "tsx scripts/docs/extract-api-auth-audit.ts",
     "docs:validate": "tsx scripts/docs/validate-docs.ts",
-
     "web-admin:dev": "npm run dev --workspace=web-admin",
     "web-admin:build": "npm run build --workspace=web-admin",
     "web-admin:build:safe": "npm run build:safe --workspace=web-admin",
@@ -33,7 +27,6 @@
     "web-admin:test": "npm run test --workspace=web-admin",
     "web-admin:test:e2e": "npm run test:e2e --workspace=web-admin",
     "web-admin:verify": "npm run verify --workspace=web-admin",
-
     "build": "npm run web-admin:build",
     "typecheck": "npm run web-admin:typecheck",
     "lint": "npm run web-admin:lint",
@@ -57,6 +50,7 @@
     "packages/*"
   ],
   "devDependencies": {
+    "supabase": "^2.84.5",
     "tsx": "^4.19.0"
   }
 }

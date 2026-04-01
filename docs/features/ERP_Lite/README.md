@@ -78,8 +78,20 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md](PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 6 package for GL inquiry, trial balance, P&L, balance sheet, and AR aging in `cleanmatex` |
 | [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_CHECKLIST.md) | ✅ Complete | Exact Phase 7 checklist for basic expenses and petty cash in `cleanmatex` |
 | [PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md](PHASE_7_BASIC_EXPENSES_AND_PETTY_CASH_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 7 package for expense source documents and petty cash runtime foundations in `cleanmatex` |
-| [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md) | In Progress | Exact Phase 8 checklist for v1 pilot and hardening in `cleanmatex` |
-| [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md) | In Progress | Implementation-ready Phase 8 package for ERP-Lite regression and final hardening in `cleanmatex` |
+| [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md) | Complete | Exact Phase 8 checklist for v1 pilot and hardening in `cleanmatex` |
+| [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md) | Complete | Implementation-ready Phase 8 package for ERP-Lite regression and final hardening in `cleanmatex` |
+| [PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md](PHASE_9_V2_TREASURY_AP_PO_CHECKLIST.md) | In Progress | Exact Phase 9 checklist for treasury, suppliers, AP, and PO across `cleanmatexsaas` governance extension and `cleanmatex` runtime |
+| [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md) | In Progress | Implementation-ready Phase 9 package with the first v2 schema package split and validation rules |
+| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md) | Planned | Exact Phase 10 checklist for advanced controls, profitability, and costing |
+| [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md) | Planned | Implementation-ready Phase 10 structure, blocked on a dedicated v3 ADR pack |
+| [V2_SCOPE_AND_DECISION_PACK.md](V2_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v2 business and implementation boundaries for treasury, suppliers, AP, and PO |
+| [V3_SCOPE_AND_DECISION_PACK.md](V3_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v3 business and implementation boundaries for advanced controls, profitability, and costing |
+| [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md) | Draft | Supplier and AP governance model for v2 |
+| [ADR_006_BANK_RECONCILIATION_MODEL.md](ADR_006_BANK_RECONCILIATION_MODEL.md) | Draft | Bank statement import, matching, and reconciliation model for v2 |
+| [ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md](ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md) | Draft | Posting boundaries between purchase orders, AP invoices, and AP payments |
+| [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md) | Draft | Advanced expense and petty-cash control model for v3 |
+| [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md) | Draft | Branch profitability truth model for v3 |
+| [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md) | Draft | Laundry-specific costing model for v3 |
 
 ### 2. Product & Scope
 

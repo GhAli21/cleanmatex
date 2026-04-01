@@ -3721,6 +3721,217 @@
           "empty": "No petty cash transactions recorded yet."
         }
       }
+    },
+    "ap": {
+      "eyebrow": "ERP-Lite AP",
+      "title": "Suppliers and Accounts Payable",
+      "subtitle": "Manage supplier setup, AP invoices, and AP payments on the tenant runtime foundation prepared for Phase 9.",
+      "notices": {
+        "supplier-created": "Supplier created successfully.",
+        "ap-invoice-created": "AP invoice created successfully.",
+        "ap-payment-created": "AP payment created and allocated successfully."
+      },
+      "settlement": {
+        "cash": "Cash",
+        "bank": "Bank"
+      },
+      "forms": {
+        "placeholders": {
+          "optionalSelect": "No branch override",
+          "optionalAccount": "No payable account override",
+          "optionalBank": "Select only for bank settlement",
+          "optionalCashbox": "Select only for cash settlement"
+        },
+        "supplier": {
+          "title": "Create Supplier",
+          "subtitle": "Create a supplier master record with optional branch and AP control account linkage.",
+          "submit": "Create Supplier",
+          "fields": {
+            "code": "Supplier Code",
+            "name": "Supplier Name",
+            "name2": "Supplier Name (Arabic)",
+            "branch": "Branch",
+            "payableAccount": "Payable Account",
+            "currencyCode": "Currency Code",
+            "paymentTerms": "Payment Terms (Days)",
+            "email": "Email",
+            "phone": "Phone"
+          }
+        },
+        "invoice": {
+          "title": "Create AP Invoice",
+          "subtitle": "Record a supplier invoice and open it for AP settlement.",
+          "submit": "Create AP Invoice",
+          "fields": {
+            "supplier": "Supplier",
+            "invoiceDate": "Invoice Date",
+            "dueDate": "Due Date",
+            "branch": "Branch",
+            "currencyCode": "Currency Code",
+            "subtotal": "Subtotal Amount",
+            "tax": "Tax Amount",
+            "supplierInvoiceNo": "Supplier Invoice No",
+            "description": "Description"
+          }
+        },
+        "payment": {
+          "title": "Create AP Payment",
+          "subtitle": "Settle one open AP invoice by bank or petty cash settlement source.",
+          "submit": "Create AP Payment",
+          "fields": {
+            "supplier": "Supplier",
+            "invoice": "Open AP Invoice",
+            "paymentDate": "Payment Date",
+            "currencyCode": "Currency Code",
+            "amount": "Payment Amount",
+            "settlement": "Settlement",
+            "bankAccount": "Bank Account",
+            "cashbox": "Cash Box",
+            "paymentMethod": "Payment Method Code",
+            "referenceNo": "Reference No"
+          }
+        }
+      },
+      "lists": {
+        "suppliers": {
+          "title": "Recent Suppliers",
+          "subtitle": "Latest active suppliers for this tenant.",
+          "empty": "No suppliers created yet."
+        },
+        "invoices": {
+          "title": "Recent AP Invoices",
+          "subtitle": "Latest AP invoices with current open balances.",
+          "empty": "No AP invoices created yet."
+        },
+        "payments": {
+          "title": "Recent AP Payments",
+          "subtitle": "Latest AP settlements created for this tenant.",
+          "empty": "No AP payments created yet."
+        }
+      }
+    },
+    "po": {
+      "eyebrow": "ERP-Lite PO",
+      "title": "Purchase Orders",
+      "subtitle": "Create supplier purchase orders on the tenant V2 procurement foundation.",
+      "notices": {
+        "po-created": "Purchase order created successfully."
+      },
+      "forms": {
+        "placeholders": {
+          "optionalSelect": "No branch override",
+          "optionalUsageCode": "Use the default expense usage"
+        },
+        "po": {
+          "title": "Create Purchase Order",
+          "subtitle": "Create a simple one-line purchase order ready for later receiving and AP traceability.",
+          "submit": "Create Purchase Order",
+          "fields": {
+            "supplier": "Supplier",
+            "poDate": "PO Date",
+            "expectedDate": "Expected Date",
+            "branch": "Branch",
+            "usageCode": "Usage Code",
+            "currencyCode": "Currency Code",
+            "subtotal": "Subtotal Amount",
+            "tax": "Tax Amount",
+            "description": "Description"
+          }
+        }
+      },
+      "lists": {
+        "po": {
+          "title": "Recent Purchase Orders",
+          "subtitle": "Latest supplier purchase orders for this tenant.",
+          "empty": "No purchase orders created yet.",
+          "columns": {
+            "no": "PO No",
+            "date": "Date",
+            "supplier": "Supplier",
+            "branch": "Branch",
+            "status": "Status",
+            "amount": "Amount"
+          }
+        }
+      }
+    },
+    "bankRecon": {
+      "eyebrow": "ERP-Lite Treasury",
+      "title": "Bank Accounts and Reconciliation",
+      "subtitle": "Maintain bank accounts, statement batches, and reconciliation headers for the Phase 9 treasury foundation.",
+      "notices": {
+        "bank-account-created": "Bank account created successfully.",
+        "bank-statement-created": "Bank statement batch created successfully.",
+        "bank-recon-created": "Bank reconciliation header created successfully."
+      },
+      "forms": {
+        "placeholders": {
+          "optionalSelect": "No branch override",
+          "optionalPeriod": "No period link"
+        },
+        "bankAccount": {
+          "title": "Create Bank Account",
+          "subtitle": "Link a tenant bank account to the governed GL bank account.",
+          "submit": "Create Bank Account",
+          "fields": {
+            "code": "Bank Code",
+            "name": "Account Name",
+            "name2": "Account Name (Arabic)",
+            "bankName": "Bank Name",
+            "accountNo": "Bank Account No",
+            "iban": "IBAN",
+            "branch": "Branch",
+            "glAccount": "GL Bank Account",
+            "currencyCode": "Currency Code",
+            "importMode": "Statement Import Mode"
+          }
+        },
+        "statement": {
+          "title": "Create Statement Batch",
+          "subtitle": "Register a bank statement header before statement-line import or matching.",
+          "submit": "Create Statement Batch",
+          "fields": {
+            "bankAccount": "Bank Account",
+            "dateFrom": "Statement From",
+            "dateTo": "Statement To",
+            "sourceFile": "Source File Name",
+            "openingBalance": "Opening Balance",
+            "closingBalance": "Closing Balance"
+          }
+        },
+        "recon": {
+          "title": "Create Reconciliation",
+          "subtitle": "Open a reconciliation header for a bank account and statement period.",
+          "submit": "Create Reconciliation",
+          "fields": {
+            "bankAccount": "Bank Account",
+            "period": "Accounting Period",
+            "reconDate": "Reconciliation Date",
+            "dateFrom": "Statement From",
+            "dateTo": "Statement To",
+            "glBalance": "GL Balance",
+            "stmtBalance": "Statement Balance",
+            "unmatchedAmount": "Unmatched Amount"
+          }
+        }
+      },
+      "lists": {
+        "bankAccounts": {
+          "title": "Recent Bank Accounts",
+          "subtitle": "Latest active bank accounts for this tenant.",
+          "empty": "No bank accounts created yet."
+        },
+        "statements": {
+          "title": "Recent Statement Batches",
+          "subtitle": "Latest imported or manual bank statement batches.",
+          "empty": "No bank statement batches created yet."
+        },
+        "recons": {
+          "title": "Recent Reconciliations",
+          "subtitle": "Latest bank reconciliation headers for this tenant.",
+          "empty": "No bank reconciliations created yet."
+        }
+      }
     }
   }
 }

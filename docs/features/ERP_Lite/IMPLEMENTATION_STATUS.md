@@ -30,9 +30,9 @@ This document tracks the live implementation status of ERP-Lite across all phase
 | Phase 5 | Core Auto-Post Integration | Complete | Invoice creation, invoice-on-demand payment creation, direct payment, distributed multi-invoice payment, and refund completion now all use the governed auto-post path with transaction-aware blocking behavior. | 2026-03-30 |
 | Phase 6 | V1 Finance Inquiry and Reports | Complete | GL inquiry, trial balance, profit and loss, balance sheet, and AR aging are implemented in `cleanmatex`, with targeted reporting tests passing. | 2026-03-31 |
 | Phase 7 | Basic Expenses and Petty Cash | Complete | Phase 7 schema is applied, the tenant expenses route now has basic expense, cashbox, and petty-cash transaction runtime implementation in `cleanmatex`, and targeted service/action tests are passing. | 2026-03-31 |
-| Phase 8 | V1 Pilot and Hardening | In Progress | Hardening docs are in place, the ERP-Lite regression suite and i18n parity checks pass, and the remaining active item is final build classification. | 2026-03-31 |
-| Phase 9 | V2 Treasury + Suppliers + AP/PO | Not Started | Starts only after v1 is trusted in pilot. | — |
-| Phase 10 | V3 Advanced Controls + Profitability + Costing | Not Started | Starts only after v2 is stable. | — |
+| Phase 8 | V1 Pilot and Hardening | Complete | ERP-Lite regression and i18n parity pass, the date-fragile expense tests were hardened, the ESLint circular-config failure was removed, and the remaining unresolved validation behavior is classified as local toolchain/environment hang rather than an identified ERP-Lite code defect. | 2026-04-01 |
+| Phase 9 | V2 Treasury + Suppliers + AP/PO | In Progress | Migrations `0189` to `0192` are applied. Tenant runtime now includes supplier, PO, AP invoice, AP payment, bank account, bank statement, and bank reconciliation create/list foundations in `cleanmatex`. Phase 9 remains open for AP aging extension, bank matching runtime, and required governance publication extensions. | 2026-04-01 |
+| Phase 10 | V3 Advanced Controls + Profitability + Costing | Planned | Phase 10 checklist and execution package now exist, but coding remains blocked until Phase 9 is complete and a dedicated v3 ADR pack is approved. | 2026-04-01 |
 
 ### Phase Status Key
 
@@ -50,7 +50,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 
 | # | Blocker | Affects | Owner | Opened |
 |---|---|---|---|---|
-| B-001 | `npm run web-admin:build` now starts cleanly and generates `.next` compile artifacts, but Next production build still does not finish or emit a diagnostic before a 900-second timeout in the current environment | Final build validation for current ERP-Lite slice | Environment owner | 2026-03-31 |
+| B-001 | `npm run web-admin:build`, `npm run web-admin:typecheck`, and `npm run web-admin:lint` can still exhibit long-running local toolchain behavior without surfacing ERP-Lite-specific code diagnostics in the current environment | Final local validation classification only | Environment owner | 2026-03-31 |
 
 ---
 
@@ -72,6 +72,10 @@ This document tracks the live implementation status of ERP-Lite across all phase
 | `0186_erp_lite_phase3_posting_runtime.sql` | Phase 3 posting log and exception runtime schema | Applied | 2026-03-29 | Applied in cleanmatex after review |
 | `0187_erp_lite_phase7_expenses.sql` | Phase 7 basic expense source-document schema | Applied | 2026-03-31 | Applied after correcting usage-code catalog references |
 | `0188_erp_lite_phase7_petty_cash.sql` | Phase 7 petty cash cashbox and transaction schema | Applied | 2026-03-31 | Applied after correcting usage-code catalog references |
+| `0189_erp_lite_phase9_bank_core.sql` | Phase 9 bank account and statement foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0190_erp_lite_phase9_supplier_master.sql` | Phase 9 supplier master foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0191_erp_lite_phase9_po_ap_docs.sql` | Phase 9 PO and AP invoice document foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0192_erp_lite_phase9_ap_pmt_bank_recon.sql` | Phase 9 AP payment and bank reconciliation foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 
 ---
 
@@ -192,7 +196,20 @@ This document tracks the live implementation status of ERP-Lite across all phase
 - canonical ERP-Lite regression command is added in `web-admin/package.json`
 - canonical ERP-Lite regression command passes with 7 suites and 22 tests
 - `check:i18n` passes
-- the remaining active hardening work is the unresolved long-running production build timeout classification
+- the date-fragile Phase 7 expense-numbering tests were fixed by pinning test system time
+- the ESLint circular-config failure was fixed by switching `web-admin/eslint.config.mjs` to the native Next flat config import
+- remaining unresolved validation behavior is classified as local toolchain/environment hang without an identified ERP-Lite code defect
+
+### Phase 9 Current Progress
+
+- Phase 9 checklist is created and active
+- Phase 9 execution package is created
+- the first Phase 9 tenant-runtime schema package is applied in four migrations
+- the applied scope covers bank-account and statement foundations, supplier master, PO/AP document foundations, AP payment allocation, and bank reconciliation foundations
+- tenant runtime service foundations are implemented for supplier, PO, AP invoice, AP payment, bank account, bank statement, and bank reconciliation creation and latest-list inquiry
+- `/dashboard/erp-lite/ap`, `/dashboard/erp-lite/po`, and `/dashboard/erp-lite/bank-recon` now render real Phase 9 forms and list views instead of shell placeholders
+- targeted Phase 9 service tests pass for tenant-scoped supplier numbering and AP payment allocation behavior
+- Phase 9 is still open for AP aging, bank statement line import, bank matching, reconciliation close/lock flows, and related Phase 9 governance publication extensions
 
 ---
 

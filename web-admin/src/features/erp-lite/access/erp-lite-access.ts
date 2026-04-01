@@ -1,8 +1,13 @@
 import type { PageAccessContract } from '@/lib/auth/access-contracts'
 
-const ERP_LITE_NOTES = [
-  'Phase 1 shell route only. Finance runtime behavior, APIs, and posting logic are not implemented yet.',
-  'Page contract is declarative so navigation, permissions inspector, and rollout docs stay aligned before backend enablement.',
+const ERP_LITE_SHELL_NOTES = [
+  'This ERP-Lite area is still a routed placeholder and remains limited to shell-level enablement.',
+  'The page contract keeps navigation, permissions inspector, and rollout docs aligned until runtime implementation is added.',
+]
+
+const ERP_LITE_RUNTIME_NOTES = [
+  'This ERP-Lite area has active tenant runtime implementation behind the declared permission and feature-flag gate.',
+  'The page contract is still the navigation and permissions-inspector source of truth for this route.',
 ]
 
 export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
@@ -15,7 +20,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/coa',
@@ -26,7 +31,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_SHELL_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/gl',
@@ -37,7 +42,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/reports',
@@ -48,7 +53,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_reports_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/ar',
@@ -59,7 +64,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_ar_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/expenses',
@@ -70,7 +75,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_expenses_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/bank-recon',
@@ -81,7 +86,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_bank_recon_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/ap',
@@ -92,7 +97,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_ap_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/po',
@@ -103,7 +108,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_po_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
     routePattern: '/dashboard/erp-lite/branch-pl',
@@ -114,6 +119,6 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_branch_pl_enabled'],
       requireAllFeatureFlags: true,
     },
-    notes: ERP_LITE_NOTES,
+    notes: ERP_LITE_SHELL_NOTES,
   },
 ]

@@ -53,7 +53,7 @@ Page-linked backend permissions are documented separately in:
 | `/dashboard/settings/permissions` | wildcard/settings/permission-prefix/tenant-role contract | none | Page gate is declarative in the contract |
 | `/dashboard/orders/new` | no explicit page permission | `Use price override controls` → `pricing:override` | Action-only gate |
 | `/dashboard/reports/*` | feature flag `advanced_analytics` | none | Feature-flag page gate |
-| `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | none | Shell routes are contract-backed and future-safe for finance enablement |
+| `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | none | Finance routes are contract-backed; some pages are live runtime screens and remaining placeholders stay explicitly marked in the contract |
 
 ## Related Docs
 

@@ -18,7 +18,7 @@
     "verify": "npm run prisma:generate && npm run typecheck && npm run lint && npm run build",
     
     "test": "jest",
-    "test:erp-lite": "jest __tests__/services/erp-lite-posting-engine.service.test.ts __tests__/services/erp-lite-auto-post.service.test.ts __tests__/services/erp-lite-reporting.service.test.ts __tests__/services/erp-lite-expenses.service.test.ts __tests__/actions/erp-lite-expenses-actions.test.ts __tests__/services/invoice-service.test.ts __tests__/services/payment-service.test.ts --runInBand",
+    "test:erp-lite": "jest __tests__/services/erp-lite-posting-engine.service.test.ts __tests__/services/erp-lite-auto-post.service.test.ts __tests__/services/erp-lite-reporting.service.test.ts __tests__/services/erp-lite-expenses.service.test.ts __tests__/services/erp-lite-v2.service.test.ts __tests__/actions/erp-lite-expenses-actions.test.ts __tests__/services/invoice-service.test.ts __tests__/services/payment-service.test.ts --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:prisma": "jest __tests__/db",
