@@ -221,14 +221,14 @@ export class ErpLiteCoaService {
     const rows = await prisma.$queryRaw<LocalizedCatalogRow[]>(Prisma.sql`
       SELECT
         id::text AS id,
-        branch_code AS code,
+        id::text AS code,
         name,
         name2
       FROM public.org_branches_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true
         AND rec_status = 1
-      ORDER BY COALESCE(rec_order, 999999), branch_code ASC
+      ORDER BY COALESCE(rec_order, 999999), name ASC
     `);
 
     return this.mapLocalizedOptions(rows, locale);

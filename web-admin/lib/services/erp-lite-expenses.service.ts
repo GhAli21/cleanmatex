@@ -643,7 +643,7 @@ export class ErpLiteExpensesService {
         id::text AS id,
         name,
         name2,
-        branch_code AS code
+        id::text AS code
       FROM public.org_branches_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true

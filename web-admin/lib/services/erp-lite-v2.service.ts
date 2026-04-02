@@ -1495,7 +1495,7 @@ export class ErpLiteV2Service {
     locale: 'en' | 'ar'
   ): Promise<ErpLiteV2OptionItem[]> {
     const rows = await prisma.$queryRaw<LocalizedOptionRow[]>(Prisma.sql`
-      SELECT id::text AS id, branch_code AS code, name, name2
+      SELECT id::text AS id, id::text AS code, name, name2
       FROM public.org_branches_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true
