@@ -3,18 +3,42 @@
 /**
  * User Filters Bar Component
  *
- * Search, filters, and bulk actions for user list.
+ * Search, filters, bulk actions, and workflow role filter for the user list.
+ * Bulk actions (activate/deactivate/delete) call platform-api directly.
  * No Supabase imports.
  */
 
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
+import { useAuth } from '@/lib/auth/auth-context'
+import { activateUser, deactivateUser, deleteUser } from '@/lib/api/users'
+import { cmxMessage } from '@ui/feedback'
 import type { UserFilters } from '@/lib/api/users'
+import {
+  CmxDialog,
+  CmxDialogContent,
+  CmxDialogHeader,
+  CmxDialogTitle,
+  CmxDialogFooter,
+} from '@ui/overlays/cmx-dialog'
+import { CmxButton } from '@ui/primitives/cmx-button'
+
+// Workflow role filter options — matches org_auth_user_workflow_roles.workflow_role constraint
+const WORKFLOW_ROLE_OPTIONS = [
+  { value: 'ROLE_RECEPTION', labelEn: 'Reception', labelAr: 'الاستقبال' },
+  { value: 'ROLE_PREPARATION', labelEn: 'Preparation', labelAr: 'التحضير' },
+  { value: 'ROLE_PROCESSING', labelEn: 'Processing', labelAr: 'المعالجة' },
+  { value: 'ROLE_QA', labelEn: 'Quality Assurance', labelAr: 'ضمان الجودة' },
+  { value: 'ROLE_DELIVERY', labelEn: 'Delivery', labelAr: 'التوصيل' },
+  { value: 'ROLE_ADMIN', labelEn: 'Workflow Admin', labelAr: 'مسؤول سير العمل' },
+]
 
 interface UserFiltersBarProps {
   filters: UserFilters
   onFilterChange: (filters: Partial<UserFilters>) => void
   selectedCount: number
+  /** IDs of currently selected users — required for bulk actions */
+  selectedUserIds?: string[]
   onBulkActionComplete?: () => void
   /** Optional dynamic role list. If provided, overrides the hardcoded role options. */
   availableRoles?: { code: string; name: string }[]
@@ -24,6 +48,7 @@ export default function UserFiltersBar({
   filters,
   onFilterChange,
   selectedCount,
+  selectedUserIds = [],
   onBulkActionComplete,
   availableRoles,
 }: UserFiltersBarProps) {
@@ -31,7 +56,13 @@ export default function UserFiltersBar({
   const tTable = useTranslations('users.table')
   const tCommon = useTranslations('common')
   const tSettings = useTranslations('settings')
+
+  const { currentTenant, session } = useAuth()
+  const accessToken = session?.access_token ?? ''
+  const tenantId = currentTenant?.tenant_id ?? ''
+
   const [bulkActionLoading, setBulkActionLoading] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFilterChange({ search: e.target.value })
@@ -59,14 +90,68 @@ export default function UserFiltersBar({
     })
   }
 
-  const handleBulkAction = async (_action: 'activate' | 'deactivate' | 'delete') => {
+  const handleBulkActivate = async () => {
+    if (!selectedUserIds.length || !tenantId) return
     setBulkActionLoading(true)
     try {
-      // Bulk actions are not supported by platform-api in this version.
-      alert('Bulk user actions are not supported in this version.')
+      const results = await Promise.allSettled(
+        selectedUserIds.map((id) => activateUser(tenantId, id, accessToken))
+      )
+      const failed = results.filter((r) => r.status === 'rejected').length
+      if (failed > 0) {
+        cmxMessage.error(`${failed} user(s) failed to activate`)
+      } else {
+        cmxMessage.success(`${selectedUserIds.length} user(s) activated`)
+      }
       onBulkActionComplete?.()
     } catch (error) {
-      console.error('Bulk action error:', error)
+      console.error('Bulk activate error:', error)
+      cmxMessage.error(tCommon('error'))
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkDeactivate = async () => {
+    if (!selectedUserIds.length || !tenantId) return
+    setBulkActionLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        selectedUserIds.map((id) => deactivateUser(tenantId, id, accessToken))
+      )
+      const failed = results.filter((r) => r.status === 'rejected').length
+      if (failed > 0) {
+        cmxMessage.error(`${failed} user(s) failed to deactivate`)
+      } else {
+        cmxMessage.success(`${selectedUserIds.length} user(s) deactivated`)
+      }
+      onBulkActionComplete?.()
+    } catch (error) {
+      console.error('Bulk deactivate error:', error)
+      cmxMessage.error(tCommon('error'))
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (!selectedUserIds.length || !tenantId) return
+    setDeleteConfirmOpen(false)
+    setBulkActionLoading(true)
+    try {
+      const results = await Promise.allSettled(
+        selectedUserIds.map((id) => deleteUser(tenantId, id, accessToken))
+      )
+      const failed = results.filter((r) => r.status === 'rejected').length
+      if (failed > 0) {
+        cmxMessage.error(`${failed} user(s) failed to delete`)
+      } else {
+        cmxMessage.success(`${selectedUserIds.length} user(s) deleted`)
+      }
+      onBulkActionComplete?.()
+    } catch (error) {
+      console.error('Bulk delete error:', error)
+      cmxMessage.error(tCommon('error'))
     } finally {
       setBulkActionLoading(false)
     }
@@ -74,8 +159,8 @@ export default function UserFiltersBar({
 
   const hasActiveFilters = filters.search || filters.role !== 'all' || filters.status !== 'all'
 
-  const tModal = useTranslations('users.modal.roles')
   // Use dynamic roles if provided, fall back to hardcoded defaults
+  const tModal = useTranslations('users.modal.roles')
   const roleOptions = availableRoles
     ? availableRoles.map((r) => ({ value: r.code, label: r.name }))
     : [
@@ -115,7 +200,7 @@ export default function UserFiltersBar({
         </div>
 
         {/* Filters Row */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-5">
           {/* Role Filter */}
           <div>
             <label htmlFor="role-filter" className="block text-sm font-medium text-gray-700 mb-1">
@@ -131,6 +216,26 @@ export default function UserFiltersBar({
               {roleOptions.map((opt) => (
                 <option key={opt.value} value={opt.value}>
                   {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Workflow Role Filter */}
+          <div>
+            <label htmlFor="workflow-role-filter" className="block text-sm font-medium text-gray-700 mb-1">
+              {t('workflowRole')}
+            </label>
+            <select
+              id="workflow-role-filter"
+              value={(filters as UserFilters & { workflowRole?: string }).workflowRole || 'all'}
+              onChange={(e) => onFilterChange({ ...(e.target.value !== 'all' ? { workflowRole: e.target.value } : { workflowRole: undefined }) })}
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+            >
+              <option value="all">{t('allWorkflowRoles')}</option>
+              {WORKFLOW_ROLE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.labelEn}
                 </option>
               ))}
             </select>
@@ -217,20 +322,23 @@ export default function UserFiltersBar({
               ) : (
                 <>
                   <button
-                    onClick={() => handleBulkAction('activate')}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                    onClick={handleBulkActivate}
+                    disabled={selectedUserIds.length === 0}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
                   >
                     {tTable('activate')}
                   </button>
                   <button
-                    onClick={() => handleBulkAction('deactivate')}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                    onClick={handleBulkDeactivate}
+                    disabled={selectedUserIds.length === 0}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 disabled:opacity-50"
                   >
                     {tTable('deactivate')}
                   </button>
                   <button
-                    onClick={() => handleBulkAction('delete')}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    onClick={() => setDeleteConfirmOpen(true)}
+                    disabled={selectedUserIds.length === 0}
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                   >
                     {tCommon('delete')}
                   </button>
@@ -300,6 +408,32 @@ export default function UserFiltersBar({
           </div>
         </div>
       )}
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <CmxDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <CmxDialogContent className="w-full max-w-sm">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{tCommon('confirm')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="px-6 py-4">
+            <p className="text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+              {t('deleteConfirm', { count: selectedUserIds.length })}
+            </p>
+          </div>
+          <CmxDialogFooter>
+            <CmxButton variant="secondary" onClick={() => setDeleteConfirmOpen(false)}>
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton
+              variant="destructive"
+              onClick={handleBulkDelete}
+              loading={bulkActionLoading}
+            >
+              {tCommon('delete')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
     </div>
   )
 }

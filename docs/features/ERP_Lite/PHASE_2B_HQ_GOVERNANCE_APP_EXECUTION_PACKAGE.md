@@ -1,6 +1,6 @@
 ---
 version: v1.0.0
-last_updated: 2026-04-01
+last_updated: 2026-04-03
 author: CleanMateX AI Assistant
 document_id: ERP_LITE_PHASE_2B_HQ_APP_EXEC_PKG_2026_03_29
 status: Complete
@@ -97,7 +97,15 @@ Phase 2B implementation now also covers:
 2. draft package metadata editing
 3. draft mapping rule editing
 4. draft auto-post policy editing
+5. ERP-Lite template package authoring
+6. ERP-Lite template COA line authoring
+7. ERP-Lite template usage-mapping authoring
+8. ERP-Lite template period-policy authoring
+9. ERP-Lite template operational-default authoring
+10. ERP-Lite template assignment authoring
+11. explicit tenant resolution, validate, apply, reapply, and history flows
 
-Validation caveat:
+Validation:
 
-1. local `cleanmatexsaas` build execution is not available in this environment because the sibling project is missing `nest` and `next` binaries
+1. `cleanmatexsaas` platform-api production build passes
+2. `cleanmatexsaas` platform-web production build passes

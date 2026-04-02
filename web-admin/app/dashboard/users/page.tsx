@@ -197,6 +197,8 @@ function UsersPage() {
             filters={filters}
             onFilterChange={handleFilterChange}
             selectedCount={selectedUsers.length}
+            selectedUserIds={selectedUsers}
+            onBulkActionComplete={() => { setSelectedUsers([]); loadUsers(); loadStats() }}
             availableRoles={rolesForFilter.length > 0 ? rolesForFilter : undefined}
           />
         </div>

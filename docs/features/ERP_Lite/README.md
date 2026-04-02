@@ -1,6 +1,6 @@
 ---
-version: v1.1.0
-last_updated: 2026-04-01
+version: v1.1.3
+last_updated: 2026-04-03
 author: CleanMateX Team
 ---
 
@@ -67,7 +67,7 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](PHASE_2_HQ_GOVERNANCE_CHECKLIST.md) | ✅ Complete | Exact Phase 2 HQ governance checklist for shared governance schema and package modeling |
 | [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 2 package for governance catalogs, package model, rules, and auto-post policy |
 | [PHASE_2B_HQ_GOVERNANCE_APP_CHECKLIST.md](PHASE_2B_HQ_GOVERNANCE_APP_CHECKLIST.md) | Complete | Exact Phase 2B checklist for HQ governance backend/frontend in `cleanmatexsaas`; dashboard, detail, authoring, editing, validate, approve, and publish flows are implemented |
-| [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md) | Complete | Implementation-ready Phase 2B package for HQ governance app work in `cleanmatexsaas`; authoring/editing is implemented and local sibling build validation is limited only by missing `nest` and `next` binaries |
+| [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md) | Complete | Implementation-ready Phase 2B package for HQ governance app work in `cleanmatexsaas`; governance authoring, template authoring, tenant provisioning flows, and sibling builds are all passing |
 | [PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md](PHASE_3_TENANT_FINANCE_SCHEMA_CHECKLIST.md) | ✅ Complete | Exact Phase 3 checklist for tenant finance schema work in `cleanmatex` |
 | [PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md](PHASE_3_TENANT_FINANCE_SCHEMA_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 3 package for tenant finance schema work in `cleanmatex` |
 | [PHASE_4_POSTING_ENGINE_CHECKLIST.md](PHASE_4_POSTING_ENGINE_CHECKLIST.md) | ✅ Complete | Exact Phase 4 checklist for posting-engine work in `cleanmatex` |
@@ -84,6 +84,10 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 9 package with the applied v2 schema/runtime split and validation rules |
 | [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_CHECKLIST.md) | ✅ Complete | Exact Phase 10 checklist for advanced controls, profitability, and costing |
 | [PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md](PHASE_10_V3_ADVANCED_CONTROLS_COSTING_EXECUTION_PACKAGE.md) | ✅ Complete | Implementation-ready Phase 10 structure with applied schema, allocation-aware profitability, and audited costing runtime |
+| [ERP_LITE_DEFAULT_SEED_PACKAGE.md](ERP_LITE_DEFAULT_SEED_PACKAGE.md) | Superseded | Earlier hardcoded default seed approach; replaced by the applied business-type template foundation |
+| [ADR_011_ERP_LITE_TEMPLATE_GOVERNANCE_MODEL.md](ADR_011_ERP_LITE_TEMPLATE_GOVERNANCE_MODEL.md) | Active | Cross-project decision for HQ-governed ERP-Lite templates materialized into tenant runtime |
+| [PHASE_TEMPLATE_FOUNDATION_CHECKLIST.md](PHASE_TEMPLATE_FOUNDATION_CHECKLIST.md) | ✅ Complete | Template DB foundation is applied through `0198` to `0203`; tenant-insert auto-init is removed and provisioning is now explicit from HQ |
+| [PHASE_TEMPLATE_FOUNDATION_EXECUTION_PACKAGE.md](PHASE_TEMPLATE_FOUNDATION_EXECUTION_PACKAGE.md) | ✅ Complete | Exact DB/API/backend/frontend design pack for the applied template foundation; the HQ app-layer authoring and explicit tenant provisioning flows are now implemented in `cleanmatexsaas` |
 | [V2_SCOPE_AND_DECISION_PACK.md](V2_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v2 business and implementation boundaries for treasury, suppliers, AP, and PO |
 | [V3_SCOPE_AND_DECISION_PACK.md](V3_SCOPE_AND_DECISION_PACK.md) | Draft | Frozen v3 business and implementation boundaries for advanced controls, profitability, and costing |
 | [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md) | Draft | Supplier and AP governance model for v2 |
@@ -111,6 +115,7 @@ ERP-Lite is an add-on finance and accounting module for CleanMateX tenants who d
 | [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md) | ✅ Approved | Config-driven mapping engine governance |
 | [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md) | ✅ Approved | Auto-post exception and repost model |
 | [ADR_004_VAT_TAX_V1_SCOPE.md](ADR_004_VAT_TAX_V1_SCOPE.md) | ✅ Approved | VAT/tax v1 scope decisions |
+| [ADR_011_ERP_LITE_TEMPLATE_GOVERNANCE_MODEL.md](ADR_011_ERP_LITE_TEMPLATE_GOVERNANCE_MODEL.md) | Active | Template publication and tenant materialization model for ERP-Lite defaults |
 
 ### 4. Control & Runtime Contracts
 

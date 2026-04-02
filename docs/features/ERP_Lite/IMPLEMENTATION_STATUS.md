@@ -1,9 +1,9 @@
 ---
 document_id: ERP_LITE_IMPLEMENTATION_STATUS_001
 title: ERP-Lite Implementation Status Tracker
-version: "1.0"
+version: "1.3"
 status: Active
-last_updated: 2026-04-01
+last_updated: 2026-04-03
 author: CleanMateX AI Assistant
 note: This document is updated continuously during implementation. It is not a planning document — use ROADMAP_TASK_BY_TASK.md for the implementation plan.
 ---
@@ -24,7 +24,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 |---|---|---|---|---|
 | Phase 0 | Decision Freeze | Complete | Canonical PRD/ADR/runtime-rule/approval pack completed and formally approved. | 2026-03-28 |
 | Phase 1 | Platform Enablement | Complete | Phase 1 migrations were applied, ERP-Lite shell routes were created, route guards were wired, flags/settings/constants were aligned, and EN/AR shell messages were added. Node-based validation remains environment-blocked on local WSL 1. | 2026-03-28 |
-| Phase 2 | HQ Governance Foundation | Complete | Phase 2A DB foundation is complete through migrations `0179` to `0182`. Phase 2B in `cleanmatexsaas` now includes dashboard, package detail, draft package creation/editing, draft rule editing, draft auto-post policy editing, validation, approve, and publish flows. Local sibling build validation remains limited because the `cleanmatexsaas` environment is missing `nest` and `next` binaries. | 2026-04-01 |
+| Phase 2 | HQ Governance Foundation | Complete | Phase 2A DB foundation is complete through migrations `0179` to `0182`. Phase 2B in `cleanmatexsaas` now includes dashboard, package detail, draft package creation/editing, draft rule editing, draft auto-post policy editing, validation, approve, publish, template authoring, and explicit tenant provisioning flows. `cleanmatexsaas` backend and frontend production builds are passing in this environment. | 2026-04-03 |
 | Phase 3 | Tenant Finance Schema | Complete | Migrations `0183` to `0186` were reviewed and applied in `cleanmatex`. | 2026-03-29 |
 | Phase 4 | Posting Engine | Complete | Governed posting engine, replay paths, validation flow, and targeted test coverage are implemented in `cleanmatex`. | 2026-03-30 |
 | Phase 5 | Core Auto-Post Integration | Complete | Invoice creation, invoice-on-demand payment creation, direct payment, distributed multi-invoice payment, and refund completion now all use the governed auto-post path with transaction-aware blocking behavior. | 2026-03-30 |
@@ -33,6 +33,7 @@ This document tracks the live implementation status of ERP-Lite across all phase
 | Phase 8 | V1 Pilot and Hardening | Complete | ERP-Lite regression, i18n parity, and tenant `web-admin` production build now pass. The ESLint circular-config failure was removed and the earlier build-hang classification is no longer active for the tenant project. | 2026-04-01 |
 | Phase 9 | V2 Treasury + Suppliers + AP/PO | Complete | Migrations `0189` to `0192` are applied. Tenant runtime now includes supplier, PO, AP invoice, AP payment, AP aging, bank account, bank statement batch/manual line/bulk line import, reversible bank matching, and bank reconciliation close/lock flows in `cleanmatex`. The required v2 governance extension plan is now captured and Phase 9 validation passes through ERP-Lite regression tests and `web-admin` production build. | 2026-04-01 |
 | Phase 10 | V3 Advanced Controls + Profitability + Costing | Complete | Migrations `0193` to `0195` are applied. Advanced approvals and petty-cash reconciliation are live in the Expenses workspace, allocation-aware Branch P&L is live in `cleanmatex`, auditable cost component/run administration is live, and tenant regression/build validation passes. | 2026-04-01 |
+| Template Foundation | HQ ERP-Lite Template Packages | Complete | Migrations `0198` to `0203` are applied. Business-type keyed template packages, COA/usage/period/operational template sections, assignment rules, tenant apply-log, and explicit template materialization are live. Tenant-insert auto-init has been removed, so ERP-Lite provisioning is now HQ-driven only. `0196` and `0197` remain superseded and were intentionally not applied. | 2026-04-03 |
 
 ### Phase Status Key
 
@@ -77,6 +78,12 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 | `0193_erp_lite_phase10_adv_ctrl.sql` | Phase 10 advanced approvals and petty-cash reconciliation foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 | `0194_erp_lite_phase10_alloc_prof.sql` | Phase 10 governed allocation and branch profitability foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
 | `0195_erp_lite_phase10_cost_runs.sql` | Phase 10 laundry costing foundation | Applied | 2026-04-01 | Applied in cleanmatex after review |
+| `0198_erp_lite_tpl_pkg_tables.sql` | ERP-Lite template package and assignment tables | Applied | 2026-04-03 | Applied with `main_business_type_code` linkage to `sys_main_business_type_cd` |
+| `0199_erp_lite_tpl_coa_tables.sql` | ERP-Lite template COA and usage template tables | Applied | 2026-04-03 | Applied with template account-code driven usage mappings |
+| `0200_erp_lite_tpl_period_seed.sql` | ERP-Lite template period, operational defaults, and baseline business-type seed data | Applied | 2026-04-03 | Applied with published baseline packages for each supported main business type and global fallback |
+| `0201_erp_lite_tpl_apply.sql` | ERP-Lite tenant template apply log, resolution, apply, and trigger path | Applied | 2026-04-03 | Applied to introduce template-first tenant materialization and tenant auto-init hook |
+| `0202_erp_lite_tpl_finalize.sql` | ERP-Lite template finalization and legacy fallback removal | Applied | 2026-04-03 | Applied to make the template path standalone and production-ready without `0196` or `0197` |
+| `0203_erp_lite_tpl_manual_apply_only.sql` | ERP-Lite manual HQ provisioning correction | Applied | 2026-04-03 | Applied to remove tenant-insert auto-init and enforce explicit HQ apply only |
 
 ---
 
@@ -134,7 +141,14 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 - HQ package validation is implemented
 - HQ package approval is implemented
 - HQ package publication is implemented
-- local sibling build validation remains blocked because `cleanmatexsaas` is missing `nest` and `next` binaries in this environment
+- HQ template package authoring is implemented
+- HQ template COA line authoring is implemented
+- HQ template usage-mapping authoring is implemented
+- HQ template period-policy authoring is implemented
+- HQ template operational-default authoring is implemented
+- HQ template assignment authoring is implemented
+- HQ tenant template resolution, validate, apply, reapply, and history flows are implemented
+- `cleanmatexsaas` backend and frontend production builds now pass in this environment
 
 ### Phase 3 Completed
 
@@ -229,6 +243,23 @@ No active tenant-project ERP-Lite blockers are currently recorded.
 - latest posted cost totals are visible by branch alongside the profitability workspace
 - targeted Phase 10 service/action tests pass
 - ERP-Lite regression and `web-admin` production build pass with the Phase 10 runtime in place
+
+### Template Foundation Completed
+
+- business-type keyed template package master is applied
+- template package assignment rules are applied
+- template COA header/detail structure is applied
+- template usage mapping structure is applied
+- template period policy and operational defaults structure is applied
+- published baseline packages are seeded for each `sys_main_business_type_cd` business type plus a global fallback
+- tenant template apply-log is applied
+- tenant template resolution and materialization functions are applied
+- tenant-insert auto-init has been removed through `0203`
+- ERP-Lite template provisioning is now HQ-driven and explicit only
+- the old hardcoded default-seed path in `0196` and `0197` is superseded and intentionally not applied
+- HQ template package authoring is implemented in `cleanmatexsaas`
+- HQ template COA, usage mapping, period policy, operational defaults, and assignment authoring are implemented in `cleanmatexsaas`
+- HQ tenant provisioning resolution, validate, apply, reapply, and history UX/API flows are implemented in `cleanmatexsaas`
 
 ---
 
