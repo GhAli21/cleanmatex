@@ -3334,6 +3334,7 @@
   },
   "auth": {
     "sessionExpired": "Your session has expired. Please sign in again.",
+    "accountInactive": "Your account has been deactivated. Please contact your administrator.",
     "rememberMe": "Remember me",
     "logout": {
       "signingOut": "Signing out...",

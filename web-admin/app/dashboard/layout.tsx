@@ -67,7 +67,7 @@ function DashboardContent({
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isLoading, currentTenant, signOut } = useAuth()
   const isPrintRoute = useIsPrintRoute()
 
   // Defence in depth: redirect unauthenticated users to login (middleware also protects)
@@ -76,8 +76,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     if (!isAuthenticated) {
       const redirectUrl = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : '/login'
       router.replace(redirectUrl)
+      return
     }
-  }, [isAuthenticated, isLoading, pathname, router])
+    // Force logout if the user's account has been deactivated mid-session
+    if (currentTenant && !currentTenant.is_active) {
+      signOut('security')
+    }
+  }, [isAuthenticated, isLoading, currentTenant, pathname, router, signOut])
 
   if (!isLoading && !isAuthenticated) {
     return (

@@ -264,23 +264,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Set a flag to prevent useEffect hooks from duplicating these calls
       const authData = await fetchAuthData()
       
+      // Block inactive users — sign out immediately before touching any state
+      const activeTenant = authData.tenants.find(t => t.is_active)
+      if (!activeTenant) {
+        await supabase.auth.signOut()
+        throw new Error('Your account has been deactivated. Please contact your administrator.')
+      }
+
       // Set all state at once to minimize re-renders
       setAvailableTenants(authData.tenants)
-        if (authData.tenants.length > 0) {
-        const firstTenant = authData.tenants[0]
-        setCurrentTenant(firstTenant)
-        currentTenantRef.current = firstTenant
-        // Cache everything
-        setCachedPermissions(firstTenant.tenant_id, authData.permissions)
-        setCachedFeatureFlags(firstTenant.tenant_id, authData.featureFlags)
-      }
+      setCurrentTenant(activeTenant)
+      currentTenantRef.current = activeTenant
+      // Cache everything
+      setCachedPermissions(activeTenant.tenant_id, authData.permissions)
+      setCachedFeatureFlags(activeTenant.tenant_id, authData.featureFlags)
       setPermissions(authData.permissions)
       setWorkflowRoles(authData.workflowRoles)
 
       // Mark permissions as loaded for this tenant so the useEffect does not re-fetch
-      if (authData.tenants.length > 0) {
-        permissionsLoadedForTenantRef.current = authData.tenants[0].tenant_id
-      }
+      permissionsLoadedForTenantRef.current = activeTenant.tenant_id
 
       setIsTenantContextReady(true)
 

@@ -132,6 +132,17 @@ export async function POST(request: NextRequest) {
     try {
       // Get user's active tenant
       const { data: tenants, error: tenantsError } = await supabase.rpc('get_user_tenants');
+
+      // Block login if the user has no active tenant membership
+      if (!tenantsError && (!tenants || tenants.length === 0 || !tenants[0].is_active)) {
+        // Sign the user back out so no session cookie is retained
+        await supabase.auth.signOut();
+        return NextResponse.json(
+          { error: 'Your account has been deactivated. Please contact your administrator.' },
+          { status: 403 }
+        );
+      }
+
       if (!tenantsError && tenants && tenants.length > 0) {
         const activeTenantId = tenants[0].tenant_id;
         await ensureTenantInUserMetadata(data.user.id, activeTenantId);
