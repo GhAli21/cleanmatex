@@ -15,6 +15,8 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
+import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ErpLiteApDashboardSnapshot } from '@/lib/types/erp-lite-v2';
 import {
@@ -37,6 +39,7 @@ export default async function ErpLiteApPage({
   const t = await getTranslations('erpLite.ap');
   const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
+  const displayConfig = await getErpLiteDisplayConfig();
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
@@ -264,7 +267,7 @@ export default async function ErpLiteApPage({
                     <div className="mt-1 text-xs text-muted-foreground">{item.supplier_name} · {item.invoice_date}</div>
                     <div className="mt-2 text-xs text-muted-foreground">{item.branch_name ?? '—'} · {item.status_code}</div>
                     <div className="mt-3 text-sm font-semibold">
-                      {item.open_amount.toFixed(4)} / {item.total_amount.toFixed(4)} {item.currency_code}
+                      {formatErpLiteMoney(item.open_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} / {formatErpLiteMoney(item.total_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                     </div>
                   </div>
                 ))
@@ -287,7 +290,7 @@ export default async function ErpLiteApPage({
                     <div className="mt-1 text-xs text-muted-foreground">{item.supplier_name} · {item.payment_date}</div>
                     <div className="mt-2 text-xs text-muted-foreground">{item.branch_name ?? '—'} · {item.status_code}</div>
                     <div className="mt-3 text-sm font-semibold">
-                      {item.amount_total.toFixed(4)} {item.currency_code} · {t(`settlement.${item.settlement_code.toLowerCase()}`)}
+                      {formatErpLiteMoney(item.amount_total, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} · {t(`settlement.${item.settlement_code.toLowerCase()}`)}
                     </div>
                   </div>
                 ))
@@ -312,7 +315,7 @@ export default async function ErpLiteApPage({
                       {(item.due_date ?? '—')} · {t(`agingBuckets.${item.aging_bucket}`)}
                     </div>
                     <div className="mt-3 text-sm font-semibold">
-                      {item.open_amount.toFixed(4)} {item.currency_code} · {t('agingDays', { days: item.days_overdue })}
+                      {formatErpLiteMoney(item.open_amount, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })} · {t('agingDays', { days: item.days_overdue })}
                     </div>
                   </div>
                 ))

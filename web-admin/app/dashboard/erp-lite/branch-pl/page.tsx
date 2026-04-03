@@ -15,6 +15,10 @@ import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLitePhase10Service } from '@/lib/services/erp-lite-phase10.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
+import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
+import { ErpLiteBranchPlCostSummaryTable } from '@features/erp-lite/ui/erp-lite-branch-pl-cost-summary-table';
+import { ErpLiteBranchPlProfitabilityTable } from '@features/erp-lite/ui/erp-lite-branch-pl-profitability-table';
 import type { ErpLitePhase10DashboardSnapshot } from '@/lib/types/erp-lite-phase10';
 import {
   addErpLiteAllocationRunLineAction,
@@ -26,6 +30,7 @@ import {
   postErpLiteAllocationRunAction,
   postErpLiteCostRunAction,
 } from '@/app/actions/erp-lite/branch-pl-actions';
+import { CmxKpiStatCard } from '@ui/data-display';
 
 type SearchParamsValue = string | string[] | undefined;
 
@@ -41,6 +46,7 @@ export default async function ErpLiteBranchPlPage({
   const t = await getTranslations('erpLite.branchPl');
   const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
+  const displayConfig = await getErpLiteDisplayConfig();
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
@@ -120,39 +126,11 @@ export default async function ErpLiteBranchPlPage({
           </Alert>
         ) : null}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <CmxCard>
-            <CmxCardHeader>
-              <CmxCardTitle>{t('summary.revenue')}</CmxCardTitle>
-            </CmxCardHeader>
-            <CmxCardContent className="text-2xl font-semibold">
-              {totalRevenue.toFixed(4)}
-            </CmxCardContent>
-          </CmxCard>
-          <CmxCard>
-            <CmxCardHeader>
-              <CmxCardTitle>{t('summary.expense')}</CmxCardTitle>
-            </CmxCardHeader>
-            <CmxCardContent className="text-2xl font-semibold">
-              {totalExpense.toFixed(4)}
-            </CmxCardContent>
-          </CmxCard>
-          <CmxCard>
-            <CmxCardHeader>
-              <CmxCardTitle>{t('summary.directProfit')}</CmxCardTitle>
-            </CmxCardHeader>
-            <CmxCardContent className="text-2xl font-semibold">
-              {totalDirectProfit.toFixed(4)}
-            </CmxCardContent>
-          </CmxCard>
-          <CmxCard>
-            <CmxCardHeader>
-              <CmxCardTitle>{t('summary.allocatedProfit')}</CmxCardTitle>
-            </CmxCardHeader>
-            <CmxCardContent className="text-2xl font-semibold">
-              {totalAllocatedProfit.toFixed(4)}
-            </CmxCardContent>
-          </CmxCard>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <CmxKpiStatCard title={t('summary.revenue')} value={formatErpLiteMoney(totalRevenue, displayConfig)} subtitle={`${tCommon('currency')}: ${displayConfig.currencyCode}`} />
+          <CmxKpiStatCard title={t('summary.expense')} value={formatErpLiteMoney(totalExpense, displayConfig)} subtitle={`${tCommon('currency')}: ${displayConfig.currencyCode}`} />
+          <CmxKpiStatCard title={t('summary.directProfit')} value={formatErpLiteMoney(totalDirectProfit, displayConfig)} subtitle={`${tCommon('currency')}: ${displayConfig.currencyCode}`} />
+          <CmxKpiStatCard title={t('summary.allocatedProfit')} value={formatErpLiteMoney(totalAllocatedProfit, displayConfig)} subtitle={`${tCommon('currency')}: ${displayConfig.currencyCode}`} />
         </div>
 
         <CmxCard>
@@ -161,42 +139,7 @@ export default async function ErpLiteBranchPlPage({
             <CmxCardDescription>{t('list.subtitle')}</CmxCardDescription>
           </CmxCardHeader>
           <CmxCardContent>
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-sm">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-3 py-2 text-left">{t('list.columns.branch')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.revenue')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.expense')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.directProfit')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.allocatedIn')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.allocatedOut')}</th>
-                    <th className="px-3 py-2 text-right">{t('list.columns.finalProfit')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                        {t('list.empty')}
-                      </td>
-                    </tr>
-                  ) : (
-                    rows.map((row) => (
-                      <tr key={row.branch_id ?? 'unassigned'} className="border-t border-border">
-                        <td className="px-3 py-2 font-medium">{row.branch_name}</td>
-                        <td className="px-3 py-2 text-right">{row.direct_revenue.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right">{row.direct_expense.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right">{row.direct_profit.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right">{row.allocated_in.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right">{row.allocated_out.toFixed(4)}</td>
-                        <td className="px-3 py-2 text-right">{row.allocated_profit.toFixed(4)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <ErpLiteBranchPlProfitabilityTable rows={rows} displayConfig={displayConfig} />
           </CmxCardContent>
         </CmxCard>
 
@@ -421,7 +364,7 @@ export default async function ErpLiteBranchPlPage({
                     <div className="mt-1 text-xs text-muted-foreground">
                       {item.run_date} · {item.status_code} · {item.line_count} {t('lists.costRuns.lines')}
                     </div>
-                    <div className="mt-2 text-sm font-semibold">{item.total_cost.toFixed(4)}</div>
+                    <div className="mt-2 text-sm font-semibold">{formatErpLiteMoney(item.total_cost, displayConfig)}</div>
                     {item.status_code === 'DRAFT' ? (
                       <form action={postErpLiteCostRunAction} className="mt-3">
                         <input type="hidden" name="cost_run_id" value={item.id} />
@@ -437,40 +380,15 @@ export default async function ErpLiteBranchPlPage({
           </CmxCard>
 
           <CmxCard>
-            <CmxCardHeader>
-              <CmxCardTitle>{t('lists.costSummary.title')}</CmxCardTitle>
-              <CmxCardDescription>{t('lists.costSummary.subtitle')}</CmxCardDescription>
-            </CmxCardHeader>
-            <CmxCardContent>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">{t('lists.costSummary.columns.branch')}</th>
-                      <th className="px-3 py-2 text-right">{t('lists.costSummary.columns.totalCost')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {snapshot.cost_summary_rows.length === 0 ? (
-                      <tr>
-                        <td colSpan={2} className="px-3 py-6 text-center text-muted-foreground">
-                          {t('lists.costSummary.empty')}
-                        </td>
-                      </tr>
-                    ) : (
-                      snapshot.cost_summary_rows.map((item) => (
-                        <tr key={item.branch_id ?? 'unassigned'} className="border-t border-border">
-                          <td className="px-3 py-2">{item.branch_name}</td>
-                          <td className="px-3 py-2 text-right">{item.total_cost.toFixed(4)}</td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </CmxCardContent>
-          </CmxCard>
-        </div>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('lists.costSummary.title')}</CmxCardTitle>
+            <CmxCardDescription>{t('lists.costSummary.subtitle')}</CmxCardDescription>
+          </CmxCardHeader>
+          <CmxCardContent>
+            <ErpLiteBranchPlCostSummaryTable rows={snapshot.cost_summary_rows} displayConfig={displayConfig} />
+          </CmxCardContent>
+        </CmxCard>
+      </div>
       </div>
     </ErpLitePageGuard>
   );

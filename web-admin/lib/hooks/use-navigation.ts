@@ -20,15 +20,15 @@ import {
 import { getIcon } from '@/lib/utils/icon-registry'
 
 export function useNavigation() {
-  const { permissions, isLoading: authLoading, isAuthenticated } = useAuth()
+  const { permissions, currentTenant, isLoading: authLoading, isAuthenticated } = useAuth()
   const [navigation, setNavigation] = useState<NavigationSection[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Generate permissions hash for cache key
   const permissionsHash = useMemo(() => {
-    return hashPermissions(permissions || [])
-  }, [permissions])
+    return hashPermissions([currentTenant?.tenant_id ?? '', ...(permissions || [])])
+  }, [currentTenant?.tenant_id, permissions])
 
   useEffect(() => {
     let isMounted = true
@@ -61,9 +61,7 @@ export function useNavigation() {
           const transformedCached = transformNavigationIcons(cached)
           if (isMounted) {
             setNavigation(transformedCached)
-            setIsLoading(false)
           }
-          return
         } else if (cached && cached.length === 0) {
           // Cache has empty array - clear it and fetch fresh
           console.warn('Cache has empty navigation array, clearing cache and fetching fresh')
@@ -167,7 +165,7 @@ export function useNavigation() {
     return () => {
       isMounted = false
     }
-  }, [permissionsHash, authLoading, isAuthenticated])
+  }, [permissionsHash, currentTenant?.tenant_id, authLoading, isAuthenticated])
 
   return {
     navigation,

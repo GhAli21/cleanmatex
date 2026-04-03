@@ -15,6 +15,8 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
+import { ErpLitePoListTable } from '@features/erp-lite/ui/erp-lite-po-list-table';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ErpLitePoDashboardSnapshot } from '@/lib/types/erp-lite-v2';
 import { createErpLitePurchaseOrderAction } from '@/app/actions/erp-lite/v2-actions';
@@ -33,6 +35,7 @@ export default async function ErpLitePoPage({
   const t = await getTranslations('erpLite.po');
   const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
+  const displayConfig = await getErpLiteDisplayConfig();
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
@@ -139,42 +142,7 @@ export default async function ErpLitePoPage({
               <CmxCardDescription>{t('lists.po.subtitle')}</CmxCardDescription>
             </CmxCardHeader>
             <CmxCardContent>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">{t('lists.po.columns.no')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.po.columns.date')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.po.columns.supplier')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.po.columns.branch')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.po.columns.status')}</th>
-                      <th className="px-3 py-2 text-right">{t('lists.po.columns.amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {snapshot.po_list.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                          {t('lists.po.empty')}
-                        </td>
-                      </tr>
-                    ) : (
-                      snapshot.po_list.map((item) => (
-                        <tr key={item.id} className="border-t border-border">
-                          <td className="px-3 py-2 font-medium">{item.po_no}</td>
-                          <td className="px-3 py-2">{item.po_date}</td>
-                          <td className="px-3 py-2">{item.supplier_name}</td>
-                          <td className="px-3 py-2">{item.branch_name ?? '—'}</td>
-                          <td className="px-3 py-2">{item.status_code}</td>
-                          <td className="px-3 py-2 text-right">
-                            {item.total_amount.toFixed(4)} {item.currency_code}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <ErpLitePoListTable items={snapshot.po_list} displayConfig={displayConfig} />
             </CmxCardContent>
           </CmxCard>
         </div>

@@ -17,6 +17,7 @@ import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLiteCoaService } from '@/lib/services/erp-lite-coa.service';
 import type { ErpLiteCoaDashboardSnapshot } from '@/lib/types/erp-lite-coa';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
+import { ErpLiteCoaListTable } from '@features/erp-lite/ui/erp-lite-coa-list-table';
 import { createErpLiteAccountAction } from '@/app/actions/erp-lite/coa-actions';
 
 type SearchParamsValue = string | string[] | undefined;
@@ -156,60 +157,7 @@ export default async function ErpLiteCoaPage({
               <CmxCardDescription>{t('lists.accounts.subtitle')}</CmxCardDescription>
             </CmxCardHeader>
             <CmxCardContent>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.code')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.name')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.type')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.group')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.parent')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.branch')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.accounts.columns.flags')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {snapshot.account_list.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-3 py-6 text-center text-muted-foreground">
-                          {loadError ? t('lists.accounts.errorEmpty') : t('lists.accounts.empty')}
-                        </td>
-                      </tr>
-                    ) : (
-                      snapshot.account_list.map((item) => (
-                        <tr key={item.id} className="border-t border-border">
-                          <td className="px-3 py-2 font-medium">{item.account_code}</td>
-                          <td className="px-3 py-2">{item.account_name}</td>
-                          <td className="px-3 py-2">{item.account_type_name}</td>
-                          <td className="px-3 py-2">{item.account_group_name ?? '—'}</td>
-                          <td className="px-3 py-2">{item.parent_account_name ?? '—'}</td>
-                          <td className="px-3 py-2">{item.branch_name ?? '—'}</td>
-                          <td className="px-3 py-2">
-                            <div className="flex flex-wrap gap-1">
-                              <span className="rounded-full bg-muted px-2 py-1 text-xs">
-                                {item.is_postable ? t('flags.postable') : t('flags.headerOnly')}
-                              </span>
-                              {item.is_control_account ? (
-                                <span className="rounded-full bg-muted px-2 py-1 text-xs">{t('flags.control')}</span>
-                              ) : null}
-                              {item.is_system_linked ? (
-                                <span className="rounded-full bg-muted px-2 py-1 text-xs">{t('flags.system')}</span>
-                              ) : null}
-                              {!item.manual_post_allowed ? (
-                                <span className="rounded-full bg-muted px-2 py-1 text-xs">{t('flags.manualLocked')}</span>
-                              ) : null}
-                              {!item.is_active ? (
-                                <span className="rounded-full bg-muted px-2 py-1 text-xs">{t('flags.inactive')}</span>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <ErpLiteCoaListTable items={snapshot.account_list} />
             </CmxCardContent>
           </CmxCard>
         </div>

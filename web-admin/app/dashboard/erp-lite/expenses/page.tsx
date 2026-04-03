@@ -14,6 +14,9 @@ import {
 } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { ErpLiteExpensesService } from '@/lib/services/erp-lite-expenses.service';
+import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
+import { ErpLiteExpensesTable } from '@features/erp-lite/ui/erp-lite-expenses-table';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import type { ErpLiteExpensesDashboardSnapshot } from '@/lib/types/erp-lite-expenses';
@@ -44,6 +47,7 @@ export default async function ErpLiteExpensesPage({
   const t = await getTranslations('erpLite.expenses');
   const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
+  const displayConfig = await getErpLiteDisplayConfig();
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
@@ -433,42 +437,7 @@ export default async function ErpLiteExpensesPage({
               <CmxCardDescription>{t('lists.expenses.subtitle')}</CmxCardDescription>
             </CmxCardHeader>
             <CmxCardContent>
-              <div className="overflow-x-auto">
-                <table className="min-w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-3 py-2 text-left">{t('lists.expenses.columns.no')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.expenses.columns.date')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.expenses.columns.payee')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.expenses.columns.branch')}</th>
-                      <th className="px-3 py-2 text-left">{t('lists.expenses.columns.settlement')}</th>
-                      <th className="px-3 py-2 text-right">{t('lists.expenses.columns.amount')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {snapshot.expense_list.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                          {t('lists.expenses.empty')}
-                        </td>
-                      </tr>
-                    ) : (
-                      snapshot.expense_list.map((item) => (
-                        <tr key={item.id} className="border-t border-border">
-                          <td className="px-3 py-2 font-medium">{item.expense_no}</td>
-                          <td className="px-3 py-2">{item.expense_date}</td>
-                          <td className="px-3 py-2">{item.payee_name ?? '—'}</td>
-                          <td className="px-3 py-2">{item.branch_name ?? '—'}</td>
-                          <td className="px-3 py-2">{t(`settlement.${item.settlement_code.toLowerCase()}`)}</td>
-                          <td className="px-3 py-2 text-right">
-                            {item.total_amount.toFixed(4)} {item.currency_code}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <ErpLiteExpensesTable items={snapshot.expense_list} displayConfig={displayConfig} />
             </CmxCardContent>
           </CmxCard>
 
@@ -534,7 +503,7 @@ export default async function ErpLiteExpensesPage({
                       <div className="mt-3 text-sm font-semibold">
                         {t('lists.cashboxes.currentBalance')}:
                         <span className="ml-2">
-                          {item.current_balance.toFixed(4)} {item.currency_code}
+                          {formatErpLiteMoney(item.current_balance, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                         </span>
                       </div>
                     </div>
@@ -557,12 +526,12 @@ export default async function ErpLiteExpensesPage({
                       <div className="font-medium">{item.recon_no} · {item.cashbox_name}</div>
                       <div className="mt-1 text-xs text-muted-foreground">{item.recon_date}</div>
                       <div className="mt-2 text-xs text-muted-foreground">
-                        {t('lists.cashRecons.expected')}: {item.expected_balance.toFixed(4)} ·
+                        {t('lists.cashRecons.expected')}: {formatErpLiteMoney(item.expected_balance, displayConfig)} ·
                         {' '}
-                        {t('lists.cashRecons.counted')}: {item.counted_balance.toFixed(4)}
+                        {t('lists.cashRecons.counted')}: {formatErpLiteMoney(item.counted_balance, displayConfig)}
                       </div>
                       <div className="mt-3 text-sm font-semibold">
-                        {t('lists.cashRecons.variance')}: {item.variance_amount.toFixed(4)} · {item.status_code}
+                        {t('lists.cashRecons.variance')}: {formatErpLiteMoney(item.variance_amount, displayConfig)} · {item.status_code}
                       </div>
                       {item.status_code === 'OPEN' ? (
                         <form action={closeErpLiteCashReconciliationAction} className="mt-3">
@@ -605,7 +574,7 @@ export default async function ErpLiteExpensesPage({
                           </div>
                         </div>
                         <div className="text-right text-sm font-semibold">
-                          {item.amount_total.toFixed(4)} {item.currency_code}
+                          {formatErpLiteMoney(item.amount_total, { ...displayConfig, currencyCode: item.currency_code || displayConfig.currencyCode })}
                         </div>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground">

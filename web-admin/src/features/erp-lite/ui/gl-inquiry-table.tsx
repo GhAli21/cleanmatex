@@ -5,17 +5,19 @@ import { useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { ArrowUpRight, ArrowDownLeft, ChevronRight } from 'lucide-react'
 import type { ErpLiteGlInquiryRow } from '@/lib/services/erp-lite-reporting.service'
+import { formatErpLiteMoney, type ErpLiteDisplayConfig } from '@features/erp-lite/lib/display-format'
 
 interface GlInquiryTableProps {
   rows: ErpLiteGlInquiryRow[]
   selectedJournalId?: string
+  displayConfig: ErpLiteDisplayConfig
 }
 
 /**
  * Clickable GL inquiry table.
  * Selecting a row sets ?journalId= in the URL to open the detail panel.
  */
-export function GlInquiryTable({ rows, selectedJournalId }: GlInquiryTableProps) {
+export function GlInquiryTable({ rows, selectedJournalId, displayConfig }: GlInquiryTableProps) {
   const t = useTranslations('erpLite.reports')
   const router = useRouter()
   const pathname = usePathname()
@@ -129,13 +131,10 @@ export function GlInquiryTable({ rows, selectedJournalId }: GlInquiryTableProps)
                 {/* Amount */}
                 <td className="px-4 py-3 text-end">
                   <span className="font-mono text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-                    {line.amount_txn_currency.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 4,
+                    {formatErpLiteMoney(line.amount_txn_currency, {
+                      ...displayConfig,
+                      currencyCode: line.currency_code || displayConfig.currencyCode,
                     })}
-                  </span>
-                  <span className="ms-1 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                    {line.currency_code}
                   </span>
                 </td>
 

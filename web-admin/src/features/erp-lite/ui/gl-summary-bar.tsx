@@ -1,16 +1,22 @@
 import { useTranslations } from 'next-intl'
 import { ArrowUpRight, ArrowDownLeft, Rows3 } from 'lucide-react'
 import type { ErpLiteGlSummary } from '@/lib/services/erp-lite-reporting.service'
+import {
+  formatErpLiteMoney,
+  formatErpLiteNumber,
+  type ErpLiteDisplayConfig,
+} from '@features/erp-lite/lib/display-format'
 
 interface GlSummaryBarProps {
   summary: ErpLiteGlSummary
+  displayConfig: ErpLiteDisplayConfig
 }
 
 /**
  * Stat cards showing total debit, total credit, and row count
  * for the currently active GL filter set.
  */
-export function GlSummaryBar({ summary }: GlSummaryBarProps) {
+export function GlSummaryBar({ summary, displayConfig }: GlSummaryBarProps) {
   const t = useTranslations('erpLite.reports')
 
   const balance = summary.totalDebit - summary.totalCredit
@@ -21,19 +27,19 @@ export function GlSummaryBar({ summary }: GlSummaryBarProps) {
       <StatCard
         icon={<ArrowUpRight className="h-4 w-4 text-red-500" />}
         label={t('summary.totalDebit')}
-        value={summary.totalDebit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        value={formatErpLiteMoney(summary.totalDebit, displayConfig)}
         valueClass="text-red-600"
       />
       <StatCard
         icon={<ArrowDownLeft className="h-4 w-4 text-emerald-500" />}
         label={t('summary.totalCredit')}
-        value={summary.totalCredit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        value={formatErpLiteMoney(summary.totalCredit, displayConfig)}
         valueClass="text-emerald-600"
       />
       <StatCard
         icon={<Rows3 className="h-4 w-4 text-[rgb(var(--cmx-primary-rgb,14_165_233))]" />}
         label={t('gl.summary.rowCount')}
-        value={summary.rowCount.toLocaleString()}
+        value={formatErpLiteNumber(summary.rowCount, displayConfig.locale)}
         sub={
           isBalanced ? (
             <span className="text-emerald-600">{t('gl.summary.balanced')}</span>

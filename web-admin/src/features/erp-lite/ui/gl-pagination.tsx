@@ -2,8 +2,9 @@
 
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTransition } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { formatErpLiteNumber } from '@features/erp-lite/lib/display-format'
 import { CmxButton } from '@ui/primitives'
 
 interface GlPaginationProps {
@@ -20,6 +21,7 @@ const PAGE_SIZES = [25, 50, 100] as const
 export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
   const tCommon = useTranslations('common')
   const t = useTranslations('erpLite.reports')
+  const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -43,7 +45,7 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
       {/* Row count & page size selector */}
       <div className="flex items-center gap-2 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
         <span>
-          {from}–{to} {tCommon('of')} {total.toLocaleString()}
+          {formatErpLiteNumber(from, locale)}–{formatErpLiteNumber(to, locale)} {tCommon('of')} {formatErpLiteNumber(total, locale)}
         </span>
         <span className="text-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">|</span>
         <span>{t('gl.pagination.rowsPerPage')}:</span>
@@ -87,7 +89,7 @@ export function GlPagination({ page, pageSize, total }: GlPaginationProps) {
         </CmxButton>
 
         <span className="min-w-[80px] text-center text-sm text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-          {page} / {totalPages}
+          {formatErpLiteNumber(page, locale)} / {formatErpLiteNumber(totalPages, locale)}
         </span>
 
         <CmxButton

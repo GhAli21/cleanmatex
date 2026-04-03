@@ -6,6 +6,7 @@ import {
   ErpLiteReportingService,
   type ErpLiteGlInquiryFilters,
 } from '@/lib/services/erp-lite-reporting.service'
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { GlFilterBar } from '@features/erp-lite/ui/gl-filter-bar'
 import { GlSummaryBar } from '@features/erp-lite/ui/gl-summary-bar'
@@ -32,6 +33,7 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
   const t = await getTranslations('erpLite.reports')
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
+  const displayConfig = await getErpLiteDisplayConfig()
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED)
   const sp = await searchParams
 
@@ -119,7 +121,7 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
         {!loadError && (
           <>
             {/* Summary KPI cards */}
-            <GlSummaryBar summary={summary} />
+            <GlSummaryBar summary={summary} displayConfig={displayConfig} />
 
             {/* Filter bar — needs Suspense because it reads useSearchParams */}
             <Suspense>
@@ -128,7 +130,7 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
 
             {/* Master table — clickable rows open the detail panel */}
             <Suspense>
-              <GlInquiryTable rows={rows} selectedJournalId={sp.journalId} />
+              <GlInquiryTable rows={rows} selectedJournalId={sp.journalId} displayConfig={displayConfig} />
             </Suspense>
 
             {/* Pagination */}
@@ -144,7 +146,7 @@ export default async function ErpLiteGlPage({ searchParams }: GlPageProps) {
       {/* Master-detail slide-over rendered outside the main flow */}
       {journalDetail && (
         <Suspense>
-          <GlJournalDetailPanel journal={journalDetail} />
+          <GlJournalDetailPanel journal={journalDetail} displayConfig={displayConfig} />
         </Suspense>
       )}
     </ErpLitePageGuard>

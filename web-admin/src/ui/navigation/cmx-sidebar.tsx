@@ -100,20 +100,46 @@ export default function CmxSidebar() {
   const userRole = currentTenant?.user_role?.toLowerCase() as UserRole | undefined
 
   useEffect(() => {
+    let isMounted = true
+
     async function loadFeatureFlags() {
       if (!currentTenant) {
-        setFeatureFlags({})
+        if (isMounted) {
+          setFeatureFlags({})
+        }
         return
       }
+
       try {
         const cached = getCachedFeatureFlags(currentTenant.tenant_id)
-        if (cached) setFeatureFlags(cached)
+        if (cached && isMounted) {
+          setFeatureFlags(cached)
+        }
+
+        const response = await fetch('/api/feature-flags', { cache: 'no-store' })
+        if (!response.ok) {
+          throw new Error('Failed to fetch feature flags')
+        }
+
+        const freshFlags = (await response.json()) as Record<string, boolean>
+        setCachedFeatureFlags(currentTenant.tenant_id, freshFlags)
+
+        if (isMounted) {
+          setFeatureFlags(freshFlags)
+        }
       } catch (error) {
         console.error('Error loading feature flags:', error)
-        if (!getCachedFeatureFlags(currentTenant.tenant_id)) setFeatureFlags({})
+        if (!getCachedFeatureFlags(currentTenant.tenant_id) && isMounted) {
+          setFeatureFlags({})
+        }
       }
     }
+
     loadFeatureFlags()
+
+    return () => {
+      isMounted = false
+    }
   }, [currentTenant])
 
   const getSectionIcon = (section: NavigationSection) => {

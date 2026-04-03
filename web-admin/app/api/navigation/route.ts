@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
+import { getAuthContext } from '@/lib/auth/server-auth'
 import { createClient } from '@/lib/supabase/server'
 import { getNavigationFromDatabase } from '@/lib/services/navigation.service'
+import { getFeatureFlags } from '@/lib/services/feature-flags.service'
 import type { UserRole } from '@/config/navigation'
 
 /**
@@ -37,11 +39,10 @@ export async function GET(request: Request) {
     const supabase = await createClient()
     console.log('[API] Supabase client created')
 
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      // Return empty navigation for unauthenticated users (no default access)
+    let authContext
+    try {
+      authContext = await getAuthContext()
+    } catch {
       return NextResponse.json({
         sections: [],
         cached: false,
@@ -49,32 +50,12 @@ export async function GET(request: Request) {
       })
     }
 
-    // Get user's tenants to determine role
-    const { data: tenants, error: tenantsError } = await supabase.rpc('get_user_tenants')
+    const userRole = authContext.userRole.toLowerCase() as UserRole
+    const tenantId = authContext.tenantId
+    const userId = authContext.userId
 
-    if (tenantsError || !tenants || tenants.length === 0) {
-      // No tenant access - return empty navigation
-      return NextResponse.json({
-        sections: [],
-        cached: false,
-        source: 'fallback',
-      })
-    }
-
-    // Get user role - if not found, return empty navigation (no default role)
-    const userRoleRaw = tenants[0].user_role?.toLowerCase()
-    if (!userRoleRaw) {
-      return NextResponse.json({
-        sections: [],
-        cached: false,
-        source: 'fallback',
-      })
-    }
-
-    const userRole = userRoleRaw as UserRole
-
-    console.log('Jh In GET() [ 1 ] : user.id', user.id);
-    console.log('Jh In GET() [ 2 ] : tenants[0].tenant_id', tenants[0].tenant_id);
+    console.log('Jh In GET() [ 1 ] : user.id', userId);
+    console.log('Jh In GET() [ 2 ] : tenantId', tenantId);
     console.log('Jh In GET() [ 3 ] : userRole', userRole);
     // Get user permissions
     
@@ -84,8 +65,8 @@ export async function GET(request: Request) {
     
     /*
     const { data: permissionsData, error: permsError } = await supabase.rpc('get_user_permissions_jh', {
-      p_cur_user_id: user.id,
-      p_cur_tenant_org_id: tenants[0].tenant_id as string,
+      p_cur_user_id: userId,
+      p_cur_tenant_org_id: tenantId,
     })
     */
 
@@ -96,20 +77,13 @@ export async function GET(request: Request) {
       console.log('Jh In GET() [ 4 ] : userPermissions.length', userPermissions?.length);
       //console.log('Jh In GET() [ 5 ] : permsError', permsError);
       
-      // Get feature flags
     let featureFlags: Record<string, boolean> = {}
-    // TEMPORARILY DISABLED to prevent timeout - feature flags will use defaults
-    // try {
-    //   const { getFeatureFlags } = await import('@/lib/services/feature-flags.service')
-    //   console.log('Jh In GET() [ 5 ] : getFeatureFlags');
-    //   const tenantId = tenants[0].tenant_id as string
-    //   console.log('Jh In GET() [ 6 ] : tenantId', tenantId);
-    //   const flags = await getFeatureFlags(tenantId)
-    //   // Convert FeatureFlags type to Record<string, boolean>
-    //   featureFlags = flags as unknown as Record<string, boolean>
-    // } catch (error) {
-    //   console.warn('Failed to fetch feature flags for navigation:', error)
-    // }
+    try {
+      const flags = await withTimeout(getFeatureFlags(tenantId), 3000)
+      featureFlags = flags as unknown as Record<string, boolean>
+    } catch (error) {
+      console.warn('Failed to fetch feature flags for navigation:', error)
+    }
 
     // Fetch navigation from database with timeout
     const navigation = await withTimeout(
@@ -138,27 +112,23 @@ export async function GET(request: Request) {
     
     // Try to get fallback navigation even on error
     try {
-      // If we have userRole, try to get fallback
-      const supabase = await createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: tenants } = await supabase.rpc('get_user_tenants')
-        if (tenants && tenants.length > 0) {
-          const userRole = tenants[0].user_role?.toLowerCase() as UserRole | null
-          if (userRole) {
-            const navService = await import('@/lib/services/navigation.service')
-            const fallback = navService.getSystemNavigationFallback(userRole, [], {})
-            // Use fallback directly - it already handles super_admin case internally
-            const navigation = fallback
-            
-            return NextResponse.json({
-              sections: navigation,
-              cached: false,
-              source: 'fallback-error',
-              error: error instanceof Error ? error.message : 'Unknown error',
-            })
-          }
-        }
+      const authContext = await getAuthContext()
+      const userRole = authContext.userRole?.toLowerCase() as UserRole | null
+      if (userRole) {
+        const navService = await import('@/lib/services/navigation.service')
+        const featureFlags = await getFeatureFlags(authContext.tenantId)
+        const fallback = navService.getSystemNavigationFallback(
+          userRole,
+          [],
+          featureFlags as unknown as Record<string, boolean>,
+        )
+
+        return NextResponse.json({
+          sections: fallback,
+          cached: false,
+          source: 'fallback-error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
       }
     } catch (fallbackError) {
       console.error('Error getting fallback navigation:', fallbackError)

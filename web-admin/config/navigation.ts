@@ -347,7 +347,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   },
   {
     key: 'erp_lite',
-    label: 'Finance & Accounting',
+    label: 'ERP-Lite Finance & Accounting',
     icon: Landmark,
     path: '/dashboard/erp-lite/reports',
     roles: ['admin', 'super_admin', 'tenant_admin'],

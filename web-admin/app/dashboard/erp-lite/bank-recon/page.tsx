@@ -14,6 +14,8 @@ import {
 } from '@ui/primitives';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
+import { formatErpLiteMoney } from '@features/erp-lite/lib/display-format';
+import { getErpLiteDisplayConfig } from '@features/erp-lite/server/get-erp-lite-display-config';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
 import type { ErpLiteBankDashboardSnapshot } from '@/lib/types/erp-lite-v2';
@@ -43,6 +45,7 @@ export default async function ErpLiteBankReconPage({
   const t = await getTranslations('erpLite.bankRecon');
   const tCommon = await getTranslations('erpLite.common');
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en';
+  const displayConfig = await getErpLiteDisplayConfig();
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
@@ -367,7 +370,7 @@ export default async function ErpLiteBankReconPage({
                     <div className="mt-1 text-xs text-muted-foreground">{item.bank_name} · {item.recon_date}</div>
                     <div className="mt-2 text-xs text-muted-foreground">{item.stmt_date_from} → {item.stmt_date_to}</div>
                     <div className="mt-3 text-sm font-semibold">
-                      {item.unmatched_amount?.toFixed(4) ?? '—'} · {item.status_code}
+                      {item.unmatched_amount != null ? formatErpLiteMoney(item.unmatched_amount, displayConfig) : '—'} · {item.status_code}
                     </div>
                     {item.status_code === 'OPEN' ? (
                       <form action={closeErpLiteBankReconAction} className="mt-3">
@@ -406,7 +409,7 @@ export default async function ErpLiteBankReconPage({
                     <div className="mt-1 text-xs text-muted-foreground">{item.txn_date} · {item.ext_ref_no ?? '—'}</div>
                     <div className="mt-2 text-xs text-muted-foreground">{item.description ?? '—'}</div>
                     <div className="mt-3 text-sm font-semibold">
-                      {(item.debit_amount > 0 ? item.debit_amount : item.credit_amount).toFixed(4)} · {item.match_status}
+                      {formatErpLiteMoney(item.debit_amount > 0 ? item.debit_amount : item.credit_amount, displayConfig)} · {item.match_status}
                     </div>
                   </div>
                 ))
@@ -428,7 +431,7 @@ export default async function ErpLiteBankReconPage({
                     <div className="font-medium">{item.source_doc_label}</div>
                     <div className="mt-1 text-xs text-muted-foreground">{item.statement_line_label}</div>
                     <div className="mt-3 text-sm font-semibold">
-                      {item.match_amount.toFixed(4)} · {item.status_code}
+                      {formatErpLiteMoney(item.match_amount, displayConfig)} · {item.status_code}
                     </div>
                     {item.status_code === 'CONFIRMED' ? (
                       <form action={reverseErpLiteBankMatchAction} className="mt-3">

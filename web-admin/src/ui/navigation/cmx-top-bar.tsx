@@ -176,8 +176,14 @@ export default function CmxTopBar() {
 
   const currentPageContract = getPageAccessContractByPath(pathname)
   const pageTitle = currentPageContract?.label ?? 'Dashboard'
-  const sortedFeatureFlags = Object.entries(featureFlags).sort(([leftKey], [rightKey]) =>
-    leftKey.localeCompare(rightKey),
+  const sortedFeatureFlags = Object.entries(featureFlags).sort(
+    ([leftKey, leftEnabled], [rightKey, rightEnabled]) => {
+      if (leftEnabled !== rightEnabled) {
+        return leftEnabled ? -1 : 1
+      }
+
+      return leftKey.localeCompare(rightKey)
+    },
   )
   const pageEvaluation = currentPageContract
     ? evaluateAccessRequirement(currentPageContract.page, {

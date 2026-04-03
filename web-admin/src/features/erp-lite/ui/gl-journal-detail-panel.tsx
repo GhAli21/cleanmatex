@@ -5,16 +5,22 @@ import { useTranslations } from 'next-intl'
 import { X, FileText, ArrowUpRight, ArrowDownLeft, Hash, Calendar, Globe } from 'lucide-react'
 import { Badge } from '@ui/primitives/badge'
 import type { ErpLiteGlJournalDetail } from '@/lib/services/erp-lite-reporting.service'
+import {
+  formatErpLiteExchangeRate,
+  formatErpLiteMoney,
+  type ErpLiteDisplayConfig,
+} from '@features/erp-lite/lib/display-format'
 
 interface GlJournalDetailPanelProps {
   journal: ErpLiteGlJournalDetail
+  displayConfig: ErpLiteDisplayConfig
 }
 
 /**
  * Slide-over detail panel for a single GL journal.
  * Rendered server-side; close button navigates back via search params.
  */
-export function GlJournalDetailPanel({ journal }: GlJournalDetailPanelProps) {
+export function GlJournalDetailPanel({ journal, displayConfig }: GlJournalDetailPanelProps) {
   const t = useTranslations('erpLite.reports')
   const router = useRouter()
   const pathname = usePathname()
@@ -98,7 +104,7 @@ export function GlJournalDetailPanel({ journal }: GlJournalDetailPanelProps) {
             <MetaField
               icon={<Globe className="h-3.5 w-3.5" />}
               label={t('gl.detail.currency')}
-              value={`${journal.currency_code} @ ${Number(journal.exchange_rate).toFixed(4)}`}
+              value={`${journal.currency_code} @ ${formatErpLiteExchangeRate(Number(journal.exchange_rate), displayConfig)}`}
             />
             {journal.posted_at && (
               <MetaField
@@ -161,10 +167,13 @@ export function GlJournalDetailPanel({ journal }: GlJournalDetailPanelProps) {
                         <SideChip side={line.entry_side} />
                       </td>
                       <td className="px-3 py-2 text-end font-mono text-xs">
-                        {line.amount_txn_currency.toFixed(4)}
+                        {formatErpLiteMoney(line.amount_txn_currency, {
+                          ...displayConfig,
+                          currencyCode: journal.currency_code || displayConfig.currencyCode,
+                        })}
                       </td>
                       <td className="px-3 py-2 text-end font-mono text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                        {line.amount_base_currency.toFixed(4)}
+                        {formatErpLiteMoney(line.amount_base_currency, displayConfig)}
                       </td>
                     </tr>
                   ))}
@@ -176,11 +185,17 @@ export function GlJournalDetailPanel({ journal }: GlJournalDetailPanelProps) {
             <div className="mt-3 flex justify-end gap-6 rounded-lg bg-[rgb(var(--cmx-muted-rgb,241_245_249))] px-4 py-3 text-sm">
               <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-debit-rgb,239_68_68,239_68_68))]">
                 <ArrowUpRight className="h-3.5 w-3.5" />
-                {t('columns.debit')}: {totalDebit.toFixed(4)}
+                {t('columns.debit')}: {formatErpLiteMoney(totalDebit, {
+                  ...displayConfig,
+                  currencyCode: journal.currency_code || displayConfig.currencyCode,
+                })}
               </span>
               <span className="flex items-center gap-1 font-medium text-[rgb(var(--cmx-credit-rgb,34_197_94,34_197_94))]">
                 <ArrowDownLeft className="h-3.5 w-3.5" />
-                {t('columns.credit')}: {totalCredit.toFixed(4)}
+                {t('columns.credit')}: {formatErpLiteMoney(totalCredit, {
+                  ...displayConfig,
+                  currencyCode: journal.currency_code || displayConfig.currencyCode,
+                })}
               </span>
               {!isBalanced && (
                 <span className="font-semibold text-[rgb(var(--cmx-destructive-rgb,239_68_68))]">
