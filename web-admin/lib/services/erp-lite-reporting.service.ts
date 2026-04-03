@@ -19,6 +19,56 @@ export interface ErpLiteGlInquiryRow {
   entry_side: string;
   amount_txn_currency: number;
   currency_code: string;
+  /** Total rows across all pages (for pagination). */
+  total_count: number;
+}
+
+export interface ErpLiteGlInquiryFilters {
+  dateFrom?: string;   // YYYY-MM-DD
+  dateTo?: string;     // YYYY-MM-DD
+  eventCode?: string;
+  accountCode?: string;
+  entrySide?: 'DEBIT' | 'CREDIT';
+  journalNo?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ErpLiteGlSummary {
+  totalDebit: number;
+  totalCredit: number;
+  rowCount: number;
+}
+
+export interface ErpLiteGlJournalDetail {
+  journal_id: string;
+  journal_no: string;
+  journal_date: string;
+  posting_date: string;
+  txn_event_code: string;
+  source_module_code: string;
+  source_doc_type_code: string;
+  source_doc_no: string | null;
+  currency_code: string;
+  exchange_rate: number;
+  total_debit: number;
+  total_credit: number;
+  status_code: string;
+  narration: string | null;
+  posted_at: string | null;
+  posted_by: string | null;
+  lines: ErpLiteGlJournalLine[];
+}
+
+export interface ErpLiteGlJournalLine {
+  line_no: number;
+  account_code: string;
+  account_name: string;
+  entry_side: string;
+  amount_txn_currency: number;
+  amount_base_currency: number;
+  cost_center_id: string | null;
+  profit_center_id: string | null;
 }
 
 export interface ErpLiteTrialBalanceRow {
@@ -61,12 +111,39 @@ export interface ErpLiteBranchProfitabilityRow {
 }
 
 export class ErpLiteReportingService {
-  static async getGlInquiry(limit = 50, locale: ErpLiteReportLocale = 'en'): Promise<ErpLiteGlInquiryRow[]> {
+  static async getGlInquiry(
+    filters: ErpLiteGlInquiryFilters = {},
+    locale: ErpLiteReportLocale = 'en',
+  ): Promise<{ rows: ErpLiteGlInquiryRow[]; total: number }> {
     const tenantId = await this.requireTenantId();
     const accountNameSql = this.accountNameSql(locale);
+    const page = Math.max(1, filters.page ?? 1);
+    const pageSize = Math.min(Math.max(10, filters.pageSize ?? 50), 200);
+    const offset = (page - 1) * pageSize;
+
+    // Build optional filter fragments
+    const dateFromClause = filters.dateFrom
+      ? Prisma.sql`AND j.posting_date >= ${filters.dateFrom}::date`
+      : Prisma.sql``;
+    const dateToClause = filters.dateTo
+      ? Prisma.sql`AND j.posting_date <= ${filters.dateTo}::date`
+      : Prisma.sql``;
+    const eventClause = filters.eventCode
+      ? Prisma.sql`AND j.txn_event_code = ${filters.eventCode}`
+      : Prisma.sql``;
+    const accountClause = filters.accountCode
+      ? Prisma.sql`AND a.account_code ILIKE ${'%' + filters.accountCode + '%'}`
+      : Prisma.sql``;
+    const sideClause = filters.entrySide
+      ? Prisma.sql`AND d.entry_side = ${filters.entrySide}`
+      : Prisma.sql``;
+    const journalNoClause = filters.journalNo
+      ? Prisma.sql`AND j.journal_no ILIKE ${'%' + filters.journalNo + '%'}`
+      : Prisma.sql``;
 
     return withTenantContext(tenantId, async () => {
-      const rows = await prisma.$queryRaw<ErpLiteGlInquiryRow[]>(Prisma.sql`
+      type GlRawRow = ErpLiteGlInquiryRow & { total_count: string }
+      const rows = await prisma.$queryRaw<GlRawRow[]>(Prisma.sql`
         SELECT
           j.id AS journal_id,
           j.journal_no,
@@ -79,7 +156,8 @@ export class ErpLiteReportingService {
           ${accountNameSql} AS account_name,
           d.entry_side,
           d.amount_txn_currency,
-          j.currency_code
+          j.currency_code,
+          COUNT(*) OVER () AS total_count
         FROM public.org_fin_journal_mst j
         INNER JOIN public.org_fin_journal_dtl d
           ON d.journal_id = j.id
@@ -93,14 +171,194 @@ export class ErpLiteReportingService {
           AND j.rec_status = 1
           AND d.is_active = true
           AND d.rec_status = 1
+          ${dateFromClause}
+          ${dateToClause}
+          ${eventClause}
+          ${accountClause}
+          ${sideClause}
+          ${journalNoClause}
         ORDER BY j.posting_date DESC, j.created_at DESC, d.line_no ASC
-        LIMIT ${limit}
+        LIMIT ${pageSize} OFFSET ${offset}
       `);
 
-      return rows.map((row) => ({
-        ...row,
-        amount_txn_currency: Number(row.amount_txn_currency ?? 0),
-      }));
+      const total = rows.length > 0 ? Number(rows[0].total_count ?? 0) : 0;
+      return {
+        rows: rows.map((row) => ({
+          ...row,
+          amount_txn_currency: Number(row.amount_txn_currency ?? 0),
+          total_count: Number(row.total_count ?? 0),
+        })),
+        total,
+      };
+    });
+  }
+
+  static async getGlSummary(
+    filters: Omit<ErpLiteGlInquiryFilters, 'page' | 'pageSize'> = {},
+    locale: ErpLiteReportLocale = 'en',
+  ): Promise<ErpLiteGlSummary> {
+    const tenantId = await this.requireTenantId();
+
+    const dateFromClause = filters.dateFrom
+      ? Prisma.sql`AND j.posting_date >= ${filters.dateFrom}::date`
+      : Prisma.sql``;
+    const dateToClause = filters.dateTo
+      ? Prisma.sql`AND j.posting_date <= ${filters.dateTo}::date`
+      : Prisma.sql``;
+    const eventClause = filters.eventCode
+      ? Prisma.sql`AND j.txn_event_code = ${filters.eventCode}`
+      : Prisma.sql``;
+    const accountClause = filters.accountCode
+      ? Prisma.sql`AND a.account_code ILIKE ${'%' + filters.accountCode + '%'}`
+      : Prisma.sql``;
+    const sideClause = filters.entrySide
+      ? Prisma.sql`AND d.entry_side = ${filters.entrySide}`
+      : Prisma.sql``;
+    const journalNoClause = filters.journalNo
+      ? Prisma.sql`AND j.journal_no ILIKE ${'%' + filters.journalNo + '%'}`
+      : Prisma.sql``;
+
+    return withTenantContext(tenantId, async () => {
+      const [summary] = await prisma.$queryRaw<
+        [{ total_debit: string; total_credit: string; row_count: string }]
+      >(Prisma.sql`
+        SELECT
+          COALESCE(SUM(CASE WHEN d.entry_side = 'DEBIT' THEN d.amount_txn_currency ELSE 0 END), 0) AS total_debit,
+          COALESCE(SUM(CASE WHEN d.entry_side = 'CREDIT' THEN d.amount_txn_currency ELSE 0 END), 0) AS total_credit,
+          COUNT(*) AS row_count
+        FROM public.org_fin_journal_mst j
+        INNER JOIN public.org_fin_journal_dtl d
+          ON d.journal_id = j.id
+         AND d.tenant_org_id = j.tenant_org_id
+        INNER JOIN public.org_fin_acct_mst a
+          ON a.id = d.account_id
+         AND a.tenant_org_id = d.tenant_org_id
+        WHERE j.tenant_org_id = ${tenantId}::uuid
+          AND j.status_code = 'POSTED'
+          AND j.is_active = true
+          AND j.rec_status = 1
+          AND d.is_active = true
+          AND d.rec_status = 1
+          ${dateFromClause}
+          ${dateToClause}
+          ${eventClause}
+          ${accountClause}
+          ${sideClause}
+          ${journalNoClause}
+      `);
+
+      return {
+        totalDebit: Number(summary?.total_debit ?? 0),
+        totalCredit: Number(summary?.total_credit ?? 0),
+        rowCount: Number(summary?.row_count ?? 0),
+      };
+    });
+  }
+
+  static async getGlJournalDetail(
+    journalId: string,
+    locale: ErpLiteReportLocale = 'en',
+  ): Promise<ErpLiteGlJournalDetail | null> {
+    const tenantId = await this.requireTenantId();
+    const accountNameSql = this.accountNameSql(locale);
+
+    return withTenantContext(tenantId, async () => {
+      const [header] = await prisma.$queryRaw<
+        [{
+          journal_id: string;
+          journal_no: string;
+          journal_date: string;
+          posting_date: string;
+          txn_event_code: string;
+          source_module_code: string;
+          source_doc_type_code: string;
+          source_doc_no: string | null;
+          currency_code: string;
+          exchange_rate: string;
+          total_debit: string;
+          total_credit: string;
+          status_code: string;
+          narration: string | null;
+          posted_at: string | null;
+          posted_by: string | null;
+        }]
+      >(Prisma.sql`
+        SELECT
+          id AS journal_id,
+          journal_no,
+          TO_CHAR(journal_date, 'YYYY-MM-DD') AS journal_date,
+          TO_CHAR(posting_date, 'YYYY-MM-DD') AS posting_date,
+          txn_event_code,
+          source_module_code,
+          source_doc_type_code,
+          source_doc_no,
+          currency_code,
+          exchange_rate,
+          total_debit,
+          total_credit,
+          status_code,
+          narration,
+          TO_CHAR(posted_at, 'YYYY-MM-DD HH24:MI') AS posted_at,
+          posted_by
+        FROM public.org_fin_journal_mst
+        WHERE id = ${journalId}::uuid
+          AND tenant_org_id = ${tenantId}::uuid
+          AND is_active = true
+          AND rec_status = 1
+        LIMIT 1
+      `);
+
+      if (!header) return null;
+
+      const lines = await prisma.$queryRaw<ErpLiteGlJournalLine[]>(Prisma.sql`
+        SELECT
+          d.line_no,
+          a.account_code,
+          ${accountNameSql} AS account_name,
+          d.entry_side,
+          d.amount_txn_currency,
+          d.amount_base_currency,
+          d.cost_center_id::text,
+          d.profit_center_id::text
+        FROM public.org_fin_journal_dtl d
+        INNER JOIN public.org_fin_acct_mst a
+          ON a.id = d.account_id
+         AND a.tenant_org_id = d.tenant_org_id
+        WHERE d.journal_id = ${journalId}::uuid
+          AND d.tenant_org_id = ${tenantId}::uuid
+          AND d.is_active = true
+          AND d.rec_status = 1
+        ORDER BY d.line_no ASC
+      `);
+
+      return {
+        ...header,
+        exchange_rate: Number(header.exchange_rate ?? 1),
+        total_debit: Number(header.total_debit ?? 0),
+        total_credit: Number(header.total_credit ?? 0),
+        lines: lines.map((l) => ({
+          ...l,
+          amount_txn_currency: Number(l.amount_txn_currency ?? 0),
+          amount_base_currency: Number(l.amount_base_currency ?? 0),
+        })),
+      };
+    });
+  }
+
+  static async getGlDistinctEventCodes(locale: ErpLiteReportLocale = 'en'): Promise<string[]> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      const rows = await prisma.$queryRaw<[{ txn_event_code: string }]>(Prisma.sql`
+        SELECT DISTINCT txn_event_code
+        FROM public.org_fin_journal_mst
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND status_code = 'POSTED'
+          AND is_active = true
+          AND rec_status = 1
+        ORDER BY txn_event_code ASC
+      `);
+      return (rows as { txn_event_code: string }[]).map((r) => r.txn_event_code);
     });
   }
 

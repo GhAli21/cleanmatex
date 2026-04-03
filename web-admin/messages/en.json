@@ -71,7 +71,8 @@
     "itemCount": "{count, plural, one {# item} other {# items}}",
     "warningCount": "{count, plural, one {# Warning} other {# Warnings}}",
     "copied": "Copied",
-    "pieces": "Pieces"
+    "pieces": "Pieces",
+    "currency": "Currency"
   },
   "amountMismatch": {
     "title": "Amount Mismatch Detected",
@@ -3584,7 +3585,45 @@
       "gl": {
         "title": "General Ledger Inquiry",
         "subtitle": "Latest posted journal lines for the current tenant.",
-        "empty": "No posted journal lines found."
+        "empty": "No posted journal lines found.",
+        "emptyHint": "Adjust your filters or post transactions to see entries here.",
+        "filters": {
+          "journalNo": "Search journal #...",
+          "accountCode": "Search account code...",
+          "dateFrom": "From date",
+          "dateTo": "To date",
+          "allEvents": "All Events",
+          "allSides": "All Sides",
+          "side_debit": "Debit only",
+          "side_credit": "Credit only"
+        },
+        "summary": {
+          "rowCount": "Lines (filtered)",
+          "balanced": "Balanced",
+          "unbalanced": "Unbalanced"
+        },
+        "pagination": {
+          "rowsPerPage": "Rows per page",
+          "first": "First page",
+          "prev": "Previous page",
+          "next": "Next page",
+          "last": "Last page"
+        },
+        "detail": {
+          "eyebrow": "Journal Detail",
+          "panelLabel": "Journal detail panel",
+          "close": "Close detail panel",
+          "journalDate": "Journal Date",
+          "sourceDoc": "Source Document",
+          "currency": "Currency / Rate",
+          "postedAt": "Posted At",
+          "postedBy": "Posted By",
+          "narration": "Narration",
+          "lines": "Journal Lines",
+          "amountTxn": "Txn Amount",
+          "amountBase": "Base Amount",
+          "unbalanced": "Out of balance"
+        }
       },
       "trialBalance": {
         "title": "Trial Balance",

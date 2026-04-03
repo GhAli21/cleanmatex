@@ -71,7 +71,8 @@
     "itemCount": "{count, plural, one {# عنصر} other {# عناصر}}",
     "warningCount": "{count, plural, one {# تحذير} other {# تحذيرات}}",
     "copied": "تم النسخ",
-    "pieces": "قطع"
+    "pieces": "قطع",
+    "currency": "العملة"
   },
   "amountMismatch": {
     "title": "تم اكتشاف عدم تطابق في المبالغ",
@@ -3583,7 +3584,45 @@
       "gl": {
         "title": "استعلام دفتر الأستاذ العام",
         "subtitle": "أحدث سطور القيود المرحلة للمستأجر الحالي.",
-        "empty": "لا توجد سطور قيود مرحلة."
+        "empty": "لا توجد سطور قيود مرحلة.",
+        "emptyHint": "عدّل المرشحات أو رحّل معاملات لترى القيود هنا.",
+        "filters": {
+          "journalNo": "ابحث برقم القيد...",
+          "accountCode": "ابحث برمز الحساب...",
+          "dateFrom": "من تاريخ",
+          "dateTo": "إلى تاريخ",
+          "allEvents": "جميع الأحداث",
+          "allSides": "جميع الأطراف",
+          "side_debit": "مدين فقط",
+          "side_credit": "دائن فقط"
+        },
+        "summary": {
+          "rowCount": "السطور (مرشحة)",
+          "balanced": "متوازن",
+          "unbalanced": "غير متوازن"
+        },
+        "pagination": {
+          "rowsPerPage": "سطور في الصفحة",
+          "first": "الصفحة الأولى",
+          "prev": "الصفحة السابقة",
+          "next": "الصفحة التالية",
+          "last": "الصفحة الأخيرة"
+        },
+        "detail": {
+          "eyebrow": "تفاصيل القيد",
+          "panelLabel": "لوحة تفاصيل القيد",
+          "close": "إغلاق لوحة التفاصيل",
+          "journalDate": "تاريخ القيد",
+          "sourceDoc": "المستند المصدر",
+          "currency": "العملة / السعر",
+          "postedAt": "وقت الترحيل",
+          "postedBy": "رحّل بواسطة",
+          "narration": "البيان",
+          "lines": "سطور القيد",
+          "amountTxn": "مبلغ المعاملة",
+          "amountBase": "المبلغ الأساسي",
+          "unbalanced": "غير متوازن"
+        }
       },
       "trialBalance": {
         "title": "ميزان المراجعة",

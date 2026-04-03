@@ -12,6 +12,7 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { ReactNode } from 'react'
 import { CmxSpinner } from '../primitives/cmx-spinner'
 
 interface CmxDataTableProps<TData> {
@@ -23,6 +24,7 @@ interface CmxDataTableProps<TData> {
   total: number
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  emptyMessage?: ReactNode
 }
 
 export function CmxDataTable<TData>({
@@ -34,6 +36,7 @@ export function CmxDataTable<TData>({
   total,
   onPageChange,
   onPageSizeChange,
+  emptyMessage,
 }: CmxDataTableProps<TData>) {
   const table = useReactTable({
     data,
@@ -63,7 +66,7 @@ export function CmxDataTable<TData>({
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-3 py-2 text-left font-medium">
+                  <th key={header.id} className="px-3 py-2 text-left font-medium rtl:text-right">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -104,7 +107,7 @@ export function CmxDataTable<TData>({
                   colSpan={columns.length}
                   className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
                 >
-                  No data to display.
+                  {emptyMessage ?? 'No data to display.'}
                 </td>
               </tr>
             )}
