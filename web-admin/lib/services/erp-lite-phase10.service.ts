@@ -833,6 +833,6 @@ export class ErpLitePhase10Service {
   }
 
   private static roundAmount(value: number): number {
-    return Number(value.toFixed(4));
+    return Number((value ?? 0).toFixed(4));
   }
 }

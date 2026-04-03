@@ -2397,7 +2397,7 @@ export class ErpLiteV2Service {
   }
 
   private static roundAmount(value: number): number {
-    return Math.round((value + Number.EPSILON) * 10000) / 10000;
+    return Number((value ?? 0).toFixed(4));
   }
 
   private static assertPositiveAmount(value: number, field: string): void {
