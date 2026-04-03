@@ -318,7 +318,16 @@ export class ErpLitePostingEngineService {
       // Use the global prisma client (not the transaction) for failure logging.
       // The transaction may be aborted at this point (PostgreSQL 25P02), which
       // would cause any further operations on `db` to fail immediately.
-      return this.handleExecuteFailure(envelope, postingLogId, error, prisma);
+      //
+      // When running inside an external transaction (journalTx is set), the
+      // postingLogId was written inside that transaction and may have been
+      // rolled back on failure. Passing it to handleExecuteFailure would cause
+      // an FK violation on org_fin_post_exc_tr (fk_ofpe_log) because the parent
+      // row in org_fin_post_log_tr no longer exists in the DB.
+      // Pass undefined instead so handleExecuteFailure creates a fresh log row
+      // via the global prisma client before inserting the exception record.
+      const safeLogId = journalTx ? undefined : postingLogId;
+      return this.handleExecuteFailure(envelope, safeLogId, error, prisma);
     }
   }
 
