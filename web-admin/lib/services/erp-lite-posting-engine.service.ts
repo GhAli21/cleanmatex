@@ -315,7 +315,10 @@ export class ErpLitePostingEngineService {
 
       return executeResult;
     } catch (error) {
-      return this.handleExecuteFailure(envelope, postingLogId, error, db);
+      // Use the global prisma client (not the transaction) for failure logging.
+      // The transaction may be aborted at this point (PostgreSQL 25P02), which
+      // would cause any further operations on `db` to fail immediately.
+      return this.handleExecuteFailure(envelope, postingLogId, error, prisma);
     }
   }
 
