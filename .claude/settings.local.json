@@ -33,7 +33,8 @@
       "Bash(then tail -100 build.log)",
       "Bash(else echo \"Build log not found. Running build...\")",
       "Bash(fi)",
-      "Edit(/.claude/skills/storybook/**)"
+      "Edit(/.claude/skills/storybook/**)",
+      "Bash(grep -E '\\\\.\\(ts|js\\)$')"
     ],
     "deny": [
       "Read(node_modules)",

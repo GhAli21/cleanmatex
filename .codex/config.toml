@@ -3,5 +3,11 @@ approval_policy = "on-request"
 sandbox_mode = "workspace-write"
 web_search = "cached"
 
+[mcp_servers.supabase_local]
+url = "http://192.168.100.24:54321/mcp"
+
+[mcp_servers.supabase_remote]
+url = "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+
 [history]
-persistence = "save-all" 
+persistence = "save-all"
