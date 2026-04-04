@@ -17,6 +17,15 @@ type LocalizedCatalogRow = {
   name2: string | null;
 };
 
+type ParentAccountRow = {
+  id: string;
+  account_code: string;
+  account_level: number;
+  is_postable: boolean;
+  is_system_seeded: boolean;
+  allow_tenant_children: boolean;
+};
+
 export class ErpLiteCoaService {
   static async getDashboardSnapshot(locale: 'en' | 'ar'): Promise<ErpLiteCoaDashboardSnapshot> {
     const tenantId = await this.requireTenantId();
@@ -45,11 +54,6 @@ export class ErpLiteCoaService {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
-      await this.assertValidAccountType(input.acc_type_id);
-      await this.assertValidAccountGroup(input.acc_group_id ?? null, input.acc_type_id);
-      await this.assertValidParentAccount(tenantId, input.parent_account_id ?? null);
-      await this.assertValidBranch(tenantId, input.branch_id ?? null);
-
       const accountCode = input.account_code.trim();
       const accountName = input.name.trim();
 
@@ -61,6 +65,18 @@ export class ErpLiteCoaService {
         throw new Error('Account name is required');
       }
 
+      const accountLevel = this.getAccountLevelFromCode(accountCode);
+      const parentAccount = await this.assertValidParentAccount(
+        tenantId,
+        input.parent_account_id ?? null,
+        accountCode,
+        accountLevel
+      );
+
+      await this.assertValidAccountType(input.acc_type_id);
+      await this.assertValidAccountGroup(input.acc_group_id ?? null, input.acc_type_id);
+      await this.assertValidBranch(tenantId, input.branch_id ?? null);
+
       await prisma.$queryRaw(Prisma.sql`
         INSERT INTO public.org_fin_acct_mst (
           tenant_org_id,
@@ -69,6 +85,7 @@ export class ErpLiteCoaService {
           acc_type_id,
           acc_group_id,
           account_code,
+          account_level,
           name,
           name2,
           description,
@@ -77,6 +94,9 @@ export class ErpLiteCoaService {
           is_control_account,
           is_system_linked,
           manual_post_allowed,
+          is_system_seeded,
+          is_locked,
+          allow_tenant_children,
           created_by,
           created_info,
           rec_status,
@@ -88,6 +108,7 @@ export class ErpLiteCoaService {
           ${input.acc_type_id}::uuid,
           ${input.acc_group_id ?? null}::uuid,
           ${accountCode},
+          ${accountLevel},
           ${accountName},
           ${input.name2?.trim() || null},
           ${input.description?.trim() || null},
@@ -96,6 +117,9 @@ export class ErpLiteCoaService {
           false,
           false,
           true,
+          false,
+          false,
+          false,
           ${input.created_by ?? null},
           'ERP-Lite COA account create',
           1,
@@ -135,14 +159,19 @@ export class ErpLiteCoaService {
         a.id::text AS id,
         a.account_code,
         ${accountNameSql} AS account_name,
+        a.account_level,
         ${typeNameSql} AS account_type_name,
         ${groupNameSql} AS account_group_name,
+        p.account_code AS parent_account_code,
         ${parentNameSql} AS parent_account_name,
         ${branchNameSql} AS branch_name,
         a.is_postable,
         a.is_control_account,
         a.is_system_linked,
+        a.is_system_seeded,
+        a.is_locked,
         a.manual_post_allowed,
+        a.allow_tenant_children,
         a.is_active
       FROM public.org_fin_acct_mst a
       INNER JOIN public.sys_fin_acc_type_cd t
@@ -208,6 +237,8 @@ export class ErpLiteCoaService {
       WHERE tenant_org_id = ${tenantId}::uuid
         AND is_active = true
         AND rec_status = 1
+        AND is_postable = false
+        AND (is_system_seeded = false OR allow_tenant_children = true)
       ORDER BY account_code ASC
     `);
 
@@ -274,14 +305,25 @@ export class ErpLiteCoaService {
 
   private static async assertValidParentAccount(
     tenantId: string,
-    parentAccountId: string | null
-  ): Promise<void> {
+    parentAccountId: string | null,
+    accountCode: string,
+    accountLevel: number
+  ): Promise<ParentAccountRow | null> {
     if (!parentAccountId) {
-      return;
+      if (accountLevel !== 1) {
+        throw new Error('Only level 1 accounts can be created without a parent account');
+      }
+
+      return null;
     }
 
-    const rows = await prisma.$queryRaw<{ id: string }[]>(Prisma.sql`
+    const rows = await prisma.$queryRaw<ParentAccountRow[]>(Prisma.sql`
       SELECT id::text AS id
+           , account_code
+           , account_level
+           , is_postable
+           , is_system_seeded
+           , allow_tenant_children
       FROM public.org_fin_acct_mst
       WHERE tenant_org_id = ${tenantId}::uuid
         AND id = ${parentAccountId}::uuid
@@ -290,9 +332,30 @@ export class ErpLiteCoaService {
       LIMIT 1
     `);
 
-    if (!rows[0]) {
+    const parent = rows[0];
+
+    if (!parent) {
       throw new Error('Selected parent account was not found for this tenant');
     }
+
+    if (parent.is_postable) {
+      throw new Error('Postable accounts cannot be used as parent accounts');
+    }
+
+    if (parent.is_system_seeded && !parent.allow_tenant_children) {
+      throw new Error('Selected parent account is governed and does not allow tenant child accounts');
+    }
+
+    if (accountLevel !== parent.account_level + 1) {
+      throw new Error('Child account depth must be exactly one level below its parent');
+    }
+
+    const expectedParentCode = this.getExpectedParentCode(accountCode, parent.account_level);
+    if (parent.account_code !== expectedParentCode) {
+      throw new Error('Account code does not match the selected parent hierarchy');
+    }
+
+    return parent;
   }
 
   private static async assertValidBranch(
@@ -341,5 +404,43 @@ export class ErpLiteCoaService {
       throw new Error('Tenant context is required for ERP-Lite chart of accounts');
     }
     return tenantId;
+  }
+
+  private static getAccountLevelFromCode(accountCode: string): number {
+    const normalized = accountCode.trim();
+
+    if (!/^\d{6}$/.test(normalized)) {
+      throw new Error('Account code must be a 6-digit numeric code');
+    }
+
+    if (/^[1-9]00000$/.test(normalized)) {
+      return 1;
+    }
+
+    if (/^[1-9]\d0000$/.test(normalized)) {
+      return 2;
+    }
+
+    if (/^[1-9]\d\d000$/.test(normalized)) {
+      return 3;
+    }
+
+    return 4;
+  }
+
+  private static getExpectedParentCode(accountCode: string, parentLevel: number): string {
+    if (parentLevel === 1) {
+      return `${accountCode.slice(0, 1)}00000`;
+    }
+
+    if (parentLevel === 2) {
+      return `${accountCode.slice(0, 2)}0000`;
+    }
+
+    if (parentLevel === 3) {
+      return `${accountCode.slice(0, 3)}000`;
+    }
+
+    throw new Error('Selected parent account is already at the deepest supported level');
   }
 }

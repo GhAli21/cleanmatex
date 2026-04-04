@@ -7,14 +7,19 @@ export interface ErpLiteCoaAccountListItem {
   id: string;
   account_code: string;
   account_name: string;
+  account_level: number;
   account_type_name: string;
   account_group_name: string | null;
+  parent_account_code: string | null;
   parent_account_name: string | null;
   branch_name: string | null;
   is_postable: boolean;
   is_control_account: boolean;
   is_system_linked: boolean;
+  is_system_seeded: boolean;
+  is_locked: boolean;
   manual_post_allowed: boolean;
+  allow_tenant_children: boolean;
   is_active: boolean;
 }
 

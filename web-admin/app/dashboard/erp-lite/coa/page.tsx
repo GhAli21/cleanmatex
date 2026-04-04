@@ -97,6 +97,15 @@ export default async function ErpLiteCoaPage({
           </Alert>
         ) : null}
 
+        <Alert>
+          <AlertDescription>
+            <div className="space-y-1 text-sm">
+              <p>{t('forms.account.hints.codeStandard')}</p>
+              <p>{t('forms.account.hints.parentRule')}</p>
+            </div>
+          </AlertDescription>
+        </Alert>
+
         <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
           <CmxCard>
             <CmxCardHeader>

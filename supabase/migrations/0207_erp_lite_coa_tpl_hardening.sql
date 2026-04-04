@@ -57,8 +57,8 @@ SET coa_tpl_line_id = d.coa_tpl_line_id
 FROM public.sys_fin_coa_tpl_mst h
 JOIN public.sys_fin_coa_tpl_dtl d
   ON d.coa_tpl_id = h.coa_tpl_id
- AND d.account_code = u.target_account_code
 WHERE h.tpl_pkg_id = u.tpl_pkg_id
+  AND d.account_code = u.target_account_code
   AND u.coa_tpl_line_id IS NULL;
 
 DO $$

@@ -7,7 +7,7 @@
 ## CRITICAL RULES
 
 1. **Never do Supabase db reset** - tell the user, I'll run db migrations
-2. **Never modify existing migration files** - always create a NEW migration for fixes or changes or new objects
+2. **Never modify existing migration files unless its not apply yet because of errors** - always create a NEW migration for fixes or changes or new objects
 3. **NEVER apply/run database migrations** - Create migration SQL files only, then STOP and ask me to review and apply them. Do NOT use Supabase MCP, CLI, or any tool to execute migrations.
 4. **Every query MUST filter by `tenant_org_id`** - NO EXCEPTIONS (unless table doesn't have tenant_org_id)
 5. **After frontend changes: run `npm run build`** and fix until success
