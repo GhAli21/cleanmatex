@@ -1528,8 +1528,8 @@ export class ErpLiteV2Service {
       SELECT
         usage_code_id::text AS id,
         usage_code AS code,
-        usage_name AS name,
-        usage_name2 AS name2
+        name,
+        name2
       FROM public.sys_fin_usage_code_cd
       WHERE is_active = true
         AND rec_status = 1
