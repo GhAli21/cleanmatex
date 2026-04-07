@@ -87,6 +87,9 @@
       "Read(.idea/**)",
       "Read(**/.vscode/**)",
       "Read(**/.idea/**)"
+    ],
+    "additionalDirectories": [
+      "/home/dellunix/.claude/plans"
     ]
   },
   "statusLine": {

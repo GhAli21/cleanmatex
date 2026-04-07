@@ -116,6 +116,11 @@ export interface FeatureFlags {
     erp_lite_ap_enabled: boolean;
     erp_lite_po_enabled: boolean;
     erp_lite_branch_pl_enabled: boolean;
+    erp_lite_readiness_enabled: boolean;
+    erp_lite_usage_map_enabled: boolean;
+    erp_lite_exceptions_enabled: boolean;
+    erp_lite_periods_enabled: boolean;
+    erp_lite_post_audit_enabled: boolean;
     address_management: boolean;
     audit_logs: boolean;
     advance_payments_enabled: boolean;

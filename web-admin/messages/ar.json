@@ -1749,16 +1749,16 @@
       "allWorkflowRoles": "جميع أدوار سير العمل",
       "deleteConfirm": "{count, plural, one {حذف # مستخدم؟ لا يمكن التراجع.} other {حذف # مستخدمين؟ لا يمكن التراجع.}}"
     },
-  "table": {
+    "table": {
       "lastLogin": "آخر تسجيل دخول",
       "details": "التفاصيل",
       "deactivate": "إلغاء التفعيل",
       "activate": "تفعيل",
-    "noUsers": "لا يوجد مستخدمون",
-    "noName": "لا اسم",
-    "never": "أبداً",
-    "confirmDeactivate": "هل أنت متأكد من إلغاء تفعيل {email}؟"
-  },
+      "noUsers": "لا يوجد مستخدمون",
+      "noName": "لا اسم",
+      "never": "أبداً",
+      "confirmDeactivate": "هل أنت متأكد من إلغاء تفعيل {email}؟"
+    },
     "pagination": {
       "showing": "عرض {from} إلى {to} من {total} نتيجة"
     },
@@ -1959,22 +1959,22 @@
     },
     "table": {
       "orderNo": "رقم الطلب",
-      "invoiceNo": "رقم الفاتورة",
       "customer": "العميل",
       "status": "الحالة",
-      "items": "العناصر",
+      "items": "القطع",
       "total": "المجموع",
-      "payment": "الدفع",
+      "paymentStatus": "الدفع",
       "date": "التاريخ",
+      "invoiceNo": "رقم الفاتورة",
       "amount": "المبلغ",
       "method": "الطريقة",
-      "paid": "مدفوع",
+      "paid": "المدفوع",
       "balance": "الرصيد",
       "dueDate": "تاريخ الاستحقاق",
       "phone": "الهاتف",
-      "orders": "الطلبات",
-      "revenue": "الإيرادات",
-      "avgValue": "متوسط القيمة",
+      "totalOrders": "الطلبات",
+      "totalRevenue": "الإيرادات",
+      "avgOrderValue": "متوسط القيمة",
       "lastOrder": "آخر طلب",
       "firstOrder": "أول طلب"
     },
@@ -2019,27 +2019,6 @@
       "newVsReturning": "العملاء الجدد مقابل العائدين",
       "newCustomers": "عملاء جدد",
       "returningCustomers": "عملاء عائدون"
-    },
-    "table": {
-      "orderNo": "رقم الطلب",
-      "customer": "العميل",
-      "status": "الحالة",
-      "items": "القطع",
-      "total": "المجموع",
-      "paymentStatus": "الدفع",
-      "date": "التاريخ",
-      "invoiceNo": "رقم الفاتورة",
-      "amount": "المبلغ",
-      "method": "الطريقة",
-      "paid": "المدفوع",
-      "balance": "الرصيد",
-      "dueDate": "تاريخ الاستحقاق",
-      "phone": "الهاتف",
-      "totalOrders": "الطلبات",
-      "totalRevenue": "الإيرادات",
-      "avgOrderValue": "متوسط القيمة",
-      "lastOrder": "آخر طلب",
-      "firstOrder": "أول طلب"
     },
     "pagination": {
       "showing": "عرض {from}-{to} من {total}",
@@ -4356,6 +4335,111 @@
           "empty": "لا توجد مطابقات بنكية بعد.",
           "reverse": "عكس المطابقة"
         }
+      }
+    },
+    "readiness": {
+      "title": "جاهزية التمويل",
+      "subtitle": "تحقق من صحة إعداد تمويل المستأجر قبل تفعيل الترحيل التلقائي.",
+      "kpi": {
+        "missingMappings": "ربط مطلوب مفقود",
+        "ofRequired": "من {count} مطلوب",
+        "openExceptions": "استثناءات مفتوحة",
+        "openPeriods": "فترات مفتوحة",
+        "coaAccounts": "حسابات دليل الحسابات",
+        "postable": "قابل للترحيل"
+      },
+      "alerts": {
+        "noGovAssignment": "لا توجد حزمة حوكمة مخصصة لهذا المستأجر. سيفشل الترحيل حتى يقوم مسؤول المنصة بتعيين حزمة."
+      },
+      "sections": {
+        "templateStatus": "حالة القالب والترحيل",
+        "mappingIssues": "تم العثور على {count} مشكلة ربط"
+      },
+      "fields": {
+        "lastTemplate": "آخر قالب",
+        "lastApplyStatus": "حالة التطبيق",
+        "lastAppliedAt": "تاريخ التطبيق",
+        "lastPostedAt": "آخر ترحيل",
+        "lastFailedAt": "آخر فشل"
+      },
+      "columns": {
+        "usageCode": "رمز الاستخدام",
+        "requiredType": "النوع المطلوب",
+        "mappedAccount": "الحساب المرتبط",
+        "issue": "المشكلة"
+      }
+    },
+    "usageMaps": {
+      "title": "وحدة تحكم ربط الاستخدام",
+      "subtitle": "ربط رموز الاستخدام بحسابات المستأجر للترحيل التلقائي للقيود.",
+      "required": "مطلوب",
+      "optional": "اختياري",
+      "empty": "لا توجد روابط استخدام.",
+      "table": {
+        "title": "{count} ربط استخدام"
+      },
+      "columns": {
+        "usageCode": "رمز الاستخدام",
+        "required": "مطلوب",
+        "account": "الحساب",
+        "accType": "نوع الحساب",
+        "requiredType": "النوع المطلوب",
+        "status": "الحالة",
+        "issue": "المشكلة",
+        "effectiveFrom": "من تاريخ",
+        "effectiveTo": "إلى تاريخ"
+      }
+    },
+    "exceptions": {
+      "title": "بيئة عمل الاستثناءات",
+      "subtitle": "مراجعة وحل استثناءات الترحيل المفتوحة.",
+      "empty": "لا توجد استثناءات مفتوحة. الترحيل نظيف.",
+      "table": {
+        "title": "{count} استثناء مفتوح"
+      },
+      "columns": {
+        "date": "التاريخ",
+        "docType": "نوع المستند",
+        "docNo": "رقم المستند",
+        "event": "الحدث",
+        "type": "نوع الاستثناء",
+        "status": "الحالة",
+        "error": "الخطأ"
+      }
+    },
+    "periods": {
+      "title": "إدارة الفترات",
+      "subtitle": "إدارة فترات المحاسبة التي تتحكم في أهلية الترحيل.",
+      "empty": "لا توجد فترات محددة.",
+      "table": {
+        "title": "{count} فترة"
+      },
+      "columns": {
+        "code": "رمز الفترة",
+        "name": "الاسم",
+        "startDate": "تاريخ البداية",
+        "endDate": "تاريخ النهاية",
+        "status": "الحالة",
+        "closedAt": "تاريخ الإغلاق",
+        "closedBy": "أُغلق بواسطة"
+      }
+    },
+    "postAudit": {
+      "title": "مشاهد مراجعة الترحيل",
+      "subtitle": "عرض جميع سجلات الترحيل وتاريخ إنشاء القيود.",
+      "empty": "لا توجد سجلات ترحيل.",
+      "table": {
+        "title": "{total} إجمالي السجلات"
+      },
+      "columns": {
+        "date": "التاريخ",
+        "docType": "نوع المستند",
+        "docNo": "رقم المستند",
+        "event": "الحدث",
+        "attempt": "#",
+        "status": "الحالة",
+        "journal": "القيد",
+        "errorCode": "رمز الخطأ"
       }
     }
   }

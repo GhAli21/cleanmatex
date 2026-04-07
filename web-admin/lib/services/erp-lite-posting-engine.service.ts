@@ -46,6 +46,7 @@ interface GovernanceRuleRow {
   priority_no: number;
   condition_json: Json | null;
   is_fallback: boolean;
+  stop_on_match: boolean;
 }
 
 interface GovernanceLineRow {
@@ -66,6 +67,8 @@ interface TenantAccountRow {
   account_name: string;
   is_active: boolean;
   is_postable: boolean;
+  acc_type_id: string | null;
+  required_acc_type_id: string | null;
 }
 
 interface PeriodRow {
@@ -281,37 +284,50 @@ export class ErpLitePostingEngineService {
         };
       }
 
-      postingLogId = await this.insertPostingLog({
-        envelope,
-        attemptStatus: ERP_LITE_ATTEMPT_STATUSES.INITIATED,
-        logStatus: ERP_LITE_LOG_STATUSES.FAILED,
-      }, db);
-
+      // PB-C5 fix: resolve posting context (read-only) outside the write transaction, then wrap
+      // insertPostingLog + persistJournal + updatePostingLog in a single atomic transaction.
+      // This guarantees that a journal can never exist without a matching POSTED log row.
       const context = await this.resolvePostingContext(envelope, db);
-      const journalResult = journalTx
-        ? await this.persistJournal(journalTx, context)
-        : await prisma.$transaction(async (tx) => this.persistJournal(tx, context));
 
-      const executeResult: ErpLitePostingExecuteResult = {
-        ...this.buildPreviewResult(context, true, envelope.mode),
-        success: true,
-        posting_log_id: postingLogId,
-        journal_id: journalResult.journalId,
-        journal_no: journalResult.journalNo,
-        attempt_status_code: ERP_LITE_ATTEMPT_STATUSES.POSTED,
-        log_status_code: ERP_LITE_LOG_STATUSES.POSTED,
+      let executeResult!: ErpLitePostingExecuteResult;
+      let journalResult!: { journalId: string; journalNo: string };
+
+      const atomicWrite = async (tx: PrismaTx) => {
+        postingLogId = await this.insertPostingLog({
+          envelope,
+          attemptStatus: ERP_LITE_ATTEMPT_STATUSES.INITIATED,
+          logStatus: ERP_LITE_LOG_STATUSES.FAILED,
+        }, tx);
+
+        journalResult = await this.persistJournal(tx, context);
+
+        executeResult = {
+          ...this.buildPreviewResult(context, true, envelope.mode),
+          success: true,
+          posting_log_id: postingLogId,
+          journal_id: journalResult.journalId,
+          journal_no: journalResult.journalNo,
+          attempt_status_code: ERP_LITE_ATTEMPT_STATUSES.POSTED,
+          log_status_code: ERP_LITE_LOG_STATUSES.POSTED,
+        };
+
+        await this.updatePostingLog(
+          postingLogId,
+          ERP_LITE_ATTEMPT_STATUSES.POSTED,
+          ERP_LITE_LOG_STATUSES.POSTED,
+          context,
+          undefined,
+          executeResult,
+          journalResult.journalId,
+          tx
+        );
       };
 
-      await this.updatePostingLog(
-        postingLogId,
-        ERP_LITE_ATTEMPT_STATUSES.POSTED,
-        ERP_LITE_LOG_STATUSES.POSTED,
-        context,
-        undefined,
-        executeResult,
-        journalResult.journalId,
-        db
-      );
+      if (journalTx) {
+        await atomicWrite(journalTx);
+      } else {
+        await prisma.$transaction(atomicWrite);
+      }
 
       return executeResult;
     } catch (error) {
@@ -477,6 +493,9 @@ export class ErpLitePostingEngineService {
     request: ErpLiteNormalizedPostingRequest,
     db: PrismaSqlExecutor
   ): Promise<ResolvedGovernanceContext> {
+    // PB-H2 fix: resolve only the tenant's assigned governance package via org_fin_gov_assign_mst.
+    // Querying sys_fin_gov_pkg_mst directly would match any published package, not just the one
+    // assigned to this tenant. The view vw_fin_effective_gov_for_tenant gives the assigned pkg_id.
     const candidateRules = await db.$queryRaw<GovernanceRuleRow[]>(Prisma.sql`
       SELECT
         p.pkg_id,
@@ -488,13 +507,17 @@ export class ErpLitePostingEngineService {
         r.version_no AS rule_version_no,
         r.priority_no,
         r.condition_json,
-        r.is_fallback
-      FROM public.sys_fin_gov_pkg_mst p
+        r.is_fallback,
+        r.stop_on_match
+      FROM public.vw_fin_effective_gov_for_tenant gov
+      INNER JOIN public.sys_fin_gov_pkg_mst p
+        ON p.pkg_id = gov.pkg_id
       INNER JOIN public.sys_fin_map_rule_mst r
         ON r.pkg_id = p.pkg_id
       INNER JOIN public.sys_fin_evt_cd e
         ON e.evt_id = r.evt_id
-      WHERE p.status_code = 'PUBLISHED'
+      WHERE gov.tenant_org_id = ${request.tenant_org_id}::uuid
+        AND p.status_code = 'PUBLISHED'
         AND p.is_active = true
         AND p.rec_status = 1
         AND (p.effective_from IS NULL OR p.effective_from <= ${request.posting_date}::date)
@@ -520,6 +543,8 @@ export class ErpLitePostingEngineService {
     }
 
     const rankedRules = [...matchingRules].sort((left, right) => {
+      // PB-H3 fix: non-fallback rules always outrank fallback rules.
+      if (left.is_fallback !== right.is_fallback) return left.is_fallback ? 1 : -1;
       const specificityDiff = this.getConditionSpecificity(right.condition_json) - this.getConditionSpecificity(left.condition_json);
       if (specificityDiff !== 0) return specificityDiff;
       if (left.priority_no !== right.priority_no) return left.priority_no - right.priority_no;
@@ -527,8 +552,14 @@ export class ErpLitePostingEngineService {
       return right.pkg_version_no - left.pkg_version_no;
     });
 
-    const winner = rankedRules[0];
-    const tied = rankedRules.filter((rule) =>
+    // PB-H3 fix: if any non-fallback rule matched, exclude all fallback rules from contention.
+    const nonFallbackRules = rankedRules.filter((r) => !r.is_fallback);
+    const effectiveRules = nonFallbackRules.length > 0 ? nonFallbackRules : rankedRules;
+
+    const winner = effectiveRules[0];
+
+    const tied = effectiveRules.filter((rule) =>
+      rule.is_fallback === winner.is_fallback &&
       this.getConditionSpecificity(rule.condition_json) === this.getConditionSpecificity(winner.condition_json) &&
       rule.priority_no === winner.priority_no &&
       rule.rule_version_no === winner.rule_version_no &&
@@ -543,6 +574,10 @@ export class ErpLitePostingEngineService {
         ERP_LITE_EXCEPTION_TYPES.AMBIGUOUS_RULE
       );
     }
+
+    // PB-H3 fix: if winner has stop_on_match=true, no further rule candidates are considered.
+    // (Already satisfied by winner selection above — we take exactly one winner.
+    //  The flag is recorded here for audit/future use if multi-pass evaluation is added.)
 
     const lines = await db.$queryRaw<GovernanceLineRow[]>(Prisma.sql`
       SELECT
@@ -637,6 +672,20 @@ export class ErpLitePostingEngineService {
       );
     }
 
+    // PB-C2 fix: enforce account-type compatibility. If the usage code restricts to a specific
+    // account type (primary_acc_type_id is not null), the mapped account must match it.
+    if (
+      account.required_acc_type_id !== null &&
+      account.acc_type_id !== account.required_acc_type_id
+    ) {
+      throw new ErpLitePostingError(
+        ERP_LITE_EXCEPTION_TYPES.ACCOUNT_TYPE_MISMATCH,
+        `Account ${account.account_code} type does not match the required type for usage code ${usageCode}.`,
+        ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
+        ERP_LITE_EXCEPTION_TYPES.ACCOUNT_TYPE_MISMATCH
+      );
+    }
+
     return account;
   }
 
@@ -656,7 +705,9 @@ export class ErpLitePostingEngineService {
         a.account_code,
         a.name AS account_name,
         a.is_active,
-        a.is_postable
+        a.is_postable,
+        a.acc_type_id::text AS acc_type_id,
+        u.primary_acc_type_id::text AS required_acc_type_id
       FROM public.org_fin_usage_map_mst m
       INNER JOIN public.sys_fin_usage_code_cd u
         ON u.usage_code_id = m.usage_code_id
@@ -768,13 +819,20 @@ export class ErpLitePostingEngineService {
   }
 
   private static normalizeEntrySide(entrySide: string): 'DEBIT' | 'CREDIT' {
-    return entrySide.toUpperCase() === ERP_LITE_ENTRY_SIDES.DR
-      ? ERP_LITE_ENTRY_SIDES.DEBIT
-      : entrySide.toUpperCase() === ERP_LITE_ENTRY_SIDES.CR
-        ? ERP_LITE_ENTRY_SIDES.CREDIT
-        : entrySide.toUpperCase() === ERP_LITE_ENTRY_SIDES.DEBIT
-          ? ERP_LITE_ENTRY_SIDES.DEBIT
-          : ERP_LITE_ENTRY_SIDES.CREDIT;
+    // PB-C3 fix: unknown entry_side must throw hard — never silently default to CREDIT.
+    const upper = entrySide.toUpperCase();
+    if (upper === ERP_LITE_ENTRY_SIDES.DEBIT || upper === ERP_LITE_ENTRY_SIDES.DR) {
+      return ERP_LITE_ENTRY_SIDES.DEBIT;
+    }
+    if (upper === ERP_LITE_ENTRY_SIDES.CREDIT || upper === ERP_LITE_ENTRY_SIDES.CR) {
+      return ERP_LITE_ENTRY_SIDES.CREDIT;
+    }
+    throw new ErpLitePostingError(
+      ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+      `Unknown entry_side value "${entrySide}" in governance rule line. Must be DEBIT, CREDIT, DR, or CR.`,
+      ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
+      ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
+    );
   }
 
   private static sumSide(lines: ResolvedPostingLine[], side: 'DEBIT' | 'CREDIT'): number {
@@ -811,12 +869,33 @@ export class ErpLitePostingEngineService {
     context: ResolvedPostingContext
   ): Promise<{ journalId: string; journalNo: string }> {
     const journalId = randomUUID();
-    const journalNo = this.generateJournalNo();
+    // PB-C4 fix: use deterministic DB sequence instead of random number.
+    const journalNo = await this.nextFinDocNo(tx, context.envelope.request.tenant_org_id, 'JOURNAL');
 
     await this.insertJournal(tx, context, journalId, journalNo);
     await this.insertJournalLines(tx, context, journalId);
 
     return { journalId, journalNo };
+  }
+
+  private static async nextFinDocNo(
+    db: PrismaSqlExecutor,
+    tenantOrgId: string,
+    docTypeCode: string
+  ): Promise<string> {
+    const rows = await db.$queryRaw<[{ doc_no: string }]>(Prisma.sql`
+      SELECT fn_next_fin_doc_no(${tenantOrgId}::uuid, ${docTypeCode}) AS doc_no
+    `);
+    const docNo = rows[0]?.doc_no;
+    if (!docNo) {
+      throw new ErpLitePostingError(
+        ERP_LITE_EXCEPTION_TYPES.SYSTEM_ERROR,
+        `fn_next_fin_doc_no returned null for doc type ${docTypeCode}.`,
+        ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
+        ERP_LITE_EXCEPTION_TYPES.SYSTEM_ERROR
+      );
+    }
+    return docNo;
   }
 
   private static async insertJournal(
@@ -1351,11 +1430,6 @@ export class ErpLitePostingEngineService {
     sourceDocId: string
   ): string {
     return `${tenantOrgId}:${eventCode}:${sourceDocId}:v1`;
-  }
-
-  private static generateJournalNo(): string {
-    const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-    return `JRN-${stamp}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   }
 
   private static roundAmount(value: number | undefined | null): number {

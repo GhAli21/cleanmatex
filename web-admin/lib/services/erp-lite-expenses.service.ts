@@ -21,6 +21,7 @@ import type {
   ProcessErpLiteApprovalInput,
 } from '@/lib/types/erp-lite-expenses';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
+import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
@@ -243,6 +244,9 @@ export class ErpLiteExpensesService {
           created_by: input.created_by ?? null,
         });
 
+        // PB-C1 fix: block expense creation when blocking policy requires a successful post.
+        assertBlockingExpenseAutoPostSucceeded(posting, 'expense');
+
         return {
           posting_status: posting.status,
           posting_success: posting.execute_result?.success,
@@ -397,6 +401,9 @@ export class ErpLiteExpensesService {
           txn_type_code: txn.txn_type_code,
           created_by: input.created_by ?? null,
         });
+
+        // PB-C1 fix: block petty cash creation when blocking policy requires a successful post.
+        assertBlockingExpenseAutoPostSucceeded(posting, 'petty_cash');
 
         return {
           posting_status: posting.status,
@@ -1142,4 +1149,37 @@ export class ErpLiteExpensesService {
       throw new Error(`${fieldName} must not be negative`);
     }
   }
+}
+
+// PB-C1 fix: enforce blocking policy for expense and petty cash auto-posts.
+// Expenses and petty cash previously ignored the posting result, allowing creation
+// to succeed even when blocking mode required a successful post.
+function assertBlockingExpenseAutoPostSucceeded(
+  dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchExpenseRecorded>>,
+  flowName: 'expense' | 'petty_cash'
+): void {
+  const shouldBlock =
+    !dispatchResult.policy ||
+    dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||
+    dispatchResult.policy.required_success === true;
+
+  if (!shouldBlock) {
+    return;
+  }
+
+  const success =
+    dispatchResult.status === 'executed' &&
+    dispatchResult.execute_result?.success === true;
+
+  if (success) {
+    return;
+  }
+
+  const failureMessage =
+    dispatchResult.status === 'skipped'
+      ? `ERP-Lite auto-post policy prevented ${flowName} completion (${dispatchResult.skip_reason}).`
+      : dispatchResult.execute_result?.error_message ??
+        `ERP-Lite auto-post failed for the ${flowName}.`;
+
+  throw new Error(failureMessage);
 }

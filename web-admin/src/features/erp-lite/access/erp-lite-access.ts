@@ -200,6 +200,121 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
+    routePattern: '/dashboard/erp-lite/readiness',
+    label: 'Finance Readiness',
+    page: {
+      permissions: ['erp_lite:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_readiness_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/usage-maps',
+    label: 'Usage Mapping Console',
+    page: {
+      permissions: ['erp_lite_usage_map:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_usage_map_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Create usage map',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.createUsageMapAction',
+        requirement: {
+          permissions: ['erp_lite_usage_map:create'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Activate usage map',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.activateUsageMapAction',
+        requirement: {
+          permissions: ['erp_lite_usage_map:edit'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Deactivate usage map',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.deactivateUsageMapAction',
+        requirement: {
+          permissions: ['erp_lite_usage_map:edit'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/exceptions',
+    label: 'Exception Workbench',
+    page: {
+      permissions: ['erp_lite:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_exceptions_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Resolve exception',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.resolveExceptionAction',
+        requirement: {
+          permissions: ['erp_lite_post_audit:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/periods',
+    label: 'Period Management',
+    page: {
+      permissions: ['erp_lite:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_periods_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    apiDependencies: [
+      {
+        label: 'Create period',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.createPeriodAction',
+        requirement: {
+          permissions: ['erp_lite:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Close period',
+        method: 'POST',
+        path: 'app/actions/erp-lite/ops-actions.closePeriodAction',
+        requirement: {
+          permissions: ['erp_lite:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/posting-audit',
+    label: 'Posting Audit Viewer',
+    page: {
+      permissions: ['erp_lite_post_audit:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_post_audit_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
     routePattern: '/dashboard/erp-lite/branch-pl',
     label: 'Branch P&L',
     page: {

@@ -1749,16 +1749,16 @@
       "allWorkflowRoles": "All Workflow Roles",
       "deleteConfirm": "{count, plural, one {Delete # user? This cannot be undone.} other {Delete # users? This cannot be undone.}}"
     },
-  "table": {
+    "table": {
       "lastLogin": "Last Login",
       "details": "Details",
       "deactivate": "Deactivate",
       "activate": "Activate",
-    "noUsers": "No users found",
-    "noName": "No name",
-    "never": "Never",
-    "confirmDeactivate": "Are you sure you want to deactivate {email}?"
-  },
+      "noUsers": "No users found",
+      "noName": "No name",
+      "never": "Never",
+      "confirmDeactivate": "Are you sure you want to deactivate {email}?"
+    },
     "pagination": {
       "showing": "Showing {from} to {to} of {total} results"
     },
@@ -1849,7 +1849,6 @@
       "displayName": "Display Name",
       "firstName": "First Name",
       "lastName": "Last Name",
-      "role": "Role",
       "never": "Never"
     },
     "rbac": {
@@ -1960,22 +1959,22 @@
     },
     "table": {
       "orderNo": "Order #",
-      "invoiceNo": "Invoice #",
       "customer": "Customer",
       "status": "Status",
       "items": "Items",
       "total": "Total",
-      "payment": "Payment",
+      "paymentStatus": "Payment",
       "date": "Date",
+      "invoiceNo": "Invoice #",
       "amount": "Amount",
       "method": "Method",
       "paid": "Paid",
       "balance": "Balance",
       "dueDate": "Due Date",
       "phone": "Phone",
-      "orders": "Orders",
-      "revenue": "Revenue",
-      "avgValue": "Avg Value",
+      "totalOrders": "Orders",
+      "totalRevenue": "Revenue",
+      "avgOrderValue": "Avg. Value",
       "lastOrder": "Last Order",
       "firstOrder": "First Order"
     },
@@ -2020,27 +2019,6 @@
       "newVsReturning": "New vs Returning Customers",
       "newCustomers": "New Customers",
       "returningCustomers": "Returning Customers"
-    },
-    "table": {
-      "orderNo": "Order #",
-      "customer": "Customer",
-      "status": "Status",
-      "items": "Items",
-      "total": "Total",
-      "paymentStatus": "Payment",
-      "date": "Date",
-      "invoiceNo": "Invoice #",
-      "amount": "Amount",
-      "method": "Method",
-      "paid": "Paid",
-      "balance": "Balance",
-      "dueDate": "Due Date",
-      "phone": "Phone",
-      "totalOrders": "Orders",
-      "totalRevenue": "Revenue",
-      "avgOrderValue": "Avg. Value",
-      "lastOrder": "Last Order",
-      "firstOrder": "First Order"
     },
     "pagination": {
       "showing": "Showing {from}-{to} of {total}",
@@ -3782,140 +3760,140 @@
         "title": "Purchase Orders",
         "subtitle": "Reserve the procurement workspace for supplier ordering and receipt controls planned for v2."
       },
-    "branchPl": {
-      "title": "Branch P&L",
-      "subtitle": "Branch profitability combines direct posted finance truth with the latest posted governed allocation run, while costing remains visible as a separate audited layer.",
-      "eyebrow": "ERP-Lite Branch P&L",
-      "notices": {
-        "allocation-rule-created": "Allocation rule created successfully.",
-        "allocation-run-created": "Allocation run draft created successfully.",
-        "allocation-line-created": "Allocation run line added successfully.",
-        "allocation-run-posted": "Allocation run posted successfully.",
-        "cost-component-created": "Cost component created successfully.",
-        "cost-run-created": "Cost run draft created successfully.",
-        "cost-run-detail-created": "Cost run detail added successfully.",
-        "cost-run-posted": "Cost run posted successfully."
-      },
-      "summary": {
-        "revenue": "Direct Revenue",
-        "expense": "Direct Expense",
-        "directProfit": "Direct Profit",
-        "allocatedProfit": "Final Profit After Allocations"
-      },
-      "list": {
-        "title": "Branch Profitability",
-        "subtitle": "This view preserves direct finance truth, then layers the latest posted governed allocation run on top of it.",
-        "empty": "No posted branch profitability data found.",
-        "columns": {
-          "branch": "Branch",
-          "revenue": "Revenue",
-          "expense": "Expense",
+      "branchPl": {
+        "title": "Branch P&L",
+        "subtitle": "Branch profitability combines direct posted finance truth with the latest posted governed allocation run, while costing remains visible as a separate audited layer.",
+        "eyebrow": "ERP-Lite Branch P&L",
+        "notices": {
+          "allocation-rule-created": "Allocation rule created successfully.",
+          "allocation-run-created": "Allocation run draft created successfully.",
+          "allocation-line-created": "Allocation run line added successfully.",
+          "allocation-run-posted": "Allocation run posted successfully.",
+          "cost-component-created": "Cost component created successfully.",
+          "cost-run-created": "Cost run draft created successfully.",
+          "cost-run-detail-created": "Cost run detail added successfully.",
+          "cost-run-posted": "Cost run posted successfully."
+        },
+        "summary": {
+          "revenue": "Direct Revenue",
+          "expense": "Direct Expense",
           "directProfit": "Direct Profit",
-          "allocatedIn": "Allocated In",
-          "allocatedOut": "Allocated Out",
-          "finalProfit": "Final Profit"
-        }
-      },
-      "forms": {
-        "allocationRule": {
-          "title": "Create Allocation Rule",
-          "subtitle": "Define a governed branch profitability allocation rule without hiding direct finance truth.",
-          "submit": "Create Allocation Rule",
-          "fields": {
-            "code": "Rule Code",
-            "name": "Rule Name",
-            "name2": "Rule Name (Arabic)",
-            "basis": "Allocation Basis",
-            "effectiveFrom": "Effective From"
-          }
+          "allocatedProfit": "Final Profit After Allocations"
         },
-        "allocationRun": {
-          "title": "Create Allocation Run",
-          "subtitle": "Open a draft allocation run before adding branch allocation lines.",
-          "submit": "Create Allocation Run",
-          "fields": {
-            "runDate": "Run Date"
-          }
-        },
-        "allocationLine": {
-          "title": "Add Allocation Line",
-          "subtitle": "Capture an auditable manual allocation line into a draft run.",
-          "submit": "Add Allocation Line",
-          "fields": {
-            "run": "Allocation Run",
-            "rule": "Allocation Rule",
-            "sourceBranch": "Source Branch",
-            "targetBranch": "Target Branch",
-            "sourceAmount": "Source Amount",
-            "allocAmount": "Allocated Amount"
-          }
-        },
-        "costComponent": {
-          "title": "Create Cost Component",
-          "subtitle": "Define the approved laundry cost component catalog for rerunnable cost runs.",
-          "submit": "Create Cost Component",
-          "fields": {
-            "code": "Component Code",
-            "name": "Component Name",
-            "name2": "Component Name (Arabic)",
-            "class": "Cost Class",
-            "basis": "Cost Basis"
-          }
-        },
-        "costRun": {
-          "title": "Create Cost Run",
-          "subtitle": "Open a draft cost run before loading detailed cost rows.",
-          "submit": "Create Cost Run",
-          "fields": {
-            "runDate": "Run Date"
-          }
-        },
-        "costRunDetail": {
-          "title": "Add Cost Run Detail",
-          "subtitle": "Record audited costing detail rows into a draft cost run.",
-          "submit": "Add Cost Detail",
-          "fields": {
-            "run": "Cost Run",
-            "component": "Cost Component",
-            "branch": "Branch",
-            "basisValue": "Basis Value",
-            "allocAmount": "Allocated Amount",
-            "unitCost": "Unit Cost",
-            "totalCost": "Total Cost"
-          }
-        }
-      },
-      "lists": {
-        "allocationRules": {
-          "title": "Allocation Rules",
-          "subtitle": "Active profitability allocation rules available for new draft runs.",
-          "empty": "No allocation rules created yet."
-        },
-        "allocationRuns": {
-          "title": "Allocation Runs",
-          "subtitle": "Draft and posted branch profitability allocation runs.",
-          "empty": "No allocation runs found.",
-          "lines": "lines",
-          "post": "Post Allocation Run"
-        },
-        "costRuns": {
-          "title": "Cost Runs",
-          "subtitle": "Draft and posted laundry cost runs with auditable totals.",
-          "empty": "No cost runs found.",
-          "lines": "lines",
-          "post": "Post Cost Run"
-        },
-        "costSummary": {
-          "title": "Latest Cost Summary",
-          "subtitle": "Branch totals from the latest posted cost run.",
-          "empty": "No posted cost summary found.",
+        "list": {
+          "title": "Branch Profitability",
+          "subtitle": "This view preserves direct finance truth, then layers the latest posted governed allocation run on top of it.",
+          "empty": "No posted branch profitability data found.",
           "columns": {
             "branch": "Branch",
-            "totalCost": "Total Cost"
+            "revenue": "Revenue",
+            "expense": "Expense",
+            "directProfit": "Direct Profit",
+            "allocatedIn": "Allocated In",
+            "allocatedOut": "Allocated Out",
+            "finalProfit": "Final Profit"
+          }
+        },
+        "forms": {
+          "allocationRule": {
+            "title": "Create Allocation Rule",
+            "subtitle": "Define a governed branch profitability allocation rule without hiding direct finance truth.",
+            "submit": "Create Allocation Rule",
+            "fields": {
+              "code": "Rule Code",
+              "name": "Rule Name",
+              "name2": "Rule Name (Arabic)",
+              "basis": "Allocation Basis",
+              "effectiveFrom": "Effective From"
+            }
+          },
+          "allocationRun": {
+            "title": "Create Allocation Run",
+            "subtitle": "Open a draft allocation run before adding branch allocation lines.",
+            "submit": "Create Allocation Run",
+            "fields": {
+              "runDate": "Run Date"
+            }
+          },
+          "allocationLine": {
+            "title": "Add Allocation Line",
+            "subtitle": "Capture an auditable manual allocation line into a draft run.",
+            "submit": "Add Allocation Line",
+            "fields": {
+              "run": "Allocation Run",
+              "rule": "Allocation Rule",
+              "sourceBranch": "Source Branch",
+              "targetBranch": "Target Branch",
+              "sourceAmount": "Source Amount",
+              "allocAmount": "Allocated Amount"
+            }
+          },
+          "costComponent": {
+            "title": "Create Cost Component",
+            "subtitle": "Define the approved laundry cost component catalog for rerunnable cost runs.",
+            "submit": "Create Cost Component",
+            "fields": {
+              "code": "Component Code",
+              "name": "Component Name",
+              "name2": "Component Name (Arabic)",
+              "class": "Cost Class",
+              "basis": "Cost Basis"
+            }
+          },
+          "costRun": {
+            "title": "Create Cost Run",
+            "subtitle": "Open a draft cost run before loading detailed cost rows.",
+            "submit": "Create Cost Run",
+            "fields": {
+              "runDate": "Run Date"
+            }
+          },
+          "costRunDetail": {
+            "title": "Add Cost Run Detail",
+            "subtitle": "Record audited costing detail rows into a draft cost run.",
+            "submit": "Add Cost Detail",
+            "fields": {
+              "run": "Cost Run",
+              "component": "Cost Component",
+              "branch": "Branch",
+              "basisValue": "Basis Value",
+              "allocAmount": "Allocated Amount",
+              "unitCost": "Unit Cost",
+              "totalCost": "Total Cost"
+            }
+          }
+        },
+        "lists": {
+          "allocationRules": {
+            "title": "Allocation Rules",
+            "subtitle": "Active profitability allocation rules available for new draft runs.",
+            "empty": "No allocation rules created yet."
+          },
+          "allocationRuns": {
+            "title": "Allocation Runs",
+            "subtitle": "Draft and posted branch profitability allocation runs.",
+            "empty": "No allocation runs found.",
+            "lines": "lines",
+            "post": "Post Allocation Run"
+          },
+          "costRuns": {
+            "title": "Cost Runs",
+            "subtitle": "Draft and posted laundry cost runs with auditable totals.",
+            "empty": "No cost runs found.",
+            "lines": "lines",
+            "post": "Post Cost Run"
+          },
+          "costSummary": {
+            "title": "Latest Cost Summary",
+            "subtitle": "Branch totals from the latest posted cost run.",
+            "empty": "No posted cost summary found.",
+            "columns": {
+              "branch": "Branch",
+              "totalCost": "Total Cost"
+            }
           }
         }
       }
-    }
     },
     "expenses": {
       "eyebrow": "ERP-Lite Expenses",
@@ -4357,6 +4335,111 @@
           "empty": "No bank matches created yet.",
           "reverse": "Reverse Match"
         }
+      }
+    },
+    "readiness": {
+      "title": "Finance Readiness",
+      "subtitle": "Check your tenant finance setup health before going live with automated posting.",
+      "kpi": {
+        "missingMappings": "Missing Required Mappings",
+        "ofRequired": "of {count} required",
+        "openExceptions": "Open Exceptions",
+        "openPeriods": "Open Periods",
+        "coaAccounts": "COA Accounts",
+        "postable": "postable"
+      },
+      "alerts": {
+        "noGovAssignment": "No governance package is assigned to this tenant. Posting will fail until a package is assigned by platform admin."
+      },
+      "sections": {
+        "templateStatus": "Template & Posting Status",
+        "mappingIssues": "{count} Mapping Issues Found"
+      },
+      "fields": {
+        "lastTemplate": "Last Template",
+        "lastApplyStatus": "Apply Status",
+        "lastAppliedAt": "Applied At",
+        "lastPostedAt": "Last Posted",
+        "lastFailedAt": "Last Failed"
+      },
+      "columns": {
+        "usageCode": "Usage Code",
+        "requiredType": "Required Type",
+        "mappedAccount": "Mapped Account",
+        "issue": "Issue"
+      }
+    },
+    "usageMaps": {
+      "title": "Usage Mapping Console",
+      "subtitle": "Map usage codes to tenant accounts for automated journal posting.",
+      "required": "Required",
+      "optional": "Optional",
+      "empty": "No usage mappings found.",
+      "table": {
+        "title": "{count} Usage Maps"
+      },
+      "columns": {
+        "usageCode": "Usage Code",
+        "required": "Required",
+        "account": "Account",
+        "accType": "Account Type",
+        "requiredType": "Required Type",
+        "status": "Status",
+        "issue": "Issue",
+        "effectiveFrom": "Effective From",
+        "effectiveTo": "Effective To"
+      }
+    },
+    "exceptions": {
+      "title": "Exception Workbench",
+      "subtitle": "Review and resolve open posting exceptions.",
+      "empty": "No open exceptions. Posting is clean.",
+      "table": {
+        "title": "{count} Open Exceptions"
+      },
+      "columns": {
+        "date": "Date",
+        "docType": "Doc Type",
+        "docNo": "Doc No",
+        "event": "Event",
+        "type": "Exception Type",
+        "status": "Status",
+        "error": "Error"
+      }
+    },
+    "periods": {
+      "title": "Period Management",
+      "subtitle": "Manage accounting periods that control posting eligibility.",
+      "empty": "No periods configured.",
+      "table": {
+        "title": "{count} Periods"
+      },
+      "columns": {
+        "code": "Period Code",
+        "name": "Name",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "status": "Status",
+        "closedAt": "Closed At",
+        "closedBy": "Closed By"
+      }
+    },
+    "postAudit": {
+      "title": "Posting Audit Viewer",
+      "subtitle": "View all posting log entries and journal creation history.",
+      "empty": "No posting log entries found.",
+      "table": {
+        "title": "{total} Total Entries"
+      },
+      "columns": {
+        "date": "Date",
+        "docType": "Doc Type",
+        "docNo": "Doc No",
+        "event": "Event",
+        "attempt": "#",
+        "status": "Status",
+        "journal": "Journal",
+        "errorCode": "Error Code"
       }
     }
   }
