@@ -9,10 +9,10 @@ import { Alert, AlertDescription } from '@ui/primitives'
 export default async function ErpLiteExceptionsPage() {
   const tCommon = await getTranslations('erpLite.common')
 
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_EXCEPTIONS_ENABLED)
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_EXCEPTIONS_ENABLED} permissions={['erp_lite:view']}>
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
         {null}
       </ErpLitePageGuard>
     )
@@ -28,7 +28,7 @@ export default async function ErpLiteExceptionsPage() {
   }
 
   return (
-    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_EXCEPTIONS_ENABLED} permissions={['erp_lite:view']}>
+    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>

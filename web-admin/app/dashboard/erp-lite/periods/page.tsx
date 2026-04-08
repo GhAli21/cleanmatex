@@ -10,10 +10,10 @@ export default async function ErpLitePeriodsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
 
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED)
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED} permissions={['erp_lite:view']}>
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
         {null}
       </ErpLitePageGuard>
     )
@@ -29,7 +29,7 @@ export default async function ErpLitePeriodsPage() {
   }
 
   return (
-    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED} permissions={['erp_lite:view']}>
+    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>

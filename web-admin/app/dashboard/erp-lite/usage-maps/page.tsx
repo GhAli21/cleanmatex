@@ -10,10 +10,10 @@ export default async function ErpLiteUsageMapsPage() {
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
 
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED)
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED} permissions={['erp_lite_usage_map:view']}>
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite_usage_map:view']}>
         {null}
       </ErpLitePageGuard>
     )
@@ -29,7 +29,7 @@ export default async function ErpLiteUsageMapsPage() {
   }
 
   return (
-    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED} permissions={['erp_lite_usage_map:view']}>
+    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite_usage_map:view']}>
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>

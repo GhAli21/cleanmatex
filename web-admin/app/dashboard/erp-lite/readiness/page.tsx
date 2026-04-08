@@ -12,10 +12,10 @@ export default async function ErpLiteReadinessPage() {
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
   const displayConfig = await getErpLiteDisplayConfig()
 
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_READINESS_ENABLED)
+  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_READINESS_ENABLED} permissions={['erp_lite:view']}>
+      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
         {null}
       </ErpLitePageGuard>
     )
@@ -35,7 +35,7 @@ export default async function ErpLiteReadinessPage() {
   }
 
   return (
-    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_READINESS_ENABLED} permissions={['erp_lite:view']}>
+    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite:view']}>
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>
