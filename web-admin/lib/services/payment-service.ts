@@ -748,6 +748,10 @@ function assertBlockingAutoPostSucceeded(
   dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchPaymentReceived>>,
   flowName: 'invoice' | 'payment' | 'refund'
 ): void {
+  if (dispatchResult.status === 'skipped' && dispatchResult.skip_reason === 'FEATURE_NOT_ENABLED') {
+    return;
+  }
+
   const shouldBlock =
     !dispatchResult.policy ||
     dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||

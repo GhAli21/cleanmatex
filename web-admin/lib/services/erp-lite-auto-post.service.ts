@@ -20,6 +20,7 @@ import type {
 } from '@/lib/types/erp-lite-auto-post';
 import type { ErpLitePostingRequest } from '@/lib/types/erp-lite-posting';
 import { ErpLitePostingEngineService } from '@/lib/services/erp-lite-posting-engine.service';
+import { canAccess, FEATURE_FLAG_KEYS } from '@/lib/services/feature-flags.service';
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
@@ -443,6 +444,25 @@ export class ErpLiteAutoPostService {
     request: ErpLitePostingRequest,
     tx?: PrismaTx
   ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantOrgId = request.tenant_org_id;
+    if (tenantOrgId) {
+      const erpLiteEnabled = await canAccess(tenantOrgId, FEATURE_FLAG_KEYS.ERP_LITE_ENABLED);
+      if (!erpLiteEnabled) {
+        logger.info('ERP-Lite auto-post skipped: erp_lite_enabled is false for tenant', {
+          feature: 'erp-lite',
+          action: 'auto-post-skip',
+          tenantId: tenantOrgId,
+          txn_event_code: request.txn_event_code,
+        });
+        return {
+          status: 'skipped',
+          txn_event_code: request.txn_event_code as ErpLiteTxnEventCode,
+          request,
+          skip_reason: 'FEATURE_NOT_ENABLED',
+        };
+      }
+    }
+
     const policy = await this.loadActivePolicy(
       request.tenant_org_id!,
       request.txn_event_code,

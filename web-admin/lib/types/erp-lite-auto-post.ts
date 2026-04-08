@@ -112,5 +112,5 @@ export interface ErpLiteAutoPostDispatchResult {
   policy?: ErpLiteAutoPostPolicy;
   request: ErpLitePostingRequest;
   execute_result?: ErpLitePostingExecuteResult;
-  skip_reason?: 'POLICY_NOT_FOUND' | 'POLICY_DISABLED';
+  skip_reason?: 'POLICY_NOT_FOUND' | 'POLICY_DISABLED' | 'FEATURE_NOT_ENABLED';
 }

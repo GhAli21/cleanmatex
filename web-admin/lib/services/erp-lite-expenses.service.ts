@@ -1158,6 +1158,10 @@ function assertBlockingExpenseAutoPostSucceeded(
   dispatchResult: Awaited<ReturnType<typeof ErpLiteAutoPostService.dispatchExpenseRecorded>>,
   flowName: 'expense' | 'petty_cash'
 ): void {
+  if (dispatchResult.status === 'skipped' && dispatchResult.skip_reason === 'FEATURE_NOT_ENABLED') {
+    return;
+  }
+
   const shouldBlock =
     !dispatchResult.policy ||
     dispatchResult.policy.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING ||

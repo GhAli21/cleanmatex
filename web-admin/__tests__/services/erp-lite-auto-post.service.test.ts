@@ -30,11 +30,51 @@ jest.mock('@/lib/utils/logger', () => ({
   },
 }));
 
+const mockCanAccess = jest.fn().mockResolvedValue(true);
+jest.mock('@/lib/services/feature-flags.service', () => {
+  const actual = jest.requireActual<typeof import('@/lib/services/feature-flags.service')>(
+    '@/lib/services/feature-flags.service'
+  );
+  return {
+    ...actual,
+    canAccess: (...args: Parameters<typeof actual.canAccess>) => mockCanAccess(...args),
+  };
+});
+
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import { ERP_LITE_TXN_EVENT_CODES } from '@/lib/constants/erp-lite-posting';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 
 describe('ErpLiteAutoPostService', () => {
+  beforeEach(() => {
+    mockCanAccess.mockResolvedValue(true);
+  });
+
+  it('skips invoice auto-post when erp_lite_enabled feature flag is false', async () => {
+    mockCanAccess.mockResolvedValueOnce(false);
+
+    const result = await ErpLiteAutoPostService.dispatchInvoiceCreated({
+      tenant_org_id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      invoice_id: '11111111-1111-1111-1111-111111111111',
+      invoice_no: 'INV-202603-00001',
+      order_id: '22222222-2222-2222-2222-222222222222',
+      branch_id: '33333333-3333-3333-3333-333333333333',
+      currency_code: 'OMR',
+      exchange_rate: 1,
+      invoice_date: '2026-03-29',
+      subtotal: 10,
+      discount_amount: 1,
+      tax_amount: 0.4,
+      vat_amount: 0.6,
+      total_amount: 10,
+      created_by: 'tester',
+    });
+
+    expect(result.status).toBe('skipped');
+    expect(result.skip_reason).toBe('FEATURE_NOT_ENABLED');
+    expect(result.policy).toBeUndefined();
+  });
+
   it('builds invoice posting request from invoice totals', () => {
     const request = ErpLiteAutoPostService.buildInvoicePostingRequest(
       {
