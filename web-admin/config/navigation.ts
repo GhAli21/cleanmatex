@@ -409,7 +409,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/gl',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_gl:view'],
-        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,//featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
       },
       {
         key: 'erp_lite_ar',
