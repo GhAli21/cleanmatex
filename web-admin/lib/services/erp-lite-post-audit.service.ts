@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import type { ErpLitePostLogRow, PostAuditListResult } from '@/lib/types/erp-lite-ops';
 
 export interface PostAuditFilters {
@@ -130,6 +131,7 @@ export class ErpLitePostAuditService {
   private static async requireTenantId(): Promise<string> {
     const tenantId = await getTenantIdFromSession();
     if (!tenantId) throw new Error('Tenant context required');
+    await assertErpLiteEnabledForTenant(tenantId);
     return tenantId;
   }
 }

@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { ErpLiteReportingService, type ErpLiteReportLocale } from '@/lib/services/erp-lite-reporting.service';
 import type {
   CreateErpLiteAllocationRuleInput,
@@ -789,6 +790,7 @@ export class ErpLitePhase10Service {
     if (!tenantId) {
       throw new Error('Unauthorized: Tenant ID required');
     }
+    await assertErpLiteEnabledForTenant(tenantId);
     return tenantId;
   }
 

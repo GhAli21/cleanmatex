@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
@@ -1595,6 +1596,7 @@ export class ErpLitePostingEngineService {
 
   private static async resolveTenantId(explicitTenantId?: string): Promise<string> {
     if (explicitTenantId) {
+      await assertErpLiteEnabledForTenant(explicitTenantId);
       return explicitTenantId;
     }
 
@@ -1603,6 +1605,7 @@ export class ErpLitePostingEngineService {
       throw new Error('Unauthorized: Tenant ID required');
     }
 
+    await assertErpLiteEnabledForTenant(tenantId);
     return tenantId;
   }
 }

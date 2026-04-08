@@ -3,6 +3,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
+import { assertErpLiteEnabledForTenant } from '@/lib/services/erp-lite-feature-guard';
 import type {
   CreateErpLiteAccountInput,
   ErpLiteCoaAccountListItem,
@@ -429,6 +430,7 @@ export class ErpLiteCoaService {
     if (!tenantId) {
       throw new Error('Tenant context is required for ERP-Lite chart of accounts');
     }
+    await assertErpLiteEnabledForTenant(tenantId);
     return tenantId;
   }
 
