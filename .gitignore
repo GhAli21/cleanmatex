@@ -3,7 +3,9 @@
 # Ignore ghost Windows device file
 web-admin/nul
 web-admin/nul.*
+nul
 nul.*
+*:Zone.Identifier
 
 #Ignore Other Files
 scripts/dev/cleanmatex_how_to_start_Jh.txt

@@ -258,7 +258,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any API route, service, backend logic | `/backend` |
 | Any query touching `org_*` tables | `/multitenancy` |
 | Any new feature implementation | `/implementation` |
-| Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
+| Any inline comment, JSDoc, SQL comment, config annotation | `/code-3tation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
 
 **How to enforce:**
@@ -381,7 +381,7 @@ Ignoring events
 - `/architecture` - System design, tech stack, data access
 - `/business-logic` - Order workflows, pricing, quality gates
 
-### Development Workflow (User-invoked)
+### Development Workflow (User-invoked And Auto-invoked)
 
 - `/implementation` - Feature development, coding standards
 - `/dev-commands` - CLI commands reference
@@ -394,6 +394,17 @@ Ignoring events
 - `/explain-code` - Code explanations with diagrams
 - `/codebase-visualizer` - Interactive codebase tree
 - `/storybook` - Story generation for Cmx components (RTL, a11y, variants) — also triggers `storybook-generator` agent
+
+### Database Migrations (DROP CASCADE)
+
+When a migration uses `DROP FUNCTION... CASCADE` (e.g. `DROP FUNCTION ... CASCADE`):
+
+1. **Fetch affected objects** (RLS policies, views, triggers, etc.) via discovery queries
+2. **Prepare recreate statements** for each dropped object
+3. **Include recreate statements** in the same migration file after the DROP/CREATE
+4. If you lack the data: use **Supabase MCP** (`supabase_local` or `supabase_remote`) to execute discovery queries and fetch affected objects from the live DB, then prepare recreate statements from the MCP results and include them in the same migration file
+
+See `docs/dev/drop-cascade-migration-workflow.md`.
 
 ## Structure
 
