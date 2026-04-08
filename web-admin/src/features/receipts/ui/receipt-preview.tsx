@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { useReceipts, useSendReceipt } from '../hooks/use-receipts';
@@ -34,19 +34,16 @@ const DELIVERY_CHANNELS = [
 export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
   const [receiptType, setReceiptType] = useState('whatsapp_text');
   const [deliveryChannels, setDeliveryChannels] = useState<string[]>(['whatsapp']);
-
-  useEffect(() => {
-    if (customerType === 'b2b') {
-      setDeliveryChannels(['email']);
-    }
-  }, [customerType]);
+  const isB2b = customerType === 'b2b';
+  /** B2B forces email; otherwise use checkbox-controlled state */
+  const effectiveChannels = isB2b ? ['email'] : deliveryChannels;
   const [language, setLanguage] = useState<'en' | 'ar'>('en');
   const { data: receipts, isLoading } = useReceipts(orderId);
   const { mutate: sendReceipt, isPending: isSending } = useSendReceipt();
   const { showSuccess, showError } = useMessage();
 
   const handleSend = () => {
-    if (deliveryChannels.length === 0) {
+    if (effectiveChannels.length === 0) {
       showError('Please select at least one delivery channel');
       return;
     }
@@ -55,7 +52,7 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
       {
         orderId,
         receiptTypeCode: receiptType,
-        deliveryChannels,
+        deliveryChannels: effectiveChannels,
         language,
       },
       {
@@ -127,8 +124,10 @@ export function ReceiptPreview({ orderId, customerType }: ReceiptPreviewProps) {
                 <label key={channel.value} className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    checked={deliveryChannels.includes(channel.value)}
+                    disabled={isB2b}
+                    checked={effectiveChannels.includes(channel.value)}
                     onChange={(e) => {
+                      if (isB2b) return;
                       if (e.target.checked) {
                         setDeliveryChannels([...deliveryChannels, channel.value]);
                       } else {

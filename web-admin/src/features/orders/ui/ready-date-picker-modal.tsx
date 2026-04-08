@@ -22,49 +22,44 @@ interface ReadyDatePickerModalProps {
   allowNow?: boolean;
 }
 
-export function ReadyDatePickerModal({
-  open,
+export function ReadyDatePickerModal(props: ReadyDatePickerModalProps) {
+  const { open, ...rest } = props;
+  if (!open) return null;
+  return <ReadyDatePickerModalOpen {...rest} />;
+}
+
+type ReadyDatePickerModalOpenProps = Omit<ReadyDatePickerModalProps, 'open'>;
+
+function ReadyDatePickerModalOpen({
   onClose,
   onApply,
   initialDate,
   initialTime,
   allowNow = false,
-}: ReadyDatePickerModalProps) {
+}: ReadyDatePickerModalOpenProps) {
   const t = useTranslations('newOrder.schedule');
   const tCommon = useTranslations('common');
   const locale = useLocale();
   const isRTL = useRTL();
-  const [selectedDate, setSelectedDate] = useState<Date>(initialDate || new Date());
-  const [selectedTime, setSelectedTime] = useState(initialTime || '17:00');
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [dateInput, setDateInput] = useState('');
-  const [timeInput, setTimeInput] = useState(initialTime || '17:00');
-
-  useEffect(() => {
-    if (open) {
-      const initDate = initialDate || new Date();
-      const initTime = initialTime || '17:00';
-      setSelectedDate(initDate);
-      setSelectedTime(initTime);
-      setTimeInput(initTime);
-      setCurrentMonth(initDate);
-      // Format date for input (YYYY-MM-DD)
-      setDateInput(initDate.toISOString().split('T')[0]);
-    }
-  }, [open, initialDate, initialTime]);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => initialDate || new Date());
+  const [selectedTime, setSelectedTime] = useState(() => initialTime || '17:00');
+  const [currentMonth, setCurrentMonth] = useState(() => initialDate || new Date());
+  const [dateInput, setDateInput] = useState(() => {
+    const d = initialDate || new Date();
+    return d.toISOString().split('T')[0];
+  });
+  const [timeInput, setTimeInput] = useState(() => initialTime || '17:00');
 
   // Handle Escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
+      if (e.key === 'Escape') {
         onClose();
       }
     };
-    if (open) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [open, onClose]);
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
 
   // Parse date input and update selected date
   const handleDateInputChange = (value: string) => {
@@ -131,7 +126,7 @@ export function ReadyDatePickerModal({
     return isSameDay(date, new Date());
   };
 
-  const focusTrapRef = useFocusTrap(open, { returnFocus: true });
+  const focusTrapRef = useFocusTrap(true, { returnFocus: true });
 
   const days = getDaysInMonth(currentMonth);
   const monthNames = [
@@ -177,8 +172,6 @@ export function ReadyDatePickerModal({
       label: `${time12}:00 ${period}`,
     });
   }
-
-  if (!open) return null;
 
   // Handle click outside to close
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {

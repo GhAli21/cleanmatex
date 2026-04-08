@@ -15,6 +15,8 @@ import { CmxButton } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { Sparkles } from 'lucide-react';
 import type { ServicePreference } from '@/lib/types/service-preferences';
+import type { UseNewOrderStateWithDispatchReturn } from '../../hooks/use-new-order-state';
+import type { NewOrderState } from '../../model/new-order-types';
 
 interface SmartSuggestionsPanelProps {
   /** Gate: show only when smart suggestions enabled (Growth+) */
@@ -27,39 +29,45 @@ interface Suggestion {
   usage_count: number;
 }
 
-export function SmartSuggestionsPanel({
-  smartSuggestionsEnabled = true,
-  branchId,
-}: SmartSuggestionsPanelProps) {
+interface SmartSuggestionsForCustomerProps {
+  customerId: string;
+  servicePrefs: ServicePreference[];
+  state: NewOrderState;
+  updateItemServicePrefs: UseNewOrderStateWithDispatchReturn['updateItemServicePrefs'];
+}
+
+function SmartSuggestionsForCustomer({
+  customerId,
+  servicePrefs,
+  state,
+  updateItemServicePrefs,
+}: SmartSuggestionsForCustomerProps) {
   const t = useTranslations('newOrder.preferences');
   const isRTL = useRTL();
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const { servicePrefs } = usePreferenceCatalog(branchId);
-  const { state, updateItemServicePrefs } = useNewOrderStateWithDispatch();
-
-  const customerId = state.customer?.id;
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
 
   useEffect(() => {
-    if (!smartSuggestionsEnabled || !customerId) {
-      setSuggestions([]);
-      return;
-    }
-
-    setLoading(true);
+    let cancelled = false;
     const params = new URLSearchParams({ customerId, limit: '5' });
     fetch(`/api/v1/preferences/suggest?${params}`, { credentials: 'include' })
       .then((res) => res.json())
       .then((json) => {
+        if (cancelled) return;
         if (json.success && json.data?.length) {
           setSuggestions(json.data);
         } else {
           setSuggestions([]);
         }
       })
-      .catch(() => setSuggestions([]))
-      .finally(() => setLoading(false));
-  }, [smartSuggestionsEnabled, customerId]);
+      .catch(() => {
+        if (!cancelled) setSuggestions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [customerId]);
+
+  const loading = suggestions === null;
 
   const handleApplySuggestion = (code: string) => {
     if (state.items.length === 0) {
@@ -85,7 +93,7 @@ export function SmartSuggestionsPanel({
     cmxMessage.success(t('appliedSuccess') || 'Preferences applied');
   };
 
-  if (!smartSuggestionsEnabled || (!loading && suggestions.length === 0)) return null;
+  if (!loading && suggestions.length === 0) return null;
 
   const nameMap = new Map(servicePrefs.map((s: ServicePreference) => [s.code, s.name]));
 
@@ -134,5 +142,28 @@ export function SmartSuggestionsPanel({
         </div>
       )}
     </div>
+  );
+}
+
+export function SmartSuggestionsPanel({
+  smartSuggestionsEnabled = true,
+  branchId,
+}: SmartSuggestionsPanelProps) {
+  const { servicePrefs } = usePreferenceCatalog(branchId);
+  const { state, updateItemServicePrefs } = useNewOrderStateWithDispatch();
+  const customerId = state.customer?.id;
+
+  if (!smartSuggestionsEnabled || !customerId) {
+    return null;
+  }
+
+  return (
+    <SmartSuggestionsForCustomer
+      key={customerId}
+      customerId={customerId}
+      servicePrefs={servicePrefs}
+      state={state}
+      updateItemServicePrefs={updateItemServicePrefs}
+    />
   );
 }

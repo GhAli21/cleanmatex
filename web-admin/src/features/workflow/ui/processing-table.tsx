@@ -22,6 +22,32 @@ import {
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
 
+const sortableHeaderClass =
+  'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
+
+function ProcessingSortableHeader({
+  field,
+  sortField,
+  onSort,
+  children,
+}: {
+  field: SortField;
+  sortField: SortField;
+  onSort: (field: SortField) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <th className={sortableHeaderClass} onClick={() => onSort(field)}>
+      <div className="flex items-center gap-2">
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'}`}
+        />
+      </div>
+    </th>
+  );
+}
+
 interface ProcessingTableProps {
   orders: ProcessingOrder[];
   sortField: SortField;
@@ -63,21 +89,6 @@ export function ProcessingTable({
     const hour12 = hours % 12 || 12;
     return `${day}/${month}/${year} ${hour12}${ampm}`;
   };
-
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <th
-      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right"
-      onClick={() => onSort(field)}
-    >
-      <div className="flex items-center gap-2">
-        {children}
-        <ArrowUpDown
-          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
-            }`}
-        />
-      </div>
-    </th>
-  );
 
   if (orders.length === 0) {
     return (
@@ -749,21 +760,6 @@ function ProcessingTableDesktop({
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For progress
 
-  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
-    <th
-      className="px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right"
-      onClick={() => onSort(field)}
-    >
-      <div className="flex items-center gap-2">
-        {children}
-        <ArrowUpDown
-          className={`h-4 w-4 ${sortField === field ? 'text-blue-600' : 'text-gray-400'
-            }`}
-        />
-      </div>
-    </th>
-  );
-
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -771,19 +767,33 @@ function ProcessingTableDesktop({
           <table className="w-full">
             <thead className="bg-gray-100 border-b-2 border-gray-300">
               <tr>
-                <SortableHeader field="id">{t('id')}</SortableHeader>
-                <SortableHeader field="ready_by_at">{t('readyBy')}</SortableHeader>
-                <SortableHeader field="customer_name">{t('customer')}</SortableHeader>
+                <ProcessingSortableHeader field="id" sortField={sortField} onSort={onSort}>
+                  {t('id')}
+                </ProcessingSortableHeader>
+                <ProcessingSortableHeader field="ready_by_at" sortField={sortField} onSort={onSort}>
+                  {t('readyBy')}
+                </ProcessingSortableHeader>
+                <ProcessingSortableHeader field="customer_name" sortField={sortField} onSort={onSort}>
+                  {t('customer')}
+                </ProcessingSortableHeader>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
                   {t('order')}
                 </th>
-                <SortableHeader field="total_items">{t('pcs')}</SortableHeader>
+                <ProcessingSortableHeader field="total_items" sortField={sortField} onSort={onSort}>
+                  {t('pcs')}
+                </ProcessingSortableHeader>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 rtl:text-right">
                   {tProcessing('progress')}
                 </th>
-                <SortableHeader field="notes">{t('notes')}</SortableHeader>
-                <SortableHeader field="total">{t('total')}</SortableHeader>
-                <SortableHeader field="status">{t('status')}</SortableHeader>
+                <ProcessingSortableHeader field="notes" sortField={sortField} onSort={onSort}>
+                  {t('notes')}
+                </ProcessingSortableHeader>
+                <ProcessingSortableHeader field="total" sortField={sortField} onSort={onSort}>
+                  {t('total')}
+                </ProcessingSortableHeader>
+                <ProcessingSortableHeader field="status" sortField={sortField} onSort={onSort}>
+                  {t('status')}
+                </ProcessingSortableHeader>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">

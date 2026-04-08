@@ -6,11 +6,10 @@
  *   2. Audit Log — last 20 entries from sys_audit_log filtered by user_id + tenant_org_id
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { Check, Activity } from 'lucide-react'
 import { useEffectivePermissions } from '@/lib/hooks/use-user-role-assignments'
-import { useAuth } from '@/lib/auth/auth-context'
 import { supabase } from '@/lib/supabase/client'
 
 interface UserActivityTabProps {
@@ -43,21 +42,18 @@ function getPermColor(resource: string): string {
   return CATEGORY_COLORS[resource] ?? 'bg-slate-100 text-slate-700'
 }
 
-export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
-  const t = useTranslations('users.detail')
-  const tCommon = useTranslations('common')
-  const locale = useLocale()
-  const { session } = useAuth()
+interface UserAuditLogTableProps {
+  userId: string
+  tenantId: string
+  formatDate: (date: string) => string
+  emptyLabel: string
+}
 
-  const { permissions, loading: permsLoading } = useEffectivePermissions(userId)
+function UserAuditLogTable({ userId, tenantId, formatDate, emptyLabel }: UserAuditLogTableProps) {
+  const [auditLog, setAuditLog] = useState<AuditEntry[] | null>(null)
 
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([])
-  const [auditLoading, setAuditLoading] = useState(false)
-
-  // Fetch audit log from Supabase — sys_audit_log filtered by user_id + tenant_org_id
   useEffect(() => {
-    if (!userId || !tenantId) return
-    setAuditLoading(true)
+    let cancelled = false
     supabase
       .from('sys_audit_log')
       .select('id, action, entity_type, created_at, ip_address')
@@ -66,10 +62,83 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
       .order('created_at', { ascending: false })
       .limit(20)
       .then(({ data, error }) => {
+        if (cancelled) return
         if (!error && data) setAuditLog(data as AuditEntry[])
+        else setAuditLog([])
       })
-      .finally(() => setAuditLoading(false))
+    return () => {
+      cancelled = true
+    }
   }, [userId, tenantId])
+
+  const auditLoading = auditLog === null
+
+  if (auditLoading) {
+    return (
+      <div className="flex items-center justify-center h-24">
+        <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (auditLog.length === 0) {
+    return (
+      <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
+        <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">{emptyLabel}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
+      <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+        <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+          <tr>
+            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+              Action
+            </th>
+            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+              Entity
+            </th>
+            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+              IP
+            </th>
+            <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
+              Date
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
+          {auditLog.map((entry) => (
+            <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
+              <td className="px-4 py-3">
+                <span className="text-xs font-mono bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] px-1.5 py-0.5 rounded text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+                  {entry.action}
+                </span>
+              </td>
+              <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {entry.entity_type ?? '—'}
+              </td>
+              <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {entry.ip_address ?? '—'}
+              </td>
+              <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {formatDate(entry.created_at)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
+  const t = useTranslations('users.detail')
+  const tCommon = useTranslations('common')
+  const locale = useLocale()
+
+  const { permissions, loading: permsLoading } = useEffectivePermissions(userId)
 
   // Group permissions by resource prefix (before the colon)
   const grouped = permissions.reduce<Record<string, string[]>>((acc, perm) => {
@@ -144,7 +213,7 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
         )}
       </div>
 
-      {/* Section 2: Audit Log */}
+      {/* Section 2: Audit Log — keyed child remounts on user/tenant so fetch has no sync setState in effect */}
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Activity className="h-4 w-4 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]" />
@@ -153,58 +222,15 @@ export function UserActivityTab({ userId, tenantId }: UserActivityTabProps) {
           </h3>
         </div>
 
-        {auditLoading ? (
-          <div className="flex items-center justify-center h-24">
-            <div className="animate-spin h-6 w-6 rounded-full border-2 border-[rgb(var(--cmx-primary-rgb,14_165_233))] border-t-transparent" />
-          </div>
-        ) : auditLog.length === 0 ? (
-          <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] p-8 text-center">
-            <p className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-              {tCommon('loading')}
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-lg border border-[rgb(var(--cmx-border-rgb,226_232_240))] overflow-hidden">
-            <table className="min-w-full divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-              <thead className="bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
-                <tr>
-                  <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-                    Action
-                  </th>
-                  <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-                    Entity
-                  </th>
-                  <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-                    IP
-                  </th>
-                  <th className="px-4 py-2.5 text-start text-xs font-medium text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] uppercase tracking-wider">
-                    Date
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[rgb(var(--cmx-border-rgb,226_232_240))]">
-                {auditLog.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))]">
-                    <td className="px-4 py-3">
-                      <span className="text-xs font-mono bg-[rgb(var(--cmx-secondary-bg-rgb,241_245_249))] px-1.5 py-0.5 rounded text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
-                        {entry.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                      {entry.entity_type ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-xs font-mono text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                      {entry.ip_address ?? '—'}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-                      {formatDate(entry.created_at)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {userId && tenantId ? (
+          <UserAuditLogTable
+            key={`${userId}-${tenantId}`}
+            userId={userId}
+            tenantId={tenantId}
+            formatDate={formatDate}
+            emptyLabel={tCommon('loading')}
+          />
+        ) : null}
       </div>
     </div>
   )
