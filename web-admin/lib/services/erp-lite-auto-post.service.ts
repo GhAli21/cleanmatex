@@ -6,7 +6,9 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS } from '@/lib/constants/payment';
 import {
+  ERP_LITE_BLOCKING_MODES,
   ERP_LITE_TXN_EVENT_CODES,
+  type ErpLiteBlockingMode,
   type ErpLiteTxnEventCode,
 } from '@/lib/constants/erp-lite-posting';
 import type {
@@ -14,8 +16,8 @@ import type {
   ErpLiteAutoPostPolicy,
   ErpLiteExpenseAutoPostInput,
   ErpLiteInvoiceAutoPostInput,
-  ErpLitePettyCashAutoPostInput,
   ErpLitePaymentAutoPostInput,
+  ErpLitePettyCashAutoPostInput,
   ErpLiteRefundAutoPostInput,
 } from '@/lib/types/erp-lite-auto-post';
 import type { ErpLitePostingRequest } from '@/lib/types/erp-lite-posting';
@@ -38,6 +40,27 @@ interface AutoPostPolicyRow {
   failure_action_code: string;
   package_code: string;
   package_version_no: number;
+}
+
+function mapAutoPostPolicyRow(row: AutoPostPolicyRow): ErpLiteAutoPostPolicy {
+  let blocking_mode: ErpLiteBlockingMode;
+  if (row.blocking_mode === ERP_LITE_BLOCKING_MODES.BLOCKING) {
+    blocking_mode = ERP_LITE_BLOCKING_MODES.BLOCKING;
+  } else if (row.blocking_mode === ERP_LITE_BLOCKING_MODES.NON_BLOCKING) {
+    blocking_mode = ERP_LITE_BLOCKING_MODES.NON_BLOCKING;
+  } else {
+    logger.warn('ERP-Lite auto-post: unknown blocking_mode from DB, using NON_BLOCKING', {
+      feature: 'erp-lite',
+      action: 'load-active-policy',
+      blocking_mode: row.blocking_mode,
+    });
+    blocking_mode = ERP_LITE_BLOCKING_MODES.NON_BLOCKING;
+  }
+
+  return {
+    ...row,
+    blocking_mode,
+  };
 }
 
 /**
@@ -437,7 +460,7 @@ export class ErpLiteAutoPostService {
       return null;
     }
 
-    return row;
+    return mapAutoPostPolicyRow(row);
   }
 
   private static async dispatchRequest(
