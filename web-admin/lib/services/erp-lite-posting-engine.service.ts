@@ -10,6 +10,7 @@ import {
   ERP_LITE_AMOUNT_SOURCES,
   ERP_LITE_ATTEMPT_STATUSES,
   ERP_LITE_ENTRY_SIDES,
+  ERP_LITE_ERROR_CODES,
   ERP_LITE_EXCEPTION_STATUSES,
   ERP_LITE_EXCEPTION_TYPES,
   ERP_LITE_LOG_STATUSES,
@@ -255,7 +256,7 @@ export class ErpLitePostingEngineService {
             idempotency_key: envelope.idempotency_key,
             attempt_status_code: ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
             log_status_code: ERP_LITE_LOG_STATUSES.SKIPPED,
-            error_code: ERP_LITE_EXCEPTION_TYPES.DUPLICATE_POST,
+            error_code: ERP_LITE_ERROR_CODES.DUPLICATE_POST,
             error_message: 'A posted journal already exists for this idempotency key.',
             journal_id: duplicate.journal_id ?? undefined,
           },
@@ -276,7 +277,7 @@ export class ErpLitePostingEngineService {
           idempotency_key: envelope.idempotency_key,
           attempt_status_code: ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
           log_status_code: ERP_LITE_LOG_STATUSES.SKIPPED,
-          error_code: ERP_LITE_EXCEPTION_TYPES.DUPLICATE_POST,
+          error_code: ERP_LITE_ERROR_CODES.DUPLICATE_POST,
           error_message: 'A posted journal already exists for this idempotency key.',
           journal_id: duplicate.journal_id ?? undefined,
           exception_id: exceptionId,
@@ -321,6 +322,10 @@ export class ErpLitePostingEngineService {
           journalResult.journalId,
           tx
         );
+
+        // Gate B (snapshot): write immutable audit snapshot inside the same atomic transaction.
+        // One row per posting attempt — UNIQUE(tenant_org_id, posting_log_id) guards duplicates.
+        await this.writePostingSnapshot(tx, context, postingLogId, journalResult);
       };
 
       if (journalTx) {
@@ -377,7 +382,7 @@ export class ErpLitePostingEngineService {
   ): ErpLiteNormalizedPostingRequest {
     if (!input.txn_event_code || !input.source_module_code || !input.source_doc_type_code || !input.source_doc_id) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+        ERP_LITE_ERROR_CODES.REQUEST_MISSING_SOURCE_METADATA,
         'Posting request is missing required source metadata.',
         ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
         ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
@@ -386,7 +391,7 @@ export class ErpLitePostingEngineService {
 
     if (!input.currency_code || !input.journal_date) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+        ERP_LITE_ERROR_CODES.REQUEST_MISSING_CURRENCY_OR_DATE,
         'Posting request is missing currency or journal date.',
         ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
         ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
@@ -459,7 +464,7 @@ export class ErpLitePostingEngineService {
 
     if (lines.length === 0) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+        ERP_LITE_ERROR_CODES.GOV_NO_LINES_RESOLVED,
         'Resolved posting produced no journal lines.',
         ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
         ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
@@ -471,7 +476,7 @@ export class ErpLitePostingEngineService {
 
     if (Number(total_debit.toFixed(4)) !== Number(total_credit.toFixed(4))) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+        ERP_LITE_ERROR_CODES.JOURNAL_UNBALANCED,
         'Resolved journal lines are not balanced.',
         ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
         ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
@@ -535,7 +540,7 @@ export class ErpLitePostingEngineService {
 
     if (matchingRules.length === 0) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.RULE_NOT_FOUND,
+        ERP_LITE_ERROR_CODES.GOV_RULE_NOT_FOUND,
         `No published active posting rule found for event ${request.txn_event_code}.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_RULE,
         ERP_LITE_EXCEPTION_TYPES.RULE_NOT_FOUND
@@ -568,7 +573,7 @@ export class ErpLitePostingEngineService {
 
     if (tied.length > 1) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.AMBIGUOUS_RULE,
+        ERP_LITE_ERROR_CODES.GOV_AMBIGUOUS_RULE,
         `Multiple rules remain tied for event ${request.txn_event_code}.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_RULE,
         ERP_LITE_EXCEPTION_TYPES.AMBIGUOUS_RULE
@@ -627,7 +632,7 @@ export class ErpLitePostingEngineService {
     }
 
     throw new ErpLitePostingError(
-      ERP_LITE_EXCEPTION_TYPES.ACCOUNT_NOT_FOUND,
+      ERP_LITE_ERROR_CODES.ACCOUNT_NOT_FOUND,
       'Posting line could not resolve a tenant account.',
       ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
       ERP_LITE_EXCEPTION_TYPES.ACCOUNT_NOT_FOUND
@@ -647,7 +652,7 @@ export class ErpLitePostingEngineService {
 
     if (!account) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.MISSING_USAGE_MAPPING,
+        ERP_LITE_ERROR_CODES.USAGE_MAPPING_NOT_FOUND,
         `No active usage mapping exists for ${usageCode}.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
         ERP_LITE_EXCEPTION_TYPES.MISSING_USAGE_MAPPING
@@ -656,7 +661,7 @@ export class ErpLitePostingEngineService {
 
     if (!account.is_active) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.ACCOUNT_INACTIVE,
+        ERP_LITE_ERROR_CODES.ACCOUNT_INACTIVE,
         `Resolved account ${account.account_code} is inactive.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
         ERP_LITE_EXCEPTION_TYPES.ACCOUNT_INACTIVE
@@ -665,7 +670,7 @@ export class ErpLitePostingEngineService {
 
     if (!account.is_postable) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.ACCOUNT_NOT_POSTABLE,
+        ERP_LITE_ERROR_CODES.ACCOUNT_NOT_POSTABLE,
         `Resolved account ${account.account_code} is not postable.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
         ERP_LITE_EXCEPTION_TYPES.ACCOUNT_NOT_POSTABLE
@@ -679,7 +684,7 @@ export class ErpLitePostingEngineService {
       account.acc_type_id !== account.required_acc_type_id
     ) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.ACCOUNT_TYPE_MISMATCH,
+        ERP_LITE_ERROR_CODES.ACCOUNT_TYPE_MISMATCH,
         `Account ${account.account_code} type does not match the required type for usage code ${usageCode}.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_ACCOUNT,
         ERP_LITE_EXCEPTION_TYPES.ACCOUNT_TYPE_MISMATCH
@@ -751,7 +756,7 @@ export class ErpLitePostingEngineService {
     const period = rows[0];
     if (!period) {
       throw new ErpLitePostingError(
-        ERP_LITE_EXCEPTION_TYPES.PERIOD_CLOSED,
+        ERP_LITE_ERROR_CODES.PERIOD_CLOSED,
         `No open accounting period exists for posting date ${postingDate}.`,
         ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
         ERP_LITE_EXCEPTION_TYPES.PERIOD_CLOSED
@@ -828,7 +833,7 @@ export class ErpLitePostingEngineService {
       return ERP_LITE_ENTRY_SIDES.CREDIT;
     }
     throw new ErpLitePostingError(
-      ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR,
+      ERP_LITE_ERROR_CODES.RULE_INVALID_ENTRY_SIDE,
       `Unknown entry_side value "${entrySide}" in governance rule line. Must be DEBIT, CREDIT, DR, or CR.`,
       ERP_LITE_ATTEMPT_STATUSES.FAILED_VALIDATION,
       ERP_LITE_EXCEPTION_TYPES.VALIDATION_ERROR
@@ -862,6 +867,134 @@ export class ErpLitePostingEngineService {
       total_credit: context.total_credit,
       lines: context.lines,
     };
+  }
+
+  /**
+   * Writes one immutable audit snapshot row to org_fin_post_snapshot_tr inside the
+   * same atomic transaction that persists the journal.  ON CONFLICT DO NOTHING ensures
+   * idempotency when the engine is retried after a partial failure.
+   *
+   * All data is already resolved in `context` — no extra DB reads are needed here.
+   */
+  private static async writePostingSnapshot(
+    tx: PrismaTx,
+    context: ResolvedPostingContext,
+    postingLogId: string,
+    journalResult: { journalId: string; journalNo: string }
+  ): Promise<void> {
+    const req = context.envelope.request;
+    const gov = context.governance;
+
+    const resolvedRuleJson = JSON.stringify({
+      rule_id: gov.rule_id,
+      rule_code: gov.rule_code,
+      rule_version_no: gov.rule_version_no,
+    });
+
+    const resolvedLinesJson = JSON.stringify(gov.lines);
+
+    const resolvedMappingsJson = JSON.stringify(
+      context.lines.map((l) => ({
+        line_no: l.line_no,
+        entry_side: l.entry_side,
+        account_id: l.account_id,
+        account_code: l.account_code,
+        account_name: l.account_name,
+        usage_code: l.usage_code,
+        resolver_code: l.resolver_code,
+        amount_source_code: l.amount_source_code,
+        amount: l.amount,
+      }))
+    );
+
+    const uniqueAccountIds = [...new Set(context.lines.map((l) => l.account_id))];
+    const resolvedAccountsJson = JSON.stringify(
+      context.lines
+        .filter((l, i) => uniqueAccountIds.indexOf(l.account_id) === i)
+        .map((l) => ({ account_id: l.account_id, account_code: l.account_code, account_name: l.account_name }))
+    );
+
+    const journalHeaderJson = JSON.stringify({
+      journal_id: journalResult.journalId,
+      journal_no: journalResult.journalNo,
+      total_debit: context.total_debit,
+      total_credit: context.total_credit,
+      period_code: context.period_code,
+    });
+
+    const journalLinesJson = JSON.stringify(
+      context.lines.map((l) => ({
+        entry_side: l.entry_side,
+        account_id: l.account_id,
+        account_code: l.account_code,
+        debit: l.entry_side === 'DEBIT' ? l.amount : 0,
+        credit: l.entry_side === 'CREDIT' ? l.amount : 0,
+      }))
+    );
+
+    const actorType =
+      context.envelope.mode === 'RETRY'
+        ? 'RETRY'
+        : context.envelope.mode === 'REPOST'
+          ? 'REPOST'
+          : 'AUTO';
+
+    const actorUserId = req.meta?.created_by ?? null;
+
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO public.org_fin_post_snapshot_tr (
+        tenant_org_id,
+        posting_log_id,
+        journal_id,
+        gov_pkg_id,
+        gov_pkg_code,
+        gov_pkg_version,
+        gov_rule_id,
+        gov_rule_code,
+        gov_rule_version,
+        source_module_code,
+        source_doc_type_code,
+        source_doc_id,
+        txn_event_code,
+        normalized_request_json,
+        resolved_rule_json,
+        resolved_lines_json,
+        resolved_mappings_json,
+        resolved_accounts_json,
+        journal_header_json,
+        journal_lines_json,
+        actor_type,
+        actor_user_id,
+        created_by,
+        created_info
+      ) VALUES (
+        ${req.tenant_org_id}::uuid,
+        ${postingLogId}::uuid,
+        ${journalResult.journalId}::uuid,
+        ${gov.package_id}::uuid,
+        ${gov.package_code},
+        ${gov.package_version_no},
+        ${gov.rule_id}::uuid,
+        ${gov.rule_code},
+        ${gov.rule_version_no},
+        ${req.source_module_code},
+        ${req.source_doc_type_code},
+        ${req.source_doc_id},
+        ${req.txn_event_code},
+        ${JSON.stringify(req)}::jsonb,
+        ${resolvedRuleJson}::jsonb,
+        ${resolvedLinesJson}::jsonb,
+        ${resolvedMappingsJson}::jsonb,
+        ${resolvedAccountsJson}::jsonb,
+        ${journalHeaderJson}::jsonb,
+        ${journalLinesJson}::jsonb,
+        ${actorType},
+        ${actorUserId}::uuid,
+        'erp_lite_engine',
+        'Phase 7 snapshot wire'
+      )
+      ON CONFLICT (tenant_org_id, posting_log_id) DO NOTHING
+    `);
   }
 
   private static async persistJournal(

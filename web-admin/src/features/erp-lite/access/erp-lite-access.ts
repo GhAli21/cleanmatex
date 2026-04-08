@@ -32,7 +32,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/coa-actions.createErpLiteAccountAction',
         requirement: {
-          permissions: ['erp_lite_coa:view'],
+          permissions: ['erp_lite_coa:create'],
           requireAllPermissions: true,
         },
       },
@@ -329,7 +329,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRuleAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -338,7 +338,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteAllocationRunAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -347,7 +347,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.addErpLiteAllocationRunLineAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -356,7 +356,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.postErpLiteAllocationRunAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:post'],
           requireAllPermissions: true,
         },
       },
@@ -365,7 +365,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteCostComponentAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -374,7 +374,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.createErpLiteCostRunAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -383,7 +383,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.addErpLiteCostRunDetailAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:create'],
           requireAllPermissions: true,
         },
       },
@@ -392,7 +392,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'POST',
         path: 'app/actions/erp-lite/branch-pl-actions.postErpLiteCostRunAction',
         requirement: {
-          permissions: ['erp_lite_branch_pl:view'],
+          permissions: ['erp_lite_branch_pl:post'],
           requireAllPermissions: true,
         },
       },

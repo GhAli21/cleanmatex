@@ -15,7 +15,7 @@ import {
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 import { currentTenantCan } from '@/lib/services/feature-flags.service';
 import { ErpLiteCoaService } from '@/lib/services/erp-lite-coa.service';
-import type { ErpLiteCoaDashboardSnapshot } from '@/lib/types/erp-lite-coa';
+import type { ErpLiteCoaAccountListPage, ErpLiteCoaDashboardSnapshot } from '@/lib/types/erp-lite-coa';
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard';
 import { ErpLiteCoaListTable } from '@features/erp-lite/ui/erp-lite-coa-list-table';
 import { createErpLiteAccountAction } from '@/app/actions/erp-lite/coa-actions';
@@ -37,6 +37,8 @@ export default async function ErpLiteCoaPage({
   const params = searchParams ? await searchParams : {};
   const notice = getSingleParam(params.notice);
   const error = getSingleParam(params.error);
+  const page = Math.max(1, Number(getSingleParam(params.page) ?? 1));
+  const pageSize = Math.min(Math.max(10, Number(getSingleParam(params.pageSize) ?? 50)), 200);
   const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_GL_ENABLED);
 
   if (!isEnabled) {
@@ -49,15 +51,18 @@ export default async function ErpLiteCoaPage({
 
   let loadError: string | null = null;
   let snapshot: ErpLiteCoaDashboardSnapshot = {
-    account_list: [],
     account_type_options: [],
     account_group_options: [],
     parent_account_options: [],
     branch_options: [],
   };
+  let accountPage: ErpLiteCoaAccountListPage = { rows: [], total: 0, page, pageSize };
 
   try {
-    snapshot = await ErpLiteCoaService.getDashboardSnapshot(locale);
+    [snapshot, accountPage] = await Promise.all([
+      ErpLiteCoaService.getDashboardSnapshot(locale),
+      ErpLiteCoaService.getAccountPage(locale, page, pageSize),
+    ]);
   } catch (loadFailure) {
     loadError =
       loadFailure instanceof Error
@@ -166,7 +171,12 @@ export default async function ErpLiteCoaPage({
               <CmxCardDescription>{t('lists.accounts.subtitle')}</CmxCardDescription>
             </CmxCardHeader>
             <CmxCardContent>
-              <ErpLiteCoaListTable items={snapshot.account_list} />
+              <ErpLiteCoaListTable
+                items={accountPage.rows}
+                total={accountPage.total}
+                page={accountPage.page}
+                pageSize={accountPage.pageSize}
+              />
             </CmxCardContent>
           </CmxCard>
         </div>

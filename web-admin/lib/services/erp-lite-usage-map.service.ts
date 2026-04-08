@@ -159,6 +159,14 @@ export class ErpLiteUsageMapService {
           AND status_code   = 'DRAFT'
           AND rec_status    = 1
       `);
+
+      await this.writeActionAudit(tenantId, auth.userId, {
+        action_domain: 'USAGE_MAP',
+        action_code: 'ACTIVATE',
+        usage_map_id: mappingId,
+        prev_status_code: 'DRAFT',
+        new_status_code: 'ACTIVE',
+      });
     });
   }
 
@@ -181,7 +189,57 @@ export class ErpLiteUsageMapService {
           AND status_code   = 'ACTIVE'
           AND rec_status    = 1
       `);
+
+      await this.writeActionAudit(tenantId, auth.userId, {
+        action_domain: 'USAGE_MAP',
+        action_code: 'INACTIVATE',
+        usage_map_id: mappingId,
+        prev_status_code: 'ACTIVE',
+        new_status_code: 'INACTIVE',
+      });
     });
+  }
+
+  private static async writeActionAudit(
+    tenantId: string,
+    actorUserId: string,
+    params: {
+      action_domain: string;
+      action_code: string;
+      exception_id?: string;
+      period_id?: string;
+      usage_map_id?: string;
+      prev_status_code?: string;
+      new_status_code?: string;
+      action_notes?: string | null;
+    }
+  ): Promise<void> {
+    try {
+      await prisma.$executeRaw(Prisma.sql`
+        INSERT INTO public.org_fin_post_action_tr (
+          tenant_org_id, action_domain, action_code,
+          exception_id, period_id, usage_map_id,
+          prev_status_code, new_status_code, action_notes,
+          result_code, actor_user_id,
+          created_at, created_by, created_info, rec_status, is_active
+        ) VALUES (
+          ${tenantId}::uuid,
+          ${params.action_domain},
+          ${params.action_code},
+          ${params.exception_id ?? null}::uuid,
+          ${params.period_id ?? null}::uuid,
+          ${params.usage_map_id ?? null}::uuid,
+          ${params.prev_status_code ?? null},
+          ${params.new_status_code ?? null},
+          ${params.action_notes ?? null},
+          'SUCCESS',
+          ${actorUserId},
+          NOW(), ${actorUserId}, 'ERP-Lite ops action', 1, true
+        )
+      `);
+    } catch {
+      // Audit write failure must not block the primary mutation.
+    }
   }
 
   private static async requireTenantId(): Promise<string> {

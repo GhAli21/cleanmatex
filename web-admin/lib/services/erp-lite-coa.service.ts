@@ -6,6 +6,7 @@ import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-conte
 import type {
   CreateErpLiteAccountInput,
   ErpLiteCoaAccountListItem,
+  ErpLiteCoaAccountListPage,
   ErpLiteCoaDashboardSnapshot,
   ErpLiteCoaOptionItem,
 } from '@/lib/types/erp-lite-coa';
@@ -31,9 +32,8 @@ export class ErpLiteCoaService {
     const tenantId = await this.requireTenantId();
 
     return withTenantContext(tenantId, async () => {
-      const [accountList, accountTypeOptions, accountGroupOptions, parentAccountOptions, branchOptions] =
+      const [accountTypeOptions, accountGroupOptions, parentAccountOptions, branchOptions] =
         await Promise.all([
-          this.listAccounts(tenantId, locale),
           this.listAccountTypeOptions(locale),
           this.listAccountGroupOptions(locale),
           this.listParentAccountOptions(tenantId, locale),
@@ -41,12 +41,24 @@ export class ErpLiteCoaService {
         ]);
 
       return {
-        account_list: accountList,
         account_type_options: accountTypeOptions,
         account_group_options: accountGroupOptions,
         parent_account_options: parentAccountOptions,
         branch_options: branchOptions,
       };
+    });
+  }
+
+  /** Paginated account list. Called directly from the COA page. */
+  static async getAccountPage(
+    locale: 'en' | 'ar',
+    page: number,
+    pageSize: number
+  ): Promise<ErpLiteCoaAccountListPage> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      return this.listAccounts(tenantId, locale, page, pageSize);
     });
   }
 
@@ -131,8 +143,14 @@ export class ErpLiteCoaService {
 
   private static async listAccounts(
     tenantId: string,
-    locale: 'en' | 'ar'
-  ): Promise<ErpLiteCoaAccountListItem[]> {
+    locale: 'en' | 'ar',
+    page: number,
+    pageSize: number
+  ): Promise<ErpLiteCoaAccountListPage> {
+    const safePage = Math.max(1, page);
+    const safePageSize = Math.min(Math.max(10, pageSize), 200);
+    const offset = (safePage - 1) * safePageSize;
+
     const accountNameSql =
       locale === 'ar'
         ? Prisma.sql`COALESCE(NULLIF(a.name2, ''), a.name)`
@@ -154,8 +172,11 @@ export class ErpLiteCoaService {
         ? Prisma.sql`COALESCE(NULLIF(b.name2, ''), b.name)`
         : Prisma.sql`b.name`;
 
-    return prisma.$queryRaw<ErpLiteCoaAccountListItem[]>(Prisma.sql`
+    type AccountRow = ErpLiteCoaAccountListItem & { total_count: bigint };
+
+    const rows = await prisma.$queryRaw<AccountRow[]>(Prisma.sql`
       SELECT
+        COUNT(*) OVER() AS total_count,
         a.id::text AS id,
         a.account_code,
         ${accountNameSql} AS account_name,
@@ -187,8 +208,13 @@ export class ErpLiteCoaService {
       WHERE a.tenant_org_id = ${tenantId}::uuid
         AND a.rec_status = 1
       ORDER BY a.account_code ASC
-      LIMIT 200
+      LIMIT ${safePageSize} OFFSET ${offset}
     `);
+
+    const total = rows[0] ? Number(rows[0].total_count) : 0;
+    const items: ErpLiteCoaAccountListItem[] = rows.map(({ total_count: _tc, ...rest }) => rest);
+
+    return { rows: items, total, page: safePage, pageSize: safePageSize };
   }
 
   private static async listAccountTypeOptions(locale: 'en' | 'ar'): Promise<ErpLiteCoaOptionItem[]> {

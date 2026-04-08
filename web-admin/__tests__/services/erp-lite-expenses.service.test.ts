@@ -133,9 +133,13 @@ describe('ErpLiteExpensesService', () => {
         },
       ]);
 
+    // POLICY_DISABLED: the auto-post service always attaches the policy object when
+    // it reaches the is_enabled check. A disabled policy is non-blocking by definition
+    // — disabling ERP-Lite should not prevent core petty cash operations.
     mockDispatchPettyCashTransactionInTransaction.mockResolvedValue({
       status: 'skipped',
       skip_reason: 'POLICY_DISABLED',
+      policy: { blocking_mode: 'NON_BLOCKING', required_success: false, is_enabled: false },
     });
 
     const result = await ErpLiteExpensesService.createCashTransaction({

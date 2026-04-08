@@ -3700,6 +3700,9 @@
           "empty": "لا توجد حسابات مستأجر بعد.",
           "errorEmpty": "تعذر تحميل حسابات هذا المستأجر.",
           "levelLabel": "المستوى {level}",
+          "pagination": {
+            "showing": "عرض {from}–{to} من أصل {total} حساب"
+          },
           "columns": {
             "code": "الرمز",
             "name": "الاسم",

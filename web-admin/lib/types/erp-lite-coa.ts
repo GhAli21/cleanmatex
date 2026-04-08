@@ -23,8 +23,14 @@ export interface ErpLiteCoaAccountListItem {
   is_active: boolean;
 }
 
+export interface ErpLiteCoaAccountListPage {
+  rows: ErpLiteCoaAccountListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface ErpLiteCoaDashboardSnapshot {
-  account_list: ErpLiteCoaAccountListItem[];
   account_type_options: ErpLiteCoaOptionItem[];
   account_group_options: ErpLiteCoaOptionItem[];
   parent_account_options: ErpLiteCoaOptionItem[];

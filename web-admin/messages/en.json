@@ -3700,6 +3700,9 @@
           "empty": "No tenant accounts created yet.",
           "errorEmpty": "Accounts could not be loaded for this tenant.",
           "levelLabel": "Level {level}",
+          "pagination": {
+            "showing": "Showing {from}–{to} of {total} accounts"
+          },
           "columns": {
             "code": "Code",
             "name": "Name",

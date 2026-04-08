@@ -2,18 +2,24 @@
 
 import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
-import type { ErpLiteCoaDashboardSnapshot } from '@/lib/types/erp-lite-coa'
+import type { ErpLiteCoaAccountListItem } from '@/lib/types/erp-lite-coa'
 import { CmxDataTable } from '@ui/data-display'
 import { Badge } from '@ui/primitives'
 
 interface ErpLiteCoaListTableProps {
-  items: ErpLiteCoaDashboardSnapshot['account_list']
+  items: ErpLiteCoaAccountListItem[]
+  total: number
+  page: number
+  pageSize: number
 }
 
-export function ErpLiteCoaListTable({ items }: ErpLiteCoaListTableProps) {
+export function ErpLiteCoaListTable({ items, total, page, pageSize }: ErpLiteCoaListTableProps) {
   const t = useTranslations('erpLite.coa')
 
-  const columns: ColumnDef<ErpLiteCoaDashboardSnapshot['account_list'][number]>[] = [
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1
+  const to = Math.min(page * pageSize, total)
+
+  const columns: ColumnDef<ErpLiteCoaAccountListItem>[] = [
     {
       accessorKey: 'account_code',
       header: t('lists.accounts.columns.code'),
@@ -84,13 +90,20 @@ export function ErpLiteCoaListTable({ items }: ErpLiteCoaListTableProps) {
   ]
 
   return (
-    <CmxDataTable
-      columns={columns}
-      data={items}
-      page={0}
-      pageSize={Math.max(items.length, 1)}
-      total={items.length}
-      emptyMessage={t('lists.accounts.empty')}
-    />
+    <div className="space-y-2">
+      {total > 0 ? (
+        <p className="text-xs text-muted-foreground">
+          {t('lists.accounts.pagination.showing', { from, to, total })}
+        </p>
+      ) : null}
+      <CmxDataTable
+        columns={columns}
+        data={items}
+        page={page - 1}
+        pageSize={pageSize}
+        total={total}
+        emptyMessage={t('lists.accounts.empty')}
+      />
+    </div>
   )
 }

@@ -100,6 +100,48 @@ export const ERP_LITE_PAYMENT_USAGE_MAP = {
   WALLET: 'WALLET_CLEARING',
 } as const;
 
+/**
+ * Typed error codes for the ERP-Lite posting engine validation matrix.
+ *
+ * These codes are the first argument to ErpLitePostingError and are the
+ * canonical identifier for every failure mode across all 11 validation
+ * stages. Use these instead of raw string literals in throw sites.
+ */
+export const ERP_LITE_ERROR_CODES = {
+  // Stage 1: Request normalization
+  REQUEST_MISSING_SOURCE_METADATA: 'REQUEST_MISSING_SOURCE_METADATA',
+  REQUEST_MISSING_CURRENCY_OR_DATE: 'REQUEST_MISSING_CURRENCY_OR_DATE',
+  REQUEST_INVALID_PAYLOAD: 'REQUEST_INVALID_PAYLOAD',
+  // Stage 3: Governance resolution
+  GOV_PACKAGE_NOT_FOUND: 'GOV_PACKAGE_NOT_FOUND',
+  GOV_RULE_NOT_FOUND: 'GOV_RULE_NOT_FOUND',
+  GOV_AMBIGUOUS_RULE: 'GOV_AMBIGUOUS_RULE',
+  GOV_POLICY_BLOCKED: 'GOV_POLICY_BLOCKED',
+  GOV_NO_LINES_RESOLVED: 'GOV_NO_LINES_RESOLVED',
+  // Stage 5: Period validation
+  PERIOD_NOT_FOUND: 'PERIOD_NOT_FOUND',
+  PERIOD_CLOSED: 'PERIOD_CLOSED',
+  PERIOD_SOFT_LOCKED: 'PERIOD_SOFT_LOCKED',
+  // Stage 6: Account / usage mapping
+  ACCOUNT_NOT_FOUND: 'ACCOUNT_NOT_FOUND',
+  ACCOUNT_INACTIVE: 'ACCOUNT_INACTIVE',
+  ACCOUNT_NOT_POSTABLE: 'ACCOUNT_NOT_POSTABLE',
+  ACCOUNT_TYPE_MISMATCH: 'ACCOUNT_TYPE_MISMATCH',
+  USAGE_MAPPING_NOT_FOUND: 'USAGE_MAPPING_NOT_FOUND',
+  // Stage 8: Rule-line validation
+  RULE_INVALID_ENTRY_SIDE: 'RULE_INVALID_ENTRY_SIDE',
+  // Stage 9: Journal draft validation
+  JOURNAL_UNBALANCED: 'JOURNAL_UNBALANCED',
+  // Stage 11: Retry/repost validation
+  DUPLICATE_POST: 'DUPLICATE_POST',
+  RETRY_NOT_ALLOWED: 'RETRY_NOT_ALLOWED',
+  REPOST_NOT_ALLOWED: 'REPOST_NOT_ALLOWED',
+  // System / unclassified
+  SYSTEM_ERROR: 'SYSTEM_ERROR',
+} as const;
+
+export type ErpLiteErrorCode = (typeof ERP_LITE_ERROR_CODES)[keyof typeof ERP_LITE_ERROR_CODES];
+
 export type ErpLiteAmountSource =
   (typeof ERP_LITE_AMOUNT_SOURCES)[keyof typeof ERP_LITE_AMOUNT_SOURCES];
 export type ErpLiteAttemptStatus =
