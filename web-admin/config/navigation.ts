@@ -69,7 +69,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     path: '/dashboard',
     roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
   },
-  
+
   {
     key: 'orders',
     label: 'Orders',
@@ -132,8 +132,8 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
     ],
-  }, 
-  
+  },
+
   {
     key: 'assembly',
     label: 'AssemblyJh',
@@ -142,7 +142,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     //roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
     roles: ['none'],
   },
-  
+
   {
     key: 'drivers',
     label: 'Drivers & Routes',
@@ -354,78 +354,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     permissions: ['erp_lite:view'],
     featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
     children: [
-      {
-        key: 'erp_lite_coa',
-        label: 'Chart of Accounts',
-        path: '/dashboard/erp-lite/coa',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_coa:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
-      },
-      {
-        key: 'erp_lite_gl',
-        label: 'General Ledger',
-        path: '/dashboard/erp-lite/gl',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_gl:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
-      },
-      {
-        key: 'erp_lite_ar',
-        label: 'AR Aging',
-        path: '/dashboard/erp-lite/ar',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_ar:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,
-      },
-      {
-        key: 'erp_lite_ap',
-        label: 'Accounts Payable',
-        path: '/dashboard/erp-lite/ap',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_ap:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,
-      },
-      {
-        key: 'erp_lite_po',
-        label: 'Purchase Orders',
-        path: '/dashboard/erp-lite/po',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_po:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,
-      },
-      {
-        key: 'erp_lite_expenses',
-        label: 'Expenses',
-        path: '/dashboard/erp-lite/expenses',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_expenses:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,
-      },
-      {
-        key: 'erp_lite_bank_recon',
-        label: 'Bank Reconciliation',
-        path: '/dashboard/erp-lite/bank-recon',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_bank_recon:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,
-      },
-      {
-        key: 'erp_lite_branch_pl',
-        label: 'Branch P&L',
-        path: '/dashboard/erp-lite/branch-pl',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_branch_pl:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,
-      },
-      {
-        key: 'erp_lite_reports',
-        label: 'Financial Reports',
-        path: '/dashboard/erp-lite/reports',
-        roles: ['admin', 'super_admin', 'tenant_admin'],
-        permissions: ['erp_lite_reports:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_REPORTS_ENABLED,
-      },
+      // Ops / pilot surfaces first (same routes as app/dashboard/erp-lite/*)
       {
         key: 'erp_lite_readiness',
         label: 'Finance Readiness',
@@ -465,6 +394,78 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_post_audit:view'],
         featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
+      },
+      {
+        key: 'erp_lite_coa',
+        label: 'Chart of Accounts',
+        path: '/dashboard/erp-lite/coa',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_coa:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+      },
+      {
+        key: 'erp_lite_gl',
+        label: 'General Ledger',
+        path: '/dashboard/erp-lite/gl',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_gl:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+      },
+      {
+        key: 'erp_lite_ar',
+        label: 'AR Aging',
+        path: '/dashboard/erp-lite/ar',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_ar:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_AR_ENABLED,
+      },
+      {
+        key: 'erp_lite_ap',
+        label: 'Accounts Payable',
+        path: '/dashboard/erp-lite/ap',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_ap:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_AP_ENABLED,
+      },
+      {
+        key: 'erp_lite_po',
+        label: 'Purchase Orders',
+        path: '/dashboard/erp-lite/po',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_po:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_PO_ENABLED,
+      },
+      {
+        key: 'erp_lite_expenses',
+        label: 'Expenses',
+        path: '/dashboard/erp-lite/expenses',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_expenses:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_EXPENSES_ENABLED,
+      },
+      {
+        key: 'erp_lite_bank_recon',
+        label: 'Bank Reconciliation',
+        path: '/dashboard/erp-lite/bank-recon',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_bank_recon:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_BANK_RECON_ENABLED,
+      },
+      {
+        key: 'erp_lite_branch_pl',
+        label: 'Branch P&L',
+        path: '/dashboard/erp-lite/branch-pl',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_branch_pl:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_BRANCH_PL_ENABLED,
+      },
+      {
+        key: 'erp_lite_reports',
+        label: 'Financial Reports',
+        path: '/dashboard/erp-lite/reports',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['erp_lite_reports:view'],
+        //featureFlag: FLAG_KEYS.ERP_LITE_REPORTS_ENABLED,
       },
     ],
   },
@@ -561,7 +562,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
   },
 
-] 
+]
 
 /**
  * Get navigation items for a specific role and permissions
@@ -605,7 +606,7 @@ export function getNavigationForRole(
       const hasPermission = section.requireAllPermissions
         ? section.permissions!.every(p => permissions.includes(p))
         : section.permissions!.some(p => permissions.includes(p))
-      
+
       if (!hasPermission) {
         return false
       }
@@ -649,7 +650,7 @@ export function getNavigationForRole(
 
         return true
       })
-      
+
       // Remove section if it has no valid children after filtering
       if (section.children.length === 0) {
         return false

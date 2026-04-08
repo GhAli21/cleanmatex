@@ -186,6 +186,35 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_ap_enabled'],
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Create supplier',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteSupplierAction',
+        requirement: {
+          permissions: ['erp_lite_ap:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create AP invoice',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteApInvoiceAction',
+        requirement: {
+          permissions: ['erp_lite_ap:view'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Create AP payment',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLiteApPaymentAction',
+        requirement: {
+          permissions: ['erp_lite_ap:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
@@ -197,6 +226,17 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
       featureFlags: ['erp_lite_enabled', 'erp_lite_po_enabled'],
       requireAllFeatureFlags: true,
     },
+    apiDependencies: [
+      {
+        label: 'Create purchase order',
+        method: 'POST',
+        path: 'app/actions/erp-lite/v2-actions.createErpLitePurchaseOrderAction',
+        requirement: {
+          permissions: ['erp_lite_po:view'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
     notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
