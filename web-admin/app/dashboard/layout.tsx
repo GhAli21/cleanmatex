@@ -86,17 +86,22 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   if (!isLoading && !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-          <p className="mt-4 text-gray-600">Redirecting to login...</p>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--win2k-desktop)' }}>
+        <div className="win2k-panel p-6 text-center" style={{ minWidth: 280 }}>
+          <div className="win2k-titlebar mb-4">
+            <span>CleanMateX</span>
+          </div>
+          <div className="win2k-inset p-4 mb-4">
+            <p className="win2k-text">Redirecting to login...</p>
+          </div>
+          <button className="win2k-btn">Cancel</button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--win2k-desktop)' }}>
       <SidebarProvider>
         {!isPrintRoute ? (
           <DashboardContent isPrintRoute={false}>{children}</DashboardContent>

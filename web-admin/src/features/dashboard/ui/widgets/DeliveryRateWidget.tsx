@@ -59,75 +59,36 @@ export function DeliveryRateWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded"></div>
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-        </div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', width: '60%', marginBottom: 6 }} />
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '70%' }} /></div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('deliveryRate')}</h3>
-        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
-          <Truck className="h-5 w-5" />
-        </div>
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
+      {/* Success Rate */}
+      <div className="win2k-inset" style={{ padding: '4px 8px', marginBottom: 6 }}>
+        <p className="win2k-label" style={{ marginBottom: 2 }}>{t('successRate')}</p>
+        <p className="win2k-value">{data.successRate.toFixed(1)}%</p>
       </div>
-
-      <div className="space-y-4">
-        {/* Success Rate */}
-        <div>
-          <p className="text-sm text-gray-600">{t('successRate')}</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {data.successRate.toFixed(1)}%
-          </p>
-          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-            <div
-              className="h-2 rounded-full bg-green-500"
-              style={{ width: `${Math.min(data.successRate, 100)}%` }}
-            />
+      <div className="win2k-progress-track" style={{ marginBottom: 6 }}>
+        <div className="win2k-progress-fill" style={{ width: `${Math.min(data.successRate, 100)}%` }} />
+      </div>
+      <hr className="win2k-separator" />
+      {/* Stats grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginTop: 6 }}>
+        {[
+          { label: t('total'), value: data.totalDeliveries, color: 'var(--win2k-titlebar-start)' },
+          { label: t('pending'), value: data.pendingDeliveries, color: '#886600' },
+          { label: t('failed'), value: data.failedDeliveries, color: '#cc0000' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="win2k-inset" style={{ padding: '3px 6px', textAlign: 'center' }}>
+            <p style={{ fontFamily: 'Courier New, monospace', fontSize: 14, fontWeight: 'bold', color }}>{value}</p>
+            <p className="win2k-text">{label}</p>
           </div>
-        </div>
-
-        {/* Delivery Stats */}
-        <div className="pt-4 border-t border-gray-200 grid grid-cols-3 gap-4">
-          {/* Total */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <Truck className="h-4 w-4 text-gray-400" />
-            </div>
-            <p className="text-lg font-semibold text-gray-900">
-              {data.totalDeliveries}
-            </p>
-            <p className="text-xs text-gray-600">{t('total')}</p>
-          </div>
-
-          {/* Pending */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <AlertCircle className="h-4 w-4 text-yellow-500" />
-            </div>
-            <p className="text-lg font-semibold text-gray-900">
-              {data.pendingDeliveries}
-            </p>
-            <p className="text-xs text-gray-600">{t('pending')}</p>
-          </div>
-
-          {/* Failed */}
-          <div className="text-center">
-            <div className="flex justify-center mb-1">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-            </div>
-            <p className="text-lg font-semibold text-gray-900">
-              {data.failedDeliveries}
-            </p>
-            <p className="text-xs text-gray-600">{t('failed')}</p>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   )

@@ -60,12 +60,9 @@ export function IssuesWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-1/2 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', width: '50%', marginBottom: 6 }} />
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '30%' }} /></div>
       </div>
     )
   }
@@ -74,76 +71,37 @@ export function IssuesWidget() {
   const hasCritical = data.critical > 0
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('issues')}</h3>
-        <div
-          className={`p-2 rounded-lg ${
-            hasCritical
-              ? 'bg-red-50 text-red-600'
-              : hasIssues
-              ? 'bg-yellow-50 text-yellow-600'
-              : 'bg-green-50 text-green-600'
-          }`}
-        >
-          <AlertTriangle className="h-5 w-5" />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {/* Open Issues */}
-        <div>
-          <p className="text-sm text-gray-600">{t('openIssues')}</p>
-          <p
-            className={`text-3xl font-bold ${
-              hasCritical
-                ? 'text-red-600'
-                : hasIssues
-                ? 'text-yellow-600'
-                : 'text-green-600'
-            }`}
-          >
-            {data.open}
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
+      {/* Open Issues */}
+      <div className="win2k-inset" style={{ padding: '4px 8px', marginBottom: 6 }}>
+        <p className="win2k-label" style={{ marginBottom: 2 }}>{t('openIssues')}</p>
+        <p className="win2k-value" style={{ color: hasCritical ? '#cc0000' : hasIssues ? '#886600' : '#006400' }}>
+          {data.open}
+        </p>
+        {data.critical > 0 && (
+          <p style={{ fontSize: 10, color: '#cc0000', fontWeight: 'bold' }}>
+            ⚠ {t('criticalCount', { count: data.critical })}
           </p>
-          {data.critical > 0 && (
-            <div className={`flex items-center mt-2 text-red-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <AlertCircle className={`h-4 w-4 ${isRTL ? 'ml-1' : 'mr-1'}`} />
-              <span className="text-sm font-medium">
-                {t('criticalCount', { count: data.critical })}
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Issue Statistics */}
-        <div className="pt-4 border-t border-gray-200 grid grid-cols-2 gap-4">
-          {/* Last 7 Days */}
-          <div>
-            <p className="text-xs text-gray-600 mb-1">{t('last7Days')}</p>
-            <p className="text-lg font-semibold text-gray-900">{data.last7d}</p>
-          </div>
-
-          {/* Resolved */}
-          <div>
-            <p className="text-xs text-gray-600 mb-1">{t('resolved')}</p>
-            <p className="text-lg font-semibold text-gray-900">
-              {data.resolved}
-            </p>
-          </div>
-        </div>
-
-        {/* Action Link */}
-        {hasIssues && (
-          <div className="pt-4 border-t border-gray-200">
-            <a
-              href="/issues"
-              className={`text-sm text-blue-600 hover:text-blue-700 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}
-            >
-              {t('viewAllIssues')} {isRTL ? '←' : '→'}
-            </a>
-          </div>
         )}
       </div>
+      <hr className="win2k-separator" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, marginTop: 6 }}>
+        <div className="win2k-inset" style={{ padding: '3px 6px' }}>
+          <p className="win2k-text" style={{ color: '#555', marginBottom: 2 }}>{t('last7Days')}</p>
+          <p style={{ fontFamily: 'Courier New, monospace', fontSize: 13, fontWeight: 'bold', color: 'var(--win2k-titlebar-start)' }}>{data.last7d}</p>
+        </div>
+        <div className="win2k-inset" style={{ padding: '3px 6px' }}>
+          <p className="win2k-text" style={{ color: '#555', marginBottom: 2 }}>{t('resolved')}</p>
+          <p style={{ fontFamily: 'Courier New, monospace', fontSize: 13, fontWeight: 'bold', color: '#006400' }}>{data.resolved}</p>
+        </div>
+      </div>
+      {hasIssues && (
+        <div style={{ marginTop: 6, borderTop: '1px solid var(--win2k-shadow)', paddingTop: 4 }}>
+          <a href="/issues" style={{ color: 'var(--win2k-link)', textDecoration: 'underline', fontSize: 11 }}>
+            {t('viewAllIssues')} {isRTL ? '←' : '→'}
+          </a>
+        </div>
+      )}
     </div>
   )
 }

@@ -68,67 +68,43 @@ export function TurnaroundTimeWidget() {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6 animate-pulse">
-        <div className="h-6 bg-gray-200 rounded w-2/3 mb-4"></div>
-        <div className="space-y-3">
-          <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-          <div className="h-4 bg-gray-200 rounded"></div>
-        </div>
+      <div className="win2k-panel" style={{ padding: '6px 10px' }}>
+        <div style={{ height: 10, background: '#c0bdb5', marginBottom: 6, width: '60%' }} />
+        <div className="win2k-progress-track"><div className="win2k-progress-fill" style={{ width: '50%' }} /></div>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className="text-lg font-semibold text-gray-900">{t('turnaroundTime')}</h3>
-        <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
-          <Clock className="h-5 w-5" />
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {/* Average TAT */}
-        <div>
-          <p className="text-sm text-gray-600">{t('averageTAT')}</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatTAT(data.avgTATHours)}
+    <div style={{ fontFamily: "'MS Sans Serif', Arial, sans-serif", fontSize: 11 }}>
+      {/* Avg TAT */}
+      <div className="win2k-inset" style={{ padding: '4px 8px', marginBottom: 6 }}>
+        <p className="win2k-label" style={{ marginBottom: 2 }}>{t('averageTAT')}</p>
+        <p className="win2k-value">{formatTAT(data.avgTATHours)}</p>
+        {data.trend !== undefined && data.trend !== 0 && (
+          <p style={{ fontSize: 10, color: data.trend < 0 ? '#006400' : '#cc0000', fontWeight: 'bold' }}>
+            {data.trend < 0 ? '▼' : '▲'} {Math.abs(data.trend)}% {t('fromLastWeek')}
           </p>
-          {data.trend !== undefined && data.trend !== 0 && (
-            <p
-              className={`text-sm mt-1 ${
-                data.trend < 0 ? 'text-green-600' : 'text-red-600'
-              }`}
-            >
-              {data.trend < 0 ? '↓' : '↑'} {Math.abs(data.trend)}% {t('fromLastWeek')}
-            </p>
-          )}
+        )}
+      </div>
+      <hr className="win2k-separator" />
+      {/* On-Time Delivery */}
+      <div style={{ marginTop: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, flexDirection: isRTL ? 'row-reverse' : 'row' }}>
+          <p className="win2k-label">{t('onTimeDelivery')}</p>
+          <p style={{ fontFamily: 'Courier New, monospace', fontSize: 13, fontWeight: 'bold', color: data.onTimePct >= 90 ? '#006400' : data.onTimePct >= 75 ? '#886600' : '#cc0000' }}>
+            {data.onTimePct.toFixed(1)}%
+          </p>
         </div>
-
-        {/* On-Time Delivery */}
-        <div className="pt-4 border-t border-gray-200">
-          <div className={`flex items-center justify-between mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <p className="text-sm text-gray-600">{t('onTimeDelivery')}</p>
-            <Target className="h-4 w-4 text-gray-400" />
-          </div>
-          <div className="flex items-baseline">
-            <p className="text-xl font-semibold text-gray-900">
-              {data.onTimePct.toFixed(1)}%
-            </p>
-          </div>
-          {/* Progress Bar */}
-          <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-            <div
-              className={`h-2 rounded-full ${
-                data.onTimePct >= 90
-                  ? 'bg-green-500'
-                  : data.onTimePct >= 75
-                  ? 'bg-yellow-500'
-                  : 'bg-red-500'
-              }`}
-              style={{ width: `${Math.min(data.onTimePct, 100)}%` }}
-            />
-          </div>
+        {/* Win2K-style progress bar */}
+        <div className="win2k-progress-track">
+          <div
+            className="win2k-progress-fill"
+            style={{
+              width: `${Math.min(data.onTimePct, 100)}%`,
+              background: data.onTimePct >= 90 ? 'repeating-linear-gradient(90deg,#006400 0px,#006400 8px,#008800 8px,#008800 10px)' : undefined,
+            }}
+          />
         </div>
       </div>
     </div>
