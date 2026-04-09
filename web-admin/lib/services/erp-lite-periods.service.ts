@@ -9,6 +9,7 @@ import type {
   ErpLitePeriodRow,
   CreatePeriodInput,
   ClosePeriodInput,
+  PeriodClosePrecheckResult,
   PeriodStatus,
 } from '@/lib/types/erp-lite-ops';
 
@@ -111,11 +112,137 @@ export class ErpLitePeriodsService {
   }
 
   // -------------------------------------------------------
+  // Period close precheck (draft journals + open exceptions in-range)
+  // -------------------------------------------------------
+  static async precheckPeriodClose(periodId: string): Promise<PeriodClosePrecheckResult> {
+    const tenantId = await this.requireTenantId();
+
+    return withTenantContext(tenantId, async () => {
+      type PeriodHead = {
+        id: string;
+        period_code: string;
+        start_date: string;
+        end_date: string;
+        status_code: string;
+      };
+
+      const head = await prisma.$queryRaw<PeriodHead[]>(Prisma.sql`
+        SELECT
+          p.id,
+          p.period_code,
+          TO_CHAR(p.start_date, 'YYYY-MM-DD') AS start_date,
+          TO_CHAR(p.end_date, 'YYYY-MM-DD')   AS end_date,
+          p.status_code
+        FROM public.org_fin_period_mst p
+        WHERE p.id = ${periodId}::uuid
+          AND p.tenant_org_id = ${tenantId}::uuid
+          AND p.rec_status = 1
+        LIMIT 1
+      `);
+
+      if (head.length === 0) {
+        throw new Error('Period not found');
+      }
+
+      const p = head[0];
+      const periodSlice = {
+        id: p.id,
+        period_code: p.period_code,
+        start_date: p.start_date,
+        end_date: p.end_date,
+        status_code: p.status_code as PeriodStatus,
+      };
+
+      const blockers: PeriodClosePrecheckResult['blockers'] = [];
+
+      if (p.status_code !== 'OPEN') {
+        blockers.push({
+          severity: 'error',
+          code: 'PERIOD_NOT_OPEN',
+          message: `Period ${p.period_code} is ${p.status_code} and cannot be closed.`,
+        });
+        return { canClose: false, period: periodSlice, blockers };
+      }
+
+      const draftRow = await prisma.$queryRaw<{ c: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS c
+        FROM public.org_fin_journal_mst j
+        WHERE j.tenant_org_id = ${tenantId}::uuid
+          AND j.rec_status = 1
+          AND j.status_code = 'DRAFT'
+          AND j.posting_date >= ${p.start_date}::date
+          AND j.posting_date <= ${p.end_date}::date
+      `);
+      const draftCount = Number(draftRow[0]?.c ?? 0n);
+      if (draftCount > 0) {
+        blockers.push({
+          severity: 'error',
+          code: 'DRAFT_JOURNALS',
+          message: `${draftCount} draft journal(s) exist with posting dates in this period.`,
+          href: `/dashboard/erp-lite/gl?dateFrom=${encodeURIComponent(p.start_date)}&dateTo=${encodeURIComponent(p.end_date)}`,
+        });
+      }
+
+      const excRow = await prisma.$queryRaw<{ c: bigint }[]>(Prisma.sql`
+        SELECT COUNT(DISTINCT e.exception_id)::bigint AS c
+        FROM public.vw_fin_open_exceptions e
+        WHERE e.tenant_org_id = ${tenantId}::uuid
+          AND e.journal_id IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM public.org_fin_journal_mst j
+            WHERE j.id = e.journal_id
+              AND j.tenant_org_id = e.tenant_org_id
+              AND j.posting_date >= ${p.start_date}::date
+              AND j.posting_date <= ${p.end_date}::date
+          )
+      `);
+      const excCount = Number(excRow[0]?.c ?? 0n);
+      if (excCount > 0) {
+        blockers.push({
+          severity: 'error',
+          code: 'OPEN_EXCEPTIONS',
+          message: `${excCount} open posting exception(s) are linked to journals in this period.`,
+          href: '/dashboard/erp-lite/exceptions',
+        });
+      }
+
+      const orphanExc = await prisma.$queryRaw<{ c: bigint }[]>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS c
+        FROM public.vw_fin_open_exceptions e
+        WHERE e.tenant_org_id = ${tenantId}::uuid
+          AND e.journal_id IS NULL
+      `);
+      const orphanCount = Number(orphanExc[0]?.c ?? 0n);
+      if (orphanCount > 0) {
+        blockers.push({
+          severity: 'warning',
+          code: 'OPEN_EXCEPTIONS_NO_JOURNAL',
+          message: `${orphanCount} open exception(s) have no resolved journal context — review before closing.`,
+          href: '/dashboard/erp-lite/exceptions',
+        });
+      }
+
+      const canClose = !blockers.some((b) => b.severity === 'error');
+      return { canClose, period: periodSlice, blockers };
+    });
+  }
+
+  // -------------------------------------------------------
   // Close an OPEN period
   // -------------------------------------------------------
   static async closePeriod(input: ClosePeriodInput): Promise<void> {
     const tenantId = await this.requireTenantId();
     const auth = await getAuthContext();
+
+    const pre = await this.precheckPeriodClose(input.period_id);
+    if (!pre.canClose) {
+      const msg = pre.blockers
+        .filter((b) => b.severity === 'error')
+        .map((b) => b.message)
+        .join(' ');
+      throw new Error(msg || 'Period cannot be closed until blockers are resolved.');
+    }
 
     return withTenantContext(tenantId, async () => {
       await prisma.$executeRaw(Prisma.sql`

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useLocale, useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import type {
@@ -84,7 +85,12 @@ export function ErpLiteReportsScreen({
       cell: ({ row }) => (
         <div className="space-y-1">
           <div className="font-medium">
-            {row.original.account_code} · {row.original.account_name}
+            <Link
+              href={`/dashboard/erp-lite/gl?accountCode=${encodeURIComponent(row.original.account_code)}`}
+              className="text-primary underline-offset-4 hover:underline"
+            >
+              {row.original.account_code} · {row.original.account_name}
+            </Link>
           </div>
         </div>
       ),
@@ -112,7 +118,12 @@ export function ErpLiteReportsScreen({
       header: t('columns.account'),
       cell: ({ row }) => (
         <div className="font-medium">
-          {row.original.account_code} · {row.original.account_name}
+          <Link
+            href={`/dashboard/erp-lite/gl?accountCode=${encodeURIComponent(row.original.account_code)}`}
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            {row.original.account_code} · {row.original.account_name}
+          </Link>
         </div>
       ),
     },

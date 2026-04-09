@@ -111,6 +111,33 @@ export async function closePeriodAction(formData: FormData) {
   redirect('/dashboard/erp-lite/periods?notice=closed');
 }
 
+/** Client-callable precheck for period close modal (returns JSON, no redirect). */
+export async function precheckPeriodCloseForAction(periodId: string) {
+  try {
+    const data = await ErpLitePeriodsService.precheckPeriodClose(periodId);
+    return { ok: true as const, data };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Precheck failed';
+    return { ok: false as const, message };
+  }
+}
+
+/** Client-callable close after UI precheck (revalidates; no redirect). */
+export async function closePeriodFromUiAction(periodId: string, lockReason: string | null) {
+  try {
+    await ErpLitePeriodsService.closePeriod({
+      period_id: periodId,
+      lock_reason: lockReason,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to close period';
+    return { ok: false as const, message };
+  }
+  revalidatePath('/dashboard/erp-lite/periods');
+  revalidatePath('/dashboard/erp-lite/readiness');
+  return { ok: true as const };
+}
+
 // -------------------------------------------------------
 // Exception Actions
 // -------------------------------------------------------

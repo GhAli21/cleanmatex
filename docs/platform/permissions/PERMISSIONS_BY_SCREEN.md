@@ -54,6 +54,16 @@ Page-linked backend permissions are documented separately in:
 | `/dashboard/orders/new` | no explicit page permission | `Use price override controls` → `pricing:override` | Action-only gate |
 | `/dashboard/reports/*` | feature flag `advanced_analytics` | none | Feature-flag page gate |
 | `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | page-linked ERP-Lite server actions inherit the same route permission unless a stricter action gate is declared | Finance routes are contract-backed and now include live runtime coverage for COA, reports, expenses, treasury, AP/PO, and profitability screens |
+| `/dashboard/erp-lite` | `erp_lite:view` + `erp_lite_enabled` | none (read-only cockpit) | ERP-Lite home cockpit; shortcuts respect sub-route permissions/flags server-side |
+| `/dashboard/erp-lite/journals` | `erp_lite_gl:view` + `erp_lite_enabled`, `erp_lite_gl_enabled` | none | Journal register links into GL with `journalId` query |
+| `/dashboard/erp-lite/setup` | `erp_lite:view` + `erp_lite_enabled` | none | Local-only setup checklist (localStorage) |
+| `/dashboard/erp-lite/finance-actions` | `erp_lite_periods:view` + `erp_lite_enabled`, `erp_lite_periods_enabled` | none | Read-only `org_fin_post_action_tr` audit list |
+| `/dashboard/erp-lite/exceptions` | `erp_lite_exceptions:view` + `erp_lite_enabled`, `erp_lite_exceptions_enabled` | `Resolve exception` → `erp_lite_post_audit:view` (contract) | Exception workbench |
+| `/dashboard/erp-lite/usage-maps` | `erp_lite_usage_map:view` + `erp_lite_enabled`, `erp_lite_usage_map_enabled` | usage-map server actions per contract | Usage mapping console |
+| `/dashboard/erp-lite/periods` | `erp_lite:view` + `erp_lite_enabled`, `erp_lite_periods_enabled` | period server actions per contract | Period close precheck links to GL (`dateFrom`/`dateTo`) and exceptions |
+| `/dashboard/erp-lite/posting-audit` | `erp_lite_post_audit:view` + `erp_lite_enabled`, `erp_lite_post_audit_enabled` | none | Posting audit viewer |
+| `/dashboard/erp-lite/readiness` | `erp_lite:view` + `erp_lite_enabled`, `erp_lite_readiness_enabled` | none | Finance readiness |
+| `/dashboard/erp-lite/reports` | `erp_lite_reports:view` + `erp_lite_enabled`, `erp_lite_reports_enabled` | none | Trial balance / P&L / balance sheet rows link to GL via `?accountCode=` (same param family as GL inquiry) |
 | `/dashboard/erp-lite/branch-pl` | `erp_lite_branch_pl:view` + `erp_lite_enabled`, `erp_lite_branch_pl_enabled` | create/post allocation and cost runs inherit `erp_lite_branch_pl:view` | Branch profitability now includes audited allocation and costing controls with linked server actions |
 
 ## Related Docs

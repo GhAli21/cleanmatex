@@ -1,5 +1,7 @@
 'use client'
 
+import * as React from 'react'
+import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { ErpLiteOpenExceptionRow } from '@/lib/types/erp-lite-ops'
@@ -31,12 +33,22 @@ function ExcStatusBadge({ status }: { status: ErpLiteOpenExceptionRow['status_co
 export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) {
   const t = useTranslations('erpLite.exceptions')
 
+  const grouped = React.useMemo(() => {
+    const map = new Map<string, ErpLiteOpenExceptionRow[]>()
+    for (const r of rows) {
+      const k = r.exception_type_code
+      const cur = map.get(k) ?? []
+      cur.push(r)
+      map.set(k, cur)
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+  }, [rows])
+
   const columns: ColumnDef<ErpLiteOpenExceptionRow>[] = [
     {
       accessorKey: 'created_at',
       header: t('columns.date'),
-      cell: ({ row }) =>
-        new Date(row.original.created_at).toLocaleDateString(),
+      cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
     },
     {
       accessorKey: 'source_doc_type_code',
@@ -55,15 +67,44 @@ export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) 
       accessorKey: 'exception_type_code',
       header: t('columns.type'),
       cell: ({ row }) => (
-        <span className="text-xs font-medium text-muted-foreground">
-          {row.original.exception_type_code}
-        </span>
+        <span className="text-xs font-medium text-muted-foreground">{row.original.exception_type_code}</span>
       ),
     },
     {
       accessorKey: 'status_code',
       header: t('columns.status'),
       cell: ({ row }) => <ExcStatusBadge status={row.original.status_code} />,
+    },
+    {
+      accessorKey: 'attempt_no',
+      header: t('columns.attempt'),
+      cell: ({ row }) =>
+        row.original.attempt_no != null ? String(row.original.attempt_no) : '—',
+    },
+    {
+      id: 'links',
+      header: t('columns.links'),
+      cell: ({ row }) => {
+        const j = row.original.journal_id
+        return (
+          <div className="flex flex-col gap-1 text-xs">
+            {j ? (
+              <Link
+                href={`/dashboard/erp-lite/gl?journalId=${encodeURIComponent(j)}`}
+                className="text-primary hover:underline"
+              >
+                {t('links.gl')}
+              </Link>
+            ) : null}
+            <Link href="/dashboard/erp-lite/usage-maps" className="text-primary hover:underline">
+              {t('links.usageMaps')}
+            </Link>
+            <Link href="/dashboard/erp-lite/periods" className="text-primary hover:underline">
+              {t('links.periods')}
+            </Link>
+          </div>
+        )
+      },
     },
     {
       accessorKey: 'error_message',
@@ -85,21 +126,30 @@ export function ErpLiteExceptionsScreen({ rows }: ErpLiteExceptionsScreenProps) 
         <h1 className="text-2xl font-semibold">{t('title')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('subtitle')}</p>
       </div>
-      <CmxCard>
-        <CmxCardHeader>
-          <CmxCardTitle>{t('table.title', { count: rows.length })}</CmxCardTitle>
-        </CmxCardHeader>
-        <CmxCardContent>
-          <CmxDataTable
-            columns={columns}
-            data={rows}
-            page={0}
-            pageSize={Math.max(rows.length, 1)}
-            total={rows.length}
-            emptyMessage={t('empty')}
-          />
-        </CmxCardContent>
-      </CmxCard>
+
+      {grouped.map(([type, groupRows]) => (
+        <CmxCard key={type}>
+          <CmxCardHeader>
+            <CmxCardTitle>{t('groupHeading', { type, count: groupRows.length })}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent>
+            <CmxDataTable
+              columns={columns}
+              data={groupRows}
+              page={0}
+              pageSize={Math.max(groupRows.length, 1)}
+              total={groupRows.length}
+              emptyMessage={t('empty')}
+            />
+          </CmxCardContent>
+        </CmxCard>
+      ))}
+
+      {rows.length === 0 ? (
+        <CmxCard>
+          <CmxCardContent className="py-8 text-center text-sm text-muted-foreground">{t('empty')}</CmxCardContent>
+        </CmxCard>
+      ) : null}
     </div>
   )
 }

@@ -240,6 +240,39 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ERP_LITE_RUNTIME_NOTES,
   },
   {
+    routePattern: '/dashboard/erp-lite/journals',
+    label: 'Journal register',
+    page: {
+      permissions: ['erp_lite_gl:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_gl_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/setup',
+    label: 'ERP-Lite setup guide',
+    page: {
+      permissions: ['erp_lite:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
+    routePattern: '/dashboard/erp-lite/finance-actions',
+    label: 'Finance control audit',
+    page: {
+      permissions: ['erp_lite_periods:view'],
+      requireAllPermissions: true,
+      featureFlags: ['erp_lite_enabled', 'erp_lite_periods_enabled'],
+      requireAllFeatureFlags: true,
+    },
+    notes: ERP_LITE_RUNTIME_NOTES,
+  },
+  {
     routePattern: '/dashboard/erp-lite/readiness',
     label: 'Finance Readiness',
     page: {
@@ -294,7 +327,7 @@ export const ERP_LITE_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/erp-lite/exceptions',
     label: 'Exception Workbench',
     page: {
-      permissions: ['erp_lite:view'],
+      permissions: ['erp_lite_exceptions:view'],
       requireAllPermissions: true,
       featureFlags: ['erp_lite_enabled', 'erp_lite_exceptions_enabled'],
       requireAllFeatureFlags: true,

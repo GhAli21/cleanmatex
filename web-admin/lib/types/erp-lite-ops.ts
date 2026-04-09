@@ -196,6 +196,52 @@ export interface ClosePeriodInput {
   lock_reason?: string | null
 }
 
+export type PeriodCloseBlockerSeverity = 'error' | 'warning'
+
+export interface PeriodCloseBlocker {
+  severity: PeriodCloseBlockerSeverity
+  code: string
+  message: string
+  /** Deep-link within ERP-Lite (e.g. GL with date range) */
+  href?: string
+}
+
+export interface PeriodClosePrecheckResult {
+  canClose: boolean
+  period: Pick<ErpLitePeriodRow, 'id' | 'period_code' | 'start_date' | 'end_date' | 'status_code'>
+  blockers: PeriodCloseBlocker[]
+}
+
+export interface ErpLiteJournalListRow {
+  id: string
+  journal_no: string
+  journal_date: string
+  posting_date: string
+  status_code: string
+  txn_event_code: string
+  total_debit: string
+  total_credit: string
+  narration: string | null
+  source_doc_type_code: string
+  source_doc_no: string | null
+}
+
+export interface ErpLitePostActionAuditRow {
+  id: string
+  action_domain: string
+  action_code: string
+  result_code: string
+  period_id: string | null
+  exception_id: string | null
+  usage_map_id: string | null
+  posting_log_id: string | null
+  prev_status_code: string | null
+  new_status_code: string | null
+  action_notes: string | null
+  actor_user_id: string
+  created_at: string
+}
+
 // -------------------------------------------------------
 // Posting Audit Viewer
 // -------------------------------------------------------

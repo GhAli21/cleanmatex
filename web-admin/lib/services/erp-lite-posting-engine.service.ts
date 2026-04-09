@@ -135,6 +135,8 @@ class ErpLitePostingError extends Error {
  *
  * This service stays intentionally isolated from business modules so Phase 5
  * can integrate invoice/payment/refund flows without duplicating finance logic.
+ *
+ * Idempotency, preview vs execute, and failure semantics: `docs/dev/erp-lite-posting-engine-as-built.md`.
  */
 export class ErpLitePostingEngineService {
   static async preview(

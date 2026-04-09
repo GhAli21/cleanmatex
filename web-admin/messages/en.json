@@ -3541,6 +3541,72 @@
     "common": {
       "loadError": "ERP-Lite could not load this screen completely. Review tenant finance setup and ERP-Lite reference data, then try again."
     },
+    "home": {
+      "title": "Finance & Accounting",
+      "subtitle": "Operational cockpit for ERP-Lite readiness, periods, posting, and controls.",
+      "snapshot": {
+        "title": "Tenant snapshot",
+        "status": "Readiness status",
+        "missingMappings": "Required mappings (missing / total)",
+        "openExceptions": "Open posting exceptions",
+        "openPeriods": "Open accounting periods",
+        "currentOpenPeriod": "Current open period",
+        "none": "—"
+      },
+      "governance": {
+        "title": "Binding & templates",
+        "body": "Template application and governance assignment are managed from the platform console. Use Finance Readiness to confirm the tenant is aligned before posting.",
+        "linkReadiness": "Open Finance Readiness"
+      },
+      "shortcuts": {
+        "sectionTitle": "Shortcuts",
+        "open": "Open",
+        "readiness": {
+          "title": "Finance Readiness",
+          "description": "Template status, governance assignment, and mapping gaps."
+        },
+        "usageMaps": {
+          "title": "Usage maps",
+          "description": "Map usage codes to accounts for automated posting."
+        },
+        "periods": {
+          "title": "Periods",
+          "description": "Open and close accounting periods with prechecks."
+        },
+        "exceptions": {
+          "title": "Exceptions",
+          "description": "Resolve posting errors and retries."
+        },
+        "coa": {
+          "title": "Chart of accounts",
+          "description": "Tenant account master and posting flags."
+        },
+        "gl": {
+          "title": "General ledger",
+          "description": "Posted lines and journal drill-down."
+        },
+        "journals": {
+          "title": "Journal register",
+          "description": "List journals and open detail in GL."
+        },
+        "reports": {
+          "title": "Financial reports",
+          "description": "Balances and statement views from posted data."
+        },
+        "postingAudit": {
+          "title": "Posting audit",
+          "description": "Posting log and journal creation history."
+        },
+        "financeActions": {
+          "title": "Finance control audit",
+          "description": "Read-only log of period and control actions."
+        },
+        "setup": {
+          "title": "Setup guide",
+          "description": "Step-by-step links through ERP-Lite go-live tasks."
+        }
+      }
+    },
     "reports": {
       "title": "Financial Reports",
       "subtitle": "Journal-driven finance inquiry derived only from posted ERP-Lite journals.",
@@ -4340,6 +4406,71 @@
         }
       }
     },
+    "journals": {
+      "title": "Journal register",
+      "subtitle": "Recent journals for this tenant. Open a row to view lines in General Ledger.",
+      "empty": "No journals found.",
+      "table": {
+        "title": "{count} journals"
+      },
+      "columns": {
+        "journalNo": "Journal #",
+        "postingDate": "Posting date",
+        "status": "Status",
+        "event": "Event",
+        "docNo": "Document",
+        "debit": "Debit",
+        "credit": "Credit"
+      }
+    },
+    "setup": {
+      "title": "ERP-Lite setup guide",
+      "subtitle": "Track go-live steps locally on this device. Links open existing ERP-Lite screens.",
+      "stepsTitle": "Steps",
+      "openStep": "Go to step",
+      "markDone": "Mark done",
+      "markUndone": "Mark not done",
+      "persistHint": "Progress is stored in this browser only (localStorage).",
+      "steps": {
+        "readiness": {
+          "title": "Finance readiness",
+          "description": "Confirm governance assignment, template apply status, and mapping health."
+        },
+        "usageMaps": {
+          "title": "Usage maps",
+          "description": "Resolve required usage code bindings."
+        },
+        "periods": {
+          "title": "Periods",
+          "description": "Ensure an open accounting period exists for posting."
+        },
+        "coa": {
+          "title": "Chart of accounts",
+          "description": "Review accounts and posting flags."
+        },
+        "gl": {
+          "title": "General ledger",
+          "description": "Validate posted activity and journal detail."
+        }
+      }
+    },
+    "financeActions": {
+      "title": "Finance control audit",
+      "subtitle": "Read-only history of control actions such as period close (org_fin_post_action_tr).",
+      "empty": "No finance control actions recorded yet.",
+      "table": {
+        "title": "{count} actions"
+      },
+      "columns": {
+        "when": "When",
+        "domain": "Domain",
+        "action": "Action",
+        "result": "Result",
+        "prev": "Previous status",
+        "next": "New status",
+        "notes": "Notes"
+      }
+    },
     "readiness": {
       "title": "Finance Readiness",
       "subtitle": "Check your tenant finance setup health before going live with automated posting.",
@@ -4375,6 +4506,14 @@
     "usageMaps": {
       "title": "Usage Mapping Console",
       "subtitle": "Map usage codes to tenant accounts for automated journal posting.",
+      "banner": "Align usage maps with Finance Readiness and the ERP-Lite home cockpit. Required codes with issues block clean posting.",
+      "linkHome": "ERP-Lite home",
+      "linkReadiness": "Finance readiness",
+      "filters": {
+        "showAll": "All maps",
+        "unresolvedOnly": "Unresolved issues only",
+        "requiredIssues": "Required with issues"
+      },
       "required": "Required",
       "optional": "Optional",
       "empty": "No usage mappings found.",
@@ -4396,6 +4535,7 @@
     "exceptions": {
       "title": "Exception Workbench",
       "subtitle": "Review and resolve open posting exceptions.",
+      "groupHeading": "{type} · {count}",
       "empty": "No open exceptions. Posting is clean.",
       "table": {
         "title": "{count} Open Exceptions"
@@ -4407,7 +4547,14 @@
         "event": "Event",
         "type": "Exception Type",
         "status": "Status",
-        "error": "Error"
+        "error": "Error",
+        "attempt": "Attempt",
+        "links": "Shortcuts"
+      },
+      "links": {
+        "gl": "Open in GL",
+        "usageMaps": "Usage maps",
+        "periods": "Periods"
       }
     },
     "periods": {
@@ -4424,7 +4571,24 @@
         "endDate": "End Date",
         "status": "Status",
         "closedAt": "Closed At",
-        "closedBy": "Closed By"
+        "closedBy": "Closed By",
+        "actions": "Actions"
+      },
+      "precheck": {
+        "blocked": "Period cannot be closed until blockers are resolved.",
+        "error": "Precheck failed. Try again."
+      },
+      "close": {
+        "action": "Close period",
+        "dialogTitle": "Close period",
+        "confirmTitle": "Close period {code}?",
+        "confirmBody": "Review the checklist below before closing.",
+        "openLink": "Open",
+        "confirm": "Close period",
+        "cancel": "Cancel",
+        "acknowledge": "OK",
+        "success": "Period closed.",
+        "error": "Failed to close period."
       }
     },
     "postAudit": {

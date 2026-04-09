@@ -18,10 +18,15 @@ export default async function ErpLitePostingAuditPage({ searchParams }: PostingA
   const pageSize = Math.min(Math.max(10, parseInt(params.pageSize ?? '50', 10)), 200)
   const statusCode = params.status ?? undefined
 
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)
+  const isEnabled =
+    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)) &&
+    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_POST_AUDIT_ENABLED))
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite_post_audit:view']}>
+      <ErpLitePageGuard
+        feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_POST_AUDIT_ENABLED]}
+        permissions={['erp_lite_post_audit:view']}
+      >
         {null}
       </ErpLitePageGuard>
     )
@@ -37,7 +42,10 @@ export default async function ErpLitePostingAuditPage({ searchParams }: PostingA
   }
 
   return (
-    <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_ENABLED} permissions={['erp_lite_post_audit:view']}>
+    <ErpLitePageGuard
+      feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_POST_AUDIT_ENABLED]}
+      permissions={['erp_lite_post_audit:view']}
+    >
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>

@@ -33,8 +33,16 @@ Legend:
 | `/dashboard/inventory/stock` | Inventory Stock | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/erp-lite` | Finance & Accounting | `erp_lite:view` | `erp_lite_enabled` | None | None | Live ERP-Lite module landing route |
 | `/dashboard/erp-lite/coa` | Chart of Accounts | `erp_lite_coa:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Live tenant COA route with linked create-account server action |
-| `/dashboard/erp-lite/gl` | General Ledger | `erp_lite_gl:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Live GL inquiry/reporting route |
-| `/dashboard/erp-lite/reports` | Financial Reports | `erp_lite_reports:view` | `erp_lite_enabled`, `erp_lite_reports_enabled` | None | None | Live finance reporting route |
+| `/dashboard/erp-lite/gl` | General Ledger | `erp_lite_gl:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Live GL inquiry; URL filters: `dateFrom`, `dateTo`, `accountCode`, `journalId`, `journalNo`, `eventCode`, `entrySide`, pagination |
+| `/dashboard/erp-lite/journals` | Journal register | `erp_lite_gl:view` | `erp_lite_enabled`, `erp_lite_gl_enabled` | None | None | Journal list; row drill opens GL with `journalId` |
+| `/dashboard/erp-lite/readiness` | Finance Readiness | `erp_lite:view` | `erp_lite_enabled`, `erp_lite_readiness_enabled` | None | None | Readiness and missing usage |
+| `/dashboard/erp-lite/setup` | Setup guide | `erp_lite:view` | `erp_lite_enabled` | None | None | Checklist linking to ERP-Lite routes |
+| `/dashboard/erp-lite/usage-maps` | Usage Mapping | `erp_lite_usage_map:view` | `erp_lite_enabled`, `erp_lite_usage_map_enabled` | None | None | Usage map console |
+| `/dashboard/erp-lite/exceptions` | Exception Workbench | `erp_lite_exceptions:view` | `erp_lite_enabled`, `erp_lite_exceptions_enabled` | None | None | Open exceptions; resolve action uses `erp_lite_post_audit:view` per contract |
+| `/dashboard/erp-lite/periods` | Period Management | `erp_lite:view` | `erp_lite_enabled`, `erp_lite_periods_enabled` | None | None | Period list and close precheck |
+| `/dashboard/erp-lite/finance-actions` | Finance control audit | `erp_lite_periods:view` | `erp_lite_enabled`, `erp_lite_periods_enabled` | None | None | Read-only finance control actions |
+| `/dashboard/erp-lite/posting-audit` | Posting Audit | `erp_lite_post_audit:view` | `erp_lite_enabled`, `erp_lite_post_audit_enabled` | None | None | Posting audit viewer |
+| `/dashboard/erp-lite/reports` | Financial Reports | `erp_lite_reports:view` | `erp_lite_enabled`, `erp_lite_reports_enabled` | None | None | Trial balance / statements; account cells link to GL `?accountCode=` |
 | `/dashboard/erp-lite/ar` | AR Aging | `erp_lite_ar:view` | `erp_lite_enabled`, `erp_lite_ar_enabled` | None | None | Live AR aging route |
 | `/dashboard/erp-lite/expenses` | Expenses | `erp_lite_expenses:view` | `erp_lite_enabled`, `erp_lite_expenses_enabled` | None | None | Live expense and petty-cash route |
 | `/dashboard/erp-lite/bank-recon` | Bank Reconciliation | `erp_lite_bank_recon:view` | `erp_lite_enabled`, `erp_lite_bank_recon_enabled` | None | None | Live Phase 9 treasury foundation route |

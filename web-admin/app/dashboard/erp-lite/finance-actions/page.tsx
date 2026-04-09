@@ -1,23 +1,22 @@
-import { getLocale, getTranslations } from 'next-intl/server'
+import { getTranslations } from 'next-intl/server'
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags'
 import { currentTenantCan } from '@/lib/services/feature-flags.service'
-import { ErpLiteUsageMapService } from '@/lib/services/erp-lite-usage-map.service'
-import { ErpLiteUsageMapsScreen } from '@features/erp-lite/ui/erp-lite-usage-maps-screen'
+import { ErpLiteFinanceAuditService } from '@/lib/services/erp-lite-finance-audit.service'
+import { ErpLiteFinanceActionsAuditScreen } from '@features/erp-lite/ui/erp-lite-finance-actions-audit-screen'
 import { ErpLitePageGuard } from '@features/erp-lite/ui/erp-lite-page-guard'
 import { Alert, AlertDescription } from '@ui/primitives'
 
-export default async function ErpLiteUsageMapsPage() {
+export default async function ErpLiteFinanceActionsPage() {
   const tCommon = await getTranslations('erpLite.common')
-  const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
-
   const isEnabled =
     (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)) &&
-    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED))
+    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED))
+
   if (!isEnabled) {
     return (
       <ErpLitePageGuard
-        feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED]}
-        permissions={['erp_lite_usage_map:view']}
+        feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED]}
+        permissions={['erp_lite_periods:view']}
       >
         {null}
       </ErpLitePageGuard>
@@ -28,22 +27,22 @@ export default async function ErpLiteUsageMapsPage() {
   let rows = []
 
   try {
-    rows = await ErpLiteUsageMapService.listUsageMaps(locale)
+    rows = await ErpLiteFinanceAuditService.listPostActions(250)
   } catch (err) {
     loadError = err instanceof Error ? err.message : tCommon('loadError')
   }
 
   return (
     <ErpLitePageGuard
-      feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED]}
-      permissions={['erp_lite_usage_map:view']}
+      feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_PERIODS_ENABLED]}
+      permissions={['erp_lite_periods:view']}
     >
       {loadError ? (
         <Alert variant="destructive">
           <AlertDescription>{loadError}</AlertDescription>
         </Alert>
       ) : (
-        <ErpLiteUsageMapsScreen rows={rows} />
+        <ErpLiteFinanceActionsAuditScreen rows={rows} />
       )}
     </ErpLitePageGuard>
   )

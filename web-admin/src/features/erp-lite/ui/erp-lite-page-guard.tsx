@@ -9,7 +9,9 @@ import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission'
 import type { FeatureFlagKey } from '@/lib/constants/feature-flags'
 
 interface ErpLitePageGuardProps {
-  feature: FeatureFlagKey
+  feature: FeatureFlagKey | FeatureFlagKey[]
+  /** When multiple features are passed, require all (default) or any */
+  requireAllFeatures?: boolean
   permissions: string[]
   children: ReactNode
 }
@@ -35,6 +37,7 @@ function GuardIcon({
 
 export function ErpLitePageGuard({
   feature,
+  requireAllFeatures = true,
   permissions,
   children,
 }: ErpLitePageGuardProps) {
@@ -43,6 +46,7 @@ export function ErpLitePageGuard({
   return (
     <RequireFeature
       feature={feature}
+      requireAll={requireAllFeatures}
       fallback={
         <CmxEmptyState
           icon={

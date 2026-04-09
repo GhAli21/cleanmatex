@@ -18,11 +18,16 @@ export default async function ErpLiteReportsPage() {
   const t = await getTranslations('erpLite.reports')
   const tCommon = await getTranslations('erpLite.common')
   const locale = (await getLocale()) === 'ar' ? 'ar' : 'en'
-  const isEnabled = await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED)
+  const isEnabled =
+    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_ENABLED)) &&
+    (await currentTenantCan(FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED))
 
   if (!isEnabled) {
     return (
-      <ErpLitePageGuard feature={FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED} permissions={['erp_lite_reports:view']}>
+      <ErpLitePageGuard
+        feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED]}
+        permissions={['erp_lite_reports:view']}
+      >
         {null}
       </ErpLitePageGuard>
     )
@@ -59,7 +64,7 @@ export default async function ErpLiteReportsPage() {
 
   return (
     <ErpLitePageGuard
-      feature={FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED}
+      feature={[FEATURE_FLAG_KEYS.ERP_LITE_ENABLED, FEATURE_FLAG_KEYS.ERP_LITE_REPORTS_ENABLED]}
       permissions={['erp_lite_reports:view']}
     >
       <div className="space-y-4">
