@@ -369,7 +369,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/readiness',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_READINESS_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_setup',
@@ -385,7 +385,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/usage-maps',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_usage_map:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_USAGE_MAP_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_exceptions',
@@ -393,7 +393,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/exceptions',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_exceptions:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_EXCEPTIONS_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_periods',
@@ -401,7 +401,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/periods',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_periods:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_PERIODS_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_finance_actions',
@@ -409,7 +409,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/finance-actions',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_periods:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_PERIODS_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_post_audit',
@@ -417,7 +417,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/posting-audit',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_post_audit:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_POST_AUDIT_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_coa',
@@ -441,7 +441,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/journals',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_gl:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_GL_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
       {
         key: 'erp_lite_ar',
@@ -497,7 +497,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/erp-lite/reports',
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_reports:view'],
-        featureFlag: FLAG_KEYS.ERP_LITE_REPORTS_ENABLED,
+        featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
       },
     ],
   },

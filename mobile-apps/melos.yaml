@@ -1,0 +1,17 @@
+name: mobile_apps
+
+packages:
+  - apps/**
+  - packages/**
+
+command:
+  bootstrap:
+    environment:
+      sdk: ">=3.5.0 <4.0.0"
+
+scripts:
+  analyze: melos exec --concurrency=1 -- flutter analyze
+  test: melos exec --concurrency=1 -- flutter test
+  pub_get: melos exec -- flutter pub get
+  format: melos exec -- dart format .
+  bootstrap: melos bootstrap
