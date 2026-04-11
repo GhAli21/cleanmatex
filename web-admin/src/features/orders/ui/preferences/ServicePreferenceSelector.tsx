@@ -98,6 +98,35 @@ const CATEGORY_ORDER: Array<'washing' | 'processing' | 'finishing'> = [
   'finishing',
 ];
 
+const CATEGORY_CARD_STYLES: Record<
+  (typeof CATEGORY_ORDER)[number],
+  {
+    base: string;
+    hover: string;
+    icon: string;
+    selected: string;
+  }
+> = {
+  washing: {
+    base: 'border-sky-200 bg-sky-50/80',
+    hover: 'hover:border-sky-300 hover:bg-sky-100/70',
+    icon: 'bg-sky-100 text-sky-700',
+    selected: 'border-sky-500 bg-sky-100/90',
+  },
+  processing: {
+    base: 'border-amber-200 bg-amber-50/80',
+    hover: 'hover:border-amber-300 hover:bg-amber-100/70',
+    icon: 'bg-amber-100 text-amber-700',
+    selected: 'border-amber-500 bg-amber-100/90',
+  },
+  finishing: {
+    base: 'border-emerald-200 bg-emerald-50/80',
+    hover: 'hover:border-emerald-300 hover:bg-emerald-100/70',
+    icon: 'bg-emerald-100 text-emerald-700',
+    selected: 'border-emerald-500 bg-emerald-100/90',
+  },
+};
+
 export function ServicePreferenceSelector({
   selectedPrefs,
   availablePrefs,
@@ -185,6 +214,7 @@ export function ServicePreferenceSelector({
           </span>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {prefs.map((pref) => {
+              const categoryStyle = CATEGORY_CARD_STYLES[category];
               const isChecked = selectedCodes.has(pref.code);
               const isDisabled =
                 disabled || (!isChecked && selectedPrefs.length >= maxPrefs);
@@ -198,8 +228,8 @@ export function ServicePreferenceSelector({
                 <label
                   key={pref.code}
                   className={`flex min-h-16 items-start gap-3 rounded-xl border px-3.5 py-3 text-sm transition-colors ${
-                    isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/40'
-                  } ${isChecked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white'}`}
+                    isDisabled ? 'cursor-not-allowed opacity-50' : `cursor-pointer ${categoryStyle.hover}`
+                  } ${isChecked ? `${categoryStyle.selected} shadow-sm` : categoryStyle.base}`}
                 >
                   <CmxCheckbox
                     checked={isChecked}
@@ -208,7 +238,7 @@ export function ServicePreferenceSelector({
                   />
                   <div className="flex min-w-0 flex-1 items-start gap-2.5">
                     {IconComponent && (
-                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                      <span className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${categoryStyle.icon}`}>
                         <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
                       </span>
                     )}
