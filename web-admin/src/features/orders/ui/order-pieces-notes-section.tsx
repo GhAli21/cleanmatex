@@ -216,9 +216,9 @@ export function OrderPiecesNotesSection({
   );
 
   const commonSelectClass =
-    'block w-full rounded border border-gray-200 bg-white py-1.5 px-2 text-xs text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 min-w-[80px]';
+    'block w-full min-w-[112px] rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
   const commonInputClass =
-    'block w-full rounded border border-gray-200 bg-white py-1.5 px-2 text-xs text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500';
+    'block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-500 focus:ring-2 focus:ring-blue-200';
 
   return (
     <section aria-label={tPieces('editItemNotes') || 'Edit Item Notes'} className="space-y-4">
@@ -261,17 +261,17 @@ export function OrderPiecesNotesSection({
               }}
             >
               {/* Item header */}
-              <div className={`flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <div className={`flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 {/* Item number badge */}
-                <span className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-200 text-gray-700 text-xs font-bold">
+                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gray-200 text-sm font-bold text-gray-700">
                   {groupIndex + 1}
                 </span>
                 {/* Item name */}
-                <span className={`flex-1 font-semibold text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <span className={`flex-1 text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
                   {getBilingual(item.productName, item.productName2) || '—'}
                 </span>
                 {/* Pieces count badge */}
-                <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">
                   ×{pieces.length} {tPieces('pieces') || 'pcs'}
                 </span>
               </div>
@@ -279,29 +279,29 @@ export function OrderPiecesNotesSection({
               {/* Piece rows table */}
               <div className="overflow-x-auto">
                 <table
-                  className="w-full text-xs border-collapse"
+                  className="w-full border-collapse text-sm"
                   dir={isRTL ? 'rtl' : 'ltr'}
                 >
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
-                      <th className={`px-3 py-2 font-semibold text-gray-500 whitespace-nowrap w-16 ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className={`w-16 whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {tPieces('piece') || '#'}
                       </th>
-                      <th className={`px-3 py-2 font-semibold text-gray-500 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className={`whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {tPieces('color') || 'Color'}
                       </th>
-                      <th className={`px-3 py-2 font-semibold text-gray-500 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className={`whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {tPieces('damage') || 'Damage'}
                       </th>
-                      <th className={`px-3 py-2 font-semibold text-gray-500 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className={`whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {tPieces('stains') || 'Stains'}
                       </th>
                       {upchargePrefs.length > 0 && (
-                        <th className={`px-3 py-2 font-semibold text-gray-500 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                        <th className={`whitespace-nowrap px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                           {tPieces('upcharge') || 'Upcharge'}
                         </th>
                       )}
-                      <th className={`px-3 py-2 font-semibold text-gray-500 w-full ${isRTL ? 'text-right' : 'text-left'}`}>
+                      <th className={`w-full px-3 py-3 text-sm font-semibold text-gray-500 ${isRTL ? 'text-right' : 'text-left'}`}>
                         {tPieces('notes') || 'Notes'}
                       </th>
                       <th className="px-2 py-2 w-8" />
@@ -336,23 +336,23 @@ export function OrderPiecesNotesSection({
                           }`}
                         >
                           {/* Piece number */}
-                          <td className={`px-3 py-2 align-middle ${isRTL ? 'text-right' : 'text-left'}`}>
-                            <span className={`text-xs font-semibold ${isFocused ? 'text-blue-600' : 'text-gray-500'}`}>
+                          <td className={`px-3 py-3 align-middle ${isRTL ? 'text-right' : 'text-left'}`}>
+                            <span className={`text-sm font-semibold ${isFocused ? 'text-blue-600' : 'text-gray-500'}`}>
                               {tPieces('pieceNumber', { number: piece.pieceSeq })}
                             </span>
                           </td>
 
                           {/* Color */}
-                          <td className="px-3 py-2 align-middle">
+                          <td className="px-3 py-3 align-middle">
                             <div className={`flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               {colorHex ? (
                                 <span
-                                  className="inline-block w-3 h-3 rounded-full shrink-0 border border-gray-300"
+                                  className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-gray-300"
                                   style={{ backgroundColor: colorHex }}
                                   aria-hidden
                                 />
                               ) : piece.color ? (
-                                <span className="inline-block w-3 h-3 rounded-full shrink-0 border border-gray-300 bg-gray-300" aria-hidden />
+                                <span className="inline-block h-3.5 w-3.5 shrink-0 rounded-full border border-gray-300 bg-gray-300" aria-hidden />
                               ) : null}
                               <select
                                 value={piece.color ?? ''}
@@ -372,7 +372,7 @@ export function OrderPiecesNotesSection({
                           </td>
 
                           {/* Damage */}
-                          <td className="px-3 py-2 align-middle">
+                          <td className="px-3 py-3 align-middle">
                             <select
                               value={selectedDamage}
                               onChange={(e) => handleDamageChange(item, piece, e.target.value)}
@@ -390,7 +390,7 @@ export function OrderPiecesNotesSection({
                           </td>
 
                           {/* Stains */}
-                          <td className="px-3 py-2 align-middle">
+                          <td className="px-3 py-3 align-middle">
                             <select
                               value={selectedStain}
                               onChange={(e) => handleStainChange(item, piece, e.target.value)}
@@ -409,7 +409,7 @@ export function OrderPiecesNotesSection({
 
                           {/* Upcharge */}
                           {upchargePrefs.length > 0 && (
-                            <td className="px-3 py-2 align-middle">
+                            <td className="px-3 py-3 align-middle">
                               <select
                                 value={selectedUpcharge}
                                 onChange={(e) => handleUpchargeChange(item, piece, e.target.value)}
@@ -428,7 +428,7 @@ export function OrderPiecesNotesSection({
                           )}
 
                           {/* Notes */}
-                          <td className="px-3 py-2 align-middle w-full">
+                          <td className="w-full px-3 py-3 align-middle">
                             <input
                               type="text"
                               value={piece.notes ?? ''}
@@ -470,10 +470,10 @@ export function OrderPiecesNotesSection({
       {itemGroups.length > 0 && (
         <div className={`rounded-lg border transition-colors ${focusedPieceId ? 'border-blue-200 bg-blue-50/50' : 'border-gray-200 bg-white'}`}>
           {focusedPieceId && (
-            <p className={`text-xs text-blue-600 font-medium px-3 pt-3 pb-0 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
-            </p>
-          )}
+          <p className={`px-4 pt-4 pb-1 text-sm font-medium text-blue-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+            {tPieces('focusPieceHint') || 'Click a row to edit its conditions in the palette below'}
+          </p>
+        )}
           <PreferencesPanel
             selectedPieceId={focusedPieceId}
             selectedConditions={focusedConditions}

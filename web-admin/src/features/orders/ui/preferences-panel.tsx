@@ -296,14 +296,14 @@ export function PreferencesPanel({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
+    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
       {/* Context header — shows piece label when selected, title when not */}
-      <div className={`px-4 pt-3 pb-2 border-b border-gray-100 flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <h3 className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+      <div className={`flex items-center justify-between border-b border-gray-100 px-4 py-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <h3 className={`text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
           {hasPieceSelected ? pieceLabel : (t('preferences') || 'Preferences')}
         </h3>
         {hasPieceSelected && isItemLevel && (
-          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+          <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">
             {t('itemLevel') || 'Item'}
           </span>
         )}
@@ -311,13 +311,13 @@ export function PreferencesPanel({
 
       {/* Dynamic Tab Bar — always visible once kinds loaded */}
       {kindsLoading ? (
-        <div className={`flex gap-1 px-3 pt-2 pb-1 border-b border-gray-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex gap-2 border-b border-gray-100 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-7 w-16 rounded-lg bg-gray-100 animate-pulse" />
+            <div key={i} className="h-9 w-20 rounded-xl bg-gray-100 animate-pulse" />
           ))}
         </div>
       ) : preferenceKinds.length > 0 ? (
-        <div className={`flex gap-1 px-3 pt-2 border-b border-gray-100 overflow-x-auto ${isRTL ? 'flex-row-reverse' : ''}`}>
+        <div className={`flex gap-2 overflow-x-auto border-b border-gray-100 bg-gray-50/70 px-3 py-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {preferenceKinds.map((kind) => {
             const label = getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code;
             const isActive = kind.kind_code === activeKindCode;
@@ -326,10 +326,10 @@ export function PreferencesPanel({
                 key={kind.kind_code}
                 type="button"
                 onClick={() => setActiveKindCode(kind.kind_code)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors focus:outline-none shrink-0 flex items-center gap-1.5 ${
+                className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
                   isActive
-                    ? 'text-white'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    ? 'border-transparent text-white shadow-sm'
+                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
                 }`}
                 style={
                   isActive && kind.kind_bg_color
@@ -339,7 +339,7 @@ export function PreferencesPanel({
               >
                 {kind.kind_bg_color && !isActive && (
                   <span
-                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: kind.kind_bg_color }}
                     aria-hidden="true"
                   />
@@ -352,19 +352,19 @@ export function PreferencesPanel({
       ) : null}
 
       {/* Tab Content — placeholder when no piece selected, actual content when piece selected */}
-      <div className="p-4">
+      <div className="p-4 md:p-5">
         {!hasPieceSelected ? (
-          <div className={`flex flex-col items-center justify-center py-6 ${isRTL ? 'text-right' : 'text-center'}`}>
-            <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-              <ShoppingCart className="w-6 h-6 text-gray-400" aria-hidden="true" />
+          <div className={`flex flex-col items-center justify-center px-4 py-10 ${isRTL ? 'text-right' : 'text-center'}`}>
+            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+              <ShoppingCart className="h-7 w-7 text-gray-400" aria-hidden="true" />
             </div>
-            <p className="text-sm font-medium text-gray-700 mb-1">
+            <p className="mb-1 text-base font-medium text-gray-700">
               {hasItems
                 ? (t('selectPieceHint') || 'Select a piece from the cart to apply preferences')
                 : (t('addItemFirst') || 'Add an item to get started')}
             </p>
             {hasItems && (
-              <p className="text-xs text-gray-500">
+              <p className="max-w-2xl text-sm text-gray-500">
                 {t('selectPieceFromCart') || 'Tap an item or piece in the cart to configure conditions and notes.'}
               </p>
             )}

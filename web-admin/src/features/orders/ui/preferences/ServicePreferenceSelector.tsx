@@ -173,17 +173,17 @@ export function ServicePreferenceSelector({
   if (availablePrefs.length === 0) return null;
 
   return (
-    <div className="space-y-2">
-      <span className="text-[10px] font-medium text-gray-600 block">
+    <div className="space-y-4">
+      <span className="block text-sm font-semibold text-gray-700">
         {t('servicePrefs') || 'Service preferences'}
       </span>
       {groupedPrefs.map(({ category, prefs }) => (
-        <div key={category} className="space-y-1">
-          <span className="text-[9px] font-medium uppercase tracking-wide text-gray-500 block">
+        <section key={category} className="space-y-2">
+          <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
             {t(`category${category.charAt(0).toUpperCase() + category.slice(1)}`) ||
               category}
           </span>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {prefs.map((pref) => {
               const isChecked = selectedCodes.has(pref.code);
               const isDisabled =
@@ -197,51 +197,61 @@ export function ServicePreferenceSelector({
               return (
                 <label
                   key={pref.code}
-                  className={`inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[11px] cursor-pointer ${
-                    isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-50'
-                  } ${isChecked ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                  className={`flex min-h-16 items-start gap-3 rounded-xl border px-3.5 py-3 text-sm transition-colors ${
+                    isDisabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/40'
+                  } ${isChecked ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white'}`}
                 >
                   <CmxCheckbox
                     checked={isChecked}
                     onChange={(e) => handleToggle(pref, e.target.checked)}
                     disabled={isDisabled}
                   />
-                  {IconComponent && (
-                    <IconComponent
-                      className="h-3.5 w-3.5 shrink-0 text-gray-500"
-                      aria-hidden
-                    />
-                  )}
-                  <span>{label}</span>
-                  {extraPrice > 0 && (
-                    <span className="text-gray-500 text-[10px]" lang={locale === 'ar' ? 'ar' : 'en'}>
-                      +{formatMoneyWithCode(extraPrice)}
-                    </span>
-                  )}
-                  {extraMins > 0 && (
-                    <span
-                      className="text-amber-600 text-[10px]"
-                      title={
-                        t('extraTimeTooltip') ||
-                        'Adds time to ready-by estimate'
-                      }
-                    >
-                      {formatExtraTime(extraMins)}
-                    </span>
-                  )}
-                  {ecoScore > 0 && (
-                    <span
-                      className="text-emerald-600 text-[10px]"
-                      title={t('ecoPoints') || 'Eco-friendly'}
-                    >
-                      🌱 +{ecoScore}
-                    </span>
-                  )}
+                  <div className="flex min-w-0 flex-1 items-start gap-2.5">
+                    {IconComponent && (
+                      <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-600">
+                        <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <span className="block text-sm font-medium leading-5 text-gray-900">
+                        {label}
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 text-xs">
+                        {extraPrice > 0 && (
+                          <span
+                            className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600"
+                            lang={locale === 'ar' ? 'ar' : 'en'}
+                          >
+                            +{formatMoneyWithCode(extraPrice)}
+                          </span>
+                        )}
+                        {extraMins > 0 && (
+                          <span
+                            className="rounded-full bg-amber-50 px-2 py-0.5 text-amber-700"
+                            title={
+                              t('extraTimeTooltip') ||
+                              'Adds time to ready-by estimate'
+                            }
+                          >
+                            {formatExtraTime(extraMins)}
+                          </span>
+                        )}
+                        {ecoScore > 0 && (
+                          <span
+                            className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700"
+                            title={t('ecoPoints') || 'Eco-friendly'}
+                          >
+                            🌱 +{ecoScore}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </label>
               );
             })}
           </div>
-        </div>
+        </section>
       ))}
     </div>
   );
