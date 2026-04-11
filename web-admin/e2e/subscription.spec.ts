@@ -62,7 +62,7 @@ test.describe('Subscription Management Flow', () => {
     await page.click('button:has-text("Monthly")');
 
     // Pricing should change back
-    await expect(page.locator('text=/OMR.*\\/month/')).toBeVisible();
+    await expect(page.locator('text=/\\/month/')).toBeVisible();
   });
 
   test('opens upgrade modal when clicking upgrade button', async ({ page }) => {
@@ -76,8 +76,8 @@ test.describe('Subscription Management Flow', () => {
       await expect(page.locator('text=/Upgrade to/')).toBeVisible();
 
       // Check for billing cycle selection
-      await expect(page.locator('text=/Monthly.*OMR/')).toBeVisible();
-      await expect(page.locator('text=/Yearly.*OMR/')).toBeVisible();
+      await expect(page.locator('text=/Monthly.*\\/mo/')).toBeVisible();
+      await expect(page.locator('text=/Yearly.*\\/mo/')).toBeVisible();
 
       // Close modal
       await page.click('button:has-text("Cancel")');
@@ -216,9 +216,9 @@ test.describe('Subscription Management Flow', () => {
     await expect(featureBadges.first()).toBeVisible();
   });
 
-  test('shows correct pricing format (OMR currency)', async ({ page }) => {
-    // All prices should be in OMR
-    const prices = page.locator('text=/OMR \\d+/');
+  test('shows correct pricing format (currency + amount)', async ({ page }) => {
+    // Formatted money uses digits and a 3-letter ISO code suffix (e.g. … 12.500 OMR)
+    const prices = page.locator('text=/\\d+[.,\\d]*\\s+[A-Z]{3}/');
     await expect(prices.first()).toBeVisible();
 
     // Price should have /mo or /month suffix

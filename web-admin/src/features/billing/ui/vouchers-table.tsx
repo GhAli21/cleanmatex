@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { VoucherData } from '@/lib/types/voucher';
 import { Printer } from 'lucide-react';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface VouchersTableProps {
   vouchers: VoucherData[];
@@ -28,6 +30,9 @@ export default function VouchersTable({
   const t = useTranslations('billing.receiptVoucher');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const navigate = useCallback(
     (params: Record<string, string>) => {
@@ -66,9 +71,6 @@ export default function VouchersTable({
       minute: '2-digit',
     }).format(d);
   };
-
-  const fmtMoney = (val: number, currency: string = 'OMR') =>
-    `${val.toFixed(3)} ${currency}`;
 
   const statusBadge = (status: string) => {
     const cls: Record<string, string> = {
@@ -174,7 +176,11 @@ export default function VouchersTable({
                       {voucher.voucher_type || '—'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-gray-900">
-                      {fmtMoney(voucher.total_amount, voucher.currency_code || 'OMR')}
+                      {formatMoneyAmountWithCode(Number(voucher.total_amount ?? 0), {
+                        currencyCode: (voucher.currency_code?.trim() || tenantCurrency) as string,
+                        decimalPlaces,
+                        locale: moneyLocale,
+                      })}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <span

@@ -16,6 +16,9 @@ import { getPaymentHistory } from '@/lib/services/payment-service';
 import { getOrder } from '@/app/actions/orders/get-order';
 import { processPayment } from '@/app/actions/payments/process-payment';
 import { RecordPaymentClient } from './record-payment-client';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -35,6 +38,22 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   if (!invoice) {
     notFound();
   }
+
+  const supabase = await createClient();
+  const moneyCfg = await createTenantSettingsService(supabase).getCurrencyConfig(
+    tenantOrgId,
+    undefined,
+    userId
+  );
+  const invoiceCurrency =
+    (typeof invoice.currency_code === 'string' && invoice.currency_code.trim()) ||
+    moneyCfg.currencyCode;
+  const fmtInv = (amount: number) =>
+    formatMoneyAmountWithCode(amount, {
+      currencyCode: invoiceCurrency,
+      decimalPlaces: moneyCfg.decimalPlaces,
+      locale: 'en',
+    });
 
   const [paymentHistoryResult, orderResult] = await Promise.all([
     getPaymentHistory(id),
@@ -97,37 +116,37 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-gray-500">{tOrders('subtotal')}</dt>
                 <dd className="font-medium text-gray-900">
-                  {Number(invoice.subtotal).toFixed(3)} OMR
+                  {fmtInv(Number(invoice.subtotal))}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">{tOrders('discount')}</dt>
                 <dd className="font-medium text-red-600">
-                  {Number(invoice.discount).toFixed(3)} OMR
+                  {fmtInv(Number(invoice.discount))}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">{tOrders('tax')}</dt>
                 <dd className="font-medium text-gray-900">
-                  {Number(invoice.tax).toFixed(3)} OMR
+                  {fmtInv(Number(invoice.tax))}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">{tOrders('total')}</dt>
                 <dd className="font-semibold text-gray-900">
-                  {Number(invoice.total).toFixed(3)} OMR
+                  {fmtInv(Number(invoice.total))}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">{tOrders('paidAmount')}</dt>
                 <dd className="font-medium text-green-700">
-                  {Number(invoice.paid_amount).toFixed(3)} OMR
+                  {fmtInv(Number(invoice.paid_amount))}
                 </dd>
               </div>
               <div>
                 <dt className="text-gray-500">{tOrders('balance')}</dt>
                 <dd className="font-medium text-orange-700">
-                  {remainingBalance.toFixed(3)} OMR
+                  {fmtInv(remainingBalance)}
                 </dd>
               </div>
               <div>
@@ -195,7 +214,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                             : ''}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
-                          {Number(p.paid_amount).toFixed(3)} OMR
+                          {fmtInv(Number(p.paid_amount))}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-slate-600">
                           {p.payment_method_code}
@@ -258,7 +277,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="font-medium text-slate-600">{tOrders('totalAmount')}</span>
-                  <span className="font-semibold">{Number(orderResult.data.total).toFixed(3)} OMR</span>
+                  <span className="font-semibold">{fmtInv(Number(orderResult.data.total))}</span>
                 </div>
               </div>
             </div>

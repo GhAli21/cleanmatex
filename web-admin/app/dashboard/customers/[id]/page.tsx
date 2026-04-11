@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { getCustomerById } from '@/lib/api/customers'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { getPaymentsForCustomer, processPayment } from '@/app/actions/payments/process-payment'
 import type { CustomerWithTenantData } from '@/lib/types/customer'
 import type { PaymentMethodCode } from '@/lib/types/payment'
@@ -61,6 +62,7 @@ export default function CustomerDetailPage() {
   const [showEditModal, setShowEditModal] = useState(false)
 
   const { currentTenant, user } = useAuth()
+  const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency()
   const t = useTranslations('customers')
   const tB2b = useTranslations('b2b')
 
@@ -363,7 +365,7 @@ export default function CustomerDetailPage() {
             <div>
               <p className="text-sm text-gray-500 mb-1">{t('advanceBalance')}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {advanceBalanceTotal.toFixed(3)} OMR
+                {formatMoneyWithCode(advanceBalanceTotal)}
               </p>
               {unappliedAdvancePayments.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -377,7 +379,7 @@ export default function CustomerDetailPage() {
                 <div className="flex gap-2 items-center">
                   <input
                     type="number"
-                    step="0.001"
+                    step={10 ** -decimalPlaces}
                     min={0}
                     value={advanceAmount || ''}
                     onChange={(e) => setAdvanceAmount(Number(e.target.value) || 0)}

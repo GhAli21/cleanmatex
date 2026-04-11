@@ -11,6 +11,10 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type {
   GiftCard,
   GiftCardStatus,
@@ -205,6 +209,13 @@ export async function applyGiftCard(
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     try {
+      const supabaseMoney = await createClient();
+      const moneyCfg = await createTenantSettingsService(supabaseMoney).getCurrencyConfig(
+        tenantId,
+        undefined,
+        undefined
+      );
+
       return await prisma.$transaction(async (tx) => {
       // Get gift card
       const giftCard = await tx.org_gift_cards_mst.findFirst({
@@ -222,9 +233,12 @@ export async function applyGiftCard(
 
       // Validate amount
       if (input.amount > currentBalance) {
-        throw new Error(
-          `Insufficient balance. Available: OMR ${currentBalance.toFixed(3)}`
-        );
+        const available = formatMoneyAmountWithCode(currentBalance, {
+          currencyCode: moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY,
+          decimalPlaces: moneyCfg.decimalPlaces ?? ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
+          locale: 'en',
+        });
+        throw new Error(`Insufficient balance. Available: ${available}`);
       }
 
       if (input.amount <= 0) {
@@ -802,9 +816,3 @@ function mapGiftCardToType(giftCard: any): GiftCard {
   };
 }
 
-/**
- * Format amount to OMR currency
- */
-export function formatOMR(amount: number): string {
-  return `OMR ${amount.toFixed(3)}`;
-}

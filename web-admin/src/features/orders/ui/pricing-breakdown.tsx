@@ -7,6 +7,8 @@
 
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 import { ChevronDown, ChevronUp, Info } from 'lucide-react'
 import { useState } from 'react'
 
@@ -40,6 +42,10 @@ export function PricingBreakdown({
 }: PricingBreakdownProps) {
   const t = useTranslations('newOrder.orderSummary')
   const isRTL = useRTL()
+  const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const moneyLocale = isRTL ? 'ar' : 'en'
+  const fmt = (n: number) =>
+    formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
   const [expanded, setExpanded] = useState(false)
 
   const getPriceSourceBadge = (source?: string) => {
@@ -67,23 +73,23 @@ export function PricingBreakdown({
       <div className="space-y-1">
         <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
           <span className="text-gray-600">Subtotal</span>
-          <span className="font-medium">OMR {subtotal.toFixed(3)}</span>
+          <span className="font-medium">{fmt(subtotal)}</span>
         </div>
         {discount > 0 && (
           <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
             <span className="text-gray-600">Discount</span>
-            <span className="font-medium text-green-600">-OMR {discount.toFixed(3)}</span>
+            <span className="font-medium text-green-600">-{fmt(discount)}</span>
           </div>
         )}
         <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
           <span className="text-gray-600">
             Tax {taxRate !== undefined ? `(${(taxRate * 100).toFixed(1)}%)` : ''}
           </span>
-          <span className="font-medium">OMR {tax.toFixed(3)}</span>
+          <span className="font-medium">{fmt(tax)}</span>
         </div>
         <div className={`flex items-center justify-between text-base font-bold pt-2 border-t ${isRTL ? 'flex-row-reverse' : ''}`}>
           <span>Total</span>
-          <span>OMR {total.toFixed(3)}</span>
+          <span>{fmt(total)}</span>
         </div>
       </div>
 
@@ -118,12 +124,12 @@ export function PricingBreakdown({
                     <div className="flex-1 min-w-0">
                       <div className="font-medium truncate">{item.productName}</div>
                       <div className="text-gray-500">
-                        {item.quantity}x @ {item.pricePerUnit.toFixed(3)} OMR
+                        {item.quantity}x @ {fmt(item.pricePerUnit)}
                       </div>
                     </div>
                     <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                       {getPriceSourceBadge(item.priceSource)}
-                      <span className="font-medium">{item.totalPrice.toFixed(3)} OMR</span>
+                      <span className="font-medium">{fmt(item.totalPrice)}</span>
                     </div>
                   </div>
                   {item.priceListName && (

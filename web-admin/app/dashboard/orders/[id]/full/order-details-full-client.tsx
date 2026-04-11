@@ -7,6 +7,9 @@ import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
@@ -102,6 +105,16 @@ export function OrderDetailsFullClient({
   const searchParams = useSearchParams();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { decimalPlaces, currencyCode: tenantCurrencyCode } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const orderCurrency =
+    (typeof order.currency_code === 'string' && order.currency_code.trim()) || tenantCurrencyCode;
+  const fmtOrderMoney = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: orderCurrency,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
 
   const tabFromUrl = searchParams.get('tab') ?? initialTab;
   const activeTab = TAB_IDS.includes(tabFromUrl as (typeof TAB_IDS)[number]) ? tabFromUrl : 'items';
@@ -419,8 +432,8 @@ export function OrderDetailsFullClient({
     ];
     if (amountKeys.includes(key) && (typeof value === 'number' || (typeof value === 'string' && /^-?\d*\.?\d+$/.test(value)))) {
       const num = typeof value === 'number' ? value : parseFloat(value as string);
-      const currency = typeof order.currency_code === 'string' ? order.currency_code : 'OMR';
-      return `${Number.isNaN(num) ? String(value) : num.toFixed(3)} ${currency}`;
+      if (Number.isNaN(num)) return String(value);
+      return fmtOrderMoney(num);
     }
     return String(value);
   };
@@ -557,7 +570,7 @@ export function OrderDetailsFullClient({
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <OrdersEditHistoryTabRprt
             entries={editHistory}
-            currencyCode={(order.currency_code as string) ?? 'OMR'}
+            currencyCode={(order.currency_code as string) ?? ORDER_DEFAULTS.CURRENCY}
             translations={editHistoryTranslations}
           />
         </div>
@@ -603,24 +616,24 @@ export function OrderDetailsFullClient({
             <div className="space-y-3">
               <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                 <span className="text-gray-600">{t.subtotal}</span>
-                <span className="font-medium">{parseFloat(String(order.subtotal ?? 0)).toFixed(3)} OMR</span>
+                <span className="font-medium">{fmtOrderMoney(parseFloat(String(order.subtotal ?? 0)))}</span>
               </div>
               {order.discount && parseFloat(String(order.discount)) > 0 && (
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                   <span className="text-gray-600">{t.discount}</span>
-                  <span className="font-medium text-red-600">-{parseFloat(String(order.discount)).toFixed(3)} OMR</span>
+                  <span className="font-medium text-red-600">-{fmtOrderMoney(parseFloat(String(order.discount)))}</span>
                 </div>
               )}
               {order.tax && parseFloat(String(order.tax)) > 0 && (
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                   <span className="text-gray-600">{t.tax}</span>
-                  <span className="font-medium">{parseFloat(String(order.tax)).toFixed(3)} OMR</span>
+                  <span className="font-medium">{fmtOrderMoney(parseFloat(String(order.tax)))}</span>
                 </div>
               )}
               <div className="pt-3 border-t border-gray-200">
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
                   <span className="text-base font-semibold">{t.total}</span>
-                  <span className="text-base font-bold">{parseFloat(String(order.total ?? 0)).toFixed(3)} OMR</span>
+                  <span className="text-base font-bold">{fmtOrderMoney(parseFloat(String(order.total ?? 0)))}</span>
                 </div>
               </div>
               {order.paid_amount != null && parseFloat(String(order.paid_amount)) > 0 && (
@@ -628,7 +641,7 @@ export function OrderDetailsFullClient({
                   <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                     <span className="text-gray-600">{t.paidAmount}</span>
                     <span className="font-medium text-green-600">
-                      {parseFloat(String(order.paid_amount)).toFixed(3)} OMR
+                      {fmtOrderMoney(parseFloat(String(order.paid_amount)))}
                     </span>
                   </div>
                   <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
@@ -640,10 +653,9 @@ export function OrderDetailsFullClient({
                           : 'text-green-600'
                       }`}
                     >
-                      {(
+                      {fmtOrderMoney(
                         parseFloat(String(order.total ?? 0)) - parseFloat(String(order.paid_amount ?? 0))
-                      ).toFixed(3)}{' '}
-                      OMR
+                      )}
                     </span>
                   </div>
                 </>
@@ -661,7 +673,7 @@ export function OrderDetailsFullClient({
                   <ul className="space-y-2">
                     {unappliedPayments.map((p) => (
                       <li key={p.id} className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm`}>
-                        <span className="font-medium">{Number(p.paid_amount).toFixed(3)} OMR</span>
+                        <span className="font-medium">{fmtOrderMoney(Number(p.paid_amount))}</span>
                         <span className="text-gray-600">{p.payment_method_code}</span>
                         <button
                           type="button"
@@ -688,7 +700,7 @@ export function OrderDetailsFullClient({
                     <label className="block text-sm font-medium text-gray-700">{t.recordPaymentAmount}</label>
                     <input
                       type="number"
-                      step="0.001"
+                      step={10 ** -decimalPlaces}
                       min={0}
                       value={depositAmount || ''}
                       onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
@@ -910,7 +922,7 @@ export function OrderDetailsFullClient({
               {t.totalAmount}
             </div>
             <div className={`text-3xl font-bold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {parseFloat(String(order.total ?? 0)).toFixed(3)} OMR
+              {fmtOrderMoney(parseFloat(String(order.total ?? 0)))}
             </div>
             <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
               {order.payment_status === 'paid' ? (
@@ -1140,7 +1152,7 @@ export function OrderDetailsFullClient({
               <option value="">—</option>
               {orderInvoices.map((inv) => (
                 <option key={inv.id} value={inv.id}>
-                  {inv.invoice_no ?? inv.id} — {Number(inv.total ?? 0).toFixed(3)} OMR
+                  {inv.invoice_no ?? inv.id} — {fmtOrderMoney(Number(inv.total ?? 0))}
                 </option>
               ))}
             </select>

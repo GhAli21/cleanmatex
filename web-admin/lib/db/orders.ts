@@ -20,6 +20,8 @@ import type {
 import { generateOrderNumber } from '@/lib/utils/order-number-generator';
 import { generateQRCode, generateBarcode } from '@/lib/utils/barcode-generator';
 import { calculateReadyBy, DEFAULT_BUSINESS_HOURS } from '@/lib/utils/ready-by-calculator';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { roundMoneyAmount } from '@/lib/money/format-money';
 import { calculateItemPrice, calculateOrderTotal } from '@/lib/utils/pricing-calculator';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
 import { taxService } from '@/lib/services/tax.service';
@@ -117,16 +119,19 @@ export async function addOrderItems(
   // Import PricingService
   const { pricingService } = await import('@/lib/services/pricing.service');
 
-  // Get current user ID for override tracking (if available)
+  // Current user (override audit) + tenant money decimals for tax rounding
   let currentUserId: string | undefined;
+  let tenantMoneyDecimals = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
   try {
     const { createClient } = await import('@/lib/supabase/server');
+    const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     currentUserId = user?.id;
+    const cfg = await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId);
+    tenantMoneyDecimals = cfg.decimalPlaces;
   } catch (error) {
-    // User ID not available, continue without override tracking
-    console.warn('[addOrderItems] Could not get current user ID:', error);
+    console.warn('[addOrderItems] Could not resolve auth or currency config:', error);
   }
 
   // Check permission for price override (if any item has override)
@@ -178,7 +183,11 @@ export async function addOrderItems(
         // Recalculate tax on override price
         const taxAmount = priceResult.isTaxExempt
           ? 0
-          : taxService.calculateTax(finalPrice * item.quantity, priceResult.taxRate);
+          : taxService.calculateTax(
+              finalPrice * item.quantity,
+              priceResult.taxRate,
+              tenantMoneyDecimals,
+            );
         finalTotal = finalPrice * item.quantity + taxAmount;
         overrideApplied = true;
       }
@@ -193,13 +202,18 @@ export async function addOrderItems(
         expressMultiplier: 1, // Already applied in priceResult
         taxRate: priceResult.taxRate,
         discountPercent: 0, // Already applied in priceResult
+        decimalPlaces: tenantMoneyDecimals,
       });
 
       // Override with actual values
       pricing.unitPrice = finalPrice;
       pricing.tax = priceResult.isTaxExempt
         ? 0
-        : taxService.calculateTax(finalPrice * item.quantity, priceResult.taxRate);
+        : taxService.calculateTax(
+            finalPrice * item.quantity,
+            priceResult.taxRate,
+            tenantMoneyDecimals,
+          );
       pricing.total = finalTotal;
 
       return {
@@ -316,7 +330,10 @@ export async function addOrderItems(
 
   // Calculate order totals
   const allItems = itemsWithPricing.map((item) => item.pricing);
-  const orderTotals = calculateOrderTotal({ items: allItems });
+  const orderTotals = calculateOrderTotal({
+    items: allItems,
+    decimalPlaces: tenantMoneyDecimals,
+  });
 
   // Update order with totals and item count
   const updatedOrder = await prisma.org_orders_mst.update({
@@ -774,6 +791,18 @@ async function recalculateOrderTotals(
   orderId: string,
   userId?: string
 ): Promise<void> {
+  let decimalPlaces = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+  try {
+    const { createClient } = await import('@/lib/supabase/server');
+    const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');
+    const supabase = await createClient();
+    const cfg = await createTenantSettingsService(supabase).getCurrencyConfig(tenantOrgId);
+    decimalPlaces = cfg.decimalPlaces;
+  } catch (err) {
+    console.warn('[recalculateOrderTotals] Could not load currency config, using defaults:', err);
+  }
+  const roundMoney = (n: number) => roundMoneyAmount(n, decimalPlaces);
+
   const items = await prisma.org_order_items_dtl.findMany({
     where: {
       order_id: orderId,
@@ -782,7 +811,6 @@ async function recalculateOrderTotals(
   });
 
   const totalItems = items.reduce((sum, item) => sum + (item.quantity ?? 0), 0);
-  const round3 = (n: number) => parseFloat(Number(n).toFixed(3));
 
   if (items.length === 0) {
     await prisma.org_orders_mst.update({
@@ -801,7 +829,7 @@ async function recalculateOrderTotals(
   }
 
   // total_price per item is line total (incl. tax) from pricing-calculator; sum = order total
-  const total = round3(items.reduce((sum, item) => sum + Number(item.total_price), 0));
+  const total = roundMoney(items.reduce((sum, item) => sum + Number(item.total_price), 0));
 
   const order = await prisma.org_orders_mst.findUnique({
     where: { id: orderId, tenant_org_id: tenantOrgId },
@@ -809,8 +837,8 @@ async function recalculateOrderTotals(
   });
   const vatRate = order?.vat_rate != null ? Number(order.vat_rate) : 0.05;
 
-  const subtotal = round3(total / (1 + vatRate));
-  const tax = round3(total - subtotal);
+  const subtotal = roundMoney(total / (1 + vatRate));
+  const tax = roundMoney(total - subtotal);
 
   // Only update item-derived totals; do not overwrite discount, promo, gift, service_charge, tax_rate
   await prisma.org_orders_mst.update({

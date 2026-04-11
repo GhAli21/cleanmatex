@@ -8,12 +8,24 @@
  * - Tax (VAT)
  * - Discounts
  *
- * Features:
- * - Precision handling (3 decimal places for OMR currency)
- * - Tax calculation
- * - Discount application
- * - Total order calculation
+ * Money amounts are rounded with {@link roundMoneyAmount} using tenant
+ * `decimalPlaces` when provided, otherwise {@link ORDER_DEFAULTS.PRICE.DECIMAL_PLACES}.
  */
+
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { roundMoneyAmount } from '@/lib/money/format-money';
+
+function resolveMoneyDecimalPlaces(explicit?: number): number {
+  if (explicit !== undefined && Number.isFinite(explicit) && explicit >= 0) {
+    return Math.min(Math.floor(explicit), 20);
+  }
+  return ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+}
+
+/** Ratios / discount percentages — not ISO currency fraction digits. */
+function roundPercentRatio(value: number): number {
+  return Number(Number(value).toFixed(4));
+}
 
 export interface ItemPriceParams {
   /**
@@ -50,6 +62,11 @@ export interface ItemPriceParams {
    * Fixed discount amount
    */
   discountAmount?: number;
+
+  /**
+   * Tenant fraction digits for money rounding (TENANT_DECIMAL_PLACES).
+   */
+  decimalPlaces?: number;
 }
 
 export interface ItemPriceResult {
@@ -99,6 +116,11 @@ export interface OrderPriceParams {
    * Order-level fixed discount
    */
   orderDiscountAmount?: number;
+
+  /**
+   * Tenant fraction digits for money rounding (TENANT_DECIMAL_PLACES).
+   */
+  decimalPlaces?: number;
 }
 
 export interface OrderPriceResult {
@@ -172,7 +194,11 @@ export function calculateItemPrice(params: ItemPriceParams): ItemPriceResult {
     taxRate,
     discountPercent = 0,
     discountAmount = 0,
+    decimalPlaces: decimalPlacesParam,
   } = params;
+
+  const dp = resolveMoneyDecimalPlaces(decimalPlacesParam);
+  const r = (value: number) => roundMoneyAmount(value, dp);
 
   // Calculate unit price (apply express multiplier if needed)
   const unitPrice = isExpress ? basePrice * expressMultiplier : basePrice;
@@ -194,12 +220,12 @@ export function calculateItemPrice(params: ItemPriceParams): ItemPriceResult {
   const total = subtotalAfterDiscount + tax;
 
   return {
-    unitPrice: round(unitPrice),
-    subtotal: round(subtotal),
-    discount: round(discount),
-    subtotalAfterDiscount: round(subtotalAfterDiscount),
-    tax: round(tax),
-    total: round(total),
+    unitPrice: r(unitPrice),
+    subtotal: r(subtotal),
+    discount: r(discount),
+    subtotalAfterDiscount: r(subtotalAfterDiscount),
+    tax: r(tax),
+    total: r(total),
   };
 }
 
@@ -223,7 +249,11 @@ export function calculateItemPrice(params: ItemPriceParams): ItemPriceResult {
  * ```
  */
 export function calculateOrderTotal(params: OrderPriceParams): OrderPriceResult {
-  const { items, orderDiscountPercent = 0, orderDiscountAmount = 0 } = params;
+  const { items, orderDiscountPercent = 0, orderDiscountAmount = 0, decimalPlaces: decimalPlacesParam } =
+    params;
+
+  const dp = resolveMoneyDecimalPlaces(decimalPlacesParam);
+  const r = (value: number) => roundMoneyAmount(value, dp);
 
   // Sum all item subtotals (before discounts)
   const itemsSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
@@ -249,58 +279,62 @@ export function calculateOrderTotal(params: OrderPriceParams): OrderPriceResult 
   const tax = items.reduce((sum, item) => sum + item.tax, 0);
 
   // Adjust tax if order discount applied
-  const adjustedTax = tax - (orderDiscount * (tax / subtotalBeforeOrderDiscount));
+  const adjustedTax =
+    subtotalBeforeOrderDiscount === 0
+      ? 0
+      : tax - orderDiscount * (tax / subtotalBeforeOrderDiscount);
 
   // Grand total
   const total = subtotalAfterDiscount + adjustedTax;
 
   return {
-    itemsSubtotal: round(itemsSubtotal),
-    itemsDiscount: round(itemsDiscount),
-    orderDiscount: round(orderDiscount),
-    totalDiscount: round(totalDiscount),
-    subtotalAfterDiscount: round(subtotalAfterDiscount),
-    tax: round(adjustedTax),
-    total: round(total),
+    itemsSubtotal: r(itemsSubtotal),
+    itemsDiscount: r(itemsDiscount),
+    orderDiscount: r(orderDiscount),
+    totalDiscount: r(totalDiscount),
+    subtotalAfterDiscount: r(subtotalAfterDiscount),
+    tax: r(adjustedTax),
+    total: r(total),
     totalItems: items.length,
   };
 }
 
 /**
- * Round number to 3 decimal places (for OMR currency precision)
+ * Round a money-like value to tenant (or default) fraction digits.
  *
- * @param value - Value to round
- * @returns number - Rounded value
+ * @param value - Amount to round
+ * @param decimalPlaces - Optional override; defaults to ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
  */
-export function round(value: number): number {
-  return parseFloat(value.toFixed(3));
+export function round(value: number, decimalPlaces?: number): number {
+  return roundMoneyAmount(value, resolveMoneyDecimalPlaces(decimalPlaces));
 }
 
 /**
- * Format price for display (with currency symbol)
+ * Format price for display (Intl currency style).
  *
  * @param amount - Amount to format
- * @param currency - Currency code (default: 'OMR')
- * @param locale - Locale (default: 'en-OM')
- * @returns string - Formatted price
- *
- * @example
- * ```typescript
- * formatPrice(14.175); // "14.175 OMR"
- * formatPrice(14.175, 'USD', 'en-US'); // "$14.18"
- * ```
+ * @param currency - ISO currency code (default: ORDER_DEFAULTS.CURRENCY)
+ * @param locale - BCP 47 locale tag for Intl (default: en-OM)
+ * @param decimalPlaces - Fraction digits (default: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)
  */
 export function formatPrice(
   amount: number,
-  currency: string = 'OMR',
-  locale: string = 'en-OM'
+  currency: string = ORDER_DEFAULTS.CURRENCY,
+  locale: string = 'en-OM',
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
 ): string {
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(amount);
+  const cc = (currency || ORDER_DEFAULTS.CURRENCY).trim() || ORDER_DEFAULTS.CURRENCY;
+  const dp = resolveMoneyDecimalPlaces(decimalPlaces);
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: cc,
+      minimumFractionDigits: dp,
+      maximumFractionDigits: dp,
+    }).format(amount);
+  } catch {
+    return `${cc} ${Number(amount).toFixed(dp)}`;
+  }
 }
 
 /**
@@ -308,68 +342,38 @@ export function formatPrice(
  *
  * @param basePrice - Base price
  * @param expressMultiplier - Express multiplier
- * @returns number - Price increase amount
- *
- * @example
- * ```typescript
- * calculateExpressIncrease(10.000, 1.5); // 5.000
- * ```
+ * @param decimalPlaces - Money fraction digits
  */
 export function calculateExpressIncrease(
   basePrice: number,
-  expressMultiplier: number
+  expressMultiplier: number,
+  decimalPlaces?: number,
 ): number {
-  return round(basePrice * (expressMultiplier - 1));
+  return round(basePrice * (expressMultiplier - 1), decimalPlaces);
 }
 
 /**
- * Calculate discount percentage from amounts
- *
- * @param originalAmount - Original amount
- * @param discountedAmount - Discounted amount
- * @returns number - Discount percentage
- *
- * @example
- * ```typescript
- * calculateDiscountPercent(100, 90); // 10
- * ```
+ * Calculate discount percentage from amounts (ratio × 100, 4 dp).
  */
-export function calculateDiscountPercent(
-  originalAmount: number,
-  discountedAmount: number
-): number {
+export function calculateDiscountPercent(originalAmount: number, discountedAmount: number): number {
   if (originalAmount === 0) return 0;
-  return round(((originalAmount - discountedAmount) / originalAmount) * 100);
+  return roundPercentRatio(((originalAmount - discountedAmount) / originalAmount) * 100);
 }
 
 /**
  * Apply discount to amount
- *
- * @param amount - Original amount
- * @param discountPercent - Discount percentage
- * @returns number - Discounted amount
- *
- * @example
- * ```typescript
- * applyDiscount(100, 10); // 90
- * ```
  */
-export function applyDiscount(amount: number, discountPercent: number): number {
-  return round(amount - (amount * discountPercent) / 100);
+export function applyDiscount(
+  amount: number,
+  discountPercent: number,
+  decimalPlaces?: number,
+): number {
+  return round(amount - (amount * discountPercent) / 100, decimalPlaces);
 }
 
 /**
- * Calculate tax amount
- *
- * @param amount - Amount to tax
- * @param taxRate - Tax rate as decimal
- * @returns number - Tax amount
- *
- * @example
- * ```typescript
- * calculateTax(100, 0.05); // 5.000
- * ```
+ * Calculate tax amount (money rounding only; rate comes from TaxService in app code).
  */
-export function calculateTax(amount: number, taxRate: number): number {
-  return round(amount * taxRate);
+export function calculateTax(amount: number, taxRate: number, decimalPlaces?: number): number {
+  return round(amount * taxRate, decimalPlaces);
 }

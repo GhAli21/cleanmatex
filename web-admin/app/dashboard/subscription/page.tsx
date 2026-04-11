@@ -16,6 +16,9 @@ import type {
   Tenant,
   Subscription,
 } from '@/lib/types/tenant';
+import { useLocale } from 'next-intl';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 export default function SubscriptionPage() {
   const [plans, setPlans] = useState<PlanComparison[]>([]);
@@ -33,6 +36,11 @@ export default function SubscriptionPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const locale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmtPlanMoney = (amount: number) =>
+    formatMoneyAmountWithCode(amount, { currencyCode, decimalPlaces, locale: moneyLocale });
 
   useEffect(() => {
     fetchSubscriptionData();
@@ -284,7 +292,7 @@ export default function SubscriptionPage() {
             <div>
               <p className="text-sm text-gray-600">Price</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">
-                OMR {plans.find(p => p.plan_code === currentPlan)?.price_monthly || 0}/month
+                {fmtPlanMoney(Number(plans.find(p => p.plan_code === currentPlan)?.price_monthly || 0))}/month
               </p>
             </div>
             <div>
@@ -501,7 +509,7 @@ export default function SubscriptionPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-lg font-bold text-gray-900">
-                          OMR {price.toFixed(2)}
+                          {fmtPlanMoney(price)}
                         </span>
                         <span className="text-sm text-gray-500">/mo</span>
                       </td>
@@ -620,7 +628,7 @@ export default function SubscriptionPage() {
                       disabled={isProcessing}
                     />
                     <span className="text-sm">
-                      Monthly - OMR {selectedPlan.price_monthly}/mo
+                      Monthly - {fmtPlanMoney(Number(selectedPlan.price_monthly))}/mo
                     </span>
                   </label>
                   <label className="flex-1">
@@ -633,7 +641,11 @@ export default function SubscriptionPage() {
                       disabled={isProcessing}
                     />
                     <span className="text-sm">
-                      Yearly - OMR {selectedPlan.price_yearly ? (selectedPlan.price_yearly / 12).toFixed(2) : (selectedPlan.price_monthly * 12).toFixed(2)}/mo
+                      Yearly - {fmtPlanMoney(
+                        selectedPlan.price_yearly
+                          ? Number(selectedPlan.price_yearly) / 12
+                          : Number(selectedPlan.price_monthly) * 12
+                      )}/mo
                       {selectedPlan.price_yearly && (
                         <span className="ml-2 text-green-600 font-semibold">
                           Save 20%!

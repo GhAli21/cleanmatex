@@ -8,6 +8,9 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { logger } from '@/lib/utils/logger';
 
 export interface FieldChange {
@@ -118,8 +121,19 @@ export async function createEditAudit(
     // Generate change set
     const changeSet = compareOrderSnapshots(snapshotBefore, snapshotAfter);
 
+    const supabase = await createClient();
+    const { decimalPlaces } = await createTenantSettingsService(supabase).getCurrencyConfig(
+      tenantId,
+      undefined,
+      editedBy
+    );
+    const dp =
+      Number.isFinite(decimalPlaces) && decimalPlaces >= 0
+        ? decimalPlaces
+        : ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+
     // Generate human-readable summary
-    const changeSummary = generateChangeSummary(changeSet, orderNo);
+    const changeSummary = generateChangeSummary(changeSet, orderNo, dp);
 
     // Get next edit number for this order
     const lastEdit = await prisma.org_order_edit_history.findFirst({
@@ -383,7 +397,8 @@ export function compareOrderSnapshots(before: any, after: any): ChangeSet {
  */
 export function generateChangeSummary(
   changeSet: ChangeSet,
-  orderNo: string | null
+  orderNo: string | null,
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
   const parts: string[] = [];
 
@@ -406,7 +421,9 @@ export function generateChangeSummary(
   if (changeSet.pricing) {
     const { oldTotal, newTotal, difference } = changeSet.pricing;
     const direction = difference > 0 ? 'increased' : 'decreased';
-    parts.push(`Total ${direction} from ${oldTotal.toFixed(3)} to ${newTotal.toFixed(3)}`);
+    parts.push(
+      `Total ${direction} from ${oldTotal.toFixed(decimalPlaces)} to ${newTotal.toFixed(decimalPlaces)}`
+    );
   }
 
   if (parts.length === 0) {

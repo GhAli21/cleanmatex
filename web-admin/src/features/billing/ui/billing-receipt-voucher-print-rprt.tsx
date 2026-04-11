@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { VoucherData } from '@/lib/types/voucher';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 export interface BillingReceiptVoucherPrintRprtData {
   voucher: VoucherData;
@@ -48,18 +50,17 @@ function formatDate(date: Date | string | null | undefined, locale: string): str
   });
 }
 
-function formatMoney(amount: number, currency: string = 'OMR'): string {
-  return `${amount.toFixed(3)} ${currency}`;
-}
-
 export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPrintRprtProps) {
   const tBilling = useTranslations('billing');
   const tCommon = useTranslations('common');
   const tPayments = useTranslations('payments');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const { voucher, payment, invoice, order, customer, tenant } = data;
+  const voucherCurrency = (voucher.currency_code?.trim() || tenantCurrency) as string;
 
   return (
     <div
@@ -145,7 +146,11 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
               {tBilling('receiptVoucher.amountPaid') ?? 'Amount Paid'}
             </span>
             <span className="text-2xl font-bold text-gray-900">
-              {formatMoney(voucher.total_amount, voucher.currency_code ?? 'OMR')}
+              {formatMoneyAmountWithCode(Number(voucher.total_amount ?? 0), {
+                currencyCode: voucherCurrency,
+                decimalPlaces,
+                locale: moneyLocale,
+              })}
             </span>
           </div>
         </div>

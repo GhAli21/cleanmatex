@@ -760,8 +760,8 @@ export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
   PROMO_CODE: 'tag',
 };
 
-export const DEFAULT_CURRENCY = 'OMR';
-export const CURRENCY_DECIMALS = 3; // OMR uses 3 decimal places
+export const DEFAULT_CURRENCY = 'USD';
+export const CURRENCY_DECIMALS = 2; // OMR uses 3 decimal places
 
 // ============================================================================
 // Payment List Types (for Payments Page)

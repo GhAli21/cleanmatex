@@ -6,6 +6,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { roundMoneyAmount } from '@/lib/money/format-money';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { TaxService } from './tax.service';
 import { calculateItemPrice } from '@/lib/utils/pricing-calculator';
@@ -92,6 +93,12 @@ export class PricingService {
             const supabase = await createClient();
             const tenantSettings = createTenantSettingsService(supabase);
             const taxService = new TaxService({ tenantSettings });
+            const { decimalPlaces } = await tenantSettings.getCurrencyConfig(
+                tenantId,
+                branchId,
+                userId,
+            );
+            const roundMoney = (n: number) => roundMoneyAmount(n, decimalPlaces);
 
             // Determine price list type
             const priceListType = await this.determinePriceListType(
@@ -205,18 +212,20 @@ export class PricingService {
             const finalPrice = basePrice * (1 - discountPercent / 100);
 
             // Calculate tax
-            const taxAmount = isTaxExempt ? 0 : taxService.calculateTax(finalPrice * quantity, taxRate);
+            const taxAmount = isTaxExempt
+                ? 0
+                : taxService.calculateTax(finalPrice * quantity, taxRate, decimalPlaces);
 
             // Calculate total
             const total = finalPrice * quantity + taxAmount;
 
             return {
-                basePrice: parseFloat(basePrice.toFixed(3)),
+                basePrice: roundMoney(basePrice),
                 discountPercent,
-                finalPrice: parseFloat(finalPrice.toFixed(3)),
+                finalPrice: roundMoney(finalPrice),
                 taxRate,
-                taxAmount: parseFloat(taxAmount.toFixed(3)),
-                total: parseFloat(total.toFixed(3)),
+                taxAmount: roundMoney(taxAmount),
+                total: roundMoney(total),
                 priceListId,
                 priceListItemId,
                 source,
@@ -259,6 +268,10 @@ export class PricingService {
             userId,
         } = options;
 
+        const supabase = await createClient();
+        const tenantSettings = createTenantSettingsService(supabase);
+        const { decimalPlaces } = await tenantSettings.getCurrencyConfig(tenantId, branchId, userId);
+
         // Get price results for all items
         const priceResults = await Promise.all(
             items.map((item) =>
@@ -290,6 +303,7 @@ export class PricingService {
                 expressMultiplier: 1, // Price already reflects express via price list
                 taxRate: result.taxRate,
                 discountPercent: result.discountPercent,
+                decimalPlaces,
             });
         });
 
@@ -299,11 +313,9 @@ export class PricingService {
             items: itemPriceResults,
             orderDiscountPercent,
             orderDiscountAmount,
+            decimalPlaces,
         });
 
-        // Get tax rate for the order (with branch/user context for full 7-layer resolution)
-        const supabase = await createClient();
-        const tenantSettings = createTenantSettingsService(supabase);
         const taxService = new TaxService({ tenantSettings });
         const taxRate = await taxService.getTaxRate(tenantId, branchId, userId);
 

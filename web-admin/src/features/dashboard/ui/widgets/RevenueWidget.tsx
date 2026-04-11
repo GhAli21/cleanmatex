@@ -11,17 +11,21 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { DollarSign, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmount } from '@/lib/money/format-money'
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
 import { dashboardService } from '@/lib/services/dashboard.service'
 
 export function RevenueWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
+  const { decimalPlaces, currencyCode } = useTenantCurrency()
   const [data, setData] = useState({
     today: 0,
     mtd: 0,
     last30d: 0,
-    currency: 'OMR',
+    currency: ORDER_DEFAULTS.CURRENCY,
     trend: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
@@ -52,13 +56,12 @@ export function RevenueWidget() {
     fetchData()
   }, [currentTenant])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-OM', {
-      style: 'currency',
-      currency: data.currency,
-      minimumFractionDigits: 3,
-    }).format(amount)
-  }
+  const formatRevenueMoney = (amount: number) =>
+    formatMoneyAmount(amount, {
+      currencyCode: data.currency || currencyCode,
+      decimalPlaces,
+      locale: isRTL ? 'ar' : 'en',
+    })
 
   if (isLoading) {
     return (
@@ -87,7 +90,7 @@ export function RevenueWidget() {
         <div>
           <p className="text-sm text-gray-600">{t('today')}</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(data.today)}
+            {formatRevenueMoney(data.today)}
           </p>
           {data.trend !== 0 && (
             <div className={`flex items-center mt-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -113,7 +116,7 @@ export function RevenueWidget() {
         <div className="pt-4 border-t border-gray-200">
           <p className="text-sm text-gray-600">{t('monthToDate')}</p>
           <p className="text-xl font-semibold text-gray-900">
-            {formatCurrency(data.mtd)}
+            {formatRevenueMoney(data.mtd)}
           </p>
         </div>
 
@@ -121,7 +124,7 @@ export function RevenueWidget() {
         <div className="pt-4 border-t border-gray-200">
           <p className="text-sm text-gray-600">{t('last30Days')}</p>
           <p className="text-xl font-semibold text-gray-900">
-            {formatCurrency(data.last30d)}
+            {formatRevenueMoney(data.last30d)}
           </p>
         </div>
       </div>

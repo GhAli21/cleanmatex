@@ -11,11 +11,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import { listOrders } from '@/app/actions/orders/list-orders';
 import type { OrderListItem } from '@/types/order';
 import { formatPrice } from '@/lib/utils/pricing-calculator';
@@ -44,6 +46,9 @@ export function CustomerOrdersSection({
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const nextLocale = useLocale();
+  const moneyUiLocale = nextLocale.startsWith('ar') ? 'ar' : 'en';
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -326,7 +331,12 @@ export function CustomerOrdersSection({
                   <td
                     className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}
                   >
-                    {formatPrice(order.total)}
+                    {formatPrice(
+                      order.total,
+                      currencyCode,
+                      resolveMoneyIntlLocale(moneyUiLocale),
+                      decimalPlaces,
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {order.ready_by ? (

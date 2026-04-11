@@ -10,9 +10,10 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useRTL } from '@/lib/hooks/useRTL';
+import { useLocale, useRTL } from '@/lib/hooks/useRTL';
 import { Edit } from 'lucide-react';
-import { useLocale } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
 import { formatPrice } from '@/lib/utils/pricing-calculator';
 import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
@@ -35,6 +36,7 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
   const t = useTranslations('orders');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkUpdate, setShowBulkUpdate] = useState(false);
 
@@ -194,7 +196,12 @@ export function OrderTable({ orders, pagination }: OrderTableProps) {
                 </td>
                 <td className={`px-4 py-3 ${isRTL ? 'text-left' : 'text-right'}`}>{order.total_items}</td>
                 <td className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
-                  {formatPrice(order.total)}
+                  {formatPrice(
+                    order.total,
+                    currencyCode,
+                    resolveMoneyIntlLocale(locale),
+                    decimalPlaces,
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {order.ready_by ? (

@@ -5,6 +5,8 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentTransaction } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 export interface OrderInvoicesPaymentsPrintRprtData {
   order: {
@@ -35,6 +37,8 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   return (
     <div
@@ -82,11 +86,23 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
               </div>
               <div className="flex justify-between print-row">
                 <span>{tOrders('total') ?? 'Total'}</span>
-                <span>{(inv.total ?? 0).toFixed(3)} {inv.currency_code ?? 'OMR'}</span>
+                <span>
+                  {formatMoneyAmountWithCode(Number(inv.total ?? 0), {
+                    currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                    decimalPlaces,
+                    locale: moneyLocale,
+                  })}
+                </span>
               </div>
               <div className="flex justify-between print-row">
                 <span>{tOrders('paidAmount') ?? 'Paid'}</span>
-                <span className="text-green-700">{(inv.paid_amount ?? 0).toFixed(3)} {inv.currency_code ?? 'OMR'}</span>
+                <span className="text-green-700">
+                  {formatMoneyAmountWithCode(Number(inv.paid_amount ?? 0), {
+                    currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                    decimalPlaces,
+                    locale: moneyLocale,
+                  })}
+                </span>
               </div>
               <div className="flex justify-between print-row">
                 <span>{tInvoices('status') ?? 'Status'}</span>
@@ -110,7 +126,13 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
                     {inv.payments.map((p) => (
                       <tr key={p.id} className="border-b border-dashed border-gray-100">
                         <td className="py-0.5">{p.paid_at ? formatDate(p.paid_at, locale) : (p.created_at ? formatDate(p.created_at, locale) : '—')}</td>
-                        <td className="py-0.5 text-right">{Number(p.paid_amount).toFixed(3)} {p.currency_code ?? 'OMR'}</td>
+                        <td className="py-0.5 text-right">
+                          {formatMoneyAmountWithCode(Number(p.paid_amount), {
+                            currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
+                            decimalPlaces,
+                            locale: moneyLocale,
+                          })}
+                        </td>
                         <td className="py-0.5">{p.payment_method_code ?? '—'}</td>
                       </tr>
                     ))}

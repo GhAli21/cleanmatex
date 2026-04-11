@@ -6,9 +6,11 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { AlertCircle, RefreshCw, X } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
 
 interface AmountMismatchDialogProps {
@@ -29,6 +31,11 @@ export function AmountMismatchDialog({
 }: AmountMismatchDialogProps) {
   const t = useTranslations('amountMismatch');
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmt = (n: number) =>
+    formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
 
   if (!open) return null;
 
@@ -82,10 +89,10 @@ export function AmountMismatchDialog({
                         {t(`fields.${field}` as any) || field}
                       </td>
                       <td className={`py-2 px-3 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {client.toFixed(3)}
+                        {fmt(client)}
                       </td>
                       <td className={`py-2 px-3 text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                        {server.toFixed(3)}
+                        {fmt(server)}
                       </td>
                     </tr>
                   ))}

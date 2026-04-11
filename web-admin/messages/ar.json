@@ -2521,7 +2521,7 @@
         "collectBeforeHandover": "تحصيل الدفع قبل التسليم",
         "noInvoiceForPayment": "لا يوجد فاتورة لهذا الطلب. أنشئ فاتورة من الفواتير → الفواتير لتسجيل الدفع.",
         "applyPaymentTo": "تطبيق الدفع على",
-        "invoiceOption": "فاتورة {invoiceNo} ({remaining} ر.ع. مستحق)",
+        "invoiceOption": "فاتورة {invoiceNo} — {remaining}",
         "distributeAcrossInvoices": "توزيع على جميع الفواتير (الأقدم أولاً)",
         "applyToSelectedInvoice": "تطبيق على الفاتورة المحددة",
         "orPayPerInvoiceHint": "بدلاً من ذلك، انتقل إلى الفواتير → الفواتير لتسجيل الدفع لكل فاتورة على حدة."

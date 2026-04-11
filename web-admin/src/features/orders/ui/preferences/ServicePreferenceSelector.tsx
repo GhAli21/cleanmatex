@@ -14,7 +14,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useBilingual } from '@/lib/utils/bilingual';
 import {
   Snowflake,
@@ -106,6 +107,8 @@ export function ServicePreferenceSelector({
   enforceCompatibility = false,
 }: ServicePreferenceSelectorProps) {
   const t = useTranslations('newOrder.preferences');
+  const locale = useLocale();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const getBilingual = useBilingual();
 
   const selectedCodes = useMemo(
@@ -211,8 +214,8 @@ export function ServicePreferenceSelector({
                   )}
                   <span>{label}</span>
                   {extraPrice > 0 && (
-                    <span className="text-gray-500 text-[10px]">
-                      +{extraPrice.toFixed(3)}
+                    <span className="text-gray-500 text-[10px]" lang={locale === 'ar' ? 'ar' : 'en'}>
+                      +{formatMoneyWithCode(extraPrice)}
                     </span>
                   )}
                   {extraMins > 0 && (

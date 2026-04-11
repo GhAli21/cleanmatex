@@ -41,6 +41,8 @@ import type {
   PaymentListResult,
 } from '../types/payment';
 import { getTranslations } from 'next-intl/server';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 // ============================================================================
 // Payment Method Management
@@ -374,7 +376,7 @@ export async function processPayment(
                 invoiceId: inv.id,
                 orderId: input.order_id ?? null,
                 branchId: input.branch_id ?? null,
-                currencyCode: input.currency_code ?? 'OMR',
+                currencyCode: input.currency_code ?? ORDER_DEFAULTS.CURRENCY,
                 currencyExRate: Number(input.currency_ex_rate ?? 1),
                 paymentDate: new Date().toISOString().slice(0, 10),
                 paymentMethodCode: input.payment_method_code,
@@ -575,7 +577,7 @@ export async function processPayment(
           invoiceId: effectiveInvoiceId,
           orderId: input.order_id ?? null,
           branchId: input.branch_id ?? invoice.branch_id ?? null,
-          currencyCode: invoice.currency_code ?? input.currency_code ?? 'OMR',
+          currencyCode: invoice.currency_code ?? input.currency_code ?? ORDER_DEFAULTS.CURRENCY,
           currencyExRate:
             invoice.currency_ex_rate != null
               ? Number(invoice.currency_ex_rate)
@@ -1321,6 +1323,14 @@ export async function validatePaymentData(
   return withTenantContext(tenantId, async () => {
     const errors: PaymentValidationError[] = [];
 
+    const supabaseForMoney = await createClient();
+    const tenantSettingsForMoney = createTenantSettingsService(supabaseForMoney);
+    const moneyCfg = await tenantSettingsForMoney.getCurrencyConfig(
+      tenantId,
+      input.branch_id ?? undefined,
+      undefined
+    );
+
     // Validate amount
     if (input.amount <= 0) {
       errors.push({
@@ -1420,9 +1430,14 @@ export async function validatePaymentData(
         if (inv) {
           const remaining = Math.max(0, Number(inv.total) - Number(inv.paid_amount ?? 0));
           if (input.amount > remaining) {
+            const formattedRemaining = formatMoneyAmountWithCode(remaining, {
+              currencyCode: moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY,
+              decimalPlaces: moneyCfg.decimalPlaces ?? ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
+              locale: 'en',
+            });
             errors.push({
               field: 'amount',
-              message: `Payment amount must not exceed remaining balance (${remaining.toFixed(3)} OMR)`,
+              message: `Payment amount must not exceed remaining balance (${formattedRemaining})`,
               code: 'AMOUNT_EXCEEDS_BALANCE',
             });
           }
@@ -2467,7 +2482,7 @@ async function createInvoiceForOrder(
           invoice_no: invoice.invoice_no ?? null,
           order_id: invoice.order_id ?? null,
           branch_id: invoice.branch_id ?? null,
-          currency_code: invoice.currency_code ?? 'OMR',
+          currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
           exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
           invoice_date: now.toISOString().slice(0, 10),
           subtotal: Number(invoice.subtotal ?? 0),
@@ -2482,7 +2497,7 @@ async function createInvoiceForOrder(
           invoice_no: invoice.invoice_no ?? null,
           order_id: invoice.order_id ?? null,
           branch_id: invoice.branch_id ?? null,
-          currency_code: invoice.currency_code ?? 'OMR',
+          currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
           exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
           invoice_date: now.toISOString().slice(0, 10),
           subtotal: Number(invoice.subtotal ?? 0),
@@ -2523,21 +2538,3 @@ async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
   return `INV-${year}${month}-${String(count + 1).padStart(5, '0')}`;
 }
 
-/**
- * Format amount to OMR currency
- */
-export function formatOMR(amount: number): string {
-  return `OMR ${amount.toFixed(3)}`;
-}
-/**
- * Format amount to SAR currency
- */
-export function formatSAR(amount: number): string {
-  return `SAR ${amount.toFixed(2)}`;
-}
-/**
- * Format amount to USD currency
- */
-export function formatUSD(amount: number): string {
-  return `USD ${amount.toFixed(2)}`;
-}

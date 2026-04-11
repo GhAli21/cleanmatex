@@ -8,8 +8,10 @@
 
 import { memo } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { SummaryCartItem } from './summary-cart-item';
 import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
@@ -67,6 +69,9 @@ function ItemCartListComponent({
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const totalPieces = trackByPiece && items.length > 0
     ? items.reduce((sum, item) => sum + (item.pieces?.length || item.quantity), 0)
@@ -132,7 +137,11 @@ function ItemCartListComponent({
       <div className={`flex items-center justify-between pt-2 mt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
         <span className="text-xs text-gray-500">{t('total') || 'Total'}</span>
         <span className="text-sm font-semibold text-gray-900 tabular-nums">
-          {currencyCode} {items.reduce((sum, item) => sum + item.totalPrice, 0).toFixed(3)}
+          {formatMoneyAmountWithCode(items.reduce((sum, item) => sum + item.totalPrice, 0), {
+            currencyCode: currencyCode as string,
+            decimalPlaces,
+            locale: moneyLocale,
+          })}
         </span>
       </div>
     </div>

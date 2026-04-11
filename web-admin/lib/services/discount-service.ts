@@ -20,6 +20,8 @@ import type {
   EvaluatedDiscount,
   PromoDiscountType,
 } from '../types/payment';
+import { tenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 // ============================================================================
 // Promo Code Validation
@@ -61,6 +63,14 @@ export async function validatePromoCode(
       };
     }
 
+    const moneyCfg = await tenantSettingsService.getCurrencyConfig(tenantId);
+    const fmtMoney = (amount: number) =>
+      formatMoneyAmountWithCode(amount, {
+        currencyCode: moneyCfg.currencyCode,
+        decimalPlaces: moneyCfg.decimalPlaces,
+        locale: 'en',
+      });
+
     // Check validity dates
     const now = new Date();
     const validFrom = new Date(promoCode.valid_from);
@@ -99,9 +109,7 @@ export async function validatePromoCode(
     if (input.order_total < Number(promoCode.min_order_amount)) {
       return {
         isValid: false,
-        error: `Order total must be at least OMR ${Number(
-          promoCode.min_order_amount
-        ).toFixed(3)}`,
+        error: `Order total must be at least ${fmtMoney(Number(promoCode.min_order_amount))}`,
         errorCode: 'MIN_ORDER_NOT_MET',
       };
     }
@@ -113,9 +121,7 @@ export async function validatePromoCode(
     ) {
       return {
         isValid: false,
-        error: `Promo code only valid for orders up to OMR ${Number(
-          promoCode.max_order_amount
-        ).toFixed(3)}`,
+        error: `Promo code only valid for orders up to ${fmtMoney(Number(promoCode.max_order_amount))}`,
         errorCode: 'MIN_ORDER_NOT_MET',
       };
     }

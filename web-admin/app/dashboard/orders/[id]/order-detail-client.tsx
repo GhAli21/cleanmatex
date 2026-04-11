@@ -7,6 +7,8 @@ import { ChevronLeft, Edit, Clock, Package, Link2, Copy, LayoutList } from 'luci
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
@@ -127,6 +129,16 @@ export function OrderDetailClient({
   const router = useRouter();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { decimalPlaces, currencyCode: tenantCurrencyCode } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const orderCurrency =
+    (typeof order.currency_code === 'string' && order.currency_code.trim()) || tenantCurrencyCode;
+  const fmtOrderMoney = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: orderCurrency,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
 
   const [applyModalPaymentId, setApplyModalPaymentId] = useState<string | null>(null);
   const [applyModalInvoiceId, setApplyModalInvoiceId] = useState<string>('');
@@ -330,7 +342,7 @@ export function OrderDetailClient({
           <div className={isRTL ? 'text-left' : 'text-right'}>
             <div className={`text-sm text-gray-600 mb-1 ${isRTL ? 'text-left' : 'text-right'}`}>{t.totalAmount}</div>
             <div className={`text-3xl font-bold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {parseFloat(order.total?.toString() || '0').toFixed(3)} OMR
+              {fmtOrderMoney(parseFloat(order.total?.toString() || '0'))}
             </div>
             <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
               {order.payment_status === 'paid' ? (
@@ -579,14 +591,14 @@ export function OrderDetailClient({
               <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                 <span className="text-gray-600">{t.subtotal}</span>
                 <span className="font-medium text-gray-900">
-                  {parseFloat(order.subtotal?.toString() || '0').toFixed(3)} OMR
+                  {fmtOrderMoney(parseFloat(order.subtotal?.toString() || '0'))}
                 </span>
               </div>
               {order.discount && parseFloat(order.discount.toString()) > 0 && (
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                   <span className="text-gray-600">{t.discount}</span>
                   <span className="font-medium text-red-600">
-                    -{parseFloat(order.discount.toString()).toFixed(3)} OMR
+                    -{fmtOrderMoney(parseFloat(order.discount.toString()))}
                   </span>
                 </div>
               )}
@@ -594,7 +606,7 @@ export function OrderDetailClient({
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                   <span className="text-gray-600">{t.tax}</span>
                   <span className="font-medium text-gray-900">
-                    {parseFloat(order.tax.toString()).toFixed(3)} OMR
+                    {fmtOrderMoney(parseFloat(order.tax.toString()))}
                   </span>
                 </div>
               )}
@@ -602,7 +614,7 @@ export function OrderDetailClient({
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
                   <span className="text-base font-semibold text-gray-900">{t.total}</span>
                   <span className="text-base font-bold text-gray-900">
-                    {parseFloat(order.total?.toString() || '0').toFixed(3)} OMR
+                    {fmtOrderMoney(parseFloat(order.total?.toString() || '0'))}
                   </span>
                 </div>
               </div>
@@ -611,13 +623,16 @@ export function OrderDetailClient({
                   <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                     <span className="text-gray-600">{t.paidAmount}</span>
                     <span className="font-medium text-green-600">
-                      {parseFloat(order.paid_amount.toString()).toFixed(3)} OMR
+                      {fmtOrderMoney(parseFloat(order.paid_amount.toString()))}
                     </span>
                   </div>
                   <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                     <span className="text-gray-600">{t.balance}</span>
                     <span className="font-medium text-orange-600">
-                      {(parseFloat(order.total?.toString() || '0') - parseFloat(order.paid_amount.toString())).toFixed(3)} OMR
+                      {fmtOrderMoney(
+                        parseFloat(order.total?.toString() || '0') -
+                          parseFloat(order.paid_amount.toString())
+                      )}
                     </span>
                   </div>
                 </>
@@ -646,7 +661,7 @@ export function OrderDetailClient({
                     className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm`}
                   >
                     <span className="font-medium text-gray-900">
-                      {Number(p.paid_amount).toFixed(3)} OMR
+                      {fmtOrderMoney(Number(p.paid_amount))}
                     </span>
                     <span className="text-gray-600">
                       {p.payment_method_code}
@@ -684,7 +699,7 @@ export function OrderDetailClient({
                   <option value="">—</option>
                   {orderInvoices.map((inv) => (
                     <option key={inv.id} value={inv.id}>
-                      {inv.invoice_no} — {Number(inv.total).toFixed(3)} OMR
+                      {inv.invoice_no} — {fmtOrderMoney(Number(inv.total))}
                     </option>
                   ))}
                 </select>
@@ -726,7 +741,7 @@ export function OrderDetailClient({
                 <label className="block text-sm font-medium text-gray-700">{t.recordPaymentAmount}</label>
                 <input
                   type="number"
-                  step="0.001"
+                  step={10 ** -decimalPlaces}
                   min={0}
                   value={depositAmount || ''}
                   onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}

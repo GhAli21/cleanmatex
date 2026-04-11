@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { ReadyOrder } from '@features/orders/model/ready-order-types';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 export type PrintLayout = 'thermal' | 'a4';
 
@@ -21,6 +23,10 @@ export function OrderReceiptPrint({ order, layout }: OrderReceiptPrintProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmt = (n: number) =>
+    formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
 
   const formattedReadyBy = useMemo(() => {
     if (!order.readyBy) return '';
@@ -86,7 +92,7 @@ export function OrderReceiptPrint({ order, layout }: OrderReceiptPrintProps) {
                 </div>
               </div>
               <div className="text-right text-[11px]">
-                {item.totalPrice.toFixed(3)} OMR
+                {fmt(item.totalPrice)}
               </div>
             </div>
           ))}
@@ -96,20 +102,20 @@ export function OrderReceiptPrint({ order, layout }: OrderReceiptPrintProps) {
       <section className="print-section">
         <div className="flex justify-between print-row">
           <span className="font-semibold">{tWorkflowReady('totalAmount')}</span>
-          <span className="font-semibold">{order.total.toFixed(3)} OMR</span>
+          <span className="font-semibold">{fmt(order.total)}</span>
         </div>
         {order.paymentSummary && (
           <>
             <div className="flex justify-between print-row">
               <span>{tOrders('paidAmount')}</span>
               <span className="text-green-700">
-                {order.paymentSummary.paid.toFixed(3)} OMR
+                {fmt(order.paymentSummary.paid)}
               </span>
             </div>
             <div className="flex justify-between print-row">
               <span>{tWorkflowReady('paymentSection.remainingDue')}</span>
               <span className="text-orange-700">
-                {order.paymentSummary.remaining.toFixed(3)} OMR
+                {fmt(order.paymentSummary.remaining)}
               </span>
             </div>
           </>

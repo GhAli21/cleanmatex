@@ -12,6 +12,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { NextIntlClientProvider } from 'next-intl'
 import { AuthProvider } from '@/lib/auth/auth-context'
+import { TenantCurrencyProvider } from '@/lib/context/tenant-currency-context'
 import { RoleProvider } from '@/lib/auth/role-context'
 import { Toaster } from 'sonner'
 import { AlertDialogProvider } from '@ui/feedback'
@@ -79,12 +80,14 @@ export function AppProviders({
     <QueryClientProvider client={queryClient}>
       <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">
         <AuthProvider>
-          <RoleProvider>
-            <AlertDialogProvider>
-              {children}
-              <Toaster position={toastPosition} richColors />
-            </AlertDialogProvider>
-          </RoleProvider>
+          <TenantCurrencyProvider>
+            <RoleProvider>
+              <AlertDialogProvider>
+                {children}
+                <Toaster position={toastPosition} richColors />
+              </AlertDialogProvider>
+            </RoleProvider>
+          </TenantCurrencyProvider>
         </AuthProvider>
       </NextIntlClientProvider>
     </QueryClientProvider>

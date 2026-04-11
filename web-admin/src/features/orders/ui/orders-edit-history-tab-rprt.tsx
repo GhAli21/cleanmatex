@@ -19,7 +19,11 @@ import {
   Wrench,
   Globe,
 } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { Badge } from '@ui/primitives/badge';
 import type { ChangeSet, FieldChange, ItemChange } from '@/lib/services/order-audit.service';
 
@@ -151,17 +155,17 @@ function FieldChangesSection({
 // ─── Item sub-detail rows ──────────────────────────────────────────────────────
 
 function ItemSubDetail({
-  item, currencyCode, t, isRTL,
-}: { item: ItemChange; currencyCode: string; t: EditHistoryTranslations; isRTL: boolean }) {
+  item, fmtMoney, t, isRTL,
+}: { item: ItemChange; fmtMoney: (n: number) => string; t: EditHistoryTranslations; isRTL: boolean }) {
   const rows: Array<{ label: string; old: unknown; new: unknown }> = [];
 
   if (item.changeType === 'modified') {
     if (item.oldQuantity !== item.newQuantity)
       rows.push({ label: t.qty, old: item.oldQuantity, new: item.newQuantity });
     if (item.oldPrice !== item.newPrice)
-      rows.push({ label: t.price, old: item.oldPrice != null ? `${Number(item.oldPrice).toFixed(3)} ${currencyCode}` : null, new: item.newPrice != null ? `${Number(item.newPrice).toFixed(3)} ${currencyCode}` : null });
+      rows.push({ label: t.price, old: item.oldPrice != null ? fmtMoney(Number(item.oldPrice)) : null, new: item.newPrice != null ? fmtMoney(Number(item.newPrice)) : null });
     if ((item as any).oldTotalPrice !== (item as any).newTotalPrice)
-      rows.push({ label: t.totalPrice, old: (item as any).oldTotalPrice != null ? `${Number((item as any).oldTotalPrice).toFixed(3)} ${currencyCode}` : null, new: (item as any).newTotalPrice != null ? `${Number((item as any).newTotalPrice).toFixed(3)} ${currencyCode}` : null });
+      rows.push({ label: t.totalPrice, old: (item as any).oldTotalPrice != null ? fmtMoney(Number((item as any).oldTotalPrice)) : null, new: (item as any).newTotalPrice != null ? fmtMoney(Number((item as any).newTotalPrice)) : null });
     if ((item as any).oldNotes !== (item as any).newNotes)
       rows.push({ label: t.notes, old: (item as any).oldNotes, new: (item as any).newNotes });
     if ((item as any).oldHasStain !== (item as any).newHasStain)
@@ -174,11 +178,11 @@ function ItemSubDetail({
       rows.push({ label: t.damageNotes, old: (item as any).oldDamageNotes, new: (item as any).newDamageNotes });
   } else if (item.changeType === 'added') {
     if (item.newQuantity != null) rows.push({ label: t.qty, old: null, new: item.newQuantity });
-    if (item.newPrice != null) rows.push({ label: t.price, old: null, new: `${Number(item.newPrice).toFixed(3)} ${currencyCode}` });
-    if ((item as any).newTotalPrice != null) rows.push({ label: t.totalPrice, old: null, new: `${Number((item as any).newTotalPrice).toFixed(3)} ${currencyCode}` });
+    if (item.newPrice != null) rows.push({ label: t.price, old: null, new: fmtMoney(Number(item.newPrice)) });
+    if ((item as any).newTotalPrice != null) rows.push({ label: t.totalPrice, old: null, new: fmtMoney(Number((item as any).newTotalPrice)) });
   } else {
     if (item.oldQuantity != null) rows.push({ label: t.qty, old: item.oldQuantity, new: null });
-    if (item.oldPrice != null) rows.push({ label: t.price, old: `${Number(item.oldPrice).toFixed(3)} ${currencyCode}`, new: null });
+    if (item.oldPrice != null) rows.push({ label: t.price, old: fmtMoney(Number(item.oldPrice)), new: null });
   }
 
   if (!rows.length) return null;
@@ -208,8 +212,8 @@ function ItemSubDetail({
 // ─── Item Changes Section ──────────────────────────────────────────────────────
 
 function ItemChangesSection({
-  items, currencyCode, t, isRTL,
-}: { items: ChangeSet['items']; currencyCode: string; t: EditHistoryTranslations; isRTL: boolean }) {
+  items, fmtMoney, t, isRTL,
+}: { items: ChangeSet['items']; fmtMoney: (n: number) => string; t: EditHistoryTranslations; isRTL: boolean }) {
   const all: Array<{ item: ItemChange; type: 'added' | 'removed' | 'modified' }> = [
     ...items.added.map((i) => ({ item: i, type: 'added' as const })),
     ...items.removed.map((i) => ({ item: i, type: 'removed' as const })),
@@ -243,7 +247,7 @@ function ItemChangesSection({
               </span>
               <span className="font-semibold text-gray-800 text-sm">{item.productName}</span>
             </div>
-            <ItemSubDetail item={item} currencyCode={currencyCode} t={t} isRTL={isRTL} />
+            <ItemSubDetail item={item} fmtMoney={fmtMoney} t={t} isRTL={isRTL} />
           </div>
         ))}
       </div>
@@ -254,8 +258,8 @@ function ItemChangesSection({
 // ─── Pricing Changes Section ───────────────────────────────────────────────────
 
 function PricingChangesSection({
-  pricing, currencyCode, t, isRTL,
-}: { pricing: ChangeSet['pricing']; currencyCode: string; t: EditHistoryTranslations; isRTL: boolean }) {
+  pricing, fmtMoney, t, isRTL,
+}: { pricing: ChangeSet['pricing']; fmtMoney: (n: number) => string; t: EditHistoryTranslations; isRTL: boolean }) {
   if (!pricing) return null;
   const diff = pricing.difference;
   const isIncrease = diff >= 0;
@@ -272,7 +276,7 @@ function PricingChangesSection({
         ] as Array<{ label: string; value: number; cls: string; bg: string }>).map(({ label, value, cls, bg }) => (
           <div key={label} className={`rounded-lg border px-3 py-2 ${bg}`}>
             <p className="text-xs text-gray-400 mb-0.5">{label}</p>
-            <p className={`text-sm font-mono ${cls}`}>{Number(value).toFixed(3)} {currencyCode}</p>
+            <p className={`text-sm font-mono ${cls}`}>{fmtMoney(Number(value))}</p>
           </div>
         ))}
       </div>
@@ -280,7 +284,7 @@ function PricingChangesSection({
         isIncrease ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
       }`}>
         {isIncrease ? <AlertTriangle className="w-3 h-3" /> : <ArrowRight className="w-3 h-3 rotate-180" />}
-        {t.difference}: {isIncrease ? '+' : ''}{Number(diff).toFixed(3)} {currencyCode} ({pricing.percentageChange.toFixed(1)}%)
+        {t.difference}: {isIncrease ? '+' : ''}{fmtMoney(Number(diff))} ({pricing.percentageChange.toFixed(1)}%)
       </div>
     </div>
   );
@@ -359,10 +363,10 @@ function ChangePills({ entry, t }: { entry: OrderEditHistoryEntry; t: EditHistor
 // ─── Single Edit Entry Row ─────────────────────────────────────────────────────
 
 function EditEntryRow({
-  entry, currencyCode, t, isRTL, isLast,
+  entry, fmtMoney, t, isRTL, isLast,
 }: {
   entry: OrderEditHistoryEntry;
-  currencyCode: string;
+  fmtMoney: (n: number) => string;
   t: EditHistoryTranslations;
   isRTL: boolean;
   isLast: boolean;
@@ -409,7 +413,7 @@ function EditEntryRow({
                       <CreditCard className="w-3 h-3 mr-1" />
                       {entry.paymentAdjustmentType === 'REFUND' ? t.refund : t.charge}
                       {entry.paymentAdjustmentAmount != null && (
-                        <span className="ml-1 font-mono">{Math.abs(entry.paymentAdjustmentAmount).toFixed(3)} {currencyCode}</span>
+                        <span className="ml-1 font-mono">{fmtMoney(Math.abs(entry.paymentAdjustmentAmount))}</span>
                       )}
                     </Badge>
                   )}
@@ -456,8 +460,8 @@ function EditEntryRow({
           {expanded && hasAnyChanges && (
             <div className="border-t border-gray-100 bg-gray-50/40 px-4 py-4 space-y-4">
               {hasFieldChanges   && <FieldChangesSection   fields={entry.changes.fields}         t={t} isRTL={isRTL} />}
-              {hasItemChanges    && <ItemChangesSection    items={entry.changes.items}  currencyCode={currencyCode} t={t} isRTL={isRTL} />}
-              {hasPricingChanges && <PricingChangesSection pricing={entry.changes.pricing} currencyCode={currencyCode} t={t} isRTL={isRTL} />}
+              {hasItemChanges    && <ItemChangesSection    items={entry.changes.items}  fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
+              {hasPricingChanges && <PricingChangesSection pricing={entry.changes.pricing} fmtMoney={fmtMoney} t={t} isRTL={isRTL} />}
             </div>
           )}
         </div>
@@ -470,10 +474,20 @@ function EditEntryRow({
 
 export function OrdersEditHistoryTabRprt({
   entries,
-  currencyCode = 'OMR',
+  currencyCode,
   translations: t,
 }: OrdersEditHistoryTabRprtProps) {
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const effectiveCurrency = (currencyCode?.trim() || tenantCurrency || ORDER_DEFAULTS.CURRENCY) as string;
+  const fmtMoney = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: effectiveCurrency,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
 
   if (!entries || entries.length === 0) {
     return (
@@ -515,7 +529,7 @@ export function OrdersEditHistoryTabRprt({
           <EditEntryRow
             key={entry.id}
             entry={entry}
-            currencyCode={currencyCode}
+            fmtMoney={fmtMoney}
             t={t}
             isRTL={isRTL}
             isLast={idx === entries.length - 1}

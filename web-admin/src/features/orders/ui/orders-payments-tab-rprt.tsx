@@ -3,6 +3,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Search, CreditCard } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CmxInput } from '@ui/primitives';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import type { PaymentTransaction } from '@/lib/types/payment';
@@ -31,6 +33,8 @@ export function OrdersPaymentsTabRprt({
   translations: t,
 }: OrdersPaymentsTabRprtProps) {
   const isRTL = useRTL();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = isRTL ? 'ar' : 'en';
   const [searchInvoiceId, setSearchInvoiceId] = useState(filterInvoiceId ?? '');
   const [searchVoucherId, setSearchVoucherId] = useState(filterVoucherId ?? '');
 
@@ -127,7 +131,11 @@ export function OrdersPaymentsTabRprt({
               <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <CmxCopyableCell value={p.id} maxLength={8} align={isRTL ? 'right' : 'left'} />
                 <CmxCopyableCell
-                  value={`${Number(p.paid_amount ?? 0).toFixed(3)} OMR`}
+                  value={formatMoneyAmountWithCode(Number(p.paid_amount ?? 0), {
+                    currencyCode: (p.currency_code?.trim() || currencyCode) as string,
+                    decimalPlaces,
+                    locale: moneyLocale,
+                  })}
                   align={isRTL ? 'right' : 'left'}
                 />
                 <CmxCopyableCell value={p.payment_method_code} align={isRTL ? 'right' : 'left'} />

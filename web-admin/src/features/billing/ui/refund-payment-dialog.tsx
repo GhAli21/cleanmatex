@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { refundPaymentAction } from '@/app/actions/payments/payment-crud-actions';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface RefundPaymentDialogProps {
   paymentId: string;
@@ -21,6 +23,9 @@ export default function RefundPaymentDialog({
 }: RefundPaymentDialogProps) {
   const t = useTranslations('payments.refund');
   const tCommon = useTranslations('common');
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const [reason, setReason] = useState('');
   const [isSubmitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +63,11 @@ export default function RefundPaymentDialog({
           className="mb-4 w-full rounded-md border border-gray-200 bg-gray-50 p-3 text-sm font-medium text-gray-900"
           aria-readonly
         >
-          {maxAmount.toFixed(3)} {currencyCode}
+          {formatMoneyAmountWithCode(maxAmount, {
+            currencyCode: currencyCode as string,
+            decimalPlaces,
+            locale: moneyLocale,
+          })}
         </div>
 
         <label className="mb-1 block text-sm font-medium text-gray-700">

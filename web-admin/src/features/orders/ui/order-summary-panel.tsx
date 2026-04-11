@@ -7,9 +7,11 @@
 'use client';
 
 import { useState, memo, useCallback, useMemo } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { ItemCartList } from './item-cart-list';
 import { Calendar, Calculator, AlertCircle, Clock, User, Pencil, X } from 'lucide-react';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
@@ -135,6 +137,15 @@ function OrderSummaryPanelComponent({
   const tEdit = useTranslations('orders.edit');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmtTotal = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: currencyCode as string,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
   const [isCalculating, setIsCalculating] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
 
@@ -456,7 +467,7 @@ function OrderSummaryPanelComponent({
             </span>
             <div className={isRTL ? 'text-left' : 'text-right'}>
               <p className="text-xs opacity-90">{t('total')}</p>
-              <p className="text-xl font-bold">{currencyCode} {total.toFixed(3)}</p>
+              <p className="text-xl font-bold">{fmtTotal(total)}</p>
             </div>
           </button>
 

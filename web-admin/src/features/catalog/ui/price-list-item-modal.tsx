@@ -8,6 +8,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
 import { CmxButton, CmxInput } from '@ui/primitives'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
@@ -37,6 +38,8 @@ export function PriceListItemModal({
 }: PriceListItemModalProps) {
   const t = useTranslations('catalog')
   const isRTL = useRTL()
+  const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces
   const isEditMode = !!item
 
   // Form state
@@ -241,11 +244,11 @@ export function PriceListItemModal({
           {/* Price */}
           <div>
             <label className="block text-sm font-medium mb-1">
-              Price (OMR) *
+              Price ({currencyCode}) *
             </label>
             <CmxInput
               type="number"
-              step="0.001"
+              step={priceStep}
               min="0"
               value={price}
               onChange={(e) => setPrice(e.target.value)}

@@ -10,7 +10,10 @@
 
 import { memo, useMemo } from 'react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useLocale } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { Pencil, Trash2 } from 'lucide-react';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
@@ -61,6 +64,9 @@ function SummaryCartItemComponent({
   onDelete,
 }: SummaryCartItemProps) {
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const getBilingual = useBilingual();
 
   const displayName = getBilingual(productName, productName2) || '—';
@@ -94,7 +100,11 @@ function SummaryCartItemComponent({
     return parts.length > 0 ? [parts.join('/')] : [];
   }, [trackByPiece, pieces, conditions, notes, colorCatalog, getBilingual]);
 
-  const displayPrice = totalPrice.toFixed(3);
+  const displayPrice = formatMoneyAmountWithCode(totalPrice, {
+    currencyCode: currencyCode as string,
+    decimalPlaces,
+    locale: moneyLocale,
+  });
 
   return (
     <div className={`border-b border-dashed border-gray-200 last:border-b-0 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -121,7 +131,20 @@ function SummaryCartItemComponent({
         <span className={`flex-1 min-w-0 text-sm text-gray-800 truncate ${isRTL ? 'text-right' : 'text-left'}`}>
           {displayName}
           {priceOverride !== null && priceOverride !== undefined && (
-            <span className="ms-1 text-xs text-orange-500" title={`Price overridden${priceOverride ? `: ${priceOverride.toFixed(3)} ${currencyCode}` : ''}`}>*</span>
+            <span
+              className="ms-1 text-xs text-orange-500"
+              title={`Price overridden${
+                priceOverride != null
+                  ? `: ${formatMoneyAmountWithCode(priceOverride, {
+                      currencyCode: currencyCode as string,
+                      decimalPlaces,
+                      locale: moneyLocale,
+                    })}`
+                  : ''
+              }`}
+            >
+              *
+            </span>
           )}
         </span>
 

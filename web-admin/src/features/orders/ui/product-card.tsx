@@ -7,8 +7,10 @@
 'use client';
 
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { Plus, Minus } from 'lucide-react';
 
@@ -48,6 +50,9 @@ export function ProductCard({
   const t = useTranslations('newOrder.itemsGrid');
   const tNewOrder = useTranslations('newOrder');
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const getBilingual = useBilingual();
 
   const displayName = getBilingual(product.product_name, product.product_name2) || t('unknownProduct');
@@ -99,7 +104,11 @@ export function ProductCard({
       {/* Price */}
       <div className={`mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
         <p className="text-blue-600 font-bold text-sm">
-          {price.toFixed(3)} {currencyCode}
+          {formatMoneyAmountWithCode(price, {
+            currencyCode: currencyCode as string,
+            decimalPlaces,
+            locale: moneyLocale,
+          })}
         </p>
         {express && (
           <span className="text-xs text-orange-600 font-medium">{tNewOrder('express.label')}</span>

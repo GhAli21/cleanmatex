@@ -10,6 +10,9 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { StatementForPrint } from '@/lib/services/b2b-statements.service';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface B2BStatementsPrintRprtProps {
   data: StatementForPrint;
@@ -32,9 +35,17 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const { statement, customer, primaryContact, invoices } = data;
-  const currency = statement.currencyCd ?? 'OMR';
+  const statementCurrency = (statement.currencyCd?.trim() || tenantCurrency || ORDER_DEFAULTS.CURRENCY) as string;
+  const fmt = (amount: number, rowCurrency?: string | null) =>
+    formatMoneyAmountWithCode(amount, {
+      currencyCode: (rowCurrency?.trim() || statementCurrency) as string,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
 
   return (
     <div
@@ -120,9 +131,9 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
                   <tr key={inv.id} className="border-b border-dashed border-gray-100">
                     <td className="py-1">{inv.invoiceNo ?? '—'}</td>
                     <td className="py-1">{formatDate(inv.invoiceDate, locale)}</td>
-                    <td className="py-1 text-right">{inv.total.toFixed(3)} {inv.currencyCode ?? currency}</td>
-                    <td className="py-1 text-right text-green-700">{inv.paidAmount.toFixed(3)} {inv.currencyCode ?? currency}</td>
-                    <td className="py-1 text-right">{inv.remaining.toFixed(3)} {inv.currencyCode ?? currency}</td>
+                    <td className="py-1 text-right">{fmt(inv.total, inv.currencyCode)}</td>
+                    <td className="py-1 text-right text-green-700">{fmt(inv.paidAmount, inv.currencyCode)}</td>
+                    <td className="py-1 text-right">{fmt(inv.remaining, inv.currencyCode)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -132,15 +143,15 @@ export function B2BStatementsPrintRprt({ data }: B2BStatementsPrintRprtProps) {
           <section className="print-section border-t border-gray-200 pt-2">
             <div className="flex justify-between print-row font-semibold">
               <span>{tB2B('totalAmount') ?? 'Total'}</span>
-              <span>{statement.totalAmount.toFixed(3)} {currency}</span>
+              <span>{fmt(statement.totalAmount)}</span>
             </div>
             <div className="flex justify-between print-row">
               <span>{tOrders('paidAmount') ?? 'Paid'}</span>
-              <span className="text-green-700">{statement.paidAmount.toFixed(3)} {currency}</span>
+              <span className="text-green-700">{fmt(statement.paidAmount)}</span>
             </div>
             <div className="flex justify-between print-row font-semibold">
               <span>{tB2B('balanceAmount') ?? 'Balance Due'}</span>
-              <span>{statement.balanceAmount.toFixed(3)} {currency}</span>
+              <span>{fmt(statement.balanceAmount)}</span>
             </div>
           </section>
         </>

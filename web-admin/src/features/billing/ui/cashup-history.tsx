@@ -1,16 +1,15 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useCallback, useEffect, useState } from 'react';
 import { getCashUpHistory } from '@/app/actions/billing/cashup-actions';
 import type { ReconciliationHistoryItem } from '@/lib/services/cashup-service';
 
 interface CashUpHistoryProps {
   currencyCode?: string;
-}
-
-function formatAmount(value: number, decimals: number): string {
-  return value.toFixed(decimals);
 }
 
 function formatDate(isoDate: string): string {
@@ -25,8 +24,20 @@ function formatDate(isoDate: string): string {
   }
 }
 
-export default function CashUpHistory({ currencyCode = 'OMR' }: CashUpHistoryProps) {
+export default function CashUpHistory({
+  currencyCode: currencyCodeProp = ORDER_DEFAULTS.CURRENCY,
+}: CashUpHistoryProps) {
   const t = useTranslations('cashup');
+  const locale = useLocale();
+  const { currencyCode: tenantCc, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const displayCurrency = (currencyCodeProp?.trim() || tenantCc) as string;
+  const fmt = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: displayCurrency,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
   const [items, setItems] = useState<ReconciliationHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +57,6 @@ export default function CashUpHistory({ currencyCode = 'OMR' }: CashUpHistoryPro
   useEffect(() => {
     load();
   }, [load]);
-
-  const decimals = 3;
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-6">
@@ -102,10 +111,10 @@ export default function CashUpHistory({ currencyCode = 'OMR' }: CashUpHistoryPro
                     {row.payment_method_code}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">
-                    {formatAmount(row.expected_amount, decimals)} {currencyCode}
+                    {fmt(row.expected_amount)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-700">
-                    {formatAmount(row.actual_amount, decimals)} {currencyCode}
+                    {fmt(row.actual_amount)}
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
                     <span
@@ -117,7 +126,7 @@ export default function CashUpHistory({ currencyCode = 'OMR' }: CashUpHistoryPro
                             : 'text-red-600'
                       }
                     >
-                      {formatAmount(row.variance, decimals)} {currencyCode}
+                      {fmt(row.variance)}
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">

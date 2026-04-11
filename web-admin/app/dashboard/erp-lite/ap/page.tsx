@@ -133,7 +133,7 @@ export default async function ErpLiteApPage({
                   placeholder={t('forms.placeholders.optionalAccount')}
                   options={snapshot.payable_account_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
-                <CmxInput name="currency_code" label={t('forms.supplier.fields.currencyCode')} placeholder="OMR" required />
+                <CmxInput name="currency_code" label={t('forms.supplier.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="payment_terms_days" type="number" min="0" label={t('forms.supplier.fields.paymentTerms')} />
                 <CmxInput name="email" label={t('forms.supplier.fields.email')} />
                 <CmxInput name="phone" label={t('forms.supplier.fields.phone')} />
@@ -165,7 +165,7 @@ export default async function ErpLiteApPage({
                   placeholder={t('forms.placeholders.optionalSelect')}
                   options={snapshot.branch_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
-                <CmxInput name="currency_code" label={t('forms.invoice.fields.currencyCode')} placeholder="OMR" required />
+                <CmxInput name="currency_code" label={t('forms.invoice.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.subtotal')} required />
                 <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.tax')} />
                 <CmxInput name="supplier_inv_no" label={t('forms.invoice.fields.supplierInvoiceNo')} />
@@ -197,7 +197,7 @@ export default async function ErpLiteApPage({
                   required
                 />
                 <CmxInput name="payment_date" type="date" label={t('forms.payment.fields.paymentDate')} required />
-                <CmxInput name="currency_code" label={t('forms.payment.fields.currencyCode')} placeholder="OMR" required />
+                <CmxInput name="currency_code" label={t('forms.payment.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="amount_total" type="number" step="0.0001" min="0" label={t('forms.payment.fields.amount')} required />
                 <CmxSelect
                   name="settlement_code"

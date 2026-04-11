@@ -30,6 +30,8 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { Package, Shirt, Plus, Pencil, Trash2, Gift, ChevronRight, Layers } from 'lucide-react';
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
 
 interface ServicePref {
@@ -138,6 +140,9 @@ function ServicePrefsTable({
   t: (key: string, fallback?: string) => string;
   isRtl: boolean;
 }) {
+  const intlLocale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
   const rows = servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs;
   const isAdmin = servicePrefsAdmin.length > 0;
 
@@ -192,7 +197,14 @@ function ServicePrefsTable({
                 <td className="px-4 py-3">{primaryName || '—'}</td>
                 <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
                 <td className="px-4 py-3 text-gray-600">{category}</td>
-                <td className="px-4 py-3">+{Number(displayPrice).toFixed(3)}</td>
+                <td className="px-4 py-3">
+                  +
+                  {formatMoneyAmountWithCode(Number(displayPrice), {
+                    currencyCode,
+                    decimalPlaces,
+                    locale: moneyLocale,
+                  })}
+                </td>
                 <td className="px-4 py-3">
                   <Badge variant={isActive ? 'success' : 'default'}>
                     {isActive ? t('active', 'Active') : t('inactive', 'Inactive')}
@@ -341,6 +353,9 @@ function BundlesTable({
   t: (key: string, fallback?: string) => string;
   deletePending: boolean;
 }) {
+  const intlLocale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
   if (loading) {
     return <TableSkeleton rows={5} />;
   }
@@ -390,7 +405,11 @@ function BundlesTable({
                 {(b.discount_percent ?? 0) > 0
                   ? `${b.discount_percent}%`
                   : (b.discount_amount ?? 0) > 0
-                    ? `${Number(b.discount_amount).toFixed(3)}`
+                    ? formatMoneyAmountWithCode(Number(b.discount_amount), {
+                        currencyCode,
+                        decimalPlaces,
+                        locale: moneyLocale,
+                      })
                     : '—'}
               </td>
               <td className="px-4 py-3">

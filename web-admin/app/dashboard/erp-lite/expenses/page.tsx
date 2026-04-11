@@ -136,7 +136,7 @@ export default async function ErpLiteExpensesPage({
                 <CmxInput
                   name="currency_code"
                   label={t('forms.expense.fields.currencyCode')}
-                  placeholder="OMR"
+                  placeholder={displayConfig.currencyCode}
                   required
                 />
                 <CmxSelect
@@ -233,7 +233,7 @@ export default async function ErpLiteExpensesPage({
                 <CmxInput
                   name="currency_code"
                   label={t('forms.cashbox.fields.currencyCode')}
-                  placeholder="OMR"
+                  placeholder={displayConfig.currencyCode}
                   required
                 />
                 <CmxInput
@@ -286,7 +286,7 @@ export default async function ErpLiteExpensesPage({
                 <CmxInput
                   name="currency_code"
                   label={t('forms.cashTxn.fields.currencyCode')}
-                  placeholder="OMR"
+                  placeholder={displayConfig.currencyCode}
                   required
                 />
                 <CmxInput

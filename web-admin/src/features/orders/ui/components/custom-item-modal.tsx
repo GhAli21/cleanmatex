@@ -18,6 +18,7 @@ import { cmxMessage } from '@ui/feedback';
 import type { OrderItem } from '../../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 /**
  * Custom item form schema
@@ -61,6 +62,8 @@ export function CustomItemModal({
   const t = useTranslations('newOrder.customItem');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
@@ -355,12 +358,12 @@ export function CustomItemModal({
                         className={`block text-sm font-medium text-gray-900 mb-2 ${isRTL ? 'text-right' : 'text-left'
                           }`}
                       >
-                        {t('price') || 'Price (OMR)'} *
+                        {t('price') || 'Price'} ({currencyCode}) *
                       </label>
                       <input
                         {...field}
                         type="number"
-                        step={ORDER_DEFAULTS.PRICE.STEP}
+                        step={priceStep}
                         min={ORDER_DEFAULTS.PRICE.MIN}
                         value={field.value || ''}
                         onChange={(e) =>
@@ -369,7 +372,7 @@ export function CustomItemModal({
                         dir="ltr"
                         className={`w-full px-4 py-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'
                           } rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center`}
-                        placeholder={`0.${'0'.repeat(ORDER_DEFAULTS.PRICE.DECIMAL_PLACES)}`}
+                        placeholder={`0.${'0'.repeat(Math.max(0, decimalPlaces - 1))}1`}
                       />
                       {errors.price && (
                         <p className="mt-1 text-sm text-red-600">

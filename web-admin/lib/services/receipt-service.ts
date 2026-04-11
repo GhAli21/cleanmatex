@@ -7,6 +7,9 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { logger } from '@/lib/utils/logger';
 import { AppError } from '@/lib/errors/base-errors';
 
@@ -161,16 +164,29 @@ export class ReceiptService {
       // Compute eco score (requires DB lookup)
       const ecoScore = await this.getOrderEcoScore(supabase, order);
 
+      const tenantSettings = createTenantSettingsService(supabase);
+      const orderBranch = (order as { branch_id?: string | null }).branch_id ?? undefined;
+      const moneyCfg = await tenantSettings.getCurrencyConfig(tenantId, orderBranch, null);
+      const decimalPlaces =
+        Number.isFinite(moneyCfg.decimalPlaces) && moneyCfg.decimalPlaces >= 0
+          ? moneyCfg.decimalPlaces
+          : ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+      const currencyCode = moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY;
+      const moneyOpts = { ecoScore, decimalPlaces, currencyCode };
+
       // Replace template placeholders
       const contentText = this.replaceTemplatePlaceholders(
         template.template_content,
         order,
         language,
-        { ecoScore }
+        moneyOpts
       );
 
       // Generate HTML version (basic)
-      const contentHtml = this.generateHtmlReceipt(order, language);
+      const contentHtml = this.generateHtmlReceipt(order, language, {
+        decimalPlaces,
+        currencyCode,
+      });
 
       // Generate QR code
       const qrCode = await this.generateQRCode(order.order_no, tenantId);
@@ -373,14 +389,15 @@ export class ReceiptService {
   private static replaceTemplatePlaceholders(
     template: string,
     order: any,
-    language: string
+    language: string,
+    opts: { ecoScore: number; decimalPlaces: number; currencyCode: string }
   ): string {
     const customer = order.customer || {};
     const items = order.items || [];
 
     const preferencesSummary = this.formatPreferencesSummary(items);
     const servicePrefCharge = this.calculateServicePrefCharge(items);
-    const ecoScore = this.calculateEcoScore(order);
+    const moneyLocale = language === 'ar' ? 'ar' : 'en';
 
     const replacements: Record<string, string> = {
       '{{orderNumber}}': order.order_no || '',
@@ -392,8 +409,12 @@ export class ReceiptService {
       '{{total}}': order.total?.toString() || '0',
       '{{items}}': this.formatItemsList(items, language),
       '{{preferences_summary}}': preferencesSummary,
-      '{{service_pref_charge}}': servicePrefCharge.toFixed(3),
-      '{{eco_score}}': ecoScore.toString(),
+      '{{service_pref_charge}}': formatMoneyAmountWithCode(servicePrefCharge, {
+        currencyCode: opts.currencyCode,
+        decimalPlaces: opts.decimalPlaces,
+        locale: moneyLocale,
+      }),
+      '{{eco_score}}': opts.ecoScore.toString(),
     };
 
     let content = template;
@@ -487,10 +508,20 @@ export class ReceiptService {
   /**
    * Generate HTML receipt
    */
-  private static generateHtmlReceipt(order: any, language: string): string {
+  private static generateHtmlReceipt(
+    order: any,
+    language: string,
+    money: { decimalPlaces: number; currencyCode: string }
+  ): string {
     const customer = order.customer || {};
     const items = order.items || [];
     const isRTL = language === 'ar';
+    const moneyLocale = language === 'ar' ? 'ar' : 'en';
+    const prefChargeFmt = formatMoneyAmountWithCode(this.calculateServicePrefCharge(items), {
+      currencyCode: money.currencyCode,
+      decimalPlaces: money.decimalPlaces,
+      locale: moneyLocale,
+    });
 
     return `
       <!DOCTYPE html>
@@ -528,7 +559,7 @@ export class ReceiptService {
         ` : ''}
         ${this.calculateServicePrefCharge(items) > 0 ? `
         <div class="service-pref-charge">
-          <p><strong>${isRTL ? 'خدمات إضافية' : 'Additional Services'}:</strong> ${this.calculateServicePrefCharge(items).toFixed(3)}</p>
+          <p><strong>${isRTL ? 'خدمات إضافية' : 'Additional Services'}:</strong> ${prefChargeFmt}</p>
         </div>
         ` : ''}
         <div class="total">

@@ -127,7 +127,7 @@ export default async function ErpLitePoPage({
                   placeholder={t('forms.placeholders.optionalUsageCode')}
                   options={snapshot.usage_code_options.map((item) => ({ value: item.id, label: item.label }))}
                 />
-                <CmxInput name="currency_code" label={t('forms.po.fields.currencyCode')} placeholder="OMR" required />
+                <CmxInput name="currency_code" label={t('forms.po.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.subtotal')} required />
                 <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.tax')} />
                 <CmxTextarea name="description" label={t('forms.po.fields.description')} required />

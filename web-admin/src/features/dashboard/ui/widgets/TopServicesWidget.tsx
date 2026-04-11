@@ -11,6 +11,8 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { Star, TrendingUp } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmount } from '@/lib/money/format-money'
 import { dashboardService } from '@/lib/services/dashboard.service'
 import {
   BarChart,
@@ -32,6 +34,7 @@ export function TopServicesWidget() {
   const { currentTenant } = useAuth()
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
+  const { decimalPlaces, currencyCode } = useTenantCurrency()
   const [data, setData] = useState<ServiceData[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -56,13 +59,12 @@ export function TopServicesWidget() {
     fetchData()
   }, [currentTenant])
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-OM', {
-      style: 'currency',
-      currency: 'OMR',
-      minimumFractionDigits: 3,
-    }).format(amount)
-  }
+  const formatCurrency = (amount: number) =>
+    formatMoneyAmount(amount, {
+      currencyCode,
+      decimalPlaces,
+      locale: isRTL ? 'ar' : 'en',
+    })
 
   if (isLoading) {
     return (

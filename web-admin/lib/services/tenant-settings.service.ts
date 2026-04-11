@@ -17,6 +17,10 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 /**
  * Setting codes from sys_tenant_settings_cd (source of truth).
  * Must match catalog entries; see F:/jhapp/cleanmatex/supabase/migrations/
+ *
+ * Money: the app resolves currency with TENANT_CURRENCY + TENANT_DECIMAL_PLACES only.
+ * `BRANCH_CURRENCY` remains in the DB catalog for legacy/ops docs but is intentionally
+ * omitted here so app code does not branch on a deprecated money override.
  */
 export const SETTING_CODES = {
   TENANT_CURRENCY: 'TENANT_CURRENCY',
@@ -29,7 +33,6 @@ export const SETTING_CODES = {
   REJECT_ROW_COLOR: 'REJECT_ROW_COLOR',
   AUTO_CLOSE_DAYS: 'AUTO_CLOSE_DAYS',
   PEAK_SEASON_START: 'PEAK_SEASON_START',
-  BRANCH_CURRENCY: 'BRANCH_CURRENCY',
   TENANT_DEFAULT_GUEST_CUSTOMER_ID: 'TENANT_DEFAULT_GUEST_CUSTOMER_ID',
   SERVICE_PREF_PACKING_PER_PIECE_ENABLED: 'SERVICE_PREF_PACKING_PER_PIECE_ENABLED',
   SERVICE_PREF_ENFORCE_COMPATIBILITY: 'SERVICE_PREF_ENFORCE_COMPATIBILITY',

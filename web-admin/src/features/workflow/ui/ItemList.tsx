@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
@@ -19,6 +20,7 @@ interface ItemListProps {
 export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListProps) {
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant } = useAuth();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const [busyId, setBusyId] = useState<string | null>(null);
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
@@ -54,10 +56,10 @@ export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListPr
               <div className="text-sm font-medium text-gray-900">
                 {item.product_name || item.service_category_code || 'Item'}
               </div>
-              <div className="text-xs text-gray-500">{item.quantity} × {Number(item.price_per_unit).toFixed(3)} OMR</div>
+              <div className="text-xs text-gray-500">{item.quantity} × {formatMoneyWithCode(Number(item.price_per_unit))}</div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="text-sm font-semibold text-gray-900">{Number(item.total_price).toFixed(3)} OMR</div>
+              <div className="text-sm font-semibold text-gray-900">{formatMoneyWithCode(Number(item.total_price))}</div>
               <button
                 disabled={disabled || busyId === item.id}
                 onClick={() => handleDelete(item.id)}

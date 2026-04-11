@@ -6,7 +6,9 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxCard, CmxButton, CmxInput } from '@ui/primitives'
 import { Calendar, Filter, Download, Clock, User, DollarSign } from 'lucide-react'
@@ -36,6 +38,9 @@ interface PriceHistoryTimelineProps {
 export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTimelineProps) {
   const t = useTranslations('catalog')
   const isRTL = useRTL()
+  const locale = useLocale()
+  const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en'
   const [history, setHistory] = useState<PriceHistoryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
@@ -122,7 +127,7 @@ export function PriceHistoryTimeline({ priceListId, productId }: PriceHistoryTim
 
   const formatPrice = (price: number | null) => {
     if (price === null) return '-'
-    return `${price.toFixed(3)} OMR`
+    return formatMoneyAmountWithCode(price, { currencyCode, decimalPlaces, locale: moneyLocale })
   }
 
   if (loading) {

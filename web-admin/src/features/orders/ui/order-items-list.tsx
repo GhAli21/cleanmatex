@@ -6,6 +6,7 @@ import { AlertCircle, Image as ImageIcon, ChevronDown, ChevronUp } from 'lucide-
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/hooks/useBilingual';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 
@@ -46,6 +47,7 @@ export function OrderItemsList({
   const tPieces = useTranslations('newOrder.pieces');
   const isRTL = useRTL();
   const getBilingual = useBilingual();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
 
   const toggleItemExpansion = (itemId: string) => {
@@ -92,10 +94,10 @@ export function OrderItemsList({
             </div>
             <div className={isRTL ? 'text-left' : 'text-right'}>
               <div className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
-                {parseFloat(item.total_price.toString()).toFixed(3)} OMR
+                {formatMoneyWithCode(parseFloat(item.total_price.toString()))}
               </div>
               <div className={`text-xs text-gray-500 ${isRTL ? 'text-left' : 'text-right'}`}>
-                {item.quantity || 1} × {parseFloat(item.price_per_unit.toString()).toFixed(3)} OMR
+                {item.quantity || 1} × {formatMoneyWithCode(parseFloat(item.price_per_unit.toString()))}
               </div>
             </div>
           </div>

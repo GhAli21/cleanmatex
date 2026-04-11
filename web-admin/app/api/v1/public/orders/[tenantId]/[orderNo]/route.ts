@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import { OrderService } from '@/lib/services/order-service';
 
@@ -99,6 +100,9 @@ export async function GET(
         // Fetch status history for timeline using existing service
         const history = await OrderService.getOrderHistory(order.id, tenantId);
 
+        const tenantSettings = createTenantSettingsService(supabase);
+        const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
+
         const durationMs = Date.now() - startedAt;
         logger.info('Public order tracking success', {
             feature: 'public_orders',
@@ -150,6 +154,10 @@ export async function GET(
                 to: entry.to_value,
                 doneAt: entry.done_at,
             })),
+            moneyConfig: {
+                currencyCode: moneyConfig.currencyCode,
+                decimalPlaces: moneyConfig.decimalPlaces,
+            },
         };
 
         return NextResponse.json(

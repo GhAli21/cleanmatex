@@ -4,6 +4,8 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 import type { PaymentTransaction } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 export interface OrderPaymentsPrintRprtData {
   order: {
@@ -37,6 +39,8 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   return (
     <div
@@ -88,7 +92,13 @@ export function OrderPaymentsPrintRprt({ data }: OrderPaymentsPrintRprtProps) {
               {data.payments.map((p) => (
                 <tr key={p.id} className="border-b border-dashed border-gray-200">
                   <td className="py-1">{formatDate(p.paid_at ?? p.created_at, locale)}</td>
-                  <td className="py-1 text-right font-medium">{Number(p.paid_amount).toFixed(3)} {p.currency_code ?? 'OMR'}</td>
+                  <td className="py-1 text-right font-medium">
+                    {formatMoneyAmountWithCode(Number(p.paid_amount), {
+                      currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
+                      decimalPlaces,
+                      locale: moneyLocale,
+                    })}
+                  </td>
                   <td className="py-1">{p.payment_method_code ?? '—'}</td>
                   <td className="py-1">{p.status ?? '—'}</td>
                 </tr>

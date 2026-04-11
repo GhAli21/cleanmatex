@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createAndIssueReceiptVoucherAction } from '@/app/actions/payments/voucher-crud-actions';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 export default function CreateVoucherForm() {
   const t = useTranslations('billing.receiptVoucher.create');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const { currencyCode: tenantCurrency } = useTenantCurrency();
   const [isSubmitting, startSubmitting] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -19,8 +22,12 @@ export default function CreateVoucherForm() {
   const [orderId, setOrderId] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [amount, setAmount] = useState('');
-  const [currencyCode, setCurrencyCode] = useState('OMR');
+  const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
   const [reasonCode, setReasonCode] = useState('');
+
+  useEffect(() => {
+    if (tenantCurrency) setCurrencyCode(tenantCurrency);
+  }, [tenantCurrency]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +170,7 @@ export default function CreateVoucherForm() {
               type="text"
               value={currencyCode}
               onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
-              placeholder="OMR"
+              placeholder={currencyCode}
               maxLength={3}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />

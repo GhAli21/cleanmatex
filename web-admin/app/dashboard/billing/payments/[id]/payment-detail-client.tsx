@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Printer } from 'lucide-react';
@@ -15,6 +15,8 @@ import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { BILLING_PAYMENT_DETAIL_ACCESS } from '@features/billing/access/billing-access';
 import CancelPaymentDialog from '@features/billing/ui/cancel-payment-dialog';
 import RefundPaymentDialog from '@features/billing/ui/refund-payment-dialog';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface PaymentDetailClientProps {
   payment: PaymentListItem;
@@ -31,6 +33,10 @@ export default function PaymentDetailClient({
   const t = useTranslations('payments');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const payCurrency = (payment.currency_code?.trim() || tenantCurrency) as string;
 
   // ---- Edit Notes State ----
   const [showEditNotes, setShowEditNotes] = useState(false);
@@ -55,7 +61,14 @@ export default function PaymentDetailClient({
     }).format(new Date(dateStr));
   };
 
-  const fmtMoney = (val?: number) => (val != null ? val.toFixed(3) : '—');
+  const fmtMoney = (val?: number) =>
+    val != null
+      ? formatMoneyAmountWithCode(val, {
+          currencyCode: payCurrency,
+          decimalPlaces,
+          locale: moneyLocale,
+        })
+      : '—';
 
   // ---- Status Badge ----
   const statusBadge = (status: string) => {
@@ -220,7 +233,7 @@ export default function PaymentDetailClient({
                 <div className="flex justify-between">
                   <span className="text-gray-500">{t('detail.subtotal')}</span>
                   <span className="font-medium text-gray-900">
-                    {fmtMoney(payment.subtotal)} {payment.currency_code}
+                    {fmtMoney(payment.subtotal)}
                   </span>
                 </div>
               )}
@@ -228,7 +241,7 @@ export default function PaymentDetailClient({
                 <div className="flex justify-between">
                   <span className="text-gray-500">{t('detail.discount')}</span>
                   <span className="font-medium text-red-600">
-                    -{fmtMoney(payment.discount_amount)} {payment.currency_code}
+                    -{fmtMoney(payment.discount_amount)}
                   </span>
                 </div>
               )}
@@ -236,7 +249,7 @@ export default function PaymentDetailClient({
                 <div className="flex justify-between">
                   <span className="text-gray-500">{t('detail.tax')}</span>
                   <span className="font-medium text-gray-900">
-                    {fmtMoney(payment.tax)} {payment.currency_code}
+                    {fmtMoney(payment.tax)}
                   </span>
                 </div>
               )}
@@ -244,14 +257,14 @@ export default function PaymentDetailClient({
                 <div className="flex justify-between">
                   <span className="text-gray-500">{t('detail.vat')}</span>
                   <span className="font-medium text-gray-900">
-                    {fmtMoney(payment.vat)} {payment.currency_code}
+                    {fmtMoney(payment.vat)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between border-t border-gray-200 pt-2">
                 <span className="font-semibold text-gray-900">{t('detail.total')}</span>
                 <span className="font-bold text-gray-900">
-                  {fmtMoney(payment.paid_amount)} {payment.currency_code}
+                  {fmtMoney(payment.paid_amount)}
                 </span>
               </div>
             </div>

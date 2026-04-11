@@ -143,7 +143,7 @@ export default async function ErpLiteBankReconPage({
                   options={snapshot.bank_gl_account_options.map((item) => ({ value: item.id, label: item.label }))}
                   required
                 />
-                <CmxInput name="currency_code" label={t('forms.bankAccount.fields.currencyCode')} placeholder="OMR" required />
+                <CmxInput name="currency_code" label={t('forms.bankAccount.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxSelect
                   name="stmt_import_mode"
                   label={t('forms.bankAccount.fields.importMode')}

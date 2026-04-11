@@ -6,7 +6,9 @@
  */
 
 import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmountWithCode, roundMoneyAmount } from '@/lib/money/format-money'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
 import { CmxButton } from '@ui/primitives'
@@ -38,6 +40,12 @@ export function PriceOverrideModal({
 }: PriceOverrideModalProps) {
     const t = useTranslations('newOrder')
     const isRTL = useRTL()
+    const locale = useLocale()
+    const { currencyCode, decimalPlaces } = useTenantCurrency()
+    const moneyLocale = locale === 'ar' ? 'ar' : 'en'
+    const fmt = (n: number) =>
+        formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
+    const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces
     const [overridePrice, setOverridePrice] = useState(
         item.currentPrice ? String(item.currentPrice) : String(item.calculatedPrice)
     )
@@ -139,7 +147,7 @@ export function PriceOverrideModal({
                         <p className="text-sm font-medium text-gray-900 mb-2">{item.productName}</p>
                         <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
                             <span>Quantity: {item.quantity}</span>
-                            <span>Calculated Price: {item.calculatedPrice.toFixed(3)} OMR</span>
+                            <span>Calculated Price: {fmt(item.calculatedPrice)}</span>
                         </div>
                     </div>
 
@@ -149,7 +157,7 @@ export function PriceOverrideModal({
                             Calculated Price (Read-only)
                         </label>
                         <CmxInput
-                            value={item.calculatedPrice.toFixed(3)}
+                            value={String(roundMoneyAmount(item.calculatedPrice, decimalPlaces))}
                             disabled
                             className="bg-gray-50"
                         />
@@ -158,11 +166,11 @@ export function PriceOverrideModal({
                     {/* Override Price */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Override Price (OMR) *
+                            Override Price ({currencyCode}) *
                         </label>
                         <CmxInput
                             type="number"
-                            step="0.001"
+                            step={priceStep}
                             min="0"
                             value={overridePrice}
                             onChange={(e) => setOverridePrice(e.target.value)}
@@ -173,7 +181,7 @@ export function PriceOverrideModal({
                         )}
                         {!errors.price && priceDiff !== 0 && (
                             <p className={`mt-1 text-sm ${priceDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                {priceDiff > 0 ? '+' : ''}{priceDiff.toFixed(3)} OMR ({priceDiffPercent}%)
+                                {priceDiff > 0 ? '+' : ''}{fmt(priceDiff)} ({priceDiffPercent}%)
                                 {priceDiff > 0 ? ' increase' : ' decrease'}
                             </p>
                         )}

@@ -2521,7 +2521,7 @@
         "collectBeforeHandover": "Collect payment before handover",
         "noInvoiceForPayment": "No invoice found for this order. Create an invoice from Billing → Invoices to record payment.",
         "applyPaymentTo": "Apply payment to",
-        "invoiceOption": "Invoice {invoiceNo} ({remaining} OMR due)",
+        "invoiceOption": "Invoice {invoiceNo} — {remaining}",
         "distributeAcrossInvoices": "Distribute across all invoices (oldest first)",
         "applyToSelectedInvoice": "Apply to selected invoice",
         "orPayPerInvoiceHint": "Alternatively, go to Billing → Invoices to record payments for each invoice separately."

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface PricePreviewProps {
   orderId: string;
 }
 
 export function PricePreview({ orderId }: PricePreviewProps) {
+  const { formatMoneyWithCode } = useTenantCurrency();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{ subtotal: number; tax: number; total: number; total_items: number } | null>(null);
 
@@ -41,15 +43,15 @@ export function PricePreview({ orderId }: PricePreviewProps) {
       </div>
       <div className="flex justify-between text-sm mt-1">
         <span>Subtotal</span>
-        <span>{data.subtotal.toFixed(3)} OMR</span>
+        <span>{formatMoneyWithCode(data.subtotal)}</span>
       </div>
       <div className="flex justify-between text-sm mt-1">
         <span>Tax</span>
-        <span>{data.tax.toFixed(3)} OMR</span>
+        <span>{formatMoneyWithCode(data.tax)}</span>
       </div>
       <div className="flex justify-between text-sm mt-2 font-semibold">
         <span>Total</span>
-        <span>{data.total.toFixed(3)} OMR</span>
+        <span>{formatMoneyWithCode(data.total)}</span>
       </div>
     </div>
   );

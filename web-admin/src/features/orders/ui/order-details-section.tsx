@@ -6,7 +6,7 @@
 'use client';
 
 import { Fragment, useMemo, useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Trash2, Minus, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
@@ -18,6 +18,8 @@ import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 const VIRTUALIZED_ITEM_LIMIT = 1000;
 
@@ -46,6 +48,15 @@ export function OrderDetailsSection({
   smartSuggestionsEnabled = false,
   enforcePrefCompatibility = false,
 }: OrderDetailsSectionProps) {
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmtMoney = (amount: number) =>
+    formatMoneyAmountWithCode(amount, {
+      currencyCode: currencyCode as string,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
   const {
     state,
     updateItemQuantity,
@@ -196,15 +207,15 @@ export function OrderDetailsSection({
             <div className="space-y-1">
               <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-gray-500">{tItems('itemsSubtotal') || 'Items'}</span>
-                <span>{currencyCode} {(totals.subtotal - totals.servicePrefCharge).toFixed(3)}</span>
+                <span>{fmtMoney(totals.subtotal - totals.servicePrefCharge)}</span>
               </div>
               <div className={`flex justify-between gap-4 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span className="text-gray-500">{tItems('additionalServices') || 'Additional Services'}</span>
-                <span>{currencyCode} {totals.servicePrefCharge.toFixed(3)}</span>
+                <span>{fmtMoney(totals.servicePrefCharge)}</span>
               </div>
               <div className={`flex justify-between gap-4 text-sm font-bold pt-1 border-t border-gray-200 ${isRTL ? 'flex-row-reverse' : ''}`}>
                 <span>{tItems('total') || 'Total'}</span>
-                <span>{currencyCode} {totals.subtotal.toFixed(3)}</span>
+                <span>{fmtMoney(totals.subtotal)}</span>
               </div>
             </div>
           ) : (
@@ -213,7 +224,7 @@ export function OrderDetailsSection({
                 {tItems('total') || 'Total'}
               </p>
               <p className="text-lg font-bold text-gray-900">
-                {currencyCode} {totals.subtotal.toFixed(3)}
+                {fmtMoney(totals.subtotal)}
               </p>
             </>
           )}
@@ -367,7 +378,7 @@ export function OrderDetailsSection({
                       className={`text-sm text-gray-900 ${isRTL ? 'text-right' : 'text-left'
                         }`}
                     >
-                      {currencyCode} {(item.pricePerUnit + (item.servicePrefCharge ?? 0) / item.quantity).toFixed(3)}
+                      {fmtMoney(item.pricePerUnit + (item.servicePrefCharge ?? 0) / item.quantity)}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">
@@ -375,7 +386,7 @@ export function OrderDetailsSection({
                       className={`text-sm font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'
                         }`}
                     >
-                      {currencyCode} {calculateItemTotal(item).toFixed(3)}
+                      {fmtMoney(calculateItemTotal(item))}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">

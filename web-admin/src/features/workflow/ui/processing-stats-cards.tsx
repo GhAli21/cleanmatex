@@ -5,8 +5,10 @@
 
 'use client';
 
+import { useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import type { ProcessingStats } from '@/types/processing';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface ProcessingStatsCardsProps {
   stats: ProcessingStats;
@@ -14,35 +16,39 @@ interface ProcessingStatsCardsProps {
 
 export function ProcessingStatsCards({ stats }: ProcessingStatsCardsProps) {
   const t = useTranslations('processing.stats');
+  const { formatMoneyWithCode } = useTenantCurrency();
 
-  const statItems = [
-    {
-      label: t('orders'),
-      value: stats.orders,
-      format: (val: number) => val.toString(),
-    },
-    {
-      label: t('pieces'),
-      value: stats.pieces,
-      format: (val: number) => val.toString(),
-    },
-    {
-      label: t('weight'),
-      value: stats.weight,
-      format: (val: number) => `${val}kg`,
-    },
-    {
-      label: t('value'),
-      value: stats.value,
-      format: (val: number) => `OMR ${val.toFixed(3)}`,
-    },
-    {
-      label: t('unpaid'),
-      value: stats.unpaid,
-      format: (val: number) => `OMR ${val.toFixed(3)}`,
-      highlight: true,
-    },
-  ];
+  const statItems = useMemo(
+    () => [
+      {
+        label: t('orders'),
+        value: stats.orders,
+        format: (val: number) => val.toString(),
+      },
+      {
+        label: t('pieces'),
+        value: stats.pieces,
+        format: (val: number) => val.toString(),
+      },
+      {
+        label: t('weight'),
+        value: stats.weight,
+        format: (val: number) => `${val}kg`,
+      },
+      {
+        label: t('value'),
+        value: stats.value,
+        format: (val: number) => formatMoneyWithCode(val),
+      },
+      {
+        label: t('unpaid'),
+        value: stats.unpaid,
+        format: (val: number) => formatMoneyWithCode(val),
+        highlight: true,
+      },
+    ],
+    [formatMoneyWithCode, stats.orders, stats.pieces, stats.unpaid, stats.value, stats.weight, t]
+  );
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">

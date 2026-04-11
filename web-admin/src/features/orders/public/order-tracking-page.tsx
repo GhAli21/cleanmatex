@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useTranslations } from 'next-intl';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface PublicOrderTotals {
     subtotal: number | null;
@@ -54,17 +56,36 @@ interface PublicOrderTrackingPageProps {
     orderNo: string;
 }
 
+interface PublicOrderMoneyConfig {
+    currencyCode: string;
+    decimalPlaces: number;
+}
+
 interface ApiResponse {
     success: boolean;
     data?: {
         order: PublicOrderData;
         timeline: PublicOrderTimelineEntry[];
+        moneyConfig?: PublicOrderMoneyConfig;
     };
     error?: string;
 }
 
 export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTrackingPageProps) {
     const isRTL = useRTL();
+    const locale = useLocale();
+    const { currencyCode: ctxCurrencyCode, decimalPlaces: ctxDecimalPlaces } = useTenantCurrency();
+    const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+    const [moneyConfigFromApi, setMoneyConfigFromApi] = useState<PublicOrderMoneyConfig | null>(null);
+    const fmt = useMemo(
+        () => {
+            const currencyCode = moneyConfigFromApi?.currencyCode ?? ctxCurrencyCode;
+            const decimalPlaces = moneyConfigFromApi?.decimalPlaces ?? ctxDecimalPlaces;
+            return (n: number) =>
+                formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
+        },
+        [moneyConfigFromApi, ctxCurrencyCode, ctxDecimalPlaces, moneyLocale],
+    );
     const t = useTranslations('publicOrderTracking');
     const tCommon = useTranslations('common');
     const tOrders = useTranslations('orders');
@@ -103,6 +124,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                 if (!cancelled) {
                     setOrder(json.data.order);
                     setTimeline(json.data.timeline || []);
+                    setMoneyConfigFromApi(json.data.moneyConfig ?? null);
                     setConfirmSuccess(null);
                 }
             } catch (err) {
@@ -267,7 +289,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                                 {t('totalAmountLabel')}
                             </p>
                             <p className="text-sm font-semibold text-slate-900">
-                                {(order.totals.total ?? 0).toFixed(3)} OMR
+                                {fmt(order.totals.total ?? 0)}
                             </p>
                             <p className="text-xs text-emerald-700 mt-1">{paymentLabel}</p>
                         </div>
@@ -374,7 +396,7 @@ export function PublicOrderTrackingPage({ tenantId, orderNo }: PublicOrderTracki
                                             })}
                                         </span>
                                         <span className="text-xs font-medium text-slate-900">
-                                            {item.totalPrice.toFixed(3)} OMR
+                                            {fmt(item.totalPrice)}
                                         </span>
                                     </div>
                                 </li>

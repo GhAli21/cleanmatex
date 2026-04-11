@@ -21,6 +21,7 @@ import {
 } from '@ui/overlays';
 import { CmxButton, CmxInput, Label } from '@ui/primitives';
 import type { ProcessingOrder, SortField, SortDirection } from '@/types/processing';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 const sortableHeaderClass =
   'px-4 py-3 text-left text-sm font-semibold text-gray-700 cursor-pointer hover:bg-gray-100 transition-colors rtl:text-right';
@@ -160,6 +161,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOr
   const router = useRouter();
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
+  const { formatMoneyWithCode } = useTenantCurrency();
   const isPaid = order.payment_status === 'paid';
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
@@ -341,7 +343,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOr
 
         {/* TOTAL */}
         <td className="px-4 py-4 text-right">
-          <div className="font-semibold">OMR {order.total.toFixed(3)}</div>
+          <div className="font-semibold">{formatMoneyWithCode(order.total)}</div>
         </td>
 
         {/* STATUS - Action Icons */}
@@ -591,6 +593,7 @@ function ProcessingOrderCard({
   const router = useRouter();
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
+  const { formatMoneyWithCode } = useTenantCurrency();
   const isPaid = order.payment_status === 'paid';
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
@@ -705,7 +708,7 @@ function ProcessingOrderCard({
         </div>
         <div className="text-right">
           <span className="text-gray-600">{t('total')}: </span>
-          <span className="font-semibold">OMR {order.total.toFixed(3)}</span>
+          <span className="font-semibold">{formatMoneyWithCode(order.total)}</span>
         </div>
       </div>
 

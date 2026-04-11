@@ -15,6 +15,7 @@ import { createTenantSettingsService } from './tenant-settings.service';
 import { validatePromoCode } from './discount-service';
 import { validateGiftCard } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
 export interface OrderCalculationParams {
   tenantId: string;
@@ -95,7 +96,7 @@ export async function calculateOrderTotals(
     userId
   );
   const decimalPlaces = currencyConfig.decimalPlaces ?? 3;
-  const currencyCode = currencyConfig.currencyCode ?? 'OMR';
+  const currencyCode = currencyConfig.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
 
   if (items.length === 0) {
     return {

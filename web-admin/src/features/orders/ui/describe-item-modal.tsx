@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface DescribeItemModalProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function DescribeItemModal({
   const t = useTranslations('newOrder.itemsGrid');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const { currencyCode, decimalPlaces, formatMoneyWithCode } = useTenantCurrency();
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [pricePerItem, setPricePerItem] = useState(0);
@@ -145,17 +147,17 @@ export function DescribeItemModal({
                 value={pricePerItem}
                 onChange={(e) => setPricePerItem(parseFloat(e.target.value) || 0)}
                 min="0"
-                step="0.001"
+                step={10 ** -decimalPlaces}
                 dir="ltr"
                 className={`w-full px-4 py-3 ${isRTL ? 'pl-16 pr-4' : 'pr-16 pl-4'} border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base`}
                 required
               />
               <span className={`absolute ${isRTL ? 'left-4' : 'right-4'} top-1/2 -translate-y-1/2 text-gray-500 font-medium`}>
-                OMR
+                {currencyCode}
               </span>
             </div>
             <p className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t('total')}: {(pricePerItem * quantity).toFixed(3)} OMR
+              {t('total')}: {formatMoneyWithCode(pricePerItem * quantity)}
             </p>
           </div>
 

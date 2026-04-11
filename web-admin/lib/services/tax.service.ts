@@ -6,6 +6,8 @@
  * → TENANT_OVERRIDE → BRANCH_OVERRIDE → USER_OVERRIDE).
  */
 
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { roundMoneyAmount } from '@/lib/money/format-money';
 import {
   tenantSettingsService,
   SETTING_CODES,
@@ -98,10 +100,15 @@ export class TaxService {
    * Calculate tax amount
    * @param amount - Amount to calculate tax on
    * @param taxRate - Tax rate as decimal (e.g., 0.05 for 5%)
+   * @param decimalPlaces - Tenant fraction digits (defaults to ORDER_DEFAULTS)
    * @returns number - Tax amount
    */
-  calculateTax(amount: number, taxRate: number): number {
-    return parseFloat((amount * taxRate).toFixed(3));
+  calculateTax(
+    amount: number,
+    taxRate: number,
+    decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
+  ): number {
+    return roundMoneyAmount(amount * taxRate, decimalPlaces);
   }
 
   /**

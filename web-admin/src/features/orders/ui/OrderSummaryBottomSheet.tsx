@@ -6,10 +6,12 @@
 
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { ShoppingCart, ChevronUp } from 'lucide-react';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface OrderSummaryBottomSheetProps {
   /** Item count */
@@ -52,6 +54,15 @@ export function OrderSummaryBottomSheet({
   const t = useTranslations('newOrder.orderSummary');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const locale = useLocale();
+  const { decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmtTotal = (n: number) =>
+    formatMoneyAmountWithCode(n, {
+      currencyCode: currencyCode as string,
+      decimalPlaces,
+      locale: moneyLocale,
+    });
 
   const hasItems = itemCount > 0;
 
@@ -118,7 +129,7 @@ export function OrderSummaryBottomSheet({
               <div className={`text-sm ${isRTL ? 'text-left' : 'text-right'}`}>
                 <p className="text-xs text-gray-500">{t('total')}</p>
                 <p className="font-bold text-gray-900">
-                  {currencyCode} {total.toFixed(3)}
+                  {fmtTotal(total)}
                 </p>
               </div>
               <button

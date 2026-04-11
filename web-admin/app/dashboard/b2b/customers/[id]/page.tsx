@@ -22,6 +22,7 @@ import {
   CustomerB2BStatementsTab,
 } from '@features/customers/ui/customer-b2b-tabs';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui/primitives/card';
 import { Button } from '@ui/primitives/button';
 
@@ -50,6 +51,7 @@ export default function B2BCustomerViewPage() {
   const [advancePending, startAdvanceTransition] = useTransition();
 
   const { currentTenant, user } = useAuth();
+  const { formatMoneyWithCode, decimalPlaces } = useTenantCurrency();
   const t = useTranslations('customers');
   const tB2b = useTranslations('b2b');
   const tCommon = useTranslations('common');
@@ -274,7 +276,7 @@ export default function B2BCustomerViewPage() {
           <div className="flex flex-wrap items-end gap-6">
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {advanceBalanceTotal.toFixed(3)} OMR
+                {formatMoneyWithCode(advanceBalanceTotal)}
               </p>
               {unappliedAdvancePayments.length > 0 && (
                 <p className="text-xs text-gray-500 mt-1">
@@ -288,7 +290,7 @@ export default function B2BCustomerViewPage() {
                 <div className="flex gap-2 items-center">
                   <input
                     type="number"
-                    step="0.001"
+                    step={10 ** -decimalPlaces}
                     min={0}
                     value={advanceAmount || ''}
                     onChange={(e) => setAdvanceAmount(Number(e.target.value) || 0)}

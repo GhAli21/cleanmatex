@@ -5,6 +5,7 @@
  */
 
 import { createClient } from '@/lib/supabase/client'
+import { tenantSettingsService } from '@/lib/services/tenant-settings.service'
 
 // ========================
 // Type Definitions
@@ -177,6 +178,12 @@ export class DashboardService {
         0
       )
 
+      const { currencyCode } = await tenantSettingsService.getCurrencyConfig(
+        tenantId,
+        branchId,
+        null
+      )
+
       const data: KPIOverview = {
         orders: {
           today: todayOrders.length,
@@ -192,7 +199,7 @@ export class DashboardService {
           today: revenueToday,
           mtd: revenueMtd,
           last30d: revenue30d,
-          currency: 'OMR',
+          currency: currencyCode,
           deltaToday: 0,
         },
         sla: { avgTATHours: 0, onTimePct: 0 },

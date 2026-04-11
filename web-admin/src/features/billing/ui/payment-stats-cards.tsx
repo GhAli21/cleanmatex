@@ -2,6 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import type { PaymentStats } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface PaymentStatsCardsProps {
   stats: PaymentStats | null;
@@ -9,6 +10,7 @@ interface PaymentStatsCardsProps {
 
 export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
   const t = useTranslations('payments.stats');
+  const { formatMoneyWithCode } = useTenantCurrency();
 
   if (!stats) {
     return null;
@@ -40,7 +42,7 @@ export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
       <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <div className="text-sm text-gray-600">{t('totalAmount')}</div>
         <div className="mt-1 text-2xl font-bold text-blue-700">
-          {stats.totalAmount.toFixed(3)} OMR
+          {formatMoneyWithCode(stats.totalAmount)}
         </div>
       </div>
 
@@ -51,7 +53,7 @@ export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
           {completedStats.count}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {completedStats.amount.toFixed(3)} OMR
+          {formatMoneyWithCode(completedStats.amount)}
         </div>
       </div>
 
@@ -62,7 +64,7 @@ export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
           {pendingStats.count}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {pendingStats.amount.toFixed(3)} OMR
+          {formatMoneyWithCode(pendingStats.amount)}
         </div>
       </div>
 
@@ -73,7 +75,7 @@ export default function PaymentStatsCards({ stats }: PaymentStatsCardsProps) {
           {failedStats.count}
         </div>
         <div className="text-xs text-gray-500 mt-1">
-          {failedStats.amount.toFixed(3)} OMR
+          {formatMoneyWithCode(failedStats.amount)}
         </div>
       </div>
 

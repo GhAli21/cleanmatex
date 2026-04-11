@@ -17,7 +17,9 @@ import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 
-import { useRTL } from '@/lib/hooks/useRTL';
+import { useLocale, useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { resolveMoneyIntlLocale } from '@/lib/money/format-money';
 import type { OrderListItem } from '@/types/order';
 import { formatPrice } from '@/lib/utils/pricing-calculator';
 import { formatReadyByDate } from '@/lib/utils/ready-by-calculator';
@@ -39,6 +41,8 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
   const tPieces = useTranslations('newOrder.pieces');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
+  const uiLocale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
 
@@ -138,7 +142,12 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                   </div>
                 </td>
                 <td className={`px-4 py-3 font-medium ${isRTL ? 'text-left' : 'text-right'}`}>
-                  {formatPrice(order.total)}
+                  {formatPrice(
+                    order.total,
+                    currencyCode,
+                    resolveMoneyIntlLocale(uiLocale),
+                    decimalPlaces,
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   {order.ready_by ? (

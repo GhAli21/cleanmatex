@@ -15,6 +15,7 @@ import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import type {
   Invoice,
   InvoiceStatus,
@@ -120,7 +121,7 @@ export async function createInvoice(
           invoice_no: invoice.invoice_no ?? null,
           order_id: invoice.order_id ?? null,
           branch_id: invoice.branch_id ?? null,
-          currency_code: invoice.currency_code ?? 'OMR',
+          currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
           exchange_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
           invoice_date: now.toISOString().slice(0, 10),
           subtotal: Number(invoice.subtotal ?? 0),
@@ -859,16 +860,3 @@ function mapInvoiceToType(invoice: any): Invoice {
   };
 }
 
-/**
- * Format amount to OMR currency
- */
-export function formatOMR(amount: number): string {
-  return `OMR ${amount.toFixed(3)}`;
-}
-
-/**
- * Parse OMR string to number
- */
-export function parseOMR(omrString: string): number {
-  return parseFloat(omrString.replace('OMR', '').trim());
-}

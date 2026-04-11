@@ -1,10 +1,12 @@
 'use client';
 
 import { useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { Invoice } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface ColumnDef {
   key: string;
@@ -61,6 +63,9 @@ export default function InvoicesTable({
   const t = useTranslations('invoices');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const navigate = useCallback(
     (params: Record<string, string>) => {
@@ -107,7 +112,14 @@ export default function InvoicesTable({
     }).format(new Date(dateStr));
   };
 
-  const fmtMoney = (val?: number) => (val != null ? val.toFixed(3) : '—');
+  const fmtInvMoney = (val?: number | null, invCurrency?: string | null) =>
+    val != null
+      ? formatMoneyAmountWithCode(val, {
+          currencyCode: ((invCurrency ?? tenantCurrency) as string).trim() || tenantCurrency,
+          decimalPlaces,
+          locale: moneyLocale,
+        })
+      : '—';
 
   const statusBadge = (status: string) => {
     const cls: Record<string, string> = {
@@ -169,7 +181,7 @@ export default function InvoicesTable({
       case 'vatAmount':
       case 'total':
       case 'paidAmount':
-        return fmtMoney(
+        return fmtInvMoney(
           col.key === 'subtotal'
             ? inv.subtotal
             : col.key === 'discount'
@@ -181,6 +193,7 @@ export default function InvoicesTable({
                   : col.key === 'total'
                     ? inv.total
                     : inv.paid_amount,
+          inv.currency_code,
         );
       case 'status':
         return (
@@ -193,7 +206,11 @@ export default function InvoicesTable({
       case 'paymentMethod':
         return inv.payment_method_code ?? '—';
       case 'balance':
-        return <span className={balance > 0 ? 'text-orange-700 font-medium' : ''}>{fmtMoney(balance)}</span>;
+        return (
+          <span className={balance > 0 ? 'text-orange-700 font-medium' : ''}>
+            {fmtInvMoney(balance, inv.currency_code)}
+          </span>
+        );
       case 'paidAt':
         return fmtDateTime(inv.paid_at);
       case 'paidByName':
@@ -203,7 +220,7 @@ export default function InvoicesTable({
       case 'handedToMobileNo':
         return inv.handed_to_mobile_no ?? '—';
       case 'currency':
-        return inv.currency_code ?? 'OMR';
+        return inv.currency_code?.trim() || tenantCurrency;
       case 'createdAt':
         return fmtDateTime(inv.created_at);
       case 'actions':

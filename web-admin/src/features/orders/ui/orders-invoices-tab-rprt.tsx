@@ -3,6 +3,8 @@
 import { useRouter } from 'next/navigation';
 import { FileText, CreditCard, Receipt } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CmxButton } from '@ui/primitives';
 import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import type { Invoice } from '@/lib/types/payment';
@@ -26,6 +28,8 @@ export function OrdersInvoicesTabRprt({
 }: OrdersInvoicesTabRprtProps) {
   const router = useRouter();
   const isRTL = useRTL();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = isRTL ? 'ar' : 'en';
 
   const goToPayments = (invoiceId: string) => {
     router.replace(
@@ -81,7 +85,11 @@ export function OrdersInvoicesTabRprt({
               <CmxCopyableCell value={inv.id} maxLength={8} align={isRTL ? 'right' : 'left'} />
               <CmxCopyableCell value={inv.invoice_no ?? inv.id.slice(0, 8)} align={isRTL ? 'right' : 'left'} />
               <CmxCopyableCell
-                value={`${Number(inv.total ?? 0).toFixed(3)} OMR`}
+                value={formatMoneyAmountWithCode(Number(inv.total ?? 0), {
+                  currencyCode: (inv.currency_code?.trim() || currencyCode) as string,
+                  decimalPlaces,
+                  locale: moneyLocale,
+                })}
                 align={isRTL ? 'right' : 'left'}
               />
               <td className={`px-4 py-3 ${isRTL ? 'text-right' : 'text-left'}`}>

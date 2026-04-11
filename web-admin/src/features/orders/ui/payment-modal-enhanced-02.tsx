@@ -402,7 +402,7 @@ export function PaymentModalEnhanced02({
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
     const taxAmount = orderTaxAmount > 0 ? orderTaxAmount : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(decimalPlaces));
     const afterTax = afterDiscounts + taxAmount;
-    const vatValue = parseFloat((afterTax * taxRate).toFixed(3));
+    const vatValue = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
     const giftCardApplied = appliedGiftCard?.amount || 0;
     const finalTotal = Math.max(0, afterTax + vatValue - giftCardApplied);
     return {

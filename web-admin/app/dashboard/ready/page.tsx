@@ -7,11 +7,13 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { Search, ChevronDown } from 'lucide-react';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface ReadyOrder {
   id: string;
@@ -28,6 +30,11 @@ interface ReadyOrder {
 
 export default function ReadyPage() {
   const t = useTranslations('workflow');
+  const locale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
+  const fmt = (n: number) =>
+    formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale });
   const { currentTenant } = useAuth();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const [page, setPage] = useState(1);
@@ -178,12 +185,12 @@ export default function ReadyPage() {
                 )}
                 <div className="flex items-center gap-2">
                   <span className="font-medium">{t('ready.total')}:</span>
-                  <span className="font-bold text-green-600">{order.total?.toFixed(2)} OMR</span>
+                  <span className="font-bold text-green-600">{fmt(Number(order.total ?? 0))}</span>
                 </div>
                 {order.remaining > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-amber-600">{t('ready.paymentSection.remainingDue')}:</span>
-                    <span className="font-bold text-amber-700">{order.remaining.toFixed(3)} OMR</span>
+                    <span className="font-bold text-amber-700">{fmt(order.remaining)}</span>
                   </div>
                 )}
               </div>

@@ -7,7 +7,7 @@
  * Order Defaults Configuration
  */
 export const ORDER_DEFAULTS = {
-  CURRENCY: 'OMR',
+  CURRENCY: 'USD',
   DEBOUNCE_MS: {
     ESTIMATION: 400,
     SEARCH: 300,

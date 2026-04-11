@@ -4,6 +4,9 @@
  * Helper functions for handling RTL layouts
  */
 
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults'
+import { formatMoneyAmount } from '@/lib/money/format-money'
+
 /**
  * Check if current locale is RTL
  */
@@ -38,20 +41,21 @@ export function formatNumber(num: number, locale?: 'en' | 'ar'): string {
 }
 
 /**
- * Format currency for current locale
+ * Format currency for current locale.
+ * @param decimalPlaces — tenant fraction digits; defaults to {@link ORDER_DEFAULTS.PRICE.DECIMAL_PLACES}
  */
 export function formatCurrency(
   amount: number,
-  currency: string = 'OMR',
-  locale?: 'en' | 'ar'
+  currency: string = ORDER_DEFAULTS.CURRENCY,
+  locale?: 'en' | 'ar',
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
   const currentLocale = locale || getCurrentLocale()
-  return new Intl.NumberFormat(currentLocale === 'ar' ? 'ar-OM' : 'en-OM', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(amount)
+  return formatMoneyAmount(amount, {
+    currencyCode: currency,
+    decimalPlaces,
+    locale: currentLocale,
+  })
 }
 
 /**

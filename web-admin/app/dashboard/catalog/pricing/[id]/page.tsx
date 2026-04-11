@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { CmxInput } from '@ui/primitives'
 import { CmxCard } from '@ui/primitives/cmx-card'
@@ -30,6 +30,8 @@ import { PriceListItemModal } from '@features/catalog/ui/price-list-item-modal'
 import { BulkImportModal } from '@features/catalog/ui/bulk-import-modal'
 import { PriceHistoryTimeline } from '@features/catalog/ui/price-history-timeline'
 import { showSuccessToast, showErrorToast } from '@/src/ui/feedback/cmx-toast'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money'
 
 type TabId = 'items' | 'settings' | 'history'
 
@@ -413,6 +415,11 @@ function ItemsTab({
   const t = useTranslations('catalog')
   const tCommon = useTranslations('common')
   const isRTL = useRTL()
+  const intlLocale = useLocale()
+  const { currencyCode, decimalPlaces } = useTenantCurrency()
+  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en'
+  const fmtPrice = (n: number) =>
+    formatMoneyAmountWithCode(n, { currencyCode, decimalPlaces, locale: moneyLocale })
   const [importingAll, setImportingAll] = useState(false)
   const [showImportConfirm, setShowImportConfirm] = useState(false)
   const [overwriteExisting, setOverwriteExisting] = useState(false)
@@ -546,7 +553,7 @@ function ItemsTab({
             <thead>
               <tr className="bg-gray-50 text-left border-b">
                 <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Price (OMR)</th>
+                <th className="px-4 py-3">Price ({currencyCode})</th>
                 <th className="px-4 py-3">Discount %</th>
                 <th className="px-4 py-3">Quantity Range</th>
                 <th className="px-4 py-3">Status</th>
@@ -564,7 +571,7 @@ function ItemsTab({
                       )}
                     </div>
                   </td>
-                  <td className="px-4 py-3">{Number(item.price).toFixed(3)}</td>
+                  <td className="px-4 py-3">{fmtPrice(Number(item.price))}</td>
                   <td className="px-4 py-3">{Number(item.discount_percent || 0).toFixed(2)}%</td>
                   <td className="px-4 py-3">
                     {item.min_quantity}

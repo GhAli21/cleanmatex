@@ -6,6 +6,7 @@ import { Plus, Trash2, Upload, Camera, CheckCircle, AlertCircle } from 'lucide-r
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useMessage } from '@ui/feedback';
 import { addOrderItems } from '@/app/actions/orders/add-order-items';
 import { completePreparation } from '@/app/actions/orders/complete-preparation';
@@ -44,6 +45,8 @@ export function PreparationForm({ order }: PreparationFormProps) {
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
   const { currentTenant, user } = useAuth();
+  const { formatMoneyWithCode, currencyCode, decimalPlaces } = useTenantCurrency();
+  const priceStep = decimalPlaces <= 0 ? 1 : 10 ** -decimalPlaces;
   const { showErrorFrom } = useMessage();
   const [items, setItems] = useState<ItemFormData[]>([]);
   const [photoUrls, setPhotoUrls] = useState<string[]>([]);
@@ -382,14 +385,14 @@ export function PreparationForm({ order }: PreparationFormProps) {
                 {/* Price */}
                 <div>
                   <label htmlFor={`price_${item.tempId}`} className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {t('price')} (OMR) <span className="text-red-500">*</span>
+                    {t('price')} ({currencyCode}) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
                     id={`price_${item.tempId}`}
                     name={`price_${item.tempId}`}
-                    step="0.001"
-                    min="0.001"
+                    step={priceStep}
+                    min={priceStep}
                     value={item.price_per_unit}
                     onChange={(e) => updateItem(item.tempId, 'price_per_unit', e.target.value)}
                     dir={isRTL ? 'rtl' : 'ltr'}
@@ -514,7 +517,7 @@ export function PreparationForm({ order }: PreparationFormProps) {
                 <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
                   <span className="text-gray-600">{t('itemTotal')}:</span>
                   <span className="font-semibold text-gray-900">
-                    {(parseFloat(item.price_per_unit) * item.quantity).toFixed(3)} OMR
+                    {formatMoneyWithCode(parseFloat(item.price_per_unit) * item.quantity)}
                   </span>
                 </div>
               </div>
@@ -554,16 +557,16 @@ export function PreparationForm({ order }: PreparationFormProps) {
           </div>
           <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
             <span className="text-gray-600">{t('subtotal')}:</span>
-            <span className="font-medium text-gray-900">{totalAmount.toFixed(3)} OMR</span>
+            <span className="font-medium text-gray-900">{formatMoneyWithCode(totalAmount)}</span>
           </div>
           <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
             <span className="text-gray-600">{t('tax')}:</span>
-            <span className="font-medium text-gray-900">{taxAmount.toFixed(3)} OMR</span>
+            <span className="font-medium text-gray-900">{formatMoneyWithCode(taxAmount)}</span>
           </div>
           <div className="pt-3 border-t border-gray-200">
             <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
               <span className="text-base font-semibold text-gray-900">{t('grandTotal')}:</span>
-              <span className="text-xl font-bold text-gray-900">{grandTotal.toFixed(3)} OMR</span>
+              <span className="text-xl font-bold text-gray-900">{formatMoneyWithCode(grandTotal)}</span>
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { UsageWidget } from './UsageWidget'
 import {
@@ -30,6 +31,7 @@ export default function DashboardContent() {
   const t = useTranslations('dashboard')
   const tLayout = useTranslations('layout.topBar')
   const isRTL = useRTL()
+  const { formatMoneyWithCode } = useTenantCurrency()
 
   return (
     <div className="space-y-6">
@@ -77,8 +79,8 @@ export default function DashboardContent() {
           <h3 className="text-sm font-medium text-gray-500 mb-2">
             {t('todayRevenue')}
           </h3>
-          <p className="text-3xl font-bold text-gray-900">0.000</p>
-          <p className="mt-2 text-sm text-gray-600">OMR</p>
+          <p className="text-3xl font-bold text-gray-900">{formatMoneyWithCode(0)}</p>
+          <p className="mt-2 text-sm text-gray-600">{t('revenue')}</p>
         </div>
       </div>
 

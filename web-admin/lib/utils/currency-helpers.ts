@@ -3,26 +3,28 @@
  * Utilities for currency formatting and parsing
  */
 
+import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { formatCurrency as formatCurrencyUtil, getCurrentLocale } from './rtl';
 
-/**
- * Default currency code
- */
-const DEFAULT_CURRENCY = 'OMR';
+export { formatMoneyAmount, roundMoneyAmount } from '@/lib/money/format-money';
+
+const DEFAULT_CURRENCY = ORDER_DEFAULTS.CURRENCY;
 
 /**
  * Formats currency amount for display
  * @param amount - Amount to format
- * @param currency - Currency code (default: 'OMR')
+ * @param currency - Currency code (default: tenant default from ORDER_DEFAULTS)
  * @param locale - Locale override (optional)
+ * @param decimalPlaces - Fraction digits from tenant settings when known
  * @returns Formatted currency string
  */
 export function formatCurrency(
   amount: number,
   currency: string = DEFAULT_CURRENCY,
-  locale?: 'en' | 'ar'
+  locale?: 'en' | 'ar',
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
-  return formatCurrencyUtil(amount, currency, locale);
+  return formatCurrencyUtil(amount, currency, locale, decimalPlaces);
 }
 
 /**
@@ -33,10 +35,11 @@ export function formatCurrency(
  */
 export function formatCurrencyForCurrentLocale(
   amount: number,
-  currency: string = DEFAULT_CURRENCY
+  currency: string = DEFAULT_CURRENCY,
+  decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 ): string {
   const locale = getCurrentLocale();
-  return formatCurrency(amount, currency, locale);
+  return formatCurrency(amount, currency, locale, decimalPlaces);
 }
 
 /**
@@ -74,12 +77,11 @@ export function getCurrencySymbol(currency: string = DEFAULT_CURRENCY): string {
 }
 
 /**
- * Validates currency code
- * @param currency - Currency code to validate
- * @returns True if valid, false otherwise
+ * Validates currency code (ISO 4217 alphabetic, case-insensitive).
+ * Avoids rejecting tenant-configured codes that are valid for Intl but not in a short allowlist.
  */
 export function isValidCurrencyCode(currency: string): boolean {
-  const validCodes = ['OMR', 'USD', 'EUR', 'GBP', 'SAR', 'AED'];
-  return validCodes.includes(currency.toUpperCase());
+  const c = currency?.trim();
+  return /^[A-Za-z]{3}$/.test(c);
 }
 

@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
@@ -33,6 +34,7 @@ export default function ReadyDetailPage() {
   const tInvoices = useTranslations('invoices');
   const tPieces = useTranslations('newOrder.pieces');
   const { currentTenant, user } = useAuth();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const { showSuccess, showErrorFrom } = useMessage();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const transition = useOrderTransition();
@@ -214,7 +216,7 @@ export default function ReadyDetailPage() {
                       </p>
                     </div>
                     <span className="font-bold text-blue-600">
-                      {item.totalPrice.toFixed(2)} OMR
+                      {formatMoneyWithCode(item.totalPrice)}
                     </span>
                   </div>
 
@@ -259,7 +261,7 @@ export default function ReadyDetailPage() {
             <div className="flex items-center justify-between">
               <span className="font-medium text-gray-700">{t('ready.totalAmount')}:</span>
               <span className="font-bold text-2xl text-green-600">
-                {order.total.toFixed(2)} OMR
+                {formatMoneyWithCode(order.total)}
               </span>
             </div>
           </div>
@@ -280,17 +282,17 @@ export default function ReadyDetailPage() {
               <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">{t('ready.totalAmount')}</span>
-                  <span className="font-medium">{order.paymentSummary.total.toFixed(3)} OMR</span>
+                  <span className="font-medium">{formatMoneyWithCode(order.paymentSummary.total)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">{tOrders('paidAmount')}</span>
-                  <span className="font-medium text-green-700">{order.paymentSummary.paid.toFixed(3)} OMR</span>
+                  <span className="font-medium text-green-700">{formatMoneyWithCode(order.paymentSummary.paid)}</span>
                 </div>
                 {order.paymentSummary.remaining > 0 ? (
                   <>
                     <div className="flex justify-between text-sm font-semibold">
                       <span className="text-orange-600">{t('ready.paymentSection.remainingDue')}</span>
-                      <span className="text-orange-700">{order.paymentSummary.remaining.toFixed(3)} OMR</span>
+                      <span className="text-orange-700">{formatMoneyWithCode(order.paymentSummary.remaining)}</span>
                     </div>
                     {currentTenant?.tenant_id && orderId && (() => {
                       const invoicesWithBalance = order.invoices?.filter((inv) => inv.remaining > 0) ?? [];
@@ -341,7 +343,7 @@ export default function ReadyDetailPage() {
                                     <option key={inv.id} value={inv.id}>
                                       {t('ready.paymentSection.invoiceOption', {
                                         invoiceNo: inv.invoiceNo ?? inv.id.slice(0, 8),
-                                        remaining: inv.remaining.toFixed(3),
+                                        remaining: formatMoneyWithCode(inv.remaining),
                                       })}
                                     </option>
                                   ))}
@@ -366,7 +368,7 @@ export default function ReadyDetailPage() {
                                   <option key={inv.id} value={inv.id}>
                                     {t('ready.paymentSection.invoiceOption', {
                                       invoiceNo: inv.invoiceNo ?? inv.id.slice(0, 8),
-                                      remaining: inv.remaining.toFixed(3),
+                                      remaining: formatMoneyWithCode(inv.remaining),
                                     })}
                                   </option>
                                 ))}

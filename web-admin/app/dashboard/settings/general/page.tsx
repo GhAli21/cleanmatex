@@ -260,8 +260,8 @@ export default function GeneralSettingsPage() {
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="OMR">OMR - Omani Rial</option>
               <option value="SAR">SAR - Saudi Riyal</option>
+              <option value="OMR">OMR - Omani Rial</option>
               <option value="AED">AED - UAE Dirham</option>
               <option value="KWD">KWD - Kuwaiti Dinar</option>
               <option value="BHD">BHD - Bahraini Dinar</option>

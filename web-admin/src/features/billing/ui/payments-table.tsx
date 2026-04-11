@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { PaymentListItem } from '@/lib/types/payment';
@@ -9,6 +9,8 @@ import { RequireAnyPermission } from '@features/auth/ui/RequirePermission';
 import { BILLING_PAYMENTS_ACCESS } from '@features/billing/access/billing-access';
 import CancelPaymentDialog from './cancel-payment-dialog';
 import RefundPaymentDialog from './refund-payment-dialog';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 // ---------------------------------------------------------------------------
 // Column definition
@@ -89,6 +91,9 @@ export default function PaymentsTable({
   const t = useTranslations('payments');
   const tCommon = useTranslations('common');
   const router = useRouter();
+  const locale = useLocale();
+  const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
   const [cancelPaymentId, setCancelPaymentId] = useState<string | null>(null);
   const [refundPaymentId, setRefundPaymentId] = useState<string | null>(null);
 
@@ -133,8 +138,14 @@ export default function PaymentsTable({
     }).format(new Date(dateStr));
   };
 
-  const fmtMoney = (val?: number) =>
-    val != null ? val.toFixed(3) : '—';
+  const fmtRowMoney = (val?: number | null, rowCurrency?: string | null) =>
+    val != null
+      ? formatMoneyAmountWithCode(val, {
+          currencyCode: ((rowCurrency ?? tenantCurrency) as string).trim() || tenantCurrency,
+          decimalPlaces,
+          locale: moneyLocale,
+        })
+      : '—';
 
   const fmtPct = (val?: number) =>
     val != null ? `${val}%` : '—';
@@ -222,28 +233,28 @@ export default function PaymentsTable({
         return p.currency_code;
 
       case 'subtotal':
-        return fmtMoney(p.subtotal);
+        return fmtRowMoney(p.subtotal, p.currency_code);
 
       case 'discount':
-        return fmtMoney(p.discount_amount);
+        return fmtRowMoney(p.discount_amount, p.currency_code);
 
       case 'discountRate':
         return fmtPct(p.discount_rate);
 
       case 'manualDiscount':
-        return fmtMoney(p.manual_discount_amount);
+        return fmtRowMoney(p.manual_discount_amount, p.currency_code);
 
       case 'promoDiscount':
-        return fmtMoney(p.promo_discount_amount);
+        return fmtRowMoney(p.promo_discount_amount, p.currency_code);
 
       case 'giftCard':
-        return fmtMoney(p.gift_card_applied_amount);
+        return fmtRowMoney(p.gift_card_applied_amount, p.currency_code);
 
       case 'tax':
-        return fmtMoney(p.tax);
+        return fmtRowMoney(p.tax, p.currency_code);
 
       case 'vat':
-        return fmtMoney(p.vat);
+        return fmtRowMoney(p.vat, p.currency_code);
 
       case 'vatRate':
         return fmtPct(p.vat_rate);
@@ -251,7 +262,11 @@ export default function PaymentsTable({
       case 'amount':
         return (
           <span className="font-semibold">
-            {p.paid_amount.toFixed(3)} {p.currency_code}
+            {formatMoneyAmountWithCode(p.paid_amount, {
+              currencyCode: (p.currency_code?.trim() || tenantCurrency) as string,
+              decimalPlaces,
+              locale: moneyLocale,
+            })}
           </span>
         );
 

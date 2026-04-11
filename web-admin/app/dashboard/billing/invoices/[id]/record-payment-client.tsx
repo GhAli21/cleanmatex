@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Banknote } from 'lucide-react';
 import type { PaymentKind, PaymentMethodCode } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface RecordPaymentClientProps {
   tenantOrgId: string;
@@ -77,6 +78,7 @@ export function RecordPaymentClient({
   t,
 }: RecordPaymentClientProps) {
   const router = useRouter();
+  const { decimalPlaces, formatMoneyWithCode } = useTenantCurrency();
   const [amount, setAmount] = useState<number>(remainingBalance);
   const [method, setMethod] = useState<PaymentMethodCode>('CASH');
   const [notes, setNotes] = useState<string>('');
@@ -156,7 +158,7 @@ export function RecordPaymentClient({
           </label>
           <input
             type="number"
-            step="0.001"
+            step={10 ** -decimalPlaces}
             min={0}
             max={remainingBalance}
             value={amount}
@@ -164,7 +166,7 @@ export function RecordPaymentClient({
             className="mt-1 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2.5 text-right font-medium text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
           />
           <p className="mt-1.5 text-xs font-medium text-emerald-700">
-            {remainingBalance.toFixed(3)} OMR remaining
+            {formatMoneyWithCode(remainingBalance)} remaining
           </p>
         </div>
 
