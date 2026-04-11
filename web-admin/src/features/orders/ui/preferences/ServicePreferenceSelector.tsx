@@ -108,22 +108,22 @@ const CATEGORY_CARD_STYLES: Record<
   }
 > = {
   washing: {
-    base: 'border-sky-200 bg-sky-50/80',
-    hover: 'hover:border-sky-300 hover:bg-sky-100/70',
-    icon: 'bg-sky-100 text-sky-700',
-    selected: 'border-sky-500 bg-sky-100/90',
+    base: 'border-sky-300 bg-sky-100',
+    hover: 'hover:border-sky-400 hover:bg-sky-200',
+    icon: 'bg-sky-200 text-sky-800',
+    selected: 'border-sky-600 bg-sky-200',
   },
   processing: {
-    base: 'border-amber-200 bg-amber-50/80',
-    hover: 'hover:border-amber-300 hover:bg-amber-100/70',
-    icon: 'bg-amber-100 text-amber-700',
-    selected: 'border-amber-500 bg-amber-100/90',
+    base: 'border-amber-300 bg-amber-100',
+    hover: 'hover:border-amber-400 hover:bg-amber-200',
+    icon: 'bg-amber-200 text-amber-800',
+    selected: 'border-amber-600 bg-amber-200',
   },
   finishing: {
-    base: 'border-emerald-200 bg-emerald-50/80',
-    hover: 'hover:border-emerald-300 hover:bg-emerald-100/70',
-    icon: 'bg-emerald-100 text-emerald-700',
-    selected: 'border-emerald-500 bg-emerald-100/90',
+    base: 'border-emerald-300 bg-emerald-100',
+    hover: 'hover:border-emerald-400 hover:bg-emerald-200',
+    icon: 'bg-emerald-200 text-emerald-800',
+    selected: 'border-emerald-600 bg-emerald-200',
   },
 };
 
