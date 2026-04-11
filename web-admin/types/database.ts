@@ -146,6 +146,844 @@ export type Database = {
           },
         ]
       }
+      hq_crm_marketing_lead_daily_seq: {
+        Row: {
+          day_utc: string
+          last_n: number
+        }
+        Insert: {
+          day_utc: string
+          last_n: number
+        }
+        Update: {
+          day_utc?: string
+          last_n?: number
+        }
+        Relationships: []
+      }
+      hq_crm_marketing_lead_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_label: string | null
+          event_payload_jsonb: Json | null
+          event_type: string
+          id: string
+          lead_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_label?: string | null
+          event_payload_jsonb?: Json | null
+          event_type: string
+          id?: string
+          lead_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_label?: string | null
+          event_payload_jsonb?: Json | null
+          event_type?: string
+          id?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_crm_marketing_lead_notes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_internal: boolean
+          lead_id: string
+          note_text: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          lead_id: string
+          note_text: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_internal?: boolean
+          lead_id?: string
+          note_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_lead_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_crm_marketing_lead_tags: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          tag: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          tag: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_lead_tags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hq_crm_marketing_leads: {
+        Row: {
+          acquisition_source: string | null
+          acquisition_source_detail: string | null
+          assigned_to: string | null
+          branch_count: number | null
+          business_name: string
+          business_type: string | null
+          closed_at: string | null
+          company_size: string | null
+          country_code: string | null
+          country_name: string | null
+          created_at: string
+          created_by: string | null
+          current_tools: string | null
+          direction: string | null
+          duplicate_of_id: string | null
+          email: string
+          fbclid: string | null
+          first_contacted_at: string | null
+          full_name: string
+          gclid: string | null
+          id: string
+          interested_plan_code: string | null
+          interested_plan_price: string | null
+          is_duplicate: boolean
+          landing_page: string | null
+          lead_code: string
+          locale: string | null
+          message: string | null
+          normalized_email: string
+          normalized_phone: string | null
+          notes_internal: string | null
+          number_of_employees: string | null
+          pain_points_jsonb: Json | null
+          phone: string
+          planned_install_date: string | null
+          preferred_language: string | null
+          priority: string
+          qualified_at: string | null
+          referrer: string | null
+          request_type: string
+          services_needed_jsonb: Json | null
+          session_id: string | null
+          source_page: string | null
+          status: string
+          submission_context_jsonb: Json | null
+          submitted_at: string
+          updated_at: string
+          updated_by: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          acquisition_source?: string | null
+          acquisition_source_detail?: string | null
+          assigned_to?: string | null
+          branch_count?: number | null
+          business_name: string
+          business_type?: string | null
+          closed_at?: string | null
+          company_size?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_tools?: string | null
+          direction?: string | null
+          duplicate_of_id?: string | null
+          email: string
+          fbclid?: string | null
+          first_contacted_at?: string | null
+          full_name: string
+          gclid?: string | null
+          id?: string
+          interested_plan_code?: string | null
+          interested_plan_price?: string | null
+          is_duplicate?: boolean
+          landing_page?: string | null
+          lead_code: string
+          locale?: string | null
+          message?: string | null
+          normalized_email: string
+          normalized_phone?: string | null
+          notes_internal?: string | null
+          number_of_employees?: string | null
+          pain_points_jsonb?: Json | null
+          phone: string
+          planned_install_date?: string | null
+          preferred_language?: string | null
+          priority?: string
+          qualified_at?: string | null
+          referrer?: string | null
+          request_type: string
+          services_needed_jsonb?: Json | null
+          session_id?: string | null
+          source_page?: string | null
+          status?: string
+          submission_context_jsonb?: Json | null
+          submitted_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          acquisition_source?: string | null
+          acquisition_source_detail?: string | null
+          assigned_to?: string | null
+          branch_count?: number | null
+          business_name?: string
+          business_type?: string | null
+          closed_at?: string | null
+          company_size?: string | null
+          country_code?: string | null
+          country_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_tools?: string | null
+          direction?: string | null
+          duplicate_of_id?: string | null
+          email?: string
+          fbclid?: string | null
+          first_contacted_at?: string | null
+          full_name?: string
+          gclid?: string | null
+          id?: string
+          interested_plan_code?: string | null
+          interested_plan_price?: string | null
+          is_duplicate?: boolean
+          landing_page?: string | null
+          lead_code?: string
+          locale?: string | null
+          message?: string | null
+          normalized_email?: string
+          normalized_phone?: string | null
+          notes_internal?: string | null
+          number_of_employees?: string | null
+          pain_points_jsonb?: Json | null
+          phone?: string
+          planned_install_date?: string | null
+          preferred_language?: string | null
+          priority?: string
+          qualified_at?: string | null
+          referrer?: string | null
+          request_type?: string
+          services_needed_jsonb?: Json | null
+          session_id?: string | null
+          source_page?: string | null
+          status?: string
+          submission_context_jsonb?: Json | null
+          submitted_at?: string
+          updated_at?: string
+          updated_by?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_leads_duplicate_of_id_fkey"
+            columns: ["duplicate_of_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hq_crm_marketing_leads_interested_plan_code_fkey"
+            columns: ["interested_plan_code"]
+            isOneToOne: false
+            referencedRelation: "sys_pln_subscription_plans_mst"
+            referencedColumns: ["plan_code"]
+          },
+          {
+            foreignKeyName: "hq_crm_marketing_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_visitor_sessions"
+            referencedColumns: ["session_id"]
+          },
+        ]
+      }
+      hq_crm_marketing_page: {
+        Row: {
+          content_jsonb: Json
+          created_at: string
+          id: string
+          is_published: boolean
+          locale: string
+          page_key: string
+          updated_at: string
+        }
+        Insert: {
+          content_jsonb?: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          locale: string
+          page_key: string
+          updated_at?: string
+        }
+        Update: {
+          content_jsonb?: Json
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          locale?: string
+          page_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_crm_marketing_page_revision: {
+        Row: {
+          content_jsonb: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          locale: string
+          page_key: string
+          published_at: string | null
+          published_by: string | null
+          revision_number: number
+          revision_status: string
+          updated_at: string
+        }
+        Insert: {
+          content_jsonb?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locale: string
+          page_key: string
+          published_at?: string | null
+          published_by?: string | null
+          revision_number: number
+          revision_status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_jsonb?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          locale?: string
+          page_key?: string
+          published_at?: string | null
+          published_by?: string | null
+          revision_number?: number
+          revision_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hq_crm_marketing_plan_overlay: {
+        Row: {
+          created_at: string
+          cta_label: string | null
+          footnote: string | null
+          highlights_jsonb: Json
+          id: string
+          is_published: boolean
+          locale: string
+          plan_code: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cta_label?: string | null
+          footnote?: string | null
+          highlights_jsonb?: Json
+          id?: string
+          is_published?: boolean
+          locale: string
+          plan_code: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cta_label?: string | null
+          footnote?: string | null
+          highlights_jsonb?: Json
+          id?: string
+          is_published?: boolean
+          locale?: string
+          plan_code?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_plan_overlay_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "sys_pln_subscription_plans_mst"
+            referencedColumns: ["plan_code"]
+          },
+        ]
+      }
+      hq_crm_marketing_plan_overlay_revision: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_label: string | null
+          footnote: string | null
+          highlights_jsonb: Json
+          id: string
+          locale: string
+          plan_code: string
+          published_at: string | null
+          published_by: string | null
+          revision_number: number
+          revision_status: string
+          sort_order: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          footnote?: string | null
+          highlights_jsonb?: Json
+          id?: string
+          locale: string
+          plan_code: string
+          published_at?: string | null
+          published_by?: string | null
+          revision_number: number
+          revision_status?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_label?: string | null
+          footnote?: string | null
+          highlights_jsonb?: Json
+          id?: string
+          locale?: string
+          plan_code?: string
+          published_at?: string | null
+          published_by?: string | null
+          revision_number?: number
+          revision_status?: string
+          sort_order?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_plan_overlay_revision_plan_code_fkey"
+            columns: ["plan_code"]
+            isOneToOne: false
+            referencedRelation: "sys_pln_subscription_plans_mst"
+            referencedColumns: ["plan_code"]
+          },
+        ]
+      }
+      hq_crm_marketing_tracking_config: {
+        Row: {
+          debounce_ms: number
+          description: string | null
+          events_jsonb_max_items: number
+          inject_ga4: boolean
+          inject_posthog: boolean
+          is_active: boolean
+          is_global_enabled: boolean
+          level: number
+          level_name: string
+          notes: string | null
+          requires_consent: boolean
+          sampling_rate: number
+          track_battery_level: boolean
+          track_browser_name: boolean
+          track_browser_version: boolean
+          track_consent_timestamp: boolean
+          track_cookie_enabled: boolean
+          track_device_model: boolean
+          track_device_pixel_ratio: boolean
+          track_device_type: boolean
+          track_events_jsonb: boolean
+          track_fbclid: boolean
+          track_forwarded_for: boolean
+          track_gclid: boolean
+          track_geo_city: boolean
+          track_geo_country: boolean
+          track_geo_lat_lon: boolean
+          track_ip_address: boolean
+          track_landing_page: boolean
+          track_locale: boolean
+          track_max_scroll_pct: boolean
+          track_max_touch_points: boolean
+          track_network_downlink: boolean
+          track_network_rtt: boolean
+          track_network_type: boolean
+          track_os_name: boolean
+          track_os_version: boolean
+          track_page_views: boolean
+          track_preferred_languages: boolean
+          track_referrer: boolean
+          track_screen_resolution: boolean
+          track_timezone: boolean
+          track_total_dwell_ms: boolean
+          track_user_agent: boolean
+          track_utm_campaign: boolean
+          track_utm_content: boolean
+          track_utm_medium: boolean
+          track_utm_source: boolean
+          track_utm_term: boolean
+          track_viewport: boolean
+          track_visitor_id: boolean
+          updated_at: string
+          updated_by: string | null
+          use_bot_detection: boolean
+        }
+        Insert: {
+          debounce_ms?: number
+          description?: string | null
+          events_jsonb_max_items?: number
+          inject_ga4?: boolean
+          inject_posthog?: boolean
+          is_active?: boolean
+          is_global_enabled?: boolean
+          level: number
+          level_name: string
+          notes?: string | null
+          requires_consent?: boolean
+          sampling_rate?: number
+          track_battery_level?: boolean
+          track_browser_name?: boolean
+          track_browser_version?: boolean
+          track_consent_timestamp?: boolean
+          track_cookie_enabled?: boolean
+          track_device_model?: boolean
+          track_device_pixel_ratio?: boolean
+          track_device_type?: boolean
+          track_events_jsonb?: boolean
+          track_fbclid?: boolean
+          track_forwarded_for?: boolean
+          track_gclid?: boolean
+          track_geo_city?: boolean
+          track_geo_country?: boolean
+          track_geo_lat_lon?: boolean
+          track_ip_address?: boolean
+          track_landing_page?: boolean
+          track_locale?: boolean
+          track_max_scroll_pct?: boolean
+          track_max_touch_points?: boolean
+          track_network_downlink?: boolean
+          track_network_rtt?: boolean
+          track_network_type?: boolean
+          track_os_name?: boolean
+          track_os_version?: boolean
+          track_page_views?: boolean
+          track_preferred_languages?: boolean
+          track_referrer?: boolean
+          track_screen_resolution?: boolean
+          track_timezone?: boolean
+          track_total_dwell_ms?: boolean
+          track_user_agent?: boolean
+          track_utm_campaign?: boolean
+          track_utm_content?: boolean
+          track_utm_medium?: boolean
+          track_utm_source?: boolean
+          track_utm_term?: boolean
+          track_viewport?: boolean
+          track_visitor_id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          use_bot_detection?: boolean
+        }
+        Update: {
+          debounce_ms?: number
+          description?: string | null
+          events_jsonb_max_items?: number
+          inject_ga4?: boolean
+          inject_posthog?: boolean
+          is_active?: boolean
+          is_global_enabled?: boolean
+          level?: number
+          level_name?: string
+          notes?: string | null
+          requires_consent?: boolean
+          sampling_rate?: number
+          track_battery_level?: boolean
+          track_browser_name?: boolean
+          track_browser_version?: boolean
+          track_consent_timestamp?: boolean
+          track_cookie_enabled?: boolean
+          track_device_model?: boolean
+          track_device_pixel_ratio?: boolean
+          track_device_type?: boolean
+          track_events_jsonb?: boolean
+          track_fbclid?: boolean
+          track_forwarded_for?: boolean
+          track_gclid?: boolean
+          track_geo_city?: boolean
+          track_geo_country?: boolean
+          track_geo_lat_lon?: boolean
+          track_ip_address?: boolean
+          track_landing_page?: boolean
+          track_locale?: boolean
+          track_max_scroll_pct?: boolean
+          track_max_touch_points?: boolean
+          track_network_downlink?: boolean
+          track_network_rtt?: boolean
+          track_network_type?: boolean
+          track_os_name?: boolean
+          track_os_version?: boolean
+          track_page_views?: boolean
+          track_preferred_languages?: boolean
+          track_referrer?: boolean
+          track_screen_resolution?: boolean
+          track_timezone?: boolean
+          track_total_dwell_ms?: boolean
+          track_user_agent?: boolean
+          track_utm_campaign?: boolean
+          track_utm_content?: boolean
+          track_utm_medium?: boolean
+          track_utm_source?: boolean
+          track_utm_term?: boolean
+          track_viewport?: boolean
+          track_visitor_id?: boolean
+          updated_at?: string
+          updated_by?: string | null
+          use_bot_detection?: boolean
+        }
+        Relationships: []
+      }
+      hq_crm_marketing_visitor_sessions: {
+        Row: {
+          battery_level: number | null
+          browser_name: string | null
+          browser_version: string | null
+          consent_level: number | null
+          consent_timestamp: string | null
+          cookie_enabled: boolean | null
+          created_at: string
+          device_model: string | null
+          device_pixel_ratio: number | null
+          device_type: string | null
+          events_jsonb: Json
+          fbclid: string | null
+          first_seen_at: string
+          forwarded_for: string | null
+          gclid: string | null
+          geo_city: string | null
+          geo_country: string | null
+          geo_latitude: string | null
+          geo_longitude: string | null
+          id: string
+          ip_address: string | null
+          is_bot: boolean
+          landing_page: string | null
+          last_seen_at: string
+          lead_id: string | null
+          locale: string | null
+          max_scroll_pct: number
+          max_touch_points: number | null
+          network_downlink: number | null
+          network_effective_type: string | null
+          network_rtt: number | null
+          os_name: string | null
+          os_version: string | null
+          page_views: number
+          preferred_languages: Json | null
+          referrer: string | null
+          screen_h: number | null
+          screen_w: number | null
+          session_id: string
+          timezone: string | null
+          total_dwell_ms: number
+          tracking_level: number
+          ua_mobile: boolean | null
+          ua_platform: string | null
+          ua_platform_version: string | null
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          viewport_h: number | null
+          viewport_w: number | null
+          visitor_id: string | null
+        }
+        Insert: {
+          battery_level?: number | null
+          browser_name?: string | null
+          browser_version?: string | null
+          consent_level?: number | null
+          consent_timestamp?: string | null
+          cookie_enabled?: boolean | null
+          created_at?: string
+          device_model?: string | null
+          device_pixel_ratio?: number | null
+          device_type?: string | null
+          events_jsonb?: Json
+          fbclid?: string | null
+          first_seen_at?: string
+          forwarded_for?: string | null
+          gclid?: string | null
+          geo_city?: string | null
+          geo_country?: string | null
+          geo_latitude?: string | null
+          geo_longitude?: string | null
+          id?: string
+          ip_address?: string | null
+          is_bot?: boolean
+          landing_page?: string | null
+          last_seen_at?: string
+          lead_id?: string | null
+          locale?: string | null
+          max_scroll_pct?: number
+          max_touch_points?: number | null
+          network_downlink?: number | null
+          network_effective_type?: string | null
+          network_rtt?: number | null
+          os_name?: string | null
+          os_version?: string | null
+          page_views?: number
+          preferred_languages?: Json | null
+          referrer?: string | null
+          screen_h?: number | null
+          screen_w?: number | null
+          session_id: string
+          timezone?: string | null
+          total_dwell_ms?: number
+          tracking_level?: number
+          ua_mobile?: boolean | null
+          ua_platform?: string | null
+          ua_platform_version?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          viewport_h?: number | null
+          viewport_w?: number | null
+          visitor_id?: string | null
+        }
+        Update: {
+          battery_level?: number | null
+          browser_name?: string | null
+          browser_version?: string | null
+          consent_level?: number | null
+          consent_timestamp?: string | null
+          cookie_enabled?: boolean | null
+          created_at?: string
+          device_model?: string | null
+          device_pixel_ratio?: number | null
+          device_type?: string | null
+          events_jsonb?: Json
+          fbclid?: string | null
+          first_seen_at?: string
+          forwarded_for?: string | null
+          gclid?: string | null
+          geo_city?: string | null
+          geo_country?: string | null
+          geo_latitude?: string | null
+          geo_longitude?: string | null
+          id?: string
+          ip_address?: string | null
+          is_bot?: boolean
+          landing_page?: string | null
+          last_seen_at?: string
+          lead_id?: string | null
+          locale?: string | null
+          max_scroll_pct?: number
+          max_touch_points?: number | null
+          network_downlink?: number | null
+          network_effective_type?: string | null
+          network_rtt?: number | null
+          os_name?: string | null
+          os_version?: string | null
+          page_views?: number
+          preferred_languages?: Json | null
+          referrer?: string | null
+          screen_h?: number | null
+          screen_w?: number | null
+          session_id?: string
+          timezone?: string | null
+          total_dwell_ms?: number
+          tracking_level?: number
+          ua_mobile?: boolean | null
+          ua_platform?: string | null
+          ua_platform_version?: string | null
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          viewport_h?: number | null
+          viewport_w?: number | null
+          visitor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hq_crm_marketing_visitor_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "hq_crm_marketing_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hq_ff_audit_history_tr: {
         Row: {
           action: string
@@ -23068,6 +23906,29 @@ export type Database = {
         Returns: boolean
       }
       has_workflow_role: { Args: { p_workflow_role: string }; Returns: boolean }
+      hq_crm_marketing_lead_code_fallback_random: {
+        Args: never
+        Returns: string
+      }
+      hq_crm_marketing_lead_code_next: { Args: never; Returns: string }
+      hq_crm_marketing_upsert_visitor_session: {
+        Args: {
+          p_allow_event_append?: boolean
+          p_append_events?: Json
+          p_events_max_items?: number
+          p_payload: Json
+        }
+        Returns: {
+          id: string
+          last_seen_at: string
+          lead_id: string
+          max_scroll_pct: number
+          out_session_id: string
+          page_views: number
+          total_dwell_ms: number
+          tracking_level: number
+        }[]
+      }
       hq_ff_get_effective_value: {
         Args: { p_flag_key: string; p_tenant_id: string }
         Returns: {
