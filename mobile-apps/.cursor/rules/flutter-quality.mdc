@@ -1,0 +1,86 @@
+---
+description: Flutter quality, testing, performance, and anti-pattern rules for CleanMateX
+globs:
+  - "apps/customer/lib/**/*.dart"
+  - "apps/driver/lib/**/*.dart"
+alwaysApply: true
+---
+
+# CleanMateX Flutter Quality Rules
+
+## Performance
+- Avoid unnecessary rebuilds.
+- Use const constructors when possible.
+- Extract subwidgets to reduce rebuild scope.
+- Avoid expensive work inside build().
+- Dispose controllers/listeners properly.
+- Optimize large lists and images.
+- Use lazy loading where appropriate.
+
+## Testing
+Write tests for business-critical logic.
+
+Priority test targets:
+- authentication flows
+- order creation/editing
+- order status tracking
+- payment-related flows
+- delivery/POD flows
+- repository/controller behavior
+- localization-sensitive screens when practical
+
+Types of tests:
+- provider/controller tests
+- repository tests with mocks/fakes
+- widget tests for critical states
+- happy path and failure path
+
+## Logging
+- No noisy print spam.
+- No console junk left behind.
+- Use structured debug logging where useful.
+- Never log secrets or sensitive personal data.
+
+## Code Quality
+- Use meaningful names.
+- Avoid unnecessary abbreviations.
+- Functions should do one thing.
+- Prefer guard clauses over deep nesting.
+- Comments should explain why, not the obvious what.
+- Delete dead code instead of leaving it around.
+
+## Strong Anti-Patterns
+Reject or refactor:
+- giant screens with inline everything
+- business logic in widgets
+- duplicated API logic
+- raw JSON spread across UI
+- hardcoded strings
+- hardcoded colors everywhere
+- silent catch blocks
+- fake repository implementations pretending to be final
+- placeholder code shipped as production code
+- package bloat for trivial problems
+
+## Definition of Done
+A feature is not done unless it includes:
+- correct architecture placement
+- localization
+- loading/error/empty handling
+- validation
+- repository/provider integration
+- role/tenant awareness if relevant
+- reasonable tests for critical logic
+- no obvious mock leftovers
+
+## Refactoring Rules
+- Refactor only with clear benefit.
+- Do not rewrite stable working code for style alone.
+- Preserve behavior unless explicitly changing requirements.
+- Keep refactors incremental and verifiable.
+
+## Package Discipline
+- Add packages only when they solve a real problem.
+- Prefer mature, maintained, widely used packages.
+- Avoid overlapping packages that solve the same thing.
+- Reject packages that mainly add magic or hidden behavior.

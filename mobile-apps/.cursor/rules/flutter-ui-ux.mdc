@@ -1,0 +1,104 @@
+---
+description: Flutter UI/UX and localization rules for CleanMateX mobile apps
+globs:
+  - "apps/customer/lib/**/*.dart"
+  - "apps/driver/lib/**/*.dart"
+alwaysApply: true
+---
+
+# CleanMateX Flutter UI/UX Rules
+
+## UX Principles
+CleanMateX mobile apps are operational products, not design experiments.
+
+Optimize for:
+- speed
+- clarity
+- low tap count
+- low cognitive load
+- touch friendliness
+- consistency
+- dense but readable workflow screens
+
+## Localization
+- All user-facing strings must come from localization.
+- No hardcoded UI strings.
+- Every new key must include both English and Arabic.
+- UI must support RTL correctly.
+- Do not assume short English-length labels.
+- Avoid unsafe string concatenation for translated content.
+- Dates, time, numbers, and currencies must be localized properly.
+
+## Layout Rules
+- Use consistent spacing.
+- Respect safe areas.
+- Keep primary actions obvious.
+- Support smaller phones and larger phones cleanly.
+- Avoid overflow-prone fixed-width assumptions.
+- Extract repeated layout patterns into shared widgets.
+
+## Reusable Widgets
+Prefer shared widgets for:
+- buttons
+- text fields
+- dropdowns
+- chips
+- cards
+- empty states
+- error states
+- loading placeholders
+- confirmation dialogs
+- bottom sheets
+
+Before creating a new widget:
+1. check existing core widgets
+2. extend or compose if possible
+3. only create new if needed
+
+## Screen States
+Every non-trivial screen should account for:
+- initial
+- loading
+- success
+- empty
+- error
+- offline if applicable
+
+Do not leave blank screens or raw exception text.
+
+## Forms
+- Validate client-side for obvious input issues.
+- Preserve typed input on validation failure.
+- Prevent duplicate submits while in progress.
+- Show field-level validation when useful.
+- For long forms, split into sections or steps.
+
+## Operational UI
+For staff/driver-style workflows:
+- prioritize one-hand use when possible
+- minimize typing
+- make scan/photo/location actions fast
+- keep destructive actions clearly separated
+- reduce modal overload
+- show status and next action clearly
+
+## Accessibility
+- Reasonable contrast
+- readable touch targets
+- semantic labels where practical
+- avoid relying on color alone to convey status
+
+## Visual Consistency
+- Use shared theme tokens and app-wide color/text styles.
+- Avoid ad-hoc colors, font sizes, paddings, and radii.
+- Keep cards, buttons, text fields, and chips visually consistent across screens.
+- Use a single style language for customer and driver apps unless a feature explicitly needs a distinct treatment.
+
+## UX Anti-Patterns
+Reject:
+- visually noisy screens
+- overuse of dialogs
+- too many nested accordions
+- action buttons with unclear meaning
+- icon-only destructive actions without labels or confirmation
+- hidden important actions behind obscure gestures

@@ -304,6 +304,7 @@ export class PreferenceCatalogService {
       name: string | null;
       name2: string | null;
       preference_category: string | null;
+      preference_sys_kind: string | null;
       default_extra_price: number;
       extra_turnaround_minutes: number | null;
       display_order: number;
@@ -320,7 +321,7 @@ export class PreferenceCatalogService {
     try {
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
-        .select('code, name, name2, preference_category, default_extra_price, extra_turnaround_minutes, display_order, is_active')
+        .select('code, name, name2, preference_category, preference_sys_kind, default_extra_price, extra_turnaround_minutes, display_order, is_active')
         .order('display_order', { ascending: true });
 
       if (sysError) {
@@ -348,6 +349,7 @@ export class PreferenceCatalogService {
           name: s.name,
           name2: s.name2,
           preference_category: s.preference_category,
+          preference_sys_kind: s.preference_sys_kind ?? null,
           default_extra_price: Number(s.default_extra_price ?? 0),
           extra_turnaround_minutes: s.extra_turnaround_minutes,
           display_order: s.display_order ?? 0,
@@ -504,10 +506,21 @@ export class PreferenceCatalogService {
     userName: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      const { data: sysRow, error: sysLookupError } = await supabase
+        .from('sys_service_preference_cd')
+        .select('preference_sys_kind')
+        .eq('code', preferenceCode)
+        .single();
+
+      if (sysLookupError || !sysRow) {
+        return { success: false, error: 'Invalid preference code' };
+      }
+
       const now = new Date().toISOString();
       const payload = {
         tenant_org_id: tenantId,
         preference_code: preferenceCode,
+        preference_sys_kind: sysRow.preference_sys_kind,
         name: input.name ?? null,
         name2: input.name2 ?? null,
         extra_price: input.extra_price ?? 0,

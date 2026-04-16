@@ -1,0 +1,81 @@
+---
+description: Flutter API, repository, and offline-resilience rules for CleanMateX mobile apps
+globs:
+  - "apps/customer/lib/**/*.dart"
+  - "apps/driver/lib/**/*.dart"
+alwaysApply: true
+---
+
+# CleanMateX Flutter Data/API Rules
+
+## API Strategy
+Mobile apps are API-driven. Repositories and services are the integration boundary.
+
+## Rules
+- Never call APIs directly from widgets.
+- All network access must go through centralized services, datasources, or repositories.
+- Use typed request/response models.
+- Centralize auth header handling, interceptors, timeout handling, and retry policy.
+- Use debug logging only in development.
+
+## Error Mapping
+Map backend/network failures into structured app errors:
+- no internet
+- timeout
+- unauthorized
+- forbidden
+- validation error
+- not found
+- server error
+- unknown error
+
+Do not leak raw exception messages directly to end users.
+
+## Repository Rules
+Repositories should:
+- return typed results
+- translate datasource errors into app/domain-safe failures
+- isolate API contract knowledge from UI
+- avoid duplicating identical request logic across features
+
+## Offline and Weak Connectivity
+Assume mobile connectivity can be unstable.
+
+Required behavior when relevant:
+- preserve form input during failures
+- allow retry
+- queue critical actions if the feature needs offline tolerance
+- show sync/pending state clearly
+- do not discard user work on temporary network failure
+
+For driver-like workflows:
+- design for intermittent connectivity
+- capture data first, sync later when needed
+- avoid blocking mission-critical actions on perfect connectivity
+
+## File and Media Uploads
+For images, POD, receipts, garment photos:
+- validate file size and type before upload
+- compress where appropriate
+- show upload progress if user waits on it
+- handle cancellation cleanly
+- do not block the whole UI unnecessarily
+
+## Pagination and Search
+- Paginate large lists
+- Debounce search
+- Avoid eager loading of large datasets
+- Keep list filters/state inside providers/controllers, not inline widget chaos
+
+## API Contract Discipline
+- Respect backend contracts exactly.
+- Do not invent fields that backend does not return.
+- Do not silently ignore required fields in responses.
+- If a field is nullable, handle it explicitly.
+- If an API contract changes, update models, repositories, and affected UI together.
+
+## DTO and Entity Discipline
+- Use DTOs for API-facing structures when helpful.
+- Use entities for business-level objects when helpful.
+- Avoid overcomplicating small features with unnecessary layers.
+- Keep mapping logic explicit and visible.

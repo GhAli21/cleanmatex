@@ -1,0 +1,120 @@
+---
+description: Core Flutter mobile development rules for CleanMateX
+globs:
+  - "apps/customer/lib/**/*.dart"
+  - "apps/driver/lib/**/*.dart"
+alwaysApply: true
+---
+
+# CleanMateX Flutter Core Rules
+
+## Mission
+Build production-grade Flutter mobile apps for CleanMateX using explicit, maintainable, scalable code. Optimize for solo-developer speed, long-term maintainability, bilingual UX, operational reliability, and zero hidden code.
+
+## Stack
+- Flutter stable
+- Dart null safety
+- Riverpod for state management and dependency injection
+- go_router for navigation
+- Dio or a centralized HTTP client
+- Manual model mapping and serialization only
+- flutter_secure_storage for sensitive auth/session data when needed
+- Firebase Cloud Messaging for push notifications
+
+## Architecture
+Use feature-first structure:
+
+lib/
+  core/
+    constants/
+    errors/
+    helpers/
+    localization/
+    routing/
+    services/
+    theme/
+    utils/
+    widgets/
+  features/
+    <feature_name>/
+      data/
+        datasources/
+        models/
+        repositories/
+      domain/
+        entities/
+        repositories/
+        usecases/
+      application/
+        controllers/
+        providers/
+        states/
+      presentation/
+        screens/
+        widgets/
+        dialogs/
+        sheets/
+
+## Hard Rules
+- Never put API calls directly in widgets.
+- Never put business logic inside build().
+- Never hardcode user-facing strings.
+- Never mix unrelated responsibilities in one file.
+- Never use giant god widgets/screens.
+- Prefer explicit code over clever abstractions.
+- Reuse existing shared widgets and theme utilities before creating new ones.
+- Preserve architecture consistency when editing existing code.
+- Do not use hidden code generation tools of any kind.
+- All important code paths must be visible in source files.
+
+## State Management
+- Use Riverpod for async state, dependency injection, and feature controllers.
+- Use AsyncValue or equivalent structured async states.
+- Use setState only for tiny local UI state.
+- Complex screens must have dedicated provider/controller/state handling.
+- Keep widget trees passive; state should come from providers/controllers.
+
+## Data Boundaries
+- Parse API JSON at the repository/data layer.
+- Do not pass raw Map<String, dynamic> through the app unless absolutely required.
+- Use typed models.
+- Separate DTOs from domain entities when complexity justifies it.
+- UI must not know backend JSON structure details.
+
+## Environment and Config
+- No API base URL hardcoded in widgets.
+- Centralize config, endpoints, timeout policies, headers, and auth attachment.
+- All environment-dependent behavior must be isolated.
+
+## Security
+- Never hardcode secrets, tokens, private keys, or credentials.
+- Never log tokens, passwords, OTPs, or sensitive PII.
+- Respect backend authorization. UI hiding is not security.
+- Handle unauthorized and expired sessions cleanly.
+
+## Multi-Tenant Awareness
+- Always assume tenant context matters.
+- Do not hardcode tenant-specific assumptions.
+- Feature visibility may depend on plan flags or role.
+- Disabled features must fail safely and gracefully.
+
+## Cursor Behavior
+Before generating code, infer:
+- feature purpose
+- user role
+- source of truth for state
+- API/repository dependencies
+- localization impact
+- navigation impact
+- loading/error/empty states
+- offline behavior needs
+- tenant/feature-flag implications
+
+When editing code:
+- keep naming consistent
+- preserve imports structure
+- update localization keys if UI text changes
+- update routes/providers/repositories if feature wiring changes
+- do not silently introduce fake placeholder code
+- do not introduce code generation
+- do not introduce unnecessary abstraction layers

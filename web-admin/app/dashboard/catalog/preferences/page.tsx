@@ -57,6 +57,7 @@ interface ServicePrefAdmin {
   name: string | null;
   name2: string | null;
   preference_category: string | null;
+  preference_sys_kind: string | null;
   default_extra_price: number;
   display_order: number;
   sys_is_active: boolean;
@@ -1193,7 +1194,14 @@ function ServicePrefEditDialog({
           {error && (
             <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>
           )}
-          <p className="text-sm text-gray-600 font-mono">{pref.code}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-gray-600 font-mono">{pref.code}</span>
+            {pref.preference_sys_kind && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                {pref.preference_sys_kind}
+              </span>
+            )}
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('customName', 'Custom Name (EN)')}</label>
             <CmxInput

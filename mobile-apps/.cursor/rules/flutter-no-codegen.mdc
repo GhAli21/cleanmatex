@@ -1,0 +1,101 @@
+---
+description: Strict rule to forbid hidden/generated code in Flutter apps
+globs:
+  - "apps/customer/lib/**/*.dart"
+  - "apps/driver/lib/**/*.dart"
+alwaysApply: true
+---
+
+# CleanMateX Flutter No Code Generation Rules
+
+## Core Principle
+All code must be explicit, readable, and fully visible.
+
+No hidden code.
+No generated code.
+No magic.
+
+## Forbidden Tools / Packages
+Do NOT use:
+- freezed
+- json_serializable
+- built_value
+- mobx_codegen
+- injectable generators
+- any code generator that creates hidden runtime or mapping behavior
+- any generator that requires build_runner for models, unions, DI, or serialization
+
+If a package requires build_runner, reject it unless explicitly approved by the project owner.
+
+## Forbidden Patterns
+- No `.g.dart` files
+- No `part 'model.g.dart';`
+- No `part 'model.freezed.dart';`
+- No `@JsonSerializable()`
+- No `@freezed`
+- No generated unions / sealed-state code
+- No hidden mapping logic
+- No annotation-driven model generation
+- No hidden DI registration generation
+
+## Required Alternative
+All models must be written manually.
+
+Every model should manually include, where needed:
+- constructor
+- fromJson
+- toJson
+- copyWith
+- equality
+- toString
+
+## Equality Rule
+Manual equality is acceptable.
+Using `equatable` is acceptable.
+Do not use generated equality tools.
+
+## Cursor Behavior
+Cursor must:
+- NEVER suggest freezed
+- NEVER suggest json_serializable
+- NEVER suggest build_runner
+- NEVER generate `.g.dart` files
+- ALWAYS write full manual model implementations
+- ALWAYS include explicit fromJson / toJson / copyWith when needed
+- ALWAYS keep mapping logic visible in source code
+
+If code generation is suggested, reject it and rewrite manually.
+
+## Rationale
+We choose manual code because it gives:
+- easier debugging
+- no hidden behavior
+- better AI code generation consistency
+- fewer version conflicts
+- easier onboarding and maintenance
+- full control over parsing logic
+- less toolchain friction
+
+## Accepted Trade-off
+- Slightly more boilerplate
+- More typing
+
+This trade-off is acceptable because transparency and control are more important for this project than reducing a small amount of boilerplate.
+
+## Model Style Guidance
+When creating manual models:
+- validate types explicitly
+- handle nulls intentionally
+- convert num to double safely
+- keep JSON keys explicit
+- avoid dynamic usage spreading across code
+- prefer small focused helper parsing functions when repeated
+
+## Anti-Patterns to Reject
+Reject:
+- models that rely on generated parts
+- hidden serializers
+- annotation-based magic
+- generated copyWith
+- generated unions for state classes
+- generated service locators
