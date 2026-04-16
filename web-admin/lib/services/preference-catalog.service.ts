@@ -726,9 +726,9 @@ export class PreferenceCatalogService {
         .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas')
         .eq('tenant_org_id', tenantId)
         .eq('is_active', true)
-        .eq('is_show_in_quick_bar', true)
-        .eq('is_stopped_by_saas', false)
-        .eq('rec_status', 1)
+        //.eq('is_show_in_quick_bar', true)
+        //.eq('is_stopped_by_saas', false)
+        //.eq('rec_status', 1)
         .order('rec_order', { ascending: true });
 
       const cfMap = new Map(

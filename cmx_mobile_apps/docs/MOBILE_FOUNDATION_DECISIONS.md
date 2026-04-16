@@ -6,7 +6,7 @@
 
 | Field | Value |
 |---|---|
-| **Version** | v2.0.0 |
+| **Version** | v2.2.0 |
 | **Date** | 2026-04-17 |
 | **Status** | ACTIVE |
 | **Supersedes** | v1.0.0 |
@@ -18,6 +18,8 @@
 
 | Version | Date | Summary |
 |---|---|---|
+| v2.2.0 | 2026-04-17 | Expanded §3.2 — pubspec.yaml ownership rules (LOCKED): each app and package owns its own pubspec, root is workspace manifest only, forbidden patterns, rationale |
+| v2.1.0 | 2026-04-17 | Added §3.13 — Responsive Breakpoints and Layout Utility (LOCKED): AppBreakpoints, ResponsiveLayoutBuilder, LayoutBuilder-only rule, mobile/tablet/desktop thresholds |
 | v2.0.0 | 2026-04-17 | Full rewrite — added 20 new sections: folder structure, networking, auth, routing, storage, error handling, logging, notifications, security, platform targets, multi-tenant isolation, CI/CD, testing, accessibility, dependency management, code review rules, governance, enforcement |
 | v1.0.0 | 2026-04-10 | Initial draft — framework, state management, shared packages, build order |
 
@@ -94,16 +96,85 @@ These are absolute rules with zero exceptions. Any deviation requires a new ADR 
 
 ---
 
-### 3.2 Monorepo Structure
+### 3.2 Monorepo Structure and `pubspec.yaml` Rules
 
 **Status: LOCKED**
 
 * Melos `^6.x` as workspace manager
 * `apps/` — three app entry points only
 * `packages/` — six shared packages only
-* Root `pubspec.yaml` is a workspace manifest only — no Flutter dependencies go here
-* Each package has its own `pubspec.yaml` and `lib/` root
 * Mandatory Melos scripts: `analyze`, `test`, `format`, `pub_get`, `build:dev`, `build:staging`, `build:prod`
+
+#### `pubspec.yaml` Ownership Rule (LOCKED — never simplify)
+
+Every app and every package owns its own `pubspec.yaml`. This is non-negotiable.
+
+```
+cmx_mobile_apps/
+  pubspec.yaml          ← workspace manifest ONLY. No Flutter deps. No app deps.
+  apps/
+    customer_app/
+      pubspec.yaml      ← REQUIRED. Independent Flutter project.
+    staff_app/
+      pubspec.yaml      ← REQUIRED. Independent Flutter project.
+    driver_app/
+      pubspec.yaml      ← REQUIRED. Independent Flutter project.
+  packages/
+    mobile_core/
+      pubspec.yaml      ← REQUIRED.
+    mobile_ui/
+      pubspec.yaml      ← REQUIRED.
+    mobile_domain/
+      pubspec.yaml      ← REQUIRED.
+    mobile_services/
+      pubspec.yaml      ← REQUIRED.
+    mobile_l10n/
+      pubspec.yaml      ← REQUIRED.
+    mobile_testkit/
+      pubspec.yaml      ← REQUIRED.
+```
+
+**Root `pubspec.yaml`** contains only:
+
+```yaml
+name: cmx_mobile_apps
+publish_to: none
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+dev_dependencies:
+  melos: ^6.3.2
+```
+
+**Why this is non-negotiable:**
+
+Flutter treats each app as a separate build target, a separate installable binary, a separate dependency graph, and a separate store submission. The three apps are not the same app with different screens — they are three independent apps that share code via packages. A single shared `pubspec.yaml` for all apps would make it impossible to build separate APK/IPA files, control permissions per app, give each app its own name/icon/bundle ID, or publish independently to app stores.
+
+**Forbidden:**
+- ❌ Apps depending on other apps
+- ❌ Packages depending on apps
+- ❌ App-specific dependencies placed in root `pubspec.yaml`
+- ❌ Any attempt to merge app pubspecs into one file
+
+**App dependency pattern** (each app's `pubspec.yaml`):
+
+```yaml
+dependencies:
+  mobile_core:
+    path: ../../packages/mobile_core
+  mobile_ui:
+    path: ../../packages/mobile_ui
+  mobile_domain:
+    path: ../../packages/mobile_domain
+  mobile_services:
+    path: ../../packages/mobile_services
+  mobile_l10n:
+    path: ../../packages/mobile_l10n
+dev_dependencies:
+  mobile_testkit:
+    path: ../../packages/mobile_testkit
+```
+
+Melos is designed for exactly this layout — it reads each folder's own `pubspec.yaml` and orchestrates them. Running `melos bootstrap` is the first command after creating all folders.
 
 ---
 
@@ -247,6 +318,118 @@ Development order:
 3. Customer App
 
 Rationale: operational control must be stable before customer-facing features ship. New shared package features needed by Staff App are prioritized first.
+
+---
+
+### 3.13 Responsive Breakpoints and Layout Utility
+
+**Status: LOCKED**
+
+Establish the breakpoints utility **before building the first screen**. No screen may use raw `MediaQuery.of(context).size.width` comparisons directly — all layout decisions go through `AppBreakpoints`.
+
+#### Canonical Breakpoints
+
+| Name | Width Range | Typical Devices |
+|---|---|---|
+| `mobile` | < 600dp | Phones (portrait and landscape) |
+| `tablet` | 600dp – 1024dp | Tablets, large phones landscape |
+| `desktop` | > 1024dp | Tablets (large, landscape), foldables open |
+
+#### Tool: `LayoutBuilder` (Built-in — no package)
+
+The only approved resolution tool is Flutter's built-in `LayoutBuilder`. No third-party responsive layout package is permitted without a filed ADR.
+
+`LayoutBuilder` is preferred over `MediaQuery` for layout decisions because it responds to the available space of the parent widget, not the full screen — making it composable and testable.
+
+#### Implementation (lives in `mobile_ui` package)
+
+**`packages/mobile_ui/lib/src/theme/app_breakpoints.dart`**
+
+```dart
+abstract class AppBreakpoints {
+  static const double mobileMax = 600;
+  static const double tabletMax = 1024;
+
+  static bool isMobile(double width) => width < mobileMax;
+  static bool isTablet(double width) => width >= mobileMax && width <= tabletMax;
+  static bool isDesktop(double width) => width > tabletMax;
+
+  static T resolve<T>(double width, {
+    required T mobile,
+    required T tablet,
+    T? desktop,
+  }) {
+    if (isDesktop(width)) return desktop ?? tablet;
+    if (isTablet(width)) return tablet;
+    return mobile;
+  }
+}
+```
+
+**`packages/mobile_ui/lib/src/widgets/scaffold/responsive_layout_builder.dart`**
+
+```dart
+class ResponsiveLayoutBuilder extends StatelessWidget {
+  const ResponsiveLayoutBuilder({
+    super.key,
+    required this.mobile,
+    this.tablet,
+    this.desktop,
+  });
+
+  final WidgetBuilder mobile;
+  final WidgetBuilder? tablet;
+  final WidgetBuilder? desktop;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        if (AppBreakpoints.isDesktop(width)) {
+          return (desktop ?? tablet ?? mobile)(context);
+        }
+        if (AppBreakpoints.isTablet(width)) {
+          return (tablet ?? mobile)(context);
+        }
+        return mobile(context);
+      },
+    );
+  }
+}
+```
+
+#### Usage Pattern in Screens
+
+```dart
+// In any screen — mobile layout required, tablet optional, desktop optional
+ResponsiveLayoutBuilder(
+  mobile: (_) => const _MobileLayout(),
+  tablet: (_) => const _TabletLayout(),
+)
+
+// For single-value resolution (e.g., column count, padding)
+LayoutBuilder(
+  builder: (context, constraints) {
+    final columns = AppBreakpoints.resolve<int>(
+      constraints.maxWidth,
+      mobile: 1,
+      tablet: 2,
+      desktop: 3,
+    );
+    return GridView.count(crossAxisCount: columns, ...);
+  },
+)
+```
+
+#### Rules
+
+- **Mobile layout is mandatory** for every screen. Tablet and desktop are optional enhancements.
+- **Never use raw `MediaQuery.of(context).size.width`** for layout branching — always go through `AppBreakpoints` or `ResponsiveLayoutBuilder`.
+- `ResponsiveLayoutBuilder` and `AppBreakpoints` are exported from `mobile_ui` — no app may redefine its own breakpoint constants.
+- Breakpoint thresholds (600dp, 1024dp) are locked. Changes require a filed ADR because they affect all three apps and the widget catalog golden tests.
+- All `mobile_ui` golden tests include a **tablet size** (768×1024) snapshot in addition to the phone size (375×667).
+- Staff App and Driver App must be **tablet-usable** (staff use tablets at reception desks). Customer App tablet layout is a recommended enhancement.
 
 ---
 
