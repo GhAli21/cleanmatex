@@ -1,8 +1,9 @@
 ---
 description: Strict rule to forbid hidden/generated code in Flutter apps
 globs:
-  - "apps/customer/lib/**/*.dart"
-  - "apps/driver/lib/**/*.dart"
+  - "mobile-apps/customer_app/lib/**/*.dart"
+  - "mobile-apps/staff_app/lib/**/*.dart"
+  - "mobile-apps/driver_app/lib/**/*.dart"
 alwaysApply: true
 ---
 

@@ -8,15 +8,17 @@
 -- Enable RLS on tenant table
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
 
--- Policy: Users can only see their tenant's orders
-CREATE POLICY tenant_isolation_policy ON org_orders_mst
+-- Policy name: tenant_isolation_<table_name>. Always include WITH CHECK for INSERT/UPDATE.
+CREATE POLICY tenant_isolation_org_orders_mst ON org_orders_mst
   FOR ALL
-  USING (tenant_org_id = auth.jwt() ->> 'tenant_org_id'::text);
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
 
--- Policy: Service role can access all data
-CREATE POLICY service_role_policy ON org_orders_mst
+-- Service role bypass (cleanmatexsaas uses service role key — no tenant filter needed)
+CREATE POLICY service_role_org_orders_mst ON org_orders_mst
   FOR ALL
-  USING (auth.jwt() ->> 'role' = 'service_role');
+  USING (auth.jwt() ->> 'role' = 'service_role')
+  WITH CHECK (auth.jwt() ->> 'role' = 'service_role');
 ```
 
 ### Testing RLS

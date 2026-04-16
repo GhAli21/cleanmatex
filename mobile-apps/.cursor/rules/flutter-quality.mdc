@@ -1,8 +1,9 @@
 ---
 description: Flutter quality, testing, performance, and anti-pattern rules for CleanMateX
 globs:
-  - "apps/customer/lib/**/*.dart"
-  - "apps/driver/lib/**/*.dart"
+  - "mobile-apps/customer_app/lib/**/*.dart"
+  - "mobile-apps/staff_app/lib/**/*.dart"
+  - "mobile-apps/driver_app/lib/**/*.dart"
 alwaysApply: true
 ---
 

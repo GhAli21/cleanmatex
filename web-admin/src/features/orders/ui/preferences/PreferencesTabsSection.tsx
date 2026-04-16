@@ -44,7 +44,7 @@ export function PreferencesTabsSection({
   const isRTL = useRTL();
   const getBilingual = useBilingual();
   const { state, updateItemServicePrefs, updateItemPieces } = useNewOrderStateWithDispatch();
-  const { servicePrefs } = usePreferenceCatalog(state.branchId);
+  const { servicePrefs } = usePreferenceCatalog(state.branchId, true);
 
   const [activePrefTab, setActivePrefTab] = useState<'quick' | 'service'>('quick');
 

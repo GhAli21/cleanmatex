@@ -34,8 +34,8 @@ async function fetchPackingPreferences(tenantId: string): Promise<PackingPrefere
   return json.success && json.data ? json.data : [];
 }
 
-async function fetchPreferenceKinds(tenantId: string): Promise<PreferenceKind[]> {
-  const res = await fetch('/api/v1/catalog/preference-kinds?quickBarOnly=false', {
+async function fetchPreferenceKinds(tenantId: string, quickBarOnly = false): Promise<PreferenceKind[]> {
+  const res = await fetch(`/api/v1/catalog/preference-kinds?quickBarOnly=${quickBarOnly}`, {
     credentials: 'include',
   });
   if (!res.ok) return [];
@@ -43,7 +43,7 @@ async function fetchPreferenceKinds(tenantId: string): Promise<PreferenceKind[]>
   return json.success && json.data ? json.data : [];
 }
 
-export function usePreferenceCatalog(branchId?: string | null) {
+export function usePreferenceCatalog(branchId?: string | null, quickBarOnly = false) {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
 
@@ -64,8 +64,8 @@ export function usePreferenceCatalog(branchId?: string | null) {
   });
 
   const kindsQuery = useQuery<PreferenceKind[]>({
-    queryKey: ['preference-kinds', tenantId],
-    queryFn: () => fetchPreferenceKinds(tenantId),
+    queryKey: ['preference-kinds', tenantId, quickBarOnly],
+    queryFn: () => fetchPreferenceKinds(tenantId, quickBarOnly),
     enabled: !!tenantId,
     staleTime: STALE_TIME,
   });

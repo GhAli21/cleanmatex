@@ -9,7 +9,6 @@ mobile-apps/
 ├─ analysis_options.yaml
 ├─ .gitignore
 ├─ README.md
-├─ apps/
 │  ├─ customer_app/
 │  │  ├─ pubspec.yaml
 │  │  ├─ analysis_options.yaml

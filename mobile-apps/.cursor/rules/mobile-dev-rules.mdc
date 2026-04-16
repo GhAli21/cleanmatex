@@ -1,0 +1,83 @@
+# CURSOR_MOBILE_RULES.md
+
+You are working on the CleanMateX Flutter mobile app.
+
+## Mandatory rules
+- Follow the existing feature-based architecture.
+- Use Riverpod consistently.
+- No API or database calls inside UI widgets.
+- Flow must be: UI → Provider → Repository → Data source.
+- Reuse existing widgets before creating new ones.
+- Reuse AppTheme and AppColors.
+- Use AppLocalizations.of(context)! for all user-facing text.
+- Support English and Arabic with RTL-safe layouts.
+- Use strong typed models only.
+- Prefer clear manual Dart models over hidden generated code unless explicitly requested otherwise.
+- Backend is the source of truth for pricing, workflow, permissions, and finance-critical logic.
+- Flutter may validate input shape, but not enforce final business rules.
+- Always support loading, error, empty, and success states.
+- Respect the existing CleanMateX project structure and naming style.
+- Extend existing code rather than rewriting unrelated files.
+- When adding UI, also provide new localization keys only.
+- Avoid duplicate widgets, providers, services, and helper methods.
+- Avoid hardcoded colors, strings, spacing, and font values.
+- Use existing reusable widgets such as AppTextFieldWidget, AppCustomButtonWidget, AppDropdown, AppCardWidget, AppLoadingIndicator, and related shared components.
+
+## Architecture rules
+- Keep code organized under:
+  - core/
+  - features/<feature>/data/
+  - features/<feature>/domain/
+  - features/<feature>/providers/
+  - features/<feature>/ui/
+- UI widgets must not perform repository or dbservice work directly.
+- Providers manage state and orchestration.
+- Repositories abstract data source implementation.
+- Data models must map raw payloads outside the UI layer.
+
+## State rules
+- Use Riverpod only.
+- Do not introduce Bloc, GetX, MobX, or Provider package.
+- Use setState only for tiny local visual state.
+- Do not use setState for async data loading, entity lists, submission flows, or shared state.
+- Async flows must show loading and retry paths explicitly.
+
+## UI rules
+- Keep widgets small and composable.
+- Extract repeated UI immediately.
+- Design with dark mode compatibility in mind.
+- Design for mobile usability first.
+- Keep Arabic layout quality equal to English layout quality.
+
+## Form rules
+- Add basic field validation in Flutter.
+- Keep authoritative validation on backend.
+- Prevent duplicate submit taps.
+- For long forms, split into reusable sections.
+
+## Networking and sync rules
+- Design list screens with pagination readiness.
+- Think about offline queue, retry, and stale state for mobile-critical actions.
+- Offline does not grant authority to finalize backend state.
+
+## Behavior rules
+Before coding:
+1. summarize the feature
+2. list impacted files
+3. explain the approach
+4. then write code
+
+If backend contracts are missing:
+- say what is assumed
+- scaffold safely
+- do not fake a complete integration
+
+## Output format
+Return results in this order:
+1. summary
+2. architecture impact
+3. files to create/update
+4. code
+5. localization keys
+6. backend assumptions
+7. tests

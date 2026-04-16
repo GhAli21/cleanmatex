@@ -79,9 +79,12 @@ CREATE INDEX idx_org_ord_orders_status ON org_ord_orders_mst(tenant_org_id, stat
 
 ### RLS Policy Naming (NEW Objects)
 
+Policy name must be `tenant_isolation_<table_name>` (include the table name). Always include both `USING` and `WITH CHECK` so INSERT/UPDATE are permitted:
+
 ```sql
-CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
-  FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
+CREATE POLICY tenant_isolation_org_ord_orders_mst ON org_ord_orders_mst
+  FOR ALL USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
 ```
 
 ### Migration File Naming (NEW Migrations)
@@ -131,8 +134,9 @@ CREATE INDEX idx_example_active ON org_example_mst(tenant_org_id, is_active);
 ALTER TABLE org_example_mst ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policy
-CREATE POLICY tenant_isolation ON org_example_mst
-  FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
+CREATE POLICY tenant_isolation_org_example_mst ON org_example_mst
+  FOR ALL USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
 ```
 
 ## Code Reuse Patterns
