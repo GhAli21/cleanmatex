@@ -56,7 +56,7 @@ Important module-level documentation lives outside `docs/` too:
 - `../cmx-api/README.md`
 - `../supabase/README.md`
 - `../scripts/README.md`
-- `../mobile-apps/README.md`
+- `../cmx_mobile_apps/README.md`
 - `../packages/README.md`
 - `../infra/README.md`
 - `../qa/README.md`

@@ -1,9 +1,9 @@
-## Monorepo starter architecture
+## Suggested Monorepo starter architecture
 
 Use one Flutter workspace with two apps and shared packages.
 
 ```text
-mobile-apps/
+cmx_mobile_apps/
 ├─ melos.yaml
 ├─ pubspec.yaml
 ├─ analysis_options.yaml
@@ -309,7 +309,7 @@ You are running a multi-package Flutter workspace. Without melos, dependency man
 ## Root `melos.yaml`
 
 ```yaml
-name: mobile-apps
+name: cmx_mobile_apps
 
 packages:
   - apps/**
@@ -330,7 +330,7 @@ scripts:
 Keep it minimal.
 
 ```yaml
-name: mobile-apps_workspace
+name: cmx_mobile_apps_workspace
 publish_to: none
 environment:
   sdk: ">=3.5.0 <4.0.0"

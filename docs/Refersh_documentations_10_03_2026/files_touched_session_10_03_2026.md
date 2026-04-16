@@ -77,7 +77,7 @@ This inventory tracks documentation and guidance files updated during the 10-03-
 - `supabase/README.md`
 - `scripts/README.md`
 - `scripts/db/README.md`
-- `mobile-apps/README.md`
+- `cmx_mobile_apps/README.md`
 - `packages/README.md`
 - `infra/README.md`
 - `qa/README.md`

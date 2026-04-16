@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const kinds = await PreferenceCatalogService.getPreferenceKinds(
       supabase,
       tenantId,
-      quickBarOnly
+      true //quickBarOnly true means only return quick bar preferences
     );
 
     return NextResponse.json({ success: true, data: kinds });

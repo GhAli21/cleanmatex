@@ -42,7 +42,7 @@ This plan covers the full project documentation surface with no intentional gaps
 - High-authority planning documents such as `[docs/plan/master_plan_cc_01.md](f:/jhapp/cleanmatex/docs/plan/master_plan_cc_01.md)` and overlapping roadmap/PRD files
 - Human-facing project docs and guides in `[docs/](f:/jhapp/cleanmatex/docs)`
 - Repo/app entrypoint docs like `[README.md](f:/jhapp/cleanmatex/README.md)`, `[web-admin/README.md](f:/jhapp/cleanmatex/web-admin/README.md)`, and `[cmx-api/README.md](f:/jhapp/cleanmatex/cmx-api/README.md)`
-- All existing module-local documentation files under app/package folders such as `web-admin`, `cmx-api`, `supabase`, `mobile-apps`, `packages`, `scripts`, `infra`, and `qa`
+- All existing module-local documentation files under app/package folders such as `web-admin`, `cmx-api`, `supabase`, `cmx_mobile_apps`, `packages`, `scripts`, `infra`, and `qa`
 - AI/project guidance docs such as `[CLAUDE.md](f:/jhapp/cleanmatex/CLAUDE.md)`, `[.cursor/rules/documentationrules.mdc](f:/jhapp/cleanmatex/.cursor/rules/documentationrules.mdc)`, and related `.claude`/`.cursor` guidance
 - Cleanup/consolidation of overlapping, stale, and weakly indexed docs
 - If a module documentation set exists, all of its documentation files, including PRD files, must be updated to match the real implemented state and be compatible/consolidated.
@@ -55,7 +55,7 @@ This plan covers the full project documentation surface with no intentional gaps
 - `[docs/folders_lookup.md](f:/jhapp/cleanmatex/docs/folders_lookup.md)` currently indexes only a few feature folders, so discoverability is incomplete.
 - `[README.md](f:/jhapp/cleanmatex/README.md)` contains outdated or conflicting operational guidance, including DB reset instructions that do not align with `[CLAUDE.md](f:/jhapp/cleanmatex/CLAUDE.md)`.
 - `[web-admin/README.md](f:/jhapp/cleanmatex/web-admin/README.md)` is still the default Next.js starter README.
-- Module-level documentation is uneven: `web-admin` has many local docs, while `supabase`, `packages/*`, `mobile-apps/*`, `infra/`, and `qa/` appear under-documented.
+- Module-level documentation is uneven: `web-admin` has many local docs, while `supabase`, `packages/*`, `cmx_mobile_apps/*`, `infra/`, and `qa/` appear under-documented.
 - Guidance is split across `docs/`, root docs, `.claude`, and `.cursor`, which creates source-of-truth drift risk.
 - PRD coverage and implementation reality are not consistently synchronized, so some PRDs likely describe planned or old scope rather than what is already built.
 - There is no explicit workflow yet for parking unresolved enhancement suggestions or decision requests in a dedicated approval file.

@@ -89,7 +89,7 @@ Additional constraints: do the best practice
 
 ### Current Situation
 
-Some top-level areas such as `mobile-apps/`, `packages/`, `infra/`, and `qa/` have little or no local documentation content today.
+Some top-level areas such as `cmx_mobile_apps/`, `packages/`, `infra/`, and `qa/` have little or no local documentation content today.
 
 ### Why This Matters
 

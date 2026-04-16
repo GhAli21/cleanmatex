@@ -22,7 +22,7 @@ stack:
 directories:
   backend: "./backend"
   web: "./web-admin"
-  mobile: "./mobile-apps"
+  mobile: "./cmx_mobile_apps"
   docs: "./docs"
   shared: "./shared"
   templates: "./templates"

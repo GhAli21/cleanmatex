@@ -11,7 +11,7 @@ CleanMateX is organized as a multi-module monorepo:
 - `supabase/`: shared database, auth, RLS, migrations, and seed-related assets
 - `docs/`: project, feature, planning, operational, and historical documentation
 - `scripts/`: local development and maintenance scripts
-- `mobile-apps/`: reserved area for Flutter mobile applications
+- `cmx_mobile_apps/`: reserved area for Flutter mobile applications
 - `packages/`: reserved area for shared packages
 - `infra/`: local infrastructure bootstrap assets
 - `qa/`: reserved area for QA assets and test documentation
@@ -134,7 +134,7 @@ cleanmatex/
 ├── cmx-api/
 ├── supabase/
 ├── scripts/
-├── mobile-apps/
+├── cmx_mobile_apps/
 ├── packages/
 ├── infra/
 └── qa/

@@ -80,7 +80,7 @@ For 3 apps, the best structure is **workspace-style Flutter monorepo**.
 ## Recommended structure
 
 ```text
-mobile-apps/
+cmx_mobile_apps/
     customer_app/
       lib/
       assets/
@@ -317,7 +317,7 @@ Start with smallest high-value vertical slices per app.
 Create root workspace:
 
 ```text
-mobile-apps/
+cmx_mobile_apps/
 ```
 
 ## A2. Setup Melos

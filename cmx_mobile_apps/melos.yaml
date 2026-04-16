@@ -1,4 +1,4 @@
-name: mobile_apps
+name: cmx_mobile_apps
 
 packages:
   - apps/**

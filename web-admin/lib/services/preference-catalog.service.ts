@@ -702,9 +702,10 @@ export class PreferenceCatalogService {
   static async getPreferenceKinds(
     supabase: SupabaseClient,
     tenantId: string,
-    quickBarOnly = false
+    quickBarOnly = true //true means only return quick bar preferences
   ): Promise<PreferenceKind[]> {
     try {
+      
       const { data: sysKinds, error: sysError } = await supabase
         .from('sys_preference_kind_cd')
         .select('kind_code, name, name2, kind_bg_color, main_type_code, icon, is_show_in_quick_bar, is_show_for_customer, rec_order, is_active')
@@ -719,14 +720,19 @@ export class PreferenceCatalogService {
         });
         return [];
       }
-
-      const { data: tenantCf } = await supabase
+      
+      const { data: tenantKinds } = await supabase
         .from('org_preference_kind_cf')
         .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas')
-        .eq('tenant_org_id', tenantId);
+        .eq('tenant_org_id', tenantId)
+        .eq('is_active', true)
+        .eq('is_show_in_quick_bar', true)
+        .eq('is_stopped_by_saas', false)
+        .eq('rec_status', 1)
+        .order('rec_order', { ascending: true });
 
       const cfMap = new Map(
-        (tenantCf || []).map((c) => [c.kind_code, c])
+        (tenantKinds || []).map((c) => [c.kind_code, c])
       );
 
       return (sysKinds || [])
@@ -743,9 +749,9 @@ export class PreferenceCatalogService {
         .map((s) => {
           const cf = cfMap.get(s.kind_code);
           return {
-            kind_code:            s.kind_code,
-            name:                 cf?.name ?? s.name,
-            name2:                cf?.name2 ?? s.name2,
+            kind_code:            cf.kind_code,
+            name:                 'K-'+(cf?.name ?? s.name),
+            name2:                'K-'+(cf?.name2 ?? s.name2),
             kind_bg_color:        cf?.kind_bg_color ?? s.kind_bg_color,
             main_type_code:       s.main_type_code as PreferenceMainType | null,
             icon:                 s.icon,

@@ -1,4 +1,4 @@
-# Combined Implementation Blueprint for Customer App + Staff App
+# Suggested Combined Implementation Blueprint for Customer App + Staff App
 
 This is the right next step.
 

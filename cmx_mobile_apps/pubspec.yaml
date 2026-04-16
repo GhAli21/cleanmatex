@@ -1,4 +1,4 @@
-name: mobile_apps_workspace
+name: cmx_mobile_apps_workspace
 publish_to: none
 environment:
   sdk: ">=3.5.0 <4.0.0"

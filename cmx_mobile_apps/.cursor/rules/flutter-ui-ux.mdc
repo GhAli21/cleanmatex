@@ -1,9 +1,9 @@
 ---
 description: Flutter UI/UX and localization rules for CleanMateX mobile apps
 globs:
-  - "mobile-apps/customer_app/lib/**/*.dart"
-  - "mobile-apps/staff_app/lib/**/*.dart"
-  - "mobile-apps/driver_app/lib/**/*.dart"
+  - "cmx_mobile_apps/customer_app/lib/**/*.dart"
+  - "cmx_mobile_apps/staff_app/lib/**/*.dart"
+  - "cmx_mobile_apps/driver_app/lib/**/*.dart"
 alwaysApply: true
 ---
 
