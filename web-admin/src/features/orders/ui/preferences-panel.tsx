@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { cn } from '@/lib/utils';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
@@ -20,6 +21,20 @@ import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import type { PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
+
+/**
+ * Inactive preference-kind tabs: show catalog color as a small dot only, or as the full tab background.
+ * Set to `full_tab` for colored pills on every tab that has `kind_bg_color`.
+ */
+export const PREFERENCE_KIND_INACTIVE_COLOR_MODE: 'dot' | 'full_tab' = 'full_tab';//'dot';
+
+const PREFERENCE_KIND_MDI_ICON_SAFE = /^mdi-[a-z0-9-]+$/i;
+
+function isSafePreferenceKindMdiIcon(
+  icon: string | null | undefined
+): icon is string {
+  return typeof icon === 'string' && icon.length > 0 && PREFERENCE_KIND_MDI_ICON_SAFE.test(icon);
+}
 
 interface PreferencesPanelProps {
   selectedPieceId: string | null;
@@ -321,29 +336,55 @@ export function PreferencesPanel({
           {preferenceKinds.map((kind) => {
             const label = getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code;
             const isActive = kind.kind_code === activeKindCode;
+            const bg = kind.kind_bg_color;
+            const hasBg = Boolean(bg);
+            const inactiveFullColor =
+              PREFERENCE_KIND_INACTIVE_COLOR_MODE === 'full_tab' && !isActive && hasBg;
+            const showColorBackground = (isActive && hasBg) || inactiveFullColor;
+            const showDot =
+              PREFERENCE_KIND_INACTIVE_COLOR_MODE === 'dot' && !isActive && hasBg;
+            const showSelectionRing =
+              isActive &&
+              PREFERENCE_KIND_INACTIVE_COLOR_MODE === 'full_tab' &&
+              hasBg;
+
+            const buttonClass = cn(
+              'flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-1',
+              isActive
+                ? hasBg
+                  ? cn(
+                      'border-transparent text-white shadow-sm',
+                      showSelectionRing && 'z-[1] ring-2 ring-blue-600 ring-offset-1'
+                    )
+                  : 'border-transparent bg-blue-600 text-white shadow-sm'
+                : inactiveFullColor
+                  ? 'border-transparent text-white shadow-sm hover:brightness-110'
+                  : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
+            );
+
+            const mdiToneClass = isActive || inactiveFullColor ? 'text-white' : 'text-gray-600';
+
             return (
               <button
                 key={kind.kind_code}
                 type="button"
                 onClick={() => setActiveKindCode(kind.kind_code)}
-                className={`flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-medium transition-colors focus:outline-none ${
-                  isActive
-                    ? 'border-transparent text-white shadow-sm'
-                    : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900'
-                }`}
-                style={
-                  isActive && kind.kind_bg_color
-                    ? { backgroundColor: kind.kind_bg_color }
-                    : undefined
-                }
+                className={buttonClass}
+                style={showColorBackground && bg ? { backgroundColor: bg } : undefined}
               >
-                {kind.kind_bg_color && !isActive && (
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: kind.kind_bg_color }}
+                {isSafePreferenceKindMdiIcon(kind.icon) ? (
+                  <i
+                    className={cn('mdi shrink-0 text-base leading-none', kind.icon, mdiToneClass)}
                     aria-hidden="true"
                   />
-                )}
+                ) : null}
+                {showDot ? (
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: bg ?? undefined }}
+                    aria-hidden="true"
+                  />
+                ) : null}
                 {label}
               </button>
             );

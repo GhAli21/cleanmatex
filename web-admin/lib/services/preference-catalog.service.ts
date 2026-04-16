@@ -749,9 +749,9 @@ export class PreferenceCatalogService {
         .map((s) => {
           const cf = cfMap.get(s.kind_code);
           return {
-            kind_code:            cf.kind_code,
-            name:                 'K-'+(cf?.name ?? s.name),
-            name2:                'K-'+(cf?.name2 ?? s.name2),
+            kind_code:            s.kind_code,
+            name:                 (cf?.name ?? s.name),
+            name2:                (cf?.name2 ?? s.name2),
             kind_bg_color:        cf?.kind_bg_color ?? s.kind_bg_color,
             main_type_code:       s.main_type_code as PreferenceMainType | null,
             icon:                 s.icon,
