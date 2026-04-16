@@ -208,7 +208,7 @@ export function ServicePreferenceSelector({
       </span>
       {groupedPrefs.map(({ category, prefs }) => (
         <section key={category} className="space-y-2">
-          <span className="block text-xs font-semibold uppercase tracking-[0.16em] text-gray-500">
+          <span className="block text-sm font-semibold uppercase tracking-wide text-gray-600">
             {t(`category${category.charAt(0).toUpperCase() + category.slice(1)}`) ||
               category}
           </span>
@@ -246,7 +246,7 @@ export function ServicePreferenceSelector({
                       <span className="block text-sm font-medium leading-5 text-gray-900">
                         {label}
                       </span>
-                      <div className="flex flex-wrap gap-1.5 text-xs">
+                      <div className="flex flex-wrap gap-1.5 text-sm">
                         {extraPrice > 0 && (
                           <span
                             className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600"

@@ -11,6 +11,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { cn } from '@/lib/utils';
+import { isSafeMdiIconClass } from '@/lib/utils/mdi-icon';
 import { useNewOrderStateWithDispatch } from '../hooks/use-new-order-state';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
 import { ServicePreferenceSelector } from './preferences/ServicePreferenceSelector';
@@ -27,14 +28,6 @@ import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
  * Set to `full_tab` for colored pills on every tab that has `kind_bg_color`.
  */
 export const PREFERENCE_KIND_INACTIVE_COLOR_MODE: 'dot' | 'full_tab' = 'full_tab';//'dot';
-
-const PREFERENCE_KIND_MDI_ICON_SAFE = /^mdi-[a-z0-9-]+$/i;
-
-function isSafePreferenceKindMdiIcon(
-  icon: string | null | undefined
-): icon is string {
-  return typeof icon === 'string' && icon.length > 0 && PREFERENCE_KIND_MDI_ICON_SAFE.test(icon);
-}
 
 interface PreferencesPanelProps {
   selectedPieceId: string | null;
@@ -210,7 +203,7 @@ export function PreferencesPanel({
         }
         // condition_special, condition_pattern, condition_material — generic chip grid
         return (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2.5">
             {kindPrefs.map((cond) => {
               const isSelected = selectedConditions.includes(cond.code);
               const label = getBilingual(cond.name, cond.name2 ?? null) || cond.name;
@@ -219,19 +212,30 @@ export function PreferencesPanel({
                   key={cond.code}
                   type="button"
                   onClick={() => onConditionToggle(cond.code)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                  className={cn(
+                    'inline-flex min-h-10 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1',
                     isSelected
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white text-gray-700 border-gray-300 hover:border-gray-500'
-                  }`}
+                      ? 'border-blue-600 bg-blue-600 text-white shadow-sm'
+                      : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-400 hover:bg-white'
+                  )}
                   aria-pressed={isSelected}
                 >
-                  {label}
+                  {isSafeMdiIconClass(cond.icon) ? (
+                    <i
+                      className={cn(
+                        'mdi shrink-0 text-lg leading-none',
+                        cond.icon,
+                        isSelected ? 'text-white' : 'text-gray-600'
+                      )}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <span>{label}</span>
                 </button>
               );
             })}
             {kindPrefs.length === 0 && (
-              <p className="text-xs text-gray-500 py-4 w-full text-center">
+              <p className="w-full py-6 text-center text-sm text-gray-500">
                 {tPalette('noItemsAvailable') || 'No items available'}
               </p>
             )}
@@ -243,19 +247,19 @@ export function PreferencesPanel({
         const colors = prefsByKind.get('color') ?? conditionCatalog.colors;
         return (
           <div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               {colors.map((color) => {
                 const isSelected = selectedConditions.includes(color.code);
                 const label = getBilingual(color.name, color.name2 ?? null) || color.name;
                 return (
-                  <div key={color.code} className="flex flex-col items-center gap-0.5">
+                  <div key={color.code} className="flex max-w-[5.5rem] flex-col items-center gap-1">
                     <button
                       type="button"
                       title={label}
                       onClick={() => onConditionToggle(color.code)}
-                      className={`w-9 h-9 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 ${
+                      className={`h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1 ${
                         isSelected
-                          ? 'border-blue-600 ring-2 ring-blue-300 scale-110'
+                          ? 'scale-110 border-blue-600 ring-2 ring-blue-300'
                           : 'border-gray-300 hover:border-gray-500'
                       }`}
                       style={{ backgroundColor: color.color_hex ?? '#e5e7eb' }}
@@ -263,14 +267,16 @@ export function PreferencesPanel({
                       aria-pressed={isSelected}
                     />
                     {!color.color_hex && (
-                      <span className="text-[9px] text-gray-500 max-w-9 truncate text-center">{label}</span>
+                      <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-gray-600">
+                        {label}
+                      </span>
                     )}
                   </div>
                 );
               })}
             </div>
             {colors.length === 0 && (
-              <p className="text-xs text-gray-500 text-center py-4">
+              <p className="py-4 text-center text-sm text-gray-500">
                 {tPalette('colors') || 'No colors available'}
               </p>
             )}
@@ -372,7 +378,7 @@ export function PreferencesPanel({
                 className={buttonClass}
                 style={showColorBackground && bg ? { backgroundColor: bg } : undefined}
               >
-                {isSafePreferenceKindMdiIcon(kind.icon) ? (
+                {isSafeMdiIconClass(kind.icon) ? (
                   <i
                     className={cn('mdi shrink-0 text-base leading-none', kind.icon, mdiToneClass)}
                     aria-hidden="true"

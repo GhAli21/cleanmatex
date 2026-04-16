@@ -10,6 +10,8 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { cn } from '@/lib/utils';
+import { isSafeMdiIconClass } from '@/lib/utils/mdi-icon';
 import { STAIN_CONDITIONS, StainCondition } from '@/lib/types/order-creation';
 
 interface CatalogEntry {
@@ -82,18 +84,19 @@ export function StainConditionToggles({
   const isSelected = (code: string) => selectedConditions.includes(code);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
       {!hideFilterBar && (
-        <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'} mb-4`}>
-          <h3 className={`font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`mb-4 flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
+          <h3 className={`text-base font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('customerOrderItemPiecesPreferences')}
           </h3>
 
           {/* Filter Buttons */}
-          <div className={`flex gap-1 bg-gray-100 rounded-lg p-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <div className={`flex gap-1 rounded-lg bg-gray-100 p-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
             <button
+              type="button"
               onClick={() => setFilter('all')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 filter === 'all'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -102,8 +105,9 @@ export function StainConditionToggles({
               {t('all')}
             </button>
             <button
+              type="button"
               onClick={() => setFilter('stain')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 filter === 'stain'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -112,8 +116,9 @@ export function StainConditionToggles({
               {t('stains')}
             </button>
             <button
+              type="button"
               onClick={() => setFilter('damage')}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
                 filter === 'damage'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
@@ -126,33 +131,43 @@ export function StainConditionToggles({
       )}
 
       {/* Helper Text */}
-      <p className={`text-xs text-gray-500 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-        {disabled
-          ? t('addItemFirst')
-          : t('clickToApply')}
+      <p className={`mb-3 text-sm leading-relaxed text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+        {disabled ? t('addItemFirst') : t('clickToApply')}
       </p>
 
-      {/* Condition Toggles - flat tag cloud */}
-      <div className={`flex flex-wrap gap-1.5 ${hideFilterBar ? '' : 'mt-2'}`}>
+      {/* Condition chips — catalog icons use MDI webfont when safe */}
+      <div className={`flex flex-wrap gap-2 ${hideFilterBar ? '' : 'mt-2'}`}>
         {filteredConditions.map((condition) => {
           const selected = isSelected(condition.code);
           const categoryColor = selected
             ? condition.category === 'stain'
-              ? 'bg-orange-500 text-white border-orange-600'
-              : 'bg-red-500 text-white border-red-600'
+              ? 'border-orange-600 bg-orange-500 text-white shadow-sm'
+              : 'border-red-600 bg-red-500 text-white shadow-sm'
             : disabled
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-transparent'
-            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-transparent';
+              ? 'cursor-not-allowed border-transparent bg-gray-100 text-gray-400'
+              : 'border-gray-200 bg-gray-50 text-gray-800 hover:border-gray-300 hover:bg-white';
+
+          const iconMuted = selected ? 'text-white' : disabled ? 'text-gray-400' : 'text-gray-600';
 
           return (
             <button
               key={condition.code}
+              type="button"
               onClick={() => !disabled && onConditionToggle(condition.code)}
               disabled={disabled}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all border ${categoryColor}`}
+              className={cn(
+                'inline-flex min-h-10 max-w-full items-center gap-2 rounded-full border px-3.5 py-2 text-left text-sm font-medium transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+                categoryColor,
+                isRTL && 'flex-row-reverse text-right'
+              )}
             >
-              {condition.icon && <span className={isRTL ? 'ms-1' : 'me-1'}>{condition.icon}</span>}
-              {getLabel(condition)}
+              {isSafeMdiIconClass(condition.icon) ? (
+                <i
+                  className={cn('mdi shrink-0 text-lg leading-none', condition.icon, iconMuted)}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className="min-w-0 break-words">{getLabel(condition)}</span>
             </button>
           );
         })}
@@ -160,8 +175,8 @@ export function StainConditionToggles({
 
       {/* Selected Conditions Summary */}
       {selectedConditions.length > 0 && (
-        <div className={`mt-4 pt-4 border-t border-gray-200 ${isRTL ? 'text-right' : 'text-left'}`}>
-          <p className={`text-xs text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+        <div className={`mt-5 border-t border-gray-200 pt-4 ${isRTL ? 'text-right' : 'text-left'}`}>
+          <p className={`mb-2 text-sm font-medium text-gray-700 ${isRTL ? 'text-right' : 'text-left'}`}>
             {t('appliedConditions')} ({selectedConditions.length}):
           </p>
           <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -172,13 +187,26 @@ export function StainConditionToggles({
               return (
                 <span
                   key={code}
-                  className={`inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-md ${isRTL ? 'flex-row-reverse' : ''}`}
+                  className={cn(
+                    'inline-flex min-h-9 max-w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm font-medium text-orange-900',
+                    'bg-orange-100',
+                    isRTL && 'flex-row-reverse'
+                  )}
                 >
-                  {condition.icon && <span>{condition.icon}</span>}
-                  {getLabel(condition)}
+                  {isSafeMdiIconClass(condition.icon) ? (
+                    <i
+                      className={cn('mdi shrink-0 text-base leading-none text-orange-800', condition.icon)}
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <span className="min-w-0 break-words">{getLabel(condition)}</span>
                   <button
+                    type="button"
                     onClick={() => onConditionToggle(code)}
-                    className={`${isRTL ? 'mr-1' : 'ml-1'} hover:text-orange-900`}
+                    className={cn(
+                      'shrink-0 rounded px-1.5 text-lg leading-none text-orange-800 hover:bg-orange-200/80 hover:text-orange-950',
+                      isRTL ? 'me-0.5' : 'ms-0.5'
+                    )}
                     aria-label={t('removeCondition')}
                   >
                     ×
