@@ -198,7 +198,7 @@ export default function InvoicesTable({
       case 'status':
         return (
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge(inv.status)}`}>
-            {inv.status}
+            {t(`statuses.${inv.status}`)}
           </span>
         );
       case 'dueDate':

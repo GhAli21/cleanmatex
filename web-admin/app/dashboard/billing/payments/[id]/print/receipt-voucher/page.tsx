@@ -31,18 +31,22 @@ export default function ReceiptVoucherPrintPage() {
       try {
         const voucherResult = await getReceiptVoucherDataByPaymentIdAction(paymentId);
         if (!voucherResult.success || !voucherResult.data) {
-          setError('Voucher not found');
+          setError(tBilling('receiptVoucher.printPage.voucherNotFound'));
           return;
         }
         const voucher = voucherResult.data;
         const paymentResult = await getPaymentAction(paymentId);
         if (!paymentResult.success || !paymentResult.data) {
-          setError(paymentResult.error || 'Payment not found');
+          setError(paymentResult.error || tBilling('receiptVoucher.printPage.paymentNotFound'));
           return;
         }
         const payment = paymentResult.data;
         // Tenant info - simplified for now (can be enhanced later)
-        const tenant = { name: 'CleanMateX', phone: null, address: null };
+        const tenant = {
+          name: tBilling('receiptVoucher.defaultBusinessName'),
+          phone: null,
+          address: null,
+        };
 
         const data: BillingReceiptVoucherPrintRprtData = {
           voucher,
@@ -74,13 +78,13 @@ export default function ReceiptVoucherPrintPage() {
         };
         setPrintData(data);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load voucher');
+        setError(e instanceof Error ? e.message : tBilling('receiptVoucher.printPage.loadFailed'));
       } finally {
         setLoading(false);
       }
     }
     load();
-  }, [paymentId]);
+  }, [paymentId, tBilling]);
 
   return (
     <div className="min-h-screen bg-gray-100 py-6 print:bg-white print:py-0">
@@ -150,8 +154,8 @@ export default function ReceiptVoucherPrintPage() {
 
       <div className="print-hidden mb-4 flex items-center justify-between px-4">
         <div>
-          <h1 className="text-lg font-semibold">{tBilling('receiptVoucher.title') ?? 'Receipt Voucher'}</h1>
-          <p className="text-sm text-gray-500">A4 layout • {tCommon('print')}</p>
+          <h1 className="text-lg font-semibold">{tBilling('receiptVoucher.title')}</h1>
+          <p className="text-sm text-gray-500">{tBilling('receiptVoucher.printPage.layoutA4')} • {tCommon('print')}</p>
         </div>
         <div className="flex gap-2">
           <button

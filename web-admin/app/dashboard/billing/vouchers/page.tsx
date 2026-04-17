@@ -45,7 +45,7 @@ export default async function VouchersPage({ searchParams }: PageProps) {
     return (
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
+          {error instanceof Error ? error.message : t('receiptVoucher.errors.authFailed')}
         </div>
       </div>
     );
@@ -78,7 +78,7 @@ export default async function VouchersPage({ searchParams }: PageProps) {
     return (
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {vouchersResult.error || 'Failed to load vouchers'}
+          {vouchersResult.error || t('receiptVoucher.errors.loadFailed')}
         </div>
       </div>
     );
@@ -97,14 +97,14 @@ export default async function VouchersPage({ searchParams }: PageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('receiptVoucher.title') ?? 'Receipt Vouchers'}</h1>
-          <p className="mt-1 text-gray-600">{t('receiptVoucher.description') ?? 'View and manage receipt vouchers'}</p>
+          <h1 className="text-3xl font-bold">{t('receiptVoucher.title')}</h1>
+          <p className="mt-1 text-gray-600">{t('receiptVoucher.description')}</p>
         </div>
         <Link
           href="/dashboard/billing/vouchers/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          {t('receiptVoucher.newVoucher') ?? 'New Voucher'}
+          {t('receiptVoucher.newVoucher')}
         </Link>
       </div>
 

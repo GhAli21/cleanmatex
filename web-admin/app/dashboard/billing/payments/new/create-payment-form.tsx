@@ -70,7 +70,7 @@ export default function CreatePaymentForm({
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFieldErrors({ amount: 'Amount must be greater than zero' });
+      setFieldErrors({ amount: t('amountInvalid') });
       return;
     }
 
@@ -95,10 +95,10 @@ export default function CreatePaymentForm({
       const errors: Record<string, string> = {};
       for (const err of parsed.error.errors) {
         const field = err.path?.[0] as string | undefined;
-        if (field) errors[field] = err.message ?? 'Invalid';
+        if (field) errors[field] = err.message ?? t('invalidField');
       }
       setFieldErrors(errors);
-      setError(parsed.error.errors[0]?.message ?? 'Invalid input');
+      setError(parsed.error.errors[0]?.message ?? t('invalidInput'));
       return;
     }
 

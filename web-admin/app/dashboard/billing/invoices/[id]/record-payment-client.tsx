@@ -45,6 +45,8 @@ interface RecordPaymentClientProps {
     recordPayment: string;
     amount: string;
     paymentMethod: string;
+    notes: string;
+    remaining: string;
     cash: string;
     card: string;
     submit: string;
@@ -166,7 +168,7 @@ export function RecordPaymentClient({
             className="mt-1 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2.5 text-right font-medium text-slate-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
           />
           <p className="mt-1.5 text-xs font-medium text-emerald-700">
-            {formatMoneyWithCode(remainingBalance)} remaining
+            {formatMoneyWithCode(remainingBalance)} {t.remaining}
           </p>
         </div>
 
@@ -202,7 +204,7 @@ export function RecordPaymentClient({
 
         <div>
           <label className="block text-sm font-medium text-slate-700">
-            Notes
+            {t.notes}
           </label>
           <textarea
             value={notes}

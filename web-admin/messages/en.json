@@ -271,7 +271,16 @@
       "retail": "Retail",
       "b2b": "B2B",
       "fromDate": "From Date",
-      "toDate": "To Date"
+      "toDate": "To Date",
+      "statusOptions": {
+        "pending": "Pending",
+        "paid": "Paid",
+        "partial": "Partial",
+        "overdue": "Overdue",
+        "draft": "Draft",
+        "cancelled": "Cancelled",
+        "refunded": "Refunded"
+      }
     },
     "columns": {
       "invoiceNo": "Invoice #",
@@ -319,6 +328,15 @@
       "pending": "Pending / Partial",
       "overdue": "Overdue"
     },
+    "statuses": {
+      "pending": "Pending",
+      "paid": "Paid",
+      "partial": "Partial",
+      "overdue": "Overdue",
+      "draft": "Draft",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
     "detail": {
       "title": "Invoice {invoiceNo}",
       "forOrder": "Linked to order {orderId}",
@@ -329,6 +347,9 @@
       "status": "Status"
     },
     "printReceiptVoucher": "Print Receipt Voucher",
+    "errors": {
+      "authFailed": "Authentication failed. Please log in again."
+    },
     "history": {
       "date": "Date",
       "amount": "Amount",
@@ -349,6 +370,8 @@
       "paymentMethod": "Payment method",
       "cash": "Cash",
       "card": "Card (POS)",
+      "notes": "Notes",
+      "remaining": "remaining",
       "submit": "Record payment",
       "processing": "Processing...",
       "cancel": "Reset",
@@ -582,7 +605,10 @@
       "submitting": "Creating...",
       "cancel": "Cancel",
       "success": "Payment created successfully",
-      "error": "Failed to create payment"
+      "error": "Failed to create payment",
+      "amountInvalid": "Amount must be greater than zero",
+      "invalidField": "Invalid value",
+      "invalidInput": "Invalid input"
     },
     "printReceiptVoucher": "Print Receipt Voucher"
   },
@@ -591,6 +617,7 @@
       "title": "Receipt Vouchers",
       "description": "View and manage receipt vouchers",
       "newVoucher": "New Voucher",
+      "defaultBusinessName": "CleanMateX",
       "voucherDetails": "Voucher Details",
       "voucherNo": "Voucher #",
       "invoiceNo": "Invoice #",
@@ -629,6 +656,16 @@
         "create": "Create Voucher",
         "creating": "Creating...",
         "error": "Failed to create voucher"
+      },
+      "errors": {
+        "authFailed": "Authentication failed. Please log in again.",
+        "loadFailed": "Failed to load vouchers"
+      },
+      "printPage": {
+        "voucherNotFound": "Voucher not found",
+        "paymentNotFound": "Payment not found",
+        "loadFailed": "Failed to load voucher",
+        "layoutA4": "A4 layout"
       }
     }
   },

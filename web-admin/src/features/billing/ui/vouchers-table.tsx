@@ -90,7 +90,7 @@ export default function VouchersTable({
     <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
       {vouchers.length === 0 ? (
         <div className="p-8 text-center text-gray-500">
-          {t('empty') ?? 'No vouchers found'}
+          {t('empty')}
         </div>
       ) : (
         <>
@@ -102,7 +102,7 @@ export default function VouchersTable({
                     className="cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
                     onClick={() => handleSort('voucher_no')}
                   >
-                    {t('voucherNo') ?? 'Voucher #'} <SortIcon field="voucher_no" />
+                    {t('voucherNo')} <SortIcon field="voucher_no" />
                   </th>
                   <th
                     className="cursor-pointer px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
@@ -111,22 +111,22 @@ export default function VouchersTable({
                     {tCommon('date')} <SortIcon field="created_at" />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {t('invoiceNo') ?? 'Invoice #'}
+                    {t('invoiceNo')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {t('orderNo') ?? 'Order #'}
+                    {t('orderNo')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {t('voucherCategory') ?? 'Category'}
+                    {t('voucherCategory')}
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    {t('voucherType') ?? 'Type'}
+                    {t('voucherType')}
                   </th>
                   <th
                     className="cursor-pointer px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
                     onClick={() => handleSort('total_amount')}
                   >
-                    {t('amountPaid') ?? 'Amount'} <SortIcon field="total_amount" />
+                    {t('amountPaid')} <SortIcon field="total_amount" />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                     {tCommon('status')}
@@ -195,7 +195,7 @@ export default function VouchersTable({
                           href={`/dashboard/billing/payments/${(voucher as any).payment_id}/print/receipt-voucher`}
                           target="_blank"
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
-                          title={t('printReceiptVoucher') ?? 'Print Receipt Voucher'}
+                          title={t('printReceiptVoucher')}
                         >
                           <Printer className="h-4 w-4" />
                         </Link>
@@ -213,7 +213,7 @@ export default function VouchersTable({
               <div className="text-sm text-gray-700">
                 {tCommon('showing')} {(pagination.page - 1) * pagination.limit + 1} to{' '}
                 {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of{' '}
-                {pagination.totalCount} {t('vouchers') ?? 'vouchers'}
+                {pagination.totalCount} {t('vouchers')}
               </div>
               <div className="flex gap-2">
                 <button

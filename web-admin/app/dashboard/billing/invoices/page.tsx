@@ -44,7 +44,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
     return (
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {error instanceof Error ? error.message : 'Authentication failed. Please log in again.'}
+          {error instanceof Error ? error.message : t('errors.authFailed')}
         </div>
       </div>
     );

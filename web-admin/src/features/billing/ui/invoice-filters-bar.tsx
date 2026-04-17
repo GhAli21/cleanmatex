@@ -7,7 +7,7 @@ import { useFeature } from '@/src/features/auth/ui/RequireFeature';
 import { FEATURE_FLAG_KEYS } from '@/lib/constants/feature-flags';
 
 const STATUS_OPTIONS = ['pending', 'paid', 'partial', 'overdue', 'draft', 'cancelled', 'refunded'] as const;
-const INVOICE_TYPE_OPTIONS = [
+const INVOICE_TYPE_OPTIONS =  [
   { value: '', labelKey: 'allTypes' },
   { value: 'RETAIL', labelKey: 'retail' },
   { value: 'B2B', labelKey: 'b2b' },
@@ -55,6 +55,7 @@ export default function InvoiceFiltersBar() {
   const hasFilters = searchParams.toString() !== '';
 
   const currentStatus = searchParams.get('status') || '';
+  const currentInvoiceType = searchParams.get('invoiceType') || '';
   const currentFromDate = searchParams.get('fromDate') || '';
   const currentToDate = searchParams.get('toDate') || '';
 
@@ -100,7 +101,7 @@ export default function InvoiceFiltersBar() {
           <option value="">{t('allStatuses')}</option>
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>
-              {s}
+              {t(`statusOptions.${s}`)}
             </option>
           ))}
         </select>

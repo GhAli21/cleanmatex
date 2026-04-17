@@ -37,12 +37,12 @@ export default function CreateVoucherForm() {
     // Validation
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFieldErrors({ amount: t('amountInvalid') ?? 'Amount must be greater than zero' });
+      setFieldErrors({ amount: t('amountInvalid') });
       return;
     }
 
     if (!invoiceId && !orderId && !customerId) {
-      setError(t('atLeastOneReference') ?? 'At least one of Invoice, Order, or Customer is required');
+      setError(t('atLeastOneReference'));
       return;
     }
 
@@ -59,7 +59,7 @@ export default function CreateVoucherForm() {
       if (result.success && result.data) {
         router.push(`/dashboard/billing/vouchers`);
       } else {
-        setError(result.error || (t('error') ?? 'Failed to create voucher'));
+        setError(result.error || t('error'));
       }
     });
   };
@@ -77,7 +77,7 @@ export default function CreateVoucherForm() {
           {/* Invoice */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('invoice') ?? 'Invoice ID'} <span className="text-gray-400">(optional)</span>
+              {t('invoice')} <span className="text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
@@ -86,7 +86,7 @@ export default function CreateVoucherForm() {
                 setInvoiceId(e.target.value);
                 setFieldErrors((prev) => ({ ...prev, invoice_id: undefined }));
               }}
-              placeholder={t('invoicePlaceholder') ?? 'Enter invoice ID'}
+              placeholder={t('invoicePlaceholder')}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               aria-invalid={!!fieldErrors.invoice_id}
             />
@@ -98,7 +98,7 @@ export default function CreateVoucherForm() {
           {/* Order */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('order') ?? 'Order ID'} <span className="text-gray-400">(optional)</span>
+              {t('order')} <span className="text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
@@ -107,7 +107,7 @@ export default function CreateVoucherForm() {
                 setOrderId(e.target.value);
                 setFieldErrors((prev) => ({ ...prev, order_id: undefined }));
               }}
-              placeholder={t('orderPlaceholder') ?? 'Enter order ID'}
+              placeholder={t('orderPlaceholder')}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               aria-invalid={!!fieldErrors.order_id}
             />
@@ -119,7 +119,7 @@ export default function CreateVoucherForm() {
           {/* Customer */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('customer') ?? 'Customer ID'} <span className="text-gray-400">(optional)</span>
+              {t('customer')} <span className="text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
@@ -128,7 +128,7 @@ export default function CreateVoucherForm() {
                 setCustomerId(e.target.value);
                 setFieldErrors((prev) => ({ ...prev, customer_id: undefined }));
               }}
-              placeholder={t('customerPlaceholder') ?? 'Enter customer ID'}
+              placeholder={t('customerPlaceholder')}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               aria-invalid={!!fieldErrors.customer_id}
             />
@@ -140,7 +140,7 @@ export default function CreateVoucherForm() {
           {/* Amount */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('amount') ?? 'Amount'} <span className="text-red-500">*</span>
+              {t('amount')} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -151,7 +151,7 @@ export default function CreateVoucherForm() {
                 setAmount(e.target.value);
                 setFieldErrors((prev) => ({ ...prev, amount: undefined }));
               }}
-              placeholder={t('amountPlaceholder') ?? '0.000'}
+              placeholder={t('amountPlaceholder')}
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               aria-invalid={!!fieldErrors.amount}
@@ -164,7 +164,7 @@ export default function CreateVoucherForm() {
           {/* Currency */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('currency') ?? 'Currency'}
+              {t('currency')}
             </label>
             <input
               type="text"
@@ -179,13 +179,13 @@ export default function CreateVoucherForm() {
           {/* Reason Code (optional) */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('reasonCode') ?? 'Reason Code'} <span className="text-gray-400">(optional)</span>
+              {t('reasonCode')} <span className="text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
               value={reasonCode}
               onChange={(e) => setReasonCode(e.target.value)}
-              placeholder={t('reasonCodePlaceholder') ?? 'Enter reason code if applicable'}
+              placeholder={t('reasonCodePlaceholder')}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -205,7 +205,7 @@ export default function CreateVoucherForm() {
           disabled={isSubmitting}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {isSubmitting ? (t('creating') ?? 'Creating...') : (t('create') ?? 'Create Voucher')}
+          {isSubmitting ? t('creating') : t('create')}
         </button>
       </div>
     </form>

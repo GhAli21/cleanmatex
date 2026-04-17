@@ -67,7 +67,7 @@ export default function VoucherFiltersBar() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSearch();
             }}
-            placeholder={t('searchPlaceholder') ?? 'Search by voucher #, invoice #, order #...'}
+            placeholder={t('searchPlaceholder')}
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
           <button
@@ -97,7 +97,7 @@ export default function VoucherFiltersBar() {
           onChange={(e) => updateParams({ status: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
-          <option value="">{t('allStatuses') ?? 'All Statuses'}</option>
+          <option value="">{t('allStatuses')}</option>
           {STATUS_OPTIONS.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -111,7 +111,7 @@ export default function VoucherFiltersBar() {
           onChange={(e) => updateParams({ voucherCategory: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
-          <option value="">{t('allCategories') ?? 'All Categories'}</option>
+          <option value="">{t('allCategories')}</option>
           {CATEGORY_OPTIONS.map((c) => (
             <option key={c} value={c}>
               {c}
@@ -125,7 +125,7 @@ export default function VoucherFiltersBar() {
           onChange={(e) => updateParams({ voucherType: e.target.value || null })}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
-          <option value="">{t('allTypes') ?? 'All Types'}</option>
+          <option value="">{t('allTypes')}</option>
           {TYPE_OPTIONS.map((t) => (
             <option key={t} value={t}>
               {t}

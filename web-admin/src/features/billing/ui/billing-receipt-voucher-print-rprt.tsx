@@ -69,11 +69,11 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
     >
       <header className="print-header">
         <div className="flex justify-between print-subtitle">
-          <span>{tenant?.name ?? 'CleanMateX'}</span>
+          <span>{tenant?.name ?? tBilling('receiptVoucher.defaultBusinessName')}</span>
           <span>{voucher.voucher_no}</span>
         </div>
         <h1 className="print-title mt-1">
-          {tBilling('receiptVoucher.title') ?? 'Receipt Voucher'}
+          {tBilling('receiptVoucher.title')}
         </h1>
         <p className="print-subtitle text-xs mt-0.5">
           {formatDate(voucher.issued_at ?? voucher.created_at, locale)}
@@ -82,31 +82,31 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
 
       {/* Voucher Details */}
       <section className="print-section">
-        <h2>{tBilling('receiptVoucher.voucherDetails') ?? 'Voucher Details'}</h2>
+        <h2>{tBilling('receiptVoucher.voucherDetails')}</h2>
         <div className="space-y-1">
           <div className="flex justify-between print-row">
-            <span>{tBilling('receiptVoucher.voucherNo') ?? 'Voucher #'}</span>
+            <span>{tBilling('receiptVoucher.voucherNo')}</span>
             <span className="font-mono font-medium">{voucher.voucher_no}</span>
           </div>
           {invoice && (
             <div className="flex justify-between print-row">
-              <span>{tBilling('receiptVoucher.invoiceNo') ?? 'Invoice #'}</span>
+              <span>{tBilling('receiptVoucher.invoiceNo')}</span>
               <span>{invoice.invoice_no}</span>
             </div>
           )}
           {order && (
             <div className="flex justify-between print-row">
-              <span>{tBilling('receiptVoucher.orderNo') ?? 'Order #'}</span>
+              <span>{tBilling('receiptVoucher.orderNo')}</span>
               <span>{order.order_no}</span>
             </div>
           )}
           <div className="flex justify-between print-row">
-            <span>{tCommon('date') ?? 'Date'}</span>
+            <span>{tCommon('date')}</span>
             <span>{formatDate(voucher.issued_at ?? voucher.created_at, locale)}</span>
           </div>
           {payment && (
             <div className="flex justify-between print-row">
-              <span>{tPayments('paymentMethod') ?? 'Payment Method'}</span>
+              <span>{tPayments('paymentMethod')}</span>
               <span>{payment.payment_method_code}</span>
             </div>
           )}
@@ -116,21 +116,21 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
       {/* Customer Info */}
       {customer && (
         <section className="print-section">
-          <h2>{tBilling('receiptVoucher.customerInfo') ?? 'Customer Information'}</h2>
+          <h2>{tBilling('receiptVoucher.customerInfo')}</h2>
           <div className="space-y-1">
             <div className="flex justify-between print-row">
-              <span>{tCommon('name') ?? 'Name'}</span>
+              <span>{tCommon('name')}</span>
               <span>{customer.name}</span>
             </div>
             {customer.phone && (
               <div className="flex justify-between print-row">
-                <span>{tCommon('phone') ?? 'Phone'}</span>
+                <span>{tCommon('phone')}</span>
                 <span>{customer.phone}</span>
               </div>
             )}
             {customer.email && (
               <div className="flex justify-between print-row">
-                <span>{tCommon('email') ?? 'Email'}</span>
+                <span>{tCommon('email')}</span>
                 <span>{customer.email}</span>
               </div>
             )}
@@ -143,7 +143,7 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
         <div className="rounded-lg border-2 border-gray-300 bg-gray-50 p-4">
           <div className="flex justify-between items-center">
             <span className="text-lg font-semibold">
-              {tBilling('receiptVoucher.amountPaid') ?? 'Amount Paid'}
+              {tBilling('receiptVoucher.amountPaid')}
             </span>
             <span className="text-2xl font-bold text-gray-900">
               {formatMoneyAmountWithCode(Number(voucher.total_amount ?? 0), {
@@ -159,16 +159,16 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
       {/* Payment Details */}
       {payment && (
         <section className="print-section">
-          <h2>{tBilling('receiptVoucher.paymentDetails') ?? 'Payment Details'}</h2>
+          <h2>{tBilling('receiptVoucher.paymentDetails')}</h2>
           <div className="space-y-1">
             {payment.transaction_id && (
               <div className="flex justify-between print-row">
-                <span>{tPayments('transactionId') ?? 'Transaction ID'}</span>
+                <span>{tPayments('transactionId')}</span>
                 <span className="font-mono text-xs">{payment.transaction_id}</span>
               </div>
             )}
             <div className="flex justify-between print-row">
-              <span>{tCommon('status') ?? 'Status'}</span>
+              <span>{tCommon('status')}</span>
               <span className="capitalize">{voucher.status}</span>
             </div>
           </div>
@@ -178,21 +178,21 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
       {/* Tenant Info */}
       {tenant && (
         <section className="print-section">
-          <h2>{tBilling('receiptVoucher.businessInfo') ?? 'Business Information'}</h2>
+          <h2>{tBilling('receiptVoucher.businessInfo')}</h2>
           <div className="space-y-1">
             <div className="flex justify-between print-row">
-              <span>{tCommon('name') ?? 'Name'}</span>
+              <span>{tCommon('name')}</span>
               <span>{tenant.name}</span>
             </div>
             {tenant.phone && (
               <div className="flex justify-between print-row">
-                <span>{tCommon('phone') ?? 'Phone'}</span>
+                <span>{tCommon('phone')}</span>
                 <span>{tenant.phone}</span>
               </div>
             )}
             {tenant.address && (
               <div className="flex justify-between print-row">
-                <span>{tCommon('address') ?? 'Address'}</span>
+                <span>{tCommon('address')}</span>
                 <span>{tenant.address}</span>
               </div>
             )}
@@ -202,10 +202,10 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
 
       {/* Footer */}
       <footer className="print-footer">
-        <p>{tBilling('receiptVoucher.thankYou') ?? 'Thank you for your business!'}</p>
+        <p>{tBilling('receiptVoucher.thankYou')}</p>
         {voucher.status === 'voided' && voucher.void_reason && (
           <p className="text-red-600 text-sm mt-2">
-            {tBilling('receiptVoucher.voided') ?? 'VOIDED'} — {voucher.void_reason}
+            {tBilling('receiptVoucher.voided')} — {voucher.void_reason}
           </p>
         )}
       </footer>

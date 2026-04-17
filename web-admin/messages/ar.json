@@ -271,7 +271,16 @@
       "retail": "تجزئة",
       "b2b": "B2B",
       "fromDate": "من تاريخ",
-      "toDate": "إلى تاريخ"
+      "toDate": "إلى تاريخ",
+      "statusOptions": {
+        "pending": "قيد الانتظار",
+        "paid": "مدفوعة",
+        "partial": "جزئية",
+        "overdue": "متأخرة",
+        "draft": "مسودة",
+        "cancelled": "ملغاة",
+        "refunded": "مستردة"
+      }
     },
     "columns": {
       "invoiceNo": "رقم الفاتورة",
@@ -319,6 +328,15 @@
       "pending": "معلقة / جزئية",
       "overdue": "متأخرة"
     },
+    "statuses": {
+      "pending": "قيد الانتظار",
+      "paid": "مدفوعة",
+      "partial": "جزئية",
+      "overdue": "متأخرة",
+      "draft": "مسودة",
+      "cancelled": "ملغاة",
+      "refunded": "مستردة"
+    },
     "detail": {
       "title": "فاتورة {invoiceNo}",
       "forOrder": "مرتبطة بالطلب {orderId}",
@@ -329,6 +347,9 @@
       "status": "الحالة"
     },
     "printReceiptVoucher": "طباعة إيصال الدفعة",
+    "errors": {
+      "authFailed": "فشلت المصادقة. يرجى تسجيل الدخول مرة أخرى."
+    },
     "history": {
       "date": "التاريخ",
       "amount": "المبلغ",
@@ -349,6 +370,8 @@
       "paymentMethod": "طريقة الدفع",
       "cash": "نقداً",
       "card": "بطاقة (جهاز نقاط البيع)",
+      "notes": "ملاحظات",
+      "remaining": "متبقي",
       "submit": "تسجيل الدفعة",
       "processing": "جاري المعالجة...",
       "cancel": "إعادة التعيين",
@@ -582,7 +605,10 @@
       "submitting": "جاري الإنشاء...",
       "cancel": "إلغاء",
       "success": "تم إنشاء الدفعة بنجاح",
-      "error": "فشل إنشاء الدفعة"
+      "error": "فشل إنشاء الدفعة",
+      "amountInvalid": "يجب أن يكون المبلغ أكبر من صفر",
+      "invalidField": "قيمة غير صالحة",
+      "invalidInput": "إدخال غير صالح"
     },
     "printReceiptVoucher": "طباعة إيصال الدفعة"
   },
@@ -591,6 +617,7 @@
       "title": "إيصالات الدفع",
       "description": "عرض وإدارة إيصالات الدفع",
       "newVoucher": "إيصال جديد",
+      "defaultBusinessName": "كلين ميت إكس",
       "voucherDetails": "تفاصيل الإيصال",
       "voucherNo": "رقم الإيصال #",
       "invoiceNo": "رقم الفاتورة #",
@@ -629,6 +656,16 @@
         "create": "إنشاء الإيصال",
         "creating": "جاري الإنشاء...",
         "error": "فشل إنشاء الإيصال"
+      },
+      "errors": {
+        "authFailed": "فشلت المصادقة. يرجى تسجيل الدخول مرة أخرى.",
+        "loadFailed": "فشل تحميل الإيصالات"
+      },
+      "printPage": {
+        "voucherNotFound": "الإيصال غير موجود",
+        "paymentNotFound": "الدفعة غير موجودة",
+        "loadFailed": "فشل تحميل الإيصال",
+        "layoutA4": "تنسيق A4"
       }
     }
   },

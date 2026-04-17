@@ -228,7 +228,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                               'bg-amber-100 text-amber-800'
                             }`}
                           >
-                            {p.status}
+                            {t(`statuses.${p.status}`)}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
@@ -244,7 +244,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                                 href={`/dashboard/billing/payments/${p.id}/print/receipt-voucher`}
                                 target="_blank"
                                 className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
-                                title={t('printReceiptVoucher') ?? 'Print Receipt Voucher'}
+                                title={t('printReceiptVoucher')}
                               >
                                 <Printer className="h-3.5 w-3.5" />
                               </Link>
@@ -308,6 +308,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               recordPayment: t('recordPayment.title'),
               amount: t('recordPayment.amount'),
               paymentMethod: t('recordPayment.paymentMethod'),
+              notes: t('recordPayment.notes'),
+              remaining: t('recordPayment.remaining'),
               cash: t('recordPayment.cash'),
               card: t('recordPayment.card'),
               submit: t('recordPayment.submit'),
