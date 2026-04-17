@@ -29,6 +29,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const t = await getTranslations('invoices');
   const tCommon = await getTranslations('common');
   const tOrders = await getTranslations('orders.detail');
+  const tPayments = await getTranslations('payments');
 
   const auth = await getAuthContext();
   const tenantOrgId = auth.tenantId;
@@ -151,7 +152,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               </div>
               <div>
                 <dt className="text-gray-500">{t('detail.status')}</dt>
-                <dd className="font-medium text-gray-900">{invoice.status}</dd>
+                <dd className="font-medium text-gray-900">
+                  {t(`statuses.${invoice.status}`)}
+                </dd>
               </div>
               {invoice.payment_method_code && (
                 <div>
@@ -228,7 +231,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                               'bg-amber-100 text-amber-800'
                             }`}
                           >
-                            {t(`statuses.${p.status}`)}
+                            {p.status ? tPayments(`statuses.${p.status}`) : '—'}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
