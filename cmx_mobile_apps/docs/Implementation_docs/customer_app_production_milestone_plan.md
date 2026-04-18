@@ -1,0 +1,772 @@
+# Customer App Production Milestone Plan
+
+## Overview
+
+This plan turns the current mobile documentation into an execution sequence for building `customer_app` first without compromising long-term architecture, code quality, or production readiness.
+
+The plan assumes:
+
+* existing repository state is authoritative
+* Flutter is the mobile stack
+* `customer_app` is the first app to ship
+* shared packages are still to be created
+* every milestone must leave the workspace in a buildable, reviewable state
+
+This is not a brainstorming document. It is the recommended delivery plan.
+
+---
+
+## Delivery Principles
+
+### Engineering Principles
+
+* build shared foundations before feature-specific shortcuts
+* keep diffs small and mergeable
+* no hidden magic or premature abstraction
+* every milestone ends with passing validation
+* no milestone may introduce placeholder architecture that will need a rewrite immediately after
+
+### Product Principles
+
+* customer experience must feel simple, fast, and trustworthy
+* EN and AR are mandatory from the first interactive screen
+* guest-first entry should reduce friction without weakening account flows
+* tracking and reassurance matter as much as visual polish
+* no public-facing screen should ship with unresolved loading, empty, or error states
+
+### UI/UX Principles
+
+* phone-first design
+* strong hierarchy and clear next actions
+* readable timelines and order states
+* low-friction form flows
+* touch-friendly controls
+* RTL-safe spacing, alignment, and icon direction
+* polished states: loading, empty, offline, error, success
+
+### Production-Readiness Principles
+
+* no hardcoded strings
+* no direct business-rule authority in the app
+* typed models and typed service boundaries only
+* no unsecured token handling
+* no unstable dependency sprawl
+* no milestone is complete until it is analyzable, testable, and buildable
+
+---
+
+## Scope Decision
+
+### App Order
+
+`customer_app` is the first app to implement.
+
+### Why This Is Acceptable
+
+Building `customer_app` first is valid if the team still creates the shared mobile foundation correctly instead of embedding all logic directly into the app.
+
+### Non-Negotiable Rule
+
+Even though `customer_app` ships first, the following must still be built as shared assets where appropriate:
+
+* `mobile_core`
+* `mobile_l10n`
+* `mobile_ui`
+* `mobile_domain`
+* `mobile_services`
+* `mobile_testkit`
+
+Do not let `customer_app` become a one-off codebase that blocks `staff_app` and `driver_app` reuse later.
+
+---
+
+## Target Deliverables
+
+## Milestone Status Tracker
+
+| Milestone | Status | Started | Completed | Notes |
+|---|---|---|---|---|
+| 0. Rules, Instructions, and Skills Preparation | Completed | 2026-04-18 | 2026-04-18 | Mobile instruction layer aligned, Tier 1 local mobile skills created, governance docs updated |
+| 1. Workspace Bootstrap | In Progress | 2026-04-18 | — | Real `apps/` and `packages/` scaffold started |
+| 2. Shared Foundation Packages | In Progress | 2026-04-18 | — | Initial `mobile_core`, `mobile_l10n`, and `mobile_ui` foundations started and wired into `customer_app` shell |
+| 3. Customer App Shell | In Progress | 2026-04-18 | — | Early customer home shell started on top of shared UI and localization foundations; home feature screen now split into app-local cards and documented in `apps/customer_app/README.md` |
+| 4. Authentication and Session | Not Started | — | — | Depends on Milestone 3 and backend contract gates |
+| 5. Customer Orders Tracking Journey | Not Started | — | — | First production journey |
+| 6. Customer Order Creation Journey | Not Started | — | — | Starts after tracking is stable |
+| 7. Hardening and Production Readiness | Not Started | — | — | Final release gate |
+
+### Milestone Outcome
+
+At the end of this plan, the repository should have:
+
+* a real mobile workspace layout
+* working shared packages
+* a buildable `customer_app`
+* customer auth and guest entry
+* one complete production-grade customer journey
+* validation commands and release-quality guardrails
+
+### First Production Journey
+
+Recommended first production journey:
+
+1. app launch
+2. guest or authenticated entry
+3. orders list
+4. order detail
+5. order status tracking timeline
+
+Reason:
+
+This flow delivers visible customer value with lower complexity and lower backend coupling than full order creation and payment.
+
+### Second Production Journey
+
+After tracking is stable:
+
+1. service selection
+2. address selection
+3. pickup or delivery scheduling
+4. order review
+5. order submission
+
+---
+
+## Milestone Plan
+
+## Milestone 0: Rules, Instructions, and Skills Preparation
+
+### Goal
+
+Prepare the mobile workspace governance layer before implementation starts so coding, reviews, and future automation follow one consistent standard.
+
+### Deliverables
+
+* finalize the authoritative mobile instruction sources
+* align `cmx_mobile_apps/README.md`, `CLAUDE.md`, `AGENTS.md`, and `MOBILE_FOUNDATION_DECISIONS.md`
+* separate current-state facts from target-state architecture
+* define the implementation order explicitly: `customer_app` first
+* create and align the Tier 1 mobile skills needed for architecture, Flutter code generation, UI work, localization, testing, and documentation
+* document the validation commands the mobile workspace will use once scaffolded
+* define the canonical review checklist for mobile PRs
+
+### Required Output
+
+* no contradiction between mobile instruction files
+* mobile foundation document clearly marked truth-first and target-state where appropriate
+* implementation plan approved for `customer_app` first
+* Tier 1 local mobile skills created and referenced by the instruction layer
+* clear guidance for how AI assistants and reviewers should behave before and during implementation
+
+### Skills and Instruction Areas To Prepare
+
+#### Architecture and Structure
+
+* workspace layout rules
+* package responsibility boundaries
+* provider -> repository -> data source flow
+* target dependency direction
+
+#### Flutter Development
+
+* widget composition rules
+* state management rules
+* typed model rules
+* routing and app bootstrap rules
+
+#### UI/UX
+
+* theme and design-token rules
+* loading, empty, offline, error, success state rules
+* customer-facing screen quality bar
+* EN/AR and RTL design requirements
+
+#### Localization
+
+* message-key conventions
+* EN/AR same-milestone requirement
+* no hardcoded text rule
+
+#### Testing and Validation
+
+* analyze, format, test, and build expectations
+* minimum test types by milestone
+* production-readiness validation gate definitions
+
+#### Documentation and Review
+
+* where implementation plans live
+* where architecture decisions live
+* what each milestone must document
+* what reviewers must reject immediately
+
+### Validation Gate
+
+* mobile documentation has no known contradiction about current repo state
+* instruction files point to the same architectural direction
+* local mobile skills exist and are consistent with the instruction files
+* target workspace, package, and app strategy are explicit enough to scaffold without guesswork
+* milestone plan, validation rules, and review expectations are written down before coding starts
+
+### Exit Criteria
+
+The team can begin implementation without ambiguity about rules, structure, quality bar, review standards, or AI guidance.
+
+---
+
+## Milestone 1: Workspace Bootstrap
+
+### Goal
+
+Create the real mobile workspace so implementation can start on stable ground.
+
+### Deliverables
+
+* finalize the workspace folder strategy
+* create actual Flutter app directories and package directories
+* create `pubspec.yaml` for each app and package
+* update `melos.yaml` to match the chosen layout
+* establish baseline analyzer and formatter behavior
+* ensure the workspace can bootstrap consistently
+
+### Required Output
+
+* `customer_app` exists as a real Flutter project
+* `staff_app` and `driver_app` exist as minimal Flutter shells or placeholders with valid manifests
+* shared packages exist with valid manifests and minimal exports
+
+### Validation Gate
+
+* `melos bootstrap` passes
+* `melos analyze` passes
+* `dart format --set-exit-if-changed .` passes or equivalent Melos format check
+* `customer_app` can compile and launch into a minimal shell
+
+### Risks
+
+* choosing a temporary folder structure and changing it later
+* copying starter code into the app instead of packages
+
+### Exit Criteria
+
+The repo contains a real, reproducible mobile workspace rather than documentation-only structure.
+
+### Implementation Status
+
+Current status: In Progress
+
+Started on: 2026-04-18
+
+Immediate scope:
+
+* create real `apps/customer_app`, `apps/staff_app`, and `apps/driver_app`
+* create real `packages/mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, and `mobile_testkit`
+* create valid manifests and minimal bootstrap files
+* align workspace docs with the new scaffold
+
+### Implementation Status
+
+Current status: In Progress
+
+Started on: 2026-04-18
+
+Immediate scope:
+
+* create real `apps/customer_app`, `apps/staff_app`, and `apps/driver_app`
+* create real `packages/mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, and `mobile_testkit`
+* create valid manifests and minimal bootstrap files
+* align workspace docs with the new scaffold
+
+---
+
+## Milestone 2: Shared Foundation Packages
+
+### Goal
+
+Build the reusable foundation once so `customer_app` can stay thin and production-safe.
+
+### Deliverables by Package
+
+#### `mobile_core`
+
+* `AppConfig`
+* `AppException` hierarchy
+* `AppLogger`
+* shared enums and constants
+* format helpers
+* result and error mapping primitives if needed
+
+#### `mobile_l10n`
+
+* EN and AR localization setup
+* app localization delegate
+* locale provider
+* RTL helpers
+* common shared message keys
+
+#### `mobile_ui`
+
+* app theme
+* typography scale
+* spacing tokens
+* color tokens
+* core primitives: button, text field, card, loading, empty state, error state, section header
+* responsive helpers for phone-first layouts
+
+#### `mobile_domain`
+
+* only shared entities needed by customer flows
+* shared value objects where cross-app reuse is likely
+* no HTTP, storage, or Flutter framework leakage
+
+#### `mobile_services`
+
+* Dio client
+* auth interceptor
+* tenant/session interceptor strategy if needed
+* secure token storage
+* session manager
+* connectivity service
+* API error mapping into typed exceptions
+
+#### `mobile_testkit`
+
+* provider wrappers
+* fake session manager
+* fake repositories
+* widget pump helpers
+* starter test fixtures for customer flows
+
+### Validation Gate
+
+* package exports are clean and minimal
+* EN and AR both render
+* at least one shared widget test passes
+* at least one service test passes
+* one integration path proves config -> services -> typed result flow
+
+### Exit Criteria
+
+`customer_app` can depend on packages for config, l10n, UI, services, and typed domain structures without app-local duplication.
+
+---
+
+## Milestone 3: Customer App Shell
+
+### Goal
+
+Create the production shell of `customer_app`.
+
+### Deliverables
+
+* `main.dart` and app bootstrap
+* splash and initialization flow
+* router and route guards
+* app shell with public and authenticated areas
+* global error boundary strategy
+* offline/no-connection baseline experience
+* locale switching access
+* theme wiring
+* app-level navigation patterns
+
+### Minimum Screens
+
+* splash
+* welcome or entry screen
+* login entry
+* guest entry
+* home placeholder
+* generic full-screen error page
+* generic offline page or offline banner pattern
+
+### UI/UX Requirements
+
+* no placeholder-grade layout
+* first screen must communicate trust and simplicity
+* bilingual copy must fit visually in EN and AR
+* spacing, card rhythm, and hierarchy must feel intentional
+* navigation must remain clear in RTL
+
+### Validation Gate
+
+* app launches in EN and AR
+* router handles startup correctly
+* shell screens support loading, empty, and error patterns
+* no hardcoded strings
+* no raw Material components scattered without theme alignment
+
+### Exit Criteria
+
+`customer_app` has a credible production shell and is ready for real auth and data flows.
+
+---
+
+## Milestone 4: Authentication and Session
+
+### Goal
+
+Implement a complete customer entry flow that supports both guest browsing and authenticated usage.
+
+### Deliverables
+
+* phone entry
+* OTP request flow if backend is ready
+* OTP verification flow
+* guest mode entry
+* session restore
+* logout
+* protected route handling
+* auth error handling
+* user bootstrap state after login
+
+### Business Rules
+
+* backend is the authority for authentication
+* app only orchestrates input, validation, session persistence, and route transitions
+* no auth decision logic duplicated in widgets
+
+### UI/UX Requirements
+
+* minimum friction for login
+* clear trust messaging around OTP and device/session behavior
+* resend and retry states must be explicit
+* loading and failure states must not trap the user
+* guest path must be clearly separated from signed-in path
+
+### Validation Gate
+
+* session restore works after restart
+* logout clears secure state
+* protected routes reject unauthenticated users correctly
+* auth failures are typed and user-friendly
+* auth flow is covered by widget or integration tests
+
+### Exit Criteria
+
+The app can reliably enter public and authenticated customer states without leaking session bugs.
+
+---
+
+## Milestone 5: Customer Orders Tracking Journey
+
+### Goal
+
+Ship the first real customer value path: view orders, open an order, and understand current status clearly.
+
+### Deliverables
+
+* orders list screen
+* order cards with high-signal summary
+* order detail screen
+* order status timeline
+* promised time / delivery status area
+* pull-to-refresh or equivalent refresh path
+* empty state for first-time users
+* error and retry handling
+
+### Data Requirements
+
+* typed order summary model
+* typed order detail model
+* repository and remote data source separation
+* pagination or scalable loading strategy if needed
+
+### UI/UX Requirements
+
+* customer should know the current state in under three seconds
+* timeline copy must be readable and reassuring
+* status badges must be theme-driven, accessible, and localized
+* detail page must prioritize what happens next, not raw operational noise
+
+### Validation Gate
+
+* list -> detail journey works against real or contract-stable APIs
+* loading, empty, error, offline, and success states are complete
+* screen-reader labels exist on primary interactive controls
+* EN and AR layouts are both reviewed
+
+### Exit Criteria
+
+A customer can meaningfully track an order end-to-end in a production-quality flow.
+
+---
+
+## Milestone 6: Customer Order Creation Journey
+
+### Goal
+
+Add the first revenue-driving customer flow after tracking is stable.
+
+### Deliverables
+
+* service selection
+* address selection or management
+* pickup/delivery choice
+* slot selection if backend supports it
+* notes and preferences
+* review and confirmation
+* order submission success state
+
+### Preconditions
+
+Do not start this milestone until:
+
+* tracking journey is stable
+* required API contracts are confirmed
+* pricing and scheduling rules are backend-owned and documented
+
+### UI/UX Requirements
+
+* keep the flow short and progressive
+* show pricing as backend-provided, not client-authored
+* preserve draft data safely between steps when appropriate
+* prevent confusing back-navigation or duplicate submissions
+
+### Validation Gate
+
+* submission is idempotent or protected against accidental repeat taps
+* form validation is clear and localized
+* draft recovery or controlled discard behavior is defined
+* success state clearly tells the customer what happens next
+
+### Exit Criteria
+
+The app supports a reliable first booking flow without shifting business logic into the client.
+
+---
+
+## Milestone 7: Hardening and Production Readiness
+
+### Goal
+
+Take the customer app from functional to release-ready.
+
+### Workstreams
+
+#### Accessibility
+
+* screen reader pass
+* touch target review
+* color contrast review
+* text scaling review
+* reduced motion review where relevant
+
+#### Performance
+
+* startup profiling
+* list rendering review
+* image loading review
+* unnecessary rebuild review
+* network retry and timeout review
+
+#### Security
+
+* secure token storage verification
+* release build settings
+* crash-safe logging review
+* no secrets in source
+* no sensitive payload leakage in logs
+
+#### Reliability
+
+* flaky-state review
+* offline handling review
+* retry behavior review
+* API exception mapping audit
+* route recovery and restart behavior audit
+
+#### Release Operations
+
+* flavor configuration
+* app icons and splash assets
+* build scripts
+* CI validation path
+* release checklist
+
+### Validation Gate
+
+* static analysis clean
+* targeted tests pass
+* release build succeeds
+* high-priority UX defects closed
+* no open blocker in auth, tracking, or order creation
+
+### Exit Criteria
+
+`customer_app` is production-ready for controlled rollout.
+
+---
+
+## Cross-Milestone Standards
+
+## Architecture Standards
+
+* widgets call providers, not repositories or services directly
+* repositories isolate API and cache concerns
+* app code stays thin when shared code belongs in packages
+* avoid app-local utilities that should live in shared packages
+
+## Code Quality Standards
+
+* no `dynamic` in core feature flows
+* no raw map-based app state crossing layers
+* typed exceptions only
+* cohesive files and predictable naming
+* no duplicate UI primitives
+
+## UI State Standards
+
+Every shipped screen must define:
+
+* initial loading
+* refresh loading if applicable
+* empty state
+* recoverable error state
+* offline state if affected
+* success state
+
+## Localization Standards
+
+* EN and AR must ship together
+* no English-only fallback UI
+* error messages shown to users must map to localization keys
+* layout review is required in RTL, not assumed
+
+## Testing Standards
+
+Minimum by the time Milestone 7 completes:
+
+* unit tests for services and repositories
+* widget tests for auth entry and orders tracking screens
+* integration coverage for startup, login, and tracking flow
+* golden or visual regression checks for shared UI primitives if adopted
+
+---
+
+## Dependency and Risk Controls
+
+## Backend Dependency Gates
+
+The mobile team must not guess missing contracts. Before the related milestone begins, confirm:
+
+### Before Milestone 4
+
+* OTP request and verify endpoints exist or are contract-approved
+* session payload shape is agreed
+* token refresh or session restore behavior is agreed
+* guest-mode capabilities and limits are defined
+
+### Before Milestone 5
+
+* orders list endpoint is stable
+* order detail endpoint is stable
+* status and timeline vocabulary are finalized enough for localization
+* empty-state conditions are defined intentionally, not inferred ad hoc
+
+### Before Milestone 6
+
+* service catalog endpoint is stable
+* address and scheduling contracts are stable
+* booking validation and pricing authority are backend-owned
+* order submission idempotency behavior is defined
+
+## Dependency Approval Rules
+
+Only add a new package when:
+
+* the use case is real and current
+* existing approved packages cannot solve it
+* it does not undermine architecture consistency
+* it does not weaken testability or maintenance
+
+## Major Risks
+
+### Risk 1: Building customer UI before shared foundations
+
+Impact:
+
+Fast initial progress, followed by expensive rework.
+
+Control:
+
+Do not skip Milestones 0 and 1.
+
+### Risk 2: Shipping a polished shell with weak data behavior
+
+Impact:
+
+Looks good in demos, fails in production.
+
+Control:
+
+Every milestone must include loading, error, retry, offline, and restart behavior.
+
+### Risk 3: Putting business logic in the app
+
+Impact:
+
+Pricing, workflow, and permissions drift from backend truth.
+
+Control:
+
+Keep backend as authority and audit feature flows before merge.
+
+### Risk 4: EN-first implementation with AR added later
+
+Impact:
+
+RTL regressions and layout rewrites.
+
+Control:
+
+EN and AR must be reviewed in the same milestone before signoff.
+
+---
+
+## Suggested PR Breakdown
+
+1. workspace scaffold and Melos alignment
+2. `mobile_core` + `mobile_l10n`
+3. `mobile_ui` primitives and theme
+4. `mobile_services` + `mobile_domain` baseline
+5. `customer_app` shell
+6. auth and session flow
+7. orders list and detail tracking flow
+8. order creation flow
+9. hardening, test expansion, release preparation
+
+Each PR should stay narrowly scoped and leave the workspace passing its validation gate.
+
+---
+
+## Acceptance Checklist
+
+Before calling the first customer app release candidate ready:
+
+- [ ] Workspace structure is real and reproducible
+- [ ] Shared packages exist and are used
+- [ ] `customer_app` shell is polished and bilingual
+- [ ] Auth and guest flows are stable
+- [ ] Orders tracking journey is production-ready
+- [ ] Order creation journey is production-ready
+- [ ] No hardcoded strings or style values in shipped screens
+- [ ] Error handling is typed and localized
+- [ ] Release build succeeds
+- [ ] Core flows are covered by tests
+- [ ] Accessibility review completed
+- [ ] Security and logging review completed
+
+---
+
+## Recommended Immediate Next Action
+
+Start with Milestone 0 and treat it as an implementation project, not a documentation exercise.
+
+The first concrete coding target should be:
+
+* real mobile workspace scaffold
+* shared package manifests
+* `customer_app` Flutter shell
+* `mobile_core`, `mobile_l10n`, and `mobile_ui` minimum viable foundations
+
+Do not begin customer feature screens before that foundation exists.

@@ -1038,9 +1038,9 @@ void main() {
 
 - **Screens**: `{feature}_screen.dart` (e.g., `orders_list_screen.dart`, `order_detail_screen.dart`)
 - **Widgets**: `{widget_name}.dart` (e.g., `order_card.dart`, `loading_indicator.dart`)
-- **Models**: `{model_name}.dart` (e.g., `order.dart`, `customer.dart`)
+- **Models**: `{table/model_name}.dart` (e.g., `order.dart`, `customer.dart`)
 - **Providers**: `{feature}_provider.dart` (e.g., `orders_provider.dart`, `auth_provider.dart`)
-- **Services**: `{service_name}_service.dart` (e.g., `api_service.dart`, `storage_service.dart`)
+- **Services**: `{feature_}{service_name}_service.dart` (e.g., `api_service.dart`, `storage_service.dart`)
 - **Utils**: `{utility_name}.dart` (e.g., `validators.dart`, `formatters.dart`)
 - **Constants**: `{scope}_constants.dart` (e.g., `app_constants.dart`, `order_constants.dart`)
 - **Mixins**: `{name}_mixin.dart` (e.g., `loading_mixin.dart`, `validation_mixin.dart`)
@@ -1065,10 +1065,10 @@ void main() {
 
 ### Provider Naming
 
-- **StateProvider**: `{name}Provider` (e.g., `selectedOrderProvider`, `isLoadingProvider`)
-- **FutureProvider**: `{name}Provider` (e.g., `ordersProvider`, `customerProvider`)
-- **StateNotifierProvider**: `{name}NotifierProvider` (e.g., `ordersNotifierProvider`)
-- **StreamProvider**: `{name}StreamProvider` (e.g., `orderUpdatesStreamProvider`)
+- **StateProvider**: `{feature}{name}Provider` (e.g., `selectedOrderProvider`, `isLoadingProvider`)
+- **FutureProvider**: `{feature}{name}Provider` (e.g., `ordersProvider`, `customerProvider`)
+- **StateNotifierProvider**: `{feature}{name}NotifierProvider` (e.g., `ordersNotifierProvider`)
+- **StreamProvider**: `{feature}{name}StreamProvider` (e.g., `orderUpdatesStreamProvider`)
 
 ### Examples
 

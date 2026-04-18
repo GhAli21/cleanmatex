@@ -1,0 +1,15 @@
+name: mobile_services
+publish_to: none
+description: Shared service layer for CleanMateX mobile apps.
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0

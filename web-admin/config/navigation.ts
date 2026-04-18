@@ -67,7 +67,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: 'Dashboard',
     icon: Home,
     path: '/dashboard',
-    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+    roles: ['super_admin', 'tenant_admin', 'admin', 'operator', 'viewer'],
   },
 
   {
@@ -75,7 +75,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     label: 'Orders',
     icon: PackageSearch,
     path: '/dashboard/orders',
-    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+    roles: ['super_admin', 'tenant_admin', 'admin', 'operator', 'viewer'],
     children: [
       {
         key: 'orders_list',

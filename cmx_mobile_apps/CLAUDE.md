@@ -2,6 +2,32 @@
 
 ## CleanMateX Mobile App Rules (Flutter Only)
 
+Act as a top experienced and professional Flutter and mobile app engineer on every mobile task.
+
+## Mandatory Skill Loading
+
+Before writing mobile code, always load the relevant mobile skill from `cmx_mobile_apps/.codex/skills/`.
+
+Required mobile skills:
+
+- `mobile-architecture`
+- `flutter-foundation`
+- `mobile-ui-system`
+- `mobile-customer-ux`
+- `mobile-i18n-rtl`
+- `mobile-testing`
+
+Use them as follows:
+
+- `mobile-architecture` for workspace structure, package boundaries, and app-vs-package placement
+- `flutter-foundation` for app bootstrap, Riverpod, routing, repositories, session, configuration, and typed non-UI implementation
+- `mobile-ui-system` for themes, reusable widgets, screen composition, and state UIs
+- `mobile-customer-ux` for customer-facing journeys such as onboarding, guest mode, tracking, booking, and home-screen priority
+- `mobile-i18n-rtl` for EN/AR localization, RTL layout behavior, and localized formatting
+- `mobile-testing` for test planning, validation scope, milestone readiness, and release-oriented quality gates
+
+If a task touches multiple domains, load all matching skills before implementation.
+
 ### Mission
 Build production-grade Flutter mobile apps for CleanMateX with:
 - clean feature-based architecture
@@ -67,6 +93,35 @@ Use project theme system only:
 
 Do not inline arbitrary colors unless explicitly requested.
 
+### Maintain visual consistency
+Ensure consistent theme, fonts, colors, spacing, formatting, and look and feel across the mobile workspace.
+
+Prioritize:
+- reusability
+- maintainability
+- multilingual support
+- responsive behavior
+- dark mode when relevant
+
+### Use logging, not prints
+Use structured logging or `AppLogger` for debugging and operational logs.
+
+Do not commit:
+- `print()`
+- `debugPrint()`
+
+### Always maintain proper documentation
+Keep mobile documentation current as implementation progresses.
+
+At minimum, update the appropriate mobile docs when:
+- roadmap or milestone status changes
+- workspace structure or current-state facts change
+- new mobile rules or conventions are introduced
+- significant implementation decisions are made
+- implementation status changes in a meaningful way
+
+A mobile task is not complete until the required documentation and progress or status updates are applied in the same task.
+
 ---
 
 ## Required Flutter Architecture
@@ -87,7 +142,7 @@ lib/
       data/
         models/
         repositories/
-        dbservices/
+        db_services/
       domain/
       providers/
       ui/
@@ -97,6 +152,36 @@ lib/
 ```
 
 Follow the same pattern already used in the project.
+
+### File naming conventions
+Use these target naming patterns:
+
+- models: `{domain}_model.dart`
+- screens: `{feature}_{action}_screen.dart`
+- providers: `{feature}_provider.dart`
+- widgets: `{feature}_{purpose}_widget.dart`
+- cards: `{feature}_{purpose}_card.dart`
+- view-only composed sections: `{feature}_{purpose}_view.dart`
+- reusable constants or app-level shared files: `app_{domain}.dart`
+- reusable UI widgets: `app_{purpose}_widget.dart`
+- db services: `{model}_db_service.dart`
+- repositories: `{feature}_repository.dart`
+- PostgreSQL-specific repositories: `{feature}_postgres_repository.dart`
+
+Prefer full words over abbreviations in file names. Use `_view.dart` instead of `_vw.dart`, and prefer `_repository.dart` over `_repo.dart`.
+
+### Nomenclature rules
+Use:
+- PascalCase for classes
+- camelCase for variables, functions, and methods
+- snake_case for file and directory names
+- UPPERCASE for environment variables
+
+Additional rules:
+- start functions with verbs when possible
+- use boolean names like `isLoading`, `hasError`, `canDelete`, `shouldRetry`
+- prefer complete words and correct spelling over local abbreviations
+- avoid magic numbers and extract meaningful constants
 
 ### Layer responsibilities
 
@@ -123,7 +208,7 @@ Responsible for:
 Responsible for:
 - models
 - repositories
-- dbservices
+- db services
 - mapping raw backend data
 
 #### Domain layer
@@ -198,6 +283,11 @@ Use existing widgets such as:
 - AppLoadingIndicator
 
 Do not replace them with raw Material widgets unless there is a clear need.
+
+Do not create duplicate naming variants such as:
+- `AppCardWidgetWidget`
+- `AppHeaderWidgetWidget`
+- `AppLoadingIndicatorWidget`
 
 ### Widgets must be small and focused
 Split large screens into:

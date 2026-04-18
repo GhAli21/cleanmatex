@@ -1,0 +1,30 @@
+name: driver_app
+publish_to: none
+description: CleanMateX driver mobile app.
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  mobile_core:
+    path: ../../packages/mobile_core
+  mobile_ui:
+    path: ../../packages/mobile_ui
+  mobile_domain:
+    path: ../../packages/mobile_domain
+  mobile_services:
+    path: ../../packages/mobile_services
+  mobile_l10n:
+    path: ../../packages/mobile_l10n
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  mobile_testkit:
+    path: ../../packages/mobile_testkit
+
+flutter:
+  uses-material-design: true

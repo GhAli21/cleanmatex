@@ -6,18 +6,27 @@
 
 | Field | Value |
 |---|---|
-| **Version** | v2.2.0 |
-| **Date** | 2026-04-17 |
-| **Status** | ACTIVE |
+| **Version** | v2.2.9 |
+| **Date** | 2026-04-18 |
+| **Status** | PROPOSED TARGET STATE |
 | **Supersedes** | v1.0.0 |
-| **Applies To** | `customer_app`, `staff_app`, `driver_app`, `mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, `mobile_testkit` |
+| **Applies To** | Current mobile workspace under `cmx_mobile_apps/` and the planned mobile apps/packages described in this document |
 | **Audience** | Mobile developers, AI assistants (Claude, Cursor, Codex), code reviewers, external contractors |
-| **Enforcement** | Any implementation violating a LOCKED section is rejected at code review |
+| **Enforcement** | Existing repository state is authoritative. LOCKED sections describe approved target architecture and become review gates only after the relevant module exists. |
 
 ### Changelog
 
 | Version | Date | Summary |
 |---|---|---|
+| v2.2.9 | 2026-04-18 | Fixed the customer app shell integration gap, split the initial home shell into feature-local cards, and added an app-local README so current implementation status is documented where the code lives |
+| v2.2.8 | 2026-04-18 | Strengthened the documentation governance rule: mobile work is not considered complete until required documentation and roadmap or status updates are applied in the same task |
+| v2.2.7 | 2026-04-18 | Updated current-state inventory for early Milestone 3 work: the customer app now has an initial localized home shell, and `mobile_ui` is expanding with canonical shared header and button widgets |
+| v2.2.6 | 2026-04-18 | Updated current-state inventory for early Milestone 2 work: shared packages now contain initial core, theme, localization, service, domain, and testkit bootstrap code, and the customer app shell is wired to the shared foundation layer |
+| v2.2.5 | 2026-04-18 | Added explicit documentation-maintenance rule to the mobile instruction layer: roadmap, current-state docs, rules, and implementation status must be updated as mobile work progresses |
+| v2.2.4 | 2026-04-18 | Updated current-state inventory after Milestone 1 bootstrap start: `apps/` and `packages/` scaffold now exist with valid manifests and minimal shells, and mobile README guidance now reflects the active workspace |
+| v2.2.3 | 2026-04-18 | Added enforceable mobile naming, nomenclature, UI consistency, shared-widget usage, and logging rules; normalized ambiguous suffixes such as `_vw.dart` and `_repo.dart` into clearer target-state conventions |
+| v2.2.2 | 2026-04-18 | Added mobile governance alignment for the new local skill system: documented mobile skills, updated companion/inventory references, and reflected the instruction-layer upgrade in README, AGENTS.md, and CLAUDE.md |
+| v2.2.1 | 2026-04-18 | Reclassified the document to truth-first target-state guidance: existing repo state now takes precedence, added current workspace inventory, corrected companion references, aligned examples with current files, and fixed stale section references |
 | v2.2.0 | 2026-04-17 | Expanded §3.2 — pubspec.yaml ownership rules (LOCKED): each app and package owns its own pubspec, root is workspace manifest only, forbidden patterns, rationale |
 | v2.1.0 | 2026-04-17 | Added §3.13 — Responsive Breakpoints and Layout Utility (LOCKED): AppBreakpoints, ResponsiveLayoutBuilder, LayoutBuilder-only rule, mobile/tablet/desktop thresholds |
 | v2.0.0 | 2026-04-17 | Full rewrite — added 20 new sections: folder structure, networking, auth, routing, storage, error handling, logging, notifications, security, platform targets, multi-tenant isolation, CI/CD, testing, accessibility, dependency management, code review rules, governance, enforcement |
@@ -25,8 +34,33 @@
 
 ### How to Read This Document
 
-* **LOCKED** — cannot change without a filed ADR and tech lead approval. Implemented consistently across all three apps and all packages.
-* **RECOMMENDED STANDARD** — team default. Can be overridden in a feature with written justification in the PR. Does not require an ADR.
+> If this document conflicts with the current repository, the repository wins. Use this document as the approved mobile target architecture unless a concrete implementation already exists on disk.
+
+* **CURRENT STATE** — verified facts about the repository as it exists today.
+* **LOCKED TARGET STANDARD** — approved architecture for future implementation. It cannot change without a filed ADR and tech lead approval.
+* **RECOMMENDED STANDARD** — team default. It can be overridden in a feature with written justification in the PR and does not require an ADR.
+
+### Current Mobile Workspace Inventory
+
+**Verified on 2026-04-18**
+
+| Area | Current State |
+|---|---|
+| Workspace root | `cmx_mobile_apps/` exists and is reserved for Flutter mobile work |
+| Legacy top-level app folders | `customer_app/`, `staff_app/`, and `driver_app/` still exist as older placeholders |
+| Active app workspace | `apps/customer_app`, `apps/staff_app`, and `apps/driver_app` now exist with valid `pubspec.yaml` files and minimal bootstrap shells |
+| Customer app implementation | `apps/customer_app` now includes an initial localized home shell under `lib/features/home/` and an app-local README documenting current scope |
+| Shared packages | `packages/mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, and `mobile_testkit` now exist with valid manifests and initial bootstrap code |
+| Root manifest | `pubspec.yaml` exists and currently acts as the workspace manifest |
+| Melos config | `melos.yaml` exists with `analyze`, `test`, `pub_get`, `format`, and `bootstrap` scripts |
+| Mobile rules | `README.md`, `CLAUDE.md`, `AGENTS.md`, `.clauderc`, and `.cursor/rules/` exist |
+| Mobile skills | `cmx_mobile_apps/.codex/skills/` now exists with Tier 1 mobile skills for architecture, foundation, UI system, customer UX, i18n/RTL, and testing |
+| ADR location | `cmx_mobile_apps/docs/adr/` is not created yet |
+
+**Interpretation**
+
+* Today, this workspace contains a real bootstrap scaffold, initial shared foundation code, early customer shell implementation, and the documentation/rule layer.
+* Any deeper feature implementation, package internals, CI pipeline detail, or widget catalog described later in this document should still be treated as target-state unless the repository already contains it.
 
 ---
 
@@ -34,9 +68,10 @@
 
 ### 1.1 What This Document Governs
 
-* All code in `cmx_mobile_apps/apps/` — `customer_app`, `staff_app`, `driver_app`
-* All code in `cmx_mobile_apps/packages/` — `mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, `mobile_testkit`
-* Architectural decisions, technology choices, folder structure, naming conventions, and cross-cutting rules
+* The current mobile workspace under `cmx_mobile_apps/`
+* Planned app surfaces currently represented by `customer_app`, `staff_app`, and `driver_app`
+* Proposed shared package boundaries such as `mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, and `mobile_testkit`
+* Architectural decisions, technology choices, folder structure, naming conventions, and cross-cutting rules for future mobile implementation
 
 ### 1.2 What This Document Does NOT Govern
 
@@ -48,8 +83,12 @@
 
 | File | Purpose |
 |---|---|
+| `cmx_mobile_apps/README.md` | Current-state repository notes; authoritative for whether mobile areas are planned vs implemented |
 | `cmx_mobile_apps/CLAUDE.md` | AI coding rules — widget standards, model patterns, output format |
-| `.claude/docs/flutter-rules.md` | Flutter patterns with code examples (note: flat structure shown there is superseded by Section 5 of this document) |
+| `cmx_mobile_apps/AGENTS.md` | AI coding rules for Codex working in the mobile workspace |
+| `cmx_mobile_apps/.codex/skills/` | Mobile-local skill set for architecture, Flutter foundations, UI system, customer UX, i18n/RTL, and testing |
+| `cmx_mobile_apps/.clauderc` | Implementation guidance and prompt context, not proof of completed modules |
+| `cmx_mobile_apps/.cursor/rules/` | Editor-side rule set currently present in the repository |
 | `cmx_mobile_apps/melos.yaml` | Melos workspace configuration |
 | `cmx_mobile_apps/pubspec.yaml` | Flutter workspace manifest |
 
@@ -59,14 +98,18 @@ AI assistants working on mobile code must:
 
 1. Confirm which sections of this document apply before generating code
 2. Flag any gap requiring a Deferred Decision or ADR before proceeding
-3. Cite this document when proposing architectural choices
-4. Include `"Follow MOBILE_FOUNDATION_DECISIONS.md v2.0.0 strictly."` in every mobile prompt session
+3. Distinguish current-state facts from target-state decisions when proposing architectural choices
+4. Cite the current document version when it is relevant to the decision being made
+5. State conflicts explicitly instead of silently following a stale path or structure example
+6. Load the relevant local mobile skill from `cmx_mobile_apps/.codex/skills/` before writing mobile code
+7. Update the appropriate mobile documentation whenever roadmap status, current-state facts, implementation status, or standing rules change
+8. Treat the mobile task as incomplete until those required documentation and status updates are committed in the same work item
 
 ---
 
 ## 2. Non-Negotiable Principles
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 These are absolute rules with zero exceptions. Any deviation requires a new ADR and supersedes this document.
 
@@ -87,27 +130,37 @@ These are absolute rules with zero exceptions. Any deviation requires a new ADR 
 
 ### 3.1 Framework
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * Flutter SDK minimum: 3.24.x or later
 * Dart SDK constraint: `>=3.5.0 <4.0.0`
 * No platform-native Swift/Kotlin logic unless encapsulated as a Flutter plugin
-* Plugin approval: same process as Section 22 (Dependency Management)
+* Plugin approval: same process as Section 21 (Dependency Management)
 
 ---
 
 ### 3.2 Monorepo Structure and `pubspec.yaml` Rules
 
-**Status: LOCKED**
+**Status: CURRENT STATE + LOCKED TARGET STANDARD**
+
+**Current state on 2026-04-18**
+
+* The repository currently contains both legacy top-level app placeholder folders and an active `apps/` workspace
+* `apps/customer_app`, `apps/staff_app`, and `apps/driver_app` exist with valid manifests and minimal shells
+* `packages/` now contains the planned shared package directories with valid minimal manifests and exports
+* Root [pubspec.yaml](../pubspec.yaml) is currently a workspace manifest
+* Root [melos.yaml](../melos.yaml) currently defines `analyze`, `test`, `pub_get`, `format`, and `bootstrap`
+
+**Locked target standard**
 
 * Melos `^6.x` as workspace manager
-* `apps/` — three app entry points only
-* `packages/` — six shared packages only
-* Mandatory Melos scripts: `analyze`, `test`, `format`, `pub_get`, `build:dev`, `build:staging`, `build:prod`
+* Preferred future layout uses `apps/` for app entry points and `packages/` for shared packages
+* Planned shared packages: `mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, `mobile_testkit`
+* Target Melos scripts: `analyze`, `test`, `format`, `pub_get`, `build:dev`, `build:staging`, `build:prod`
 
-#### `pubspec.yaml` Ownership Rule (LOCKED — never simplify)
+#### `pubspec.yaml` Ownership Rule (LOCKED TARGET STANDARD)
 
-Every app and every package owns its own `pubspec.yaml`. This is non-negotiable.
+When the multi-app mobile workspace is implemented, every app and every package owns its own `pubspec.yaml`. This is non-negotiable for the target architecture.
 
 ```
 cmx_mobile_apps/
@@ -134,10 +187,10 @@ cmx_mobile_apps/
       pubspec.yaml      ← REQUIRED.
 ```
 
-**Root `pubspec.yaml`** contains only:
+**Target root `pubspec.yaml`** contains only:
 
 ```yaml
-name: cmx_mobile_apps
+name: cmx_mobile_apps_workspace
 publish_to: none
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -180,7 +233,7 @@ Melos is designed for exactly this layout — it reads each folder's own `pubspe
 
 ### 3.3 Shared Packages — Canonical Responsibilities
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 | Package | Owns |
 |---|---|
@@ -197,7 +250,7 @@ No duplication of logic across apps is allowed.
 
 ### 3.4 Architecture Pattern
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ```
 UI → Providers → Repository → Data Source (Remote via cmx-api | Local via Hive)
@@ -215,7 +268,7 @@ Rules:
 
 ### 3.5 State Management
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * `flutter_riverpod` only
 * `AsyncNotifier<T>` preferred for async features
@@ -228,7 +281,7 @@ Rules:
 
 ### 3.6 Backend Authority
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 Backend (`cmx-api`) owns exclusively:
 
@@ -246,7 +299,7 @@ Flutter must not: define final prices, approve workflow transitions independentl
 
 ### 3.7 Model Strategy
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * Manual plain Dart classes are the default — no Freezed, no `json_serializable`, no `build_runner`
 * Every model must implement: constructor, `fromJson`, `toJson`, `copyWith`, `==`, `hashCode`, `toString`
@@ -258,7 +311,7 @@ Flutter must not: define final prices, approve workflow transitions independentl
 
 ### 3.8 Localization
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * `flutter_localizations` (SDK built-in) + ARB-based loader in `mobile_l10n`
 * ARB files: `app_en.arb` and `app_ar.arb` in `packages/mobile_l10n/lib/l10n/`
@@ -272,7 +325,7 @@ Flutter must not: define final prices, approve workflow transitions independentl
 
 ### 3.9 Theming
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * Single `AppTheme` class in `mobile_ui` — one light `ThemeData`, one dark `ThemeData`
 * `AppColors` — all color tokens including dark variants; no hardcoded `Color(0xFF...)` in feature code
@@ -285,31 +338,32 @@ Flutter must not: define final prices, approve workflow transitions independentl
 
 ### 3.10 Reusable Components
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * Shared widget catalog lives in `mobile_ui`
 * Required widgets (minimum): `AppTextFieldWidget`, `AppCustomButtonWidget`, `AppCustomDateField`, `AppDatePickerButton`, `AppDropdown`, `AppCardWidget`, `AppCheckBoxListTileWidget`, `CustomSwitch`, `AppHeaderWidget`, `AppLoadingIndicator`, `AppErrorWidget`
 * New shared widgets must be generic enough for 2+ use cases with no feature-specific logic
 * Duplicate widgets are forbidden — check catalog before creating
+* Do not create duplicate naming variants such as `AppCardWidgetWidget` or `AppHeaderWidgetWidget` when the canonical shared widget already exists
 
 ---
 
 ### 3.11 Offline Strategy
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * All three apps must handle network unavailability — no crashes, no blank screens
-* Pending action queue stored in Hive box `pending_actions` (see Section 9 for structure)
+* Pending action queue stored in Hive box `pending_actions` (see Section 8.3 for structure)
 * Retry mechanism: exponential backoff — 5s, 15s, 60s, 5min, then fail with user notification
 * Conflict resolution: backend wins — client queued action is rejected if backend state changed
 * `ConnectivityWrapper` provider in `mobile_services` exposes `isOnline` to all providers
-* Full sync engine is DEFERRED — see Section 24
+* Full sync engine is DEFERRED — see Section 23
 
 ---
 
 ### 3.12 App Priority Order
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 Development order:
 
@@ -323,7 +377,7 @@ Rationale: operational control must be stable before customer-facing features sh
 
 ### 3.13 Responsive Breakpoints and Layout Utility
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 Establish the breakpoints utility **before building the first screen**. No screen may use raw `MediaQuery.of(context).size.width` comparisons directly — all layout decisions go through `AppBreakpoints`.
 
@@ -341,7 +395,7 @@ The only approved resolution tool is Flutter's built-in `LayoutBuilder`. No thir
 
 `LayoutBuilder` is preferred over `MediaQuery` for layout decisions because it responds to the available space of the parent widget, not the full screen — making it composable and testable.
 
-#### Implementation (lives in `mobile_ui` package)
+#### Target Implementation (lives in `mobile_ui` package once created)
 
 **`packages/mobile_ui/lib/src/theme/app_breakpoints.dart`**
 
@@ -435,9 +489,9 @@ LayoutBuilder(
 
 ## 4. Folder and File Structure
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
-### 4.1 Per-App Structure (identical across all three apps)
+### 4.1 Target Per-App Structure (identical across all three apps)
 
 ```
 apps/{app_name}/
@@ -480,7 +534,7 @@ apps/{app_name}/
   pubspec.yaml
 ```
 
-### 4.2 Per-Package Structure (example: `mobile_services`)
+### 4.2 Target Per-Package Structure (example: `mobile_services`)
 
 ```
 packages/mobile_services/
@@ -512,12 +566,22 @@ packages/mobile_services/
 ### 4.3 File Naming Rules
 
 * Screens: `{feature}_{action}_screen.dart`
+* View-only composed sections: `{feature}_{purpose}_view.dart`
 * Widgets (shared): `app_{purpose}_widget.dart`
 * Widgets (feature): `{feature}_{purpose}_widget.dart`
+* Cards: `{feature}_{purpose}_card.dart`
 * Providers: `{feature}_provider.dart`
+* DB services: `{model}_db_service.dart`
 * Repositories: `{feature}_repository.dart` (interface) + `{feature}_repository_impl.dart` (concrete)
+* PostgreSQL-specific repositories: `{feature}_postgres_repository.dart`
 * Data sources: `{feature}_remote_datasource.dart`, `{feature}_local_datasource.dart`
 * Models: `{domain}_model.dart`
+* Reusable constants and app-level shared files: `app_{domain}.dart`
+
+**Naming clarifications**
+
+* Prefer full words over abbreviations in file names. Use `_view.dart` instead of `_vw.dart`.
+* Prefer `_repository.dart` over `_repo.dart` for clarity and consistency with the rest of the mobile architecture.
 
 ### 4.4 Additional Rules
 
@@ -526,11 +590,24 @@ packages/mobile_services/
 * Each package has a top-level barrel export
 * No flat `lib/screens/` or `lib/widgets/` structures — feature-based only
 
+### 4.5 Nomenclature Rules
+
+* Classes: PascalCase
+* Variables, functions, and methods: camelCase
+* File and directory names: snake_case
+* Environment variables: UPPERCASE
+* Functions should start with a verb
+* Boolean variables should read like booleans: `isLoading`, `hasError`, `canDelete`, `shouldRetry`
+* Prefer complete words and correct spelling over local abbreviations
+* Standard abbreviations are acceptable when well known: `API`, `URL`, `OTP`, `ID`
+* Short loop or conventional variables are acceptable when obvious: `i`, `j`, `err`, `ctx`, `req`, `res`, `next`
+* Avoid magic numbers; extract constants when a value is reused or meaningful to the domain or UI
+
 ---
 
 ## 5. Networking and API
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 5.1 HTTP Client
 
@@ -541,7 +618,7 @@ packages/mobile_services/
 ### 5.2 Base URL Configuration
 
 * Read from `AppConfig` which reads from `--dart-define` at build time
-* Three environments: `DEV`, `STAGING`, `PROD` — see Section 16
+* Three environments: `DEV`, `STAGING`, `PROD` — see Section 15
 * Never hardcode base URLs or load from runtime `.env` files
 
 ### 5.3 Required Interceptors (in execution order)
@@ -561,7 +638,7 @@ packages/mobile_services/
 ### 5.5 Response Parsing
 
 * Repositories parse `dio.Response` into typed models — never in UI
-* All Dio exceptions caught in repository and mapped to `AppException` hierarchy (Section 10)
+* All Dio exceptions caught in repository and mapped to `AppException` hierarchy (Section 9)
 
 ### 5.6 Pagination
 
@@ -576,7 +653,7 @@ packages/mobile_services/
 
 ## 6. Authentication and Session
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 6.1 Auth Backend
 
@@ -629,7 +706,7 @@ Role determines which features are accessible — UI adapts, `cmx-api` enforces.
 
 ## 7. Routing and Navigation
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 7.1 Router Package
 
@@ -670,7 +747,7 @@ Role determines which features are accessible — UI adapts, `cmx-api` enforces.
 
 ## 8. Local Storage
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 8.1 Two Storage Tiers
 
@@ -719,7 +796,7 @@ abstract class AppStorage {
 
 ## 9. Error Handling Standard
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 9.1 AppException Hierarchy
 
@@ -772,13 +849,13 @@ Each exception carries:
 **Must never log in PROD:** tokens, passwords, payment data, personal phone numbers, full request bodies
 
 * `print()` and `debugPrint()` are banned — use `AppLogger` only
-* Crashlytics integration: DEFERRED — see Section 24
+* Crashlytics integration: DEFERRED — see Section 23
 
 ---
 
 ## 11. Push Notifications
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 * Platform: Firebase Cloud Messaging (FCM) for Android, APNs passthrough for iOS
 * Package: `firebase_messaging` in `mobile_services`
@@ -824,8 +901,8 @@ Each exception carries:
 * Screenshot prevention: `FLAG_SECURE` (Android) on screens showing payment or PII data
 * Deep link validation: reject unknown schemes via go_router route matching
 * Session hard expiry: force re-auth after 7 days regardless of refresh token state
-* Certificate pinning: DEFERRED — required before public PROD store release (see Section 24)
-* Jailbreak/root detection: DEFERRED — post-MVP risk assessment (see Section 24)
+* Certificate pinning: DEFERRED — required before public PROD store release (see Section 23)
+* Jailbreak/root detection: DEFERRED — post-MVP risk assessment (see Section 23)
 
 ---
 
@@ -855,7 +932,7 @@ Each exception carries:
 
 ## 14. Multi-Tenant Isolation
 
-**Status: LOCKED — critical for CleanMateX**
+**Status: LOCKED TARGET STANDARD — critical for CleanMateX**
 
 * Every API request carries `X-Tenant-Id` header — enforced by `TenantInterceptor` in Dio
 * `TenantSession` model: `tenantOrgId`, `tenantName`, `tenantLocale`, `tenantCurrency`, `tenantFeatureFlags`
@@ -886,7 +963,7 @@ Each exception carries:
 
 ## 15. Build Environments and CI/CD
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 15.1 Flavors
 
@@ -909,6 +986,8 @@ CMX_API_KEY=...
 * Debug logging: enabled in dev only (enforced by `AppConfig.isDev`)
 
 ### 15.3 CI Pipeline Steps (GitHub Actions)
+
+Target pipeline once the mobile modules and scripts exist:
 
 ```
 1. melos bootstrap
@@ -934,7 +1013,7 @@ CMX_API_KEY=...
 
 ## 16. Package Dependency Rules
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 16.1 Dependency Graph
 
@@ -958,13 +1037,13 @@ apps/driver_app    ─┘──→ mobile_ui       ──→ mobile_core
 ### 16.3 Enforcement
 
 * `melos analyze` catches most violations
-* PR checklist includes dependency graph review (Section 23)
+* PR checklist includes dependency graph review (Section 22)
 
 ---
 
 ## 17. Build Order
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 | Step | Deliverable | Gate Condition |
 |---|---|---|
@@ -987,7 +1066,7 @@ apps/driver_app    ─┘──→ mobile_ui       ──→ mobile_core
 
 ## 18. App Responsibilities
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 18.1 Staff App
 
@@ -1073,7 +1152,7 @@ Mirrors source: `test/features/{feature}/...` mirrors `lib/features/{feature}/..
 
 ## 21. Dependency Management
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 21.1 Approved Package List
 
@@ -1112,9 +1191,11 @@ Run `dart pub outdated` quarterly — packages over 2 major versions behind requ
 
 ## 22. Code Review Rules
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 22.1 Mandatory PR Checklist
+
+Apply this checklist only to implemented mobile modules and packages that exist in the repository.
 
 Before any PR can merge, all items must be checked:
 
@@ -1172,13 +1253,13 @@ These are intentionally postponed. Each item includes a trigger for when to revi
 
 ## 24. Governance and ADR Process
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 24.1 Changing This Document
 
 * This document is version-controlled in git — all changes via PR
 * **LOCKED section changes require:**
-  1. ADR filed as `cmx_mobile_apps/docs/adr/{NNNN}-{slug}.md`
+  1. ADR filed as `cmx_mobile_apps/docs/adr/{NNNN}-{slug}.md` once that folder is created, or in the team's active ADR location until then
   2. ADR reviewed and approved by: tech lead + at least one senior mobile developer
   3. Document version bumped (major version for LOCKED change, minor for RECOMMENDED STANDARD change)
   4. All AI assistant prompt files updated to reference the new version
@@ -1218,7 +1299,7 @@ Tech lead reviews Section 23 (Deferred Decisions) each quarter for items ready t
 
 ## 25. Enforcement
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 ### 25.1 Human Enforcement
 
@@ -1231,9 +1312,10 @@ Tech lead reviews Section 23 (Deferred Decisions) each quarter for items ready t
 
 All AI prompt sessions working on mobile code must:
 
-1. Include: `"Follow MOBILE_FOUNDATION_DECISIONS.md v2.0.0 strictly."`
+1. Cite the current document version when using this file as an architectural reference
 2. Confirm which sections apply before generating code
 3. Flag any gap requiring a Deferred Decision or ADR before proceeding
+4. Prefer the implemented repository structure whenever it conflicts with a target-state example in this document
 
 **Prohibited AI behaviors:**
 
@@ -1246,13 +1328,13 @@ All AI prompt sessions working on mobile code must:
 * Calling Supabase directly — all calls go through `cmx-api`
 * Silently deviating from this document — must state the conflict explicitly
 
-**Document precedence:** This document governs architecture decisions. `cmx_mobile_apps/CLAUDE.md` governs coding style. Where they conflict on architecture, this document wins.
+**Document precedence:** Existing repository state wins for current facts. This document governs approved target architecture. `cmx_mobile_apps/CLAUDE.md` and `cmx_mobile_apps/AGENTS.md` govern coding behavior for active work.
 
 ---
 
 ## 26. Guiding Principles
 
-**Status: LOCKED**
+**Status: LOCKED TARGET STANDARD**
 
 > **Build once in shared packages, reuse everywhere, and keep apps thin.**
 
