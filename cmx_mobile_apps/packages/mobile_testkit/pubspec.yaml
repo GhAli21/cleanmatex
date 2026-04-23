@@ -8,6 +8,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  mobile_l10n:
+    path: ../mobile_l10n
+  mobile_ui:
+    path: ../mobile_ui
 
 dev_dependencies:
   flutter_test:

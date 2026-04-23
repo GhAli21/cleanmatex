@@ -6,8 +6,8 @@
 
 | Field | Value |
 |---|---|
-| **Version** | v2.2.9 |
-| **Date** | 2026-04-18 |
+| **Version** | v2.2.21 |
+| **Date** | 2026-04-22 |
 | **Status** | PROPOSED TARGET STATE |
 | **Supersedes** | v1.0.0 |
 | **Applies To** | Current mobile workspace under `cmx_mobile_apps/` and the planned mobile apps/packages described in this document |
@@ -18,6 +18,18 @@
 
 | Version | Date | Summary |
 |---|---|---|
+| v2.2.21 | 2026-04-22 | Completed the repo-scoped Milestone 7 hardening baseline: added connectivity-aware offline routing, shared accessibility touch-target semantics, generated native Android and iOS customer-app targets, validated the Android release APK, and revalidated analysis, tests, and the `web-admin` production build |
+| v2.2.20 | 2026-04-21 | Completed the Milestone 6 booking baseline: added a real public customer-booking API in `web-admin`, switched mobile booking to repository-backed remote/demo contracts, expanded booking UX states and tests, and revalidated mobile analysis/tests plus the `web-admin` production build |
+| v2.2.19 | 2026-04-21 | Completed the Milestone 4 auth/session integration and Milestone 5 tracking integration baseline: added secure mobile session persistence wiring, repository-backed auth/tracking boundaries, public customer session and orders APIs in `web-admin`, expanded mobile tests, and revalidated the mobile app plus `web-admin` production build |
+| v2.2.18 | 2026-04-18 | Aligned the auth widget test with the current phone-entry CTA copy so workspace test validation matches the implemented localized UI |
+| v2.2.17 | 2026-04-18 | Fixed workspace test validation so `melos test` runs only in packages with real `test/` directories, and stabilized the initial widget tests to assert unique signals instead of duplicated headings |
+| v2.2.16 | 2026-04-18 | Started early Milestone 7 work: upgraded `mobile_testkit` into a real localized/theme-aware test wrapper and added baseline widget tests for auth entry and orders list surfaces |
+| v2.2.15 | 2026-04-18 | Started early Milestone 6 work: added a progressive order-creation flow skeleton with typed booking models, a booking service boundary, localized booking UI, and home-shell navigation into the first booking path |
+| v2.2.14 | 2026-04-18 | Started early Milestone 5 work: added typed order-tracking models, a tracking service boundary, localized orders list/detail screens, and home-shell navigation into the first real customer tracking flow |
+| v2.2.13 | 2026-04-18 | Extended early Milestone 4 implementation with explicit auth API and session-storage service contracts in `mobile_services`, and wired the customer app auth/session flow to those contracts instead of ad hoc state-only behavior |
+| v2.2.12 | 2026-04-18 | Extended the early Milestone 4 auth flow from phone entry into a typed phone-plus-OTP shell with a dedicated verification route, localized OTP screens, and updated current-state documentation |
+| v2.2.11 | 2026-04-18 | Milestone 3 shell is now complete at the documented baseline, and early Milestone 4 work has started with a typed session model, shared session manager API, protected-route handling, and a phone-entry auth shell |
+| v2.2.10 | 2026-04-18 | Expanded early Milestone 3 implementation: `customer_app` now has an app controller, named-route shell, splash-to-entry initialization, guest and login entry screens, locale switching access, and baseline offline/error screens |
 | v2.2.9 | 2026-04-18 | Fixed the customer app shell integration gap, split the initial home shell into feature-local cards, and added an app-local README so current implementation status is documented where the code lives |
 | v2.2.8 | 2026-04-18 | Strengthened the documentation governance rule: mobile work is not considered complete until required documentation and roadmap or status updates are applied in the same task |
 | v2.2.7 | 2026-04-18 | Updated current-state inventory for early Milestone 3 work: the customer app now has an initial localized home shell, and `mobile_ui` is expanding with canonical shared header and button widgets |
@@ -42,14 +54,18 @@
 
 ### Current Mobile Workspace Inventory
 
-**Verified on 2026-04-18**
+**Verified on 2026-04-22**
 
 | Area | Current State |
 |---|---|
 | Workspace root | `cmx_mobile_apps/` exists and is reserved for Flutter mobile work |
 | Legacy top-level app folders | `customer_app/`, `staff_app/`, and `driver_app/` still exist as older placeholders |
 | Active app workspace | `apps/customer_app`, `apps/staff_app`, and `apps/driver_app` now exist with valid `pubspec.yaml` files and minimal bootstrap shells |
-| Customer app implementation | `apps/customer_app` now includes an initial localized home shell under `lib/features/home/` and an app-local README documenting current scope |
+| Customer app implementation | `apps/customer_app` now includes an app controller, session-aware named-route shell, localized splash/entry/home/offline/error screens, guest mode, a phone-plus-OTP auth shell backed by repository boundaries, secure runtime session persistence wiring, connectivity-aware offline recovery, localized orders list/detail tracking screens, a production-backed booking flow with fulfillment/address/slot/review states, feature-local home cards, generated native `android/` and `ios/` targets, and an app-local README documenting current scope |
+| Auth service layer | `packages/mobile_services` now includes explicit auth API contracts, a mobile HTTP client, and secure-session storage support that back the current customer auth/session flow |
+| Tracking service layer | `packages/mobile_services` now includes a real order-tracking integration path plus demo fallback, and `mobile_domain` now includes typed order summary/detail/timeline models for the first customer journey |
+| Booking service layer | `packages/mobile_services` now includes remote and demo customer-booking bootstrap/submit contracts, and `mobile_domain` now includes typed service/address/slot/draft models for the first booking journey |
+| Test layer | `packages/mobile_testkit` now wraps theme and localization for widget tests, and `apps/customer_app/test/` contains auth, booking, and orders automated coverage |
 | Shared packages | `packages/mobile_core`, `mobile_ui`, `mobile_domain`, `mobile_services`, `mobile_l10n`, and `mobile_testkit` now exist with valid manifests and initial bootstrap code |
 | Root manifest | `pubspec.yaml` exists and currently acts as the workspace manifest |
 | Melos config | `melos.yaml` exists with `analyze`, `test`, `pub_get`, `format`, and `bootstrap` scripts |
@@ -59,7 +75,7 @@
 
 **Interpretation**
 
-* Today, this workspace contains a real bootstrap scaffold, initial shared foundation code, early customer shell implementation, and the documentation/rule layer.
+* Today, this workspace contains a real bootstrap scaffold, shared foundation code, a customer shell with route structure plus OTP-backed auth/session wiring, customer-session, orders-list, and booking public backend contracts in `web-admin`, a real tracking journey baseline, a production-backed booking flow baseline, automated mobile coverage, and the documentation/rule layer.
 * Any deeper feature implementation, package internals, CI pipeline detail, or widget catalog described later in this document should still be treated as target-state unless the repository already contains it.
 
 ---

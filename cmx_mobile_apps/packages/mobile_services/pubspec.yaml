@@ -6,8 +6,15 @@ environment:
   sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
+  connectivity_plus: ^6.1.5
   flutter:
     sdk: flutter
+  flutter_secure_storage: ^9.2.2
+  http: ^1.2.2
+  mobile_core:
+    path: ../mobile_core
+  mobile_domain:
+    path: ../mobile_domain
 
 dev_dependencies:
   flutter_test:

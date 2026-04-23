@@ -3,7 +3,12 @@ import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 class CustomerHomeServiceStatusCard extends StatelessWidget {
-  const CustomerHomeServiceStatusCard({super.key});
+  const CustomerHomeServiceStatusCard({
+    super.key,
+    required this.onOpenServices,
+  });
+
+  final VoidCallback onOpenServices;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +33,7 @@ class CustomerHomeServiceStatusCard extends StatelessWidget {
             width: double.infinity,
             child: AppCustomButtonWidget(
               label: localizations.text('home.secondaryAction'),
-              onPressed: () {},
+              onPressed: onOpenServices,
               isPrimary: false,
             ),
           ),

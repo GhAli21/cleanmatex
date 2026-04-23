@@ -41,15 +41,25 @@ class AppCustomButtonWidget extends StatelessWidget {
     );
 
     if (isPrimary) {
-      return ElevatedButton(
-        onPressed: isLoading ? null : onPressed,
-        child: child,
+      return Semantics(
+        button: true,
+        enabled: !isLoading && onPressed != null,
+        label: label,
+        child: ElevatedButton(
+          onPressed: isLoading ? null : onPressed,
+          child: child,
+        ),
       );
     }
 
-    return OutlinedButton(
-      onPressed: isLoading ? null : onPressed,
-      child: child,
+    return Semantics(
+      button: true,
+      enabled: !isLoading && onPressed != null,
+      label: label,
+      child: OutlinedButton(
+        onPressed: isLoading ? null : onPressed,
+        child: child,
+      ),
     );
   }
 }

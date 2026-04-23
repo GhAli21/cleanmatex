@@ -56,6 +56,58 @@ logs/
 .dart_tool/
 .packages
 build/
+.dart_tool/
+.packages
+.pub/
+
+# Flutter - extra platform-specific ignores
+
+# Android
+android/.gradle/
+android/app/build/
+android/key.properties
+local.properties
+*.jks
+*.keystore
+**/.cxx/
+**/android/**/GeneratedPluginRegistrant.java
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/.last_build_id
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.*
+**/ios/**/xcuserdata/
+**/ios/**/DerivedData/
+
+# macOS
+macos/Pods/
+macos/Flutter/ephemeral/
+macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/**/xcuserdata/
+
+# Windows
+windows/flutter/ephemeral/
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+
+# Linux
+linux/flutter/ephemeral/
+linux/flutter/generated_plugin_registrant.cc
+linux/flutter/generated_plugin_registrant.h
+linux/flutter/generated_plugins.cmake
+
+# Flutter generated files
+**/generated_plugin_registrant.dart
+app.*.symbols
+doc/api/
 
 # IDEs
 .idea/

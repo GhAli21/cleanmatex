@@ -87,13 +87,13 @@ Do not let `customer_app` become a one-off codebase that blocks `staff_app` and 
 | Milestone | Status | Started | Completed | Notes |
 |---|---|---|---|---|
 | 0. Rules, Instructions, and Skills Preparation | Completed | 2026-04-18 | 2026-04-18 | Mobile instruction layer aligned, Tier 1 local mobile skills created, governance docs updated |
-| 1. Workspace Bootstrap | In Progress | 2026-04-18 | — | Real `apps/` and `packages/` scaffold started |
-| 2. Shared Foundation Packages | In Progress | 2026-04-18 | — | Initial `mobile_core`, `mobile_l10n`, and `mobile_ui` foundations started and wired into `customer_app` shell |
-| 3. Customer App Shell | In Progress | 2026-04-18 | — | Early customer home shell started on top of shared UI and localization foundations; home feature screen now split into app-local cards and documented in `apps/customer_app/README.md` |
-| 4. Authentication and Session | Not Started | — | — | Depends on Milestone 3 and backend contract gates |
-| 5. Customer Orders Tracking Journey | Not Started | — | — | First production journey |
-| 6. Customer Order Creation Journey | Not Started | — | — | Starts after tracking is stable |
-| 7. Hardening and Production Readiness | Not Started | — | — | Final release gate |
+| 1. Workspace Bootstrap | Completed | 2026-04-18 | 2026-04-21 | Real `apps/` and `packages/` scaffold, manifests, and reproducible Flutter workspace are in place |
+| 2. Shared Foundation Packages | Completed | 2026-04-18 | 2026-04-21 | `mobile_core`, `mobile_l10n`, `mobile_ui`, `mobile_domain`, `mobile_services`, and `mobile_testkit` are wired into the current customer flow baseline |
+| 3. Customer App Shell | Completed | 2026-04-18 | 2026-04-18 | Route shell now includes splash, entry, guest, login, offline, error, and home placeholder screens, plus locale switching access and an app-local README |
+| 4. Authentication and Session | Completed | 2026-04-18 | 2026-04-21 | OTP request/verify now integrate with web-admin APIs, customer session resolution is backed by a public session contract, and app runtime uses secure session persistence wiring |
+| 5. Customer Orders Tracking Journey | Completed | 2026-04-18 | 2026-04-21 | Customer-scoped orders list plus order detail/timeline now run through localized mobile repositories and real web-admin public APIs, with automated list/detail coverage in place |
+| 6. Customer Order Creation Journey | Completed | 2026-04-18 | 2026-04-21 | Booking now uses a real public customer-booking API, fulfillment/address/slot/review UX, localized success handling, and automated booking coverage |
+| 7. Hardening and Production Readiness | Completed | 2026-04-18 | 2026-04-22 | Connectivity-aware offline routing, accessibility touch-target semantics, native Android and iOS platform targets, clean analysis, passing tests, `web-admin` production build, and Android release APK validation are now in place |
 
 ### Milestone Outcome
 
@@ -594,6 +594,20 @@ Take the customer app from functional to release-ready.
 ### Exit Criteria
 
 `customer_app` is production-ready for controlled rollout.
+
+### Implementation Status
+
+Current status: Completed
+
+Completed on: 2026-04-22
+
+Delivered in this milestone:
+
+* connectivity-aware app-shell recovery into and out of offline mode
+* accessibility hardening for shared buttons and app-bar actions
+* customer-app native `android/` and `ios/` platform scaffolds
+* validated Android release APK build
+* refreshed app-local and mobile-foundation documentation to match the on-disk state
 
 ---
 

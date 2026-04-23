@@ -2,30 +2,40 @@
 
 ## Current Status
 
-`customer_app` is in early Milestone 3 implementation.
+`customer_app` is now at the repo-scoped release-candidate baseline for the customer journey.
 
 Current implementation on disk includes:
 
-- app bootstrap entry point
-- shared theme and localization wiring
-- initial localized customer home shell
-- first feature-based home screen structure under `lib/features/home/`
+- app bootstrap, routing, guest entry, login entry, OTP verification, and shell state management
+- localized customer home, orders, order detail, offline, and full-screen error states
+- booking bootstrap and submit flow backed by the public customer booking API
+- connectivity-aware offline routing and recovery actions
+- shared accessibility hardening for core button and app-bar interactions
+- generated `android/` and `ios/` platform folders for release builds
+- validated Android release APK output from the current workspace
 
 ## Current Scope
 
-Implemented today:
+Implemented:
 
 - `lib/main.dart`
 - `lib/app.dart`
-- `lib/features/home/ui/screens/customer_home_screen.dart`
-- home feature cards under `lib/features/home/ui/cards/`
+- `lib/core/`
+- `lib/features/auth/`
+- `lib/features/booking/`
+- `lib/features/bootstrap/`
+- `lib/features/common/`
+- `lib/features/entry/`
+- `lib/features/guest/`
+- `lib/features/home/`
+- `lib/features/orders/`
+- `lib/features/system/`
 
-Not implemented yet:
+Remaining before store submission:
 
-- routing layer
-- auth and guest entry flow
-- order list and order detail features
-- repositories, providers, and backend-backed customer journeys
+- tenant branding assets, launcher icons, and splash customization
+- final release signing/provisioning setup
+- device-level QA across Android and iOS hardware matrices
 
 ## Guidance
 

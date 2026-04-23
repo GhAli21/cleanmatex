@@ -3,7 +3,12 @@ import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 class CustomerHomeActiveOrdersCard extends StatelessWidget {
-  const CustomerHomeActiveOrdersCard({super.key});
+  const CustomerHomeActiveOrdersCard({
+    super.key,
+    required this.onOpenOrders,
+  });
+
+  final VoidCallback onOpenOrders;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +33,7 @@ class CustomerHomeActiveOrdersCard extends StatelessWidget {
             width: double.infinity,
             child: AppCustomButtonWidget(
               label: localizations.text('home.primaryAction'),
-              onPressed: () {},
+              onPressed: onOpenOrders,
               icon: Icons.local_laundry_service_outlined,
             ),
           ),

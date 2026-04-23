@@ -1,0 +1,14 @@
+# melos_managed_dependency_overrides: mobile_core,mobile_domain,mobile_l10n,mobile_services,mobile_testkit,mobile_ui
+dependency_overrides:
+  mobile_core:
+    path: ..\\..\\packages\\mobile_core
+  mobile_domain:
+    path: ..\\..\\packages\\mobile_domain
+  mobile_l10n:
+    path: ..\\..\\packages\\mobile_l10n
+  mobile_services:
+    path: ..\\..\\packages\\mobile_services
+  mobile_testkit:
+    path: ..\\..\\packages\\mobile_testkit
+  mobile_ui:
+    path: ..\\..\\packages\\mobile_ui

@@ -13,8 +13,8 @@ class AppLoadingIndicator extends StatelessWidget {
   final double strokeWidth;
 
   const AppLoadingIndicator.compact({super.key})
-    : label = null,
-      strokeWidth = 2.2;
+      : label = null,
+        strokeWidth = 2.2;
 
   @override
   Widget build(BuildContext context) {

@@ -12,7 +12,7 @@ Planned app surfaces include:
 
 ## Current Repository State
 
-At the current repository state, this area now contains a real bootstrap workspace under `apps/` and `packages/`, plus the mobile documentation and governance layer.
+At the current repository state, this area now contains a real bootstrap workspace under `apps/` and `packages/`, the mobile documentation and governance layer, and a `customer_app` implementation with splash, entry, guest mode, OTP-backed sign-in, secure session persistence wiring, localized home and tracking screens, public customer-session and orders-list backend contracts in `web-admin`, and an in-progress progressive order-creation flow.
 
 Treat anything beyond the current scaffold as planned scope unless concrete feature or package implementation exists on disk.
 
