@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -19,6 +20,9 @@ class CustomerHomeScreen extends ConsumerWidget {
     final session =
         ref.watch(customerSessionFlowProvider.select((f) => f.session));
     final ordersAsync = ref.watch(customerOrdersProvider);
+    AppLogger.info(
+      'home_screen.render hasSession=${session != null} isGuest=${session?.isGuest == true}',
+    );
 
     final greeting = session?.isGuest == true
         ? localizations.text('home.greetingGuest')
@@ -46,8 +50,10 @@ class CustomerHomeScreen extends ConsumerWidget {
           IconButton(
             tooltip: localizations.text('home.profileAction'),
             icon: const Icon(Icons.person_outline_rounded),
-            onPressed: () =>
-                Navigator.of(context).pushNamed(AppRoute.profile),
+            onPressed: () {
+              AppLogger.info('home_screen.open_profile_tapped');
+              Navigator.of(context).pushNamed(AppRoute.profile);
+            },
           ),
           const CustomerLocaleSwitchWidget(),
         ],
@@ -63,24 +69,32 @@ class CustomerHomeScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.lg),
             CustomerHomeActiveOrdersCard(
               activeCount: activeCount,
-              onOpenOrders: () =>
-                  Navigator.of(context).pushNamed(AppRoute.orders),
+              onOpenOrders: () {
+                AppLogger.info(
+                  'home_screen.open_orders_tapped activeCount=$activeCount',
+                );
+                Navigator.of(context).pushNamed(AppRoute.orders);
+              },
             ),
             const SizedBox(height: AppSpacing.lg),
             SizedBox(
               width: double.infinity,
               child: AppCustomButtonWidget(
                 label: localizations.text('home.bookNewOrderAction'),
-                onPressed: () =>
-                    Navigator.of(context).pushNamed(AppRoute.booking),
+                onPressed: () {
+                  AppLogger.info('home_screen.open_booking_primary_tapped');
+                  Navigator.of(context).pushNamed(AppRoute.booking);
+                },
                 icon: Icons.add_circle_outline_rounded,
                 trailingIcon: Icons.arrow_forward_rounded,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             CustomerHomeServiceStatusCard(
-              onOpenServices: () =>
-                  Navigator.of(context).pushNamed(AppRoute.booking),
+              onOpenServices: () {
+                AppLogger.info('home_screen.open_services_tapped');
+                Navigator.of(context).pushNamed(AppRoute.booking);
+              },
             ),
           ],
         ),

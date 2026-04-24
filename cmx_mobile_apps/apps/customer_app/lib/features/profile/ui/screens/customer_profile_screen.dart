@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -7,11 +8,29 @@ import '../../../../core/app_shell_controller.dart';
 import '../../../../core/navigation/app_route.dart';
 import '../../../tenant/providers/tenant_provider.dart';
 
-class CustomerProfileScreen extends ConsumerWidget {
+class CustomerProfileScreen extends ConsumerStatefulWidget {
   const CustomerProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CustomerProfileScreen> createState() =>
+      _CustomerProfileScreenState();
+}
+
+class _CustomerProfileScreenState extends ConsumerState<CustomerProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    AppLogger.info('profile_screen.opened');
+  }
+
+  @override
+  void dispose() {
+    AppLogger.info('profile_screen.disposed');
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final session =
         ref.watch(customerSessionFlowProvider.select((f) => f.session));
@@ -97,10 +116,13 @@ class CustomerProfileScreen extends ConsumerWidget {
                   ),
                   if (session?.verificationToken?.isNotEmpty == true)
                     TextButton(
-                      onPressed: () => Navigator.of(context).pushNamed(
-                        AppRoute.setPassword,
-                        arguments: session!.verificationToken,
-                      ),
+                      onPressed: () {
+                        AppLogger.info('profile_screen.change_password_tapped');
+                        Navigator.of(context).pushNamed(
+                          AppRoute.setPassword,
+                          arguments: session!.verificationToken,
+                        );
+                      },
                       child: Text(
                         localizations.text('profile.changePasswordAction'),
                       ),
@@ -135,13 +157,27 @@ class CustomerProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _changeLaundry(BuildContext context, WidgetRef ref) async {
-    await ref.read(tenantProvider.notifier).clearTenant();
-    await ref.read(customerSessionFlowProvider.notifier).clearSession();
+    AppLogger.info('profile_screen.change_laundry_started');
+    try {
+      await ref.read(tenantProvider.notifier).clearTenant();
+      await ref.read(customerSessionFlowProvider.notifier).clearSession();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'profile_screen.change_laundry_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (context.mounted) {
+        _showActionErrorSnack(context);
+      }
+      return;
+    }
 
     if (!context.mounted) {
       return;
     }
 
+    AppLogger.info('profile_screen.change_laundry_succeeded');
     Navigator.of(context).pushNamedAndRemoveUntil(
       AppRoute.tenantDiscovery,
       (route) => false,
@@ -153,6 +189,7 @@ class CustomerProfileScreen extends ConsumerWidget {
     WidgetRef ref,
     AppLocalizations localizations,
   ) async {
+    AppLogger.info('profile_screen.sign_out_confirmation_opened');
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -172,18 +209,42 @@ class CustomerProfileScreen extends ConsumerWidget {
     );
 
     if (confirmed != true || !context.mounted) {
+      AppLogger.info('profile_screen.sign_out_cancelled');
       return;
     }
 
-    await ref.read(customerSessionFlowProvider.notifier).clearSession();
+    AppLogger.info('profile_screen.sign_out_started');
+    try {
+      await ref.read(customerSessionFlowProvider.notifier).clearSession();
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'profile_screen.sign_out_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (context.mounted) {
+        _showActionErrorSnack(context);
+      }
+      return;
+    }
 
     if (!context.mounted) {
       return;
     }
 
+    AppLogger.info('profile_screen.sign_out_succeeded');
     Navigator.of(context).pushNamedAndRemoveUntil(
       AppRoute.entry,
       (route) => false,
+    );
+  }
+
+  void _showActionErrorSnack(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(localizations.text('common.remoteRequestError')),
+      ),
     );
   }
 }

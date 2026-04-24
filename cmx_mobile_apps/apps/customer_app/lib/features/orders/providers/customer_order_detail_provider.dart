@@ -19,12 +19,23 @@ class CustomerOrderDetailNotifier
       customerSessionFlowProvider.select((f) => f.session),
     );
     final repository = ref.read(customerOrdersRepositoryProvider);
+    AppLogger.info(
+      'order_detail_provider.load_started orderNumber=$orderNumber hasSession=${session != null} tenant=${session?.tenantOrgId ?? 'none'}',
+    );
     try {
-      return await repository.fetchOrderDetail(
+      final detail = await repository.fetchOrderDetail(
         session: session,
         orderNumber: orderNumber,
       );
+      AppLogger.info(
+        'order_detail_provider.load_succeeded orderNumber=${detail.orderNumber}',
+      );
+      return detail;
     } catch (e) {
+      AppLogger.error(
+        'order_detail_provider.load_failed orderNumber=$orderNumber',
+        error: e,
+      );
       throw UnexpectedAppException(
         code: 'order_detail',
         messageKey: 'orders.detailErrorBody',

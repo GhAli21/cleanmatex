@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -25,6 +26,7 @@ class _CustomerOrderBookingScreenState
   void initState() {
     super.initState();
     _notesController = TextEditingController();
+    AppLogger.info('booking_screen.opened');
   }
 
   @override
@@ -34,6 +36,7 @@ class _CustomerOrderBookingScreenState
       return;
     }
     _scheduledInitialLoad = true;
+    AppLogger.info('booking_screen.initial_load_scheduled');
     // Fresh wizard for each visit — global notifier would otherwise keep success state.
     ref.invalidate(customerOrderBookingProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,6 +49,7 @@ class _CustomerOrderBookingScreenState
 
   @override
   void dispose() {
+    AppLogger.info('booking_screen.disposed');
     _notesController.dispose();
     super.dispose();
   }
@@ -128,7 +132,7 @@ class _CustomerOrderBookingScreenState
                     !booking.hasLoadError &&
                     !booking.hasSubmissionSuccess)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
                     child: AppCardWidget(
                       child: Text(
                         localizations.text(booking.errorMessageKey!),
@@ -272,7 +276,7 @@ class _CustomerOrderBookingScreenState
         return booking.services
             .map(
               (service) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
                 child: CustomerBookingOptionCard(
                   title: _localizedValue(
                     primary: service.title,
@@ -338,7 +342,7 @@ class _CustomerOrderBookingScreenState
           else
             ...booking.addresses.map(
               (address) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
                 child: CustomerBookingOptionCard(
                   title: address.label,
                   description: address.description,
@@ -352,10 +356,18 @@ class _CustomerOrderBookingScreenState
             ),
         ];
       case 2:
+        if (booking.slots.isEmpty) {
+          return [
+            _buildEmptyState(
+              title: localizations.text('booking.slotsEmptyTitle'),
+              body: localizations.text('booking.slotsEmptyBody'),
+            ),
+          ];
+        }
         return booking.slots
             .map(
               (slot) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
                 child: CustomerBookingOptionCard(
                   title: _localizedValue(
                     primary: slot.label,
@@ -371,9 +383,14 @@ class _CustomerOrderBookingScreenState
             )
             .toList();
       default:
-        _notesController.value = TextEditingValue(
-          text: booking.draft.notes,
-        );
+        if (_notesController.text != booking.draft.notes) {
+          _notesController.value = TextEditingValue(
+            text: booking.draft.notes,
+            selection: TextSelection.collapsed(
+              offset: booking.draft.notes.length,
+            ),
+          );
+        }
         return [
           AppCardWidget(
             child: Column(

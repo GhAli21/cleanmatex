@@ -18,9 +18,20 @@ class CustomerOrdersNotifier extends AsyncNotifier<List<OrderSummaryModel>> {
       customerSessionFlowProvider.select((f) => f.session),
     );
     final repository = ref.read(customerOrdersRepositoryProvider);
+    AppLogger.info(
+      'orders_provider.load_started hasSession=${session != null} tenant=${session?.tenantOrgId ?? 'none'}',
+    );
     try {
-      return await repository.fetchOrders(session);
+      final orders = await repository.fetchOrders(session);
+      AppLogger.info(
+        'orders_provider.load_succeeded ordersCount=${orders.length}',
+      );
+      return orders;
     } catch (e) {
+      AppLogger.error(
+        'orders_provider.load_failed',
+        error: e,
+      );
       throw UnexpectedAppException(
         code: 'orders_list',
         messageKey: 'orders.errorBody',

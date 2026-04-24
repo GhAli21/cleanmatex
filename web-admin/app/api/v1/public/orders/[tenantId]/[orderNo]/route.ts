@@ -11,28 +11,61 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
+import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 import { OrderService } from '@/lib/services/order-service';
 
+/**
+ * Returns public order detail payload by tenant and order number.
+ *
+ * @param _request Incoming HTTP request.
+ * @param params Route context object.
+ * @param params.params Route params promise containing tenantId and orderNo.
+ * @returns JSON response with public order details and timeline.
+ */
 export async function GET(
     _request: NextRequest,
     { params }: { params: Promise<{ tenantId: string; orderNo: string }> },
 ) {
     const startedAt = Date.now();
+    const baseContext = buildPublicApiLogContext(_request, {
+        feature: 'public_orders_detail_api',
+        action: 'get_public_order_detail',
+    });
 
     try {
+        logger.info('Public order detail request received', baseContext);
         const { tenantId, orderNo } = await params;
+        const requestContext = {
+            ...baseContext,
+            tenantId,
+            orderNo,
+            hasTenantId: tenantId.trim().length > 0,
+            hasOrderNo: orderNo.trim().length > 0,
+            userAgent: _request.headers.get('user-agent') ?? 'unknown',
+        };
+
+        logger.info('Public order detail route parameters parsed', requestContext);
 
         if (!tenantId || !orderNo) {
+            logger.warn('Public order detail request rejected due to missing route params', {
+                ...requestContext,
+                missingTenantId: !tenantId,
+                missingOrderNo: !orderNo,
+            });
             return NextResponse.json(
                 { success: false, error: 'Tenant ID and order number are required' },
                 { status: 400 },
             );
         }
 
-        const supabase = await createClient();
+        const supabase = await createAdminSupabaseClient();
+        logger.info('Executing public order detail query', {
+            ...requestContext,
+            table: 'org_orders_mst',
+        });
 
         // Fetch core order data with customer + items needed for public view
         const { data: order, error } = await supabase
@@ -81,10 +114,7 @@ export async function GET(
 
         if (error || !order) {
             logger.warn('Public order not found', {
-                feature: 'public_orders',
-                action: 'get_public_order',
-                orderNo,
-                tenantId,
+                ...requestContext,
                 error: error?.message,
             });
 
@@ -97,17 +127,35 @@ export async function GET(
             );
         }
 
+        logger.info('Public order detail base query succeeded', {
+            ...requestContext,
+            orderId: order.id,
+        });
+
         // Fetch status history for timeline using existing service
+        logger.info('Fetching public order timeline history', {
+            ...requestContext,
+            orderId: order.id,
+        });
         const history = await OrderService.getOrderHistory(order.id, tenantId);
+        logger.info('Public order timeline history fetched', {
+            ...requestContext,
+            orderId: order.id,
+            historyCount: history.length,
+        });
 
         const tenantSettings = createTenantSettingsService(supabase);
+        logger.info('Fetching tenant money config for public order detail', requestContext);
         const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
+        logger.info('Tenant money config fetched for public order detail', {
+            ...requestContext,
+            currencyCode: moneyConfig.currencyCode,
+            decimalPlaces: moneyConfig.decimalPlaces,
+        });
 
         const durationMs = Date.now() - startedAt;
         logger.info('Public order tracking success', {
-            feature: 'public_orders',
-            action: 'get_public_order',
-            tenantId,
+            ...requestContext,
             orderId: order.id,
             orderNo: order.order_no,
             durationMs,
@@ -169,16 +217,17 @@ export async function GET(
         );
     } catch (error) {
         const durationMs = Date.now() - startedAt;
-        logger.error('Public order tracking failed', error as Error, {
-            feature: 'public_orders',
-            action: 'get_public_order',
+        const normalizedError =
+            error instanceof Error ? error : new Error(String(error));
+        logger.error('Public order tracking failed', normalizedError, {
+            ...baseContext,
             durationMs,
         });
 
         return NextResponse.json(
             {
                 success: false,
-                error: error instanceof Error ? error.message : 'Internal server error',
+                error: normalizedError.message,
             },
             { status: 500 },
         );

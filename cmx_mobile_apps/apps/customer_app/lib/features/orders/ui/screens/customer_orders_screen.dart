@@ -27,31 +27,46 @@ class CustomerOrdersScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: async.when(
-          data: (orders) => _OrdersBody(
-            localizations: localizations,
-            orders: orders,
-            onRefresh: () => ref.refresh(customerOrdersProvider.future),
-          ),
-          error: (e, _) => _OrdersError(
-            localizations: localizations,
-            messageKey: e is AppException
-                ? e.messageKey
-                : 'common.remoteRequestError',
-            onRetry: () => ref.invalidate(customerOrdersProvider),
-          ),
-          loading: () => ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              AppHeaderWidget(
-                title: localizations.text('orders.title'),
-                subtitle: localizations.text('orders.subtitle'),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppLoadingIndicator(
-                label: localizations.text('orders.loading'),
-              ),
-            ],
-          ),
+          data: (orders) {
+            AppLogger.info('orders_screen.data_rendered ordersCount=${orders.length}');
+            return _OrdersBody(
+              localizations: localizations,
+              orders: orders,
+              onRefresh: () {
+                AppLogger.info('orders_screen.refresh_requested');
+                return ref.refresh(customerOrdersProvider.future);
+              },
+            );
+          },
+          error: (e, _) {
+            AppLogger.error('orders_screen.error_rendered', error: e);
+            return _OrdersError(
+              localizations: localizations,
+              messageKey: e is AppException
+                  ? e.messageKey
+                  : 'common.remoteRequestError',
+              onRetry: () {
+                AppLogger.info('orders_screen.retry_requested');
+                ref.invalidate(customerOrdersProvider);
+              },
+            );
+          },
+          loading: () {
+            AppLogger.info('orders_screen.loading_rendered');
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                AppHeaderWidget(
+                  title: localizations.text('orders.title'),
+                  subtitle: localizations.text('orders.subtitle'),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                AppLoadingIndicator(
+                  label: localizations.text('orders.loading'),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -105,6 +120,9 @@ class _OrdersBody extends StatelessWidget {
                 child: CustomerOrderSummaryCard(
                   order: order,
                   onOpen: () {
+                    AppLogger.info(
+                      'orders_screen.open_order_detail orderNumber=${order.orderNumber}',
+                    );
                     Navigator.of(context).pushNamed(
                       AppRoute.orderDetail,
                       arguments: order.orderNumber,

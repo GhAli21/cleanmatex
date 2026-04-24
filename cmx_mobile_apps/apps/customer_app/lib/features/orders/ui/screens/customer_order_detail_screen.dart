@@ -20,6 +20,7 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final localizations = AppLocalizations.of(context);
     final async = ref.watch(customerOrderDetailProvider(orderId));
+    AppLogger.info('order_detail_screen.render orderId=$orderId');
 
     return Scaffold(
       appBar: AppBar(
@@ -30,61 +31,70 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
       ),
       body: SafeArea(
         child: async.when(
-          data: (order) => ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              AppHeaderWidget(
-                title: order.orderNumber,
-                subtitle:
-                    '${localizations.text(order.statusLabelKey)} • ${order.promisedWindow}',
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCardWidget(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations.text('orders.detailSummaryTitle'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      localizations.textWithArg(
-                        'orders.garmentCount',
-                        order.garmentCount.toString(),
-                      ),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      localizations.text(order.deliveryModeLabelKey),
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
+          data: (order) {
+            AppLogger.info(
+              'order_detail_screen.data_rendered orderNumber=${order.orderNumber}',
+            );
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                AppHeaderWidget(
+                  title: order.orderNumber,
+                  subtitle:
+                      '${localizations.text(order.statusLabelKey)} • ${order.promisedWindow}',
                 ),
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              AppCardWidget(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations.text('orders.timelineTitle'),
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    ...order.timeline.map(
-                      (step) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                        child: CustomerOrderTimelineStepCard(step: step),
+                const SizedBox(height: AppSpacing.lg),
+                AppCardWidget(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        localizations.text('orders.detailSummaryTitle'),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        localizations.textWithArg(
+                          'orders.garmentCount',
+                          order.garmentCount.toString(),
+                        ),
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        localizations.text(order.deliveryModeLabelKey),
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: AppSpacing.lg),
+                AppCardWidget(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        localizations.text('orders.timelineTitle'),
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      ...order.timeline.map(
+                        (step) => Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                          child: CustomerOrderTimelineStepCard(step: step),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
           error: (e, _) {
+            AppLogger.error(
+              'order_detail_screen.error_rendered orderId=$orderId',
+              error: e,
+            );
             final key = e is AppException
                 ? e.messageKey
                 : 'common.remoteRequestError';
@@ -110,6 +120,9 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
                         child: AppCustomButtonWidget(
                           label: localizations.text('orders.retryAction'),
                           onPressed: () {
+                            AppLogger.info(
+                              'order_detail_screen.retry_requested orderId=$orderId',
+                            );
                             ref.invalidate(
                               customerOrderDetailProvider(orderId),
                             );
@@ -122,14 +135,17 @@ class CustomerOrderDetailScreen extends ConsumerWidget {
               ],
             );
           },
-          loading: () => ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              AppLoadingIndicator(
-                label: localizations.text('orders.detailLoading'),
-              ),
-            ],
-          ),
+          loading: () {
+            AppLogger.info('order_detail_screen.loading_rendered orderId=$orderId');
+            return ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                AppLoadingIndicator(
+                  label: localizations.text('orders.detailLoading'),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

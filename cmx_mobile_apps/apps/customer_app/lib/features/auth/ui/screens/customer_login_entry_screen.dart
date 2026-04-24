@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -27,10 +28,12 @@ class _CustomerLoginEntryScreenState
   void initState() {
     super.initState();
     _textController = TextEditingController(text: widget.initialPhoneNumber);
+    AppLogger.info('login_entry_screen.opened');
   }
 
   @override
   void dispose() {
+    AppLogger.info('login_entry_screen.disposed');
     _textController.dispose();
     super.dispose();
   }
@@ -126,8 +129,10 @@ class _CustomerLoginEntryScreenState
 
   Future<void> _submit(BuildContext context) async {
     final normalized = _textController.text.replaceAll(RegExp(r'\s+'), '');
+    AppLogger.info('login_entry_screen.submit_attempted phoneLength=${normalized.length}');
 
     if (!RegExp(r'^\+?[0-9]{8,15}$').hasMatch(normalized)) {
+      AppLogger.warning('login_entry_screen.submit_rejected_invalid_phone');
       setState(() => _errorMessageKey = 'loginEntry.phoneValidationError');
       return;
     }
@@ -141,9 +146,15 @@ class _CustomerLoginEntryScreenState
       await ref
           .read(customerSessionFlowProvider.notifier)
           .signInWithPhone(phoneNumber: normalized);
+      AppLogger.info('login_entry_screen.submit_succeeded');
       if (!context.mounted) return;
       Navigator.of(context).pushNamed(AppRoute.otpVerify);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'login_entry_screen.submit_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       if (!context.mounted) return;
       setState(() => _errorMessageKey = 'loginEntry.genericError');
     } finally {

@@ -189,6 +189,9 @@ class AppLocalizations {
       'booking.slotLabel': 'Pickup window',
       'booking.slotDescription':
           'Choose the slot that best fits your schedule right now.',
+      'booking.slotsEmptyTitle': 'No pickup windows are available',
+      'booking.slotsEmptyBody':
+          'Try again shortly or choose another service path if available.',
       'booking.reviewTitle': 'Review before submission',
       'booking.reviewServiceValue': 'Service: {count}',
       'booking.reviewFulfillmentValue': 'Handoff: {count}',
@@ -402,6 +405,9 @@ class AppLocalizations {
       'booking.slotLabel': 'موعد الاستلام',
       'booking.slotDescription':
           'اختر الموعد الذي يناسب جدولك في الوقت الحالي.',
+      'booking.slotsEmptyTitle': 'لا توجد مواعيد استلام متاحة الآن',
+      'booking.slotsEmptyBody':
+          'حاول مرة أخرى بعد قليل أو اختر مسار خدمة آخر إذا كان متاحاً.',
       'booking.reviewTitle': 'راجع قبل التأكيد',
       'booking.reviewServiceValue': 'الخدمة: {count}',
       'booking.reviewFulfillmentValue': 'طريقة التسليم: {count}',

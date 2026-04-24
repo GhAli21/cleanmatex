@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 
 import '../../../core/app_shell_controller.dart';
@@ -96,6 +97,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       ref.read(customerSessionFlowProvider).session;
 
   Future<void> load() async {
+    AppLogger.info(
+      'booking_provider.load_started hasSession=${_session != null} tenant=${_session?.tenantOrgId ?? 'none'}',
+    );
     state = state.copyWith(
       isLoading: true,
       clearErrorMessage: true,
@@ -111,7 +115,15 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
           address: state.draft.address ?? _defaultAddress(bootstrap.addresses),
         ),
       );
-    } catch (_) {
+      AppLogger.info(
+        'booking_provider.load_succeeded services=${bootstrap.services.length} addresses=${bootstrap.addresses.length} slots=${bootstrap.slots.length}',
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'booking_provider.load_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         isLoading: false,
         errorMessageKey: 'booking.errorBody',
@@ -183,9 +195,15 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
 
   Future<void> submit() async {
     if (state.isSubmitting || !canProceed()) {
+      AppLogger.warning(
+        'booking_provider.submit_blocked isSubmitting=${state.isSubmitting} canProceed=${canProceed()}',
+      );
       return;
     }
 
+    AppLogger.info(
+      'booking_provider.submit_started step=${state.stepIndex} fulfillmentType=${state.fulfillmentType}',
+    );
     state = state.copyWith(
       isSubmitting: true,
       clearErrorMessage: true,
@@ -201,7 +219,15 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         submittedOrderNumber: confirmation.orderNumber,
         submittedPromisedWindow: confirmation.promisedWindow,
       );
-    } catch (_) {
+      AppLogger.info(
+        'booking_provider.submit_succeeded orderNumber=${confirmation.orderNumber}',
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'booking_provider.submit_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         isSubmitting: false,
         errorMessageKey: 'booking.submitErrorBody',
