@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { createClient } from '@/lib/supabase/server';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
+import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 
 function extractBearerToken(request: NextRequest): string | null {
   const authorization = request.headers.get('authorization') ?? '';
@@ -12,31 +14,75 @@ function extractBearerToken(request: NextRequest): string | null {
   return authorization.slice(7).trim();
 }
 
+/**
+ * Returns customer-visible order summaries for an authorized mobile session.
+ *
+ * @param request Incoming HTTP request with tenantId query and Bearer token.
+ * @returns JSON response containing order summaries or a structured error.
+ */
 export async function GET(request: NextRequest) {
+  const baseContext = buildPublicApiLogContext(request, {
+    feature: 'customer_orders_public_api',
+    action: 'get_orders',
+  });
+
   try {
+    logger.info('Customer orders request received', baseContext);
     const tenantId = request.nextUrl.searchParams.get('tenantId')?.trim() ?? '';
     const verificationToken = extractBearerToken(request);
+    const requestContext = {
+      ...baseContext,
+      tenantId,
+      hasVerificationToken: Boolean(verificationToken),
+      userAgent: request.headers.get('user-agent') ?? 'unknown',
+    };
+
+    logger.info('Customer orders request parameters parsed', requestContext);
 
     if (!tenantId || !verificationToken) {
+      logger.warn('Customer orders request rejected due to missing auth inputs', {
+        ...requestContext,
+        missingTenantId: !tenantId,
+        missingVerificationToken: !verificationToken,
+      });
       return NextResponse.json(
         { success: false, error: 'tenantId and bearer token are required' },
         { status: 400 },
       );
     }
 
+    logger.info('Resolving customer mobile session for orders request', requestContext);
     const session = await resolveCustomerMobileSession({
       tenantId,
       verificationToken,
     });
 
     if (!session) {
+      logger.warn('Customer orders request unauthorized: session not resolved', {
+        ...requestContext,
+      });
       return NextResponse.json(
         { success: false, error: 'Unauthorized customer session' },
         { status: 401 },
       );
     }
 
-    const supabase = await createClient();
+    logger.info('Customer mobile session resolved for orders request', {
+      ...requestContext,
+      customerId: session.customerId,
+      sessionTenantOrgId: session.tenantOrgId,
+      normalizedPhone: session.phoneNumber,
+    });
+
+    const supabase = await createAdminSupabaseClient();
+
+    logger.info('Executing customer orders query', {
+      ...requestContext,
+      table: 'org_orders_mst',
+      queryLimit: 25,
+      phoneFilter: session.phoneNumber,
+    });
+
     const { data: orders, error } = await supabase
       .from('org_orders_mst')
       .select(
@@ -59,8 +105,18 @@ export async function GET(request: NextRequest) {
       .limit(25);
 
     if (error) {
+      logger.error('Customer orders query failed', error, {
+        ...requestContext,
+        tenantId,
+      });
       throw error;
     }
+
+    logger.info('Customer orders query succeeded', {
+      ...requestContext,
+      tenantId,
+      ordersCount: orders?.length ?? 0,
+    });
 
     return NextResponse.json(
       {
@@ -80,10 +136,15 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
+    const normalizedError =
+      error instanceof Error ? error : new Error(String(error));
+    logger.error('Customer orders request failed with unhandled exception', normalizedError, {
+      ...baseContext,
+    });
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
+        error: normalizedError.message,
       },
       { status: 500 },
     );

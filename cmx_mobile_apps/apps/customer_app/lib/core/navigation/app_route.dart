@@ -17,4 +17,5 @@ class AppRoute {
   static const profile = '/profile';
   static const passwordLogin = '/password-login';
   static const setPassword = '/set-password';
+  static const logs = '/logs';
 }

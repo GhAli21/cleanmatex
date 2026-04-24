@@ -48,32 +48,27 @@ class _CustomerTenantDiscoveryScreenState
         ? const AsyncValue<List<TenantModel>>.data(<TenantModel>[])
         : ref.watch(matchingTenantsProvider(normalizedPhone));
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
+    return AppResponsiveScrollScaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        title: Text(
-          l10n.text('tenant.discoveryTitle'),
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        title: Text(l10n.text('tenant.discoveryTitle')),
         actions: const [
           CustomerLocaleSwitchWidget(),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsetsDirectional.fromSTEB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              l10n.text('tenant.listTitle'),
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.text('tenant.listBody'),
-              style: Theme.of(context).textTheme.bodyMedium,
+            AppHeaderWidget(
+              title: l10n.text('tenant.listTitle'),
+              subtitle: l10n.text('tenant.listBody'),
             ),
             const SizedBox(height: AppSpacing.lg),
             CustomerPhoneTextFieldWidget(
@@ -152,36 +147,30 @@ class _CustomerTenantDiscoveryScreenState
       children: tenants
           .map(
             (tenant) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.md),
               child: AppCardWidget(
-                child: Row(
-                  children: [
-                    if (tenant.logoUrl != null) ...[
-                      Image.network(
-                        tenant.logoUrl!,
-                        width: 48,
-                        height: 48,
-                        errorBuilder: (_, __, ___) =>
-                            const SizedBox(width: 48, height: 48),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                    ],
-                    Expanded(
-                      child: Text(
-                        (l10n.locale.languageCode == 'ar'
-                                ? tenant.name2
-                                : null) ??
-                            tenant.name,
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                    ),
-                    AppCustomButtonWidget(
-                      label: l10n.text('tenant.selectAction'),
-                      onPressed: _isSelectingTenant
-                          ? null
-                          : () => _selectTenant(context, l10n, tenant, phoneNumber),
-                    ),
-                  ],
+                child: ListTile(
+                  contentPadding: EdgeInsetsDirectional.zero,
+                  leading: tenant.logoUrl == null
+                      ? null
+                      : Image.network(
+                          tenant.logoUrl!,
+                          width: 48,
+                          height: 48,
+                          errorBuilder: (_, __, ___) =>
+                              const SizedBox(width: 48, height: 48),
+                        ),
+                  title: Text(
+                    (l10n.locale.languageCode == 'ar' ? tenant.name2 : null) ??
+                        tenant.name,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  trailing: TextButton(
+                    onPressed: _isSelectingTenant
+                        ? null
+                        : () => _selectTenant(context, l10n, tenant, phoneNumber),
+                    child: Text(l10n.text('tenant.selectAction')),
+                  ),
                 ),
               ),
             ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_colors.dart';
 import 'app_spacing.dart';
 
 class AppHeaderWidget extends StatelessWidget {
@@ -26,8 +27,13 @@ class AppHeaderWidget extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: textTheme.headlineMedium),
-              const SizedBox(height: AppSpacing.sm),
-              Text(subtitle, style: textTheme.bodyLarge),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                style: textTheme.bodyLarge?.copyWith(
+                  color: AppColors.textMuted,
+                ),
+              ),
             ],
           ),
         ),

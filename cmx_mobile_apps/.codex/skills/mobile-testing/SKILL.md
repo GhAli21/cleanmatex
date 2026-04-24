@@ -23,58 +23,137 @@ Use the global `testing` skill as a general companion; this skill defines the mo
 2. Validation scope must match milestone risk.
 3. Auth, tracking, and booking flows need automated coverage before production.
 4. A visually polished screen is not complete if state transitions are untested.
-5. Validation must catch banned committed debugging output such as `print()` and `debugPrint()`.
+5. `melos analyze` with zero warnings is a hard gate — not optional.
+6. No `print()` or `debugPrint()` in committed mobile code.
+
+## Validation Commands
+
+```bash
+melos bootstrap          # ensure workspace is linked before running tests
+melos analyze            # zero warnings required — CI gate
+melos format --check     # reject unformatted code — CI gate
+melos test               # runs flutter test in all packages with test/ directories
+```
+
+For a single package:
+```bash
+cd packages/mobile_services && flutter test
+cd apps/customer_app && flutter test
+```
+
+## Test Scaffolding
+
+All widget tests use `TestAppWrapper` from `package:mobile_testkit/mobile_testkit.dart`:
+
+```dart
+import 'package:mobile_testkit/mobile_testkit.dart';
+
+testWidgets('shows order count', (tester) async {
+  await tester.pumpWidget(
+    TestAppWrapper(child: OrderSummaryCard(order: mockOrder)),
+  );
+  expect(find.text('ORD-001'), findsOneWidget);
+});
+```
+
+`TestAppWrapper` provides: `MaterialApp` with `AppTheme`, `AppLocalizations` (EN + AR), and `ProviderScope`.
+
+Unit tests for providers use `ProviderContainer` with fake overrides:
+
+```dart
+test('ordersNotifier loads orders', () async {
+  final container = ProviderContainer(
+    overrides: [
+      customerOrdersRepositoryProvider.overrideWithValue(FakeOrdersRepository()),
+    ],
+  );
+  addTearDown(container.dispose);
+
+  await container.read(ordersNotifierProvider.notifier).load();
+  expect(container.read(ordersNotifierProvider).orders, isNotEmpty);
+});
+```
 
 ## Coverage Priorities
 
 Focus first on:
 
-* providers and repositories
-* auth/session restore behavior
-* orders list and detail flow
-* booking flow once it exists
-* shared widget behavior for core reusable UI
+* Providers and notifiers — `AsyncValue` state transitions
+* Repositories — error mapping to `AppException` subclasses
+* Auth / session restore behavior
+* Orders list and detail flows
+* Booking flow
+* Shared widget behavior (`AppErrorWidget`, `AppLoadingIndicatorWidget`, `AppCardWidget`)
+
+## Coverage Targets (Recommended)
+
+| Layer | Target |
+|---|---|
+| Providers / notifiers | 80% |
+| Repositories | 70% |
+| UI screens | 60% |
 
 ## Test Types
 
-Use:
+| Type | Use for |
+|---|---|
+| Unit (`ProviderContainer`) | Services, repositories, exception mapping, notifier state transitions, pure helpers |
+| Widget (`TestAppWrapper`) | Auth entry screen, screen state variants (loading/error/empty/success), shared widgets |
+| Integration | App startup, login/session restore, primary customer journey end-to-end |
 
-* unit tests for services, repositories, exception mapping, pure helpers
-* widget tests for auth entry, screen states, orders tracking UIs
-* integration tests for startup, login/session restore, and primary customer journey
+Add golden/visual checks for shared UI only when the widget library is stable enough to justify them.
 
-Add visual or golden checks for shared UI only when the widget library is stable enough to justify them.
+## Error Handling in Tests
+
+Test the full `AppException` mapping chain — not just happy paths:
+
+```dart
+test('repository maps 401 to UnauthorizedException', () async {
+  final repo = CustomerAuthRepository(
+    service: FakeAuthService(throws: const UnauthorizedException()),
+  );
+  await expectLater(repo.login('phone'), throwsA(isA<UnauthorizedException>()));
+});
+```
 
 ## Validation by Milestone
 
-* Early scaffold milestones: bootstrap, analyze, basic smoke tests
-* Foundation milestones: unit tests for services/helpers and at least one widget test for shared UI
-* Customer flow milestones: widget and integration coverage for the shipped journey
-* Release milestone: clean analysis, targeted tests, and successful release build
+| Milestone | Minimum validation |
+|---|---|
+| Early scaffold | `melos bootstrap` + `melos analyze` pass; basic smoke test |
+| Foundation | Unit tests for services/helpers; one widget test for a shared UI component |
+| Customer flow | Widget + integration coverage for the shipped journey |
+| Release | Clean analysis, full test pass, successful release build |
 
 ## Anti-Patterns
 
 Reject these:
 
-* relying only on manual device clicking for auth and tracking flows
-* treating build success as proof of UX correctness
-* shipping restart-sensitive session behavior without automated checks
-* large feature work with no validation plan
-* leaving committed `print()` or `debugPrint()` statements in mobile code
+* Relying only on manual device testing for auth and tracking flows
+* Treating `melos analyze` success or build success as proof of UX correctness
+* Shipping session restore behavior without automated restart checks
+* Large feature work with no validation plan
+* `print()` or `debugPrint()` in committed test or production code
+* Widget tests without `TestAppWrapper` — raw `WidgetTester.pumpWidget` misses theme and localization
+* Tests that pass with mocked repositories when real behavior diverges
 
 ## Required Output
 
 When using this skill, state:
 
-1. the affected milestone or feature
-2. the minimum test layers required
-3. the validation commands to run
-4. any remaining risk if full validation cannot be completed
+1. The affected milestone or feature
+2. The minimum test layers required
+3. The exact commands to run
+4. Any remaining risk if full validation cannot be completed
 
 ## Validation Checklist
 
-- [ ] Test scope matches feature risk
+- [ ] `melos analyze` passes with zero warnings
+- [ ] `melos format --check` passes
+- [ ] `melos test` passes for all affected packages
+- [ ] Widget tests use `TestAppWrapper`
+- [ ] Provider unit tests use `ProviderContainer` with fake overrides
 - [ ] Core customer journey has automated coverage where expected
-- [ ] Restart/session behavior is validated when affected
-- [ ] Analyze/format/test/build expectations are explicit
+- [ ] Session restore behavior is validated when affected
+- [ ] No `print()` / `debugPrint()` in committed code
 - [ ] Remaining gaps or residual risks are called out clearly

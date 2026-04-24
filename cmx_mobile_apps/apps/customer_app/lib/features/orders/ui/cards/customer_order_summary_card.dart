@@ -33,55 +33,84 @@ class CustomerOrderSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
+    final statusColor = _statusColor();
 
-    return AppCardWidget(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Card(
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          child: Row(
             children: [
-              Expanded(
-                child: Text(order.orderNumber, style: textTheme.titleLarge),
-              ),
+              // Status color dot
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
+                width: 10,
+                height: 10,
                 decoration: BoxDecoration(
-                  color: _statusColor().withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(999),
+                  color: statusColor,
+                  shape: BoxShape.circle,
                 ),
-                child: Text(
-                  localizations.text(order.statusLabelKey),
-                  style: textTheme.bodyMedium?.copyWith(color: _statusColor()),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Order info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(order.orderNumber, style: textTheme.titleMedium),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            localizations.text(order.statusLabelKey),
+                            style: textTheme.bodySmall?.copyWith(
+                              color: statusColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            localizations.textWithArg(
+                              'orders.garmentCount',
+                              order.garmentCount.toString(),
+                            ),
+                            style: textTheme.bodySmall,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      order.promisedWindow,
+                      style: textTheme.bodySmall,
+                    ),
+                  ],
                 ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textMuted,
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            localizations.textWithArg(
-              'orders.garmentCount',
-              order.garmentCount.toString(),
-            ),
-            style: textTheme.bodyLarge,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            order.promisedWindow,
-            style: textTheme.bodyMedium,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: AppCustomButtonWidget(
-              label: localizations.text('orders.openDetailAction'),
-              onPressed: onOpen,
-              isPrimary: false,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

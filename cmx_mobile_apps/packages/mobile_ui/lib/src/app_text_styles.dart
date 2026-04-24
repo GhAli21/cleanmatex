@@ -6,12 +6,13 @@ class AppTextStyles {
   static TextTheme textTheme(Color textColor, Color mutedColor) {
     return TextTheme(
       headlineMedium: TextStyle(
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: FontWeight.w700,
         color: textColor,
+        letterSpacing: -0.5,
       ),
       titleLarge: TextStyle(
-        fontSize: 20,
+        fontSize: 18,
         fontWeight: FontWeight.w700,
         color: textColor,
       ),
@@ -39,6 +40,7 @@ class AppTextStyles {
         fontSize: 14,
         fontWeight: FontWeight.w600,
         color: textColor,
+        letterSpacing: 0.1,
       ),
     );
   }

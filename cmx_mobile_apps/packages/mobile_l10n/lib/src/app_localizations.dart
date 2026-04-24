@@ -81,6 +81,11 @@ class AppLocalizations {
       'system.errorBody':
           'The customer shell includes a baseline full-screen error state so failures do not collapse into blank pages.',
       'system.returnAction': 'Return to entry',
+      'system.logsTitle': 'App logs',
+      'system.logsOpenAction': 'Open app logs',
+      'system.logsClearAction': 'Clear logs',
+      'system.logsEmptyState':
+          'No logs are captured yet. Interact with the app and return here to inspect runtime events.',
       'home.title': 'Your laundry, clearly in view',
       'home.subtitle':
           'Track active orders, spot important updates quickly, and move into your next task without friction.',
@@ -294,6 +299,11 @@ class AppLocalizations {
       'system.errorBody':
           'تتضمن واجهة العميل الآن حالة خطأ كاملة الشاشة حتى لا تتحول الأعطال إلى صفحات فارغة.',
       'system.returnAction': 'العودة إلى البداية',
+      'system.logsTitle': 'سجلات التطبيق',
+      'system.logsOpenAction': 'فتح سجلات التطبيق',
+      'system.logsClearAction': 'مسح السجلات',
+      'system.logsEmptyState':
+          'لا توجد سجلات حتى الآن. استخدم التطبيق ثم عد إلى هنا لمراجعة أحداث التشغيل.',
       'home.title': 'كل ما يخص طلباتك أمامك بوضوح',
       'home.subtitle':
           'تابع الطلبات النشطة، واعرف المستجدات المهمة بسرعة، وانتقل إلى خطوتك التالية بسهولة.',

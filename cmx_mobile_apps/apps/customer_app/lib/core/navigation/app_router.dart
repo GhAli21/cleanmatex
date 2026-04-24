@@ -12,6 +12,7 @@ import '../../features/booking/ui/screens/customer_order_booking_screen.dart';
 import '../../features/orders/ui/screens/customer_order_detail_screen.dart';
 import '../../features/orders/ui/screens/customer_orders_screen.dart';
 import '../../features/system/ui/screens/customer_error_screen.dart';
+import '../../features/system/ui/screens/customer_logs_screen.dart';
 import '../../features/system/ui/screens/customer_offline_screen.dart';
 import '../../features/tenant/ui/screens/customer_tenant_confirm_screen.dart';
 import '../../features/tenant/ui/screens/customer_tenant_discovery_screen.dart';
@@ -61,6 +62,9 @@ bool canAccessRoute(WidgetRef ref, String name) {
     return !flow.hasSession;
   }
   if (name == AppRoute.offline) {
+    return true;
+  }
+  if (name == AppRoute.logs) {
     return true;
   }
   if (name == AppRoute.error) {
@@ -166,6 +170,11 @@ Route<dynamic> onGenerateCustomerRoute(
     case AppRoute.offline:
       return MaterialPageRoute(
         builder: (_) => const CustomerOfflineScreen(),
+        settings: settings,
+      );
+    case AppRoute.logs:
+      return MaterialPageRoute(
+        builder: (_) => const CustomerLogsScreen(),
         settings: settings,
       );
     case AppRoute.error:

@@ -1,5 +1,6 @@
 library mobile_ui;
 
+export 'src/AppResponsiveScrollScaffold.dart';
 export 'src/app_custom_button_widget.dart';
 export 'src/app_card_widget.dart';
 export 'src/app_colors.dart';

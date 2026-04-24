@@ -19,7 +19,10 @@ class AppConfig {
   static AppConfig fromEnvironment() {
     return const AppConfig(
       appEnv: String.fromEnvironment('APP_ENV', defaultValue: 'dev'),
-      apiBaseUrl: String.fromEnvironment('API_BASE_URL', defaultValue: ''),
+      apiBaseUrl: String.fromEnvironment(
+        'API_BASE_URL',
+        defaultValue: 'https://cmx.cleanmatex.com/',
+      ),
       enableDebugLogs: bool.fromEnvironment(
         'ENABLE_DEBUG_LOGS',
         defaultValue: true,

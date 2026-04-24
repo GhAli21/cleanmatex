@@ -35,11 +35,17 @@ class CustomerHomeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.text('app.title')),
+        title: Text(
+          localizations.text('app.title'),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
         actions: [
           IconButton(
             tooltip: localizations.text('home.profileAction'),
-            icon: const Icon(Icons.person_outline),
+            icon: const Icon(Icons.person_outline_rounded),
             onPressed: () =>
                 Navigator.of(context).pushNamed(AppRoute.profile),
           ),
@@ -67,7 +73,8 @@ class CustomerHomeScreen extends ConsumerWidget {
                 label: localizations.text('home.bookNewOrderAction'),
                 onPressed: () =>
                     Navigator.of(context).pushNamed(AppRoute.booking),
-                icon: Icons.add_circle_outline,
+                icon: Icons.add_circle_outline_rounded,
+                trailingIcon: Icons.arrow_forward_rounded,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -75,58 +82,9 @@ class CustomerHomeScreen extends ConsumerWidget {
               onOpenServices: () =>
                   Navigator.of(context).pushNamed(AppRoute.booking),
             ),
-            const SizedBox(height: AppSpacing.lg),
-            SizedBox(
-              width: double.infinity,
-              child: AppCustomButtonWidget(
-                label: localizations.text('home.signOutAction'),
-                onPressed: () => _confirmSignOut(context, ref, localizations),
-                isPrimary: false,
-                icon: Icons.logout,
-              ),
-            ),
           ],
         ),
       ),
-    );
-  }
-
-  Future<void> _confirmSignOut(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations localizations,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(localizations.text('home.signOutConfirmTitle')),
-        content: Text(localizations.text('home.signOutConfirmBody')),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text(localizations.text('home.signOutCancelAction')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(localizations.text('home.signOutConfirmAction')),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true || !context.mounted) {
-      return;
-    }
-
-    await ref.read(customerSessionFlowProvider.notifier).clearSession();
-
-    if (!context.mounted) {
-      return;
-    }
-
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      AppRoute.entry,
-      (route) => false,
     );
   }
 }

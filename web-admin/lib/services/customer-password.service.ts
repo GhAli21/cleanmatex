@@ -1,7 +1,7 @@
 import { promisify } from 'util';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { normalizePhone } from './customers.service';
 import { verifyVerificationToken } from './otp.service';
@@ -14,6 +14,24 @@ const SCRYPT_PARAMS = {
   r: 8,
   p: 1,
 };
+
+function buildPhoneLookupCandidates(inputPhone: string) {
+  const raw = (inputPhone ?? '').trim().replace(/[\s\-\(\)]/g, '');
+  const normalized = normalizePhone(inputPhone);
+
+  return Array.from(
+    new Set(
+      [
+        raw,
+        raw.replace(/^\+/, ''),
+        normalized.normalized,
+        normalized.normalized.replace(/^\+/, ''),
+        normalized.nationalNumber,
+        normalized.nationalNumber.replace(/^0+/, ''),
+      ].filter((value): value is string => value.length > 0),
+    ),
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -61,12 +79,13 @@ export async function customerHasPassword(params: {
     return false;
   }
 
-  const supabase = await createClient();
+  const phoneCandidates = buildPhoneLookupCandidates(params.phone);
+  const supabase = createAdminSupabaseClient();
   const { data, error } = await supabase
     .from('org_customers_mst')
     .select('password_hash')
     .eq('tenant_org_id', params.tenantId)
-    .eq('phone', norm.normalized)
+    .in('phone', phoneCandidates)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -74,6 +93,8 @@ export async function customerHasPassword(params: {
     logger.error('customerHasPassword query failed', error as Error, {
       feature: 'customer_password',
       action: 'check',
+      tenantId: params.tenantId,
+      phoneCandidates,
     });
     throw error;
   }
@@ -103,7 +124,8 @@ export async function setCustomerPassword(params: {
 
   const hash = await hashPassword(params.newPassword);
 
-  const supabase = await createClient();
+  const phoneCandidates = buildPhoneLookupCandidates(tokenPayload.phone);
+  const supabase = createAdminSupabaseClient();
   const { error } = await supabase
     .from('org_customers_mst')
     .update({
@@ -111,13 +133,15 @@ export async function setCustomerPassword(params: {
       password_updated_at: new Date().toISOString(),
     })
     .eq('tenant_org_id', params.tenantId)
-    .eq('phone', norm.normalized)
+    .in('phone', phoneCandidates)
     .eq('is_active', true);
 
   if (error) {
     logger.error('setCustomerPassword update failed', error as Error, {
       feature: 'customer_password',
       action: 'set',
+      tenantId: params.tenantId,
+      phoneCandidates,
     });
     throw error;
   }
@@ -144,12 +168,13 @@ export async function loginWithPassword(params: {
     return null;
   }
 
-  const supabase = await createClient();
+  const phoneCandidates = buildPhoneLookupCandidates(params.phone);
+  const supabase = createAdminSupabaseClient();
   const { data: customer, error } = await supabase
     .from('org_customers_mst')
     .select('id, display_name, name, phone, password_hash')
     .eq('tenant_org_id', params.tenantId)
-    .eq('phone', norm.normalized)
+    .in('phone', phoneCandidates)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -157,6 +182,8 @@ export async function loginWithPassword(params: {
     logger.error('loginWithPassword query failed', error as Error, {
       feature: 'customer_password',
       action: 'login',
+      tenantId: params.tenantId,
+      phoneCandidates,
     });
     throw error;
   }

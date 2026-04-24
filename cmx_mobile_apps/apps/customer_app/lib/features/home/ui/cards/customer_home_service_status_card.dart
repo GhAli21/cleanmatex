@@ -15,29 +15,55 @@ class CustomerHomeServiceStatusCard extends StatelessWidget {
     final localizations = AppLocalizations.of(context);
     final textTheme = Theme.of(context).textTheme;
 
-    return AppCardWidget(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            localizations.text('home.statusTitle'),
-            style: textTheme.titleLarge,
+    return Card(
+      child: InkWell(
+        onTap: onOpenServices,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            localizations.text('home.statusBody'),
-            style: textTheme.bodyLarge,
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.success.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.local_laundry_service_outlined,
+                  color: AppColors.success,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.text('home.statusTitle'),
+                      style: textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      localizations.text('home.statusBody'),
+                      style: textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textMuted,
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: AppCustomButtonWidget(
-              label: localizations.text('home.secondaryAction'),
-              onPressed: onOpenServices,
-              isPrimary: false,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
