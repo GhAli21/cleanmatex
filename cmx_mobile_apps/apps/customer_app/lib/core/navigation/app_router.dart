@@ -110,8 +110,9 @@ Route<dynamic> onGenerateCustomerRoute(
         settings: settings,
       );
     case AppRoute.loginEntry:
+      final phone = settings.arguments as String? ?? '';
       return MaterialPageRoute(
-        builder: (_) => const CustomerLoginEntryScreen(),
+        builder: (_) => CustomerLoginEntryScreen(initialPhoneNumber: phone),
         settings: settings,
       );
     case AppRoute.otpVerify:

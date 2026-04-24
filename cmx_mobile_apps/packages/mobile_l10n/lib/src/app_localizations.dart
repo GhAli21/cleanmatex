@@ -105,6 +105,9 @@ class AppLocalizations {
       'profile.title': 'Your profile',
       'profile.phoneLabel': 'Phone number',
       'profile.nameLabel': 'Name',
+      'profile.laundryLabel': 'Laundry',
+      'profile.noLaundrySelected': 'No laundry selected',
+      'profile.changeLaundryAction': 'Change laundry',
       'profile.signOutAction': 'Sign out',
       'orders.title': 'My orders',
       'orders.subtitle':
@@ -218,6 +221,14 @@ class AppLocalizations {
       'profile.passwordStatusNotSet': 'Password login: not set',
       'profile.changePasswordAction': 'Change password',
       'tenant.discoveryTitle': 'Find your laundry',
+      'tenant.listTitle': 'Find your laundries',
+      'tenant.listBody':
+          'Enter your phone number first, then choose from the laundries linked to your customer profile.',
+      'tenant.selectAction': 'Select',
+      'tenant.listError':
+          'We could not load your laundries right now. Please try again.',
+      'tenant.phoneNoMatches':
+          'No laundries were found for this phone number.',
       'tenant.scanQrAction': 'Scan QR code',
       'tenant.enterCodeAction': 'Enter laundry code',
       'tenant.codeHint': 'e.g. cleanwave',
@@ -304,6 +315,9 @@ class AppLocalizations {
       'profile.title': 'ملفك الشخصي',
       'profile.phoneLabel': 'رقم الهاتف',
       'profile.nameLabel': 'الاسم',
+      'profile.laundryLabel': 'المغسلة',
+      'profile.noLaundrySelected': 'لم يتم اختيار مغسلة',
+      'profile.changeLaundryAction': 'تغيير المغسلة',
       'profile.signOutAction': 'تسجيل الخروج',
       'orders.title': 'طلباتي',
       'orders.subtitle':
@@ -412,6 +426,14 @@ class AppLocalizations {
       'profile.passwordStatusNotSet': 'الدخول بكلمة المرور: غير محدد',
       'profile.changePasswordAction': 'تغيير كلمة المرور',
       'tenant.discoveryTitle': 'ابحث عن مغسلتك',
+      'tenant.listTitle': 'ابحث عن مغاسلك',
+      'tenant.listBody':
+          'أدخل رقم الهاتف أولاً، ثم اختر من المغاسل المرتبطة بملف العميل الخاص بك.',
+      'tenant.selectAction': 'اختيار',
+      'tenant.listError':
+          'تعذر تحميل المغاسل الخاصة بك حالياً. يرجى المحاولة مرة أخرى.',
+      'tenant.phoneNoMatches':
+          'لم يتم العثور على مغاسل لهذا الرقم.',
       'tenant.scanQrAction': 'مسح رمز QR',
       'tenant.enterCodeAction': 'أدخل رمز المغسلة',
       'tenant.codeHint': 'مثال: cleanwave',

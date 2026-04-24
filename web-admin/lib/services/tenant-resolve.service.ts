@@ -18,8 +18,8 @@ export async function resolveTenantBySlug(
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from('sys_org_mst')
-      .select('org_id, name, name2, logo_url, primary_color, slug')
+      .from('org_tenants_mst')
+      .select('id, name, name2, logo_url, brand_color_primary, slug')
       .eq('slug', slug)
       .eq('is_active', true)
       .single();
@@ -29,11 +29,11 @@ export async function resolveTenantBySlug(
     }
 
     return {
-      tenantOrgId: data.org_id as string,
+      tenantOrgId: data.id as string,
       name: (data.name as string) ?? '',
       name2: (data.name2 as string | null) ?? null,
       logoUrl: (data.logo_url as string | null) ?? null,
-      primaryColor: (data.primary_color as string | null) ?? null,
+      primaryColor: (data.brand_color_primary as string | null) ?? null,
     };
   } catch (err) {
     logger.error('resolveTenantBySlug failed', { slug, err });

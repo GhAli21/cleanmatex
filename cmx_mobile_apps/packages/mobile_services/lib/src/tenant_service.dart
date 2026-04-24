@@ -17,6 +17,48 @@ class TenantService {
 
   final MobileHttpClient _httpClient;
 
+  Future<List<TenantModel>> listTenantsForPhone(String phoneNumber) async {
+    if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(phoneNumber.trim())) {
+      throw const TenantServiceException(
+        code: 'tenant_invalid_phone',
+        messageKey: 'loginEntry.phoneValidationError',
+      );
+    }
+
+    if (!_httpClient.config.hasApiBaseUrl) {
+      return const [
+        TenantModel(
+          tenantOrgId: 'demo-tenant-org-id',
+          name: 'Demo Laundry',
+          name2: 'مغسلة تجريبية',
+          primaryColor: '#1A73E8',
+        ),
+      ];
+    }
+
+    try {
+      final payload = await _httpClient.getJson(
+        '/api/v1/public/customer/tenants',
+        queryParameters: {'phone': phoneNumber.trim()},
+      );
+      final data = payload['data'];
+      if (data is! List) {
+        return const [];
+      }
+
+      return data
+          .whereType<Map<String, Object?>>()
+          .map(TenantModel.fromJson)
+          .toList(growable: false);
+    } on MobileHttpException catch (error) {
+      throw TenantServiceException(
+        code: error.code,
+        messageKey: 'tenant.listError',
+        originalError: error,
+      );
+    }
+  }
+
   Future<TenantModel> resolveBySlug(String slug) async {
     final trimmed = slug.trim().toLowerCase();
     if (trimmed.isEmpty) {

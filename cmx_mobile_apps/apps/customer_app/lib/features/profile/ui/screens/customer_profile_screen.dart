@@ -5,6 +5,7 @@ import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/app_shell_controller.dart';
 import '../../../../core/navigation/app_route.dart';
+import '../../../tenant/providers/tenant_provider.dart';
 
 class CustomerProfileScreen extends ConsumerWidget {
   const CustomerProfileScreen({super.key});
@@ -14,6 +15,7 @@ class CustomerProfileScreen extends ConsumerWidget {
     final localizations = AppLocalizations.of(context);
     final session =
         ref.watch(customerSessionFlowProvider.select((f) => f.session));
+    final tenant = ref.watch(tenantProvider).value;
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
@@ -61,6 +63,28 @@ class CustomerProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             AppCardWidget(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    localizations.text('profile.laundryLabel'),
+                    style: textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    tenant == null
+                        ? localizations.text('profile.noLaundrySelected')
+                        : ((localizations.locale.languageCode == 'ar'
+                                    ? tenant.name2
+                                    : null) ??
+                                tenant.name),
+                    style: textTheme.bodyLarge,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppCardWidget(
               child: Row(
                 children: [
                   Expanded(
@@ -88,6 +112,16 @@ class CustomerProfileScreen extends ConsumerWidget {
             SizedBox(
               width: double.infinity,
               child: AppCustomButtonWidget(
+                label: localizations.text('profile.changeLaundryAction'),
+                onPressed: () => _changeLaundry(context, ref),
+                isPrimary: false,
+                icon: Icons.storefront_outlined,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              child: AppCustomButtonWidget(
                 label: localizations.text('profile.signOutAction'),
                 onPressed: () => _confirmSignOut(context, ref, localizations),
                 isPrimary: false,
@@ -97,6 +131,20 @@ class CustomerProfileScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _changeLaundry(BuildContext context, WidgetRef ref) async {
+    await ref.read(tenantProvider.notifier).clearTenant();
+    await ref.read(customerSessionFlowProvider.notifier).clearSession();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoute.tenantDiscovery,
+      (route) => false,
     );
   }
 

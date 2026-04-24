@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/app_shell_controller.dart';
 import '../../../tenant/providers/tenant_provider.dart';
+
+const Duration _tenantRestoreTimeout = Duration(milliseconds: 1200);
 
 class CustomerSplashScreen extends ConsumerStatefulWidget {
   const CustomerSplashScreen({super.key});
@@ -25,7 +28,15 @@ class _CustomerSplashScreenState extends ConsumerState<CustomerSplashScreen> {
 
   Future<void> _forwardAfterBootstrap() async {
     await ref.read(customerSessionFlowProvider.notifier).bootstrap();
-    final tenant = await ref.read(tenantProvider.future);
+    final tenant = await ref.read(tenantProvider.future).timeout(
+      _tenantRestoreTimeout,
+      onTimeout: () {
+        AppLogger.warning(
+          'Customer splash: tenant restore timed out; routing to discovery fallback.',
+        );
+        return null;
+      },
+    );
     await Future<void>.delayed(const Duration(milliseconds: 450));
 
     if (!mounted) {

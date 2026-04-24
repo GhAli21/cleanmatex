@@ -11,7 +11,9 @@ import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 import '../../../tenant/providers/tenant_provider.dart';
 
 class CustomerLoginEntryScreen extends ConsumerStatefulWidget {
-  const CustomerLoginEntryScreen({super.key});
+  const CustomerLoginEntryScreen({super.key, this.initialPhoneNumber = ''});
+
+  final String initialPhoneNumber;
 
   @override
   ConsumerState<CustomerLoginEntryScreen> createState() =>
@@ -28,7 +30,7 @@ class _CustomerLoginEntryScreenState
   @override
   void initState() {
     super.initState();
-    _textController = TextEditingController();
+    _textController = TextEditingController(text: widget.initialPhoneNumber);
   }
 
   @override

@@ -4,6 +4,11 @@ import 'package:mobile_domain/mobile_domain.dart';
 import '../../../core/providers/app_dependencies.dart';
 import '../../../core/providers/session_manager_provider.dart';
 
+final matchingTenantsProvider =
+    FutureProvider.family<List<TenantModel>, String>((ref, phoneNumber) {
+  return ref.read(tenantServiceProvider).listTenantsForPhone(phoneNumber);
+});
+
 final tenantProvider =
     AsyncNotifierProvider<TenantNotifier, TenantModel?>(TenantNotifier.new);
 
@@ -22,6 +27,14 @@ class TenantNotifier extends AsyncNotifier<TenantModel?> {
         return tenant;
       },
     );
+  }
+
+  Future<void> selectTenant(TenantModel tenant) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref.read(sessionManagerProvider).saveTenant(tenant);
+      return tenant;
+    });
   }
 
   Future<void> clearTenant() async {

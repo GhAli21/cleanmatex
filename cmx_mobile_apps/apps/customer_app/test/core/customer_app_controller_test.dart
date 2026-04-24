@@ -129,6 +129,39 @@ void main() {
     );
     expect(route, isNotNull);
   });
+
+  test('bootstrap does not hang when connectivity lookup stalls', () async {
+    final c = ProviderContainer(
+      overrides: [
+        sessionManagerProvider.overrideWithValue(
+          SessionManager(storage: InMemorySessionStorage()),
+        ),
+        connectivityServiceProvider.overrideWithValue(
+          _HangingConnectivityService(),
+        ),
+        tenantProvider.overrideWith(_FixedTenant.new),
+      ],
+    );
+    addTearDown(c.dispose);
+
+    await c
+        .read(customerSessionFlowProvider.notifier)
+        .bootstrap()
+        .timeout(const Duration(seconds: 2));
+
+    final flow = c.read(customerSessionFlowProvider);
+    expect(flow.isBootstrapping, isFalse);
+    expect(flow.hasFatalError, isFalse);
+  });
+
+  test('saved tenant skips confirm and routes into the customer shell', () {
+    final route = resolveRouteAfterTenantBootstrap(
+      flow: const CustomerSessionFlowState(isBootstrapping: false),
+      tenant: const TenantModel(tenantOrgId: 'tenant-1', name: 'Laundry'),
+    );
+
+    expect(route, AppRoute.entry);
+  });
 }
 
 class _FixedTenant extends TenantNotifier {
@@ -157,5 +190,15 @@ class _FakeConnectivityService extends ConnectivityService {
   void setOnline(bool isOnline) {
     _isOnline = isOnline;
     _controller.add(isOnline);
+  }
+}
+
+class _HangingConnectivityService extends ConnectivityService {
+  @override
+  Stream<bool> connectivityChanges() => const Stream<bool>.empty();
+
+  @override
+  Future<bool> isOnline() {
+    return Completer<bool>().future;
   }
 }

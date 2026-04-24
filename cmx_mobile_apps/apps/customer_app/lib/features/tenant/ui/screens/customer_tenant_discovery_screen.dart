@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
-import '../../providers/tenant_provider.dart';
 import '../../../../core/navigation/app_route.dart';
+import '../../../auth/ui/widgets/customer_phone_text_field_widget.dart';
+import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
+import '../../providers/tenant_provider.dart';
 
 class CustomerTenantDiscoveryScreen extends ConsumerStatefulWidget {
   const CustomerTenantDiscoveryScreen({super.key});
@@ -17,48 +19,24 @@ class CustomerTenantDiscoveryScreen extends ConsumerStatefulWidget {
 
 class _CustomerTenantDiscoveryScreenState
     extends ConsumerState<CustomerTenantDiscoveryScreen> {
-  final _codeController = TextEditingController();
-  bool _showScanner = false;
-  bool _scannerUsed = false;
+  final _phoneController = TextEditingController();
+  String? _submittedPhone;
+  String? _errorMessageKey;
+  bool _isSelectingTenant = false;
 
   @override
   void dispose() {
-    _codeController.dispose();
+    _phoneController.dispose();
     super.dispose();
-  }
-
-  Future<void> _resolve(String slug) async {
-    if (slug.trim().isEmpty) return;
-    await ref.read(tenantProvider.notifier).resolveBySlug(slug.trim());
-    if (!mounted) return;
-    final tenantState = ref.read(tenantProvider);
-    if (tenantState is AsyncData && tenantState.value != null) {
-      Navigator.of(context).pushReplacementNamed(AppRoute.tenantConfirm);
-    }
-  }
-
-  void _onQrDetect(BarcodeCapture capture) {
-    if (_scannerUsed) {
-      return;
-    }
-    final first = capture.barcodes.isEmpty ? null : capture.barcodes.first;
-    final raw = first?.rawValue ?? '';
-    // Expect format: cmx://t/{slug}
-    final uri = Uri.tryParse(raw);
-    if (uri != null && uri.scheme == 'cmx' && uri.pathSegments.isNotEmpty) {
-      _scannerUsed = true;
-      setState(() => _showScanner = false);
-      _resolve(uri.pathSegments.last);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final tenantState = ref.watch(tenantProvider);
-    final isLoading = tenantState is AsyncLoading;
-    final errorKey =
-        tenantState is AsyncError ? 'tenant.notFoundError' : null;
+    final normalizedPhone = _submittedPhone;
+    final tenantsAsync = normalizedPhone == null
+        ? const AsyncValue<List<TenantModel>>.data(<TenantModel>[])
+        : ref.watch(matchingTenantsProvider(normalizedPhone));
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -69,95 +47,156 @@ class _CustomerTenantDiscoveryScreenState
           l10n.text('tenant.discoveryTitle'),
           style: Theme.of(context).textTheme.titleMedium,
         ),
-      ),
-      body: _showScanner
-          ? _buildScanner(l10n)
-          : _buildForm(context, l10n, isLoading, errorKey),
-    );
-  }
-
-  Widget _buildScanner(AppLocalizations l10n) {
-    return Stack(
-      children: [
-        MobileScanner(onDetect: _onQrDetect),
-        Positioned(
-          bottom: AppSpacing.xl,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: Text(
-              l10n.text('tenant.scanningLabel'),
-              style: const TextStyle(
-                color: AppColors.textPrimaryDark,
-                fontWeight: FontWeight.w500,
-                shadows: [Shadow(color: AppColors.textPrimary, blurRadius: 8)],
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: AppSpacing.md,
-          left: AppSpacing.md,
-          child: AppCustomButtonWidget(
-            label: l10n.text('common.back'),
-            isPrimary: false,
-            onPressed: () => setState(() => _showScanner = false),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildForm(
-    BuildContext context,
-    AppLocalizations l10n,
-    bool isLoading,
-    String? errorKey,
-  ) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: AppSpacing.xl),
-          AppCustomButtonWidget(
-            label: l10n.text('tenant.scanQrAction'),
-            onPressed: isLoading
-                ? null
-                : () {
-                    _scannerUsed = false;
-                    setState(() => _showScanner = true);
-                  },
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          TextField(
-            controller: _codeController,
-            decoration: InputDecoration(
-              labelText: l10n.text('tenant.enterCodeAction'),
-              hintText: l10n.text('tenant.codeHint'),
-            ),
-            textInputAction: TextInputAction.done,
-            onSubmitted: isLoading ? null : _resolve,
-          ),
-          if (errorKey != null) ...[
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              l10n.text(errorKey),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: AppColors.error),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.md),
-          AppCustomButtonWidget(
-            label: isLoading
-                ? l10n.text('common.loading')
-                : l10n.text('tenant.findAction'),
-            onPressed: isLoading ? null : () => _resolve(_codeController.text),
-          ),
+        actions: const [
+          CustomerLocaleSwitchWidget(),
         ],
       ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.text('tenant.listTitle'),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.text('tenant.listBody'),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            CustomerPhoneTextFieldWidget(
+              controller: _phoneController,
+              onChanged: (_) {
+                if (_errorMessageKey != null || _submittedPhone != null) {
+                  setState(() {
+                    _errorMessageKey = null;
+                    _submittedPhone = null;
+                  });
+                }
+              },
+              errorText:
+                  _errorMessageKey == null ? null : l10n.text(_errorMessageKey!),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppCustomButtonWidget(
+              label: l10n.text('tenant.findAction'),
+              onPressed: _isSelectingTenant ? null : _searchByPhone,
+              isLoading: _isSelectingTenant,
+            ),
+            if (normalizedPhone != null) ...[
+              const SizedBox(height: AppSpacing.xl),
+              tenantsAsync.when(
+                data: (tenants) => _buildTenantList(
+                  context,
+                  l10n,
+                  tenants,
+                  normalizedPhone,
+                ),
+                error: (_, __) => _buildListCard(
+                  context,
+                  l10n.text('tenant.listError'),
+                ),
+                loading: () => const AppLoadingIndicator(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _searchByPhone() async {
+    final normalized = _phoneController.text.replaceAll(RegExp(r'\s+'), '');
+    if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(normalized)) {
+      setState(() => _errorMessageKey = 'loginEntry.phoneValidationError');
+      return;
+    }
+
+    setState(() {
+      _submittedPhone = normalized;
+      _errorMessageKey = null;
+    });
+  }
+
+  Widget _buildTenantList(
+    BuildContext context,
+    AppLocalizations l10n,
+    List<TenantModel> tenants,
+    String phoneNumber,
+  ) {
+    if (tenants.isEmpty) {
+      return _buildListCard(
+        context,
+        l10n.text('tenant.phoneNoMatches'),
+      );
+    }
+
+    return Column(
+      children: tenants
+          .map(
+            (tenant) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: AppCardWidget(
+                child: Row(
+                  children: [
+                    if (tenant.logoUrl != null) ...[
+                      Image.network(
+                        tenant.logoUrl!,
+                        width: 48,
+                        height: 48,
+                        errorBuilder: (_, __, ___) =>
+                            const SizedBox(width: 48, height: 48),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                    ],
+                    Expanded(
+                      child: Text(
+                        (l10n.locale.languageCode == 'ar'
+                                ? tenant.name2
+                                : null) ??
+                            tenant.name,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ),
+                    AppCustomButtonWidget(
+                      label: l10n.text('tenant.selectAction'),
+                      onPressed: _isSelectingTenant
+                          ? null
+                          : () => _selectTenant(context, tenant, phoneNumber),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Widget _buildListCard(BuildContext context, String message) {
+    return AppCardWidget(
+      child: Text(
+        message,
+        style: Theme.of(context).textTheme.bodyLarge,
+      ),
+    );
+  }
+
+  Future<void> _selectTenant(
+    BuildContext context,
+    TenantModel tenant,
+    String phoneNumber,
+  ) async {
+    setState(() => _isSelectingTenant = true);
+    await ref.read(tenantProvider.notifier).selectTenant(tenant);
+    if (!mounted || !context.mounted) {
+      return;
+    }
+    Navigator.of(context).pushReplacementNamed(
+      AppRoute.loginEntry,
+      arguments: phoneNumber,
     );
   }
 }

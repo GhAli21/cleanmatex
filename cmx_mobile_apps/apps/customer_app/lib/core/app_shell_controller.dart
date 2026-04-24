@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_services/mobile_services.dart';
@@ -12,6 +13,8 @@ import 'providers/network_providers.dart';
 import 'providers/session_manager_provider.dart';
 import '../features/auth/data/repositories/customer_auth_repository.dart';
 import '../features/tenant/providers/tenant_provider.dart';
+
+const Duration _bootstrapStepTimeout = Duration(milliseconds: 1200);
 
 @immutable
 class CustomerSessionFlowState {
@@ -78,15 +81,35 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
       hasFatalError: false,
     );
 
-    await _startConnectivityMonitoring();
     try {
-      final rest = await _sessionManager.restoreSession();
+      await _startConnectivityMonitoring().timeout(
+        _bootstrapStepTimeout,
+        onTimeout: () {
+          AppLogger.warning(
+            'Customer bootstrap: connectivity probe timed out; continuing startup.',
+          );
+        },
+      );
+      final rest = await _sessionManager.restoreSession().timeout(
+        _bootstrapStepTimeout,
+        onTimeout: () {
+          AppLogger.warning(
+            'Customer bootstrap: session restore timed out; continuing without saved session.',
+          );
+          return null;
+        },
+      );
       state = state.copyWith(
         session: rest,
         isBootstrapping: false,
         hasFatalError: false,
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Customer bootstrap failed.',
+        error: error,
+        stackTrace: stackTrace,
+      );
       state = state.copyWith(
         isBootstrapping: false,
         hasFatalError: true,
@@ -164,7 +187,15 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
   }
 
   Future<void> refreshConnectivityStatus() async {
-    final isOnline = await _connectivityService.isOnline();
+    final isOnline = await _connectivityService.isOnline().timeout(
+      _bootstrapStepTimeout,
+      onTimeout: () {
+        AppLogger.warning(
+          'Customer bootstrap: connectivity status timed out; assuming online until stream updates.',
+        );
+        return true;
+      },
+    );
     _setConnectivityIssue(!isOnline);
   }
 
@@ -247,7 +278,7 @@ String resolveRouteAfterTenantBootstrap({
   if (tenant == null) {
     return AppRoute.tenantDiscovery;
   }
-  return AppRoute.tenantConfirm;
+  return resolveRouteAfterTenantConfirmation(flow);
 }
 
 String resolveGatedDefaultRoute({
