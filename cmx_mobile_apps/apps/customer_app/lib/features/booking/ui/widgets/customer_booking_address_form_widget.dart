@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
@@ -39,15 +40,16 @@ class _CustomerBookingAddressFormWidgetState
 
   Future<void> _save(AppLocalizations l10n) async {
     if (!_isValid()) return;
+    AppLogger.info(
+      'booking_address_form.save_requested labelLength=${_labelController.text.trim().length}',
+    );
     final input = NewAddressInputModel(
       label: _labelController.text.trim(),
       street: _streetController.text.trim(),
       area: _areaController.text.trim(),
       city: _cityController.text.trim(),
     );
-    await ref
-        .read(customerOrderBookingProvider.notifier)
-        .saveNewAddress(input);
+    await ref.read(customerOrderBookingProvider.notifier).saveNewAddress(input);
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -24,6 +25,12 @@ class CustomerBookingStep2PreferencesVw extends ConsumerWidget {
     final localizations = AppLocalizations.of(context);
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
+    AppLogger.info(
+      'booking_step2.render servicePrefs=${booking.servicePreferenceOptions.length} '
+      'pickupPrefs=${booking.pickupPreferenceOptions.length} '
+      'selectedService=${booking.draft.selectedServicePreferenceIds.length} '
+      'selectedPickup=${booking.draft.selectedPickupPreferenceIds.length}',
+    );
     final theme = Theme.of(context);
 
     return Column(

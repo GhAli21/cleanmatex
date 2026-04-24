@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -26,6 +27,11 @@ class _CustomerBookingStep3ScheduleVwState
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
     final theme = Theme.of(context);
+    AppLogger.info(
+      'booking_step3.render pickup=${booking.draft.isPickupFromAddress} '
+      'isAsap=${booking.draft.isAsap} addresses=${booking.addresses.length} '
+      'selectedAddress=${booking.draft.address?.id ?? 'none'}',
+    );
 
     // Collapse form automatically when a new address has been saved
     // (detected by isSavingAddress flipping back to false with new address selected)
@@ -89,6 +95,11 @@ class _CustomerBookingStep3ScheduleVwState
     CustomerOrderBookingNotifier notifier,
     ThemeData theme,
   ) {
+    AppLogger.info(
+      'booking_step3.pickup_panel_rendered isAsap=${booking.draft.isAsap} '
+      'hasScheduledAt=${booking.draft.scheduledAt != null} '
+      'addressCount=${booking.addresses.length}',
+    );
     return Column(
       key: const ValueKey('pickup-subpanel'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -204,8 +215,7 @@ class _HandoffOptionCard extends StatelessWidget {
                 isSelected
                     ? Icons.radio_button_checked
                     : Icons.radio_button_unchecked,
-                color:
-                    isSelected ? AppColors.primary : AppColors.textMuted,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -253,7 +263,9 @@ class _AddNewAddressTile extends StatelessWidget {
           child: Row(
             children: [
               Icon(
-                isExpanded ? Icons.remove_circle_outline : Icons.add_circle_outline,
+                isExpanded
+                    ? Icons.remove_circle_outline
+                    : Icons.add_circle_outline,
                 color: AppColors.primary,
               ),
               const SizedBox(width: AppSpacing.sm),

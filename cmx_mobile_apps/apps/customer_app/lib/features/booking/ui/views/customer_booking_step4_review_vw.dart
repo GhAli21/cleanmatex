@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -63,6 +64,10 @@ class _CustomerBookingStep4ReviewVwState
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
     final theme = Theme.of(context);
+    AppLogger.info(
+      'booking_step4.render cartItems=${booking.draft.cartItems.length} '
+      'totalItems=${booking.totalItemCount} estimatedTotal=${booking.estimatedTotal}',
+    );
 
     // Sync notes controller when state changes externally
     if (_notesController.text != booking.draft.notes) {

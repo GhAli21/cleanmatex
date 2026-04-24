@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -40,6 +41,10 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
     final booking = ref.watch(customerOrderBookingProvider);
     final notifier = ref.read(customerOrderBookingProvider.notifier);
     final isSearching = booking.itemSearchQuery.isNotEmpty;
+    AppLogger.info(
+      'booking_step1.render categories=${booking.categories.length} '
+      'cartItems=${booking.draft.cartItems.length} searching=$isSearching',
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,6 +90,9 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
     CustomerOrderBookingNotifier notifier,
   ) {
     final items = booking.filteredItems;
+    AppLogger.info(
+      'booking_step1.search_results_rendered queryLength=${booking.itemSearchQuery.trim().length} resultCount=${items.length}',
+    );
     if (items.isEmpty) {
       return AppCardWidget(
         child: Column(
@@ -116,8 +124,8 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
                 onRemove: () => notifier.removeItem(item.id),
                 unitLabel: _unitLabel(l10n, item.unit),
                 localizedName: _localizedName(l10n, item.name, item.name2),
-                localizedDescription:
-                    _localizedName(l10n, item.description ?? '', item.description2),
+                localizedDescription: _localizedName(
+                    l10n, item.description ?? '', item.description2),
                 currencyCode: booking.currencyCode,
               ),
             ),
@@ -133,6 +141,8 @@ class CustomerBookingStep1ItemsVw extends ConsumerWidget {
     CustomerOrderBookingNotifier notifier,
   ) {
     final categories = booking.categories;
+    AppLogger.info(
+        'booking_step1.category_tabs_rendered count=${categories.length}');
 
     return DefaultTabController(
       length: categories.length,

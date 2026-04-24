@@ -241,6 +241,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   void addItem(String itemId) {
     final current = Map<String, int>.from(state.draft.cartItems);
     current[itemId] = (current[itemId] ?? 0) + 1;
+    AppLogger.info(
+      'booking_provider.item_added itemId=$itemId quantity=${current[itemId]}',
+    );
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
     );
@@ -254,6 +257,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current[itemId] = qty;
     }
+    AppLogger.info(
+      'booking_provider.item_removed itemId=$itemId quantity=${current[itemId] ?? 0}',
+    );
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
     );
@@ -266,12 +272,17 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current[itemId] = qty;
     }
+    AppLogger.info(
+        'booking_provider.item_quantity_set itemId=$itemId qty=$qty');
     state = state.copyWith(
       draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
     );
   }
 
   void setItemSearchQuery(String query) {
+    AppLogger.info(
+      'booking_provider.search_changed length=${query.trim().length}',
+    );
     state = state.copyWith(itemSearchQuery: query);
   }
 
@@ -284,6 +295,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current.add(id);
     }
+    AppLogger.info(
+      'booking_provider.service_preference_toggled id=$id selected=${current.contains(id)}',
+    );
     state = state.copyWith(
       draft: state.draft.copyWith(
         selectedServicePreferenceIds: List.unmodifiable(current),
@@ -298,6 +312,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     } else {
       current.add(id);
     }
+    AppLogger.info(
+      'booking_provider.pickup_preference_toggled id=$id selected=${current.contains(id)}',
+    );
     state = state.copyWith(
       draft: state.draft.copyWith(
         selectedPickupPreferenceIds: List.unmodifiable(current),
@@ -308,24 +325,30 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   // ── Step 3 — Schedule ───────────────────────────────────────────────────
 
   void setIsPickupFromAddress(bool value) {
+    AppLogger.info('booking_provider.handoff_mode_changed pickup=$value');
     state = state.copyWith(
       draft: state.draft.copyWith(isPickupFromAddress: value),
     );
   }
 
   void setIsAsap(bool value) {
+    AppLogger.info('booking_provider.asap_changed isAsap=$value');
     state = state.copyWith(
       draft: state.draft.copyWith(isAsap: value),
     );
   }
 
   void setScheduledAt(DateTime value) {
+    AppLogger.info(
+      'booking_provider.scheduled_at_changed value=${value.toIso8601String()}',
+    );
     state = state.copyWith(
       draft: state.draft.copyWith(scheduledAt: value),
     );
   }
 
   void chooseAddress(AddressOptionModel value) {
+    AppLogger.info('booking_provider.address_selected id=${value.id}');
     state = state.copyWith(
       draft: state.draft.copyWith(address: value),
     );
@@ -390,6 +413,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     if (next.length > _notesMaxLength) {
       next = next.substring(0, _notesMaxLength);
     }
+    AppLogger.info(
+        'booking_provider.notes_changed length=${next.trim().length}');
     state = state.copyWith(
       draft: state.draft.copyWith(notes: next),
     );
@@ -399,6 +424,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
 
   void goNext() {
     if (state.stepIndex < 3) {
+      AppLogger.info(
+        'booking_provider.step_next from=${state.stepIndex} to=${state.stepIndex + 1}',
+      );
       state = state.copyWith(
         stepIndex: state.stepIndex + 1,
         clearErrorMessage: true,
@@ -408,6 +436,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
 
   void goBack() {
     if (state.stepIndex > 0) {
+      AppLogger.info(
+        'booking_provider.step_back from=${state.stepIndex} to=${state.stepIndex - 1}',
+      );
       state = state.copyWith(
         stepIndex: state.stepIndex - 1,
       );

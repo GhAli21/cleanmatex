@@ -265,8 +265,24 @@ export async function GET(request: NextRequest) {
   try {
     const tenantId = request.nextUrl.searchParams.get('tenantId')?.trim() ?? '';
     const verificationToken = extractBearerToken(request);
+    const requestContext = {
+      feature: 'public_customer_booking',
+      action: 'bootstrap',
+      tenantId,
+      hasVerificationToken: Boolean(verificationToken),
+      method: request.method,
+      path: request.nextUrl.pathname,
+      userAgent: request.headers.get('user-agent') ?? 'unknown',
+    };
+
+    logger.info('Public customer booking bootstrap request received', requestContext);
 
     if (!tenantId || !verificationToken) {
+      logger.warn('Public customer booking bootstrap rejected missing inputs', {
+        ...requestContext,
+        missingTenantId: !tenantId,
+        missingVerificationToken: !verificationToken,
+      });
       return NextResponse.json(
         { success: false, error: 'tenantId and bearer token are required' },
         { status: 400 },
@@ -279,6 +295,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!session) {
+      logger.warn('Public customer booking bootstrap unauthorized', requestContext);
       return NextResponse.json(
         { success: false, error: 'Unauthorized customer session' },
         { status: 401 },
@@ -286,6 +303,11 @@ export async function GET(request: NextRequest) {
     }
 
     const bookingEnabled = await canAccess(tenantId, 'online_booking');
+    logger.info('Public customer booking feature flag resolved', {
+      ...requestContext,
+      customerId: session.customerId,
+      bookingEnabled,
+    });
     if (!bookingEnabled) {
       return NextResponse.json(
         {
@@ -309,6 +331,10 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createAdminSupabaseClient();
     const tenantSettings = createTenantSettingsService(supabase);
+    logger.info('Public customer booking resolving settings and preferences', {
+      ...requestContext,
+      customerId: session.customerId,
+    });
     const [moneyConfig, vatSetting, servicePreferences, pickupPreferences] =
       await Promise.all([
         tenantSettings.getCurrencyConfig(tenantId),
@@ -321,6 +347,12 @@ export async function GET(request: NextRequest) {
         ? vatSetting
         : Number.parseFloat(String(vatSetting ?? '0')) || 0;
 
+    logger.info('Public customer booking executing bootstrap data queries', {
+      ...requestContext,
+      customerId: session.customerId,
+      currencyCode: moneyConfig.currencyCode,
+      vatRate,
+    });
     const [
       { data: serviceCategories, error: serviceCategoriesError },
       { data: services, error: servicesError },
@@ -364,6 +396,16 @@ export async function GET(request: NextRequest) {
     if (addressesError) {
       throw addressesError;
     }
+
+    logger.info('Public customer booking bootstrap data queries succeeded', {
+      ...requestContext,
+      customerId: session.customerId,
+      categoryCount: serviceCategories?.length ?? 0,
+      productCount: services?.length ?? 0,
+      addressCount: addresses?.length ?? 0,
+      servicePreferenceCount: servicePreferences.length,
+      pickupPreferenceCount: pickupPreferences.length,
+    });
 
     const durationMs = Date.now() - startedAt;
     logger.info('Public customer booking bootstrap success', {
@@ -468,10 +510,18 @@ export async function POST(request: NextRequest) {
     const verificationToken = extractBearerToken(request);
     const rawBody = await request.json().catch(() => null);
     const parsedBody = submitBookingSchema.safeParse(rawBody);
+    const submitBaseContext = {
+      feature: 'public_customer_booking',
+      action: 'submit',
+      hasVerificationToken: Boolean(verificationToken),
+      method: request.method,
+      path: request.nextUrl.pathname,
+      userAgent: request.headers.get('user-agent') ?? 'unknown',
+    };
 
     if (!parsedBody.success) {
       logger.warn('Public customer booking submit rejected by validation', {
-        feature: 'public_customer_booking',
+        ...submitBaseContext,
         action: 'submit_validate',
         issues: parsedBody.error.issues.map((issue) => ({
           path: issue.path.join('.'),
@@ -487,6 +537,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = parsedBody.data;
+    const submitContext = {
+      ...submitBaseContext,
+      tenantId: body.tenantId,
+      itemLines: body.items.length,
+      servicePreferenceCount: body.servicePreferenceIds.length,
+      pickupPreferenceCount: body.pickupPreferenceIds.length,
+      isPickupFromAddress: body.isPickupFromAddress,
+      isAsap: body.isAsap,
+      fulfillmentType: body.fulfillmentType,
+    };
+
+    logger.info('Public customer booking submit request parsed', submitContext);
 
     if (!verificationToken) {
       return jsonError('booking_missing_token', 'Bearer token is required', 400);
@@ -498,6 +560,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!session) {
+      logger.warn('Public customer booking submit unauthorized', submitContext);
       return jsonError(
         'booking_unauthorized',
         'Unauthorized customer session',
@@ -506,6 +569,11 @@ export async function POST(request: NextRequest) {
     }
 
     const bookingEnabled = await canAccess(body.tenantId, 'online_booking');
+    logger.info('Public customer booking submit feature flag resolved', {
+      ...submitContext,
+      customerId: session.customerId,
+      bookingEnabled,
+    });
     if (!bookingEnabled) {
       return jsonError(
         'booking_disabled',
@@ -531,6 +599,15 @@ export async function POST(request: NextRequest) {
     }
     const requestedItemIds = Array.from(requestedItems.keys());
     const requiresAddress = body.isPickupFromAddress;
+    logger.info('Public customer booking submit items normalized', {
+      ...submitContext,
+      customerId: session.customerId,
+      uniqueItemCount: requestedItemIds.length,
+      totalQuantity: Array.from(requestedItems.values()).reduce(
+        (sum, quantity) => sum + quantity,
+        0,
+      ),
+    });
 
     if (requiresAddress && !body.addressId) {
       return jsonError(
@@ -587,6 +664,12 @@ export async function POST(request: NextRequest) {
       ]);
 
     if (productsError || !products || products.length !== requestedItemIds.length) {
+      logger.warn('Public customer booking submit rejected unavailable items', {
+        ...submitContext,
+        customerId: session.customerId,
+        requestedItemCount: requestedItemIds.length,
+        foundItemCount: products?.length ?? 0,
+      });
       return jsonError(
         'booking_item_unavailable',
         'One or more selected items are not available',
@@ -595,6 +678,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (requiresAddress && (addressError || !address)) {
+      logger.warn('Public customer booking submit rejected unavailable address', {
+        ...submitContext,
+        customerId: session.customerId,
+        addressId: body.addressId,
+      });
       return jsonError(
         'booking_address_unavailable',
         'Selected address is not available',
@@ -603,6 +691,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (branchError || !branch) {
+      logger.warn('Public customer booking submit rejected no active branch', {
+        ...submitContext,
+        customerId: session.customerId,
+      });
       return jsonError(
         'booking_branch_unavailable',
         'No active branch is available for booking',
@@ -647,6 +739,15 @@ export async function POST(request: NextRequest) {
       typeof vatSetting === 'number'
         ? vatSetting
         : Number.parseFloat(String(vatSetting ?? '0')) || 0;
+    logger.info('Public customer booking submit tenant data resolved', {
+      ...submitContext,
+      customerId: session.customerId,
+      productCount: products.length,
+      branchId: branch.id,
+      hasAddress: Boolean(address),
+      currencyCode: moneyConfig.currencyCode,
+      vatRate,
+    });
     const orderTypeId =
       body.fulfillmentType === 'delivery'
         ? 'DELIVERY'
@@ -736,6 +837,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    logger.info('Public customer booking submit creating order', {
+      ...submitContext,
+      customerId: session.customerId,
+      branchId: branch.id,
+      subtotal,
+      vatAmount,
+      total,
+      currencyCode: moneyConfig.currencyCode,
+      bookingSignature,
+    });
+
     const creationResult = await OrderService.createOrder({
       tenantId: body.tenantId,
       customerId: session.customerId,
@@ -776,6 +888,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (!creationResult.success || !creationResult.order) {
+      logger.warn('Public customer booking submit order creation failed', {
+        ...submitContext,
+        customerId: session.customerId,
+        error: creationResult.error,
+      });
       return jsonError(
         'booking_create_failed',
         creationResult.error ?? 'Failed to create booking',
