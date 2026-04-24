@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { OrderService } from '@/lib/services/order-service';
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = await createAdminSupabaseClient();
     const tenantSettings = createTenantSettingsService(supabase);
     const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
 
@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
+    const supabase = await createAdminSupabaseClient();
     const bookingSlots = buildSlotWindows();
     const selectedSlot = bookingSlots.find((slot) => slot.id == body.slotId);
 
