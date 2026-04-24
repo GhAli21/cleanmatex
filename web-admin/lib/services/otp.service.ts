@@ -3,7 +3,8 @@
  * Handle OTP generation, sending via SMS, and verification
  */
 
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/utils/logger';
 import type {
   SendOTPRequest,
   VerifyOTPRequest,
@@ -25,16 +26,11 @@ const OTP_CONFIG = {
   VERIFICATION_TOKEN_EXPIRY_MINUTES: 15,
 };
 
+const FIXED_TEST_OTP_CODE = '123456';
+
 // ==================================================================
 // OTP GENERATION
 // ==================================================================
-
-/**
- * Generate a random 6-digit OTP code
- */
-function generateOTPCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
 
 /**
  * Generate a temporary verification token (for registration)
@@ -69,16 +65,6 @@ export function verifyVerificationToken(token: string): { phone: string } | null
 }
 
 // ==================================================================
-// SMS SENDING (Twilio when configured)
-// ==================================================================
-
-import { sendSMS as sendSMSViaProvider } from '@/lib/notifications/sms-sender';
-
-async function sendSMS(phone: string, message: string): Promise<boolean> {
-  return sendSMSViaProvider(phone, message);
-}
-
-// ==================================================================
 // OTP OPERATIONS
 // ==================================================================
 
@@ -86,7 +72,7 @@ async function sendSMS(phone: string, message: string): Promise<boolean> {
  * Send OTP code to phone number
  */
 export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse> {
-  const supabase = await createClient();
+  const supabase = createAdminSupabaseClient();
 
   // Normalize phone number
   const phoneResult = normalizePhone(request.phone);
@@ -121,7 +107,7 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
   }
 
   // Generate OTP code
-  const code = generateOTPCode();
+  const code = FIXED_TEST_OTP_CODE;
   const expiresAt = new Date(Date.now() + OTP_CONFIG.EXPIRY_MINUTES * 60 * 1000);
 
   // Save OTP to database
@@ -134,21 +120,26 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
   });
 
   if (insertError) {
-    console.error('Error saving OTP:', insertError);
+    logger.error('Error saving OTP', insertError, {
+      feature: 'customer-otp',
+      action: 'sendOTP',
+      phone: normalizedPhone,
+      purpose: request.purpose,
+    });
     throw new Error('Failed to generate OTP code');
   }
 
-  // Send SMS
-  const message = `Your CleanMateX verification code is: ${code}. Valid for ${OTP_CONFIG.EXPIRY_MINUTES} minutes.`;
-  const sent = await sendSMS(normalizedPhone, message);
-
-  if (!sent) {
-    throw new Error('Failed to send OTP via SMS');
-  }
+  logger.info('Stored fixed test OTP for customer auth flow', {
+    feature: 'customer-otp',
+    action: 'sendOTP',
+    phone: normalizedPhone,
+    purpose: request.purpose,
+    otpCode: FIXED_TEST_OTP_CODE,
+  });
 
   return {
     success: true,
-    message: 'OTP sent successfully',
+    message: 'Test OTP generated successfully',
     expiresAt: expiresAt.toISOString(),
     phone: maskPhone(normalizedPhone),
   };
@@ -160,7 +151,7 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
 export async function verifyOTP(
   request: VerifyOTPRequest
 ): Promise<OTPVerificationResponse> {
-  const supabase = await createClient();
+  const supabase = createAdminSupabaseClient();
 
   // Normalize phone number
   const phoneResult = normalizePhone(request.phone);
@@ -231,7 +222,7 @@ export async function verifyOTP(
  * Cleanup expired OTP codes (should be run periodically)
  */
 export async function cleanupExpiredOTPs(): Promise<number> {
-  const supabase = await createClient();
+  const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase.rpc('cleanup_expired_otp_codes');
 
@@ -250,7 +241,7 @@ export async function hasRecentVerifiedOTP(
   phone: string,
   purpose: OTPPurpose = 'registration'
 ): Promise<boolean> {
-  const supabase = await createClient();
+  const supabase = createAdminSupabaseClient();
 
   const phoneResult = normalizePhone(phone);
   if (!phoneResult.isValid) {
@@ -277,7 +268,7 @@ export async function hasRecentVerifiedOTP(
  * Invalidate all OTPs for a phone number (after successful registration)
  */
 export async function invalidatePhoneOTPs(phone: string): Promise<void> {
-  const supabase = await createClient();
+  const supabase = createAdminSupabaseClient();
 
   const phoneResult = normalizePhone(phone);
   if (!phoneResult.isValid) {

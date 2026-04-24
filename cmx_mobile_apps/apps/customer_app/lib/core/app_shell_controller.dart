@@ -145,6 +145,20 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
     );
   }
 
+  Future<void> signInDirectWithFixedOtp({
+    required String phoneNumber,
+    String otpCode = '123456',
+  }) async {
+    AppLogger.info(
+      'Starting direct customer sign-in for phone=$phoneNumber using fixed OTP flow',
+    );
+    await signInWithPhone(phoneNumber: phoneNumber);
+    await verifyOtpCode(otpCode: otpCode);
+    AppLogger.info(
+      'Direct customer sign-in completed for phone=$phoneNumber',
+    );
+  }
+
   Future<void> verifyOtpCode({required String otpCode}) async {
     final challenge = state.pendingChallenge;
     if (challenge == null) {

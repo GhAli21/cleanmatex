@@ -6,6 +6,7 @@ import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_services/mobile_services.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
+import '../../../../core/app_shell_controller.dart';
 import '../../../../core/navigation/app_route.dart';
 import '../../../auth/ui/widgets/customer_phone_text_field_widget.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
@@ -178,7 +179,7 @@ class _CustomerTenantDiscoveryScreenState
                       label: l10n.text('tenant.selectAction'),
                       onPressed: _isSelectingTenant
                           ? null
-                          : () => _selectTenant(context, tenant, phoneNumber),
+                          : () => _selectTenant(context, l10n, tenant, phoneNumber),
                     ),
                   ],
                 ),
@@ -229,6 +230,7 @@ class _CustomerTenantDiscoveryScreenState
 
   Future<void> _selectTenant(
     BuildContext context,
+    AppLocalizations l10n,
     TenantModel tenant,
     String phoneNumber,
   ) async {
@@ -236,13 +238,33 @@ class _CustomerTenantDiscoveryScreenState
       'Tenant discovery selecting tenant=${tenant.tenantOrgId} for phone=$phoneNumber',
     );
     setState(() => _isSelectingTenant = true);
-    await ref.read(tenantProvider.notifier).selectTenant(tenant);
-    if (!mounted || !context.mounted) {
-      return;
+    try {
+      await ref.read(tenantProvider.notifier).selectTenant(tenant);
+      await ref
+          .read(customerSessionFlowProvider.notifier)
+          .signInDirectWithFixedOtp(phoneNumber: phoneNumber);
+      if (!mounted || !context.mounted) {
+        return;
+      }
+      Navigator.of(context).pushReplacementNamed(AppRoute.home);
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'Direct tenant selection login failed for tenant=${tenant.tenantOrgId} phone=$phoneNumber',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!mounted || !context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.text('loginEntry.genericError')),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSelectingTenant = false);
+      }
     }
-    Navigator.of(context).pushReplacementNamed(
-      AppRoute.loginEntry,
-      arguments: phoneNumber,
-    );
   }
 }
