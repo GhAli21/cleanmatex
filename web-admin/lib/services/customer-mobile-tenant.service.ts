@@ -4,6 +4,24 @@ import { logger } from '@/lib/utils/logger';
 import { normalizePhone } from './customers.service';
 import type { TenantPublicProfile } from './tenant-resolve.service';
 
+function buildPhoneLookupCandidates(inputPhone: string) {
+  const raw = (inputPhone ?? '').trim().replace(/[\s\-\(\)]/g, '');
+  const normalized = normalizePhone(inputPhone);
+
+  return Array.from(
+    new Set(
+      [
+        raw,
+        raw.replace(/^\+/, ''),
+        normalized.normalized,
+        normalized.normalized.replace(/^\+/, ''),
+        normalized.nationalNumber,
+        normalized.nationalNumber.replace(/^0+/, ''),
+      ].filter((value): value is string => value.length > 0),
+    ),
+  );
+}
+
 export async function listCustomerTenantsByPhone(
   phone: string,
   traceId?: string,
@@ -17,13 +35,16 @@ export async function listCustomerTenantsByPhone(
   });
 
   const normalizedPhone = normalizePhone(phone);
+  const phoneCandidates = buildPhoneLookupCandidates(phone);
   logger.info('Customer tenant lookup normalized phone', {
     feature: 'customer-mobile-tenant',
     action: 'listCustomerTenantsByPhone',
     traceId: activeTraceId,
     input: phone,
     normalized: normalizedPhone.normalized,
+    nationalNumber: normalizedPhone.nationalNumber,
     isValid: normalizedPhone.isValid,
+    phoneCandidates,
   });
 
   if (!normalizedPhone.isValid) {
@@ -43,7 +64,7 @@ export async function listCustomerTenantsByPhone(
     const { data: customers, error: customersError } = await supabase
       .from('org_customers_mst')
       .select('tenant_org_id')
-      .eq('phone', normalizedPhone.normalized)
+      .in('phone', phoneCandidates)
       .eq('is_active', true);
 
     logger.info('Customer tenant lookup customer query completed', {
@@ -52,6 +73,7 @@ export async function listCustomerTenantsByPhone(
       traceId: activeTraceId,
       rowCount: customers?.length ?? 0,
       error: customersError?.message ?? null,
+      phoneCandidates,
     });
 
     if (customersError) {
@@ -60,6 +82,7 @@ export async function listCustomerTenantsByPhone(
         action: 'listCustomerTenantsByPhone',
         traceId: activeTraceId,
         normalizedPhone: normalizedPhone.normalized,
+        phoneCandidates,
       });
       throw new Error(customersError.message);
     }
@@ -71,6 +94,7 @@ export async function listCustomerTenantsByPhone(
         traceId: activeTraceId,
         resultCount: 0,
         reason: 'no_customer_rows',
+        phoneCandidates,
       });
       return [];
     }
@@ -163,6 +187,7 @@ export async function listCustomerTenantsByPhone(
       action: 'listCustomerTenantsByPhone',
       traceId: activeTraceId,
       normalizedPhone: normalizedPhone.normalized,
+      phoneCandidates,
     });
     throw error;
   }
