@@ -67,11 +67,11 @@ export async function listCustomerTenantsByPhone(
     const { data: customers, error: customersError } = await supabase
       .from('org_customers_mst')
       .select('tenant_org_id')
-      //.eq('phone', normalizedPhone.normalized)
+      .eq('phone', normalizedPhone.normalized)
       .eq('is_active', true);
     
-      console.log(`normalizedPhone.normalized = ${normalizedPhone.normalized}`);
-      console.log(`customers.rowCount: ${customers?.length ?? 0}`);
+      //console.log(`normalizedPhone.normalized = ${normalizedPhone.normalized}`);
+      //console.log(`customers.rowCount: ${customers?.length ?? 0}`);
 
     await writeCustomerTenantTrace(activeTraceId, 'customer_query_result', {
       rowCount: customers?.length ?? 0,
