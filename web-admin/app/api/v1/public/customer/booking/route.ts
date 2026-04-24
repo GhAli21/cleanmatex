@@ -161,9 +161,20 @@ function buildCatalogCategories(
     display_name: string | null;
     rec_order: number | null;
   }>,
+  systemCategories: Array<{
+    service_category_code: string;
+    name: string | null;
+    name2: string | null;
+  }>,
 ) {
   const categoryMap = new Map(
     serviceCategories.map((category) => [
+      category.service_category_code,
+      category,
+    ]),
+  );
+  const systemCategoryMap = new Map(
+    systemCategories.map((category) => [
       category.service_category_code,
       category,
     ]),
@@ -182,7 +193,8 @@ function buildCatalogCategories(
     const categoryId =
       product.service_category_code ?? product.product_group1 ?? 'general';
     const categoryConfig = categoryMap.get(categoryId);
-    if (product.service_category_code && !categoryConfig) {
+    const systemCategory = systemCategoryMap.get(categoryId);
+    if (product.service_category_code && (!categoryConfig || !systemCategory)) {
       continue;
     }
     const fallbackName = categoryId.replaceAll('_', ' ').toLowerCase();
@@ -191,8 +203,9 @@ function buildCatalogCategories(
       name:
         categoryConfig?.display_name ??
         categoryConfig?.name ??
+        systemCategory?.name ??
         `${fallbackName[0]?.toUpperCase() ?? ''}${fallbackName.slice(1)}`,
-      name2: categoryConfig?.name2 ?? null,
+      name2: categoryConfig?.name2 ?? systemCategory?.name2 ?? null,
       items: [],
     };
 
@@ -355,6 +368,7 @@ export async function GET(request: NextRequest) {
     });
     const [
       { data: serviceCategories, error: serviceCategoriesError },
+      { data: systemCategories, error: systemCategoriesError },
       { data: services, error: servicesError },
       { data: addresses, error: addressesError },
     ] = await Promise.all([
@@ -367,6 +381,10 @@ export async function GET(request: NextRequest) {
         .eq('is_active', true)
         .eq('is_enabled', true)
         .order('rec_order', { ascending: true }),
+      supabase
+        .from('sys_service_category_cd')
+        .select('service_category_code, name, name2')
+        .eq('is_active', true),
       supabase
         .from('org_product_data_mst')
         .select(
@@ -389,6 +407,10 @@ export async function GET(request: NextRequest) {
       throw serviceCategoriesError;
     }
 
+    if (systemCategoriesError) {
+      throw systemCategoriesError;
+    }
+
     if (servicesError) {
       throw servicesError;
     }
@@ -401,6 +423,7 @@ export async function GET(request: NextRequest) {
       ...requestContext,
       customerId: session.customerId,
       categoryCount: serviceCategories?.length ?? 0,
+      systemCategoryCount: systemCategories?.length ?? 0,
       productCount: services?.length ?? 0,
       addressCount: addresses?.length ?? 0,
       servicePreferenceCount: servicePreferences.length,
@@ -446,7 +469,11 @@ export async function GET(request: NextRequest) {
           }),
         };
       }),
-      categories: buildCatalogCategories(services ?? [], serviceCategories ?? []),
+      categories: buildCatalogCategories(
+        services ?? [],
+        serviceCategories ?? [],
+        systemCategories ?? [],
+      ),
       servicePreferences: servicePreferences.map((preference) => ({
         id: preference.code,
         label: preference.name,
