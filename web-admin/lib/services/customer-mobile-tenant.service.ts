@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 import { normalizePhone } from './customers.service';
@@ -59,7 +59,7 @@ export async function listCustomerTenantsByPhone(
   }
 
   try {
-    const supabase = await createClient();
+    const supabase = createAdminSupabaseClient();
 
     const { data: customers, error: customersError } = await supabase
       .from('org_customers_mst')
