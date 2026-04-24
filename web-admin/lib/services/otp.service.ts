@@ -27,7 +27,6 @@ const OTP_CONFIG = {
 };
 
 const FIXED_TEST_OTP_CODE = '123456';
-
 // ==================================================================
 // OTP GENERATION
 // ==================================================================
@@ -82,33 +81,16 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
 
   const normalizedPhone = phoneResult.normalized;
 
-  // Check for recent OTP (rate limiting)
-  const cooldownTime = new Date(Date.now() - OTP_CONFIG.RESEND_COOLDOWN_SECONDS * 1000);
-
-  const { data: recentOTP } = await supabase
-    .from('sys_otp_codes')
-    .select('id, created_at')
-    .eq('phone', normalizedPhone)
-    .eq('purpose', request.purpose)
-    .gte('created_at', cooldownTime.toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (recentOTP) {
-    const secondsSinceLastOTP = Math.floor(
-      (Date.now() - new Date(recentOTP.created_at).getTime()) / 1000
-    );
-    const remainingSeconds = OTP_CONFIG.RESEND_COOLDOWN_SECONDS - secondsSinceLastOTP;
-
-    throw new Error(
-      `Please wait ${remainingSeconds} seconds before requesting another OTP`
-    );
-  }
-
   // Generate OTP code
   const code = FIXED_TEST_OTP_CODE;
   const expiresAt = new Date(Date.now() + OTP_CONFIG.EXPIRY_MINUTES * 60 * 1000);
+
+  await supabase
+    .from('sys_otp_codes')
+    .delete()
+    .eq('phone', normalizedPhone)
+    .eq('purpose', request.purpose)
+    .is('verified_at', null);
 
   // Save OTP to database
   const { error: insertError } = await supabase.from('sys_otp_codes').insert({
@@ -134,7 +116,7 @@ export async function sendOTP(request: SendOTPRequest): Promise<SendOTPResponse>
     action: 'sendOTP',
     phone: normalizedPhone,
     purpose: request.purpose,
-    otpCode: FIXED_TEST_OTP_CODE,
+    otpCode: code,
   });
 
   return {
