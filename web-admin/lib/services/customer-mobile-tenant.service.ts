@@ -1,60 +1,36 @@
-import { appendFile, mkdir } from 'node:fs/promises';
-import path from 'node:path';
-
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 import { normalizePhone } from './customers.service';
 import type { TenantPublicProfile } from './tenant-resolve.service';
 
-const CUSTOMER_TENANT_TRACE_FILE = path.join(
-  process.cwd(),
-  'logs',
-  'customer-tenant-lookup.ndjson',
-);
-
-type CustomerTenantLookupStep =
-  | 'start'
-  | 'phone_normalized'
-  | 'customer_query_result'
-  | 'tenant_ids_resolved'
-  | 'tenant_query_result'
-  | 'completed'
-  | 'error';
-
-async function writeCustomerTenantTrace(
-  traceId: string,
-  step: CustomerTenantLookupStep,
-  payload: Record<string, unknown>,
-) {
-  const entry = JSON.stringify({
-    timestamp: new Date().toISOString(),
-    traceId,
-    step,
-    payload,
-  });
-
-  await mkdir(path.dirname(CUSTOMER_TENANT_TRACE_FILE), { recursive: true });
-  await appendFile(CUSTOMER_TENANT_TRACE_FILE, `${entry}\n`, 'utf8');
-}
-
 export async function listCustomerTenantsByPhone(
   phone: string,
   traceId?: string,
 ): Promise<TenantPublicProfile[]> {
   const activeTraceId = traceId ?? crypto.randomUUID();
-
-  await writeCustomerTenantTrace(activeTraceId, 'start', { phone });
+  logger.info('Customer tenant lookup started', {
+    feature: 'customer-mobile-tenant',
+    action: 'listCustomerTenantsByPhone',
+    traceId: activeTraceId,
+    phone,
+  });
 
   const normalizedPhone = normalizePhone(phone);
-  await writeCustomerTenantTrace(activeTraceId, 'phone_normalized', {
+  logger.info('Customer tenant lookup normalized phone', {
+    feature: 'customer-mobile-tenant',
+    action: 'listCustomerTenantsByPhone',
+    traceId: activeTraceId,
     input: phone,
     normalized: normalizedPhone.normalized,
     isValid: normalizedPhone.isValid,
   });
 
   if (!normalizedPhone.isValid) {
-    await writeCustomerTenantTrace(activeTraceId, 'completed', {
+    logger.warn('Customer tenant lookup rejected invalid phone', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
       resultCount: 0,
       reason: 'invalid_phone',
     });
@@ -69,11 +45,11 @@ export async function listCustomerTenantsByPhone(
       .select('tenant_org_id')
       .eq('phone', normalizedPhone.normalized)
       .eq('is_active', true);
-    
-      //console.log(`normalizedPhone.normalized = ${normalizedPhone.normalized}`);
-      //console.log(`customers.rowCount: ${customers?.length ?? 0}`);
 
-    await writeCustomerTenantTrace(activeTraceId, 'customer_query_result', {
+    logger.info('Customer tenant lookup customer query completed', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
       rowCount: customers?.length ?? 0,
       error: customersError?.message ?? null,
     });
@@ -89,7 +65,10 @@ export async function listCustomerTenantsByPhone(
     }
 
     if (!customers?.length) {
-      await writeCustomerTenantTrace(activeTraceId, 'completed', {
+      logger.info('Customer tenant lookup returned no customer rows', {
+        feature: 'customer-mobile-tenant',
+        action: 'listCustomerTenantsByPhone',
+        traceId: activeTraceId,
         resultCount: 0,
         reason: 'no_customer_rows',
       });
@@ -104,13 +83,19 @@ export async function listCustomerTenantsByPhone(
       ),
     );
 
-    await writeCustomerTenantTrace(activeTraceId, 'tenant_ids_resolved', {
+    logger.info('Customer tenant lookup resolved tenant ids', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
       tenantIds,
       tenantCount: tenantIds.length,
     });
 
     if (!tenantIds.length) {
-      await writeCustomerTenantTrace(activeTraceId, 'completed', {
+      logger.warn('Customer tenant lookup found no tenant ids', {
+        feature: 'customer-mobile-tenant',
+        action: 'listCustomerTenantsByPhone',
+        traceId: activeTraceId,
         resultCount: 0,
         reason: 'no_tenant_ids',
       });
@@ -124,7 +109,10 @@ export async function listCustomerTenantsByPhone(
       .eq('is_active', true)
       .order('name', { ascending: true });
 
-    await writeCustomerTenantTrace(activeTraceId, 'tenant_query_result', {
+    logger.info('Customer tenant lookup tenant query completed', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
       rowCount: tenants?.length ?? 0,
       error: tenantsError?.message ?? null,
     });
@@ -141,7 +129,10 @@ export async function listCustomerTenantsByPhone(
     }
 
     if (!tenants) {
-      await writeCustomerTenantTrace(activeTraceId, 'completed', {
+      logger.warn('Customer tenant lookup tenant payload was empty', {
+        feature: 'customer-mobile-tenant',
+        action: 'listCustomerTenantsByPhone',
+        traceId: activeTraceId,
         resultCount: 0,
         reason: 'tenant_payload_empty',
       });
@@ -156,7 +147,10 @@ export async function listCustomerTenantsByPhone(
       primaryColor: (tenant.brand_color_primary as string | null) ?? null,
     }));
 
-    await writeCustomerTenantTrace(activeTraceId, 'completed', {
+    logger.info('Customer tenant lookup completed', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
       resultCount: result.length,
       tenantOrgIds: result.map((tenant) => tenant.tenantOrgId),
     });
@@ -164,10 +158,6 @@ export async function listCustomerTenantsByPhone(
     return result;
   } catch (err) {
     const error = err instanceof Error ? err : new Error('Unknown lookup error');
-    await writeCustomerTenantTrace(activeTraceId, 'error', {
-      message: error.message,
-      stack: error.stack ?? null,
-    });
     logger.error('listCustomerTenantsByPhone failed', error, {
       feature: 'customer-mobile-tenant',
       action: 'listCustomerTenantsByPhone',
