@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { normalizePhone } from './customers.service';
 import { verifyVerificationToken } from './otp.service';
@@ -9,6 +9,24 @@ export interface CustomerMobileSession {
   phoneNumber: string;
   tenantOrgId: string;
   verificationToken: string;
+}
+
+function buildPhoneLookupCandidates(inputPhone: string) {
+  const raw = (inputPhone ?? '').trim().replace(/[\s\-\(\)]/g, '');
+  const normalized = normalizePhone(inputPhone);
+
+  return Array.from(
+    new Set(
+      [
+        raw,
+        raw.replace(/^\+/, ''),
+        normalized.normalized,
+        normalized.normalized.replace(/^\+/, ''),
+        normalized.nationalNumber,
+        normalized.nationalNumber.replace(/^0+/, ''),
+      ].filter((value): value is string => value.length > 0),
+    ),
+  );
 }
 
 export async function resolveCustomerMobileSession(params: {
@@ -25,12 +43,13 @@ export async function resolveCustomerMobileSession(params: {
     return null;
   }
 
-  const supabase = await createClient();
+  const phoneCandidates = buildPhoneLookupCandidates(tokenPayload.phone);
+  const supabase = createAdminSupabaseClient();
   const { data: customer, error } = await supabase
     .from('org_customers_mst')
     .select('id, display_name, name, phone')
     .eq('tenant_org_id', params.tenantId)
-    .eq('phone', normalizedPhone.normalized)
+    .in('phone', phoneCandidates)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -39,11 +58,19 @@ export async function resolveCustomerMobileSession(params: {
       feature: 'customer_mobile_session',
       action: 'resolve',
       tenantId: params.tenantId,
+      phoneCandidates,
     });
     throw error;
   }
 
   if (!customer) {
+    logger.warn('Resolve customer mobile session returned no customer', {
+      feature: 'customer_mobile_session',
+      action: 'resolve',
+      tenantId: params.tenantId,
+      normalizedPhone: normalizedPhone.normalized,
+      phoneCandidates,
+    });
     return null;
   }
 
