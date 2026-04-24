@@ -8,7 +8,10 @@ class TenantServiceException extends AppException {
     required super.code,
     required super.messageKey,
     super.originalError,
+    this.phoneNumber,
   });
+
+  final String? phoneNumber;
 }
 
 class TenantService {
@@ -18,10 +21,13 @@ class TenantService {
   final MobileHttpClient _httpClient;
 
   Future<List<TenantModel>> listTenantsForPhone(String phoneNumber) async {
-    if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(phoneNumber.trim())) {
-      throw const TenantServiceException(
+    final normalizedPhone = phoneNumber.trim();
+
+    if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(normalizedPhone)) {
+      throw TenantServiceException(
         code: 'tenant_invalid_phone',
         messageKey: 'loginEntry.phoneValidationError',
+        phoneNumber: normalizedPhone,
       );
     }
 
@@ -39,7 +45,7 @@ class TenantService {
     try {
       final payload = await _httpClient.getJson(
         '/api/v1/public/customer/tenants',
-        queryParameters: {'phone': phoneNumber.trim()},
+        queryParameters: {'phone': normalizedPhone},
       );
       final data = payload['data'];
       if (data is! List) {
@@ -53,8 +59,9 @@ class TenantService {
     } on MobileHttpException catch (error) {
       throw TenantServiceException(
         code: error.code,
-        messageKey: 'tenant.listError',
+        messageKey: 'tenant.listErrorWithPhone',
         originalError: error,
+        phoneNumber: normalizedPhone,
       );
     }
   }

@@ -227,8 +227,10 @@ class AppLocalizations {
       'tenant.selectAction': 'Select',
       'tenant.listError':
           'We could not load your laundries right now. Please try again.',
+      'tenant.listErrorWithPhone':
+          'We could not load laundries for {count} right now. Please try again.',
       'tenant.phoneNoMatches':
-          'No laundries were found for this phone number.',
+          'No laundries were found for {count}.',
       'tenant.scanQrAction': 'Scan QR code',
       'tenant.enterCodeAction': 'Enter laundry code',
       'tenant.codeHint': 'e.g. cleanwave',
@@ -432,8 +434,10 @@ class AppLocalizations {
       'tenant.selectAction': 'اختيار',
       'tenant.listError':
           'تعذر تحميل المغاسل الخاصة بك حالياً. يرجى المحاولة مرة أخرى.',
+      'tenant.listErrorWithPhone':
+          'تعذر تحميل المغاسل للرقم {count} حالياً. يرجى المحاولة مرة أخرى.',
       'tenant.phoneNoMatches':
-          'لم يتم العثور على مغاسل لهذا الرقم.',
+          'لم يتم العثور على مغاسل للرقم {count}.',
       'tenant.scanQrAction': 'مسح رمز QR',
       'tenant.enterCodeAction': 'أدخل رمز المغسلة',
       'tenant.codeHint': 'مثال: cleanwave',

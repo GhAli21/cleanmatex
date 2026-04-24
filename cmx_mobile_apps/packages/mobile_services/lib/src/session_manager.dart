@@ -1,7 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 
 import 'session_storage.dart';
+
+const Duration _tenantStorageReadTimeout = Duration(milliseconds: 1200);
 
 class SessionManager {
   SessionManager({SessionStorage? storage})
@@ -26,7 +29,15 @@ class SessionManager {
 
   Future<TenantModel?> restoreTenant() async {
     try {
-      final raw = await _secureStorage.read(key: _tenantKey);
+      final raw = await _secureStorage.read(key: _tenantKey).timeout(
+        _tenantStorageReadTimeout,
+        onTimeout: () {
+          AppLogger.warning(
+            'Tenant storage read timed out; continuing without persisted tenant.',
+          );
+          return null;
+        },
+      );
       return TenantModel.fromJsonString(raw);
     } catch (_) {
       return null;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
+import 'package:mobile_services/mobile_services.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/navigation/app_route.dart';
@@ -94,10 +95,8 @@ class _CustomerTenantDiscoveryScreenState
                   tenants,
                   normalizedPhone,
                 ),
-                error: (_, __) => _buildListCard(
-                  context,
-                  l10n.text('tenant.listError'),
-                ),
+                error: (error, _) =>
+                    _buildTenantLookupError(context, l10n, error, normalizedPhone),
                 loading: () => const AppLoadingIndicator(),
               ),
             ],
@@ -129,7 +128,7 @@ class _CustomerTenantDiscoveryScreenState
     if (tenants.isEmpty) {
       return _buildListCard(
         context,
-        l10n.text('tenant.phoneNoMatches'),
+        l10n.textWithArg('tenant.phoneNoMatches', phoneNumber),
       );
     }
 
@@ -181,6 +180,27 @@ class _CustomerTenantDiscoveryScreenState
         message,
         style: Theme.of(context).textTheme.bodyLarge,
       ),
+    );
+  }
+
+  Widget _buildTenantLookupError(
+    BuildContext context,
+    AppLocalizations l10n,
+    Object error,
+    String fallbackPhoneNumber,
+  ) {
+    if (error is TenantServiceException &&
+        error.phoneNumber != null &&
+        error.phoneNumber!.isNotEmpty) {
+      return _buildListCard(
+        context,
+        l10n.textWithArg(error.messageKey, error.phoneNumber!),
+      );
+    }
+
+    return _buildListCard(
+      context,
+      l10n.textWithArg('tenant.listErrorWithPhone', fallbackPhoneNumber),
     );
   }
 

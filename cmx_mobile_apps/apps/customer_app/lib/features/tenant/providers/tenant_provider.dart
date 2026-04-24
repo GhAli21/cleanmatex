@@ -18,6 +18,12 @@ class TenantNotifier extends AsyncNotifier<TenantModel?> {
     return ref.read(sessionManagerProvider).restoreTenant();
   }
 
+  Future<TenantModel?> hydrateSavedTenant() async {
+    final tenant = await ref.read(sessionManagerProvider).restoreTenant();
+    state = AsyncData(tenant);
+    return tenant;
+  }
+
   Future<void> resolveBySlug(String slug) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
