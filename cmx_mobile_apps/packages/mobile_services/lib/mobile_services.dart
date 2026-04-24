@@ -7,3 +7,4 @@ export 'src/order_booking_service.dart';
 export 'src/order_tracking_service.dart';
 export 'src/session_manager.dart';
 export 'src/session_storage.dart';
+export 'src/tenant_service.dart';

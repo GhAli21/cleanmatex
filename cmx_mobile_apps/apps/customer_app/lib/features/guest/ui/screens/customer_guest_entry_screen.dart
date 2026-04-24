@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
@@ -6,13 +7,12 @@ import '../../../../core/app_shell_controller.dart';
 import '../../../../core/navigation/app_route.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 
-class CustomerGuestEntryScreen extends StatelessWidget {
+class CustomerGuestEntryScreen extends ConsumerWidget {
   const CustomerGuestEntryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final localizations = AppLocalizations.of(context);
-    final controller = CustomerAppScope.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -47,7 +47,9 @@ class CustomerGuestEntryScreen extends StatelessWidget {
                       child: AppCustomButtonWidget(
                         label: localizations.text('guestEntry.primaryAction'),
                         onPressed: () async {
-                          await controller.enterGuestMode();
+                          await ref
+                              .read(customerSessionFlowProvider.notifier)
+                              .enterGuestMode();
                           if (!context.mounted) {
                             return;
                           }

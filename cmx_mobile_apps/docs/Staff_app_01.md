@@ -2,7 +2,7 @@
 
 This is the right place to start.
 
-The **Staff App** is the operational spine of the business. If this app is weak, the whole system collapses even if the customer app looks polished. Your workflow documents already point in this direction: role-based operational handling, quick intake, preparation, processing, issue handling, and ready/handover flows are core requirements.  
+The **Staff App** is the operational spine of the business. which sometimes called store app. If this app is weak, the whole system collapses even if the customer app looks polished. Your workflow documents already point in this direction: role-based operational handling, quick intake, preparation, processing, issue handling, and ready/handover flows are core requirements.  
 
 ---
 

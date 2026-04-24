@@ -34,7 +34,8 @@
       "Bash(else echo \"Build log not found. Running build...\")",
       "Bash(fi)",
       "Edit(/.claude/skills/storybook/**)",
-      "Bash(grep -E '\\\\.\\(ts|js\\)$')"
+      "Bash(grep -E '\\\\.\\(ts|js\\)$')",
+      "Read(//c/Users/DELL/.claude/plans/**)"
     ],
     "deny": [
       "Read(node_modules)",
@@ -89,7 +90,8 @@
       "Read(**/.idea/**)"
     ],
     "additionalDirectories": [
-      "/home/dellunix/.claude/plans"
+      "/home/dellunix/.claude/plans",
+      "C:\\Users\\DELL\\.claude\\plans"
     ]
   },
   "statusLine": {

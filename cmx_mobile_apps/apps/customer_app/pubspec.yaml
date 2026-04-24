@@ -10,6 +10,8 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+  flutter_riverpod: ^2.5.1
+  mobile_scanner: ^5.1.0
   mobile_core:
     path: ../../packages/mobile_core
   mobile_ui:

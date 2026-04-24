@@ -1,24 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/app_shell_controller.dart';
+import '../../../tenant/providers/tenant_provider.dart';
 
-class CustomerSplashScreen extends StatefulWidget {
-  const CustomerSplashScreen({
-    super.key,
-    required this.controller,
-  });
-
-  final CustomerAppController controller;
+class CustomerSplashScreen extends ConsumerStatefulWidget {
+  const CustomerSplashScreen({super.key});
 
   @override
-  State<CustomerSplashScreen> createState() => _CustomerSplashScreenState();
+  ConsumerState<CustomerSplashScreen> createState() =>
+      _CustomerSplashScreenState();
 }
 
-class _CustomerSplashScreenState extends State<CustomerSplashScreen> {
+class _CustomerSplashScreenState extends ConsumerState<CustomerSplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -26,15 +24,17 @@ class _CustomerSplashScreenState extends State<CustomerSplashScreen> {
   }
 
   Future<void> _forwardAfterBootstrap() async {
-    await widget.controller.bootstrap();
+    await ref.read(customerSessionFlowProvider.notifier).bootstrap();
+    final tenant = await ref.read(tenantProvider.future);
     await Future<void>.delayed(const Duration(milliseconds: 450));
 
     if (!mounted) {
       return;
     }
 
+    final flow = ref.read(customerSessionFlowProvider);
     Navigator.of(context).pushReplacementNamed(
-      widget.controller.resolveInitialRoute(),
+      resolveRouteAfterTenantBootstrap(flow: flow, tenant: tenant),
     );
   }
 

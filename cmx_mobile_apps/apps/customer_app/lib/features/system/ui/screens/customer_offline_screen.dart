@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../../../core/app_shell_controller.dart';
-import '../../../../core/navigation/app_route.dart';
+import '../../../tenant/providers/tenant_provider.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 
-class CustomerOfflineScreen extends StatelessWidget {
+class CustomerOfflineScreen extends ConsumerWidget {
   const CustomerOfflineScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = CustomerAppScope.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
     final localizations = AppLocalizations.of(context);
 
     return Scaffold(
@@ -50,14 +50,26 @@ class CustomerOfflineScreen extends StatelessWidget {
                       child: AppCustomButtonWidget(
                         label: localizations.text('common.retry'),
                         onPressed: () async {
-                          await controller.refreshConnectivityStatus();
-                          if (!context.mounted ||
-                              controller.hasConnectivityIssue) {
+                          await ref
+                              .read(
+                                customerSessionFlowProvider.notifier,
+                              )
+                              .refreshConnectivityStatus();
+                          if (!context.mounted) {
+                            return;
+                          }
+                          final hasIssue = ref
+                              .read(customerSessionFlowProvider)
+                              .hasConnectivityIssue;
+                          if (hasIssue) {
                             return;
                           }
 
                           Navigator.of(context).pushNamedAndRemoveUntil(
-                            controller.resolveInitialRoute(),
+                            resolveGatedDefaultRoute(
+                              flow: ref.read(customerSessionFlowProvider),
+                              tenantState: ref.read(tenantProvider),
+                            ),
                             (route) => false,
                           );
                         },
@@ -71,7 +83,10 @@ class CustomerOfflineScreen extends StatelessWidget {
                         isPrimary: false,
                         onPressed: () {
                           Navigator.of(context).pushNamedAndRemoveUntil(
-                            AppRoute.entry,
+                            resolveGatedDefaultRoute(
+                              flow: ref.read(customerSessionFlowProvider),
+                              tenantState: ref.read(tenantProvider),
+                            ),
                             (route) => false,
                           );
                         },

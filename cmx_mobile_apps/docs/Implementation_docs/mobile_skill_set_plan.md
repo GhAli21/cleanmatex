@@ -1,4 +1,4 @@
-# Mobile Skill Set Plan
+# Mobile Skills Set Plan
 
 ## Overview
 

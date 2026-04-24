@@ -12,48 +12,36 @@ class OrderTrackingServiceException extends AppException {
 }
 
 class OrderTrackingService {
-  OrderTrackingService({
-    MobileHttpClient? httpClient,
-    AppConfig? config,
-  }) : _httpClient = httpClient ?? MobileHttpClient(config: config);
+  OrderTrackingService({MobileHttpClient? httpClient, AppConfig? config})
+      : _httpClient = httpClient ?? MobileHttpClient(config: config);
 
   final MobileHttpClient _httpClient;
 
   bool _useRemoteTracking(CustomerSessionModel? session) {
     return _httpClient.config.hasApiBaseUrl &&
-        _httpClient.config.hasTenantOrgId &&
         session != null &&
         !session.isGuest &&
-        session.hasVerificationToken;
+        session.hasVerificationToken &&
+        (session.tenantOrgId?.isNotEmpty ?? false);
   }
 
   Future<List<OrderSummaryModel>> fetchOrderSummaries(
     CustomerSessionModel? session,
   ) async {
-    if (!_useRemoteTracking(session)) {
-      return _demoOrderSummaries;
-    }
+    if (!_useRemoteTracking(session)) return _demoOrderSummaries;
 
     try {
       final payload = await _httpClient.getJson(
         '/api/v1/public/customer/orders',
-        headers: {
-          'Authorization': 'Bearer ${session!.verificationToken}',
-        },
-        queryParameters: {
-          'tenantId': session.tenantOrgId ?? _httpClient.config.tenantOrgId,
-        },
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
+        queryParameters: {'tenantId': session.tenantOrgId!},
       );
 
       final data = payload['data'];
-      if (data is! Map<String, Object?>) {
-        return const [];
-      }
+      if (data is! Map<String, Object?>) return const [];
 
       final orders = data['orders'];
-      if (orders is! List) {
-        return const [];
-      }
+      if (orders is! List) return const [];
 
       return orders
           .whereType<Map<String, Object?>>()
@@ -72,16 +60,12 @@ class OrderTrackingService {
     required CustomerSessionModel? session,
     required String orderNumber,
   }) async {
-    if (!_useRemoteTracking(session)) {
-      return _demoOrderDetail(orderNumber);
-    }
+    if (!_useRemoteTracking(session)) return _demoOrderDetail(orderNumber);
 
     try {
       final payload = await _httpClient.getJson(
-        '/api/v1/public/orders/${session!.tenantOrgId ?? _httpClient.config.tenantOrgId}/$orderNumber',
-        headers: {
-          'Authorization': 'Bearer ${session.verificationToken}',
-        },
+        '/api/v1/public/orders/${session!.tenantOrgId!}/$orderNumber',
+        headers: {'Authorization': 'Bearer ${session.verificationToken}'},
       );
 
       final data = payload['data'];
@@ -121,7 +105,8 @@ class OrderTrackingService {
   }
 
   OrderDetailModel _mapRemoteOrderDetail(Map<String, Object?> json) {
-    final order = json['order'] as Map<String, Object?>? ?? <String, Object?>{};
+    final order =
+        json['order'] as Map<String, Object?>? ?? const <String, Object?>{};
     final statusCode = _normalizeStatusCode(order['status'] as String?);
     final items = order['items'];
     final itemCount = items is List
@@ -161,20 +146,12 @@ class OrderTrackingService {
     }
   }
 
-  String _statusLabelKey(String statusCode) {
-    return 'orders.status.$statusCode';
-  }
+  String _statusLabelKey(String statusCode) => 'orders.status.$statusCode';
 
   String _formatPromisedWindow(String? isoDateTime) {
-    if (isoDateTime == null || isoDateTime.isEmpty) {
-      return '';
-    }
-
+    if (isoDateTime == null || isoDateTime.isEmpty) return '';
     final parsed = DateTime.tryParse(isoDateTime);
-    if (parsed == null) {
-      return isoDateTime;
-    }
-
+    if (parsed == null) return isoDateTime;
     final localDate = parsed.toLocal();
     final month = localDate.month.toString().padLeft(2, '0');
     final day = localDate.day.toString().padLeft(2, '0');
@@ -184,12 +161,7 @@ class OrderTrackingService {
   }
 
   List<OrderTimelineStepModel> _buildTimeline(String statusCode) {
-    final stepCodes = <String>[
-      'received',
-      'processing',
-      'dispatch',
-      'arrival',
-    ];
+    const stepCodes = ['received', 'processing', 'dispatch', 'arrival'];
 
     final completedCount = switch (statusCode) {
       'processing' => 2,
@@ -200,11 +172,10 @@ class OrderTrackingService {
     };
 
     return List<OrderTimelineStepModel>.generate(stepCodes.length, (index) {
-      final stepCode = stepCodes[index];
       return OrderTimelineStepModel(
-        code: stepCode,
-        titleKey: 'orders.timeline.$stepCode.title',
-        descriptionKey: 'orders.timeline.$stepCode.body',
+        code: stepCodes[index],
+        titleKey: 'orders.timeline.${stepCodes[index]}.title',
+        descriptionKey: 'orders.timeline.${stepCodes[index]}.body',
         isCompleted: index < completedCount,
       );
     });

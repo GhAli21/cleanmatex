@@ -1,0 +1,6 @@
+# melos_managed_dependency_overrides: mobile_l10n,mobile_ui
+dependency_overrides:
+  mobile_l10n:
+    path: ..\\mobile_l10n
+  mobile_ui:
+    path: ..\\mobile_ui

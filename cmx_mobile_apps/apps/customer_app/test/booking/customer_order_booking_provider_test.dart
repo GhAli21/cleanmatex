@@ -1,37 +1,44 @@
 import 'package:customer_app/features/booking/providers/customer_order_booking_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('advances through the booking flow and stores submission success',
       () async {
-    final provider = CustomerOrderBookingProvider();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
 
-    await provider.load();
+    final notifier = container.read(customerOrderBookingProvider.notifier);
+    await notifier.load();
 
-    expect(provider.services, isNotEmpty);
-    expect(provider.addresses, isNotEmpty);
-    expect(provider.slots, isNotEmpty);
+    var state = container.read(customerOrderBookingProvider);
+    expect(state.services, isNotEmpty);
+    expect(state.addresses, isNotEmpty);
+    expect(state.slots, isNotEmpty);
 
-    provider.chooseService(provider.services.first);
-    expect(provider.canProceed(), isTrue);
+    notifier.chooseService(state.services.first);
+    expect(notifier.canProceed(), isTrue);
 
-    provider.goNext();
-    expect(provider.stepIndex, 1);
-    expect(provider.draft.address, isNotNull);
-    expect(provider.canProceed(), isTrue);
+    notifier.goNext();
+    state = container.read(customerOrderBookingProvider);
+    expect(state.stepIndex, 1);
+    expect(state.draft.address, isNotNull);
+    expect(notifier.canProceed(), isTrue);
 
-    provider.goNext();
-    expect(provider.stepIndex, 2);
+    notifier.goNext();
+    state = container.read(customerOrderBookingProvider);
+    expect(state.stepIndex, 2);
 
-    provider.chooseSlot(provider.slots.first);
-    expect(provider.canProceed(), isTrue);
+    notifier.chooseSlot(state.slots.first);
+    expect(notifier.canProceed(), isTrue);
 
-    provider.goNext();
-    provider.updateNotes('Leave at the front desk.');
+    notifier.goNext();
+    notifier.updateNotes('Leave at the front desk.');
 
-    await provider.submit();
+    await notifier.submit();
 
-    expect(provider.hasSubmissionSuccess, isTrue);
-    expect(provider.submittedOrderNumber, 'CMX-20001');
+    state = container.read(customerOrderBookingProvider);
+    expect(state.hasSubmissionSuccess, isTrue);
+    expect(state.submittedOrderNumber, 'CMX-20001');
   });
 }

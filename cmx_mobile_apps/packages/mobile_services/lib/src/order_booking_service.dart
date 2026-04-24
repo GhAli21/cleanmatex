@@ -36,23 +36,22 @@ class BookingBootstrapModel {
 }
 
 class OrderBookingService {
-  OrderBookingService({
-    MobileHttpClient? httpClient,
-    AppConfig? config,
-  }) : _httpClient = httpClient ?? MobileHttpClient(config: config);
+  OrderBookingService({MobileHttpClient? httpClient, AppConfig? config})
+      : _httpClient = httpClient ?? MobileHttpClient(config: config);
 
   final MobileHttpClient _httpClient;
 
   bool _useRemoteBooking(CustomerSessionModel? session) {
     return _httpClient.config.hasApiBaseUrl &&
-        _httpClient.config.hasTenantOrgId &&
         session != null &&
         !session.isGuest &&
-        session.hasVerificationToken;
+        session.hasVerificationToken &&
+        (session.tenantOrgId?.isNotEmpty ?? false);
   }
 
   Future<BookingBootstrapModel> loadBootstrap(
-      CustomerSessionModel? session) async {
+    CustomerSessionModel? session,
+  ) async {
     if (!_useRemoteBooking(session)) {
       return BookingBootstrapModel(
         services: _demoServices,
@@ -64,12 +63,8 @@ class OrderBookingService {
     try {
       final payload = await _httpClient.getJson(
         '/api/v1/public/customer/booking',
-        headers: {
-          'Authorization': 'Bearer ${session!.verificationToken}',
-        },
-        queryParameters: {
-          'tenantId': session.tenantOrgId ?? _httpClient.config.tenantOrgId,
-        },
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
+        queryParameters: {'tenantId': session.tenantOrgId!},
       );
 
       final data = payload['data'];
@@ -130,11 +125,9 @@ class OrderBookingService {
     try {
       final payload = await _httpClient.postJson(
         '/api/v1/public/customer/booking',
-        headers: {
-          'Authorization': 'Bearer ${session!.verificationToken}',
-        },
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
         body: {
-          'tenantId': session.tenantOrgId ?? _httpClient.config.tenantOrgId,
+          'tenantId': session.tenantOrgId!,
           'serviceId': draft.service!.id,
           'addressId': draft.address!.id,
           'slotId': draft.slot!.id,

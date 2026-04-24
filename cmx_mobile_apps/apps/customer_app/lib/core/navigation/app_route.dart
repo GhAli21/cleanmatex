@@ -12,4 +12,9 @@ class AppRoute {
   static const home = '/home';
   static const offline = '/offline';
   static const error = '/error';
+  static const tenantDiscovery = '/tenant-discovery';
+  static const tenantConfirm = '/tenant-confirm';
+  static const profile = '/profile';
+  static const passwordLogin = '/password-login';
+  static const setPassword = '/set-password';
 }

@@ -6,9 +6,11 @@ class CustomerHomeActiveOrdersCard extends StatelessWidget {
   const CustomerHomeActiveOrdersCard({
     super.key,
     required this.onOpenOrders,
+    this.activeCount = 0,
   });
 
   final VoidCallback onOpenOrders;
+  final int activeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,12 @@ class CustomerHomeActiveOrdersCard extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            localizations.text('home.activeOrdersBody'),
+            activeCount > 0
+                ? localizations.textWithArg(
+                    'home.activeOrdersCount',
+                    activeCount.toString(),
+                  )
+                : localizations.text('home.activeOrdersBody'),
             style: textTheme.bodyLarge,
           ),
           const SizedBox(height: AppSpacing.lg),

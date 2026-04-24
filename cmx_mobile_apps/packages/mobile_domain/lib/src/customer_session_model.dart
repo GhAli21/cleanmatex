@@ -6,6 +6,7 @@ class CustomerSessionModel {
     this.tenantOrgId,
     this.displayName,
     this.verificationToken,
+    this.hasPassword = false,
   });
 
   final String customerId;
@@ -14,6 +15,7 @@ class CustomerSessionModel {
   final String? tenantOrgId;
   final String? displayName;
   final String? verificationToken;
+  final bool hasPassword;
 
   bool get hasVerificationToken => (verificationToken ?? '').trim().isNotEmpty;
 
@@ -25,6 +27,7 @@ class CustomerSessionModel {
       'tenantOrgId': tenantOrgId,
       'displayName': displayName,
       'verificationToken': verificationToken,
+      'hasPassword': hasPassword,
     };
   }
 
@@ -36,6 +39,7 @@ class CustomerSessionModel {
       tenantOrgId: json['tenantOrgId'] as String?,
       displayName: json['displayName'] as String?,
       verificationToken: json['verificationToken'] as String?,
+      hasPassword: json['hasPassword'] as bool? ?? false,
     );
   }
 }

@@ -1,160 +1,227 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 
+import '../../../core/app_shell_controller.dart';
+import '../../../core/providers/app_dependencies.dart';
 import '../data/repositories/customer_order_booking_repository.dart';
 
-class CustomerOrderBookingProvider extends ChangeNotifier {
-  CustomerOrderBookingProvider({
-    CustomerOrderBookingRepository? repository,
-    CustomerSessionModel? session,
-  })  : _repository = repository ?? CustomerOrderBookingRepository(),
-        _session = session;
+const _notesMaxLength = 500;
 
-  final CustomerOrderBookingRepository _repository;
-  final CustomerSessionModel? _session;
+final customerOrderBookingProvider =
+    NotifierProvider<CustomerOrderBookingNotifier, BookingState>(
+  CustomerOrderBookingNotifier.new,
+);
 
-  bool _isLoading = true;
-  bool _isSubmitting = false;
-  int _stepIndex = 0;
-  String _fulfillmentType = 'pickup';
-  String? _errorMessageKey;
-  String? _submittedOrderNumber;
-  String? _submittedPromisedWindow;
-  OrderBookingDraftModel _draft = const OrderBookingDraftModel();
-  List<ServiceOptionModel> _services = const [];
-  List<AddressOptionModel> _addresses = const [];
-  List<PickupSlotModel> _slots = const [];
+@immutable
+class BookingState {
+  const BookingState({
+    this.isLoading = true,
+    this.isSubmitting = false,
+    this.stepIndex = 0,
+    this.fulfillmentType = 'pickup',
+    this.errorMessageKey,
+    this.submittedOrderNumber,
+    this.submittedPromisedWindow,
+    this.draft = const OrderBookingDraftModel(),
+    this.services = const [],
+    this.addresses = const [],
+    this.slots = const [],
+  });
 
-  bool get isLoading => _isLoading;
-  bool get isSubmitting => _isSubmitting;
-  int get stepIndex => _stepIndex;
-  String get fulfillmentType => _fulfillmentType;
-  String? get errorMessageKey => _errorMessageKey;
-  String? get submittedOrderNumber => _submittedOrderNumber;
-  String? get submittedPromisedWindow => _submittedPromisedWindow;
-  OrderBookingDraftModel get draft => _draft;
-  List<ServiceOptionModel> get services => _services;
-  List<AddressOptionModel> get addresses => _addresses;
-  List<PickupSlotModel> get slots => _slots;
-  bool get hasSubmissionSuccess => _submittedOrderNumber != null;
+  final bool isLoading;
+  final bool isSubmitting;
+  final int stepIndex;
+  final String fulfillmentType;
+  final String? errorMessageKey;
+  final String? submittedOrderNumber;
+  final String? submittedPromisedWindow;
+  final OrderBookingDraftModel draft;
+  final List<ServiceOptionModel> services;
+  final List<AddressOptionModel> addresses;
+  final List<PickupSlotModel> slots;
+
+  bool get hasLoadError => errorMessageKey != null && services.isEmpty;
+
+  bool get hasSubmissionSuccess => (submittedOrderNumber ?? '').isNotEmpty;
+
   bool get isDirty =>
-      _draft.service != null ||
-      _draft.address != null ||
-      _draft.slot != null ||
-      _draft.notes.trim().isNotEmpty;
-  bool get hasLoadError => _errorMessageKey != null && _services.isEmpty;
+      draft.service != null ||
+      draft.address != null ||
+      draft.slot != null ||
+      draft.notes.trim().isNotEmpty;
+
+  BookingState copyWith({
+    bool? isLoading,
+    bool? isSubmitting,
+    int? stepIndex,
+    String? fulfillmentType,
+    String? errorMessageKey,
+    bool clearErrorMessage = false,
+    String? submittedOrderNumber,
+    String? submittedPromisedWindow,
+    OrderBookingDraftModel? draft,
+    List<ServiceOptionModel>? services,
+    List<AddressOptionModel>? addresses,
+    List<PickupSlotModel>? slots,
+  }) {
+    return BookingState(
+      isLoading: isLoading ?? this.isLoading,
+      isSubmitting: isSubmitting ?? this.isSubmitting,
+      stepIndex: stepIndex ?? this.stepIndex,
+      fulfillmentType: fulfillmentType ?? this.fulfillmentType,
+      errorMessageKey:
+          clearErrorMessage ? null : (errorMessageKey ?? this.errorMessageKey),
+      submittedOrderNumber:
+          submittedOrderNumber ?? this.submittedOrderNumber,
+      submittedPromisedWindow:
+          submittedPromisedWindow ?? this.submittedPromisedWindow,
+      draft: draft ?? this.draft,
+      services: services ?? this.services,
+      addresses: addresses ?? this.addresses,
+      slots: slots ?? this.slots,
+    );
+  }
+}
+
+class CustomerOrderBookingNotifier extends Notifier<BookingState> {
+  @override
+  BookingState build() {
+    return const BookingState();
+  }
+
+  CustomerOrderBookingRepository get _repo =>
+      ref.read(customerOrderBookingRepositoryProvider);
+  CustomerSessionModel? get _session =>
+      ref.read(customerSessionFlowProvider).session;
 
   Future<void> load() async {
-    _isLoading = true;
-    _errorMessageKey = null;
-    notifyListeners();
-
+    state = state.copyWith(
+      isLoading: true,
+      clearErrorMessage: true,
+    );
     try {
-      final bootstrap = await _repository.loadBootstrap(_session);
-      _services = bootstrap.services;
-      _addresses = bootstrap.addresses;
-      _slots = bootstrap.slots;
-      _draft = _draft.copyWith(
-        address: _draft.address ?? _defaultAddress(),
+      final bootstrap = await _repo.loadBootstrap(_session);
+      state = state.copyWith(
+        isLoading: false,
+        services: bootstrap.services,
+        addresses: bootstrap.addresses,
+        slots: bootstrap.slots,
+        draft: state.draft.copyWith(
+          address: state.draft.address ?? _defaultAddress(bootstrap.addresses),
+        ),
       );
     } catch (_) {
-      _errorMessageKey = 'booking.errorBody';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      state = state.copyWith(
+        isLoading: false,
+        errorMessageKey: 'booking.errorBody',
+      );
     }
   }
 
   void chooseService(ServiceOptionModel value) {
-    _draft = _draft.copyWith(service: value);
-    notifyListeners();
+    state = state.copyWith(
+      draft: state.draft.copyWith(service: value),
+    );
   }
 
   void chooseAddress(AddressOptionModel value) {
-    _draft = _draft.copyWith(address: value);
-    notifyListeners();
+    state = state.copyWith(
+      draft: state.draft.copyWith(address: value),
+    );
   }
 
   void updateFulfillmentType(String value) {
-    _fulfillmentType = value;
-    notifyListeners();
+    state = state.copyWith(fulfillmentType: value);
   }
 
   void chooseSlot(PickupSlotModel value) {
-    _draft = _draft.copyWith(slot: value);
-    notifyListeners();
+    state = state.copyWith(
+      draft: state.draft.copyWith(slot: value),
+    );
   }
 
   void updateNotes(String value) {
-    _draft = _draft.copyWith(notes: value);
-    notifyListeners();
+    var next = value;
+    if (next.length > _notesMaxLength) {
+      next = next.substring(0, _notesMaxLength);
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(notes: next),
+    );
   }
 
   void goNext() {
-    if (_stepIndex < 3) {
-      _stepIndex += 1;
-      _errorMessageKey = null;
-      notifyListeners();
+    if (state.stepIndex < 3) {
+      state = state.copyWith(
+        stepIndex: state.stepIndex + 1,
+        clearErrorMessage: true,
+      );
     }
   }
 
   void goBack() {
-    if (_stepIndex > 0) {
-      _stepIndex -= 1;
-      notifyListeners();
+    if (state.stepIndex > 0) {
+      state = state.copyWith(
+        stepIndex: state.stepIndex - 1,
+      );
     }
   }
 
   bool canProceed() {
-    switch (_stepIndex) {
+    switch (state.stepIndex) {
       case 0:
-        return _draft.service != null;
+        return state.draft.service != null;
       case 1:
-        return _draft.address != null && _fulfillmentType.isNotEmpty;
+        return state.draft.address != null && state.fulfillmentType.isNotEmpty;
       case 2:
-        return _draft.slot != null;
+        return state.draft.slot != null;
       default:
         return true;
     }
   }
 
   Future<void> submit() async {
-    if (_isSubmitting || !canProceed()) {
+    if (state.isSubmitting || !canProceed()) {
       return;
     }
 
-    _isSubmitting = true;
-    _errorMessageKey = null;
-    notifyListeners();
-
+    state = state.copyWith(
+      isSubmitting: true,
+      clearErrorMessage: true,
+    );
     try {
-      final confirmation = await _repository.submit(
-        _draft,
+      final confirmation = await _repo.submit(
+        state.draft,
         session: _session,
-        fulfillmentType: _fulfillmentType,
+        fulfillmentType: state.fulfillmentType,
       );
-      _submittedOrderNumber = confirmation.orderNumber;
-      _submittedPromisedWindow = confirmation.promisedWindow;
+      state = state.copyWith(
+        isSubmitting: false,
+        submittedOrderNumber: confirmation.orderNumber,
+        submittedPromisedWindow: confirmation.promisedWindow,
+      );
     } catch (_) {
-      _errorMessageKey = 'booking.submitErrorBody';
-    } finally {
-      _isSubmitting = false;
-      notifyListeners();
+      state = state.copyWith(
+        isSubmitting: false,
+        errorMessageKey: 'booking.submitErrorBody',
+      );
     }
   }
 
   void clearError() {
-    _errorMessageKey = null;
-    notifyListeners();
+    state = state.copyWith(
+      errorMessageKey: null,
+      clearErrorMessage: true,
+    );
   }
 
-  AddressOptionModel? _defaultAddress() {
-    for (final address in _addresses) {
+  AddressOptionModel? _defaultAddress(List<AddressOptionModel> addresses) {
+    for (final address in addresses) {
       if (address.isDefault) {
         return address;
       }
     }
-
-    return _addresses.isNotEmpty ? _addresses.first : null;
+    return addresses.isNotEmpty ? addresses.first : null;
   }
 }

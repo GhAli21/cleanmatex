@@ -1,31 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
-import '../../../../core/app_shell_controller.dart';
 import '../../../../core/navigation/app_route.dart';
 import '../../../common/ui/widgets/customer_locale_switch_widget.dart';
 import '../../providers/customer_order_booking_provider.dart';
 import '../cards/customer_booking_option_card.dart';
 
-class CustomerOrderBookingScreen extends StatefulWidget {
-  const CustomerOrderBookingScreen({
-    super.key,
-    this.provider,
-  });
-
-  final CustomerOrderBookingProvider? provider;
+class CustomerOrderBookingScreen extends ConsumerStatefulWidget {
+  const CustomerOrderBookingScreen({super.key});
 
   @override
-  State<CustomerOrderBookingScreen> createState() =>
+  ConsumerState<CustomerOrderBookingScreen> createState() =>
       _CustomerOrderBookingScreenState();
 }
 
 class _CustomerOrderBookingScreenState
-    extends State<CustomerOrderBookingScreen> {
-  CustomerOrderBookingProvider? _provider;
+    extends ConsumerState<CustomerOrderBookingScreen> {
   late final TextEditingController _notesController;
-  bool _didStartLoad = false;
+  bool _scheduledInitialLoad = false;
 
   @override
   void initState() {
@@ -36,28 +30,22 @@ class _CustomerOrderBookingScreenState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_provider != null) {
+    if (_scheduledInitialLoad) {
       return;
     }
-
-    if (widget.provider != null) {
-      _provider = widget.provider;
-    } else {
-      final controller = CustomerAppScope.of(context);
-      _provider = CustomerOrderBookingProvider(session: controller.session);
-    }
-
-    if (!_didStartLoad) {
-      _didStartLoad = true;
-      _provider!.load();
-    }
+    _scheduledInitialLoad = true;
+    // Fresh wizard for each visit — global notifier would otherwise keep success state.
+    ref.invalidate(customerOrderBookingProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref.read(customerOrderBookingProvider.notifier).load();
+    });
   }
 
   @override
   void dispose() {
-    if (widget.provider == null) {
-      _provider?.dispose();
-    }
     _notesController.dispose();
     super.dispose();
   }
@@ -65,106 +53,110 @@ class _CustomerOrderBookingScreenState
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    final provider = _provider;
+    final booking = ref.watch(customerOrderBookingProvider);
+    final notifier = ref.read(customerOrderBookingProvider.notifier);
 
-    if (provider == null) {
-      return const SizedBox.shrink();
-    }
+    return PopScope(
+      canPop: !booking.isDirty || booking.hasSubmissionSuccess,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop || !booking.isDirty || booking.hasSubmissionSuccess) {
+          return;
+        }
 
-    return AnimatedBuilder(
-      animation: provider,
-      builder: (context, _) {
-        return PopScope(
-          canPop: !provider.isDirty || provider.hasSubmissionSuccess,
-          onPopInvokedWithResult: (didPop, _) async {
-            if (didPop || !provider.isDirty || provider.hasSubmissionSuccess) {
-              return;
-            }
-
-            final shouldLeave = await showDialog<bool>(
-              context: context,
-              builder: (dialogContext) {
-                return AlertDialog(
-                  title: Text(localizations.text('booking.discardTitle')),
-                  content: Text(localizations.text('booking.discardBody')),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(false),
-                      child: Text(localizations.text('booking.discardStay')),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogContext).pop(true),
-                      child: Text(localizations.text('booking.discardLeave')),
-                    ),
-                  ],
-                );
-              },
-            );
-
-            if (shouldLeave == true && context.mounted) {
-              Navigator.of(context).pop();
-            }
-          },
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(localizations.text('booking.title')),
-              actions: const [
-                CustomerLocaleSwitchWidget(),
+        final shouldLeave = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) {
+            return AlertDialog(
+              title: Text(localizations.text('booking.discardTitle')),
+              content: Text(localizations.text('booking.discardBody')),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(false),
+                  child: Text(localizations.text('booking.discardStay')),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(true),
+                  child: Text(localizations.text('booking.discardLeave')),
+                ),
               ],
-            ),
-            body: SafeArea(
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  AppHeaderWidget(
-                    title: localizations.text('booking.title'),
-                    subtitle: localizations.text('booking.subtitle'),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (provider.isLoading)
-                    AppLoadingIndicator(
-                      label: localizations.text('booking.loading'),
-                    )
-                  else if (provider.hasLoadError)
-                    _buildLoadErrorState(localizations)
-                  else ...[
-                    Text(
-                      localizations.textWithArg(
-                        'booking.stepLabel',
-                        (provider.stepIndex + 1).toString(),
-                      ),
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    ..._buildStepContent(localizations),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (provider.errorMessageKey != null &&
-                        !provider.hasLoadError &&
-                        !provider.hasSubmissionSuccess)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.lg),
-                        child: AppCardWidget(
-                          child: Text(
-                            localizations.text(provider.errorMessageKey!),
-                            style: Theme.of(context).textTheme.bodyLarge,
-                          ),
-                        ),
-                      ),
-                    if (provider.hasSubmissionSuccess)
-                      _buildSuccessState(localizations)
-                    else
-                      _buildActionRow(localizations),
-                  ],
-                ],
-              ),
-            ),
-          ),
+            );
+          },
         );
+
+        if (shouldLeave == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
       },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(localizations.text('booking.title')),
+          actions: const [
+            CustomerLocaleSwitchWidget(),
+          ],
+        ),
+        body: SafeArea(
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            children: [
+              AppHeaderWidget(
+                title: localizations.text('booking.title'),
+                subtitle: localizations.text('booking.subtitle'),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              if (booking.isLoading)
+                AppLoadingIndicator(
+                  label: localizations.text('booking.loading'),
+                )
+              else if (booking.hasLoadError)
+                _buildLoadErrorState(localizations, booking, notifier)
+              else ...[
+                Text(
+                  localizations.textWithArg(
+                    'booking.stepLabel',
+                    (booking.stepIndex + 1).toString(),
+                  ),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ..._buildStepContent(
+                  localizations: localizations,
+                  booking: booking,
+                  notifier: notifier,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                if (booking.errorMessageKey != null &&
+                    !booking.hasLoadError &&
+                    !booking.hasSubmissionSuccess)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                    child: AppCardWidget(
+                      child: Text(
+                        localizations.text(booking.errorMessageKey!),
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                  ),
+                if (booking.hasSubmissionSuccess)
+                  _buildSuccessState(localizations, booking)
+                else
+                  _buildActionRow(
+                    localizations: localizations,
+                    booking: booking,
+                    notifier: notifier,
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildLoadErrorState(AppLocalizations localizations) {
+  Widget _buildLoadErrorState(
+    AppLocalizations localizations,
+    BookingState booking,
+    CustomerOrderBookingNotifier notifier,
+  ) {
     return AppCardWidget(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,20 +167,23 @@ class _CustomerOrderBookingScreenState
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            localizations.text(_provider!.errorMessageKey!),
+            localizations.text(booking.errorMessageKey!),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: AppSpacing.lg),
           AppCustomButtonWidget(
             label: localizations.text('booking.retryAction'),
-            onPressed: _provider!.load,
+            onPressed: notifier.load,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSuccessState(AppLocalizations localizations) {
+  Widget _buildSuccessState(
+    AppLocalizations localizations,
+    BookingState booking,
+  ) {
     return AppCardWidget(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -201,14 +196,14 @@ class _CustomerOrderBookingScreenState
           Text(
             localizations.textWithArg(
               'booking.successBody',
-              _provider!.submittedOrderNumber ?? '',
+              booking.submittedOrderNumber ?? '',
             ),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
-          if ((_provider!.submittedPromisedWindow ?? '').isNotEmpty) ...[
+          if ((booking.submittedPromisedWindow ?? '').isNotEmpty) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(
-              _provider!.submittedPromisedWindow!,
+              booking.submittedPromisedWindow!,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -227,37 +222,45 @@ class _CustomerOrderBookingScreenState
     );
   }
 
-  Widget _buildActionRow(AppLocalizations localizations) {
+  Widget _buildActionRow({
+    required AppLocalizations localizations,
+    required BookingState booking,
+    required CustomerOrderBookingNotifier notifier,
+  }) {
     return Row(
       children: [
-        if (_provider!.stepIndex > 0)
+        if (booking.stepIndex > 0)
           Expanded(
             child: AppCustomButtonWidget(
               label: localizations.text('common.back'),
-              onPressed: _provider!.goBack,
+              onPressed: notifier.goBack,
               isPrimary: false,
             ),
           ),
-        if (_provider!.stepIndex > 0) const SizedBox(width: AppSpacing.md),
+        if (booking.stepIndex > 0) const SizedBox(width: AppSpacing.md),
         Expanded(
           child: AppCustomButtonWidget(
-            label: _provider!.stepIndex == 3
+            label: booking.stepIndex == 3
                 ? localizations.text('booking.submitAction')
                 : localizations.text('booking.nextAction'),
-            onPressed: _provider!.stepIndex == 3
-                ? (_provider!.isSubmitting ? null : _provider!.submit)
-                : (_provider!.canProceed() ? _provider!.goNext : null),
-            isLoading: _provider!.isSubmitting,
+            onPressed: booking.stepIndex == 3
+                ? (booking.isSubmitting ? null : notifier.submit)
+                : (notifier.canProceed() ? notifier.goNext : null),
+            isLoading: booking.isSubmitting,
           ),
         ),
       ],
     );
   }
 
-  List<Widget> _buildStepContent(AppLocalizations localizations) {
-    switch (_provider!.stepIndex) {
+  List<Widget> _buildStepContent({
+    required AppLocalizations localizations,
+    required BookingState booking,
+    required CustomerOrderBookingNotifier notifier,
+  }) {
+    switch (booking.stepIndex) {
       case 0:
-        if (_provider!.services.isEmpty) {
+        if (booking.services.isEmpty) {
           return [
             _buildEmptyState(
               title: localizations.text('booking.servicesEmptyTitle'),
@@ -266,7 +269,7 @@ class _CustomerOrderBookingScreenState
           ];
         }
 
-        return _provider!.services
+        return booking.services
             .map(
               (service) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -286,8 +289,8 @@ class _CustomerOrderBookingScreenState
                     secondary: service.priceLabel2,
                     localizations: localizations,
                   ),
-                  isSelected: _provider!.draft.service?.id == service.id,
-                  onTap: () => _provider!.chooseService(service),
+                  isSelected: booking.draft.service?.id == service.id,
+                  onTap: () => notifier.chooseService(service),
                 ),
               ),
             )
@@ -315,25 +318,25 @@ class _CustomerOrderBookingScreenState
             title: localizations.text('booking.fulfillmentPickup'),
             description: localizations.text('booking.fulfillmentPickupBody'),
             trailingLabel: localizations.text('booking.fulfillmentLabel'),
-            isSelected: _provider!.fulfillmentType == 'pickup',
-            onTap: () => _provider!.updateFulfillmentType('pickup'),
+            isSelected: booking.fulfillmentType == 'pickup',
+            onTap: () => notifier.updateFulfillmentType('pickup'),
           ),
           const SizedBox(height: AppSpacing.lg),
           CustomerBookingOptionCard(
             title: localizations.text('booking.fulfillmentDelivery'),
             description: localizations.text('booking.fulfillmentDeliveryBody'),
             trailingLabel: localizations.text('booking.fulfillmentLabel'),
-            isSelected: _provider!.fulfillmentType == 'delivery',
-            onTap: () => _provider!.updateFulfillmentType('delivery'),
+            isSelected: booking.fulfillmentType == 'delivery',
+            onTap: () => notifier.updateFulfillmentType('delivery'),
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (_provider!.addresses.isEmpty)
+          if (booking.addresses.isEmpty)
             _buildEmptyState(
               title: localizations.text('booking.addressesEmptyTitle'),
               body: localizations.text('booking.addressesEmptyBody'),
             )
           else
-            ..._provider!.addresses.map(
+            ...booking.addresses.map(
               (address) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                 child: CustomerBookingOptionCard(
@@ -342,14 +345,14 @@ class _CustomerOrderBookingScreenState
                   trailingLabel: address.isDefault
                       ? localizations.text('booking.addressDefaultLabel')
                       : localizations.text('booking.addressLabel'),
-                  isSelected: _provider!.draft.address?.id == address.id,
-                  onTap: () => _provider!.chooseAddress(address),
+                  isSelected: booking.draft.address?.id == address.id,
+                  onTap: () => notifier.chooseAddress(address),
                 ),
               ),
             ),
         ];
       case 2:
-        return _provider!.slots
+        return booking.slots
             .map(
               (slot) => Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.lg),
@@ -361,14 +364,16 @@ class _CustomerOrderBookingScreenState
                   ),
                   description: localizations.text('booking.slotDescription'),
                   trailingLabel: localizations.text('booking.slotLabel'),
-                  isSelected: _provider!.draft.slot?.id == slot.id,
-                  onTap: () => _provider!.chooseSlot(slot),
+                  isSelected: booking.draft.slot?.id == slot.id,
+                  onTap: () => notifier.chooseSlot(slot),
                 ),
               ),
             )
             .toList();
       default:
-        _notesController.value = TextEditingValue(text: _provider!.draft.notes);
+        _notesController.value = TextEditingValue(
+          text: booking.draft.notes,
+        );
         return [
           AppCardWidget(
             child: Column(
@@ -383,8 +388,8 @@ class _CustomerOrderBookingScreenState
                   localizations.textWithArg(
                     'booking.reviewServiceValue',
                     _localizedValue(
-                      primary: _provider!.draft.service?.title ?? '-',
-                      secondary: _provider!.draft.service?.title2,
+                      primary: booking.draft.service?.title ?? '-',
+                      secondary: booking.draft.service?.title2,
                       localizations: localizations,
                     ),
                   ),
@@ -395,7 +400,7 @@ class _CustomerOrderBookingScreenState
                   localizations.textWithArg(
                     'booking.reviewFulfillmentValue',
                     localizations.text(
-                      _provider!.fulfillmentType == 'delivery'
+                      booking.fulfillmentType == 'delivery'
                           ? 'booking.fulfillmentDelivery'
                           : 'booking.fulfillmentPickup',
                     ),
@@ -406,7 +411,7 @@ class _CustomerOrderBookingScreenState
                 Text(
                   localizations.textWithArg(
                     'booking.reviewAddressValue',
-                    _provider!.draft.address?.label ?? '-',
+                    booking.draft.address?.label ?? '-',
                   ),
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
@@ -415,8 +420,8 @@ class _CustomerOrderBookingScreenState
                   localizations.textWithArg(
                     'booking.reviewSlotValue',
                     _localizedValue(
-                      primary: _provider!.draft.slot?.label ?? '-',
-                      secondary: _provider!.draft.slot?.label2,
+                      primary: booking.draft.slot?.label ?? '-',
+                      secondary: booking.draft.slot?.label2,
                       localizations: localizations,
                     ),
                   ),
@@ -425,7 +430,7 @@ class _CustomerOrderBookingScreenState
                 const SizedBox(height: AppSpacing.lg),
                 TextField(
                   controller: _notesController,
-                  onChanged: _provider!.updateNotes,
+                  onChanged: notifier.updateNotes,
                   decoration: InputDecoration(
                     labelText: localizations.text('booking.notesLabel'),
                     hintText: localizations.text('booking.notesHint'),

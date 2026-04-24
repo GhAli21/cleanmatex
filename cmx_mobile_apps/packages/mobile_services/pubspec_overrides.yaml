@@ -1,0 +1,6 @@
+# melos_managed_dependency_overrides: mobile_core,mobile_domain
+dependency_overrides:
+  mobile_core:
+    path: ..\\mobile_core
+  mobile_domain:
+    path: ..\\mobile_domain

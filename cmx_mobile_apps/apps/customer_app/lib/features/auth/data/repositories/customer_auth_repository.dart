@@ -17,10 +17,52 @@ class CustomerAuthRepository {
   Future<CustomerSessionModel> verifyOtp({
     required CustomerAuthChallengeModel challenge,
     required String otpCode,
+    required String tenantOrgId,
   }) {
     return _authApiService.verifyOtp(
       challenge: challenge,
       otpCode: otpCode,
+      tenantOrgId: tenantOrgId,
+    );
+  }
+
+  Future<CustomerSessionModel> refreshSession({
+    required CustomerSessionModel session,
+  }) {
+    return _authApiService.refreshSession(session: session);
+  }
+
+  Future<bool> checkHasPassword({
+    required String phoneNumber,
+    required String tenantId,
+  }) {
+    return _authApiService.checkHasPassword(
+      phoneNumber: phoneNumber,
+      tenantId: tenantId,
+    );
+  }
+
+  Future<CustomerSessionModel> loginWithPassword({
+    required String phoneNumber,
+    required String password,
+    required String tenantId,
+  }) {
+    return _authApiService.loginWithPassword(
+      phoneNumber: phoneNumber,
+      password: password,
+      tenantId: tenantId,
+    );
+  }
+
+  Future<void> setPassword({
+    required String verificationToken,
+    required String tenantId,
+    required String newPassword,
+  }) {
+    return _authApiService.setPassword(
+      verificationToken: verificationToken,
+      tenantId: tenantId,
+      newPassword: newPassword,
     );
   }
 }

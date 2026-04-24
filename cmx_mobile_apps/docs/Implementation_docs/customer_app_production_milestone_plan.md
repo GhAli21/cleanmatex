@@ -94,6 +94,25 @@ Do not let `customer_app` become a one-off codebase that blocks `staff_app` and 
 | 5. Customer Orders Tracking Journey | Completed | 2026-04-18 | 2026-04-21 | Customer-scoped orders list plus order detail/timeline now run through localized mobile repositories and real web-admin public APIs, with automated list/detail coverage in place |
 | 6. Customer Order Creation Journey | Completed | 2026-04-18 | 2026-04-21 | Booking now uses a real public customer-booking API, fulfillment/address/slot/review UX, localized success handling, and automated booking coverage |
 | 7. Hardening and Production Readiness | Completed | 2026-04-18 | 2026-04-22 | Connectivity-aware offline routing, accessibility touch-target semantics, native Android and iOS platform targets, clean analysis, passing tests, `web-admin` production build, and Android release APK validation are now in place |
+| PR-0. Foundation — Riverpod deps + AppConfig fail-fast | Completed | 2026-04-18 | 2026-04-24 | `flutter_riverpod` in `customer_app`, `ProviderScope` in `main.dart`, `assertProductionReady()` on `AppConfig` (prod requires `API_BASE_URL` only; no `TENANT_ORG_ID` dart-define) |
+| PR-0b. Tenant Discovery — runtime multi-tenancy | Completed | 2026-04-18 | 2026-04-24 | `sessionManagerProvider` + `tenantProvider` + `GET /api/v1/public/tenant/resolve`; splash → discovery/confirm → entry; `customer_tenant_*` screens; `clearSession` on “different laundry”. Migration 0244 applied ✓ 2026-04-23 |
+| PR-1. Shell Controller — Riverpod core | Completed | 2026-04-18 | 2026-04-24 | `CustomerApp` is `ConsumerStatefulWidget`; `customerSessionFlowProvider` + `CustomerSessionFlowState` + `customerLocaleProvider`; `CustomerAppScope` / `CustomerAppController` removed; route guards in `onGenerateCustomerRoute` |
+| PR-2. Feature Providers — Riverpod rewrite | Completed | 2026-04-18 | 2026-04-24 | `customerOrdersProvider`, `customerOrderDetailProvider` (autoDispose family), `customerOrderBookingNotifier` + `BookingState`; screens are `ConsumerWidget` / `ConsumerStatefulWidget` with `ref.watch`; router uses `WidgetRef` in `onGenerateCustomerRoute` |
+| PR-3. Token Refresh + HTTP Layer | Completed | 2026-04-18 | 2026-04-24 | `MobileHttpClient.onSessionRefresh` + `POST /api/v1/public/customer/auth/refresh` via `CustomerAuthRepository.refreshSession`; `customerApiHttpClientProvider` for orders/booking; `applyRefreshedSession`; l10n `common.sessionExpired`; `plainHttpClient` for auth to avoid refresh recursion; parallel with PR-4 |
+| PR-4. Test Migration — ProviderScope + overrides | Completed | 2026-04-18 | 2026-04-24 | `TestAppWrapper` + `ProviderScope` + `overrides`; 9 `flutter test` in `apps/customer_app` + `dart analyze` clean |
+| PR-5. Home Screen — real data + booking CTA | Completed | 2026-04-24 | 2026-04-24 | Greeting (name/phone/guest), active orders count from `customerOrdersProvider`, "Book a new order" CTA, profile AppBar icon, logout confirmation dialog; `CustomerHomeActiveOrdersCard` extended with `activeCount` + new l10n keys |
+| PR-6. Profile Feature | Completed | 2026-04-24 | 2026-04-24 | `CustomerProfileScreen` (name + phone cards, sign-out confirmation); `AppRoute.profile` wired in router; 4 new l10n keys (EN + AR) |
+| PR-7. Polish — colors + l10n audit | Completed | 2026-04-24 | 2026-04-24 | Zero raw `Colors.`/`Color(0x` outside theme files; all 110+ l10n keys cross-checked against app_localizations.dart — no missing keys; `flutter analyze` 0 issues |
+| 8. Password Login Feature | Completed | 2026-04-24 | 2026-04-24 | Migration 0243 applied ✓. 3 new API routes (auth-options, login, password) + `customer-password.service.ts` (scrypt). `CustomerSessionModel.hasPassword`. `customerPasswordLoginProvider` + `customerSetPasswordProvider`. `CustomerPasswordLoginScreen` + `CustomerSetPasswordScreen`. Router wired. Login entry shows password button when `hasPassword=true`. OTP screen offers set-password after first login. Profile shows password status. 19 new l10n keys (EN+AR). `flutter analyze` 0 issues. `npm run build` ✓ |
+
+### Pending Database Migrations (must be applied before PR-0b and Milestone 8)
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `supabase/migrations/0243_org_customers_password.sql` | Adds `password_hash` + `password_updated_at` to `org_customers_mst` | Applied ✓ 2026-04-23 |
+| `supabase/migrations/0244_org_tenants_slug.sql` | Adds `slug` column + unique index on tenant table (`org_tenants_mst`) for discovery | Applied ✓ 2026-04-23 |
+
+---
 
 ### Milestone Outcome
 
@@ -608,6 +627,54 @@ Delivered in this milestone:
 * customer-app native `android/` and `ios/` platform scaffolds
 * validated Android release APK build
 * refreshed app-local and mobile-foundation documentation to match the on-disk state
+
+---
+
+---
+
+## Production-Readiness Phases (PR-0 through PR-7) and Milestone 8
+
+These phases address architectural gaps identified after Milestones 0–7 were marked complete. They must be executed before the app is considered truly production-ready.
+
+### Execution Order
+
+```
+PR-0  (Riverpod deps + AppConfig)
+  ↓
+PR-0b (Tenant Discovery — slug API + QR screens)
+  ↓
+PR-1  (Shell Controller → Riverpod)
+  ↓
+PR-2  (Feature Providers → Riverpod)
+  ↓
+PR-3 + PR-4 (Token Refresh & Test Migration — parallel)
+  ↓
+PR-5 (Home Screen — real data)
+PR-6 (Profile Screen)
+  ↓
+PR-7 (Polish — colors + l10n audit)
+  ↓
+Milestone 8 (Password Login)
+```
+
+### Milestone 8: Password Login Feature
+
+**Goal:** Let customers set an optional password after OTP verification for faster future logins. OTP remains the primary registration and password-reset path.
+
+**Architecture:** Hybrid — OTP mandatory for first login and recovery; password is opt-in for returning customers. Password stored as bcrypt hash (cost ≥ 12) in `org_customers_mst.password_hash` (nullable). Backend is the authority — no password logic in the app.
+
+**Key Deliverables:**
+- Migration 0243: `password_hash` + `password_updated_at` on `org_customers_mst`
+- New API routes: `POST /public/customer/password`, `POST /public/customer/login`, `GET /public/customer/auth-options`
+- `CustomerPasswordLoginNotifier` + `CustomerSetPasswordNotifier` (Riverpod)
+- `customer_password_login_screen.dart` + `customer_set_password_screen.dart`
+- Profile screen: shows password status, links to change-password flow
+- 14 new l10n keys (EN + AR)
+- Security: rate limit 5 failures/phone/15 min; `password_hash` never in API response; no default passwords
+
+**Depends on:** PR-6 (Profile screen), migration 0243 applied.
+
+**Milestone 4 extension note:** Authentication (Milestone 4) covers OTP-only entry. Password login is an opt-in extension that does not change the OTP flow — it adds a faster alternative path for returning customers who choose to set one.
 
 ---
 

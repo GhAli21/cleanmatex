@@ -1,41 +1,35 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 
-import '../data/repositories/customer_orders_repository.dart';
+import '../../../core/app_shell_controller.dart';
+import '../../../core/providers/app_dependencies.dart';
 
-class CustomerOrderDetailProvider extends ChangeNotifier {
-  CustomerOrderDetailProvider({
-    CustomerOrdersRepository? repository,
-  }) : _repository = repository ?? CustomerOrdersRepository();
+/// Order detail for a given [orderNumber] — autoDispose when the screen is popped.
+final customerOrderDetailProvider = AsyncNotifierProvider.autoDispose
+    .family<CustomerOrderDetailNotifier, OrderDetailModel, String>(
+  CustomerOrderDetailNotifier.new,
+);
 
-  final CustomerOrdersRepository _repository;
-
-  bool _isLoading = false;
-  String? _errorMessageKey;
-  OrderDetailModel? _order;
-
-  bool get isLoading => _isLoading;
-  String? get errorMessageKey => _errorMessageKey;
-  OrderDetailModel? get order => _order;
-
-  Future<void> load({
-    required CustomerSessionModel? session,
-    required String orderNumber,
-  }) async {
-    _isLoading = true;
-    _errorMessageKey = null;
-    notifyListeners();
-
+class CustomerOrderDetailNotifier
+    extends AutoDisposeFamilyAsyncNotifier<OrderDetailModel, String> {
+  @override
+  Future<OrderDetailModel> build(String orderNumber) async {
+    final session = ref.watch(
+      customerSessionFlowProvider.select((f) => f.session),
+    );
+    final repository = ref.read(customerOrdersRepositoryProvider);
     try {
-      _order = await _repository.fetchOrderDetail(
+      return await repository.fetchOrderDetail(
         session: session,
         orderNumber: orderNumber,
       );
-    } catch (_) {
-      _errorMessageKey = 'orders.detailErrorBody';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+    } catch (e) {
+      throw UnexpectedAppException(
+        code: 'order_detail',
+        messageKey: 'orders.detailErrorBody',
+        originalError: e,
+      );
     }
   }
 }
