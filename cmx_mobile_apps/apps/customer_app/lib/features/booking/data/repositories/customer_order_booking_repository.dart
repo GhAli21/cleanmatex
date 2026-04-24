@@ -23,4 +23,11 @@ class CustomerOrderBookingRepository {
       fulfillmentType: fulfillmentType,
     );
   }
+
+  Future<AddressOptionModel> createAddress(
+    NewAddressInputModel input, {
+    required CustomerSessionModel? session,
+  }) {
+    return _bookingService.createAddress(input, session: session);
+  }
 }

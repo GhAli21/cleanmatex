@@ -34,8 +34,11 @@ const FIXED_TEST_OTP_CODE = '123456';
 /**
  * Generate a temporary verification token (for registration)
  * This token can be used to create a customer after OTP verification
+ *
+ * @param phone Customer phone number embedded in the temporary token.
+ * @returns Base64-encoded verification token with expiry metadata.
  */
-function generateVerificationToken(phone: string): string {
+export function generateVerificationToken(phone: string): string {
   const payload = {
     phone,
     purpose: 'verification',

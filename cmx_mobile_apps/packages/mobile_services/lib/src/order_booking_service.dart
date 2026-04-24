@@ -30,6 +30,11 @@ class BookingBootstrapModel {
     required this.services,
     required this.addresses,
     required this.slots,
+    this.categories = const [],
+    this.servicePreferences = const [],
+    this.pickupPreferences = const [],
+    this.vatRate = 0.0,
+    this.currencyCode = 'OMR',
   });
 
   final bool bookingEnabled;
@@ -37,6 +42,11 @@ class BookingBootstrapModel {
   final List<ServiceOptionModel> services;
   final List<AddressOptionModel> addresses;
   final List<PickupSlotModel> slots;
+  final List<BookingCatalogCategoryModel> categories;
+  final List<BookingPreferenceOptionModel> servicePreferences;
+  final List<BookingPreferenceOptionModel> pickupPreferences;
+  final double vatRate;
+  final String currencyCode;
 }
 
 class OrderBookingService {
@@ -62,6 +72,11 @@ class OrderBookingService {
         services: _demoServices,
         addresses: _demoAddresses,
         slots: _demoSlots(),
+        categories: _demoCategories,
+        servicePreferences: _demoServicePreferences,
+        pickupPreferences: _demoPickupPreferences,
+        vatRate: 0.05,
+        currencyCode: 'OMR',
       );
     }
 
@@ -92,6 +107,19 @@ class OrderBookingService {
           .whereType<Map<String, Object?>>()
           .map(_mapRemoteSlot)
           .toList(growable: false);
+      final categories = (data['categories'] as List? ?? const [])
+          .whereType<Map<String, Object?>>()
+          .map(BookingCatalogCategoryModel.fromJson)
+          .toList(growable: false);
+      final servicePreferences =
+          (data['servicePreferences'] as List? ?? const [])
+              .whereType<Map<String, Object?>>()
+              .map(BookingPreferenceOptionModel.fromJson)
+              .toList(growable: false);
+      final pickupPreferences = (data['pickupPreferences'] as List? ?? const [])
+          .whereType<Map<String, Object?>>()
+          .map(BookingPreferenceOptionModel.fromJson)
+          .toList(growable: false);
 
       return BookingBootstrapModel(
         bookingEnabled: data['bookingEnabled'] != false,
@@ -99,11 +127,16 @@ class OrderBookingService {
         services: services,
         addresses: addresses,
         slots: slots,
+        categories: categories,
+        servicePreferences: servicePreferences,
+        pickupPreferences: pickupPreferences,
+        vatRate: (data['vatRate'] as num?)?.toDouble() ?? 0.0,
+        currencyCode: data['currencyCode'] as String? ?? 'OMR',
       );
     } on MobileHttpException catch (error) {
       throw OrderBookingServiceException(
         code: error.code,
-        messageKey: 'booking.errorBody',
+        messageKey: _bookingLoadMessageKey(error),
         originalError: error,
       );
     }
@@ -122,7 +155,7 @@ class OrderBookingService {
       );
     }
 
-    if (draft.service == null || draft.address == null || draft.slot == null) {
+    if (draft.cartItems.isEmpty) {
       throw const OrderBookingServiceException(
         code: 'booking_missing_fields',
         messageKey: 'booking.validationIncomplete',
@@ -135,10 +168,20 @@ class OrderBookingService {
         headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
         body: {
           'tenantId': session.tenantOrgId!,
-          'serviceId': draft.service!.id,
-          'addressId': draft.address!.id,
-          'slotId': draft.slot!.id,
+          // kept for backend transition compatibility
+          'serviceId': draft.service?.id,
           'fulfillmentType': fulfillmentType,
+          // new item-based fields
+          'items': draft.cartItems.entries
+              .map((e) => {'itemId': e.key, 'qty': e.value})
+              .toList(),
+          'servicePreferenceIds': draft.selectedServicePreferenceIds,
+          'pickupPreferenceIds': draft.selectedPickupPreferenceIds,
+          'isPickupFromAddress': draft.isPickupFromAddress,
+          'isAsap': draft.isAsap,
+          'scheduledAt': draft.scheduledAt?.toIso8601String(),
+          'addressId': draft.address?.id,
+          'slotId': draft.slot?.id,
           'notes': draft.notes.trim(),
         },
       );
@@ -159,10 +202,88 @@ class OrderBookingService {
     } on MobileHttpException catch (error) {
       throw OrderBookingServiceException(
         code: error.code,
-        messageKey: 'booking.submitErrorBody',
+        messageKey: _bookingSubmitMessageKey(error),
         originalError: error,
       );
     }
+  }
+
+  Future<AddressOptionModel> createAddress(
+    NewAddressInputModel input, {
+    required CustomerSessionModel? session,
+  }) async {
+    if (!_useRemoteBooking(session)) {
+      final demoId = 'addr-${DateTime.now().millisecondsSinceEpoch}';
+      return AddressOptionModel(
+        id: demoId,
+        label: input.label,
+        description: '${input.area}, ${input.city}',
+        isDefault: false,
+        street: input.street,
+        area: input.area,
+        city: input.city,
+      );
+    }
+
+    try {
+      final payload = await _httpClient.postJson(
+        '/api/v1/public/customer/addresses',
+        headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
+        body: {
+          'tenantId': session.tenantOrgId!,
+          ...input.toJson(),
+        },
+      );
+
+      final data = payload['data'];
+      if (data is! Map<String, Object?>) {
+        throw const OrderBookingServiceException(
+          code: 'address_invalid_payload',
+          messageKey: 'booking.addressSaveErrorBody',
+        );
+      }
+
+      return _mapRemoteAddress(data);
+    } on MobileHttpException catch (error) {
+      throw OrderBookingServiceException(
+        code: error.code,
+        messageKey: _bookingAddressMessageKey(error),
+        originalError: error,
+      );
+    }
+  }
+
+  String _bookingLoadMessageKey(MobileHttpException error) {
+    return switch (error.code) {
+      'session_expired' => 'common.sessionExpired',
+      'booking_disabled' => 'booking.disabledBody',
+      _ => 'booking.errorBody',
+    };
+  }
+
+  String _bookingSubmitMessageKey(MobileHttpException error) {
+    return switch (error.code) {
+      'session_expired' => 'common.sessionExpired',
+      'booking_validation_failed' => 'booking.validationIncomplete',
+      'booking_address_required' => 'booking.addressRequiredError',
+      'booking_schedule_required' => 'booking.scheduleRequiredError',
+      'booking_quantity_invalid' => 'booking.quantityInvalidError',
+      'booking_item_unavailable' => 'booking.itemUnavailableError',
+      'booking_address_unavailable' => 'booking.addressUnavailableError',
+      'booking_branch_unavailable' => 'booking.branchUnavailableError',
+      'booking_preference_unavailable' => 'booking.preferenceUnavailableError',
+      'booking_disabled' => 'booking.disabledBody',
+      _ => 'booking.submitErrorBody',
+    };
+  }
+
+  String _bookingAddressMessageKey(MobileHttpException error) {
+    return switch (error.code) {
+      'session_expired' => 'common.sessionExpired',
+      'address_validation_failed' => 'booking.addressValidationError',
+      'address_unauthorized' => 'common.sessionExpired',
+      _ => 'booking.addressSaveErrorBody',
+    };
   }
 
   ServiceOptionModel _mapRemoteService(Map<String, Object?> json) {
@@ -183,6 +304,9 @@ class OrderBookingService {
       label: json['label'] as String? ?? '',
       description: json['description'] as String? ?? '',
       isDefault: json['isDefault'] == true,
+      street: json['street'] as String?,
+      area: json['area'] as String?,
+      city: json['city'] as String?,
     );
   }
 
@@ -195,6 +319,8 @@ class OrderBookingService {
       endAt: DateTime.tryParse(json['endAt'] as String? ?? ''),
     );
   }
+
+  // ── Demo data ────────────────────────────────────────────────────────────
 
   static const _demoServices = <ServiceOptionModel>[
     ServiceOptionModel(
@@ -223,11 +349,132 @@ class OrderBookingService {
       label: 'Home',
       description: 'Al Khoudh, Muscat',
       isDefault: true,
+      street: 'Al Khoudh St',
+      area: 'Al Khoudh',
+      city: 'Muscat',
     ),
     AddressOptionModel(
       id: 'office',
       label: 'Office',
       description: 'Al Ghubra, Muscat',
+      street: 'Al Ghubra St',
+      area: 'Al Ghubra',
+      city: 'Muscat',
+    ),
+  ];
+
+  static const _demoCategories = <BookingCatalogCategoryModel>[
+    BookingCatalogCategoryModel(
+      id: 'shirts',
+      name: 'Shirts',
+      name2: 'قمصان',
+      items: [
+        BookingCatalogItemModel(
+          id: 'shirt-standard',
+          categoryId: 'shirts',
+          name: 'Standard shirt',
+          name2: 'قميص عادي',
+          description: 'Regular cotton shirt',
+          description2: 'قميص قطن عادي',
+          unitPrice: 0.500,
+          unit: 'per_piece',
+        ),
+        BookingCatalogItemModel(
+          id: 'shirt-dress',
+          categoryId: 'shirts',
+          name: 'Dress shirt',
+          name2: 'قميص رسمي',
+          description: 'Formal or business dress shirt',
+          description2: 'قميص رسمي أو تجاري',
+          unitPrice: 0.750,
+          unit: 'per_piece',
+        ),
+      ],
+    ),
+    BookingCatalogCategoryModel(
+      id: 'trousers',
+      name: 'Trousers',
+      name2: 'بناطيل',
+      items: [
+        BookingCatalogItemModel(
+          id: 'trouser-standard',
+          categoryId: 'trousers',
+          name: 'Standard trousers',
+          name2: 'بنطلون عادي',
+          description: 'Casual or formal trousers',
+          description2: 'بنطلون كاجوال أو رسمي',
+          unitPrice: 0.750,
+          unit: 'per_piece',
+        ),
+        BookingCatalogItemModel(
+          id: 'jeans',
+          categoryId: 'trousers',
+          name: 'Jeans',
+          name2: 'جينز',
+          description: 'Denim jeans, any style',
+          description2: 'جينز دنيم بأي طراز',
+          unitPrice: 0.750,
+          unit: 'per_piece',
+        ),
+      ],
+    ),
+    BookingCatalogCategoryModel(
+      id: 'bedding',
+      name: 'Bedding',
+      name2: 'مفروشات',
+      items: [
+        BookingCatalogItemModel(
+          id: 'bedsheet-single',
+          categoryId: 'bedding',
+          name: 'Single bed sheet',
+          name2: 'ملاءة سرير فردية',
+          description: 'Single or twin size bed sheet',
+          description2: 'ملاءة مفرد أو توأم',
+          unitPrice: 1.000,
+          unit: 'per_piece',
+        ),
+        BookingCatalogItemModel(
+          id: 'duvet-single',
+          categoryId: 'bedding',
+          name: 'Duvet / quilt',
+          name2: 'لحاف',
+          description: 'Single duvet or quilt',
+          description2: 'لحاف مفرد',
+          unitPrice: 2.500,
+          unit: 'per_piece',
+        ),
+      ],
+    ),
+  ];
+
+  static const _demoServicePreferences = <BookingPreferenceOptionModel>[
+    BookingPreferenceOptionModel(
+      id: 'gentle-wash',
+      label: 'Gentle wash',
+      label2: 'غسيل لطيف',
+    ),
+    BookingPreferenceOptionModel(
+      id: 'starch',
+      label: 'Starch',
+      label2: 'نشا',
+    ),
+    BookingPreferenceOptionModel(
+      id: 'fold-only',
+      label: 'Fold only (no hanger)',
+      label2: 'طي فقط (بدون علاقة)',
+    ),
+  ];
+
+  static const _demoPickupPreferences = <BookingPreferenceOptionModel>[
+    BookingPreferenceOptionModel(
+      id: 'fragile-pack',
+      label: 'Fragile packaging',
+      label2: 'تغليف حساس',
+    ),
+    BookingPreferenceOptionModel(
+      id: 'separate-bags',
+      label: 'Separate bags per person',
+      label2: 'أكياس منفصلة لكل شخص',
     ),
   ];
 

@@ -30,7 +30,7 @@ CREATE TABLE sys_pln_subscription_plans_mst (
   base_price DECIMAL(19, 4) NOT NULL DEFAULT 0,
   annual_price DECIMAL(19, 4),
   setup_fee DECIMAL(19, 4),
-  currency VARCHAR(10) DEFAULT 'OMR',
+  currency VARCHAR(10),-- DEFAULT 'USD',
 
   -- Billing configuration
   billing_cycle VARCHAR(20) NOT NULL DEFAULT 'monthly',
@@ -118,7 +118,7 @@ CREATE TABLE org_pln_subscriptions_mst (
 
   -- Pricing (snapshot at subscription time)
   base_price DECIMAL(19, 4) NOT NULL,
-  currency VARCHAR(3) DEFAULT 'OMR',
+  currency VARCHAR(10),-- DEFAULT 'OMR',
   billing_cycle VARCHAR(20) DEFAULT 'monthly',
 
   -- Billing period

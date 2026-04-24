@@ -80,7 +80,7 @@ CREATE INDEX idx_promo_codes_code ON org_promo_codes_mst(tenant_org_id, promo_co
 CREATE INDEX idx_promo_codes_validity ON org_promo_codes_mst(tenant_org_id, valid_from, valid_to) WHERE is_active = true;
 
 COMMENT ON TABLE org_promo_codes_mst IS 'Promotional codes/coupons for order discounts';
-COMMENT ON COLUMN org_promo_codes_mst.discount_type IS 'percentage: discount as %, fixed_amount: fixed OMR amount';
+COMMENT ON COLUMN org_promo_codes_mst.discount_type IS 'percentage: discount as %, fixed_amount: fixed Currency amount';
 COMMENT ON COLUMN org_promo_codes_mst.applicable_categories IS 'JSON array of service category codes this promo applies to';
 
 -- ============================================================================

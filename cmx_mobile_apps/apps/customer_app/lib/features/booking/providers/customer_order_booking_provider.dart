@@ -19,10 +19,10 @@ class BookingState {
   const BookingState({
     this.isLoading = true,
     this.isSubmitting = false,
+    this.isSavingAddress = false,
     this.isBookingEnabled = true,
     this.disabledReasonKey,
     this.stepIndex = 0,
-    this.fulfillmentType = 'pickup',
     this.errorMessageKey,
     this.submittedOrderNumber,
     this.submittedPromisedWindow,
@@ -30,14 +30,20 @@ class BookingState {
     this.services = const [],
     this.addresses = const [],
     this.slots = const [],
+    this.categories = const [],
+    this.servicePreferenceOptions = const [],
+    this.pickupPreferenceOptions = const [],
+    this.itemSearchQuery = '',
+    this.vatRate = 0.0,
+    this.currencyCode = 'OMR',
   });
 
   final bool isLoading;
   final bool isSubmitting;
+  final bool isSavingAddress;
   final bool isBookingEnabled;
   final String? disabledReasonKey;
   final int stepIndex;
-  final String fulfillmentType;
   final String? errorMessageKey;
   final String? submittedOrderNumber;
   final String? submittedPromisedWindow;
@@ -45,24 +51,88 @@ class BookingState {
   final List<ServiceOptionModel> services;
   final List<AddressOptionModel> addresses;
   final List<PickupSlotModel> slots;
+  final List<BookingCatalogCategoryModel> categories;
+  final List<BookingPreferenceOptionModel> servicePreferenceOptions;
+  final List<BookingPreferenceOptionModel> pickupPreferenceOptions;
+  final String itemSearchQuery;
+  final double vatRate;
+  final String currencyCode;
 
-  bool get hasLoadError => errorMessageKey != null && services.isEmpty;
+  // ── Computed getters ────────────────────────────────────────────────────
+
+  bool get hasLoadError =>
+      errorMessageKey != null && categories.isEmpty && services.isEmpty;
 
   bool get hasSubmissionSuccess => (submittedOrderNumber ?? '').isNotEmpty;
 
   bool get isDirty =>
+      draft.cartItems.isNotEmpty ||
       draft.service != null ||
       draft.address != null ||
       draft.slot != null ||
-      draft.notes.trim().isNotEmpty;
+      draft.notes.trim().isNotEmpty ||
+      draft.selectedServicePreferenceIds.isNotEmpty ||
+      draft.selectedPickupPreferenceIds.isNotEmpty ||
+      draft.isPickupFromAddress;
+
+  int get totalItemCount =>
+      draft.cartItems.values.fold(0, (sum, qty) => sum + qty);
+
+  bool get hasCartItems => draft.cartItems.isNotEmpty;
+
+  double get estimatedSubtotal {
+    var total = 0.0;
+    for (final category in categories) {
+      for (final item in category.items) {
+        final qty = draft.cartItems[item.id] ?? 0;
+        if (qty > 0) {
+          total += item.unitPrice * qty;
+        }
+      }
+    }
+    final selectedServicePreferenceCharge = servicePreferenceOptions
+        .where((preference) =>
+            draft.selectedServicePreferenceIds.contains(preference.id))
+        .fold<double>(0, (sum, preference) => sum + preference.extraPrice);
+    total += selectedServicePreferenceCharge * totalItemCount;
+    return total;
+  }
+
+  double get estimatedVat => estimatedSubtotal * vatRate;
+
+  double get estimatedTotal => estimatedSubtotal + estimatedVat;
+
+  /// Returns the flat list of all items matching the current [itemSearchQuery].
+  List<BookingCatalogItemModel> get filteredItems {
+    if (itemSearchQuery.isEmpty) return const [];
+    final query = itemSearchQuery.toLowerCase();
+    final result = <BookingCatalogItemModel>[];
+    for (final category in categories) {
+      for (final item in category.items) {
+        final matchesName = item.name.toLowerCase().contains(query) ||
+            (item.name2?.toLowerCase().contains(query) ?? false);
+        final matchesDesc =
+            (item.description?.toLowerCase().contains(query) ?? false) ||
+                (item.description2?.toLowerCase().contains(query) ?? false);
+        if (matchesName || matchesDesc) {
+          result.add(item);
+        }
+      }
+    }
+    return result;
+  }
+
+  /// Backward-compat fulfillment string for the submit body.
+  String get fulfillmentType =>
+      draft.isPickupFromAddress ? 'pickup' : 'bring_in';
 
   BookingState copyWith({
     bool? isLoading,
     bool? isSubmitting,
+    bool? isSavingAddress,
     bool? isBookingEnabled,
     String? disabledReasonKey,
     int? stepIndex,
-    String? fulfillmentType,
     String? errorMessageKey,
     bool clearErrorMessage = false,
     String? submittedOrderNumber,
@@ -71,24 +141,37 @@ class BookingState {
     List<ServiceOptionModel>? services,
     List<AddressOptionModel>? addresses,
     List<PickupSlotModel>? slots,
+    List<BookingCatalogCategoryModel>? categories,
+    List<BookingPreferenceOptionModel>? servicePreferenceOptions,
+    List<BookingPreferenceOptionModel>? pickupPreferenceOptions,
+    String? itemSearchQuery,
+    double? vatRate,
+    String? currencyCode,
   }) {
     return BookingState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isSavingAddress: isSavingAddress ?? this.isSavingAddress,
       isBookingEnabled: isBookingEnabled ?? this.isBookingEnabled,
       disabledReasonKey: disabledReasonKey ?? this.disabledReasonKey,
       stepIndex: stepIndex ?? this.stepIndex,
-      fulfillmentType: fulfillmentType ?? this.fulfillmentType,
       errorMessageKey:
           clearErrorMessage ? null : (errorMessageKey ?? this.errorMessageKey),
-      submittedOrderNumber:
-          submittedOrderNumber ?? this.submittedOrderNumber,
+      submittedOrderNumber: submittedOrderNumber ?? this.submittedOrderNumber,
       submittedPromisedWindow:
           submittedPromisedWindow ?? this.submittedPromisedWindow,
       draft: draft ?? this.draft,
       services: services ?? this.services,
       addresses: addresses ?? this.addresses,
       slots: slots ?? this.slots,
+      categories: categories ?? this.categories,
+      servicePreferenceOptions:
+          servicePreferenceOptions ?? this.servicePreferenceOptions,
+      pickupPreferenceOptions:
+          pickupPreferenceOptions ?? this.pickupPreferenceOptions,
+      itemSearchQuery: itemSearchQuery ?? this.itemSearchQuery,
+      vatRate: vatRate ?? this.vatRate,
+      currencyCode: currencyCode ?? this.currencyCode,
     );
   }
 }
@@ -103,6 +186,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       ref.read(customerOrderBookingRepositoryProvider);
   CustomerSessionModel? get _session =>
       ref.read(customerSessionFlowProvider).session;
+
+  // ── Load ────────────────────────────────────────────────────────────────
 
   Future<void> load() async {
     AppLogger.info(
@@ -121,12 +206,21 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         services: bootstrap.services,
         addresses: bootstrap.addresses,
         slots: bootstrap.slots,
+        categories: bootstrap.categories,
+        servicePreferenceOptions: bootstrap.servicePreferences,
+        pickupPreferenceOptions: bootstrap.pickupPreferences,
+        vatRate: bootstrap.vatRate,
+        currencyCode: bootstrap.currencyCode,
         draft: state.draft.copyWith(
           address: state.draft.address ?? _defaultAddress(bootstrap.addresses),
         ),
       );
       AppLogger.info(
-        'booking_provider.load_succeeded services=${bootstrap.services.length} addresses=${bootstrap.addresses.length} slots=${bootstrap.slots.length}',
+        'booking_provider.load_succeeded '
+        'categories=${bootstrap.categories.length} '
+        'addresses=${bootstrap.addresses.length} '
+        'servicePrefs=${bootstrap.servicePreferences.length} '
+        'pickupPrefs=${bootstrap.pickupPreferences.length}',
       );
     } catch (error, stackTrace) {
       AppLogger.error(
@@ -136,14 +230,98 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       );
       state = state.copyWith(
         isLoading: false,
-        errorMessageKey: 'booking.errorBody',
+        errorMessageKey:
+            error is AppException ? error.messageKey : 'booking.errorBody',
       );
     }
   }
 
-  void chooseService(ServiceOptionModel value) {
+  // ── Step 1 — Item cart ──────────────────────────────────────────────────
+
+  void addItem(String itemId) {
+    final current = Map<String, int>.from(state.draft.cartItems);
+    current[itemId] = (current[itemId] ?? 0) + 1;
     state = state.copyWith(
-      draft: state.draft.copyWith(service: value),
+      draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
+    );
+  }
+
+  void removeItem(String itemId) {
+    final current = Map<String, int>.from(state.draft.cartItems);
+    final qty = (current[itemId] ?? 0) - 1;
+    if (qty <= 0) {
+      current.remove(itemId);
+    } else {
+      current[itemId] = qty;
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
+    );
+  }
+
+  void setItemQty(String itemId, int qty) {
+    final current = Map<String, int>.from(state.draft.cartItems);
+    if (qty <= 0) {
+      current.remove(itemId);
+    } else {
+      current[itemId] = qty;
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(cartItems: Map.unmodifiable(current)),
+    );
+  }
+
+  void setItemSearchQuery(String query) {
+    state = state.copyWith(itemSearchQuery: query);
+  }
+
+  // ── Step 2 — Preferences ────────────────────────────────────────────────
+
+  void toggleServicePreference(String id) {
+    final current = List<String>.from(state.draft.selectedServicePreferenceIds);
+    if (current.contains(id)) {
+      current.remove(id);
+    } else {
+      current.add(id);
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(
+        selectedServicePreferenceIds: List.unmodifiable(current),
+      ),
+    );
+  }
+
+  void togglePickupPreference(String id) {
+    final current = List<String>.from(state.draft.selectedPickupPreferenceIds);
+    if (current.contains(id)) {
+      current.remove(id);
+    } else {
+      current.add(id);
+    }
+    state = state.copyWith(
+      draft: state.draft.copyWith(
+        selectedPickupPreferenceIds: List.unmodifiable(current),
+      ),
+    );
+  }
+
+  // ── Step 3 — Schedule ───────────────────────────────────────────────────
+
+  void setIsPickupFromAddress(bool value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(isPickupFromAddress: value),
+    );
+  }
+
+  void setIsAsap(bool value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(isAsap: value),
+    );
+  }
+
+  void setScheduledAt(DateTime value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(scheduledAt: value),
     );
   }
 
@@ -153,8 +331,50 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     );
   }
 
-  void updateFulfillmentType(String value) {
-    state = state.copyWith(fulfillmentType: value);
+  Future<void> saveNewAddress(NewAddressInputModel input) async {
+    if (state.isSavingAddress) return;
+
+    AppLogger.info(
+        'booking_provider.save_address_started label=${input.label}');
+    state = state.copyWith(
+      isSavingAddress: true,
+      clearErrorMessage: true,
+    );
+    try {
+      final newAddress = await _repo.createAddress(input, session: _session);
+      final updatedAddresses = [...state.addresses, newAddress];
+      state = state.copyWith(
+        isSavingAddress: false,
+        addresses: updatedAddresses,
+        draft: state.draft.copyWith(
+          address: newAddress,
+          clearNewAddress: true,
+        ),
+      );
+      AppLogger.info(
+        'booking_provider.save_address_succeeded id=${newAddress.id}',
+      );
+    } catch (error, stackTrace) {
+      AppLogger.error(
+        'booking_provider.save_address_failed',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      state = state.copyWith(
+        isSavingAddress: false,
+        errorMessageKey: error is AppException
+            ? error.messageKey
+            : 'booking.addressSaveErrorBody',
+      );
+    }
+  }
+
+  // ── Legacy / compat ─────────────────────────────────────────────────────
+
+  void chooseService(ServiceOptionModel value) {
+    state = state.copyWith(
+      draft: state.draft.copyWith(service: value),
+    );
   }
 
   void chooseSlot(PickupSlotModel value) {
@@ -162,6 +382,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       draft: state.draft.copyWith(slot: value),
     );
   }
+
+  // ── Step 4 — Notes ──────────────────────────────────────────────────────
 
   void updateNotes(String value) {
     var next = value;
@@ -172,6 +394,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       draft: state.draft.copyWith(notes: next),
     );
   }
+
+  // ── Navigation ──────────────────────────────────────────────────────────
 
   void goNext() {
     if (state.stepIndex < 3) {
@@ -193,15 +417,20 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   bool canProceed() {
     switch (state.stepIndex) {
       case 0:
-        return state.draft.service != null;
+        return state.draft.cartItems.isNotEmpty;
       case 1:
-        return state.draft.address != null && state.fulfillmentType.isNotEmpty;
+        // Preferences are optional — always allow proceeding
+        return true;
       case 2:
-        return state.draft.slot != null;
+        if (!state.draft.isPickupFromAddress) return true;
+        if (state.draft.isAsap) return state.draft.address != null;
+        return state.draft.address != null && state.draft.scheduledAt != null;
       default:
         return true;
     }
   }
+
+  // ── Submit ───────────────────────────────────────────────────────────────
 
   Future<void> submit() async {
     if (!state.isBookingEnabled) {
@@ -218,7 +447,9 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
 
     AppLogger.info(
-      'booking_provider.submit_started step=${state.stepIndex} fulfillmentType=${state.fulfillmentType}',
+      'booking_provider.submit_started step=${state.stepIndex} '
+      'cartItems=${state.draft.cartItems.length} '
+      'isPickupFromAddress=${state.draft.isPickupFromAddress}',
     );
     state = state.copyWith(
       isSubmitting: true,
@@ -246,23 +477,22 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       );
       state = state.copyWith(
         isSubmitting: false,
-        errorMessageKey: 'booking.submitErrorBody',
+        errorMessageKey: error is AppException
+            ? error.messageKey
+            : 'booking.submitErrorBody',
       );
     }
   }
 
   void clearError() {
-    state = state.copyWith(
-      errorMessageKey: null,
-      clearErrorMessage: true,
-    );
+    state = state.copyWith(clearErrorMessage: true);
   }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
   AddressOptionModel? _defaultAddress(List<AddressOptionModel> addresses) {
     for (final address in addresses) {
-      if (address.isDefault) {
-        return address;
-      }
+      if (address.isDefault) return address;
     }
     return addresses.isNotEmpty ? addresses.first : null;
   }

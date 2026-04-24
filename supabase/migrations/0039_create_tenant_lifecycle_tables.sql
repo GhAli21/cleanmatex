@@ -149,8 +149,8 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns
                  WHERE table_name='org_tenants_mst' AND column_name='country_code') THEN
     ALTER TABLE org_tenants_mst
-    ADD COLUMN country_code VARCHAR(2) DEFAULT 'OM',
-    ADD COLUMN phone_country_code VARCHAR(5) DEFAULT '+968',
+    ADD COLUMN country_code VARCHAR(100),-- DEFAULT 'OM',
+    ADD COLUMN phone_country_code VARCHAR(5) DEFAULT '+1',
     ADD COLUMN date_format VARCHAR(20) DEFAULT 'DD/MM/YYYY',
     ADD COLUMN time_format VARCHAR(5) DEFAULT '24h',
     ADD COLUMN first_day_of_week INTEGER DEFAULT 6; -- Saturday for GCC

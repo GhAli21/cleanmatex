@@ -100,7 +100,8 @@ class AppLocalizations {
       'home.greetingGuest': 'Welcome, Guest',
       'home.bookNewOrderAction': 'Book a new order',
       'home.signOutConfirmTitle': 'Sign out?',
-      'home.signOutConfirmBody': 'You will need to sign in again to access your orders.',
+      'home.signOutConfirmBody':
+          'You will need to sign in again to access your orders.',
       'home.signOutConfirmAction': 'Sign out',
       'home.signOutCancelAction': 'Stay',
       'home.primaryAction': 'Track my orders',
@@ -221,6 +222,95 @@ class AppLocalizations {
       'booking.successBody':
           'Your order {count} is now in the queue. We will keep you updated on the next handoff.',
       'booking.viewOrdersAction': 'View my orders',
+      // Step titles and descriptions
+      'booking.step1Title': 'Choose your items',
+      'booking.step1Description':
+          'Add laundry items to your order. Use the search to find specific pieces, then set quantities before continuing.',
+      'booking.step2Title': 'Service and pickup preferences',
+      'booking.step2Description':
+          'Tailor the care and handling of your order. All preferences are optional.',
+      'booking.step3Title': 'Scheduling and pickup',
+      'booking.step3Description':
+          'Tell us how you would like to hand off your order and when we should expect it.',
+      'booking.step4Title': 'Review your order',
+      'booking.step4Description':
+          'Check all selections carefully before confirming. Pricing is estimated — the laundry confirms the final total.',
+      // Item catalog
+      'booking.searchHint': 'Search items',
+      'booking.searchClearLabel': 'Clear search',
+      'booking.itemsEmptyTitle': 'No items are available',
+      'booking.itemsEmptyBody':
+          'This laundry has not published a catalog yet. Contact support if this is unexpected.',
+      'booking.searchEmptyTitle': 'No items match your search',
+      'booking.searchEmptyBody':
+          'Try a different keyword or clear the search to see all categories.',
+      'booking.cartSummaryLabel': '{count} item(s) · Est. {price}',
+      'booking.unitPerPiece': 'per piece',
+      'booking.unitPerKg': 'per kg',
+      'booking.addItemLabel': 'Add',
+      'booking.removeItemLabel': 'Remove',
+      // Preferences
+      'booking.servicePrefsTitle': 'Service preferences',
+      'booking.pickupPrefsTitle': 'Pickup preferences',
+      'booking.noServicePrefs':
+          'No service preferences are configured for this laundry.',
+      'booking.noPickupPrefs':
+          'No pickup preferences are configured for this laundry.',
+      // Schedule
+      'booking.bringInOption': 'I will bring it to the laundry',
+      'booking.bringInBody':
+          'Drop your items off at the branch. No driver visit needed.',
+      'booking.pickupFromAddressOption': 'Pick up from my address',
+      'booking.pickupFromAddressBody':
+          'A driver will collect your items at your selected address.',
+      'booking.asapOption': 'As soon as possible',
+      'booking.asapBody':
+          'We will coordinate with the nearest available driver.',
+      'booking.scheduledOption': 'Choose a date and time',
+      'booking.scheduledBody':
+          'Pick the exact window that works for your schedule.',
+      'booking.scheduledAtLabel': 'Pickup date and time',
+      'booking.scheduledAtPlaceholder': 'Tap to choose date and time',
+      'booking.savedAddressesTitle': 'Your saved addresses',
+      'booking.addNewAddressAction': 'Add a new address',
+      'booking.addressLabelField': 'Address label',
+      'booking.addressStreetField': 'Street',
+      'booking.addressAreaField': 'Area',
+      'booking.addressCityField': 'City',
+      'booking.saveAddressAction': 'Save address',
+      'booking.savingAddressLabel': 'Saving address...',
+      'booking.addressSaveErrorBody':
+          'We could not save the new address. Please try again.',
+      'booking.addressValidationError':
+          'Check the address details and try saving again.',
+      'booking.addressRequiredError':
+          'Select or add an address before requesting pickup.',
+      'booking.scheduleRequiredError':
+          'Choose a pickup date and time before continuing.',
+      'booking.quantityInvalidError':
+          'Reduce the selected item quantity and try again.',
+      'booking.itemUnavailableError':
+          'One or more selected items are no longer available. Refresh and try again.',
+      'booking.addressUnavailableError':
+          'The selected address is no longer available. Choose another address.',
+      'booking.branchUnavailableError':
+          'This laundry does not have an active branch available for booking.',
+      'booking.preferenceUnavailableError':
+          'One or more selected preferences are no longer available. Refresh and try again.',
+      // Review step
+      'booking.reviewItemsTitle': 'Selected items',
+      'booking.reviewPrefsTitle': 'Preferences',
+      'booking.reviewScheduleTitle': 'Pickup / handoff',
+      'booking.reviewBringIn': 'Bringing in to laundry',
+      'booking.reviewAsap': 'As soon as possible',
+      'booking.reviewScheduled': 'Scheduled: {datetime}',
+      'booking.reviewAddressFor': 'Address: {address}',
+      'booking.reviewNoneSelected': 'None selected',
+      'booking.reviewEstSubtotal': 'Estimated subtotal',
+      'booking.reviewVat': 'VAT ({rate}%)',
+      'booking.reviewEstTotal': 'Estimated total',
+      'booking.reviewVatNote':
+          'VAT and final pricing are confirmed by the laundry after receiving the order.',
       'auth.passwordLoginTitle': 'Sign in with password',
       'auth.passwordLabel': 'Password',
       'auth.passwordHint': 'Enter your password',
@@ -248,8 +338,7 @@ class AppLocalizations {
           'We could not load your laundries right now. Please try again.',
       'tenant.listErrorWithPhone':
           'We could not load laundries for {count} right now. Please try again.',
-      'tenant.phoneNoMatches':
-          'No laundries were found for {count}.',
+      'tenant.phoneNoMatches': 'No laundries were found for {count}.',
       'tenant.scanQrAction': 'Scan QR code',
       'tenant.enterCodeAction': 'Enter laundry code',
       'tenant.codeHint': 'e.g. cleanwave',
@@ -323,7 +412,8 @@ class AppLocalizations {
           'تابع الطلبات النشطة، واعرف المستجدات المهمة بسرعة، وانتقل إلى خطوتك التالية بسهولة.',
       'home.activeOrdersTitle': 'الطلبات النشطة',
       'home.activeOrdersCount': '{count} طلب نشط قيد التنفيذ',
-      'home.activeOrdersBody': 'لا توجد طلبات نشطة الآن. احجز طلباً جديداً للبدء.',
+      'home.activeOrdersBody':
+          'لا توجد طلبات نشطة الآن. احجز طلباً جديداً للبدء.',
       'home.statusTitle': 'حالة الخدمة',
       'home.statusBody':
           'أصبحت الأساسات المشتركة لتطبيقات الجوال جاهزة، ويجري الآن تطوير واجهة العميل نحو الرحلات الفعلية.',
@@ -331,7 +421,8 @@ class AppLocalizations {
       'home.greetingGuest': 'مرحباً، زائر',
       'home.bookNewOrderAction': 'احجز طلباً جديداً',
       'home.signOutConfirmTitle': 'تسجيل الخروج؟',
-      'home.signOutConfirmBody': 'ستحتاج إلى تسجيل الدخول مجدداً للوصول إلى طلباتك.',
+      'home.signOutConfirmBody':
+          'ستحتاج إلى تسجيل الدخول مجدداً للوصول إلى طلباتك.',
       'home.signOutConfirmAction': 'تسجيل الخروج',
       'home.signOutCancelAction': 'البقاء',
       'home.primaryAction': 'تتبع طلباتي',
@@ -447,6 +538,87 @@ class AppLocalizations {
       'booking.successBody':
           'تم إدخال طلبك {count} في قائمة التنفيذ. سنبقيك على اطلاع بالخطوة التالية.',
       'booking.viewOrdersAction': 'عرض طلباتي',
+      // عناوين الخطوات
+      'booking.step1Title': 'اختر القطع والمقاطع',
+      'booking.step1Description':
+          'أضف قطع الغسيل إلى طلبك. استخدم البحث للعثور على قطع محددة، وحدد الكميات قبل المتابعة.',
+      'booking.step2Title': 'تفضيلات الخدمة والاستلام',
+      'booking.step2Description':
+          'خصّص طريقة العناية بطلبك وتسليمه. جميع التفضيلات اختيارية.',
+      'booking.step3Title': 'الجدولة والاستلام',
+      'booking.step3Description':
+          'أخبرنا كيف تريد تسليم طلبك ومتى يمكننا توقعه.',
+      'booking.step4Title': 'مراجعة الطلب',
+      'booking.step4Description':
+          'تحقق من جميع الاختيارات بعناية قبل التأكيد. التسعير تقديري — تؤكد المغسلة الإجمالي النهائي.',
+      // كتالوج القطع
+      'booking.searchHint': 'بحث عن القطع',
+      'booking.searchClearLabel': 'مسح البحث',
+      'booking.itemsEmptyTitle': 'لا توجد قطع متاحة',
+      'booking.itemsEmptyBody':
+          'لم تنشر هذه المغسلة كتالوجاً بعد. تواصل مع الدعم إذا كان هذا غير متوقع.',
+      'booking.searchEmptyTitle': 'لا توجد نتائج مطابقة',
+      'booking.searchEmptyBody':
+          'جرب كلمة مختلفة أو امسح البحث لعرض جميع الفئات.',
+      'booking.cartSummaryLabel': '{count} قطعة · تقديري {price}',
+      'booking.unitPerPiece': 'لكل قطعة',
+      'booking.unitPerKg': 'لكل كيلوغرام',
+      'booking.addItemLabel': 'إضافة',
+      'booking.removeItemLabel': 'إزالة',
+      // التفضيلات
+      'booking.servicePrefsTitle': 'تفضيلات الخدمة',
+      'booking.pickupPrefsTitle': 'تفضيلات الاستلام',
+      'booking.noServicePrefs': 'لا توجد تفضيلات خدمة مضبوطة لهذه المغسلة.',
+      'booking.noPickupPrefs': 'لا توجد تفضيلات استلام مضبوطة لهذه المغسلة.',
+      // الجدولة
+      'booking.bringInOption': 'سأحضرها إلى المغسلة',
+      'booking.bringInBody': 'أحضر قطعك إلى الفرع. لا حاجة لزيارة سائق.',
+      'booking.pickupFromAddressOption': 'استلام من عنواني',
+      'booking.pickupFromAddressBody':
+          'سيقوم سائق باستلام قطعك من عنوانك المحدد.',
+      'booking.asapOption': 'في أقرب وقت ممكن',
+      'booking.asapBody': 'سنسعى لتنسيق مع أقرب سائق متاح.',
+      'booking.scheduledOption': 'اختر تاريخاً ووقتاً',
+      'booking.scheduledBody': 'اختر الموعد المناسب لجدولك.',
+      'booking.scheduledAtLabel': 'تاريخ ووقت الاستلام',
+      'booking.scheduledAtPlaceholder': 'اضغط لاختيار التاريخ والوقت',
+      'booking.savedAddressesTitle': 'عناوينك المحفوظة',
+      'booking.addNewAddressAction': 'إضافة عنوان جديد',
+      'booking.addressLabelField': 'اسم العنوان',
+      'booking.addressStreetField': 'الشارع',
+      'booking.addressAreaField': 'المنطقة',
+      'booking.addressCityField': 'المدينة',
+      'booking.saveAddressAction': 'حفظ العنوان',
+      'booking.savingAddressLabel': 'يتم حفظ العنوان...',
+      'booking.addressSaveErrorBody': 'تعذر حفظ العنوان الجديد. حاول مرة أخرى.',
+      'booking.addressValidationError':
+          'تحقق من تفاصيل العنوان وحاول الحفظ مرة أخرى.',
+      'booking.addressRequiredError':
+          'اختر عنواناً أو أضف عنواناً قبل طلب الاستلام.',
+      'booking.scheduleRequiredError': 'اختر تاريخ ووقت الاستلام قبل المتابعة.',
+      'booking.quantityInvalidError': 'قلل كمية القطع المختارة وحاول مرة أخرى.',
+      'booking.itemUnavailableError':
+          'بعض القطع المختارة لم تعد متاحة. حدّث البيانات وحاول مرة أخرى.',
+      'booking.addressUnavailableError':
+          'العنوان المختار لم يعد متاحاً. اختر عنواناً آخر.',
+      'booking.branchUnavailableError':
+          'لا يوجد فرع نشط متاح للحجز لهذه المغسلة.',
+      'booking.preferenceUnavailableError':
+          'بعض التفضيلات المختارة لم تعد متاحة. حدّث البيانات وحاول مرة أخرى.',
+      // خطوة المراجعة
+      'booking.reviewItemsTitle': 'القطع المختارة',
+      'booking.reviewPrefsTitle': 'التفضيلات',
+      'booking.reviewScheduleTitle': 'الاستلام / التسليم',
+      'booking.reviewBringIn': 'إحضار إلى المغسلة',
+      'booking.reviewAsap': 'في أقرب وقت ممكن',
+      'booking.reviewScheduled': 'مجدول: {datetime}',
+      'booking.reviewAddressFor': 'العنوان: {address}',
+      'booking.reviewNoneSelected': 'لم يُختر شيء',
+      'booking.reviewEstSubtotal': 'المجموع التقديري الجزئي',
+      'booking.reviewVat': 'ضريبة القيمة المضافة ({rate}%)',
+      'booking.reviewEstTotal': 'الإجمالي التقديري',
+      'booking.reviewVatNote':
+          'تؤكد المغسلة ضريبة القيمة المضافة والتسعير النهائي بعد استلام الطلب.',
       'auth.passwordLoginTitle': 'الدخول بكلمة المرور',
       'auth.passwordLabel': 'كلمة المرور',
       'auth.passwordHint': 'أدخل كلمة المرور',
@@ -474,8 +646,7 @@ class AppLocalizations {
           'تعذر تحميل المغاسل الخاصة بك حالياً. يرجى المحاولة مرة أخرى.',
       'tenant.listErrorWithPhone':
           'تعذر تحميل المغاسل للرقم {count} حالياً. يرجى المحاولة مرة أخرى.',
-      'tenant.phoneNoMatches':
-          'لم يتم العثور على مغاسل للرقم {count}.',
+      'tenant.phoneNoMatches': 'لم يتم العثور على مغاسل للرقم {count}.',
       'tenant.scanQrAction': 'مسح رمز QR',
       'tenant.enterCodeAction': 'أدخل رمز المغسلة',
       'tenant.codeHint': 'مثال: cleanwave',
@@ -497,6 +668,16 @@ class AppLocalizations {
 
   String textWithArg(String key, String value) {
     return text(key).replaceAll('{count}', value);
+  }
+
+  /// Replaces all named placeholders in [key]'s value using [args].
+  /// Example: textWithArgs('booking.reviewVat', {'rate': '5'})
+  String textWithArgs(String key, Map<String, String> args) {
+    var result = text(key);
+    for (final entry in args.entries) {
+      result = result.replaceAll('{${entry.key}}', entry.value);
+    }
+    return result;
   }
 
   TextDirection get textDirection {

@@ -34,6 +34,7 @@ export interface CreateOrderPieceData {
   notes?: string;
   rackLocation?: string;
   metadata?: Record<string, any>;
+  packingPrefCode?: string;
   /** Piece-level service prefs (Enterprise-gated) */
   servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number }>;
   /** Piece-level conditions (stains, damage, special) */
@@ -269,6 +270,11 @@ export class OrderService {
         paymentTypeCode,
         currencyCode: passedCurrencyCode,
         currencyExRate: passedCurrencyExRate,
+        isDefaultCustomer,
+        customerMobile,
+        customerEmail,
+        customerName,
+        customerDetails,
       } = params;
 
       // Determine initial status based on Retail vs Quick Drop vs Normal
@@ -421,7 +427,10 @@ export class OrderService {
         current_stage: v_current_stage,
         priority: priority || 'normal',
         priority_multiplier: express ? 0.5 : 1.0,
-        total_items: items.length > 0 ? items.length : quickDropQuantity || 0,
+        total_items:
+          items.length > 0
+            ? items.reduce((sum, item) => sum + item.quantity, 0)
+            : quickDropQuantity || 0,
         subtotal,
         discount,
         tax,
@@ -454,11 +463,24 @@ export class OrderService {
       if (giftCardDiscountAmount != null) insertPayload.gift_card_discount_amount = giftCardDiscountAmount;
       if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
       if (params.paymentNotes != null) insertPayload.payment_notes = params.paymentNotes;
+      if (isDefaultCustomer != null) insertPayload.is_default_customer = isDefaultCustomer;
+      if (customerMobile != null && customerMobile !== '') {
+        insertPayload.customer_mobile_number = customerMobile;
+      }
+      if (customerEmail != null && customerEmail !== '') {
+        insertPayload.customer_email = customerEmail;
+      }
+      if (customerName != null && customerName !== '') {
+        insertPayload.customer_name = customerName;
+      }
+      if (customerDetails != null && Object.keys(customerDetails).length > 0) {
+        insertPayload.customer_details = customerDetails;
+      }
 
       // Create order
       const { data: order, error: orderError } = await supabase
         .from('org_orders_mst')
-        .insert(insertPayload)
+        .insert(insertPayload as any)
         .select()
         .single();
 
@@ -501,8 +523,21 @@ export class OrderService {
           .select();
 
         if (itemsError) {
-          console.error('Failed to create order items:', itemsError);
-          // Continue anyway - items can be added later in preparation
+          logger.error('Failed to create order items', new Error(itemsError.message), {
+            tenantId,
+            orderId: order.id,
+            feature: 'orders',
+            action: 'create_order',
+          });
+          await supabase
+            .from('org_orders_mst')
+            .delete()
+            .eq('tenant_org_id', tenantId)
+            .eq('id', order.id);
+          return {
+            success: false,
+            error: 'Failed to create order items',
+          };
         } else if (createdItems && createdItems.length > 0) {
           // Insert service preferences for items that have them
           const servicePrefsToInsert: Array<{
@@ -545,13 +580,21 @@ export class OrderService {
               .from('org_order_preferences_dtl')
               .insert(servicePrefsToInsert);
             if (prefsError) {
-              logger.warn('Failed to insert service preferences for order items', {
+              logger.error('Failed to insert service preferences for order items', new Error(prefsError.message), {
                 tenantId,
                 orderId: order.id,
-                error: prefsError.message,
                 feature: 'orders',
                 action: 'create_order',
               });
+              await supabase
+                .from('org_orders_mst')
+                .delete()
+                .eq('tenant_org_id', tenantId)
+                .eq('id', order.id);
+              return {
+                success: false,
+                error: 'Failed to create order preferences',
+              };
             }
           }
 
@@ -938,7 +981,7 @@ export class OrderService {
         ...(promoDiscountAmount != null && { promo_discount_amount: promoDiscountAmount }),
         ...(giftCardDiscountAmount != null && { gift_card_discount_amount: giftCardDiscountAmount }),
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
-      },
+      } as any,
     });
 
     if (items.length > 0) {
@@ -1844,8 +1887,8 @@ export class OrderService {
         let discount = existingOrder.discount;
         let tax = existingOrder.tax;
         let total = existingOrder.total;
-        let vatRate = existingOrder.vat_rate;
-        let vatAmount = existingOrder.vat_amount;
+        let vatRate = (existingOrder as any).vat_rate;
+        let vatAmount = (existingOrder as any).vat_amount;
 
         if ((items && items.length > 0) || recalculate) {
           if (items && items.length > 0) {
@@ -1916,9 +1959,9 @@ export class OrderService {
                 notes: piece.notes || item.notes,
                 rackLocation: piece.rackLocation,
                 metadata: piece.metadata || {},
-                packingPrefCode: piece.packingPrefCode,
-                servicePrefs: piece.servicePrefs,
-                conditions: piece.conditions,
+                packingPrefCode: (piece as any).packingPrefCode,
+                servicePrefs: (piece as any).servicePrefs,
+                conditions: (piece as any).conditions,
               }))
               : undefined;
 
@@ -2029,7 +2072,7 @@ export class OrderService {
           customerNotes: updatedOrderWithItems.customer_notes,
           paymentNotes: updatedOrderWithItems.payment_notes,
           readyByAt: readyByAtVal,
-          express: updatedOrderWithItems.priority_multiplier === 0.5,
+          express: Number(updatedOrderWithItems.priority_multiplier) === 0.5,
           subtotal: updatedOrderWithItems.subtotal,
           discount: updatedOrderWithItems.discount,
           tax: updatedOrderWithItems.tax,

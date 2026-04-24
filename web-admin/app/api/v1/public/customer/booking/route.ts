@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 import { z } from 'zod';
 
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -6,15 +7,27 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { canAccess } from '@/lib/services/feature-flags.service';
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { OrderService } from '@/lib/services/order-service';
+import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 
+const bookingItemSchema = z.object({
+  itemId: z.string().uuid(),
+  qty: z.coerce.number().int().min(1).max(99),
+});
+
 const submitBookingSchema = z.object({
   tenantId: z.string().uuid(),
-  serviceId: z.string().uuid(),
-  addressId: z.string().uuid(),
-  slotId: z.string().min(1),
-  fulfillmentType: z.enum(['pickup', 'delivery']),
+  serviceId: z.string().uuid().optional().nullable(),
+  addressId: z.string().uuid().optional().nullable(),
+  slotId: z.string().min(1).optional().nullable(),
+  fulfillmentType: z.enum(['pickup', 'delivery', 'bring_in']),
+  items: z.array(bookingItemSchema).min(1).max(100),
+  servicePreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
+  pickupPreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
+  isPickupFromAddress: z.boolean().optional().default(false),
+  isAsap: z.boolean().optional().default(true),
+  scheduledAt: z.string().datetime().optional().nullable(),
   notes: z.string().max(500).optional().default(''),
 });
 
@@ -24,6 +37,25 @@ interface BookingSlot {
   label2: string;
   startAt: string;
   endAt: string;
+}
+
+type BookingSubmitBody = z.infer<typeof submitBookingSchema>;
+
+function jsonError(
+  errorCode: string,
+  message: string,
+  status: number,
+  details?: unknown,
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: message,
+      errorCode,
+      details,
+    },
+    { status },
+  );
 }
 
 function extractBearerToken(request: NextRequest): string | null {
@@ -105,6 +137,97 @@ function buildServiceDescription(params: {
   };
 }
 
+function normalizeProductUnit(unit: string | null): string {
+  const normalized = (unit ?? '').trim().toLowerCase();
+  return normalized.length > 0 ? normalized : 'per_piece';
+}
+
+function buildCatalogCategories(
+  products: Array<{
+    id: string;
+    service_category_code: string | null;
+    product_group1: string | null;
+    product_name: string | null;
+    product_name2: string | null;
+    hint_text: string | null;
+    default_sell_price: number | string | null;
+    product_unit: string | null;
+    product_image: string | null;
+  }>,
+) {
+  const grouped = new Map<
+    string,
+    {
+      id: string;
+      name: string;
+      name2: string | null;
+      items: Array<Record<string, unknown>>;
+    }
+  >();
+
+  for (const product of products) {
+    const categoryId =
+      product.service_category_code ?? product.product_group1 ?? 'general';
+    const categoryName = categoryId.replaceAll('_', ' ').toLowerCase();
+    const category = grouped.get(categoryId) ?? {
+      id: categoryId,
+      name: `${categoryName[0]?.toUpperCase() ?? ''}${categoryName.slice(1)}`,
+      name2: null,
+      items: [],
+    };
+
+    category.items.push({
+      id: product.id,
+      categoryId,
+      name: product.product_name ?? 'Service item',
+      name2: product.product_name2 ?? null,
+      description: product.hint_text ?? null,
+      description2: null,
+      unitPrice: Number(product.default_sell_price ?? 0),
+      unit: normalizeProductUnit(product.product_unit),
+      imageUrl: product.product_image ?? null,
+    });
+    grouped.set(categoryId, category);
+  }
+
+  return Array.from(grouped.values());
+}
+
+function buildBookingSignature(params: {
+  tenantId: string;
+  customerId: string;
+  items: BookingSubmitBody['items'];
+  isPickupFromAddress: boolean;
+  isAsap: boolean;
+  scheduledAt?: string | null;
+  addressId?: string | null;
+  fulfillmentType: string;
+  servicePreferenceIds: string[];
+  pickupPreferenceIds: string[];
+  notes: string;
+}) {
+  const normalizedItems = [...params.items]
+    .sort((a, b) => a.itemId.localeCompare(b.itemId))
+    .map((item) => `${item.itemId}:${item.qty}`)
+    .join('|');
+  return createHash('sha256')
+    .update(
+      [
+        params.tenantId,
+        params.customerId,
+        normalizedItems,
+        params.isPickupFromAddress ? 'pickup' : 'dropoff',
+        params.fulfillmentType,
+        params.isAsap ? 'asap' : params.scheduledAt ?? '',
+        params.addressId ?? '',
+        [...params.servicePreferenceIds].sort().join('|'),
+        [...params.pickupPreferenceIds].sort().join('|'),
+        params.notes.trim(),
+      ].join('::'),
+    )
+    .digest('hex');
+}
+
 /**
  * Returns booking bootstrap payload (services, addresses, slots) for mobile customers.
  *
@@ -148,6 +271,11 @@ export async function GET(request: NextRequest) {
             services: [],
             addresses: [],
             slots: [],
+            categories: [],
+            servicePreferences: [],
+            pickupPreferences: [],
+            vatRate: 0,
+            currencyCode: null,
           },
         },
         { status: 200 },
@@ -156,19 +284,29 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createAdminSupabaseClient();
     const tenantSettings = createTenantSettingsService(supabase);
-    const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
+    const [moneyConfig, vatSetting, servicePreferences, pickupPreferences] =
+      await Promise.all([
+        tenantSettings.getCurrencyConfig(tenantId),
+        tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE'),
+        PreferenceCatalogService.getServicePreferences(supabase, tenantId),
+        PreferenceCatalogService.getPackingPreferences(supabase, tenantId),
+      ]);
+    const vatRate =
+      typeof vatSetting === 'number'
+        ? vatSetting
+        : Number.parseFloat(String(vatSetting ?? '0')) || 0;
 
     const [{ data: services, error: servicesError }, { data: addresses, error: addressesError }] =
       await Promise.all([
         supabase
           .from('org_product_data_mst')
           .select(
-            'id, tenant_org_id, service_category_code, product_name, product_name2, default_sell_price, turnaround_hh',
+            'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, product_image, turnaround_hh',
           )
           .eq('tenant_org_id', tenantId)
           .eq('is_active', true)
           .order('product_order', { ascending: true })
-          .limit(8),
+          .limit(200),
         supabase
           .from('org_customer_addresses')
           .select('id, label, street, area, city, building, floor, is_default')
@@ -198,6 +336,8 @@ export async function GET(request: NextRequest) {
     const response = {
       bookingEnabled: true,
       disabledReasonKey: null,
+      currencyCode: moneyConfig.currencyCode,
+      vatRate,
       services: (services ?? []).map((service) => {
         const price = Number(service.default_sell_price ?? 0);
         const description = buildServiceDescription({
@@ -223,11 +363,27 @@ export async function GET(request: NextRequest) {
           }),
         };
       }),
+      categories: buildCatalogCategories(services ?? []),
+      servicePreferences: servicePreferences.map((preference) => ({
+        id: preference.code,
+        label: preference.name,
+        label2: preference.name2 ?? null,
+        extraPrice: Number(preference.default_extra_price ?? 0),
+      })),
+      pickupPreferences: pickupPreferences.map((preference) => ({
+        id: preference.code,
+        label: preference.name,
+        label2: preference.name2 ?? null,
+        extraPrice: 0,
+      })),
       addresses: (addresses ?? []).map((address) => ({
         id: address.id,
         label: address.label ?? 'Address',
         description: buildAddressDescription(address),
         isDefault: address.is_default === true,
+        street: address.street,
+        area: address.area,
+        city: address.city,
       })),
       slots: buildSlotWindows(),
     };
@@ -250,7 +406,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
+        error: 'Internal server error',
+        errorCode: 'booking_bootstrap_failed',
       },
       { status: 500 },
     );
@@ -268,13 +425,30 @@ export async function POST(request: NextRequest) {
 
   try {
     const verificationToken = extractBearerToken(request);
-    const body = submitBookingSchema.parse(await request.json());
+    const rawBody = await request.json().catch(() => null);
+    const parsedBody = submitBookingSchema.safeParse(rawBody);
+
+    if (!parsedBody.success) {
+      logger.warn('Public customer booking submit rejected by validation', {
+        feature: 'public_customer_booking',
+        action: 'submit_validate',
+        issues: parsedBody.error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          code: issue.code,
+        })),
+      });
+      return jsonError(
+        'booking_validation_failed',
+        'Booking request is invalid',
+        400,
+        parsedBody.error.flatten(),
+      );
+    }
+
+    const body = parsedBody.data;
 
     if (!verificationToken) {
-      return NextResponse.json(
-        { success: false, error: 'Bearer token is required' },
-        { status: 400 },
-      );
+      return jsonError('booking_missing_token', 'Bearer token is required', 400);
     }
 
     const session = await resolveCustomerMobileSession({
@@ -283,50 +457,82 @@ export async function POST(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized customer session' },
-        { status: 401 },
+      return jsonError(
+        'booking_unauthorized',
+        'Unauthorized customer session',
+        401,
       );
     }
 
     const bookingEnabled = await canAccess(body.tenantId, 'online_booking');
     if (!bookingEnabled) {
-      return NextResponse.json(
-        { success: false, error: 'Online booking is not enabled for this tenant' },
-        { status: 403 },
+      return jsonError(
+        'booking_disabled',
+        'Online booking is not enabled for this tenant',
+        403,
       );
     }
 
     const supabase = await createAdminSupabaseClient();
-    const bookingSlots = buildSlotWindows();
-    const selectedSlot = bookingSlots.find((slot) => slot.id == body.slotId);
+    const requestedItems = new Map<string, number>();
+    for (const item of body.items) {
+      requestedItems.set(item.itemId, (requestedItems.get(item.itemId) ?? 0) + item.qty);
+    }
+    const hasExcessiveQuantity = Array.from(requestedItems.values()).some(
+      (quantity) => quantity > 99,
+    );
+    if (hasExcessiveQuantity) {
+      return jsonError(
+        'booking_quantity_invalid',
+        'Selected item quantity is too high',
+        400,
+      );
+    }
+    const requestedItemIds = Array.from(requestedItems.keys());
+    const requiresAddress = body.isPickupFromAddress;
 
-    if (!selectedSlot) {
-      return NextResponse.json(
-        { success: false, error: 'Selected slot is not available' },
-        { status: 400 },
+    if (requiresAddress && !body.addressId) {
+      return jsonError(
+        'booking_address_required',
+        'Address is required for pickup from address',
+        400,
       );
     }
 
-    const [{ data: service, error: serviceError }, { data: address, error: addressError }, { data: branch, error: branchError }] =
+    if (requiresAddress && !body.isAsap && !body.scheduledAt) {
+      return jsonError(
+        'booking_schedule_required',
+        'Scheduled pickup time is required',
+        400,
+      );
+    }
+
+    const [
+      { data: products, error: productsError },
+      { data: address, error: addressError },
+      { data: branch, error: branchError },
+      servicePreferences,
+      pickupPreferences,
+    ] =
       await Promise.all([
         supabase
           .from('org_product_data_mst')
           .select(
-            'id, tenant_org_id, service_category_code, product_name, product_name2, default_sell_price',
+            'id, tenant_org_id, service_category_code, product_name, product_name2, default_sell_price, default_packing_pref',
           )
           .eq('tenant_org_id', body.tenantId)
-          .eq('id', body.serviceId)
           .eq('is_active', true)
-          .single(),
-        supabase
-          .from('org_customer_addresses')
-          .select('id, label, street, area, city, building, floor')
-          .eq('tenant_org_id', body.tenantId)
-          .eq('id', body.addressId)
-          .eq('customer_id', session.customerId)
-          .eq('is_active', true)
-          .single(),
+          .in('id', requestedItemIds),
+        requiresAddress
+          ? supabase
+              .from('org_customer_addresses')
+              .select('id, label, street, area, city, building, floor')
+              .eq('tenant_org_id', body.tenantId)
+              .eq('id', body.addressId!)
+              .eq('customer_id', session.customerId)
+              .eq('is_active', true)
+              .single()
+          : Promise.resolve({ data: null, error: null }),
         supabase
           .from('org_branches_mst')
           .select('id')
@@ -335,74 +541,204 @@ export async function POST(request: NextRequest) {
           .order('is_main', { ascending: false })
           .limit(1)
           .single(),
+        PreferenceCatalogService.getServicePreferences(supabase, body.tenantId),
+        PreferenceCatalogService.getPackingPreferences(supabase, body.tenantId),
       ]);
 
-    if (serviceError || !service) {
-      return NextResponse.json(
-        { success: false, error: 'Selected service is not available' },
-        { status: 404 },
+    if (productsError || !products || products.length !== requestedItemIds.length) {
+      return jsonError(
+        'booking_item_unavailable',
+        'One or more selected items are not available',
+        400,
       );
     }
 
-    if (addressError || !address) {
-      return NextResponse.json(
-        { success: false, error: 'Selected address is not available' },
-        { status: 404 },
+    if (requiresAddress && (addressError || !address)) {
+      return jsonError(
+        'booking_address_unavailable',
+        'Selected address is not available',
+        400,
       );
     }
 
     if (branchError || !branch) {
-      return NextResponse.json(
-        { success: false, error: 'No active branch is available for booking' },
-        { status: 404 },
+      return jsonError(
+        'booking_branch_unavailable',
+        'No active branch is available for booking',
+        400,
       );
     }
 
-    const price = Number(service.default_sell_price ?? 0);
-    const addressDescription = buildAddressDescription(address);
-    const orderTypeId = body.fulfillmentType === 'delivery' ? 'DELIVERY' : 'PICKUP';
+    const servicePreferenceMap = new Map<string, (typeof servicePreferences)[number]>(
+      servicePreferences.map((preference) => [preference.code, preference]),
+    );
+    const invalidServicePreferenceIds = body.servicePreferenceIds.filter(
+      (id) => !servicePreferenceMap.has(id),
+    );
+    if (invalidServicePreferenceIds.length > 0) {
+      return jsonError(
+        'booking_preference_unavailable',
+        'One or more selected preferences are not available',
+        400,
+      );
+    }
+
+    const pickupPreferenceCodes = new Set<string>(
+      pickupPreferences.map((preference) => preference.code),
+    );
+    const invalidPickupPreferenceIds = body.pickupPreferenceIds.filter(
+      (id) => !pickupPreferenceCodes.has(id),
+    );
+    if (invalidPickupPreferenceIds.length > 0) {
+      return jsonError(
+        'booking_preference_unavailable',
+        'One or more selected preferences are not available',
+        400,
+      );
+    }
+
+    const tenantSettings = createTenantSettingsService(supabase);
+    const [moneyConfig, vatSetting] = await Promise.all([
+      tenantSettings.getCurrencyConfig(body.tenantId, branch.id, session.customerId),
+      tenantSettings.getSettingValue(body.tenantId, 'TENANT_VAT_RATE', branch.id, session.customerId),
+    ]);
+    const vatRate =
+      typeof vatSetting === 'number'
+        ? vatSetting
+        : Number.parseFloat(String(vatSetting ?? '0')) || 0;
+    const orderTypeId =
+      body.fulfillmentType === 'delivery'
+        ? 'DELIVERY'
+        : body.fulfillmentType === 'pickup'
+          ? 'PICKUP'
+          : 'POS';
     const paymentTypeCode =
       body.fulfillmentType === 'delivery' ? 'PAY_ON_DELIVERY' : 'PAY_ON_COLLECTION';
+    const addressDescription = address ? buildAddressDescription(address) : null;
+    const selectedServicePrefs = body.servicePreferenceIds.map((id) => {
+      const preference = servicePreferenceMap.get(id)!;
+      return {
+        preference_code: preference.code,
+        source: 'customer_mobile_app',
+        extra_price: Number(preference.default_extra_price ?? 0),
+      };
+    });
+    const preferredPackingCode = body.pickupPreferenceIds[0] ?? null;
+    const items = products.map((product) => {
+      const quantity = requestedItems.get(product.id) ?? 0;
+      const price = Number(product.default_sell_price ?? 0);
+      const servicePrefCharge = selectedServicePrefs.reduce(
+        (sum, preference) => sum + preference.extra_price * quantity,
+        0,
+      );
+      return {
+        productId: product.id,
+        productName: product.product_name ?? null,
+        productName2: product.product_name2 ?? null,
+        quantity,
+        pricePerUnit: price,
+        totalPrice: price * quantity,
+        serviceCategoryCode: product.service_category_code ?? undefined,
+        servicePrefs: selectedServicePrefs,
+        servicePrefCharge,
+        packingPrefCode: preferredPackingCode ?? product.default_packing_pref ?? undefined,
+        packingPrefSource: preferredPackingCode ? 'customer_mobile_app' : undefined,
+      };
+    });
+    const subtotal = items.reduce(
+      (sum, item) => sum + item.totalPrice + item.servicePrefCharge,
+      0,
+    );
+    const vatAmount = subtotal * vatRate;
+    const total = subtotal + vatAmount;
+    const bookingSignature = buildBookingSignature({
+      tenantId: body.tenantId,
+      customerId: session.customerId,
+      items: body.items,
+      isPickupFromAddress: body.isPickupFromAddress,
+      isAsap: body.isAsap,
+      scheduledAt: body.scheduledAt,
+      addressId: body.addressId,
+      fulfillmentType: body.fulfillmentType,
+      servicePreferenceIds: body.servicePreferenceIds,
+      pickupPreferenceIds: body.pickupPreferenceIds,
+      notes: body.notes,
+    });
+    const duplicateSince = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: duplicateOrder } = await supabase
+      .from('org_orders_mst')
+      .select('id, order_no, ready_by_at_new, ready_by')
+      .eq('tenant_org_id', body.tenantId)
+      .eq('customer_id', session.customerId)
+      .eq('customer_details->>bookingRequestSignature', bookingSignature)
+      .gte('created_at', duplicateSince)
+      .maybeSingle();
+
+    if (duplicateOrder) {
+      logger.warn('Public customer booking duplicate submit resolved idempotently', {
+        feature: 'public_customer_booking',
+        action: 'submit_duplicate',
+        tenantId: body.tenantId,
+        customerId: session.customerId,
+        orderId: duplicateOrder.id,
+      });
+      return NextResponse.json(
+        {
+          success: true,
+          data: {
+            orderId: duplicateOrder.id,
+            orderNo: duplicateOrder.order_no,
+            promisedWindow: duplicateOrder.ready_by_at_new ?? duplicateOrder.ready_by ?? null,
+          },
+        },
+        { status: 200 },
+      );
+    }
 
     const creationResult = await OrderService.createOrder({
       tenantId: body.tenantId,
       customerId: session.customerId,
       branchId: branch.id,
       orderTypeId,
-      items: [
-        {
-          productId: service.id,
-          productName: service.product_name ?? null,
-          productName2: service.product_name2 ?? null,
-          quantity: 1,
-          pricePerUnit: price,
-          totalPrice: price,
-          serviceCategoryCode: service.service_category_code ?? undefined,
-        },
-      ],
+      items,
+      totals: {
+        subtotal,
+        tax: vatAmount,
+        total,
+        vatRate,
+        vatAmount,
+      },
       customerNotes: body.notes.trim(),
-      internalNotes: `Mobile booking | ${body.fulfillmentType} | ${selectedSlot.label}`,
+      internalNotes: `Mobile booking | ${body.isPickupFromAddress ? 'pickup_from_address' : 'bring_in'} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}`,
       paymentTypeCode,
-      readyByAt: selectedSlot.endAt,
+      currencyCode: moneyConfig.currencyCode,
+      currencyExRate: 1,
+      readyByAt: body.scheduledAt ?? undefined,
       customerMobile: session.phoneNumber,
       customerName: session.displayName ?? undefined,
       customerDetails: {
         source: 'customer_mobile_app',
-        bookingAddressId: address.id,
-        bookingAddressLabel: address.label,
+        bookingRequestSignature: bookingSignature,
+        isPickupFromAddress: body.isPickupFromAddress,
+        isAsap: body.isAsap,
+        scheduledAt: body.scheduledAt ?? null,
+        bookingAddressId: address?.id ?? null,
+        bookingAddressLabel: address?.label ?? null,
         bookingAddressText: addressDescription,
-        bookingSlotId: selectedSlot.id,
-        bookingSlotLabel: selectedSlot.label,
+        selectedServicePreferenceIds: body.servicePreferenceIds,
+        selectedPickupPreferenceIds: body.pickupPreferenceIds,
         fulfillmentType: body.fulfillmentType,
       },
       userId: session.customerId,
       userName: session.displayName ?? 'Customer Mobile App',
+      useOldWfCodeOrNew: false,
     });
 
     if (!creationResult.success || !creationResult.order) {
-      return NextResponse.json(
-        { success: false, error: creationResult.error ?? 'Failed to create booking' },
-        { status: 400 },
+      return jsonError(
+        'booking_create_failed',
+        creationResult.error ?? 'Failed to create booking',
+        400,
       );
     }
 
@@ -422,7 +758,7 @@ export async function POST(request: NextRequest) {
         data: {
           orderId: creationResult.order.id,
           orderNo: creationResult.order.orderNo,
-          promisedWindow: selectedSlot.label,
+          promisedWindow: body.scheduledAt ?? creationResult.order.readyByAt,
         },
       },
       { status: 200 },
@@ -438,7 +774,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
+        error: 'Internal server error',
+        errorCode: 'booking_submit_failed',
       },
       { status: 500 },
     );

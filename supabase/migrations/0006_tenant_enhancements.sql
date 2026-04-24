@@ -122,8 +122,8 @@ COMMENT ON COLUMN sys_plan_limits.orders_limit IS 'Maximum orders per month (-1 
 COMMENT ON COLUMN sys_plan_limits.users_limit IS 'Maximum active users (-1 for unlimited)';
 COMMENT ON COLUMN sys_plan_limits.branches_limit IS 'Maximum branches (-1 for unlimited)';
 COMMENT ON COLUMN sys_plan_limits.storage_mb_limit IS 'Maximum storage in MB (-1 for unlimited)';
-COMMENT ON COLUMN sys_plan_limits.price_monthly IS 'Monthly price in OMR';
-COMMENT ON COLUMN sys_plan_limits.price_yearly IS 'Yearly price in OMR (discounted)';
+COMMENT ON COLUMN sys_plan_limits.price_monthly IS 'Monthly price in USD';
+COMMENT ON COLUMN sys_plan_limits.price_yearly IS 'Yearly price in USD (discounted)';
 COMMENT ON COLUMN sys_plan_limits.feature_flags IS 'Features enabled in this plan';
 COMMENT ON COLUMN sys_plan_limits.is_public IS 'Whether plan is visible to customers';
 COMMENT ON COLUMN sys_plan_limits.display_order IS 'Order for displaying plans (lower = shown first)';
