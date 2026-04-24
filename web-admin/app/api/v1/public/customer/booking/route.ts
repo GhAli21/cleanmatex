@@ -105,6 +105,12 @@ function buildServiceDescription(params: {
   };
 }
 
+/**
+ * Returns booking bootstrap payload (services, addresses, slots) for mobile customers.
+ *
+ * @param request Incoming HTTP request with tenantId query and Bearer token.
+ * @returns JSON response with booking bootstrap data or a structured error.
+ */
 export async function GET(request: NextRequest) {
   const startedAt = Date.now();
 
@@ -134,8 +140,17 @@ export async function GET(request: NextRequest) {
     const bookingEnabled = await canAccess(tenantId, 'online_booking');
     if (!bookingEnabled) {
       return NextResponse.json(
-        { success: false, error: 'Online booking is not enabled for this tenant' },
-        { status: 403 },
+        {
+          success: true,
+          data: {
+            bookingEnabled: false,
+            disabledReasonKey: 'booking.disabledBody',
+            services: [],
+            addresses: [],
+            slots: [],
+          },
+        },
+        { status: 200 },
       );
     }
 
@@ -181,6 +196,8 @@ export async function GET(request: NextRequest) {
     });
 
     const response = {
+      bookingEnabled: true,
+      disabledReasonKey: null,
       services: (services ?? []).map((service) => {
         const price = Number(service.default_sell_price ?? 0);
         const description = buildServiceDescription({
@@ -240,6 +257,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
+/**
+ * Submits a customer booking request and creates an order.
+ *
+ * @param request Incoming HTTP request with Bearer token and booking payload body.
+ * @returns JSON response containing booking confirmation or a structured error.
+ */
 export async function POST(request: NextRequest) {
   const startedAt = Date.now();
 

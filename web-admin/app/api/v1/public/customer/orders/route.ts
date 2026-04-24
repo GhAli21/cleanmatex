@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { resolveCustomerMobileSession } from '@/lib/services/customer-mobile-session.service';
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import { buildPublicApiLogContext } from '@/lib/utils/public-api-log-context';
 
@@ -75,6 +76,8 @@ export async function GET(request: NextRequest) {
     });
 
     const supabase = await createAdminSupabaseClient();
+    const tenantSettings = createTenantSettingsService(supabase);
+    const moneyConfig = await tenantSettings.getCurrencyConfig(tenantId);
 
     logger.info('Executing customer orders query', {
       ...requestContext,
@@ -124,6 +127,7 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         data: {
+          currencyCode: moneyConfig.currencyCode,
           orders: (orders ?? []).map((order: any) => ({
             id: order.id,
             orderNo: order.order_no,
@@ -134,6 +138,7 @@ export async function GET(request: NextRequest) {
             bagCount: order.bag_count ? Number(order.bag_count) : null,
             total: order.total ? Number(order.total) : null,
             paymentStatus: order.payment_status ?? null,
+            currencyCode: moneyConfig.currencyCode,
           })),
         },
       },

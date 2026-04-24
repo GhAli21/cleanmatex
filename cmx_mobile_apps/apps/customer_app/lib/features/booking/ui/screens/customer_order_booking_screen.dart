@@ -113,6 +113,8 @@ class _CustomerOrderBookingScreenState
                 )
               else if (booking.hasLoadError)
                 _buildLoadErrorState(localizations, booking, notifier)
+              else if (!booking.isBookingEnabled)
+                _buildDisabledState(localizations, booking)
               else ...[
                 Text(
                   localizations.textWithArg(
@@ -220,6 +222,29 @@ class _CustomerOrderBookingScreenState
                 (route) => route.settings.name == AppRoute.home,
               );
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisabledState(
+    AppLocalizations localizations,
+    BookingState booking,
+  ) {
+    final disabledBodyKey = booking.disabledReasonKey ?? 'booking.disabledBody';
+    return AppCardWidget(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            localizations.text('booking.disabledTitle'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            localizations.text(disabledBodyKey),
+            style: Theme.of(context).textTheme.bodyLarge,
           ),
         ],
       ),

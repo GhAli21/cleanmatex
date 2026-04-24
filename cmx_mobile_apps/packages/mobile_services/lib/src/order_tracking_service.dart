@@ -39,13 +39,17 @@ class OrderTrackingService {
 
       final data = payload['data'];
       if (data is! Map<String, Object?>) return const [];
+      final defaultCurrencyCode = data['currencyCode'] as String?;
 
       final orders = data['orders'];
       if (orders is! List) return const [];
 
       return orders
           .whereType<Map<String, Object?>>()
-          .map(_mapRemoteOrderSummary)
+          .map((json) => _mapRemoteOrderSummary(
+                json,
+                defaultCurrencyCode: defaultCurrencyCode,
+              ))
           .toList(growable: false);
     } on MobileHttpException catch (error) {
       throw OrderTrackingServiceException(
@@ -86,7 +90,10 @@ class OrderTrackingService {
     }
   }
 
-  OrderSummaryModel _mapRemoteOrderSummary(Map<String, Object?> json) {
+  OrderSummaryModel _mapRemoteOrderSummary(
+    Map<String, Object?> json, {
+    String? defaultCurrencyCode,
+  }) {
     final statusCode = _normalizeStatusCode(json['status'] as String?);
     final totalItems = json['totalItems'];
     final bagCount = json['bagCount'];
@@ -103,6 +110,7 @@ class OrderTrackingService {
       ),
       total: (json['total'] as num?)?.toDouble(),
       paymentStatus: json['paymentStatus'] as String?,
+      currencyCode: (json['currencyCode'] as String?) ?? defaultCurrencyCode,
     );
   }
 

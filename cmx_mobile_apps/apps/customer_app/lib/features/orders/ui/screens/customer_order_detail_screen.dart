@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
@@ -121,10 +122,24 @@ class _OrderDetailBody extends StatelessWidget {
     }
   }
 
-  String _formatAmount(double? amount, String? currency, int decimals) {
+  String _formatAmount(
+    BuildContext context,
+    double? amount,
+    String? currency,
+    int decimals,
+  ) {
     if (amount == null) return '—';
-    final formatted = amount.toStringAsFixed(decimals);
-    return currency != null ? '$formatted $currency' : formatted;
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final formatter = NumberFormat.currency(
+      locale: localeTag,
+      name: currency,
+      decimalDigits: decimals,
+      symbol: '',
+    );
+    final formatted = formatter.format(amount).trim();
+    return currency != null && currency.isNotEmpty
+        ? '$formatted $currency'
+        : formatted;
   }
 
   @override
@@ -229,7 +244,12 @@ class _OrderDetailBody extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            _formatAmount(item.totalPrice, currency, decimals),
+                            _formatAmount(
+                              context,
+                              item.totalPrice,
+                              currency,
+                              decimals,
+                            ),
                             style: textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
                             ),
@@ -248,13 +268,23 @@ class _OrderDetailBody extends StatelessWidget {
                 if (order.subtotal != null && order.subtotal != order.total)
                   _TotalRow(
                     label: localizations.text('orders.subtotal'),
-                    value: _formatAmount(order.subtotal, currency, decimals),
+                    value: _formatAmount(
+                      context,
+                      order.subtotal,
+                      currency,
+                      decimals,
+                    ),
                     textTheme: textTheme,
                   ),
 
                 _TotalRow(
                   label: localizations.text('orders.total'),
-                  value: _formatAmount(order.total, currency, decimals),
+                  value: _formatAmount(
+                    context,
+                    order.total,
+                    currency,
+                    decimals,
+                  ),
                   textTheme: textTheme,
                   isHighlighted: true,
                 ),
@@ -263,7 +293,12 @@ class _OrderDetailBody extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   _TotalRow(
                     label: localizations.text('orders.paidAmount'),
-                    value: _formatAmount(order.paidAmount, currency, decimals),
+                    value: _formatAmount(
+                      context,
+                      order.paidAmount,
+                      currency,
+                      decimals,
+                    ),
                     textTheme: textTheme,
                     valueColor: AppColors.success,
                   ),
@@ -272,6 +307,7 @@ class _OrderDetailBody extends StatelessWidget {
                     _TotalRow(
                       label: localizations.text('orders.balance'),
                       value: _formatAmount(
+                        context,
                         (order.total ?? 0) - (order.paidAmount ?? 0),
                         currency,
                         decimals,

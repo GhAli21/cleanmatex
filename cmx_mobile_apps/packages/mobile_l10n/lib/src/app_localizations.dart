@@ -169,6 +169,9 @@ class AppLocalizations {
       'booking.errorTitle': 'We could not prepare booking options',
       'booking.errorBody':
           'Try again to refresh services, addresses, and pickup windows.',
+      'booking.disabledTitle': 'Booking is currently unavailable',
+      'booking.disabledBody':
+          'Online booking is not enabled for this laundry at the moment. Please contact support or try again later.',
       'booking.stepLabel': 'Step {count} of 4',
       'booking.retryAction': 'Retry',
       'booking.discardTitle': 'Discard this booking?',
@@ -395,6 +398,9 @@ class AppLocalizations {
       'booking.errorTitle': 'تعذر تجهيز خيارات الحجز',
       'booking.errorBody':
           'حاول مرة أخرى لتحديث الخدمات والعناوين ومواعيد الاستلام.',
+      'booking.disabledTitle': 'الحجز غير متاح حالياً',
+      'booking.disabledBody':
+          'الحجز عبر التطبيق غير مفعّل لهذه المغسلة حالياً. يرجى التواصل مع الدعم أو المحاولة لاحقاً.',
       'booking.stepLabel': 'الخطوة {count} من 4',
       'booking.retryAction': 'إعادة المحاولة',
       'booking.discardTitle': 'هل تريد إلغاء هذا الحجز؟',

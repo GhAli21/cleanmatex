@@ -25,11 +25,15 @@ class BookingConfirmationModel {
 
 class BookingBootstrapModel {
   const BookingBootstrapModel({
+    this.bookingEnabled = true,
+    this.disabledReasonKey,
     required this.services,
     required this.addresses,
     required this.slots,
   });
 
+  final bool bookingEnabled;
+  final String? disabledReasonKey;
   final List<ServiceOptionModel> services;
   final List<AddressOptionModel> addresses;
   final List<PickupSlotModel> slots;
@@ -54,6 +58,7 @@ class OrderBookingService {
   ) async {
     if (!_useRemoteBooking(session)) {
       return BookingBootstrapModel(
+        bookingEnabled: true,
         services: _demoServices,
         addresses: _demoAddresses,
         slots: _demoSlots(),
@@ -89,6 +94,8 @@ class OrderBookingService {
           .toList(growable: false);
 
       return BookingBootstrapModel(
+        bookingEnabled: data['bookingEnabled'] != false,
+        disabledReasonKey: data['disabledReasonKey'] as String?,
         services: services,
         addresses: addresses,
         slots: slots,

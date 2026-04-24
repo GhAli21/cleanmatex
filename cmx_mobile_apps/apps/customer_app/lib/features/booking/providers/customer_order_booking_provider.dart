@@ -19,6 +19,8 @@ class BookingState {
   const BookingState({
     this.isLoading = true,
     this.isSubmitting = false,
+    this.isBookingEnabled = true,
+    this.disabledReasonKey,
     this.stepIndex = 0,
     this.fulfillmentType = 'pickup',
     this.errorMessageKey,
@@ -32,6 +34,8 @@ class BookingState {
 
   final bool isLoading;
   final bool isSubmitting;
+  final bool isBookingEnabled;
+  final String? disabledReasonKey;
   final int stepIndex;
   final String fulfillmentType;
   final String? errorMessageKey;
@@ -55,6 +59,8 @@ class BookingState {
   BookingState copyWith({
     bool? isLoading,
     bool? isSubmitting,
+    bool? isBookingEnabled,
+    String? disabledReasonKey,
     int? stepIndex,
     String? fulfillmentType,
     String? errorMessageKey,
@@ -69,6 +75,8 @@ class BookingState {
     return BookingState(
       isLoading: isLoading ?? this.isLoading,
       isSubmitting: isSubmitting ?? this.isSubmitting,
+      isBookingEnabled: isBookingEnabled ?? this.isBookingEnabled,
+      disabledReasonKey: disabledReasonKey ?? this.disabledReasonKey,
       stepIndex: stepIndex ?? this.stepIndex,
       fulfillmentType: fulfillmentType ?? this.fulfillmentType,
       errorMessageKey:
@@ -108,6 +116,8 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       final bootstrap = await _repo.loadBootstrap(_session);
       state = state.copyWith(
         isLoading: false,
+        isBookingEnabled: bootstrap.bookingEnabled,
+        disabledReasonKey: bootstrap.disabledReasonKey,
         services: bootstrap.services,
         addresses: bootstrap.addresses,
         slots: bootstrap.slots,
@@ -194,6 +204,12 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
   }
 
   Future<void> submit() async {
+    if (!state.isBookingEnabled) {
+      AppLogger.warning('booking_provider.submit_blocked booking_disabled');
+      state = state.copyWith(errorMessageKey: 'booking.disabledBody');
+      return;
+    }
+
     if (state.isSubmitting || !canProceed()) {
       AppLogger.warning(
         'booking_provider.submit_blocked isSubmitting=${state.isSubmitting} canProceed=${canProceed()}',

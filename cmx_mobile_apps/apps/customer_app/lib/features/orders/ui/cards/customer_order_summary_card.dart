@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
@@ -41,9 +42,23 @@ class CustomerOrderSummaryCard extends StatelessWidget {
     }
   }
 
-  String _formatAmount(double amount, String? currency, int decimals) {
-    final formatted = amount.toStringAsFixed(decimals);
-    return currency != null ? '$formatted $currency' : formatted;
+  String _formatAmount({
+    required BuildContext context,
+    required double amount,
+    required String? currency,
+    required int decimals,
+  }) {
+    final localeTag = Localizations.localeOf(context).toLanguageTag();
+    final formatter = NumberFormat.currency(
+      locale: localeTag,
+      name: currency,
+      decimalDigits: decimals,
+      symbol: '',
+    );
+    final formatted = formatter.format(amount).trim();
+    return currency != null && currency.isNotEmpty
+        ? '$formatted $currency'
+        : formatted;
   }
 
   @override
@@ -134,9 +149,10 @@ class CustomerOrderSummaryCard extends StatelessWidget {
                   children: [
                     Text(
                       _formatAmount(
-                        order.total!,
-                        order.currencyCode,
-                        2,
+                        context: context,
+                        amount: order.total!,
+                        currency: order.currencyCode,
+                        decimals: 2,
                       ),
                       style: textTheme.titleMedium?.copyWith(
                         color: AppColors.primary,
