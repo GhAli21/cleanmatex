@@ -9,9 +9,11 @@ class TenantServiceException extends AppException {
     required super.messageKey,
     super.originalError,
     this.phoneNumber,
+    this.traceId,
   });
 
   final String? phoneNumber;
+  final String? traceId;
 }
 
 class TenantService {
@@ -22,6 +24,9 @@ class TenantService {
 
   Future<List<TenantModel>> listTenantsForPhone(String phoneNumber) async {
     final normalizedPhone = phoneNumber.trim();
+    AppLogger.info(
+      'Tenant lookup requested for phone=$normalizedPhone',
+    );
 
     if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(normalizedPhone)) {
       throw TenantServiceException(
@@ -47,21 +52,40 @@ class TenantService {
         '/api/v1/public/customer/tenants',
         queryParameters: {'phone': normalizedPhone},
       );
+      final traceId = payload['traceId'] as String?;
+      AppLogger.info(
+        'Tenant lookup response received for phone=$normalizedPhone traceId=${traceId ?? 'none'}',
+      );
       final data = payload['data'];
       if (data is! List) {
+        AppLogger.warning(
+          'Tenant lookup returned non-list payload for phone=$normalizedPhone traceId=${traceId ?? 'none'}',
+        );
         return const [];
       }
 
-      return data
+      final tenants = data
           .whereType<Map<String, Object?>>()
           .map(TenantModel.fromJson)
           .toList(growable: false);
+      AppLogger.info(
+        'Tenant lookup completed for phone=$normalizedPhone tenants=${tenants.length} traceId=${traceId ?? 'none'}',
+      );
+      return tenants;
     } on MobileHttpException catch (error) {
+      final traceId = error.originalError is Map<String, Object?>
+          ? (error.originalError as Map<String, Object?>)['traceId'] as String?
+          : null;
+      AppLogger.error(
+        'Tenant lookup failed for phone=$normalizedPhone traceId=${traceId ?? 'none'}',
+        error: error,
+      );
       throw TenantServiceException(
         code: error.code,
         messageKey: 'tenant.listErrorWithPhone',
         originalError: error,
         phoneNumber: normalizedPhone,
+        traceId: traceId,
       );
     }
   }

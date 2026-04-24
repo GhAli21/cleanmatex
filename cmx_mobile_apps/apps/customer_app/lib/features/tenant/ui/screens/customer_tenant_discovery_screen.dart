@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_services/mobile_services.dart';
@@ -26,7 +27,14 @@ class _CustomerTenantDiscoveryScreenState
   bool _isSelectingTenant = false;
 
   @override
+  void initState() {
+    super.initState();
+    AppLogger.info('CustomerTenantDiscoveryScreen opened');
+  }
+
+  @override
   void dispose() {
+    AppLogger.info('CustomerTenantDiscoveryScreen disposed');
     _phoneController.dispose();
     super.dispose();
   }
@@ -108,7 +116,9 @@ class _CustomerTenantDiscoveryScreenState
 
   Future<void> _searchByPhone() async {
     final normalized = _phoneController.text.replaceAll(RegExp(r'\s+'), '');
+    AppLogger.info('Tenant discovery submit pressed for phone=$normalized');
     if (!RegExp(r'^\+?[0-9]{4,15}$').hasMatch(normalized)) {
+      AppLogger.warning('Tenant discovery rejected invalid phone=$normalized');
       setState(() => _errorMessageKey = 'loginEntry.phoneValidationError');
       return;
     }
@@ -126,11 +136,16 @@ class _CustomerTenantDiscoveryScreenState
     String phoneNumber,
   ) {
     if (tenants.isEmpty) {
+      AppLogger.warning('Tenant discovery found no tenants for phone=$phoneNumber');
       return _buildListCard(
         context,
         l10n.textWithArg('tenant.phoneNoMatches', phoneNumber),
       );
     }
+
+    AppLogger.info(
+      'Tenant discovery rendered ${tenants.length} tenants for phone=$phoneNumber',
+    );
 
     return Column(
       children: tenants
@@ -192,12 +207,20 @@ class _CustomerTenantDiscoveryScreenState
     if (error is TenantServiceException &&
         error.phoneNumber != null &&
         error.phoneNumber!.isNotEmpty) {
+      AppLogger.error(
+        'Tenant discovery lookup error for phone=${error.phoneNumber} traceId=${error.traceId ?? 'none'}',
+        error: error,
+      );
       return _buildListCard(
         context,
         l10n.textWithArg(error.messageKey, error.phoneNumber!),
       );
     }
 
+    AppLogger.error(
+      'Tenant discovery lookup error for phone=$fallbackPhoneNumber',
+      error: error,
+    );
     return _buildListCard(
       context,
       l10n.textWithArg('tenant.listErrorWithPhone', fallbackPhoneNumber),
@@ -209,6 +232,9 @@ class _CustomerTenantDiscoveryScreenState
     TenantModel tenant,
     String phoneNumber,
   ) async {
+    AppLogger.info(
+      'Tenant discovery selecting tenant=${tenant.tenantOrgId} for phone=$phoneNumber',
+    );
     setState(() => _isSelectingTenant = true);
     await ref.read(tenantProvider.notifier).selectTenant(tenant);
     if (!mounted || !context.mounted) {
