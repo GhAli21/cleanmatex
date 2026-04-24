@@ -154,7 +154,20 @@ function buildCatalogCategories(
     product_unit: string | null;
     product_image: string | null;
   }>,
+  serviceCategories: Array<{
+    service_category_code: string;
+    name: string | null;
+    name2: string | null;
+    display_name: string | null;
+    rec_order: number | null;
+  }>,
 ) {
+  const categoryMap = new Map(
+    serviceCategories.map((category) => [
+      category.service_category_code,
+      category,
+    ]),
+  );
   const grouped = new Map<
     string,
     {
@@ -168,11 +181,18 @@ function buildCatalogCategories(
   for (const product of products) {
     const categoryId =
       product.service_category_code ?? product.product_group1 ?? 'general';
-    const categoryName = categoryId.replaceAll('_', ' ').toLowerCase();
+    const categoryConfig = categoryMap.get(categoryId);
+    if (product.service_category_code && !categoryConfig) {
+      continue;
+    }
+    const fallbackName = categoryId.replaceAll('_', ' ').toLowerCase();
     const category = grouped.get(categoryId) ?? {
       id: categoryId,
-      name: `${categoryName[0]?.toUpperCase() ?? ''}${categoryName.slice(1)}`,
-      name2: null,
+      name:
+        categoryConfig?.display_name ??
+        categoryConfig?.name ??
+        `${fallbackName[0]?.toUpperCase() ?? ''}${fallbackName.slice(1)}`,
+      name2: categoryConfig?.name2 ?? null,
       items: [],
     };
 
@@ -190,7 +210,12 @@ function buildCatalogCategories(
     grouped.set(categoryId, category);
   }
 
-  return Array.from(grouped.values());
+  return Array.from(grouped.values()).sort((a, b) => {
+    const leftOrder = categoryMap.get(a.id)?.rec_order ?? 9999;
+    const rightOrder = categoryMap.get(b.id)?.rec_order ?? 9999;
+    if (leftOrder !== rightOrder) return leftOrder - rightOrder;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function buildBookingSignature(params: {
@@ -296,25 +321,41 @@ export async function GET(request: NextRequest) {
         ? vatSetting
         : Number.parseFloat(String(vatSetting ?? '0')) || 0;
 
-    const [{ data: services, error: servicesError }, { data: addresses, error: addressesError }] =
-      await Promise.all([
-        supabase
-          .from('org_product_data_mst')
-          .select(
-            'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, product_image, turnaround_hh',
-          )
-          .eq('tenant_org_id', tenantId)
-          .eq('is_active', true)
-          .order('product_order', { ascending: true })
-          .limit(200),
-        supabase
-          .from('org_customer_addresses')
-          .select('id, label, street, area, city, building, floor, is_default')
-          .eq('tenant_org_id', tenantId)
-          .eq('customer_id', session.customerId)
-          .eq('is_active', true)
-          .order('is_default', { ascending: false }),
-      ]);
+    const [
+      { data: serviceCategories, error: serviceCategoriesError },
+      { data: services, error: servicesError },
+      { data: addresses, error: addressesError },
+    ] = await Promise.all([
+      supabase
+        .from('org_service_category_cf')
+        .select(
+          'service_category_code, name, name2, display_name, rec_order, is_enabled, is_active',
+        )
+        .eq('tenant_org_id', tenantId)
+        .eq('is_active', true)
+        .eq('is_enabled', true)
+        .order('rec_order', { ascending: true }),
+      supabase
+        .from('org_product_data_mst')
+        .select(
+          'id, tenant_org_id, service_category_code, product_group1, product_name, product_name2, hint_text, default_sell_price, product_unit, product_image, turnaround_hh',
+        )
+        .eq('tenant_org_id', tenantId)
+        .eq('is_active', true)
+        .order('product_order', { ascending: true })
+        .limit(200),
+      supabase
+        .from('org_customer_addresses')
+        .select('id, label, street, area, city, building, floor, is_default')
+        .eq('tenant_org_id', tenantId)
+        .eq('customer_id', session.customerId)
+        .eq('is_active', true)
+        .order('is_default', { ascending: false }),
+    ]);
+
+    if (serviceCategoriesError) {
+      throw serviceCategoriesError;
+    }
 
     if (servicesError) {
       throw servicesError;
@@ -363,7 +404,7 @@ export async function GET(request: NextRequest) {
           }),
         };
       }),
-      categories: buildCatalogCategories(services ?? []),
+      categories: buildCatalogCategories(services ?? [], serviceCategories ?? []),
       servicePreferences: servicePreferences.map((preference) => ({
         id: preference.code,
         label: preference.name,
