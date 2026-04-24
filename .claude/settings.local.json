@@ -37,7 +37,8 @@
       "Bash(grep -E '\\\\.\\(ts|js\\)$')",
       "Read(//c/Users/DELL/.claude/plans/**)",
       "Bash(flutter analyze *)",
-      "Bash(adb -s R58N13NLPVJ install -r \"f:/jhapp/cleanmatex/cmx_mobile_apps/apps/customer_app/build/app/outputs/flutter-apk/app-debug.apk\")"
+      "Bash(adb -s R58N13NLPVJ install -r \"f:/jhapp/cleanmatex/cmx_mobile_apps/apps/customer_app/build/app/outputs/flutter-apk/app-debug.apk\")",
+      "Bash(flutter build *)"
     ],
     "deny": [
       "Read(node_modules)",

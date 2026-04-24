@@ -154,6 +154,14 @@ class AppLocalizations {
       'orders.timeline.arrival.title': 'Arrival next',
       'orders.timeline.arrival.body':
           'The final handoff is the next step and we will keep you updated.',
+      'orders.financialTitle': 'Payment & totals',
+      'orders.subtotal': 'Subtotal',
+      'orders.total': 'Total',
+      'orders.paidAmount': 'Paid',
+      'orders.balance': 'Balance due',
+      'orders.paymentStatus.paid': 'Paid',
+      'orders.paymentStatus.unpaid': 'Unpaid',
+      'orders.paymentStatus.partial': 'Partially paid',
       'booking.title': 'Create an order',
       'booking.subtitle':
           'Move through a short booking flow with clear choices, backend-owned pricing, and a simple review before confirmation.',
@@ -372,6 +380,14 @@ class AppLocalizations {
       'orders.timeline.arrival.title': 'الوصول هو الخطوة التالية',
       'orders.timeline.arrival.body':
           'الخطوة القادمة هي التسليم النهائي وسنبقيك على اطلاع.',
+      'orders.financialTitle': 'الدفع والإجماليات',
+      'orders.subtotal': 'المجموع الجزئي',
+      'orders.total': 'الإجمالي',
+      'orders.paidAmount': 'المدفوع',
+      'orders.balance': 'المبلغ المتبقي',
+      'orders.paymentStatus.paid': 'مدفوع',
+      'orders.paymentStatus.unpaid': 'غير مدفوع',
+      'orders.paymentStatus.partial': 'مدفوع جزئياً',
       'booking.title': 'إنشاء طلب',
       'booking.subtitle':
           'انتقل عبر رحلة حجز قصيرة بخيارات واضحة وتسعير معتمد من الخلفية ومراجعة بسيطة قبل التأكيد.',

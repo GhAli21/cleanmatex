@@ -96,6 +96,8 @@ export async function GET(request: NextRequest) {
         ready_by_at_new,
         total_items,
         bag_count,
+        total,
+        payment_status,
         org_customers_mst!inner(phone)
       `,
       )
@@ -130,6 +132,8 @@ export async function GET(request: NextRequest) {
             readyBy: order.ready_by_at_new || order.ready_by || null,
             totalItems: order.total_items ? Number(order.total_items) : null,
             bagCount: order.bag_count ? Number(order.bag_count) : null,
+            total: order.total ? Number(order.total) : null,
+            paymentStatus: order.payment_status ?? null,
           })),
         },
       },
