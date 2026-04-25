@@ -43,6 +43,16 @@ class TenantService {
           name: 'Demo Laundry',
           name2: 'مغسلة تجريبية',
           primaryColor: '#1A73E8',
+          branches: [
+            BranchOptionModel(
+              id: 'demo-main-branch',
+              name: 'Main Branch',
+              name2: 'الفرع الرئيسي',
+              isMain: true,
+              area: 'Muscat',
+              city: 'Muscat',
+            ),
+          ],
         ),
       ];
     }
@@ -106,6 +116,16 @@ class TenantService {
         name: 'Demo Laundry',
         name2: 'مغسلة تجريبية',
         primaryColor: '#1A73E8',
+        branches: [
+          BranchOptionModel(
+            id: 'demo-main-branch',
+            name: 'Main Branch',
+            name2: 'الفرع الرئيسي',
+            isMain: true,
+            area: 'Muscat',
+            city: 'Muscat',
+          ),
+        ],
       );
     }
 

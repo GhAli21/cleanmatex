@@ -2,7 +2,7 @@ import { createAdminSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
 import { normalizePhone } from './customers.service';
-import type { TenantPublicProfile } from './tenant-resolve.service';
+import type { BranchPublicProfile, TenantPublicProfile } from './tenant-resolve.service';
 
 function buildPhoneLookupCandidates(inputPhone: string) {
   const raw = (inputPhone ?? '').trim().replace(/[\s\-\(\)]/g, '');
@@ -163,12 +163,59 @@ export async function listCustomerTenantsByPhone(
       return [];
     }
 
+    const { data: branches, error: branchesError } = await supabase
+      .from('org_branches_mst')
+      .select('id, tenant_org_id, name, name2, branch_name, address, area, city, is_main')
+      .in('tenant_org_id', tenantIds)
+      .eq('is_active', true)
+      .order('is_main', { ascending: false })
+      .order('name', { ascending: true });
+
+    logger.info('Customer tenant lookup branch query completed', {
+      feature: 'customer-mobile-tenant',
+      action: 'listCustomerTenantsByPhone',
+      traceId: activeTraceId,
+      rowCount: branches?.length ?? 0,
+      error: branchesError?.message ?? null,
+    });
+
+    if (branchesError) {
+      logger.error('Customer tenant lookup branch query failed', branchesError, {
+        feature: 'customer-mobile-tenant',
+        action: 'listCustomerTenantsByPhone',
+        traceId: activeTraceId,
+        tenantIds,
+      });
+      throw new Error(branchesError.message);
+    }
+
+    const branchesByTenant = new Map<string, BranchPublicProfile[]>();
+    for (const branch of branches ?? []) {
+      const tenantOrgId = branch.tenant_org_id as string | null;
+      if (!tenantOrgId) continue;
+      const tenantBranches = branchesByTenant.get(tenantOrgId) ?? [];
+      tenantBranches.push({
+        id: branch.id as string,
+        name:
+          (branch.name as string | null) ??
+          (branch.branch_name as string | null) ??
+          'Branch',
+        name2: (branch.name2 as string | null) ?? null,
+        isMain: branch.is_main === true,
+        address: (branch.address as string | null) ?? null,
+        area: (branch.area as string | null) ?? null,
+        city: (branch.city as string | null) ?? null,
+      });
+      branchesByTenant.set(tenantOrgId, tenantBranches);
+    }
+
     const result = tenants.map((tenant) => ({
       tenantOrgId: tenant.id as string,
       name: (tenant.name as string | null) ?? '',
       name2: (tenant.name2 as string | null) ?? null,
       logoUrl: (tenant.logo_url as string | null) ?? null,
       primaryColor: (tenant.brand_color_primary as string | null) ?? null,
+      branches: branchesByTenant.get(tenant.id as string) ?? [],
     }));
 
     logger.info('Customer tenant lookup completed', {

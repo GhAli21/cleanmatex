@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
+import 'package:mobile_services/mobile_services.dart';
 
 import '../../../core/app_shell_controller.dart';
 import '../../../core/providers/app_dependencies.dart';
@@ -26,6 +27,7 @@ class BookingState {
     this.disabledReasonKey,
     this.stepIndex = 0,
     this.errorMessageKey,
+    this.validationIssueKeys = const [],
     this.submittedOrderNumber,
     this.submittedPromisedWindow,
     this.draft = const OrderBookingDraftModel(),
@@ -48,6 +50,7 @@ class BookingState {
   final String? disabledReasonKey;
   final int stepIndex;
   final String? errorMessageKey;
+  final List<String> validationIssueKeys;
   final String? submittedOrderNumber;
   final String? submittedPromisedWindow;
   final OrderBookingDraftModel draft;
@@ -199,6 +202,22 @@ class BookingState {
     return [...selectedServiceOptions, ...selectedPickupOptions];
   }
 
+  List<String> get submitValidationIssueKeys {
+    final issues = <String>[];
+    if (draft.cartItems.isEmpty) {
+      issues.add('booking.missingItemsDetail');
+    }
+    if (draft.isPickupFromAddress) {
+      if (draft.address == null) {
+        issues.add('booking.missingAddressDetail');
+      }
+      if (!draft.isAsap && draft.scheduledAt == null) {
+        issues.add('booking.missingScheduleDetail');
+      }
+    }
+    return issues;
+  }
+
   /// Returns the flat list of all items matching the current [itemSearchQuery].
   List<BookingCatalogItemModel> get filteredItems {
     if (itemSearchQuery.isEmpty) return const [];
@@ -232,6 +251,8 @@ class BookingState {
     int? stepIndex,
     String? errorMessageKey,
     bool clearErrorMessage = false,
+    List<String>? validationIssueKeys,
+    bool clearValidationIssues = false,
     String? submittedOrderNumber,
     String? submittedPromisedWindow,
     OrderBookingDraftModel? draft,
@@ -255,6 +276,9 @@ class BookingState {
       stepIndex: stepIndex ?? this.stepIndex,
       errorMessageKey:
           clearErrorMessage ? null : (errorMessageKey ?? this.errorMessageKey),
+      validationIssueKeys: clearValidationIssues
+          ? const []
+          : (validationIssueKeys ?? this.validationIssueKeys),
       submittedOrderNumber: submittedOrderNumber ?? this.submittedOrderNumber,
       submittedPromisedWindow:
           submittedPromisedWindow ?? this.submittedPromisedWindow,
@@ -295,6 +319,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     state = state.copyWith(
       isLoading: true,
       clearErrorMessage: true,
+      clearValidationIssues: true,
     );
     try {
       final bootstrap = await _repo.loadBootstrap(_session);
@@ -540,6 +565,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       state = state.copyWith(
         stepIndex: state.stepIndex + 1,
         clearErrorMessage: true,
+        clearValidationIssues: true,
       );
     }
   }
@@ -571,12 +597,85 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
   }
 
+  List<String> _validationIssueKeysForSubmitError(Object error) {
+    if (error is! OrderBookingServiceException) {
+      return const [];
+    }
+
+    return switch (error.code) {
+      'booking_address_required' => const ['booking.missingAddressDetail'],
+      'booking_schedule_required' => const ['booking.missingScheduleDetail'],
+      'booking_item_unavailable' => const ['booking.invalidItemsDetail'],
+      'booking_address_unavailable' => const ['booking.invalidAddressDetail'],
+      'booking_validation_failed' => _remoteValidationIssueKeys(error),
+      _ => const [],
+    };
+  }
+
+  List<String> _remoteValidationIssueKeys(OrderBookingServiceException error) {
+    final original = error.originalError;
+    if (original is! MobileHttpException) {
+      return const ['booking.validationReviewDetails'];
+    }
+    final payload = original.originalError;
+    if (payload is! Map<String, Object?>) {
+      return const ['booking.validationReviewDetails'];
+    }
+    final details = payload['details'];
+    if (details is! Map<String, Object?>) {
+      return const ['booking.validationReviewDetails'];
+    }
+    final fieldErrors = details['fieldErrors'];
+    if (fieldErrors is! Map<String, Object?>) {
+      return const ['booking.validationReviewDetails'];
+    }
+
+    final issueKeys = <String>{};
+    for (final fieldName in fieldErrors.keys) {
+      switch (fieldName) {
+        case 'tenantId':
+          issueKeys.add('booking.invalidTenantDetail');
+          break;
+        case 'items':
+          issueKeys.add('booking.invalidItemsDetail');
+          break;
+        case 'addressId':
+          issueKeys.add('booking.invalidAddressDetail');
+          break;
+        case 'branchId':
+          issueKeys.add('booking.branchUnavailableError');
+          break;
+        case 'scheduledAt':
+          issueKeys.add('booking.missingScheduleDetail');
+          break;
+        default:
+          issueKeys.add('booking.validationReviewDetails');
+          break;
+      }
+    }
+    return issueKeys.isEmpty
+        ? const ['booking.validationReviewDetails']
+        : issueKeys.toList(growable: false);
+  }
+
   // ── Submit ───────────────────────────────────────────────────────────────
 
   Future<void> submit() async {
     if (!state.isBookingEnabled) {
       AppLogger.warning('booking_provider.submit_blocked booking_disabled');
       state = state.copyWith(errorMessageKey: 'booking.disabledBody');
+      return;
+    }
+
+    final localValidationIssues = state.submitValidationIssueKeys;
+    if (localValidationIssues.isNotEmpty) {
+      AppLogger.warning(
+        'booking_provider.submit_blocked missingDetails=${localValidationIssues.join(',')}',
+      );
+      state = state.copyWith(
+        errorMessageKey: 'booking.validationIncomplete',
+        validationIssueKeys: localValidationIssues,
+      );
       return;
     }
 
@@ -595,6 +694,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     state = state.copyWith(
       isSubmitting: true,
       clearErrorMessage: true,
+      clearValidationIssues: true,
     );
     try {
       final confirmation = await _repo.submit(
@@ -621,6 +721,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         errorMessageKey: error is AppException
             ? error.messageKey
             : 'booking.submitErrorBody',
+        validationIssueKeys: _validationIssueKeysForSubmitError(error),
       );
     }
   }

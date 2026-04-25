@@ -216,6 +216,21 @@ class AppLocalizations {
       'booking.submitAction': 'Confirm order',
       'booking.validationIncomplete':
           'Finish the required selections before confirming your order.',
+      'booking.missingDetailsTitle': 'Missing details',
+      'booking.missingItemsDetail':
+          'Add at least one laundry item to the order.',
+      'booking.missingAddressDetail':
+          'Select a saved pickup address or add a new one.',
+      'booking.missingScheduleDetail':
+          'Choose a pickup date and time, or switch back to as soon as possible.',
+      'booking.invalidItemsDetail':
+          'Some selected items are not valid anymore. Go back and choose the items again.',
+      'booking.invalidAddressDetail':
+          'The selected address is not valid anymore. Choose or add an address again.',
+      'booking.invalidTenantDetail':
+          'Your laundry session is no longer valid. Sign out, select the laundry again, and retry.',
+      'booking.validationReviewDetails':
+          'Review the items and pickup details, then try confirming again.',
       'booking.submitErrorBody':
           'We could not confirm your order draft. Please try again.',
       'booking.successTitle': 'Order confirmed',
@@ -342,6 +357,15 @@ class AppLocalizations {
       'tenant.listBody':
           'Enter your phone number first, then choose from the laundries linked to your customer profile.',
       'tenant.selectAction': 'Select',
+      'tenant.chooseBranchAction': 'Choose branch',
+      'tenant.chooseBranchBody':
+          'Choose the branch that should receive and manage this booking.',
+      'tenant.noActiveBranchesShort': 'No active branches',
+      'tenant.noActiveBranches':
+          'This laundry does not have an active branch available for customer booking.',
+      'tenant.oneBranchAvailable': 'Branch: {count}',
+      'tenant.multipleBranchesAvailable': '{count} branches available',
+      'tenant.mainBranchLabel': 'Main',
       'tenant.listError':
           'We could not load your laundries right now. Please try again.',
       'tenant.listErrorWithPhone':
@@ -541,6 +565,20 @@ class AppLocalizations {
       'booking.submitAction': 'تأكيد الطلب',
       'booking.validationIncomplete':
           'أكمل الاختيارات المطلوبة قبل تأكيد الطلب.',
+      'booking.missingDetailsTitle': 'تفاصيل ناقصة',
+      'booking.missingItemsDetail': 'أضف قطعة غسيل واحدة على الأقل إلى الطلب.',
+      'booking.missingAddressDetail':
+          'اختر عنوان استلام محفوظاً أو أضف عنواناً جديداً.',
+      'booking.missingScheduleDetail':
+          'اختر تاريخ ووقت الاستلام، أو ارجع إلى خيار في أقرب وقت ممكن.',
+      'booking.invalidItemsDetail':
+          'بعض القطع المختارة لم تعد صالحة. ارجع واختر القطع مرة أخرى.',
+      'booking.invalidAddressDetail':
+          'العنوان المختار لم يعد صالحاً. اختر عنواناً أو أضف عنواناً من جديد.',
+      'booking.invalidTenantDetail':
+          'جلسة المغسلة لم تعد صالحة. سجّل الخروج، واختر المغسلة من جديد، ثم أعد المحاولة.',
+      'booking.validationReviewDetails':
+          'راجع القطع وتفاصيل الاستلام، ثم حاول تأكيد الطلب مرة أخرى.',
       'booking.submitErrorBody': 'تعذر تأكيد مسودة الطلب. حاول مرة أخرى.',
       'booking.successTitle': 'تم تأكيد الطلب',
       'booking.successBody':
@@ -657,6 +695,14 @@ class AppLocalizations {
       'tenant.listBody':
           'أدخل رقم الهاتف أولاً، ثم اختر من المغاسل المرتبطة بملف العميل الخاص بك.',
       'tenant.selectAction': 'اختيار',
+      'tenant.chooseBranchAction': 'اختر الفرع',
+      'tenant.chooseBranchBody': 'اختر الفرع الذي سيستقبل هذا الحجز ويديره.',
+      'tenant.noActiveBranchesShort': 'لا توجد فروع نشطة',
+      'tenant.noActiveBranches':
+          'لا توجد فروع نشطة متاحة لحجز العملاء لهذه المغسلة.',
+      'tenant.oneBranchAvailable': 'الفرع: {count}',
+      'tenant.multipleBranchesAvailable': '{count} فروع متاحة',
+      'tenant.mainBranchLabel': 'الرئيسي',
       'tenant.listError':
           'تعذر تحميل المغاسل الخاصة بك حالياً. يرجى المحاولة مرة أخرى.',
       'tenant.listErrorWithPhone':

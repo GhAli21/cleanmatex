@@ -66,4 +66,25 @@ void main() {
     expect(state.hasSubmissionSuccess, isTrue);
     expect(state.submittedOrderNumber, 'CMX-20001');
   });
+
+  test('shows specific missing details before submit', () async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+
+    final notifier = container.read(customerOrderBookingProvider.notifier);
+    await notifier.load();
+
+    var state = container.read(customerOrderBookingProvider);
+    final firstItem = state.categories.first.items.first;
+    notifier.addItem(firstItem.id);
+    notifier.setIsPickupFromAddress(true);
+    notifier.setIsAsap(false);
+
+    await notifier.submit();
+
+    state = container.read(customerOrderBookingProvider);
+    expect(state.hasSubmissionSuccess, isFalse);
+    expect(state.errorMessageKey, 'booking.validationIncomplete');
+    expect(state.validationIssueKeys, ['booking.missingScheduleDetail']);
+  });
 }

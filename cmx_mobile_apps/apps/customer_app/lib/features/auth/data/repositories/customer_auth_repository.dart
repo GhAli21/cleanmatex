@@ -18,11 +18,13 @@ class CustomerAuthRepository {
     required CustomerAuthChallengeModel challenge,
     required String otpCode,
     required String tenantOrgId,
+    BranchOptionModel? branch,
   }) {
     return _authApiService.verifyOtp(
       challenge: challenge,
       otpCode: otpCode,
       tenantOrgId: tenantOrgId,
+      branch: branch,
     );
   }
 
@@ -46,11 +48,13 @@ class CustomerAuthRepository {
     required String phoneNumber,
     required String password,
     required String tenantId,
+    BranchOptionModel? branch,
   }) {
     return _authApiService.loginWithPassword(
       phoneNumber: phoneNumber,
       password: password,
       tenantId: tenantId,
+      branch: branch,
     );
   }
 

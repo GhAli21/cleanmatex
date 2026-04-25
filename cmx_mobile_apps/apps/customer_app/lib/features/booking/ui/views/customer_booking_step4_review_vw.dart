@@ -86,6 +86,10 @@ class _CustomerBookingStep4ReviewVwState
           title: localizations.text('booking.step4Title'),
           description: localizations.text('booking.step4Description'),
         ),
+        if (booking.submitValidationIssueKeys.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.lg),
+          _buildMissingDetailsCard(localizations, booking, theme),
+        ],
         const SizedBox(height: AppSpacing.lg),
         // 1. Items section
         _buildItemsCard(context, localizations, booking, theme),
@@ -195,6 +199,43 @@ class _CustomerBookingStep4ReviewVwState
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissingDetailsCard(
+    AppLocalizations l10n,
+    BookingState booking,
+    ThemeData theme,
+  ) {
+    return AppCardWidget(
+      accentColor: AppColors.warning,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.text('booking.missingDetailsTitle'),
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          ...booking.submitValidationIssueKeys.map(
+            (issueKey) => Padding(
+              padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('- '),
+                  Expanded(
+                    child: Text(
+                      l10n.text(issueKey),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

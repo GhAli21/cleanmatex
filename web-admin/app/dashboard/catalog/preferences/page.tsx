@@ -39,6 +39,7 @@ interface ServicePref {
   name: string;
   name2?: string | null;
   preference_category?: string;
+  preference_sys_kind?: string | null;
   default_extra_price?: number;
   extra_turnaround_minutes?: number;
   is_active?: boolean;
@@ -97,6 +98,20 @@ interface PreferenceBundle {
   display_order?: number;
 }
 
+type ServicePrefRow = ServicePref | ServicePrefAdmin;
+
+function formatPreferenceKindCode(kindCode: string) {
+  return kindCode
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function getServicePrefKind(row: ServicePrefRow) {
+  return row.preference_sys_kind || 'service_prefs';
+}
+
 function TableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
@@ -129,6 +144,7 @@ function TableSkeleton({ rows = 5 }: { rows?: number }) {
 function ServicePrefsTable({
   servicePrefsAdmin,
   servicePrefs,
+  preferenceKindsAdmin,
   loading,
   onEdit,
   t,
@@ -136,6 +152,7 @@ function ServicePrefsTable({
 }: {
   servicePrefsAdmin: ServicePrefAdmin[];
   servicePrefs: ServicePref[];
+  preferenceKindsAdmin: PreferenceKindAdmin[];
   loading: boolean;
   onEdit: (p: ServicePrefAdmin) => void;
   t: (key: string, fallback?: string) => string;
@@ -146,6 +163,46 @@ function ServicePrefsTable({
   const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
   const rows = servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs;
   const isAdmin = servicePrefsAdmin.length > 0;
+  const groupedRows = useMemo(() => {
+    const kindMeta = new Map(
+      preferenceKindsAdmin.map((kind) => {
+        const displayName = isRtl
+          ? (kind.cf_name2 ?? kind.name2 ?? kind.cf_name ?? kind.name)
+          : (kind.cf_name ?? kind.name ?? kind.cf_name2 ?? kind.name2);
+
+        return [
+          kind.kind_code,
+          {
+            label: displayName || formatPreferenceKindCode(kind.kind_code),
+            color: kind.cf_kind_bg_color ?? kind.kind_bg_color,
+            order: kind.rec_order ?? Number.MAX_SAFE_INTEGER,
+          },
+        ];
+      })
+    );
+    const groups = new Map<string, ServicePrefRow[]>();
+
+    for (const row of rows) {
+      const kindCode = getServicePrefKind(row);
+      const group = groups.get(kindCode) ?? [];
+      group.push(row);
+      groups.set(kindCode, group);
+    }
+
+    return Array.from(groups.entries())
+      .map(([kindCode, groupRows], index) => {
+        const meta = kindMeta.get(kindCode);
+
+        return {
+          kindCode,
+          rows: groupRows,
+          label: meta?.label ?? formatPreferenceKindCode(kindCode),
+          color: meta?.color ?? null,
+          order: meta?.order ?? Number.MAX_SAFE_INTEGER - rows.length + index,
+        };
+      })
+      .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
+  }, [isRtl, preferenceKindsAdmin, rows]);
 
   if (loading) {
     return <TableSkeleton rows={6} />;
@@ -165,76 +222,102 @@ function ServicePrefsTable({
 
   return (
     <div
-      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
+      className="space-y-4"
       data-testid="service-prefs-table"
     >
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium">{t('code', 'Code')}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('name', 'Name')}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('nameAr', 'Name (AR)')}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('category', 'Category')}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('extraPrice', 'Extra Price')}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
-            {isAdmin && (
-              <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((p) => {
-            const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
-            const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
-            const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as ServicePref).name2;
-            const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
-            const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
-            const isActive = adminRow ? adminRow.cf_is_active !== false : true;
-            const category = adminRow?.preference_category ?? (p as ServicePref).preference_category ?? '—';
+      {groupedRows.map((group) => (
+        <section
+          key={group.kindCode}
+          className="overflow-hidden rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white"
+          data-testid={`service-prefs-group-${group.kindCode}`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] px-4 py-3">
+            <div className="flex items-center gap-3">
+              <span
+                className="h-3 w-3 rounded-full border border-white shadow-sm ring-1 ring-gray-200"
+                style={{ backgroundColor: group.color ?? 'rgb(var(--cmx-primary-rgb,37_99_235))' }}
+                aria-hidden="true"
+              />
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">{group.label}</h3>
+                <p className="font-mono text-xs text-gray-500">{group.kindCode}</p>
+              </div>
+            </div>
+            <Badge variant="default">
+              {group.rows.length} {t('preferences', 'Preferences')}
+            </Badge>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-white text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+                <tr>
+                  <th className="px-4 py-3 text-left font-medium">{t('code', 'Code')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('name', 'Name')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('nameAr', 'Name (AR)')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('category', 'Category')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('extraPrice', 'Extra Price')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('status', 'Status')}</th>
+                  {isAdmin && (
+                    <th className="px-4 py-3 text-right font-medium">{t('actions', 'Actions')}</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {group.rows.map((p) => {
+                  const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
+                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
+                  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as ServicePref).name2;
+                  const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
+                  const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
+                  const isActive = adminRow ? adminRow.cf_is_active !== false : true;
+                  const category = adminRow?.preference_category ?? (p as ServicePref).preference_category ?? '—';
 
-            return (
-              <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                <td className="px-4 py-3">{primaryName || '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{category}</td>
-                <td className="px-4 py-3">
-                  +
-                  {formatMoneyAmountWithCode(Number(displayPrice), {
-                    currencyCode,
-                    decimalPlaces,
-                    locale: moneyLocale,
-                  })}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={isActive ? 'success' : 'default'}>
-                    {isActive ? t('active', 'Active') : t('inactive', 'Inactive')}
-                  </Badge>
-                </td>
-                {isAdmin && adminRow && (
-                  <td className="px-4 py-3 text-right">
-                    <RequireAnyPermission
-                      permissions={CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? []}
-                      fallback={null}
-                    >
-                      <CmxButton
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2"
-                        onClick={() => onEdit(adminRow)}
-                        aria-label={t('edit', 'Edit')}
-                        data-testid={`edit-service-pref-${p.code}`}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </CmxButton>
-                    </RequireAnyPermission>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  return (
+                    <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
+                      <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
+                      <td className="px-4 py-3">{primaryName || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
+                      <td className="px-4 py-3 text-gray-600">{category}</td>
+                      <td className="px-4 py-3">
+                        +
+                        {formatMoneyAmountWithCode(Number(displayPrice), {
+                          currencyCode,
+                          decimalPlaces,
+                          locale: moneyLocale,
+                        })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={isActive ? 'success' : 'default'}>
+                          {isActive ? t('active', 'Active') : t('inactive', 'Inactive')}
+                        </Badge>
+                      </td>
+                      {isAdmin && adminRow && (
+                        <td className="px-4 py-3 text-right">
+                          <RequireAnyPermission
+                            permissions={CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? []}
+                            fallback={null}
+                          >
+                            <CmxButton
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2"
+                              onClick={() => onEdit(adminRow)}
+                              aria-label={t('edit', 'Edit')}
+                              data-testid={`edit-service-pref-${p.code}`}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </CmxButton>
+                          </RequireAnyPermission>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -714,6 +797,11 @@ function PreferenceKindEditDialog({
   );
 }
 
+/**
+ * Renders tenant catalog configuration for preference options and bundles.
+ *
+ * @returns Preferences catalog page.
+ */
 export default function PreferencesCatalogPage() {
   const t = useTranslations('catalog.preferences');
   const tCatalog = useTranslations('catalog');
@@ -722,7 +810,7 @@ export default function PreferencesCatalogPage() {
   const { currentTenant } = useAuth();
   const queryClient = useQueryClient();
   const { bundles } = usePreferenceBundles();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [servicePrefs, setServicePrefs] = useState<ServicePref[]>([]);
   const [packingPrefs, setPackingPrefs] = useState<PackingPref[]>([]);
   const [servicePrefsAdmin, setServicePrefsAdmin] = useState<ServicePrefAdmin[]>([]);
@@ -774,11 +862,11 @@ export default function PreferencesCatalogPage() {
   }, [currentTenant]);
 
   useEffect(() => {
-    if (!currentTenant) {
-      setLoading(false);
-      return;
-    }
-    loadCatalog();
+    if (!currentTenant) return;
+    const timerId = window.setTimeout(() => {
+      loadCatalog();
+    }, 0);
+    return () => window.clearTimeout(timerId);
   }, [currentTenant, loadCatalog]);
 
   const tabs = useMemo(
@@ -795,6 +883,7 @@ export default function PreferencesCatalogPage() {
             <ServicePrefsTable
               servicePrefsAdmin={servicePrefsAdmin}
               servicePrefs={servicePrefs}
+              preferenceKindsAdmin={preferenceKindsAdmin}
               loading={loading}
               onEdit={setEditingServicePref}
               t={(k, f) => t(k as 'code', { defaultValue: f })}
@@ -898,7 +987,7 @@ export default function PreferencesCatalogPage() {
       preferenceKindsAdmin,
       loading,
       isRtl,
-      deleteBundleMutation.isPending,
+      deleteBundleMutation,
     ]
   );
 

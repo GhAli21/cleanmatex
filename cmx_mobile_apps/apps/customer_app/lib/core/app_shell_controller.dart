@@ -125,11 +125,15 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
       return;
     }
 
+    final branch = t.branches.length == 1 ? t.branches.first : null;
     final s = CustomerSessionModel(
       customerId: 'guest-customer',
       phoneNumber: '',
       isGuest: true,
       tenantOrgId: t.tenantOrgId,
+      branchId: branch?.id,
+      branchName: branch?.name,
+      branchName2: branch?.name2,
     );
     state = state.copyWith(
       session: s,
@@ -139,7 +143,8 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
   }
 
   Future<void> signInWithPhone({required String phoneNumber}) async {
-    final challenge = await _authRepository.requestOtp(phoneNumber: phoneNumber);
+    final challenge =
+        await _authRepository.requestOtp(phoneNumber: phoneNumber);
     state = state.copyWith(
       pendingChallenge: challenge,
     );
@@ -172,10 +177,12 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
       );
     }
 
+    final branch = _selectedBranch;
     final s = await _authRepository.verifyOtp(
       challenge: challenge,
       otpCode: otpCode,
       tenantOrgId: t.tenantOrgId,
+      branch: branch,
     );
     state = state.copyWith(
       session: s,
@@ -218,6 +225,14 @@ class CustomerSessionFlowNotifier extends Notifier<CustomerSessionFlowState> {
     return t.hasValue ? t.value : null;
   }
 
+  BranchOptionModel? get _selectedBranch {
+    final t = _currentTenant;
+    if (t == null || t.branches.length != 1) {
+      return null;
+    }
+    return t.branches.first;
+  }
+
   Future<void> _startConnectivityMonitoring() async {
     if (_connectivitySub != null) {
       return;
@@ -243,9 +258,8 @@ class CustomerLocaleNotifier extends Notifier<Locale> {
   Locale build() => AppLocale.supportedLocales.first;
 
   void toggleLocale() {
-    state = state.languageCode == 'en'
-        ? const Locale('ar')
-        : const Locale('en');
+    state =
+        state.languageCode == 'en' ? const Locale('ar') : const Locale('en');
   }
 }
 
@@ -254,8 +268,8 @@ final customerSessionFlowProvider =
   CustomerSessionFlowNotifier.new,
 );
 
-final customerLocaleProvider =
-    NotifierProvider<CustomerLocaleNotifier, Locale>(CustomerLocaleNotifier.new);
+final customerLocaleProvider = NotifierProvider<CustomerLocaleNotifier, Locale>(
+    CustomerLocaleNotifier.new);
 
 String resolveRouteAfterTenantConfirmation(CustomerSessionFlowState flow) {
   if (flow.isBootstrapping) {

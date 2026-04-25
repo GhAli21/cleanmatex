@@ -25,6 +25,7 @@ class _CustomerTenantDiscoveryScreenState
   final _phoneController = TextEditingController();
   String? _submittedPhone;
   String? _errorMessageKey;
+  String? _expandedTenantOrgId;
   bool _isSelectingTenant = false;
 
   @override
@@ -81,8 +82,9 @@ class _CustomerTenantDiscoveryScreenState
                   });
                 }
               },
-              errorText:
-                  _errorMessageKey == null ? null : l10n.text(_errorMessageKey!),
+              errorText: _errorMessageKey == null
+                  ? null
+                  : l10n.text(_errorMessageKey!),
             ),
             const SizedBox(height: AppSpacing.md),
             AppCustomButtonWidget(
@@ -99,8 +101,8 @@ class _CustomerTenantDiscoveryScreenState
                   tenants,
                   normalizedPhone,
                 ),
-                error: (error, _) =>
-                    _buildTenantLookupError(context, l10n, error, normalizedPhone),
+                error: (error, _) => _buildTenantLookupError(
+                    context, l10n, error, normalizedPhone),
                 loading: () => const AppLoadingIndicator(),
               ),
             ],
@@ -132,7 +134,8 @@ class _CustomerTenantDiscoveryScreenState
     String phoneNumber,
   ) {
     if (tenants.isEmpty) {
-      AppLogger.warning('Tenant discovery found no tenants for phone=$phoneNumber');
+      AppLogger.warning(
+          'Tenant discovery found no tenants for phone=$phoneNumber');
       return _buildListCard(
         context,
         l10n.textWithArg('tenant.phoneNoMatches', phoneNumber),
@@ -148,34 +151,156 @@ class _CustomerTenantDiscoveryScreenState
           .map(
             (tenant) => Padding(
               padding: const EdgeInsetsDirectional.only(bottom: AppSpacing.md),
-              child: AppCardWidget(
-                child: ListTile(
-                  contentPadding: EdgeInsetsDirectional.zero,
-                  leading: tenant.logoUrl == null
-                      ? null
-                      : Image.network(
-                          tenant.logoUrl!,
-                          width: 48,
-                          height: 48,
-                          errorBuilder: (_, __, ___) =>
-                              const SizedBox(width: 48, height: 48),
-                        ),
-                  title: Text(
-                    (l10n.locale.languageCode == 'ar' ? tenant.name2 : null) ??
-                        tenant.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  trailing: TextButton(
-                    onPressed: _isSelectingTenant
-                        ? null
-                        : () => _selectTenant(context, l10n, tenant, phoneNumber),
-                    child: Text(l10n.text('tenant.selectAction')),
-                  ),
-                ),
-              ),
+              child: _buildTenantCard(context, l10n, tenant, phoneNumber),
             ),
           )
           .toList(growable: false),
+    );
+  }
+
+  Widget _buildTenantCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    TenantModel tenant,
+    String phoneNumber,
+  ) {
+    final theme = Theme.of(context);
+    final branches = tenant.branches;
+    final hasOneBranch = branches.length == 1;
+    final hasManyBranches = branches.length > 1;
+    final isExpanded = _expandedTenantOrgId == tenant.tenantOrgId;
+
+    return AppCardWidget(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            contentPadding: EdgeInsetsDirectional.zero,
+            leading: tenant.logoUrl == null
+                ? null
+                : Image.network(
+                    tenant.logoUrl!,
+                    width: 48,
+                    height: 48,
+                    errorBuilder: (_, __, ___) =>
+                        const SizedBox(width: 48, height: 48),
+                  ),
+            title: Text(
+              _localizedTenantName(l10n, tenant),
+              style: theme.textTheme.titleMedium,
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsetsDirectional.only(top: AppSpacing.xs),
+              child: Text(
+                _branchSummaryText(l10n, branches),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color:
+                      branches.isEmpty ? AppColors.error : AppColors.textMuted,
+                ),
+              ),
+            ),
+            trailing: TextButton(
+              onPressed: _isSelectingTenant || branches.isEmpty
+                  ? null
+                  : () {
+                      if (hasOneBranch) {
+                        _selectTenant(
+                          context,
+                          l10n,
+                          tenant,
+                          phoneNumber,
+                          branches.first,
+                        );
+                        return;
+                      }
+                      setState(() {
+                        _expandedTenantOrgId =
+                            isExpanded ? null : tenant.tenantOrgId;
+                      });
+                    },
+              child: Text(
+                hasManyBranches
+                    ? l10n.text('tenant.chooseBranchAction')
+                    : l10n.text('tenant.selectAction'),
+              ),
+            ),
+          ),
+          if (branches.isEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.text('tenant.noActiveBranches'),
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: AppColors.error),
+            ),
+          ],
+          if (hasOneBranch) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _BranchSummaryCard(
+              branch: branches.first,
+              localizations: l10n,
+              isSelected: true,
+              onTap: _isSelectingTenant
+                  ? null
+                  : () => _selectTenant(
+                        context,
+                        l10n,
+                        tenant,
+                        phoneNumber,
+                        branches.first,
+                      ),
+            ),
+          ],
+          if (hasManyBranches && isExpanded) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              l10n.text('tenant.chooseBranchBody'),
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            ...branches.map(
+              (branch) => Padding(
+                padding:
+                    const EdgeInsetsDirectional.only(bottom: AppSpacing.sm),
+                child: _BranchSummaryCard(
+                  branch: branch,
+                  localizations: l10n,
+                  onTap: _isSelectingTenant
+                      ? null
+                      : () => _selectTenant(
+                            context,
+                            l10n,
+                            tenant,
+                            phoneNumber,
+                            branch,
+                          ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _localizedTenantName(AppLocalizations l10n, TenantModel tenant) {
+    return (l10n.locale.languageCode == 'ar' &&
+                (tenant.name2 ?? '').trim().isNotEmpty
+            ? tenant.name2
+            : null) ??
+        tenant.name;
+  }
+
+  String _branchSummaryText(
+    AppLocalizations l10n,
+    List<BranchOptionModel> branches,
+  ) {
+    if (branches.isEmpty) return l10n.text('tenant.noActiveBranchesShort');
+    if (branches.length == 1) {
+      return l10n.textWithArg('tenant.oneBranchAvailable', branches.first.name);
+    }
+    return l10n.textWithArg(
+      'tenant.multipleBranchesAvailable',
+      branches.length.toString(),
     );
   }
 
@@ -222,13 +347,16 @@ class _CustomerTenantDiscoveryScreenState
     AppLocalizations l10n,
     TenantModel tenant,
     String phoneNumber,
+    BranchOptionModel branch,
   ) async {
     AppLogger.info(
-      'Tenant discovery selecting tenant=${tenant.tenantOrgId} for phone=$phoneNumber',
+      'Tenant discovery selecting tenant=${tenant.tenantOrgId} branch=${branch.id} for phone=$phoneNumber',
     );
     setState(() => _isSelectingTenant = true);
     try {
-      await ref.read(tenantProvider.notifier).selectTenant(tenant);
+      await ref.read(tenantProvider.notifier).selectTenant(
+            tenant.copyWith(branches: [branch]),
+          );
       await ref
           .read(customerSessionFlowProvider.notifier)
           .signInDirectWithFixedOtp(phoneNumber: phoneNumber);
@@ -255,5 +383,95 @@ class _CustomerTenantDiscoveryScreenState
         setState(() => _isSelectingTenant = false);
       }
     }
+  }
+}
+
+class _BranchSummaryCard extends StatelessWidget {
+  const _BranchSummaryCard({
+    required this.branch,
+    required this.localizations,
+    required this.onTap,
+    this.isSelected = false,
+  });
+
+  final BranchOptionModel branch;
+  final AppLocalizations localizations;
+  final VoidCallback? onTap;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final branchName = (localizations.locale.languageCode == 'ar' &&
+                (branch.name2 ?? '').trim().isNotEmpty
+            ? branch.name2
+            : null) ??
+        branch.name;
+    final addressParts = [
+      branch.area,
+      branch.city,
+    ].where((value) => (value ?? '').trim().isNotEmpty).join(', ');
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: branchName,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border,
+            ),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                isSelected ? Icons.check_circle : Icons.storefront_outlined,
+                color: isSelected ? AppColors.primary : AppColors.textMuted,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            branchName,
+                            style: theme.textTheme.titleMedium,
+                          ),
+                        ),
+                        if (branch.isMain)
+                          Text(
+                            localizations.text('tenant.mainBranchLabel'),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (addressParts.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        addressParts,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

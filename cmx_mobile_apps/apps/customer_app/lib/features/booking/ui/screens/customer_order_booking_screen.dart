@@ -120,14 +120,9 @@ class _CustomerOrderBookingScreenState
                     !booking.hasLoadError &&
                     !booking.hasSubmissionSuccess)
                   Padding(
-                    padding: const EdgeInsetsDirectional.only(
-                        bottom: AppSpacing.lg),
-                    child: AppCardWidget(
-                      child: Text(
-                        localizations.text(booking.errorMessageKey!),
-                        style: Theme.of(context).textTheme.bodyLarge,
-                      ),
-                    ),
+                    padding:
+                        const EdgeInsetsDirectional.only(bottom: AppSpacing.lg),
+                    child: _buildInlineErrorState(localizations, booking),
                   ),
                 if (booking.hasSubmissionSuccess)
                   _buildSuccessState(localizations, booking)
@@ -247,6 +242,50 @@ class _CustomerOrderBookingScreenState
             localizations.text(disabledBodyKey),
             style: Theme.of(context).textTheme.bodyLarge,
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineErrorState(
+    AppLocalizations localizations,
+    BookingState booking,
+  ) {
+    final theme = Theme.of(context);
+    return AppCardWidget(
+      accentColor: AppColors.error,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            localizations.text(booking.errorMessageKey!),
+            style: theme.textTheme.bodyLarge,
+          ),
+          if (booking.validationIssueKeys.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              localizations.text('booking.missingDetailsTitle'),
+              style: theme.textTheme.titleMedium,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            ...booking.validationIssueKeys.map(
+              (issueKey) => Padding(
+                padding: const EdgeInsetsDirectional.only(top: AppSpacing.xs),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('- '),
+                    Expanded(
+                      child: Text(
+                        localizations.text(issueKey),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

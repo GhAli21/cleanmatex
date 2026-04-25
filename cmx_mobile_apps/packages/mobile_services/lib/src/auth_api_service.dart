@@ -59,6 +59,7 @@ class AuthApiService {
     required CustomerAuthChallengeModel challenge,
     required String otpCode,
     required String tenantOrgId,
+    BranchOptionModel? branch,
   }) async {
     if (!RegExp(r'^[0-9]{6}$').hasMatch(otpCode.trim())) {
       throw const AuthServiceException(
@@ -73,6 +74,9 @@ class AuthApiService {
         phoneNumber: challenge.phoneNumber,
         isGuest: false,
         tenantOrgId: tenantOrgId,
+        branchId: branch?.id,
+        branchName: branch?.name,
+        branchName2: branch?.name2,
       );
     }
 
@@ -84,7 +88,9 @@ class AuthApiService {
 
       final isVerified = verificationResponse['verified'] == true;
       final verificationToken = verificationResponse['token'] as String?;
-      if (!isVerified || verificationToken == null || verificationToken.isEmpty) {
+      if (!isVerified ||
+          verificationToken == null ||
+          verificationToken.isEmpty) {
         throw const AuthServiceException(
           code: 'auth_verification_failed',
           messageKey: 'otpEntry.genericError',
@@ -104,7 +110,7 @@ class AuthApiService {
         );
       }
 
-      return CustomerSessionModel.fromJson(data);
+      return _sessionWithBranch(CustomerSessionModel.fromJson(data), branch);
     } on MobileHttpException catch (error) {
       throw AuthServiceException(
         code: error.code,
@@ -141,6 +147,7 @@ class AuthApiService {
     required String phoneNumber,
     required String password,
     required String tenantId,
+    BranchOptionModel? branch,
   }) async {
     if (!RegExp(r'^\+?[0-9]{8,15}$').hasMatch(phoneNumber.trim())) {
       throw const AuthServiceException(
@@ -159,7 +166,11 @@ class AuthApiService {
     try {
       final response = await _httpClient.postJson(
         '/api/v1/public/customer/login',
-        body: {'tenantId': tenantId, 'phone': phoneNumber, 'password': password},
+        body: {
+          'tenantId': tenantId,
+          'phone': phoneNumber,
+          'password': password
+        },
       );
 
       final data = response['data'];
@@ -170,7 +181,7 @@ class AuthApiService {
         );
       }
 
-      return CustomerSessionModel.fromJson(data);
+      return _sessionWithBranch(CustomerSessionModel.fromJson(data), branch);
     } on MobileHttpException catch (error) {
       throw AuthServiceException(
         code: error.code,
@@ -229,7 +240,16 @@ class AuthApiService {
         );
       }
 
-      return CustomerSessionModel.fromJson(data);
+      return _sessionWithBranch(
+        CustomerSessionModel.fromJson(data),
+        session.branchId == null
+            ? null
+            : BranchOptionModel(
+                id: session.branchId!,
+                name: session.branchName ?? '',
+                name2: session.branchName2,
+              ),
+      );
     } on MobileHttpException catch (error) {
       throw AuthServiceException(
         code: error.code,
@@ -237,5 +257,24 @@ class AuthApiService {
         originalError: error,
       );
     }
+  }
+
+  CustomerSessionModel _sessionWithBranch(
+    CustomerSessionModel session,
+    BranchOptionModel? branch,
+  ) {
+    if (branch == null) return session;
+    return CustomerSessionModel(
+      customerId: session.customerId,
+      phoneNumber: session.phoneNumber,
+      isGuest: session.isGuest,
+      tenantOrgId: session.tenantOrgId,
+      branchId: branch.id,
+      branchName: branch.name,
+      branchName2: branch.name2,
+      displayName: session.displayName,
+      verificationToken: session.verificationToken,
+      hasPassword: session.hasPassword,
+    );
   }
 }

@@ -28,7 +28,8 @@ class PasswordLoginState {
     return PasswordLoginState(
       password: password ?? this.password,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      errorMessageKey: clearError ? null : (errorMessageKey ?? this.errorMessageKey),
+      errorMessageKey:
+          clearError ? null : (errorMessageKey ?? this.errorMessageKey),
     );
   }
 }
@@ -62,8 +63,11 @@ class CustomerPasswordLoginNotifier extends Notifier<PasswordLoginState> {
         phoneNumber: phoneNumber,
         password: state.password,
         tenantId: tenant.tenantOrgId,
+        branch: tenant.branches.length == 1 ? tenant.branches.first : null,
       );
-      ref.read(customerSessionFlowProvider.notifier).applyRefreshedSession(session);
+      ref
+          .read(customerSessionFlowProvider.notifier)
+          .applyRefreshedSession(session);
     } on AuthServiceException catch (e) {
       state = state.copyWith(
         isSubmitting: false,

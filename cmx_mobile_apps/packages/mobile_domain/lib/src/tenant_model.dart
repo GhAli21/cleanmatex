@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'branch_option_model.dart';
+
 class TenantModel {
   const TenantModel({
     required this.tenantOrgId,
@@ -7,6 +9,7 @@ class TenantModel {
     this.name2,
     this.logoUrl,
     this.primaryColor,
+    this.branches = const [],
   });
 
   final String tenantOrgId;
@@ -14,6 +17,7 @@ class TenantModel {
   final String? name2;
   final String? logoUrl;
   final String? primaryColor;
+  final List<BranchOptionModel> branches;
 
   factory TenantModel.fromJson(Map<String, Object?> json) {
     return TenantModel(
@@ -22,6 +26,11 @@ class TenantModel {
       name2: json['name2'] as String?,
       logoUrl: json['logoUrl'] as String?,
       primaryColor: json['primaryColor'] as String?,
+      branches: (json['branches'] as List? ?? const [])
+          .whereType<Map<String, Object?>>()
+          .map(BranchOptionModel.fromJson)
+          .where((branch) => branch.id.isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -32,6 +41,7 @@ class TenantModel {
       if (name2 != null) 'name2': name2,
       if (logoUrl != null) 'logoUrl': logoUrl,
       if (primaryColor != null) 'primaryColor': primaryColor,
+      'branches': branches.map((branch) => branch.toJson()).toList(),
     };
   }
 
@@ -52,6 +62,7 @@ class TenantModel {
     String? name2,
     String? logoUrl,
     String? primaryColor,
+    List<BranchOptionModel>? branches,
   }) {
     return TenantModel(
       tenantOrgId: tenantOrgId ?? this.tenantOrgId,
@@ -59,6 +70,7 @@ class TenantModel {
       name2: name2 ?? this.name2,
       logoUrl: logoUrl ?? this.logoUrl,
       primaryColor: primaryColor ?? this.primaryColor,
+      branches: branches ?? this.branches,
     );
   }
 }

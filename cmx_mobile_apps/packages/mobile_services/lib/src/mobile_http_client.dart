@@ -204,7 +204,7 @@ class MobileHttpClient {
       throw MobileHttpException(
         code: payload['errorCode'] as String? ?? 'remote_request_failed',
         messageKey: 'common.remoteRequestError',
-        originalError: payload['error'] ?? response.body,
+        originalError: payload.isNotEmpty ? payload : response.body,
         statusCode: response.statusCode,
       );
     }

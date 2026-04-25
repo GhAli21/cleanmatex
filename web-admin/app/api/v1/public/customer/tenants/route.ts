@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
           name2: tenant.name2,
           logoUrl: tenant.logoUrl,
           primaryColor: tenant.primaryColor,
+          branches: tenant.branches ?? [],
         })),
       },
       { status: 200 },

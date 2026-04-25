@@ -1,12 +1,23 @@
 import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 
+export interface BranchPublicProfile {
+  id: string;
+  name: string;
+  name2: string | null;
+  isMain: boolean;
+  address: string | null;
+  area: string | null;
+  city: string | null;
+}
+
 export interface TenantPublicProfile {
   tenantOrgId: string;
   name: string;
   name2: string | null;
   logoUrl: string | null;
   primaryColor: string | null;
+  branches?: BranchPublicProfile[];
 }
 
 export async function resolveTenantBySlug(

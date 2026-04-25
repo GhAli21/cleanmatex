@@ -87,7 +87,11 @@ class OrderBookingService {
       final payload = await _httpClient.getJson(
         '/api/v1/public/customer/booking',
         headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
-        queryParameters: {'tenantId': session.tenantOrgId!},
+        queryParameters: {
+          'tenantId': session.tenantOrgId!,
+          if ((session.branchId ?? '').isNotEmpty)
+            'branchId': session.branchId!,
+        },
       );
 
       final data = payload['data'];
@@ -177,6 +181,7 @@ class OrderBookingService {
         headers: {'Authorization': 'Bearer ${session!.verificationToken}'},
         body: {
           'tenantId': session.tenantOrgId!,
+          if ((session.branchId ?? '').isNotEmpty) 'branchId': session.branchId,
           // kept for backend transition compatibility
           'serviceId': draft.service?.id,
           'fulfillmentType': fulfillmentType,

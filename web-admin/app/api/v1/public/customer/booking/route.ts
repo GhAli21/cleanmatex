@@ -17,7 +17,8 @@ const bookingItemSchema = z.object({
 });
 
 const submitBookingSchema = z.object({
-  tenantId: z.string().uuid(),
+  tenantId: z.string().trim().min(1).max(120),
+  branchId: z.string().uuid().optional().nullable(),
   serviceId: z.string().uuid().optional().nullable(),
   addressId: z.string().uuid().optional().nullable(),
   slotId: z.string().min(1).optional().nullable(),
@@ -306,11 +307,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const tenantId = request.nextUrl.searchParams.get('tenantId')?.trim() ?? '';
+    const branchId = request.nextUrl.searchParams.get('branchId')?.trim() || null;
     const verificationToken = extractBearerToken(request);
     const requestContext = {
       feature: 'public_customer_booking',
       action: 'bootstrap',
       tenantId,
+      branchId,
       hasVerificationToken: Boolean(verificationToken),
       method: request.method,
       path: request.nextUrl.pathname,
@@ -386,9 +389,9 @@ export async function GET(request: NextRequest) {
       preferenceKinds,
     ] =
       await Promise.all([
-        tenantSettings.getCurrencyConfig(tenantId),
-        tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE'),
-        PreferenceCatalogService.getServicePreferences(supabase, tenantId),
+        tenantSettings.getCurrencyConfig(tenantId, branchId),
+        tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE', branchId),
+        PreferenceCatalogService.getServicePreferences(supabase, tenantId, branchId),
         PreferenceCatalogService.getPackingPreferences(supabase, tenantId),
         PreferenceCatalogService.getPreferenceKinds(supabase, tenantId, false),
       ]);
@@ -641,6 +644,7 @@ export async function POST(request: NextRequest) {
       itemLines: body.items.length,
       servicePreferenceCount: body.servicePreferenceIds.length,
       pickupPreferenceCount: body.pickupPreferenceIds.length,
+      branchId: body.branchId ?? null,
       isPickupFromAddress: body.isPickupFromAddress,
       isAsap: body.isAsap,
       fulfillmentType: body.fulfillmentType,
@@ -723,6 +727,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const branchQuery = supabase
+      .from('org_branches_mst')
+      .select('id')
+      .eq('tenant_org_id', body.tenantId)
+      .eq('is_active', true);
+    const branchPromise = (
+      body.branchId
+        ? branchQuery.eq('id', body.branchId)
+        : branchQuery.order('is_main', { ascending: false }).limit(1)
+    ).single();
+
     const [
       { data: products, error: productsError },
       { data: address, error: addressError },
@@ -749,14 +764,7 @@ export async function POST(request: NextRequest) {
               .eq('is_active', true)
               .single()
           : Promise.resolve({ data: null, error: null }),
-        supabase
-          .from('org_branches_mst')
-          .select('id')
-          .eq('tenant_org_id', body.tenantId)
-          .eq('is_active', true)
-          .order('is_main', { ascending: false })
-          .limit(1)
-          .single(),
+        branchPromise,
         PreferenceCatalogService.getServicePreferences(supabase, body.tenantId),
         PreferenceCatalogService.getPackingPreferences(supabase, body.tenantId),
       ]);

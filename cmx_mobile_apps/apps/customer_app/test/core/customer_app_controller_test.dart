@@ -4,6 +4,7 @@ import 'package:customer_app/core/app_shell_controller.dart';
 import 'package:customer_app/core/navigation/app_route.dart';
 import 'package:customer_app/core/providers/app_dependencies.dart';
 import 'package:customer_app/core/providers/session_manager_provider.dart';
+import 'package:customer_app/features/auth/data/repositories/customer_auth_repository.dart';
 import 'package:customer_app/features/tenant/providers/tenant_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +14,8 @@ import 'package:mobile_services/mobile_services.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('restores a saved guest session after bootstrap (shared storage)', () async {
+  test('restores a saved guest session after bootstrap (shared storage)',
+      () async {
     final storage = InMemorySessionStorage();
     final sm = SessionManager(storage: storage);
     final c1 = ProviderContainer(
@@ -104,7 +106,8 @@ void main() {
     expect(route, AppRoute.offline);
   });
 
-  test('refreshConnectivityStatus clears offline mode after reconnect', () async {
+  test('refreshConnectivityStatus clears offline mode after reconnect',
+      () async {
     final connectivity = _FakeConnectivityService(initiallyOnline: false);
     final c = ProviderContainer(
       overrides: [
@@ -154,6 +157,35 @@ void main() {
     expect(flow.hasFatalError, isFalse);
   });
 
+  test('direct sign in stores selected branch on session', () async {
+    final storage = InMemorySessionStorage();
+    final c = ProviderContainer(
+      overrides: [
+        sessionManagerProvider.overrideWithValue(
+          SessionManager(storage: storage),
+        ),
+        connectivityServiceProvider.overrideWithValue(
+          _FakeConnectivityService(initiallyOnline: true),
+        ),
+        tenantProvider.overrideWith(_FixedTenantWithBranch.new),
+        customerAuthRepositoryProvider.overrideWithValue(
+          _BranchCapturingAuthRepository(),
+        ),
+      ],
+    );
+    addTearDown(c.dispose);
+    await c.read(tenantProvider.future);
+
+    await c
+        .read(customerSessionFlowProvider.notifier)
+        .signInDirectWithFixedOtp(phoneNumber: '96890000000');
+
+    final session = c.read(customerSessionFlowProvider).session;
+    expect(session?.branchId, 'branch-1');
+    expect(session?.branchName, 'Main Branch');
+    expect((await storage.read())?.branchId, 'branch-1');
+  });
+
   test('saved tenant skips confirm and routes into the customer shell', () {
     final route = resolveRouteAfterTenantBootstrap(
       flow: const CustomerSessionFlowState(isBootstrapping: false),
@@ -170,6 +202,55 @@ class _FixedTenant extends TenantNotifier {
     return const TenantModel(
       tenantOrgId: 'test-tenant',
       name: 'Test',
+    );
+  }
+}
+
+class _FixedTenantWithBranch extends TenantNotifier {
+  @override
+  Future<TenantModel?> build() async {
+    return const TenantModel(
+      tenantOrgId: 'test-tenant',
+      name: 'Test',
+      branches: [
+        BranchOptionModel(
+          id: 'branch-1',
+          name: 'Main Branch',
+          isMain: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _BranchCapturingAuthRepository extends CustomerAuthRepository {
+  _BranchCapturingAuthRepository() : super();
+
+  @override
+  Future<CustomerAuthChallengeModel> requestOtp(
+      {required String phoneNumber}) async {
+    return CustomerAuthChallengeModel(
+      phoneNumber: phoneNumber,
+      challengeId: 'test-challenge',
+    );
+  }
+
+  @override
+  Future<CustomerSessionModel> verifyOtp({
+    required CustomerAuthChallengeModel challenge,
+    required String otpCode,
+    required String tenantOrgId,
+    BranchOptionModel? branch,
+  }) async {
+    return CustomerSessionModel(
+      customerId: 'test-customer',
+      phoneNumber: challenge.phoneNumber,
+      isGuest: false,
+      tenantOrgId: tenantOrgId,
+      branchId: branch?.id,
+      branchName: branch?.name,
+      branchName2: branch?.name2,
+      verificationToken: 'test-token',
     );
   }
 }
