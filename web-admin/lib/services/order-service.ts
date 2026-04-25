@@ -4,6 +4,7 @@
  * PRD-010: Advanced Order Management with workflow support
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
@@ -123,6 +124,11 @@ export interface CreateOrderParams {
   customerEmail?: string;
   customerName?: string;
   customerDetails?: Record<string, unknown>;
+  /**
+   * When set (e.g. public customer booking), used for Supabase writes. Cookie-based clients
+   * have no staff JWT, so RLS `current_tenant_id()` fails unless this is the service-role client.
+   */
+  supabaseClient?: SupabaseClient;
   /** Optional audit context for stock deduction (org_inv_stock_tr) */
   stockDeductionAudit?: {
     referenceType?: string;
@@ -381,7 +387,6 @@ export class OrderService {
    */
   static async createOrder(params: CreateOrderParams): Promise<CreateOrderResult> {
     try {
-      const supabase = await createClient();
       const {
         tenantId,
         customerId,
@@ -414,7 +419,10 @@ export class OrderService {
         customerEmail,
         customerName,
         customerDetails,
+        supabaseClient,
       } = params;
+
+      const supabase = supabaseClient ?? (await createClient());
 
       const orderSourceCode = (params.orderSourceCode ?? DEFAULT_ORDER_SOURCE_CODE).trim();
       const sourceValidated = await validateOrderSourceForCreation(tenantId, orderSourceCode);
@@ -765,7 +773,8 @@ export class OrderService {
                     metadata: {},
                   },
                   piecesData, // Pass piece-level data array
-                  branchId ?? undefined
+                  branchId ?? undefined,
+                  supabase
                 );
 
                 // If pieces creation failed, collect the error

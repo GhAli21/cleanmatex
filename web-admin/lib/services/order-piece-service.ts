@@ -4,6 +4,7 @@
  * Handles CRUD operations, batch updates, and sync with order items
  */
 
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { prisma } from '@/lib/db/prisma';
 import type { OrderItemPiece } from '@/types/order';
@@ -76,6 +77,8 @@ export class OrderPieceService {
    * Auto-creates pieces 1..quantity for order items (pieces are always used)
    * @param piecesData - Optional array of piece-level data. If provided, must match quantity.
    *                     If not provided, uses baseData for all pieces uniformly.
+   * @param branchId - Optional branch scope for preferences.
+   * @param supabaseClient - Optional service-role client when caller has no staff JWT (public booking).
    */
   static async createPiecesForItem(
     tenantId: string,
@@ -107,10 +110,11 @@ export class OrderPieceService {
       servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
       conditions?: string[];
     }>,
-    branchId?: string
+    branchId?: string,
+    supabaseClient?: SupabaseClient
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
     try {
-      const supabase = await createClient();
+      const supabase = supabaseClient ?? (await createClient());
 
       // Verify item exists and belongs to tenant
       const { data: item, error: itemError } = await supabase

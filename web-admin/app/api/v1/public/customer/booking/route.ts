@@ -955,6 +955,7 @@ export async function POST(request: NextRequest) {
       bookingSignature,
     });
 
+    const adminSupabase = createAdminSupabaseClient();
     const creationResult = await withTenantContext(body.tenantId, async () =>
       OrderService.createOrder({
         tenantId: body.tenantId,
@@ -963,6 +964,7 @@ export async function POST(request: NextRequest) {
         orderTypeId,
         items,
         orderSourceCode: 'customer_mobile_app',
+        supabaseClient: adminSupabase,
         totals: {
           subtotal,
           tax: vatAmount,

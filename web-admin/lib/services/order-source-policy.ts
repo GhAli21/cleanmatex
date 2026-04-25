@@ -66,8 +66,8 @@ export async function validateOrderSourceForCreation(
   | { ok: false; error: string }
 > {
   const tenantOk = await assertTenantAllowsOrderSource(tenantId, orderSourceCode);
-  if (!tenantOk.ok) {
-    return tenantOk;
+  if (tenantOk.ok === false) {
+    return { ok: false, error: tenantOk.error };
   }
   return fetchActiveOrderSource(orderSourceCode);
 }
