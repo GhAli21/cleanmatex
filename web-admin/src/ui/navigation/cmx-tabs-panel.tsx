@@ -53,33 +53,36 @@ export const CmxTabsPanel: React.FC<CmxTabsPanelProps> = ({
         defaultValue={isControlled ? undefined : defaultValue}
         className="w-full"
       >
-        <CmxTabsList
-          className={cn(
-            'w-full justify-start rounded-none border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]',
-            'bg-transparent p-0 h-auto gap-0'
-          )}
-        >
-          {tabs.map((tab) => (
-            <CmxTabsTrigger
-              key={tab.id}
-              value={tab.id}
-              disabled={tab.disabled}
-              className={cn(
-                'rounded-none border-b-2 border-transparent data-[state=active]:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-                'data-[state=active]:bg-transparent data-[state=active]:shadow-none',
-                'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
-                'data-[state=active]:text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
-                'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]',
-                'px-1 py-4 mx-1'
-              )}
-            >
-              <span className="flex items-center gap-2">
-                {tab.icon && <span className="text-lg">{tab.icon}</span>}
-                {tab.label}
-              </span>
-            </CmxTabsTrigger>
-          ))}
-        </CmxTabsList>
+        {/* Scroll container: tabs scroll horizontally on small screens */}
+        <div className="overflow-x-auto border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]">
+          <CmxTabsList
+            className={cn(
+              'w-max min-w-full justify-start rounded-none border-b-0',
+              'bg-transparent p-0 h-auto gap-0'
+            )}
+          >
+            {tabs.map((tab) => (
+              <CmxTabsTrigger
+                key={tab.id}
+                value={tab.id}
+                disabled={tab.disabled}
+                className={cn(
+                  'rounded-none border-b-2 border-transparent data-[state=active]:border-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+                  'data-[state=active]:bg-transparent data-[state=active]:shadow-none',
+                  'text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]',
+                  'data-[state=active]:text-[rgb(var(--cmx-primary-rgb,14_165_233))]',
+                  'hover:text-[rgb(var(--cmx-foreground-rgb,15_23_42))] hover:border-[rgb(var(--cmx-border-rgb,226_232_240))]',
+                  'px-1 py-4 mx-1 whitespace-nowrap'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  {tab.icon && <span className="text-lg">{tab.icon}</span>}
+                  {tab.label}
+                </span>
+              </CmxTabsTrigger>
+            ))}
+          </CmxTabsList>
+        </div>
         {tabs.map((tab) => (
           <CmxTabsContent key={tab.id} value={tab.id} className="mt-6">
             <div className="contents">{tab.content}</div>
