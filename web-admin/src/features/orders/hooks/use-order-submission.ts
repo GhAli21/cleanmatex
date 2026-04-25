@@ -213,6 +213,12 @@ export function useOrderSubmission() {
                                 rackLocation: piece.rackLocation,
                                 metadata: piece.metadata,
                                 conditions: piece.conditions,
+                                ...(packingPerPieceEnabled && piece.packingPrefCode && {
+                                    packingPrefCode: piece.packingPrefCode,
+                                }),
+                                ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
+                                    servicePrefs: piece.servicePrefs,
+                                }),
                             })),
                         }),
                         ...(item.servicePrefs && item.servicePrefs.length > 0 && {

@@ -9,6 +9,7 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
+import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -77,6 +78,7 @@ async function OrderDetailsFullContent({
     stockResult,
     receiptsResult,
     editHistoryResult,
+    preferencesResult,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
     getPaymentsForOrder(orderId),
@@ -85,6 +87,7 @@ async function OrderDetailsFullContent({
     getStockTransactionsForOrder(orderId),
     ReceiptService.getReceipts({ orderId, tenantId }),
     getOrderEditHistoryAction(orderId),
+    getOrderPreferencesAction(orderId),
   ]);
 
   if (!orderResult.success || !orderResult.data) {
@@ -114,6 +117,7 @@ async function OrderDetailsFullContent({
   const stockTransactions = stockResult ?? [];
   const receipts = receiptsResult ?? [];
   const editHistory = editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
+  const orderPreferences = preferencesResult.success && preferencesResult.data ? preferencesResult.data : [];
 
   const serializedOrder = {
     ...order,
@@ -149,6 +153,7 @@ async function OrderDetailsFullContent({
       stockTransactions={stockTransactions}
       receipts={receipts}
       editHistory={editHistory}
+      orderPreferences={orderPreferences}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       processPaymentAction={processPayment}
@@ -220,6 +225,7 @@ async function OrderDetailsFullContent({
         tabsPayments: tFull('tabs.payments'),
         tabsStock: tFull('tabs.stock'),
         tabsReceipts: tFull('tabs.receipts'),
+        tabsPreferences: tFull('tabs.preferences'),
         tabsActions: tFull('tabs.actions'),
         orderSummary: tFull('orderSummary'),
         viewPayments: tFull('viewPayments'),
@@ -228,6 +234,37 @@ async function OrderDetailsFullContent({
         emptyVouchers: tFull('emptyVouchers'),
         emptyPayments: tFull('emptyPayments'),
         emptyStock: tFull('emptyStock'),
+        emptyPreferences: tFull('emptyPreferences'),
+        prefLevelOrder: tFull('preferences.levelOrder'),
+        prefLevelItem: tFull('preferences.levelItem'),
+        prefLevelPiece: tFull('preferences.levelPiece'),
+        prefKindServicePrefs: tFull('preferences.kindServicePrefs'),
+        prefKindPackingPrefs: tFull('preferences.kindPackingPrefs'),
+        prefKindConditionStain: tFull('preferences.kindConditionStain'),
+        prefKindConditionDamage: tFull('preferences.kindConditionDamage'),
+        prefKindColor: tFull('preferences.kindColor'),
+        prefKindNote: tFull('preferences.kindNote'),
+        prefOwnerSystem: tFull('preferences.ownerSystem'),
+        prefOwnerOverride: tFull('preferences.ownerOverride'),
+        prefSourceOrderCreate: tFull('preferences.sourceOrderCreate'),
+        prefSourceManual: tFull('preferences.sourceManual'),
+        prefSourceOrderUpdate: tFull('preferences.sourceOrderUpdate'),
+        prefExtraCharge: tFull('preferences.extraCharge'),
+        prefConfirmed: tFull('preferences.confirmed'),
+        prefNotConfirmed: tFull('preferences.notConfirmed'),
+        prefConfirmedBy: tFull('preferences.confirmedBy'),
+        prefCreatedBy: tFull('preferences.createdBy'),
+        prefCode: tFull('preferences.prefCode'),
+        prefKind: tFull('preferences.prefKind'),
+        prefLevel: tFull('preferences.level'),
+        prefSource: tFull('preferences.source'),
+        prefOwner: tFull('preferences.owner'),
+        prefTotalExtraCharge: tFull('preferences.totalExtraCharge'),
+        prefOrderLevel: tFull('preferences.orderLevelPrefs'),
+        prefItemLevel: tFull('preferences.itemLevelPrefs'),
+        prefPieceLevel: tFull('preferences.pieceLevelPrefs'),
+        prefItemRef: tFull('preferences.itemRef'),
+        prefPieceRef: tFull('preferences.pieceRef'),
         emptyReceipts: tFull('emptyReceipts'),
         searchByInvoiceId: tFull('searchByInvoiceId'),
         searchByVoucherId: tFull('searchByVoucherId'),

@@ -196,6 +196,52 @@ export class OrderItemPreferenceService {
         return { success: false, error: error.message };
       }
 
+      // Sync packing pref into org_order_preferences_dtl (ITEM level)
+      const { data: existing } = await supabase
+        .from('org_order_preferences_dtl')
+        .select('id')
+        .eq('tenant_org_id', tenantId)
+        .eq('order_item_id', orderItemId)
+        .eq('preference_sys_kind', 'packing_prefs')
+        .is('order_item_piece_id', null)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('org_order_preferences_dtl')
+          .update({
+            preference_code: packingPrefCode,
+            prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
+            prefs_source: packingPrefSource ?? 'ORDER_UPDATE',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('tenant_org_id', tenantId)
+          .eq('id', existing.id);
+      } else {
+        const { data: itemRow } = await supabase
+          .from('org_order_items_dtl')
+          .select('order_id, branch_id')
+          .eq('tenant_org_id', tenantId)
+          .eq('id', orderItemId)
+          .single();
+
+        if (itemRow) {
+          await supabase.from('org_order_preferences_dtl').insert({
+            tenant_org_id: tenantId,
+            order_id: itemRow.order_id,
+            prefs_no: 1,
+            prefs_level: 'ITEM',
+            order_item_id: orderItemId,
+            preference_code: packingPrefCode,
+            preference_sys_kind: 'packing_prefs',
+            prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
+            prefs_source: packingPrefSource ?? 'ORDER_UPDATE',
+            extra_price: 0,
+            branch_id: itemRow.branch_id ?? null,
+          });
+        }
+      }
+
       return { success: true };
     } catch (err) {
       logger.error('OrderItemPreferenceService.updateItemPackingPref failed', err instanceof Error ? err : new Error(String(err)), {

@@ -25,13 +25,15 @@ import { OrdersStockTabRprt } from '@features/orders/ui/orders-stock-tab-rprt';
 import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-rprt';
 import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
+import type { OrderPreferenceRow } from '@/app/actions/orders/get-order-preferences';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 
-const TAB_IDS = ['master', 'items', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
+const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -50,6 +52,7 @@ interface OrderDetailsFullClientProps {
     retryCount: number;
   }>;
   editHistory: OrderEditHistoryEntry[];
+  orderPreferences: OrderPreferenceRow[];
   tenantOrgId: string;
   userId: string;
   processPaymentAction: (
@@ -89,6 +92,7 @@ export function OrderDetailsFullClient({
   stockTransactions,
   receipts,
   editHistory,
+  orderPreferences,
   tenantOrgId,
   userId,
   processPaymentAction,
@@ -553,6 +557,52 @@ export function OrderDetailsFullClient({
             tenantId={tenantId}
             trackByPiece={trackByPiece}
             readOnly
+          />
+        </div>
+      ),
+    },
+    {
+      id: 'preferences',
+      label: t.tabsPreferences ?? 'Preferences',
+      content: (
+        <div className="bg-white rounded-lg border border-gray-200 p-6">
+          <OrdersPreferencesTabRprt
+            preferences={orderPreferences}
+            currencyCode={orderCurrency}
+            locale={locale}
+            translations={{
+              emptyPreferences: t.emptyPreferences ?? 'No preferences for this order',
+              levelOrder: t.prefLevelOrder ?? 'Order',
+              levelItem: t.prefLevelItem ?? 'Item',
+              levelPiece: t.prefLevelPiece ?? 'Piece',
+              kindServicePrefs: t.prefKindServicePrefs ?? 'Service',
+              kindPackingPrefs: t.prefKindPackingPrefs ?? 'Packing',
+              kindConditionStain: t.prefKindConditionStain ?? 'Stain',
+              kindConditionDamage: t.prefKindConditionDamage ?? 'Damage',
+              kindColor: t.prefKindColor ?? 'Color',
+              kindNote: t.prefKindNote ?? 'Note',
+              ownerSystem: t.prefOwnerSystem ?? 'System',
+              ownerOverride: t.prefOwnerOverride ?? 'Override',
+              sourceOrderCreate: t.prefSourceOrderCreate ?? 'Order Create',
+              sourceManual: t.prefSourceManual ?? 'Manual',
+              sourceOrderUpdate: t.prefSourceOrderUpdate ?? 'Order Update',
+              extraCharge: t.prefExtraCharge ?? 'Extra charge',
+              confirmed: t.prefConfirmed ?? 'Confirmed',
+              notConfirmed: t.prefNotConfirmed ?? 'Pending',
+              confirmedBy: t.prefConfirmedBy ?? 'Confirmed by',
+              createdBy: t.prefCreatedBy ?? 'Created by',
+              prefCode: t.prefCode ?? 'Code',
+              prefKind: t.prefKind ?? 'Kind',
+              level: t.prefLevel ?? 'Level',
+              source: t.prefSource ?? 'Source',
+              owner: t.prefOwner ?? 'Owner',
+              totalExtraCharge: t.prefTotalExtraCharge ?? 'Total extra charge',
+              orderLevelPrefs: t.prefOrderLevel ?? 'Order-level preferences',
+              itemLevelPrefs: t.prefItemLevel ?? 'Item-level preferences',
+              pieceLevelPrefs: t.prefPieceLevel ?? 'Piece-level preferences',
+              itemRef: t.prefItemRef ?? 'Item',
+              pieceRef: t.prefPieceRef ?? 'Piece',
+            }}
           />
         </div>
       ),

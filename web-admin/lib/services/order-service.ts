@@ -730,6 +730,51 @@ export class OrderService {
             }
           }
 
+          // Insert packing preferences into org_order_preferences_dtl (ITEM level)
+          const packingPrefsToInsert = createdItems
+            .map((createdItem, i) => {
+              const itemData = items[i];
+              if (!createdItem || !itemData?.packingPrefCode) return null;
+              return {
+                tenant_org_id: tenantId,
+                order_id: order.id,
+                prefs_no: 1,
+                prefs_level: 'ITEM',
+                order_item_id: createdItem.id,
+                preference_code: itemData.packingPrefCode,
+                preference_sys_kind: 'packing_prefs',
+                prefs_owner_type: itemData.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
+                prefs_source: itemData.packingPrefSource ?? 'ORDER_CREATE',
+                extra_price: 0,
+                branch_id: branchId ?? null,
+                created_by: userId,
+              };
+            })
+            .filter((r): r is NonNullable<typeof r> => r !== null);
+
+          if (packingPrefsToInsert.length > 0) {
+            const { error: packingPrefsError } = await supabase
+              .from('org_order_preferences_dtl')
+              .insert(packingPrefsToInsert);
+            if (packingPrefsError) {
+              logger.error('Failed to insert packing preferences for order items', new Error(packingPrefsError.message), {
+                tenantId,
+                orderId: order.id,
+                feature: 'orders',
+                action: 'create_order',
+              });
+              await supabase
+                .from('org_orders_mst')
+                .delete()
+                .eq('tenant_org_id', tenantId)
+                .eq('id', order.id);
+              return {
+                success: false,
+                error: 'Failed to create order packing preferences',
+              };
+            }
+          }
+
           // Always create pieces for each order item
           const piecesErrors: Array<{ itemId: string; error: string }> = [];
 
@@ -1175,6 +1220,26 @@ export class OrderService {
           });
         }
 
+        // Insert item packing pref into org_order_preferences_dtl
+        if (item.packingPrefCode) {
+          await tx.org_order_preferences_dtl.create({
+            data: {
+              tenant_org_id: tenantId,
+              order_id: order.id,
+              prefs_no: 1,
+              prefs_level: 'ITEM',
+              order_item_id: createdItem.id,
+              preference_code: item.packingPrefCode,
+              preference_sys_kind: 'packing_prefs',
+              prefs_owner_type: item.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
+              prefs_source: item.packingPrefSource ?? 'ORDER_CREATE',
+              extra_price: 0,
+              branch_id: branchId ?? null,
+              created_by: userId,
+            },
+          });
+        }
+
         // Always create pieces for each order item
         if (item.quantity > 0) {
           const pricePerPiece = item.totalPrice / item.quantity;
@@ -1202,6 +1267,7 @@ export class OrderService {
                 notes: pieceInput?.notes ?? null,
                 has_stain: pieceInput?.hasStain ?? false,
                 has_damage: pieceInput?.hasDamage ?? false,
+                packing_pref_code: pieceInput?.packingPrefCode ?? null,
               },
             });
 
@@ -1247,6 +1313,27 @@ export class OrderService {
                   branch_id: branchId ?? null,
                   created_by: userId,
                 })),
+              });
+            }
+
+            // Save piece packing pref to org_order_preferences_dtl (PIECE level)
+            if (pieceInput?.packingPrefCode) {
+              await tx.org_order_preferences_dtl.create({
+                data: {
+                  tenant_org_id: tenantId,
+                  order_id: order.id,
+                  prefs_no: conditions.length + piecePrefs.length + 1,
+                  prefs_level: 'PIECE',
+                  order_item_id: createdItem.id,
+                  order_item_piece_id: createdPiece.id,
+                  preference_code: pieceInput.packingPrefCode,
+                  preference_sys_kind: 'packing_prefs',
+                  prefs_owner_type: 'SYSTEM',
+                  prefs_source: 'ORDER_CREATE',
+                  extra_price: 0,
+                  branch_id: branchId ?? null,
+                  created_by: userId,
+                },
               });
             }
           }
