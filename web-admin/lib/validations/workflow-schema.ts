@@ -207,6 +207,10 @@ export const CreateOrderRequestSchema = z.object({
   paymentTypeCode: z.string().optional(),
   currencyCode: z.string().length(3).optional(),
   currencyExRate: z.number().min(0).optional(),
+  orderSourceCode: z.string().min(1).max(64).optional(),
+  physicalIntakeStatus: z.enum(['pending_dropoff', 'received', 'not_applicable']).optional(),
+  physicalIntakeInfo: z.string().max(8000).optional().nullable(),
+  receivedInfo: z.string().max(8000).optional().nullable(),
 });
 
 export const TransitionOrderRequestSchema = z.object({

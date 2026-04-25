@@ -1,6 +1,7 @@
 # Database Conventions
 
 **Quick Links**:
+
 - [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) - Decide where features should be implemented
 - [Feature Abbreviations](./database_feature_abbreviations.md) - Complete list of module prefixes
 - [Grandfathered Objects Registry](./database_grandfathered_objects.md) - Existing objects using old naming
@@ -18,14 +19,14 @@ Include for every table:
 
 ```
 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-created_by VARCHAR(120),
+created_by TEXT,
 created_info TEXT,
 updated_at TIMESTAMP,
-updated_by VARCHAR(120),
+updated_by TEXT,
 updated_info TEXT,
 rec_status SMALLINT DEFAULT 1,
 rec_order INTEGER,
-rec_notes VARCHAR(200),
+rec_notes TEXT,
 is_active BOOLEAN NOT NULL DEFAULT true
 ```
 
@@ -56,21 +57,21 @@ Tenant isolation via composite references on `(tenant_org_id, ...)`.
 
 ---
 
-## Universal Catalog Pattern (sys_* → org_*)
+## Universal Catalog Pattern (sys*\* → org*\*)
 
-**Pattern**: System-wide catalog (sys_*) copied to tenant-specific catalog (org_*) on tenant initialization.
+**Pattern**: System-wide catalog (sys*\*) copied to tenant-specific catalog (org*\*) on tenant initialization.
 
 ### Anatomy
 
-1. **System Catalog (sys_*)** - Global baseline maintained by platform admins (in cleanmatexsaas)
+1. **System Catalog (sys\_\*)** - Global baseline maintained by platform admins (in cleanmatexsaas)
    - No `tenant_org_id` column
    - Managed by platform admins (service role key)
    - Defines what options EXIST platform-wide
    - Examples: sys_service_preference_cd, sys_gl_chart_template, sys_pch_vendor_types_cd
 
-2. **Tenant Catalog (org_*)** - Per-tenant customizable copy (managed HERE in cleanmatex)
+2. **Tenant Catalog (org\_\*)** - Per-tenant customizable copy (managed HERE in cleanmatex)
    - Has `tenant_org_id` column
-   - FK to sys_* table (e.g., preference_code → sys_service_preference_cd.code)
+   - FK to sys\_\* table (e.g., preference_code → sys_service_preference_cd.code)
    - Managed by tenants via cleanmatex (anon key + RLS)
    - UNIQUE constraint: `(tenant_org_id, code)` - one entry per tenant per code
    - Tenants can customize: pricing, names, availability, display order
@@ -78,30 +79,35 @@ Tenant isolation via composite references on `(tenant_org_id, ...)`.
 ### Real Example: Service Preferences
 
 **System Catalog**: `sys_service_preference_cd` (managed by platform admins)
+
 - Columns: code (PK), name/name2, preference_category, default_extra_price, extra_turnaround_minutes, workflow_impact
 - Seeded data: STARCH_LIGHT, STARCH_HEAVY, PERFUME, SEPARATE_WASH, DELICATE, STEAM_PRESS, etc.
 - No tenant_org_id - this is global
 - Migration: `0139_order_service_preferences_schema.sql`
 
 **Tenant Catalog**: `org_service_preference_cf` (managed HERE by tenants)
+
 - Columns: id (UUID), tenant_org_id, preference_code (FK to sys_service_preference_cd), name/name2, extra_price, is_active, display_order
 - UNIQUE(tenant_org_id, preference_code)
 - RLS policy: tenant_isolation_org_service_preference_cf (enforced in cleanmatex)
 - Migration: `0139_order_service_preferences_schema.sql`
 
 **Workflow**:
+
 1. **Platform admins** (cleanmatexsaas) maintain sys_service_preference_cd
 2. **On tenant creation**: Copy sys_service_preference_cd → org_service_preference_cf for new tenant
 3. **Tenant customization** (cleanmatex - THIS PROJECT): Override extra_price, rename, toggle is_active, reorder
 4. **Order usage**: org_order_preferences_dtl references org_service_preference_cf (tenant's configured preferences)
 
 **Tenant Side** (cleanmatex - THIS PROJECT):
+
 - Backend: web-admin/lib/services/preference-catalog.service.ts - Merge sys + org catalogs
 - Frontend: web-admin/app/dashboard/catalog/preferences/ - View + customize tenant catalog
 - Access: Anon key + RLS (tenant-scoped)
 - **CRITICAL**: Always filter by tenant_org_id, RLS enforced
 
 **Platform Admin Side** (cleanmatexsaas):
+
 - Backend: platform-api/src/modules/catalog/ - CRUD on sys_service_preference_cd (service role key)
 - Frontend: platform-web/app/catalog/service-preferences/ - Manage global catalog
 - Access: Service role key (bypasses RLS)
@@ -117,6 +123,7 @@ Tenant isolation via composite references on `(tenant_org_id, ...)`.
 ### Key Decisions
 
 **When to use this pattern**:
+
 - Feature needs platform-wide baseline definitions
 - Tenants need to customize/extend the baseline
 - Platform admins manage what options exist (cleanmatexsaas)
@@ -182,7 +189,6 @@ SELECT * FROM org_ord_orders_mst;  -- Wrong: This doesn't exist yet!
 **CRITICAL**: The `sys_` and `org_` prefixes apply to ALL database objects, not just tables.
 
 - **`sys_`** - System/global objects (no tenant_org_id)
-
   - Applies to: Tables, Functions, Procedures, Packages, Views, Triggers, Sequences, Types, etc.
   - Examples: `sys_auth_users_mst`, `sys_auth_validate_token()`, `sys_pln_plans_mst`, `sys_pln_get_plan()`
 
@@ -238,22 +244,18 @@ Where:
 #### Table Suffixes
 
 - **`*_mst`** - Master tables (main entities)
-
   - Examples: `org_ord_orders_mst`, `sys_auth_users_mst`, `org_cust_customers_mst`
   - Purpose: Core business entities
 
 - **`*_dtl`** - Detail tables (line items, related records)
-
   - Examples: `org_ord_order_items_dtl`, `org_inv_invoice_items_dtl`
   - Purpose: Child records with 1-to-many relationships
 
 - **`*_tr`** - Transaction tables
-
   - Examples: `org_pay_payments_tr`, `org_ord_status_changes_tr`
   - Purpose: Financial or state-changing transactions
 
 - **`*_cd`** - Code/lookup tables
-
   - Examples: `sys_ord_order_status_cd`, `sys_pay_payment_method_cd`
   - Purpose: Enumerated values, reference data
 

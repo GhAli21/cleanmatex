@@ -136,6 +136,9 @@ class AppLocalizations {
       'orders.timelineTitle': 'Tracking timeline',
       'orders.deliveryMode.standard': 'Pickup and delivery',
       'orders.garmentCount': '{count} garments',
+      'orders.status.draft': 'Booked',
+      'orders.intake.pendingDropoffSubtitle':
+          'Bring your items to the branch so we can start cleaning.',
       'orders.status.processing': 'Processing',
       'orders.status.out_for_delivery': 'Out for delivery',
       'orders.status.ready': 'Ready',
@@ -488,6 +491,9 @@ class AppLocalizations {
       'orders.timelineTitle': 'الخط الزمني للتتبع',
       'orders.deliveryMode.standard': 'استلام وتسليم',
       'orders.garmentCount': '{count} قطعة',
+      'orders.status.draft': 'محجوز',
+      'orders.intake.pendingDropoffSubtitle':
+          'أحضر القطع إلى الفرع لنبدأ التنظيف.',
       'orders.status.processing': 'جارية المعالجة',
       'orders.status.out_for_delivery': 'في طريق التسليم',
       'orders.status.ready': 'جاهز',

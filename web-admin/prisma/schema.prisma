@@ -831,7 +831,7 @@ model org_orders_mst {
   paid_at                         DateTime?                         @db.Timestamp(6)
   paid_by                         String?                           @db.VarChar(255)
   payment_notes                   String?
-  received_at                     DateTime?                         @default(now()) @db.Timestamp(6)
+  received_at                     DateTime?                         @db.Timestamp(6)
   ready_by                        DateTime?                         @db.Timestamp(6)
   ready_at                        DateTime?                         @db.Timestamp(6)
   delivered_at                    DateTime?                         @db.Timestamp(6)
@@ -894,6 +894,12 @@ model org_orders_mst {
   customer_email                  String?
   customer_name                   String?
   customer_details                Json?
+  order_source_code               String                            @default("legacy_unknown") @db.VarChar(64)
+  physical_intake_status          String                            @default("received") @db.VarChar(30)
+  physical_intake_at              DateTime?                         @db.Timestamptz(6)
+  physical_intake_by              String?                           @db.Uuid
+  physical_intake_info            String?
+  received_info                   String?
   cancelled_at                    DateTime?                         @db.Timestamptz(6)
   cancelled_by                    String?                           @db.Uuid
   cancelled_note                  String?
@@ -929,6 +935,7 @@ model org_orders_mst {
   org_branches_mst                org_branches_mst?                 @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_branch")
   org_customers_mst               org_customers_mst                 @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_customer")
   org_tenants_mst                 org_tenants_mst                   @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_order_tenant")
+  sys_order_sources_cd            sys_order_sources_cd              @relation(fields: [order_source_code], references: [order_source_code], onUpdate: Cascade, onDelete: Restrict, map: "fk_org_orders_order_source")
   sys_order_type_cd               sys_order_type_cd?                @relation(fields: [order_type_id], references: [order_type_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_org_order_type")
   sys_payment_method_cd           sys_payment_method_cd?            @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_orders_payment_method")
   sys_workflow_template_cd        sys_workflow_template_cd?         @relation(fields: [workflow_template_id], references: [template_id], onUpdate: NoAction)
@@ -1371,6 +1378,7 @@ model org_tenants_mst {
   org_svc_cat_proc_steps_cf        org_svc_cat_proc_steps_cf[]
   org_tenant_settings_cf           org_tenant_settings_cf[]
   org_tenant_workflow_settings_cf  org_tenant_workflow_settings_cf?
+  org_tenant_order_sources_cf      org_tenant_order_sources_cf[]
   org_tenant_workflow_templates_cf org_tenant_workflow_templates_cf[]
   sys_main_business_type_cd        sys_main_business_type_cd?         @relation(fields: [business_type_code], references: [business_type_code], onUpdate: NoAction, map: "fk_tenant_business_type")
   sys_stng_profiles_mst            sys_stng_profiles_mst?             @relation(fields: [stng_profile_code], references: [stng_profile_code], onDelete: NoAction, onUpdate: NoAction)
@@ -1612,6 +1620,40 @@ model sys_order_type_cd {
   rec_order         Int?
   org_orders_mst    org_orders_mst[]
 
+  @@schema("public")
+}
+
+/// Global catalog: how an order was originated (POS, mobile apps, integrations).
+model sys_order_sources_cd {
+  order_source_code              String                     @id @db.VarChar(64)
+  name                           String                     @db.VarChar(250)
+  name2                          String?                    @db.VarChar(250)
+  requires_remote_intake_confirm Boolean                    @default(false)
+  is_active                      Boolean                    @default(true)
+  sort_order                     Int                        @default(0)
+  rec_status                     Int                        @default(1) @db.SmallInt
+  rec_notes                      String?                    @db.VarChar(200)
+  created_at                     DateTime?                  @default(now()) @db.Timestamptz(6)
+  updated_at                     DateTime?                  @default(now()) @db.Timestamptz(6)
+  org_orders_mst                 org_orders_mst[]
+  org_tenant_order_sources_cf    org_tenant_order_sources_cf[]
+
+  @@schema("public")
+}
+
+/// Per-tenant allow/deny for order_source_code (zero rows = allow all active sources).
+model org_tenant_order_sources_cf {
+  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String               @db.Uuid
+  order_source_code  String               @db.VarChar(64)
+  is_allowed         Boolean              @default(true)
+  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
+  org_tenants_mst    org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_tenant_order_sources_tenant")
+  sys_order_sources_cd sys_order_sources_cd @relation(fields: [order_source_code], references: [order_source_code], onUpdate: Cascade, onDelete: Restrict, map: "fk_org_tenant_order_sources_code")
+
+  @@unique([tenant_org_id, order_source_code], map: "uq_org_tenant_order_sources_tenant_code")
+  @@index([tenant_org_id], map: "idx_org_tenant_order_sources_tenant")
   @@schema("public")
 }
 

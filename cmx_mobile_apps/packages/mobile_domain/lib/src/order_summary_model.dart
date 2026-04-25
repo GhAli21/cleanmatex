@@ -9,6 +9,8 @@ class OrderSummaryModel {
     this.total,
     this.paymentStatus,
     this.currencyCode,
+    this.physicalIntakeStatus,
+    this.requiresRemoteIntakeConfirm,
   });
 
   final String id;
@@ -26,4 +28,10 @@ class OrderSummaryModel {
 
   /// ISO currency code, e.g. 'SAR', 'AED'.
   final String? currencyCode;
+
+  /// Server physical intake flag, e.g. `pending_dropoff`.
+  final String? physicalIntakeStatus;
+
+  /// When true, customer should bring items to the branch (remote booking).
+  final bool? requiresRemoteIntakeConfirm;
 }

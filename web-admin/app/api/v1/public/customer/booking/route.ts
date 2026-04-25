@@ -10,6 +10,7 @@ import { OrderService } from '@/lib/services/order-service';
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
+import { withTenantContext } from '@/lib/db/tenant-context';
 
 const bookingItemSchema = z.object({
   itemId: z.string().uuid(),
@@ -954,44 +955,47 @@ export async function POST(request: NextRequest) {
       bookingSignature,
     });
 
-    const creationResult = await OrderService.createOrder({
-      tenantId: body.tenantId,
-      customerId: session.customerId,
-      branchId: branch.id,
-      orderTypeId,
-      items,
-      totals: {
-        subtotal,
-        tax: vatAmount,
-        total,
-        vatRate,
-        vatAmount,
-      },
-      customerNotes: body.notes.trim(),
-      internalNotes: `Mobile booking | ${body.isPickupFromAddress ? 'pickup_from_address' : 'bring_in'} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}`,
-      paymentTypeCode,
-      currencyCode: moneyConfig.currencyCode,
-      currencyExRate: 1,
-      readyByAt: body.scheduledAt ?? undefined,
-      customerMobile: session.phoneNumber,
-      customerName: session.displayName ?? undefined,
-      customerDetails: {
-        source: 'customer_mobile_app',
-        bookingRequestSignature: bookingSignature,
-        isPickupFromAddress: body.isPickupFromAddress,
-        isAsap: body.isAsap,
-        scheduledAt: body.scheduledAt ?? null,
-        bookingAddressId: address?.id ?? null,
-        bookingAddressLabel: address?.label ?? null,
-        bookingAddressText: addressDescription,
-        selectedServicePreferenceIds: body.servicePreferenceIds,
-        selectedPickupPreferenceIds: body.pickupPreferenceIds,
-        fulfillmentType: body.fulfillmentType,
-      },
-      userId: session.customerId,
-      userName: session.displayName ?? 'Customer Mobile App',
-      useOldWfCodeOrNew: false,
-    });
+    const creationResult = await withTenantContext(body.tenantId, async () =>
+      OrderService.createOrder({
+        tenantId: body.tenantId,
+        customerId: session.customerId,
+        branchId: branch.id,
+        orderTypeId,
+        items,
+        orderSourceCode: 'customer_mobile_app',
+        totals: {
+          subtotal,
+          tax: vatAmount,
+          total,
+          vatRate,
+          vatAmount,
+        },
+        customerNotes: body.notes.trim(),
+        internalNotes: `Mobile booking | ${body.isPickupFromAddress ? 'pickup_from_address' : 'bring_in'} | ${body.isAsap ? 'ASAP' : body.scheduledAt ?? 'scheduled'}`,
+        paymentTypeCode,
+        currencyCode: moneyConfig.currencyCode,
+        currencyExRate: 1,
+        readyByAt: body.scheduledAt ?? undefined,
+        customerMobile: session.phoneNumber,
+        customerName: session.displayName ?? undefined,
+        customerDetails: {
+          source: 'customer_mobile_app',
+          bookingRequestSignature: bookingSignature,
+          isPickupFromAddress: body.isPickupFromAddress,
+          isAsap: body.isAsap,
+          scheduledAt: body.scheduledAt ?? null,
+          bookingAddressId: address?.id ?? null,
+          bookingAddressLabel: address?.label ?? null,
+          bookingAddressText: addressDescription,
+          selectedServicePreferenceIds: body.servicePreferenceIds,
+          selectedPickupPreferenceIds: body.pickupPreferenceIds,
+          fulfillmentType: body.fulfillmentType,
+        },
+        userId: session.customerId,
+        userName: session.displayName ?? 'Customer Mobile App',
+        useOldWfCodeOrNew: false,
+      })
+    );
 
     if (!creationResult.success || !creationResult.order) {
       logger.warn('Public customer booking submit order creation failed', {

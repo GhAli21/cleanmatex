@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, Edit, Clock, Package, Link2, Copy } from 'lucide-react';
@@ -138,6 +139,8 @@ export function OrderDetailsFullClient({
   const [depositPending, startDepositTransition] = useTransition();
 
   const tenantId = currentTenant?.tenant_id;
+  const { token: csrfToken } = useCSRFToken();
+  const [intakeConfirming, setIntakeConfirming] = useState(false);
 
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -824,6 +827,46 @@ export function OrderDetailsFullClient({
 
   return (
     <div className="space-y-6">
+      {String(order.physical_intake_status ?? '') === 'pending_dropoff' &&
+        String(order.current_status ?? order.status ?? '') === 'draft' && (
+          <div
+            className={`rounded-lg border border-amber-200 bg-amber-50 p-4 ${isRTL ? 'text-right' : 'text-left'}`}
+            role="status"
+          >
+            <p className="mb-3 text-sm text-amber-900">
+              {t.awaitingDropoffHint ??
+                'Customer booked remotely; confirm when garments arrive at this branch.'}
+            </p>
+            <button
+              type="button"
+              disabled={intakeConfirming}
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIntakeConfirming(true);
+                try {
+                  const res = await fetch(`/api/v1/orders/${order.id}/confirm-physical-intake`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(csrfToken ? getCSRFHeader(csrfToken) : {}),
+                    },
+                    body: JSON.stringify({}),
+                  });
+                  if (res.ok) {
+                    router.refresh();
+                  }
+                } finally {
+                  setIntakeConfirming(false);
+                }
+              }}
+              className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {intakeConfirming
+                ? (t.confirmIntakeWorking ?? 'Saving…')
+                : (t.confirmIntakeCta ?? 'Mark received at branch')}
+            </button>
+          </div>
+        )}
       {/* Header */}
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
         <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>

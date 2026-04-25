@@ -269,6 +269,7 @@ export async function POST(request: NextRequest) {
       giftCardDiscountAmount: serverTotals.giftCardApplied,
       paymentTypeCode: getPaymentTypeFromMethod(input.paymentMethod),
       currencyCode: serverTotals.currencyCode,
+      orderSourceCode: 'pos',
       useOldWfCodeOrNew: false,
       stockDeductionAudit: {
         referenceType: 'ORDER',

@@ -12,6 +12,7 @@ import { checkAPIRateLimitTenant, checkAPIRateLimitUser } from '@/lib/middleware
 import { validateCSRF } from '@/lib/middleware/csrf';
 import { logger } from '@/lib/utils/logger';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
+import { withTenantContext } from '@/lib/db/tenant-context';
 
 /**
  * POST /api/v1/orders
@@ -115,21 +116,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const result = await OrderService.createOrder({
-      tenantId,
-      userId,
-      userName,
-      ...parsed.data,
-      useOldWfCodeOrNew,
-      stockDeductionAudit: {
-        referenceType: 'ORDER',
+    const result = await withTenantContext(tenantId, async () =>
+      OrderService.createOrder({
+        tenantId,
         userId,
         userName,
-        userAgent: requestAudit.userAgent,
-        userIp: requestAudit.userIp,
-        reason: 'Order sale deduction',
-      },
-    });
+        ...parsed.data,
+        orderSourceCode: parsed.data.orderSourceCode ?? 'web_admin',
+        useOldWfCodeOrNew,
+        stockDeductionAudit: {
+          referenceType: 'ORDER',
+          userId,
+          userName,
+          userAgent: requestAudit.userAgent,
+          userIp: requestAudit.userIp,
+          reason: 'Order sale deduction',
+        },
+      })
+    );
 
     if (!result.success) {
       return NextResponse.json(
@@ -196,6 +200,8 @@ export async function GET(request: NextRequest) {
     const readyByFrom = searchParams.get('ready_by_from');
     const readyByTo = searchParams.get('ready_by_to');
     const isRetail = searchParams.get('is_retail');
+    const orderSourceCode = searchParams.get('order_source_code')?.trim() || '';
+    const physicalIntakeStatus = searchParams.get('physical_intake_status')?.trim() || '';
 
     // Optimize query - only select essential fields for list view
     // For list view, we don't need all nested data - just customer info
@@ -209,6 +215,11 @@ export async function GET(request: NextRequest) {
         status,
         bag_count,
         received_at,
+        order_source_code,
+        physical_intake_status,
+        physical_intake_at,
+        physical_intake_info,
+        received_info,
         created_at,
         updated_at,
         total_items,
@@ -226,6 +237,12 @@ export async function GET(request: NextRequest) {
         rack_location,
         ready_by_at_new,
         ready_by,
+        sys_order_sources_cd(
+          order_source_code,
+          name,
+          name2,
+          requires_remote_intake_confirm
+        ),
         org_customers_mst(
           id,
           name,
@@ -287,6 +304,24 @@ export async function GET(request: NextRequest) {
       query = query.eq('is_retail', true);
     } else if (isRetail === 'false') {
       query = query.eq('is_retail', false);
+    }
+
+    if (orderSourceCode) {
+      const codes = orderSourceCode.split(',').map((s) => s.trim()).filter(Boolean);
+      if (codes.length === 1) {
+        query = query.eq('order_source_code', codes[0]!);
+      } else if (codes.length > 1) {
+        query = query.in('order_source_code', codes);
+      }
+    }
+
+    if (physicalIntakeStatus) {
+      const statuses = physicalIntakeStatus.split(',').map((s) => s.trim()).filter(Boolean);
+      if (statuses.length === 1) {
+        query = query.eq('physical_intake_status', statuses[0]!);
+      } else if (statuses.length > 1) {
+        query = query.in('physical_intake_status', statuses);
+      }
     }
 
     // Apply status filter - support multiple statuses (comma-separated)

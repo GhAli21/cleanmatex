@@ -76,6 +76,8 @@ export async function createOrder(
       qr_code: qrCode,
       barcode: barcode,
       received_at: new Date(),
+      order_source_code: 'web_admin',
+      physical_intake_status: 'received',
       total_items: 0,
       subtotal: 0,
       discount: 0,
@@ -471,6 +473,14 @@ export async function getOrderById(
           branch_name: true,
         },
       },
+      sys_order_sources_cd: {
+        select: {
+          order_source_code: true,
+          name: true,
+          name2: true,
+          requires_remote_intake_confirm: true,
+        },
+      },
     },
   });
 
@@ -486,6 +496,7 @@ export async function getOrderById(
     customer: customerData,
     items: order.org_order_items_dtl,
     branch: order.org_branches_mst,
+    order_source: order.sys_order_sources_cd,
   } as unknown as OrderWithDetails;
 }
 
@@ -515,6 +526,8 @@ export async function listOrders(
     limit = 20,
     sortBy = 'received_at',
     sortOrder = 'desc',
+    orderSourceCode,
+    physicalIntakeStatus,
   } = filters;
 
   // Build where clause
@@ -556,6 +569,30 @@ export async function listOrders(
 
   if (toDate) {
     where.received_at = { ...where.received_at, lte: toDate };
+  }
+
+  if (orderSourceCode) {
+    const codes = orderSourceCode
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (codes.length > 1) {
+      where.order_source_code = { in: codes };
+    } else if (codes.length === 1) {
+      where.order_source_code = codes[0];
+    }
+  }
+
+  if (physicalIntakeStatus) {
+    const statuses = physicalIntakeStatus
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (statuses.length > 1) {
+      where.physical_intake_status = { in: statuses };
+    } else if (statuses.length === 1) {
+      where.physical_intake_status = statuses[0];
+    }
   }
 
   if (search) {
@@ -610,13 +647,24 @@ export async function listOrders(
           branch_name: true,
         },
       },
+      sys_order_sources_cd: {
+        select: {
+          order_source_code: true,
+          name: true,
+          name2: true,
+          requires_remote_intake_confirm: true,
+        },
+      },
       org_order_items_dtl: {
         select: {
           id: true,
         },
       },
     },
-    orderBy: { [sortBy]: sortOrder },
+    orderBy:
+      sortBy === 'received_at'
+        ? [{ received_at: { sort: sortOrder, nulls: 'last' } }, { created_at: sortOrder }]
+        : { [sortBy]: sortOrder },
     skip: (page - 1) * limit,
     take: limit,
   });
@@ -667,9 +715,21 @@ export async function listOrders(
       total_items: order.total_items ?? 0,
       total_pieces: pieceCountMap.get(order.id) ?? null,
       total: Number(order.total),
-      received_at: order.received_at || new Date(),
+      received_at: order.received_at ?? null,
       ready_by: order.ready_by,
       branch_name: order.org_branches_mst?.branch_name ?? undefined,
+      order_source_code: order.order_source_code ?? undefined,
+      physical_intake_status: order.physical_intake_status ?? null,
+      physical_intake_at: order.physical_intake_at ?? null,
+      order_source: order.sys_order_sources_cd
+        ? {
+            order_source_code: order.sys_order_sources_cd.order_source_code,
+            name: order.sys_order_sources_cd.name,
+            name2: order.sys_order_sources_cd.name2,
+            requires_remote_intake_confirm:
+              order.sys_order_sources_cd.requires_remote_intake_confirm,
+          }
+        : null,
     };
   });
 

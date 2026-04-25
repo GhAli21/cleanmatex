@@ -101,12 +101,24 @@ export async function GET(request: NextRequest) {
         bag_count,
         total,
         payment_status,
+        order_source_code,
+        physical_intake_status,
+        physical_intake_at,
+        physical_intake_info,
+        received_info,
+        created_at,
+        sys_order_sources_cd(
+          order_source_code,
+          name,
+          name2,
+          requires_remote_intake_confirm
+        ),
         org_customers_mst!inner(phone)
       `,
       )
       .eq('tenant_org_id', tenantId)
       .eq('org_customers_mst.phone', session.phoneNumber)
-      .order('received_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(25);
 
     if (error) {
@@ -139,6 +151,21 @@ export async function GET(request: NextRequest) {
             total: order.total ? Number(order.total) : null,
             paymentStatus: order.payment_status ?? null,
             currencyCode: moneyConfig.currencyCode,
+            orderSourceCode: order.order_source_code ?? null,
+            physicalIntakeStatus: order.physical_intake_status ?? null,
+            physicalIntakeAt: order.physical_intake_at ?? null,
+            physicalIntakeInfo: order.physical_intake_info ?? null,
+            receivedInfo: order.received_info ?? null,
+            createdAt: order.created_at ?? null,
+            orderSource: order.sys_order_sources_cd
+              ? {
+                  code: order.sys_order_sources_cd.order_source_code,
+                  name: order.sys_order_sources_cd.name,
+                  name2: order.sys_order_sources_cd.name2,
+                  requiresRemoteIntakeConfirm:
+                    order.sys_order_sources_cd.requires_remote_intake_confirm,
+                }
+              : null,
           })),
         },
       },

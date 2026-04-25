@@ -16,6 +16,8 @@ class CustomerOrderSummaryCard extends StatelessWidget {
 
   Color _statusColor() {
     switch (order.statusCode) {
+      case 'draft':
+        return AppColors.warning;
       case 'out_for_delivery':
       case 'completed':
       case 'delivered':
@@ -92,7 +94,23 @@ class CustomerOrderSummaryCard extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
-                    child: Text(order.orderNumber, style: textTheme.titleMedium),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(order.orderNumber, style: textTheme.titleMedium),
+                        if (order.physicalIntakeStatus == 'pending_dropoff' &&
+                            (order.requiresRemoteIntakeConfirm ?? false))
+                          Padding(
+                            padding: const EdgeInsets.only(top: AppSpacing.xs),
+                            child: Text(
+                              localizations.text('orders.intake.pendingDropoffSubtitle'),
+                              style: textTheme.bodySmall?.copyWith(
+                                color: AppColors.warning,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(

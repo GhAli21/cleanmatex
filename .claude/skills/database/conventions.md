@@ -17,10 +17,12 @@
 ### New Objects Only Rule
 
 **For NEW database objects created from 2025-11-14 onwards:**
+
 - MUST use feature/module grouping with prefixes
 - MUST follow the complete naming pattern: `{scope}_{feature}_{object_name}_{suffix}`
 
 **For EXISTING database objects:**
+
 - MAY remain as-is (grandfathered)
 - WILL be migrated gradually per migration plan
 - MUST use new naming when creating related objects
@@ -115,14 +117,14 @@ CREATE TABLE org_example_mst (
 
   -- Audit fields
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_by VARCHAR(120),
+  created_by TEXT,
   created_info TEXT,
   updated_at TIMESTAMP,
-  updated_by VARCHAR(120),
+  updated_by TEXT,
   updated_info TEXT,
   rec_status SMALLINT DEFAULT 1,
   rec_order INTEGER,
-  rec_notes VARCHAR(200),
+  rec_notes TEXT,
   is_active BOOLEAN DEFAULT true
 );
 

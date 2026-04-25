@@ -21,6 +21,8 @@ import { createEditAudit } from '@/lib/services/order-audit.service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
+import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
+import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -105,6 +107,16 @@ export interface CreateOrderParams {
   paymentTypeCode?: string;
   currencyCode?: string;
   currencyExRate?: number;
+  /** FK to sys_order_sources_cd — sales / integration channel */
+  orderSourceCode?: string;
+  /** When set, overrides catalog-driven remote intake behavior */
+  physicalIntakeStatus?: 'pending_dropoff' | 'received' | 'not_applicable';
+  /** Optional escape hatch; normally derived from source + intake */
+  initialWorkflowScreen?: string;
+  /** Staff or integration notes before physical receipt */
+  physicalIntakeInfo?: string | null;
+  /** Staff or integration notes when goods are received at branch */
+  receivedInfo?: string | null;
   /** Customer snapshot at order time (order-level, not customer master) */
   isDefaultCustomer?: boolean;
   customerMobile?: string;
@@ -237,6 +249,133 @@ export class OrderService {
   }
 
   /**
+   * Shared workflow + physical-intake resolution for createOrder / createOrderInTransaction.
+   * Remote channels (requires_remote_intake_confirm) use screen new_order → draft, null received_at.
+   */
+  private static async computeCreateOrderWorkflowState(args: {
+    tenantId: string;
+    items: CreateOrderParams['items'];
+    isQuickDrop?: boolean;
+    quickDropQuantity?: number;
+    useOldWfCodeOrNew?: boolean;
+    physicalIntakeStatus?: CreateOrderParams['physicalIntakeStatus'];
+    initialWorkflowScreen?: string;
+    sourceRow: OrderSourceCatalogRow;
+  }): Promise<{
+    v_initialStatus: string;
+    v_transitionFrom: string;
+    v_orderStatus: string;
+    v_current_status: string;
+    v_current_stage: string;
+    physicalIntakeStatus: string;
+    receivedAt: Date | null;
+    contractScreen: string;
+    isRetailOnlyOrder: boolean;
+  }> {
+    const {
+      tenantId,
+      items,
+      isQuickDrop,
+      quickDropQuantity,
+      useOldWfCodeOrNew,
+      physicalIntakeStatus,
+      initialWorkflowScreen,
+      sourceRow,
+    } = args;
+
+    const isRetailOnlyOrder =
+      items.length > 0 && items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
+
+    if (isRetailOnlyOrder) {
+      return {
+        v_initialStatus: RETAIL_TERMINAL_STATUS,
+        v_transitionFrom: RETAIL_TERMINAL_STATUS,
+        v_orderStatus: RETAIL_TERMINAL_STATUS,
+        v_current_status: RETAIL_TERMINAL_STATUS,
+        v_current_stage: RETAIL_TERMINAL_STATUS,
+        physicalIntakeStatus: 'received',
+        receivedAt: new Date(),
+        contractScreen: 'retail',
+        isRetailOnlyOrder: true,
+      };
+    }
+
+    let useRemoteIntake = false;
+    if (physicalIntakeStatus === 'pending_dropoff') {
+      useRemoteIntake = true;
+    } else if (physicalIntakeStatus === 'received' || physicalIntakeStatus === 'not_applicable') {
+      useRemoteIntake = false;
+    } else {
+      useRemoteIntake = sourceRow.requires_remote_intake_confirm;
+    }
+
+    if (useRemoteIntake) {
+      const screen = initialWorkflowScreen ?? 'new_order';
+      const contractStatus = await this.getInitialStatusFromContract(tenantId, screen, 'draft');
+      return {
+        v_initialStatus: contractStatus,
+        v_transitionFrom: contractStatus,
+        v_orderStatus: contractStatus,
+        v_current_status: contractStatus,
+        v_current_stage: contractStatus,
+        physicalIntakeStatus: 'pending_dropoff',
+        receivedAt: null,
+        contractScreen: screen,
+        isRetailOnlyOrder: false,
+      };
+    }
+
+    let v_initialStatus: string;
+    let v_transitionFrom: string;
+    let v_orderStatus: string;
+    let v_current_status: string;
+    let v_current_stage: string;
+
+    if (isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)) {
+      v_initialStatus = 'preparing';
+      v_transitionFrom = 'intake';
+      v_orderStatus = 'preparing';
+      v_current_status = 'preparing';
+      v_current_stage = 'intake';
+    } else {
+      v_initialStatus = 'processing';
+      v_transitionFrom = 'intake';
+      v_orderStatus = 'processing';
+      v_current_status = 'processing';
+      v_current_stage = 'intake';
+    }
+
+    let contractScreen = 'processing';
+    if (useOldWfCodeOrNew === false) {
+      const screen =
+        isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)
+          ? 'preparation'
+          : 'processing';
+      contractScreen = screen;
+      const contractStatus = await this.getInitialStatusFromContract(
+        tenantId,
+        screen,
+        v_current_status
+      );
+      v_current_status = contractStatus;
+      v_orderStatus = contractStatus;
+      v_initialStatus = contractStatus;
+    }
+
+    return {
+      v_initialStatus,
+      v_transitionFrom,
+      v_orderStatus,
+      v_current_status,
+      v_current_stage,
+      physicalIntakeStatus: 'received',
+      receivedAt: new Date(),
+      contractScreen,
+      isRetailOnlyOrder: false,
+    };
+  }
+
+  /**
    * Create new order with workflow logic
    * PRD-010: Quick Drop vs Normal order handling
    */
@@ -277,70 +416,50 @@ export class OrderService {
         customerDetails,
       } = params;
 
-      // Determine initial status based on Retail vs Quick Drop vs Normal
-      let v_initialStatus: string;
-      let v_transitionFrom: string;
-      let v_orderStatus: string;
-      let v_current_status: string;
-      let v_current_stage: string;
-
-      // Retail-only orders: skip workflow, go directly to closed
-      const isRetailOnlyOrder =
-        items.length > 0 &&
-        items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
-
-      if (isRetailOnlyOrder) {
-        v_initialStatus = RETAIL_TERMINAL_STATUS;
-        v_transitionFrom = RETAIL_TERMINAL_STATUS;
-        v_orderStatus = RETAIL_TERMINAL_STATUS;
-        v_current_status = RETAIL_TERMINAL_STATUS;
-        v_current_stage = RETAIL_TERMINAL_STATUS;
-      } else if (isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)) {
-        // Quick Drop: insufficient items → preparing stage
-        v_initialStatus = 'preparing';
-        v_transitionFrom = 'intake';
-        v_orderStatus = 'preparing';
-        v_current_status = 'preparing';
-        v_current_stage = 'intake';
-      } else {
-        // Normal order: has items → processing stage
-        v_initialStatus = 'processing';
-        v_transitionFrom = 'intake';
-        v_orderStatus = 'processing';
-        v_current_status = 'processing';
-        v_current_stage = 'intake';
+      const orderSourceCode = (params.orderSourceCode ?? DEFAULT_ORDER_SOURCE_CODE).trim();
+      const sourceValidated = await validateOrderSourceForCreation(tenantId, orderSourceCode);
+      if (sourceValidated.ok === false) {
+        return { success: false, error: sourceValidated.error };
       }
 
-      // If using new workflow system (useOldWfCodeOrNew === false), use contract-based status
-      // Skip for retail orders - they bypass workflow
-      if (!isRetailOnlyOrder && useOldWfCodeOrNew === false) {
-        const screen = isQuickDrop === true && (items.length === 0 || quickDropQuantity! > items.length)
-          ? 'preparation'
-          : 'processing';
+      const wf = await this.computeCreateOrderWorkflowState({
+        tenantId,
+        items,
+        isQuickDrop,
+        quickDropQuantity,
+        useOldWfCodeOrNew,
+        physicalIntakeStatus: params.physicalIntakeStatus,
+        initialWorkflowScreen: params.initialWorkflowScreen,
+        sourceRow: sourceValidated.row,
+      });
 
-        const contractStatus = await this.getInitialStatusFromContract(
-          tenantId,
-          screen,
-          v_current_status
-        );
+      const {
+        v_initialStatus,
+        v_transitionFrom,
+        v_orderStatus,
+        v_current_status,
+        v_current_stage,
+        physicalIntakeStatus,
+        receivedAt,
+        contractScreen,
+        isRetailOnlyOrder,
+      } = wf;
 
-        v_current_status = contractStatus;
-        v_orderStatus = contractStatus;
-        v_initialStatus = contractStatus;
-
-        logger.info('Using new workflow system for order creation', {
-          tenantId,
-          userId,
-          screen,
-          contractStatus,
-          isQuickDrop,
-          feature: 'orders',
-          action: 'create_order',
-        });
-      } else if (isRetailOnlyOrder) {
+      if (isRetailOnlyOrder) {
         logger.info('Retail order created with closed status (workflow skipped)', {
           tenantId,
           userId,
+          feature: 'orders',
+          action: 'create_order',
+        });
+      } else if (useOldWfCodeOrNew === false) {
+        logger.info('Using new workflow system for order creation', {
+          tenantId,
+          userId,
+          screen: contractScreen,
+          contractStatus: v_current_status,
+          isQuickDrop,
+          physicalIntakeStatus,
           feature: 'orders',
           action: 'create_order',
         });
@@ -447,6 +566,11 @@ export class OrderService {
         created_by: userId,
         created_info: null,
         rec_status: 1,
+        order_source_code: orderSourceCode,
+        physical_intake_status: physicalIntakeStatus,
+        physical_intake_info: params.physicalIntakeInfo ?? null,
+        received_info: params.receivedInfo ?? null,
+        received_at: receivedAt ? receivedAt.toISOString() : null,
       };
 
       if (currencyCode != null) {
@@ -856,37 +980,36 @@ export class OrderService {
       customerEmail,
       customerName,
       customerDetails,
+      useOldWfCodeOrNew,
     } = params;
 
-    const isRetailOnlyOrder =
-      items.length > 0 &&
-      items.every((i) => i.serviceCategoryCode === 'RETAIL_ITEMS');
-
-    let v_initialStatus: string;
-    let v_transitionFrom: string;
-    let v_orderStatus: string;
-    let v_current_status: string;
-    let v_current_stage: string;
-
-    if (isRetailOnlyOrder) {
-      v_initialStatus = RETAIL_TERMINAL_STATUS;
-      v_transitionFrom = RETAIL_TERMINAL_STATUS;
-      v_orderStatus = RETAIL_TERMINAL_STATUS;
-      v_current_status = RETAIL_TERMINAL_STATUS;
-      v_current_stage = RETAIL_TERMINAL_STATUS;
-    } else if (isQuickDrop === true && (items.length === 0 || (quickDropQuantity ?? 0) > items.length)) {
-      v_initialStatus = 'preparing';
-      v_transitionFrom = 'intake';
-      v_orderStatus = 'preparing';
-      v_current_status = 'preparing';
-      v_current_stage = 'intake';
-    } else {
-      v_initialStatus = 'processing';
-      v_transitionFrom = 'intake';
-      v_orderStatus = 'processing';
-      v_current_status = 'processing';
-      v_current_stage = 'intake';
+    const orderSourceCode = (params.orderSourceCode ?? DEFAULT_ORDER_SOURCE_CODE).trim();
+    const sourceValidated = await validateOrderSourceForCreation(tenantId, orderSourceCode);
+    if (sourceValidated.ok === false) {
+      return { success: false, error: sourceValidated.error };
     }
+
+    const wf = await OrderService.computeCreateOrderWorkflowState({
+      tenantId,
+      items,
+      isQuickDrop,
+      quickDropQuantity,
+      useOldWfCodeOrNew,
+      physicalIntakeStatus: params.physicalIntakeStatus,
+      initialWorkflowScreen: params.initialWorkflowScreen,
+      sourceRow: sourceValidated.row,
+    });
+
+    const {
+      v_initialStatus,
+      v_transitionFrom,
+      v_orderStatus,
+      v_current_status,
+      v_current_stage,
+      physicalIntakeStatus,
+      receivedAt,
+      isRetailOnlyOrder,
+    } = wf;
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
 
@@ -941,7 +1064,10 @@ export class OrderService {
         current_stage: v_current_stage,
         priority: priority || 'normal',
         priority_multiplier: express ? 0.5 : 1.0,
-        total_items: items.length > 0 ? items.length : quickDropQuantity ?? 0,
+        total_items:
+          items.length > 0
+            ? items.reduce((sum, item) => sum + item.quantity, 0)
+            : quickDropQuantity ?? 0,
         subtotal,
         discount,
         tax,
@@ -959,6 +1085,11 @@ export class OrderService {
         created_by: userId,
         created_info: null,
         rec_status: 1,
+        order_source_code: orderSourceCode,
+        physical_intake_status: physicalIntakeStatus,
+        physical_intake_info: params.physicalIntakeInfo ?? undefined,
+        received_info: params.receivedInfo ?? undefined,
+        received_at: receivedAt,
         ...(currencyCode && { currency_code: currencyCode, currency_ex_rate: currencyExRate }),
         ...(vatRate != null && { vat_rate: vatRate }),
         ...(vatAmount != null && { vat_amount: vatAmount }),
@@ -1055,7 +1186,7 @@ export class OrderService {
                 quantity: 1,
                 price_per_unit: pricePerPiece,
                 total_price: pricePerPiece,
-                piece_status: 'processing',
+                piece_status: v_initialStatus,
                 is_rejected: false,
                 is_ready: false,
                 color: pieceInput?.color ? { codes: [pieceInput.color], primary: pieceInput.color } : undefined,

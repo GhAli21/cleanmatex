@@ -10,6 +10,7 @@ Use `docs/README.md` as the main documentation index.
 - session tracking for this refresh: `docs/Refersh_documentations_10_03_2026/`
 - shared database docs: `supabase/README.md`
 - module docs: `web-admin/README.md`, `cmx-api/README.md`
+- order source + remote intake (web-admin): `web-admin/docs/order-source-remote-intake.md`
 
 ## .claude/docs (AI guidance)
 

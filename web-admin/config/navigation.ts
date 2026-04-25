@@ -264,6 +264,13 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
       },
       {
+        key: 'catalog_order_sources',
+        label: 'Order channels',
+        path: '/dashboard/catalog/order-sources',
+        roles: ['super_admin', 'tenant_admin'],
+        permissions: ['config:preferences_manage'],
+      },
+      {
         key: 'catalog_customer_categories',
         label: 'Customer Categories',
         path: '/dashboard/catalog/customer-categories',

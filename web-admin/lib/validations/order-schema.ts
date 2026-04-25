@@ -152,8 +152,12 @@ export const orderFiltersSchema = z.object({
   search: z.string().max(100).optional(),
   page: z.number().int().min(1).default(1),
   limit: z.number().int().min(1).max(100).default(20),
-  sortBy: z.enum(['received_at', 'ready_by', 'order_no', 'total']).default('received_at'),
+  sortBy: z
+    .enum(['received_at', 'ready_by', 'order_no', 'total', 'created_at'])
+    .default('received_at'),
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
+  orderSourceCode: z.string().max(64).optional(),
+  physicalIntakeStatus: z.string().max(120).optional(),
 });
 
 export type OrderFiltersInput = z.infer<typeof orderFiltersSchema>;

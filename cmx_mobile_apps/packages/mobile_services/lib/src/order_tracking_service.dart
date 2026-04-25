@@ -98,6 +98,11 @@ class OrderTrackingService {
     final totalItems = json['totalItems'];
     final bagCount = json['bagCount'];
 
+    final src = json['orderSource'];
+    final bool? remoteConfirm = src is Map<String, Object?>
+        ? src['requiresRemoteIntakeConfirm'] as bool?
+        : null;
+
     return OrderSummaryModel(
       id: json['id'] as String? ?? json['orderNo'] as String? ?? '',
       orderNumber: json['orderNo'] as String? ?? '',
@@ -111,6 +116,8 @@ class OrderTrackingService {
       total: (json['total'] as num?)?.toDouble(),
       paymentStatus: json['paymentStatus'] as String?,
       currencyCode: (json['currencyCode'] as String?) ?? defaultCurrencyCode,
+      physicalIntakeStatus: json['physicalIntakeStatus'] as String?,
+      requiresRemoteIntakeConfirm: remoteConfirm,
     );
   }
 
@@ -175,6 +182,8 @@ class OrderTrackingService {
   String _normalizeStatusCode(String? rawStatus) {
     final normalized = (rawStatus ?? '').trim().toLowerCase();
     switch (normalized) {
+      case 'draft':
+        return 'draft';
       case 'ready_for_delivery':
       case 'ready_for_pickup':
       case 'ready':

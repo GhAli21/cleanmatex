@@ -46,9 +46,9 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-8">
         {/* Search */}
-        <form onSubmit={handleSearch} className="md:col-span-2">
+        <form onSubmit={handleSearch} className="lg:col-span-2">
           <input
             type="text"
             placeholder={t('search')}
@@ -69,6 +69,7 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           aria-label={t('filterByStatus')}
         >
           <option value="">{t('allStatuses')}</option>
+          <option value="draft">{t('statuses.draft')}</option>
           <option value="intake">{t('statuses.intake')}</option>
           <option value="preparation">{t('statuses.preparation')}</option>
           <option value="processing">{t('statuses.processing')}</option>
@@ -115,6 +116,18 @@ export function OrderFiltersBar({ currentFilters }: OrderFiltersBarProps) {
           <option value="">{t('allOrders')}</option>
           <option value="true">{t('retailOnly')}</option>
           <option value="false">{t('servicesOnly')}</option>
+        </select>
+
+        <select
+          value={currentFilters.physicalIntakeStatus || ''}
+          onChange={(e) => handleFilterChange('physicalIntakeStatus', e.target.value)}
+          className={`px-3 py-2 border border-gray-300 rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
+          dir={isRTL ? 'rtl' : 'ltr'}
+          aria-label={t('filterByIntake')}
+        >
+          <option value="">{t('allIntakeStatuses')}</option>
+          <option value="pending_dropoff">{t('intakePendingDropoff')}</option>
+          <option value="received">{t('intakeReceived')}</option>
         </select>
       </div>
 

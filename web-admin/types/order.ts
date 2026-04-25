@@ -432,8 +432,12 @@ export interface OrderFilters {
   search?: string; // Order number, customer name/phone
   page?: number;
   limit?: number;
-  sortBy?: 'received_at' | 'ready_by' | 'order_no' | 'total';
+  sortBy?: 'received_at' | 'ready_by' | 'order_no' | 'total' | 'created_at';
   sortOrder?: 'asc' | 'desc';
+  /** Single code or comma-separated list */
+  orderSourceCode?: string;
+  /** Single value or comma-separated list */
+  physicalIntakeStatus?: string;
 }
 
 // ==================================================================
@@ -470,9 +474,18 @@ export interface OrderListItem {
   total_items: number;
   total_pieces?: number | null; // Total pieces count across order items
   total: number;
-  received_at: Date;
+  received_at: Date | null;
   ready_by: Date | null;
   branch_name?: string;
+  order_source_code?: string;
+  physical_intake_status?: string | null;
+  physical_intake_at?: Date | null;
+  order_source?: {
+    order_source_code: string;
+    name: string;
+    name2: string | null;
+    requires_remote_intake_confirm: boolean;
+  } | null;
 }
 
 /**

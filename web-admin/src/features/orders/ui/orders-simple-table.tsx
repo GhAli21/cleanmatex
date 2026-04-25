@@ -121,6 +121,16 @@ export function OrdersSimpleTable({ orders, pagination }: OrdersSimpleTableProps
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap items-center gap-1">
                     <span className="capitalize">{order.status?.replace(/_/g, ' ') || '—'}</span>
+                    {order.physical_intake_status === 'pending_dropoff' && (
+                      <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-900">
+                        {t('badgeAwaitingDropoff')}
+                      </span>
+                    )}
+                    {order.order_source?.name && (
+                      <span className="inline-flex max-w-[8rem] truncate rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700" title={order.order_source.name}>
+                        {order.order_source.name}
+                      </span>
+                    )}
                     {order.is_retail && (
                       <span className="inline-flex items-center rounded bg-amber-100 px-1.5 py-0.5 text-xs font-medium text-amber-800">
                         {t('retail')}

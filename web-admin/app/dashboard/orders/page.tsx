@@ -26,6 +26,8 @@ type OrdersSearchParams = {
   search?: string;
   fromDate?: string;
   toDate?: string;
+  physicalIntakeStatus?: string;
+  orderSourceCode?: string;
 };
 
 interface PageProps {
@@ -79,6 +81,12 @@ export default async function OrdersPage({ searchParams }: PageProps) {
     search: params.search,
     fromDate: parseDate(params.fromDate),
     toDate: parseDate(params.toDate),
+    physicalIntakeStatus: params.physicalIntakeStatus,
+    orderSourceCode: params.orderSourceCode,
+    sortBy:
+      params.physicalIntakeStatus === 'pending_dropoff'
+        ? ('created_at' as const)
+        : ('received_at' as const),
   };
 
   const [ordersResult, statsResult] = await Promise.allSettled([
@@ -111,12 +119,20 @@ export default async function OrdersPage({ searchParams }: PageProps) {
           <p className="mt-1 text-gray-600">{t('manageAndTrack')}</p>
         </div>
 
-        <Link
-          href="/dashboard/orders/new"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-        >
-          + {t('newOrder')}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/orders?status=draft&physicalIntakeStatus=pending_dropoff"
+            className="text-sm font-medium text-amber-800 hover:text-amber-900"
+          >
+            {t('awaitingDropoffQueue')}
+          </Link>
+          <Link
+            href="/dashboard/orders/new"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          >
+            + {t('newOrder')}
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

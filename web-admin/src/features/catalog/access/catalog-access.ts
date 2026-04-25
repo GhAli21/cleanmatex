@@ -337,6 +337,35 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
     ],
   },
   {
+    routePattern: '/dashboard/catalog/order-sources',
+    label: 'Order channels (sources)',
+    page: {
+      permissions: ['config:preferences_manage'],
+      requireAllPermissions: true,
+    },
+    apiDependencies: [
+      {
+        label: 'List order sources for tenant',
+        method: 'GET',
+        path: '/api/v1/catalog/order-sources',
+        requirement: {
+          permissions: ['config:preferences_manage'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Update allowed order sources',
+        method: 'PUT',
+        path: '/api/v1/catalog/order-sources',
+        requirement: {
+          permissions: ['config:preferences_manage'],
+          requireAllPermissions: true,
+        },
+      },
+    ],
+    notes: CATALOG_NOTES,
+  },
+  {
     routePattern: '/dashboard/catalog/customer-categories',
     label: 'Customer Categories',
     page: {
@@ -407,3 +436,6 @@ export const CATALOG_PREFERENCES_ACCESS =
 
 export const CATALOG_CUSTOMER_CATEGORIES_ACCESS =
   CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/customer-categories')!
+
+export const CATALOG_ORDER_SOURCES_ACCESS =
+  CATALOG_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/catalog/order-sources')!
