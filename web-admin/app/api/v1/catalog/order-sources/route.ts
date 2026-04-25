@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       orderBy: [{ sort_order: 'asc' }, { order_source_code: 'asc' }],
     });
     const cf = await prisma.org_tenant_order_sources_cf.findMany({
-      where: { tenant_org_id: tenantId },
+      where: { tenant_org_id: tenantId, is_active: true },
     });
     const hasCf = cf.length > 0;
 
@@ -83,6 +83,7 @@ export async function PUT(request: NextRequest) {
           tenant_org_id: tenantId,
           order_source_code: e.order_source_code,
           is_allowed: e.is_allowed,
+          is_active: true,
         })),
       });
     }

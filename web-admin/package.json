@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack",
-    "build:safe": "npm run prisma:generate && npm run build",
+    "build": "prisma generate && next build --webpack",
+    "build:safe": "npm run build",
     
     "typecheck": "tsc --noEmit",
     "typecheck:clean": "rm -rf .next && tsc --noEmit",

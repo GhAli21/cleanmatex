@@ -15,7 +15,7 @@ export async function assertTenantAllowsOrderSource(
   orderSourceCode: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const rules = await prisma.org_tenant_order_sources_cf.findMany({
-    where: { tenant_org_id: tenantId },
+    where: { tenant_org_id: tenantId, is_active: true },
     select: { order_source_code: true, is_allowed: true },
   });
 

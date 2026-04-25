@@ -1631,10 +1631,15 @@ model sys_order_sources_cd {
   requires_remote_intake_confirm Boolean                    @default(false)
   is_active                      Boolean                    @default(true)
   sort_order                     Int                        @default(0)
-  rec_status                     Int                        @default(1) @db.SmallInt
-  rec_notes                      String?                    @db.VarChar(200)
-  created_at                     DateTime?                  @default(now()) @db.Timestamptz(6)
-  updated_at                     DateTime?                  @default(now()) @db.Timestamptz(6)
+  created_at                     DateTime?                  @default(now()) @db.Timestamp(6)
+  created_by                     String?
+  created_info                   String?
+  updated_at                     DateTime?                  @db.Timestamp(6)
+  updated_by                     String?
+  updated_info                   String?
+  rec_status                     Int?                       @default(1) @db.SmallInt
+  rec_order                      Int?
+  rec_notes                      String?
   org_orders_mst                 org_orders_mst[]
   org_tenant_order_sources_cf    org_tenant_order_sources_cf[]
 
@@ -1643,13 +1648,21 @@ model sys_order_sources_cd {
 
 /// Per-tenant allow/deny for order_source_code (zero rows = allow all active sources).
 model org_tenant_order_sources_cf {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id      String               @db.Uuid
-  order_source_code  String               @db.VarChar(64)
-  is_allowed         Boolean              @default(true)
-  created_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime?            @default(now()) @db.Timestamptz(6)
-  org_tenants_mst    org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_tenant_order_sources_tenant")
+  id                   String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id        String               @db.Uuid
+  order_source_code    String               @db.VarChar(64)
+  is_allowed           Boolean              @default(true)
+  is_active            Boolean              @default(true)
+  created_at           DateTime?            @default(now()) @db.Timestamp(6)
+  created_by           String?
+  created_info         String?
+  updated_at           DateTime?            @db.Timestamp(6)
+  updated_by           String?
+  updated_info         String?
+  rec_status           Int?                 @default(1) @db.SmallInt
+  rec_order            Int?
+  rec_notes            String?
+  org_tenants_mst      org_tenants_mst      @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_tenant_order_sources_tenant")
   sys_order_sources_cd sys_order_sources_cd @relation(fields: [order_source_code], references: [order_source_code], onUpdate: Cascade, onDelete: Restrict, map: "fk_org_tenant_order_sources_code")
 
   @@unique([tenant_org_id, order_source_code], map: "uq_org_tenant_order_sources_tenant_code")
