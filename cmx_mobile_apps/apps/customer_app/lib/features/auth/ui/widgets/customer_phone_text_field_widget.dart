@@ -34,6 +34,7 @@ class CustomerPhoneTextFieldWidget extends StatelessWidget {
       decoration: InputDecoration(
         labelText: localizations.text('loginEntry.phoneLabel'),
         hintText: localizations.text('loginEntry.phoneHint'),
+        //'Your mobile number', //
         errorText: errorText,
         filled: true,
         fillColor: fillColor,
@@ -50,7 +51,7 @@ class CustomerPhoneTextFieldWidget extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
         ),
-        ),
+      ),
     );
   }
 }

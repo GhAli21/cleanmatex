@@ -66,6 +66,7 @@ export interface ServicePreference {
   name: string;
   name2?: string | null;
   description?: string | null;
+  description2?: string | null;
   preference_category: PreferenceCategory;
   preference_sys_kind?: string | null;
   color_hex?: string | null;
@@ -85,6 +86,7 @@ export interface PackingPreference {
   name: string;
   name2?: string | null;
   description?: string | null;
+  description2?: string | null;
   maps_to_packaging_type?: string | null;
   sustainability_score?: number | null;
   display_order?: number | null;

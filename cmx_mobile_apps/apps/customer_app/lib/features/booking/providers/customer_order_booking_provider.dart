@@ -8,6 +8,8 @@ import '../../../core/providers/app_dependencies.dart';
 import '../data/repositories/customer_order_booking_repository.dart';
 
 const _notesMaxLength = 500;
+const _servicePreferenceKindCode = 'service_prefs';
+const _packingPreferenceKindCode = 'packing_prefs';
 
 final customerOrderBookingProvider =
     NotifierProvider<CustomerOrderBookingNotifier, BookingState>(
@@ -31,6 +33,7 @@ class BookingState {
     this.addresses = const [],
     this.slots = const [],
     this.categories = const [],
+    this.preferenceKinds = const [],
     this.servicePreferenceOptions = const [],
     this.pickupPreferenceOptions = const [],
     this.itemSearchQuery = '',
@@ -52,6 +55,7 @@ class BookingState {
   final List<AddressOptionModel> addresses;
   final List<PickupSlotModel> slots;
   final List<BookingCatalogCategoryModel> categories;
+  final List<BookingPreferenceKindModel> preferenceKinds;
   final List<BookingPreferenceOptionModel> servicePreferenceOptions;
   final List<BookingPreferenceOptionModel> pickupPreferenceOptions;
   final String itemSearchQuery;
@@ -102,6 +106,99 @@ class BookingState {
 
   double get estimatedTotal => estimatedSubtotal + estimatedVat;
 
+  int get selectedPreferenceCount =>
+      draft.selectedServicePreferenceIds.length +
+      draft.selectedPickupPreferenceIds.length;
+
+  List<BookingPreferenceKindModel> get visiblePreferenceKinds {
+    final sourceKinds = preferenceKinds.isNotEmpty
+        ? _withMissingPreferenceKinds(preferenceKinds)
+        : [
+            if (servicePreferenceOptions.isNotEmpty)
+              const BookingPreferenceKindModel(
+                kindCode: _servicePreferenceKindCode,
+                name: '',
+                mainTypeCode: 'preferences',
+                recOrder: 10,
+              ),
+            if (pickupPreferenceOptions.isNotEmpty)
+              const BookingPreferenceKindModel(
+                kindCode: _packingPreferenceKindCode,
+                name: '',
+                mainTypeCode: 'preferences',
+                recOrder: 20,
+              ),
+          ];
+
+    return sourceKinds
+        .where((kind) => preferenceOptionsForKind(kind.kindCode).isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<BookingPreferenceKindModel> _withMissingPreferenceKinds(
+    List<BookingPreferenceKindModel> sourceKinds,
+  ) {
+    final knownKindCodes = sourceKinds.map((kind) => kind.kindCode).toSet();
+    final missingServiceKinds = servicePreferenceOptions
+        .map((preference) => preference.preferenceSysKind)
+        .where((kindCode) => kindCode.isNotEmpty)
+        .where((kindCode) => !knownKindCodes.contains(kindCode))
+        .toSet();
+
+    return [
+      ...sourceKinds,
+      ...missingServiceKinds.map(
+        (kindCode) => BookingPreferenceKindModel(
+          kindCode: kindCode,
+          name: '',
+          mainTypeCode: 'preferences',
+          recOrder: 900,
+        ),
+      ),
+      if (pickupPreferenceOptions.isNotEmpty &&
+          !knownKindCodes.contains(_packingPreferenceKindCode))
+        const BookingPreferenceKindModel(
+          kindCode: _packingPreferenceKindCode,
+          name: '',
+          mainTypeCode: 'preferences',
+          recOrder: 901,
+        ),
+    ];
+  }
+
+  List<BookingPreferenceOptionModel> preferenceOptionsForKind(String kindCode) {
+    if (kindCode == _packingPreferenceKindCode) {
+      return pickupPreferenceOptions;
+    }
+
+    return servicePreferenceOptions
+        .where((preference) =>
+            preference.preferenceSysKind == kindCode ||
+            (kindCode == _servicePreferenceKindCode &&
+                preference.preferenceSysKind.isEmpty))
+        .toList(growable: false);
+  }
+
+  bool isPreferenceSelected(String kindCode, String id) {
+    if (kindCode == _packingPreferenceKindCode) {
+      return draft.selectedPickupPreferenceIds.contains(id);
+    }
+
+    return draft.selectedServicePreferenceIds.contains(id);
+  }
+
+  List<BookingPreferenceOptionModel> get selectedPreferenceOptions {
+    final selectedServiceOptions = servicePreferenceOptions.where(
+      (preference) =>
+          draft.selectedServicePreferenceIds.contains(preference.id),
+    );
+    final selectedPickupOptions = pickupPreferenceOptions.where(
+      (preference) => draft.selectedPickupPreferenceIds.contains(preference.id),
+    );
+
+    return [...selectedServiceOptions, ...selectedPickupOptions];
+  }
+
   /// Returns the flat list of all items matching the current [itemSearchQuery].
   List<BookingCatalogItemModel> get filteredItems {
     if (itemSearchQuery.isEmpty) return const [];
@@ -142,6 +239,7 @@ class BookingState {
     List<AddressOptionModel>? addresses,
     List<PickupSlotModel>? slots,
     List<BookingCatalogCategoryModel>? categories,
+    List<BookingPreferenceKindModel>? preferenceKinds,
     List<BookingPreferenceOptionModel>? servicePreferenceOptions,
     List<BookingPreferenceOptionModel>? pickupPreferenceOptions,
     String? itemSearchQuery,
@@ -165,6 +263,7 @@ class BookingState {
       addresses: addresses ?? this.addresses,
       slots: slots ?? this.slots,
       categories: categories ?? this.categories,
+      preferenceKinds: preferenceKinds ?? this.preferenceKinds,
       servicePreferenceOptions:
           servicePreferenceOptions ?? this.servicePreferenceOptions,
       pickupPreferenceOptions:
@@ -207,6 +306,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         addresses: bootstrap.addresses,
         slots: bootstrap.slots,
         categories: bootstrap.categories,
+        preferenceKinds: bootstrap.preferenceKinds,
         servicePreferenceOptions: bootstrap.servicePreferences,
         pickupPreferenceOptions: bootstrap.pickupPreferences,
         vatRate: bootstrap.vatRate,
@@ -218,6 +318,7 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
       AppLogger.info(
         'booking_provider.load_succeeded '
         'categories=${bootstrap.categories.length} '
+        'preferenceKinds=${bootstrap.preferenceKinds.length} '
         'addresses=${bootstrap.addresses.length} '
         'servicePrefs=${bootstrap.servicePreferences.length} '
         'pickupPrefs=${bootstrap.pickupPreferences.length}',
@@ -320,6 +421,15 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
         selectedPickupPreferenceIds: List.unmodifiable(current),
       ),
     );
+  }
+
+  void togglePreferenceForKind(String kindCode, String id) {
+    if (kindCode == _packingPreferenceKindCode) {
+      togglePickupPreference(id);
+      return;
+    }
+
+    toggleServicePreference(id);
   }
 
   // ── Step 3 — Schedule ───────────────────────────────────────────────────

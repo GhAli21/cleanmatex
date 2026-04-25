@@ -54,7 +54,7 @@ class AppLocalizations {
       'loginEntry.body':
           'Enter your phone number to move into the authenticated customer shell. OTP verification will connect to backend contracts next.',
       'loginEntry.phoneLabel': 'Phone number',
-      'loginEntry.phoneHint': 'Example: 96890000000',
+      'loginEntry.phoneHint': 'Your Registered Mobile Number',
       'loginEntry.phoneValidationError':
           'Enter a valid phone number to continue.',
       'loginEntry.genericError':
@@ -256,6 +256,14 @@ class AppLocalizations {
           'No service preferences are configured for this laundry.',
       'booking.noPickupPrefs':
           'No pickup preferences are configured for this laundry.',
+      'booking.selectedPrefsCount': '{count} selected',
+      'booking.selectedPrefsTitle': 'Selected preferences',
+      'booking.noPrefsForKind':
+          'No options are currently available in this section.',
+      'booking.prefIncluded': 'Included',
+      'booking.prefExtraTime': '+{count} min',
+      'booking.prefSustainability': 'Eco +{count}',
+      'booking.removePreferenceLabel': 'Remove {count}',
       // Schedule
       'booking.bringInOption': 'I will bring it to the laundry',
       'booking.bringInBody':
@@ -378,7 +386,7 @@ class AppLocalizations {
       'loginEntry.body':
           'أدخل رقم الهاتف للانتقال إلى واجهة العميل الموثقة. سيتم ربط التحقق عبر رمز OTP بعقود الخلفية في الخطوة التالية.',
       'loginEntry.phoneLabel': 'رقم الهاتف',
-      'loginEntry.phoneHint': 'مثال: 96890000000',
+      'loginEntry.phoneHint': 'رقم الهاتف المسجل لديك',
       'loginEntry.phoneValidationError': 'أدخل رقم هاتف صالحًا للمتابعة.',
       'loginEntry.genericError': 'تعذر بدء مسار تسجيل الدخول. حاول مرة أخرى.',
       'loginEntry.primaryAction': 'إرسال رمز التحقق',
@@ -570,6 +578,13 @@ class AppLocalizations {
       'booking.pickupPrefsTitle': 'تفضيلات الاستلام',
       'booking.noServicePrefs': 'لا توجد تفضيلات خدمة مضبوطة لهذه المغسلة.',
       'booking.noPickupPrefs': 'لا توجد تفضيلات استلام مضبوطة لهذه المغسلة.',
+      'booking.selectedPrefsCount': '{count} محدد',
+      'booking.selectedPrefsTitle': 'التفضيلات المختارة',
+      'booking.noPrefsForKind': 'لا توجد خيارات متاحة حالياً في هذا القسم.',
+      'booking.prefIncluded': 'مشمول',
+      'booking.prefExtraTime': '+{count} دقيقة',
+      'booking.prefSustainability': 'بيئي +{count}',
+      'booking.removePreferenceLabel': 'إزالة {count}',
       // الجدولة
       'booking.bringInOption': 'سأحضرها إلى المغسلة',
       'booking.bringInBody': 'أحضر قطعك إلى الفرع. لا حاجة لزيارة سائق.',

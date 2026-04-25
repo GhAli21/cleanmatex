@@ -40,6 +40,8 @@ interface BookingSlot {
 }
 
 type BookingSubmitBody = z.infer<typeof submitBookingSchema>;
+const PACKING_PREFERENCE_KIND_CODE = 'packing_prefs';
+const DEFAULT_SERVICE_PREFERENCE_KIND_CODE = 'service_prefs';
 
 function jsonError(
   errorCode: string,
@@ -104,6 +106,33 @@ function buildSlotWindows(): BookingSlot[] {
       endAt: new Date(tomorrowEvening.getTime() + 2 * 60 * 60 * 1000).toISOString(),
     },
   ];
+}
+
+function buildCustomerPreferenceKinds({
+  preferenceKinds,
+  servicePreferenceKindCodes,
+  hasPackingPreferences,
+}: {
+  preferenceKinds: Awaited<ReturnType<typeof PreferenceCatalogService.getPreferenceKinds>>;
+  servicePreferenceKindCodes: Set<string>;
+  hasPackingPreferences: boolean;
+}) {
+  const renderableKindCodes = new Set(servicePreferenceKindCodes);
+  if (hasPackingPreferences) {
+    renderableKindCodes.add(PACKING_PREFERENCE_KIND_CODE);
+  }
+
+  return preferenceKinds
+    .filter((kind) => kind.is_show_for_customer && renderableKindCodes.has(kind.kind_code))
+    .map((kind) => ({
+      kindCode: kind.kind_code,
+      name: kind.name,
+      name2: kind.name2,
+      kindBgColor: kind.kind_bg_color,
+      mainTypeCode: kind.main_type_code,
+      icon: kind.icon,
+      recOrder: kind.rec_order,
+    }));
 }
 
 function buildAddressDescription(address: {
@@ -332,6 +361,7 @@ export async function GET(request: NextRequest) {
             addresses: [],
             slots: [],
             categories: [],
+            preferenceKinds: [],
             servicePreferences: [],
             pickupPreferences: [],
             vatRate: 0,
@@ -348,12 +378,19 @@ export async function GET(request: NextRequest) {
       ...requestContext,
       customerId: session.customerId,
     });
-    const [moneyConfig, vatSetting, servicePreferences, pickupPreferences] =
+    const [
+      moneyConfig,
+      vatSetting,
+      servicePreferences,
+      pickupPreferences,
+      preferenceKinds,
+    ] =
       await Promise.all([
         tenantSettings.getCurrencyConfig(tenantId),
         tenantSettings.getSettingValue(tenantId, 'TENANT_VAT_RATE'),
         PreferenceCatalogService.getServicePreferences(supabase, tenantId),
         PreferenceCatalogService.getPackingPreferences(supabase, tenantId),
+        PreferenceCatalogService.getPreferenceKinds(supabase, tenantId, false),
       ]);
     const vatRate =
       typeof vatSetting === 'number'
@@ -439,6 +476,18 @@ export async function GET(request: NextRequest) {
       durationMs,
     });
 
+    const servicePreferenceKindCodes = new Set(
+      servicePreferences.map(
+        (preference) =>
+          preference.preference_sys_kind ?? DEFAULT_SERVICE_PREFERENCE_KIND_CODE,
+      ),
+    );
+    const customerPreferenceKinds = buildCustomerPreferenceKinds({
+      preferenceKinds,
+      servicePreferenceKindCodes,
+      hasPackingPreferences: pickupPreferences.length > 0,
+    });
+
     const response = {
       bookingEnabled: true,
       disabledReasonKey: null,
@@ -474,17 +523,39 @@ export async function GET(request: NextRequest) {
         serviceCategories ?? [],
         systemCategories ?? [],
       ),
+      preferenceKinds: customerPreferenceKinds,
       servicePreferences: servicePreferences.map((preference) => ({
         id: preference.code,
         label: preference.name,
         label2: preference.name2 ?? null,
+        description: preference.description ?? null,
+        description2: preference.description2 ?? null,
+        preferenceSysKind:
+          preference.preference_sys_kind ?? DEFAULT_SERVICE_PREFERENCE_KIND_CODE,
+        icon: preference.icon ?? null,
+        colorHex: preference.color_hex ?? null,
         extraPrice: Number(preference.default_extra_price ?? 0),
+        extraTurnaroundMinutes:
+          preference.extra_turnaround_minutes != null
+            ? Number(preference.extra_turnaround_minutes)
+            : null,
+        sustainabilityScore:
+          preference.sustainability_score != null
+            ? Number(preference.sustainability_score)
+            : null,
       })),
       pickupPreferences: pickupPreferences.map((preference) => ({
         id: preference.code,
         label: preference.name,
         label2: preference.name2 ?? null,
+        description: preference.description ?? null,
+        description2: preference.description2 ?? null,
+        preferenceSysKind: PACKING_PREFERENCE_KIND_CODE,
         extraPrice: 0,
+        sustainabilityScore:
+          preference.sustainability_score != null
+            ? Number(preference.sustainability_score)
+            : null,
       })),
       addresses: (addresses ?? []).map((address) => ({
         id: address.id,

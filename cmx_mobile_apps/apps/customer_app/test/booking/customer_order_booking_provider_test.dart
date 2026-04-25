@@ -15,6 +15,18 @@ void main() {
     expect(state.services, isNotEmpty);
     expect(state.addresses, isNotEmpty);
     expect(state.slots, isNotEmpty);
+    expect(
+        state.visiblePreferenceKinds.map((kind) => kind.kindCode),
+        containsAll([
+          'service_prefs',
+          'packing_prefs',
+          'condition_special',
+        ]));
+
+    final firstItem = state.categories.first.items.first;
+    notifier.addItem(firstItem.id);
+    state = container.read(customerOrderBookingProvider);
+    expect(state.draft.cartItems[firstItem.id], 1);
 
     notifier.chooseService(state.services.first);
     expect(notifier.canProceed(), isTrue);
@@ -24,6 +36,19 @@ void main() {
     expect(state.stepIndex, 1);
     expect(state.draft.address, isNotNull);
     expect(notifier.canProceed(), isTrue);
+
+    final servicePreference =
+        state.preferenceOptionsForKind('service_prefs').first;
+    final packingPreference =
+        state.preferenceOptionsForKind('packing_prefs').first;
+    notifier.togglePreferenceForKind('service_prefs', servicePreference.id);
+    notifier.togglePreferenceForKind('packing_prefs', packingPreference.id);
+    state = container.read(customerOrderBookingProvider);
+    expect(state.draft.selectedServicePreferenceIds, [servicePreference.id]);
+    expect(state.draft.selectedPickupPreferenceIds, [packingPreference.id]);
+    expect(state.selectedPreferenceCount, 2);
+    expect(state.estimatedSubtotal,
+        firstItem.unitPrice + servicePreference.extraPrice);
 
     notifier.goNext();
     state = container.read(customerOrderBookingProvider);

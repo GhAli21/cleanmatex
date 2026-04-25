@@ -31,6 +31,7 @@ class BookingBootstrapModel {
     required this.addresses,
     required this.slots,
     this.categories = const [],
+    this.preferenceKinds = const [],
     this.servicePreferences = const [],
     this.pickupPreferences = const [],
     this.vatRate = 0.0,
@@ -43,6 +44,7 @@ class BookingBootstrapModel {
   final List<AddressOptionModel> addresses;
   final List<PickupSlotModel> slots;
   final List<BookingCatalogCategoryModel> categories;
+  final List<BookingPreferenceKindModel> preferenceKinds;
   final List<BookingPreferenceOptionModel> servicePreferences;
   final List<BookingPreferenceOptionModel> pickupPreferences;
   final double vatRate;
@@ -73,6 +75,7 @@ class OrderBookingService {
         addresses: _demoAddresses,
         slots: _demoSlots(),
         categories: _demoCategories,
+        preferenceKinds: _demoPreferenceKinds,
         servicePreferences: _demoServicePreferences,
         pickupPreferences: _demoPickupPreferences,
         vatRate: 0.05,
@@ -120,6 +123,11 @@ class OrderBookingService {
           .whereType<Map<String, Object?>>()
           .map(BookingPreferenceOptionModel.fromJson)
           .toList(growable: false);
+      final preferenceKinds = (data['preferenceKinds'] as List? ?? const [])
+          .whereType<Map<String, Object?>>()
+          .map(BookingPreferenceKindModel.fromJson)
+          .where((kind) => kind.kindCode.isNotEmpty)
+          .toList(growable: false);
 
       return BookingBootstrapModel(
         bookingEnabled: data['bookingEnabled'] != false,
@@ -128,6 +136,7 @@ class OrderBookingService {
         addresses: addresses,
         slots: slots,
         categories: categories,
+        preferenceKinds: preferenceKinds,
         servicePreferences: servicePreferences,
         pickupPreferences: pickupPreferences,
         vatRate: (data['vatRate'] as num?)?.toDouble() ?? 0.0,
@@ -447,21 +456,60 @@ class OrderBookingService {
     ),
   ];
 
+  static const _demoPreferenceKinds = <BookingPreferenceKindModel>[
+    BookingPreferenceKindModel(
+      kindCode: 'service_prefs',
+      name: 'Service preferences',
+      name2: 'تفضيلات الخدمة',
+      kindBgColor: '#1A56DB',
+      mainTypeCode: 'preferences',
+      recOrder: 10,
+    ),
+    BookingPreferenceKindModel(
+      kindCode: 'packing_prefs',
+      name: 'Packing preferences',
+      name2: 'تفضيلات التغليف',
+      kindBgColor: '#0E9F6E',
+      mainTypeCode: 'preferences',
+      recOrder: 20,
+    ),
+    BookingPreferenceKindModel(
+      kindCode: 'condition_special',
+      name: 'Special care',
+      name2: 'عناية خاصة',
+      kindBgColor: '#7C3AED',
+      mainTypeCode: 'preferences',
+      recOrder: 30,
+    ),
+  ];
+
   static const _demoServicePreferences = <BookingPreferenceOptionModel>[
     BookingPreferenceOptionModel(
       id: 'gentle-wash',
       label: 'Gentle wash',
       label2: 'غسيل لطيف',
+      description: 'Lower agitation for delicate garments.',
+      description2: 'حركة أخف للملابس الحساسة.',
+      preferenceSysKind: 'service_prefs',
+      extraPrice: 0.300,
+      extraTurnaroundMinutes: 30,
     ),
     BookingPreferenceOptionModel(
       id: 'starch',
       label: 'Starch',
       label2: 'نشا',
+      description: 'Crisper finish for shirts and formalwear.',
+      description2: 'لمسة أكثر صلابة للقمصان والملابس الرسمية.',
+      preferenceSysKind: 'service_prefs',
+      extraPrice: 0.200,
     ),
     BookingPreferenceOptionModel(
       id: 'fold-only',
       label: 'Fold only (no hanger)',
       label2: 'طي فقط (بدون علاقة)',
+      description: 'Return garments folded instead of hung.',
+      description2: 'إرجاع الملابس مطوية بدلاً من تعليقها.',
+      preferenceSysKind: 'condition_special',
     ),
   ];
 
@@ -470,11 +518,17 @@ class OrderBookingService {
       id: 'fragile-pack',
       label: 'Fragile packaging',
       label2: 'تغليف حساس',
+      description: 'Use extra care during packing and handoff.',
+      description2: 'استخدام عناية إضافية أثناء التغليف والتسليم.',
+      preferenceSysKind: 'packing_prefs',
     ),
     BookingPreferenceOptionModel(
       id: 'separate-bags',
       label: 'Separate bags per person',
       label2: 'أكياس منفصلة لكل شخص',
+      description: 'Keep family or room items separated.',
+      description2: 'فصل أغراض أفراد العائلة أو الغرف.',
+      preferenceSysKind: 'packing_prefs',
     ),
   ];
 
