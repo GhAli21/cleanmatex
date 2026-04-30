@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { Settings2, Package, Layers, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { Badge } from '@ui/primitives';
@@ -10,6 +11,16 @@ import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
 } from '@/app/actions/orders/get-order-preferences';
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+
+function fillPlaceholders(template: string, vars: Record<string, string | number>): string {
+  let s = template;
+  for (const [k, v] of Object.entries(vars)) {
+    s = s.split(`{${k}}`).join(String(v));
+  }
+  return s;
+}
 
 interface OrdersPreferencesTabRprtProps {
   preferences: OrderPreferenceRow[];
@@ -38,6 +49,11 @@ interface OrdersPreferencesTabRprtProps {
     itemLevelPrefs: string;
     pieceLevelPrefs: string;
     rowCountSuffix: string;
+    paginationRowsPerPage: string;
+    paginationShowing: string;
+    paginationPrevious: string;
+    paginationNext: string;
+    paginationPageOf: string;
     valueYes: string;
     valueNo: string;
   };
@@ -201,10 +217,28 @@ interface PrefGroupProps {
 }
 
 function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColumnLabels }: PrefGroupProps) {
-  if (prefs.length === 0) return null;
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+
+  const total = prefs.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+
+  useEffect(() => {
+    setPage(1);
+  }, [total, title]);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  if (total === 0) return null;
 
   const totalExtra = prefs.reduce((sum, p) => sum + p.extra_price, 0);
   const hasCharges = totalExtra > 0;
+  const from = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, total);
+  const slice = prefs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <CmxCard>
@@ -212,7 +246,7 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColu
         <CmxCardTitle className={`text-sm font-semibold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {icon}
           <span>{title}</span>
-          <span className="text-gray-400 font-normal text-xs">({prefs.length})</span>
+          <span className="text-gray-400 font-normal text-xs">({total})</span>
           {hasCharges && (
             <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex items-center gap-1 text-xs text-green-700 font-medium`}>
               <DollarSign className="w-3 h-3" />
@@ -221,32 +255,86 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColu
           )}
         </CmxCardTitle>
       </CmxCardHeader>
-      <CmxCardContent className="pt-0 overflow-x-auto">
-        <table className="w-full border-collapse text-sm min-w-[72rem]">
-          <thead>
-            <tr className="border-b border-gray-200 bg-gray-50">
-              {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
-                <th
-                  key={col}
-                  className={`px-2 py-2 text-xs font-medium text-gray-600 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}
-                >
-                  {dtlColumnLabels[col]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {prefs.map((pref) => (
-              <tr key={pref.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+      <CmxCardContent className="pt-0 flex flex-col gap-0 min-h-0">
+        <div
+          className="overflow-auto max-h-[min(48vh,26rem)] rounded-md border border-gray-200 bg-white"
+          dir={isRTL ? 'rtl' : 'ltr'}
+        >
+          <table className="min-w-[72rem] w-full border-collapse text-sm">
+            <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
+              <tr>
                 {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
-                  <td key={col} className={`px-2 py-2 align-top ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {renderDtlCell(col, pref, t, currencyCode, locale)}
-                  </td>
+                  <th
+                    key={col}
+                    className={`px-2 py-2 text-xs font-medium text-gray-600 whitespace-nowrap bg-gray-50 ${isRTL ? 'text-right' : 'text-left'}`}
+                  >
+                    {dtlColumnLabels[col]}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {slice.map((pref) => (
+                <tr key={pref.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
+                    <td key={col} className={`px-2 py-2 align-top ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {renderDtlCell(col, pref, t, currencyCode, locale)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div
+          className={`mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}
+        >
+          <label className={`inline-flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="whitespace-nowrap">{t.paginationRowsPerPage}</span>
+            <select
+              className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-800"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              aria-label={t.paginationRowsPerPage}
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="tabular-nums whitespace-nowrap">
+            {fillPlaceholders(t.paginationShowing, { from, to, total })}
+          </span>
+          <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <span className="tabular-nums whitespace-nowrap text-gray-500">
+              {fillPlaceholders(t.paginationPageOf, { current: currentPage, totalPages })}
+            </span>
+            <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <button
+                type="button"
+                disabled={currentPage <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded border border-gray-300 px-2 py-1 text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t.paginationPrevious}
+              </button>
+              <button
+                type="button"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="rounded border border-gray-300 px-2 py-1 text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {t.paginationNext}
+              </button>
+            </div>
+          </div>
+        </div>
       </CmxCardContent>
     </CmxCard>
   );
@@ -278,8 +366,8 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
   const hasAnyCharge = totalExtra > 0;
 
   return (
-    <div className="space-y-4">
-      <div className={`flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+    <div className="flex min-h-0 max-h-full flex-1 flex-col gap-4">
+      <div className={`shrink-0 flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
         <span className="text-gray-600 font-medium">
           {preferences.length} {t.rowCountSuffix}
         </span>
@@ -311,36 +399,38 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
         )}
       </div>
 
-      <PrefGroup
-        prefs={orderLevel}
-        title={t.orderLevelPrefs}
-        icon={<Layers className="w-4 h-4 text-blue-500" />}
-        isRTL={isRTL}
-        currencyCode={currencyCode}
-        locale={locale}
-        t={t}
-        dtlColumnLabels={dtlColumnLabels}
-      />
-      <PrefGroup
-        prefs={itemLevel}
-        title={t.itemLevelPrefs}
-        icon={<Package className="w-4 h-4 text-purple-500" />}
-        isRTL={isRTL}
-        currencyCode={currencyCode}
-        locale={locale}
-        t={t}
-        dtlColumnLabels={dtlColumnLabels}
-      />
-      <PrefGroup
-        prefs={pieceLevel}
-        title={t.pieceLevelPrefs}
-        icon={<Settings2 className="w-4 h-4 text-orange-500" />}
-        isRTL={isRTL}
-        currencyCode={currencyCode}
-        locale={locale}
-        t={t}
-        dtlColumnLabels={dtlColumnLabels}
-      />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden pe-1">
+        <PrefGroup
+          prefs={orderLevel}
+          title={t.orderLevelPrefs}
+          icon={<Layers className="w-4 h-4 text-blue-500" />}
+          isRTL={isRTL}
+          currencyCode={currencyCode}
+          locale={locale}
+          t={t}
+          dtlColumnLabels={dtlColumnLabels}
+        />
+        <PrefGroup
+          prefs={itemLevel}
+          title={t.itemLevelPrefs}
+          icon={<Package className="w-4 h-4 text-purple-500" />}
+          isRTL={isRTL}
+          currencyCode={currencyCode}
+          locale={locale}
+          t={t}
+          dtlColumnLabels={dtlColumnLabels}
+        />
+        <PrefGroup
+          prefs={pieceLevel}
+          title={t.pieceLevelPrefs}
+          icon={<Settings2 className="w-4 h-4 text-orange-500" />}
+          isRTL={isRTL}
+          currencyCode={currencyCode}
+          locale={locale}
+          t={t}
+          dtlColumnLabels={dtlColumnLabels}
+        />
+      </div>
     </div>
   );
 }

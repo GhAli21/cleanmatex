@@ -1155,6 +1155,13 @@
           "created_by": "أنشأ بواسطة",
           "updated_at": "تاريخ التحديث",
           "updated_by": "حدّث بواسطة"
+        },
+        "pagination": {
+          "rowsPerPage": "صفوف لكل صفحة",
+          "showing": "{from}–{to} من {total}",
+          "previous": "السابق",
+          "next": "التالي",
+          "pageOf": "صفحة {current} من {totalPages}"
         }
       },
       "emptyReceipts": "لا توجد سجلات إرسال إيصالات لهذا الطلب",

@@ -1154,6 +1154,13 @@
           "created_by": "Created by",
           "updated_at": "Updated at",
           "updated_by": "Updated by"
+        },
+        "pagination": {
+          "rowsPerPage": "Rows per page",
+          "showing": "{from}–{to} of {total}",
+          "previous": "Previous",
+          "next": "Next",
+          "pageOf": "Page {current} of {totalPages}"
         }
       },
       "emptyReceipts": "No receipt sending records for this order",

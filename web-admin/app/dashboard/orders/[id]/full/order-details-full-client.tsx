@@ -568,37 +568,44 @@ export function OrderDetailsFullClient({
       id: 'preferences',
       label: t.tabsPreferences ?? 'Preferences',
       content: (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <OrdersPreferencesTabRprt
-            preferences={orderPreferences}
-            currencyCode={orderCurrency}
-            locale={locale}
-            dtlColumnLabels={orderPreferenceDtlColumnLabels}
-            translations={{
-              emptyPreferences: t.emptyPreferences ?? 'No preferences for this order',
-              levelOrder: t.prefLevelOrder ?? 'Order',
-              levelItem: t.prefLevelItem ?? 'Item',
-              levelPiece: t.prefLevelPiece ?? 'Piece',
-              kindServicePrefs: t.prefKindServicePrefs ?? 'Service',
-              kindPackingPrefs: t.prefKindPackingPrefs ?? 'Packing',
-              kindConditionStain: t.prefKindConditionStain ?? 'Stain',
-              kindConditionDamage: t.prefKindConditionDamage ?? 'Damage',
-              kindColor: t.prefKindColor ?? 'Color',
-              kindNote: t.prefKindNote ?? 'Note',
-              ownerSystem: t.prefOwnerSystem ?? 'System',
-              ownerOverride: t.prefOwnerOverride ?? 'Override',
-              sourceOrderCreate: t.prefSourceOrderCreate ?? 'Order Create',
-              sourceManual: t.prefSourceManual ?? 'Manual',
-              sourceOrderUpdate: t.prefSourceOrderUpdate ?? 'Order Update',
-              totalExtraCharge: t.prefTotalExtraCharge ?? 'Total extra charge',
-              orderLevelPrefs: t.prefOrderLevel ?? 'Order-level preferences',
-              itemLevelPrefs: t.prefItemLevel ?? 'Item-level preferences',
-              pieceLevelPrefs: t.prefPieceLevel ?? 'Piece-level preferences',
-              rowCountSuffix: t.prefRowCountSuffix ?? 'preferences',
-              valueYes: t.commonYes ?? 'Yes',
-              valueNo: t.commonNo ?? 'No',
-            }}
-          />
+        <div className="bg-white rounded-lg border border-gray-200 p-6 min-h-0 max-h-[min(82vh,36rem)] flex flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 flex flex-col">
+            <OrdersPreferencesTabRprt
+              preferences={orderPreferences}
+              currencyCode={orderCurrency}
+              locale={locale}
+              dtlColumnLabels={orderPreferenceDtlColumnLabels}
+              translations={{
+                emptyPreferences: t.emptyPreferences ?? 'No preferences for this order',
+                levelOrder: t.prefLevelOrder ?? 'Order',
+                levelItem: t.prefLevelItem ?? 'Item',
+                levelPiece: t.prefLevelPiece ?? 'Piece',
+                kindServicePrefs: t.prefKindServicePrefs ?? 'Service',
+                kindPackingPrefs: t.prefKindPackingPrefs ?? 'Packing',
+                kindConditionStain: t.prefKindConditionStain ?? 'Stain',
+                kindConditionDamage: t.prefKindConditionDamage ?? 'Damage',
+                kindColor: t.prefKindColor ?? 'Color',
+                kindNote: t.prefKindNote ?? 'Note',
+                ownerSystem: t.prefOwnerSystem ?? 'System',
+                ownerOverride: t.prefOwnerOverride ?? 'Override',
+                sourceOrderCreate: t.prefSourceOrderCreate ?? 'Order Create',
+                sourceManual: t.prefSourceManual ?? 'Manual',
+                sourceOrderUpdate: t.prefSourceOrderUpdate ?? 'Order Update',
+                totalExtraCharge: t.prefTotalExtraCharge ?? 'Total extra charge',
+                orderLevelPrefs: t.prefOrderLevel ?? 'Order-level preferences',
+                itemLevelPrefs: t.prefItemLevel ?? 'Item-level preferences',
+                pieceLevelPrefs: t.prefPieceLevel ?? 'Piece-level preferences',
+                rowCountSuffix: t.prefRowCountSuffix ?? 'preferences',
+                paginationRowsPerPage: t.prefPaginationRowsPerPage ?? 'Rows per page',
+                paginationShowing: t.prefPaginationShowing ?? '{from}–{to} of {total}',
+                paginationPrevious: t.prefPaginationPrevious ?? 'Previous',
+                paginationNext: t.prefPaginationNext ?? 'Next',
+                paginationPageOf: t.prefPaginationPageOf ?? 'Page {current} of {totalPages}',
+                valueYes: t.commonYes ?? 'Yes',
+                valueNo: t.commonNo ?? 'No',
+              }}
+            />
+          </div>
         </div>
       ),
     },
