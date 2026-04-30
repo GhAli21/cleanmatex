@@ -26,7 +26,7 @@ import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-r
 import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
-import type { OrderPreferenceRow } from '@/app/actions/orders/get-order-preferences';
+import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/app/actions/orders/get-order-preferences';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
@@ -53,6 +53,8 @@ interface OrderDetailsFullClientProps {
   }>;
   editHistory: OrderEditHistoryEntry[];
   orderPreferences: OrderPreferenceRow[];
+  /** Localized headers for org_order_preferences_dtl columns (Preferences tab) */
+  orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   tenantOrgId: string;
   userId: string;
   processPaymentAction: (
@@ -93,6 +95,7 @@ export function OrderDetailsFullClient({
   receipts,
   editHistory,
   orderPreferences,
+  orderPreferenceDtlColumnLabels,
   tenantOrgId,
   userId,
   processPaymentAction,
@@ -570,6 +573,7 @@ export function OrderDetailsFullClient({
             preferences={orderPreferences}
             currencyCode={orderCurrency}
             locale={locale}
+            dtlColumnLabels={orderPreferenceDtlColumnLabels}
             translations={{
               emptyPreferences: t.emptyPreferences ?? 'No preferences for this order',
               levelOrder: t.prefLevelOrder ?? 'Order',
@@ -586,22 +590,13 @@ export function OrderDetailsFullClient({
               sourceOrderCreate: t.prefSourceOrderCreate ?? 'Order Create',
               sourceManual: t.prefSourceManual ?? 'Manual',
               sourceOrderUpdate: t.prefSourceOrderUpdate ?? 'Order Update',
-              extraCharge: t.prefExtraCharge ?? 'Extra charge',
-              confirmed: t.prefConfirmed ?? 'Confirmed',
-              notConfirmed: t.prefNotConfirmed ?? 'Pending',
-              confirmedBy: t.prefConfirmedBy ?? 'Confirmed by',
-              createdBy: t.prefCreatedBy ?? 'Created by',
-              prefCode: t.prefCode ?? 'Code',
-              prefKind: t.prefKind ?? 'Kind',
-              level: t.prefLevel ?? 'Level',
-              source: t.prefSource ?? 'Source',
-              owner: t.prefOwner ?? 'Owner',
               totalExtraCharge: t.prefTotalExtraCharge ?? 'Total extra charge',
               orderLevelPrefs: t.prefOrderLevel ?? 'Order-level preferences',
               itemLevelPrefs: t.prefItemLevel ?? 'Item-level preferences',
               pieceLevelPrefs: t.prefPieceLevel ?? 'Piece-level preferences',
-              itemRef: t.prefItemRef ?? 'Item',
-              pieceRef: t.prefPieceRef ?? 'Piece',
+              rowCountSuffix: t.prefRowCountSuffix ?? 'preferences',
+              valueYes: t.commonYes ?? 'Yes',
+              valueNo: t.commonNo ?? 'No',
             }}
           />
         </div>

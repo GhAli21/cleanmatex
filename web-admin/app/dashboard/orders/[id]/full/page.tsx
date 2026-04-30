@@ -9,7 +9,11 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
-import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
+import {
+  getOrderPreferencesAction,
+  ORDER_PREF_DTL_DISPLAY_COLUMNS,
+  type OrderPreferenceDtlColumn,
+} from '@/app/actions/orders/get-order-preferences';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 
@@ -143,6 +147,10 @@ async function OrderDetailsFullContent({
 
   const tInvoices = await getTranslations('invoices');
 
+  const preferenceDtlColumnLabels = Object.fromEntries(
+    ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => [col, tFull(`preferences.dtlColumns.${col}`)])
+  ) as Record<OrderPreferenceDtlColumn, string>;
+
   return (
     <OrderDetailsFullClient
       order={serializedOrder}
@@ -154,6 +162,7 @@ async function OrderDetailsFullContent({
       receipts={receipts}
       editHistory={editHistory}
       orderPreferences={orderPreferences}
+      orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
       processPaymentAction={processPayment}
@@ -265,6 +274,7 @@ async function OrderDetailsFullContent({
         prefPieceLevel: tFull('preferences.pieceLevelPrefs'),
         prefItemRef: tFull('preferences.itemRef'),
         prefPieceRef: tFull('preferences.pieceRef'),
+        prefRowCountSuffix: tFull('preferences.rowCountSuffix'),
         emptyReceipts: tFull('emptyReceipts'),
         searchByInvoiceId: tFull('searchByInvoiceId'),
         searchByVoucherId: tFull('searchByVoucherId'),

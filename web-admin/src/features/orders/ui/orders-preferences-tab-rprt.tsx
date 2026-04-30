@@ -1,15 +1,22 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Settings2, Package, Layers, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { Badge } from '@ui/primitives';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
-import type { OrderPreferenceRow } from '@/app/actions/orders/get-order-preferences';
+import {
+  type OrderPreferenceRow,
+  ORDER_PREF_DTL_DISPLAY_COLUMNS,
+  type OrderPreferenceDtlColumn,
+} from '@/app/actions/orders/get-order-preferences';
 
 interface OrdersPreferencesTabRprtProps {
   preferences: OrderPreferenceRow[];
   currencyCode: string;
   locale: 'en' | 'ar';
+  /** Localized header labels keyed by org_order_preferences_dtl column name */
+  dtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   translations: {
     emptyPreferences: string;
     levelOrder: string;
@@ -26,22 +33,13 @@ interface OrdersPreferencesTabRprtProps {
     sourceOrderCreate: string;
     sourceManual: string;
     sourceOrderUpdate: string;
-    extraCharge: string;
-    confirmed: string;
-    notConfirmed: string;
-    confirmedBy: string;
-    createdBy: string;
-    prefCode: string;
-    prefKind: string;
-    level: string;
-    source: string;
-    owner: string;
     totalExtraCharge: string;
     orderLevelPrefs: string;
     itemLevelPrefs: string;
     pieceLevelPrefs: string;
-    itemRef: string;
-    pieceRef: string;
+    rowCountSuffix: string;
+    valueYes: string;
+    valueNo: string;
   };
 }
 
@@ -84,9 +82,111 @@ function sourceLabel(source: string, t: OrdersPreferencesTabRprtProps['translati
   return map[source] ?? source;
 }
 
-function shortId(id: string | null) {
-  if (!id) return '—';
-  return id.slice(0, 8) + '…';
+function formatDateTime(value: string | null, locale: 'en' | 'ar') {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString(locale === 'ar' ? 'ar' : 'en', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+}
+
+function UuidCell({ value }: { value: string | null }) {
+  if (!value) return <span className="text-gray-400">—</span>;
+  return (
+    <span className="font-mono text-xs text-gray-700 max-w-[11rem] inline-block truncate align-bottom" title={value}>
+      {value}
+    </span>
+  );
+}
+
+function renderDtlCell(
+  col: OrderPreferenceDtlColumn,
+  pref: OrderPreferenceRow,
+  t: OrdersPreferencesTabRprtProps['translations'],
+  currencyCode: string,
+  locale: 'en' | 'ar'
+): ReactNode {
+  switch (col) {
+    case 'id':
+      return <UuidCell value={pref.id} />;
+    case 'tenant_org_id':
+      return <UuidCell value={pref.tenant_org_id} />;
+    case 'order_id':
+      return <UuidCell value={pref.order_id} />;
+    case 'branch_id':
+      return <UuidCell value={pref.branch_id} />;
+    case 'order_item_id':
+      return <UuidCell value={pref.order_item_id} />;
+    case 'order_item_piece_id':
+      return <UuidCell value={pref.order_item_piece_id} />;
+    case 'preference_id':
+      return <UuidCell value={pref.preference_id} />;
+    case 'prefs_no':
+      return <span className="tabular-nums text-gray-800">{pref.prefs_no}</span>;
+    case 'prefs_level':
+      return (
+        <span className="inline-flex items-center gap-1">
+          <LevelIcon level={pref.prefs_level} />
+          <span className="text-xs font-medium">{pref.prefs_level}</span>
+        </span>
+      );
+    case 'preference_code':
+      return <span className="font-medium text-gray-900">{pref.preference_code}</span>;
+    case 'preference_sys_kind':
+      return kindBadge(pref.preference_sys_kind, t);
+    case 'preference_category':
+      return <span className="text-xs text-gray-700">{pref.preference_category ?? '—'}</span>;
+    case 'prefs_owner_type':
+      return ownerBadge(pref.prefs_owner_type, t);
+    case 'prefs_source':
+      return <span className="text-xs text-gray-600">{sourceLabel(pref.prefs_source, t)}</span>;
+    case 'extra_price':
+      return pref.extra_price > 0 ? (
+        <span className="text-green-700 font-medium tabular-nums text-xs">
+          +{pref.extra_price.toLocaleString(locale === 'ar' ? 'ar' : 'en', { minimumFractionDigits: 2 })} {currencyCode}
+        </span>
+      ) : (
+        <span className="text-gray-400">—</span>
+      );
+    case 'processing_confirmed':
+      if (pref.processing_confirmed === true) {
+        return (
+          <span className="inline-flex items-center gap-1 text-green-700 text-xs">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            {t.valueYes}
+          </span>
+        );
+      }
+      if (pref.processing_confirmed === false) {
+        return (
+          <span className="inline-flex items-center gap-1 text-gray-400 text-xs">
+            <Clock className="w-3.5 h-3.5" />
+            {t.valueNo}
+          </span>
+        );
+      }
+      return <span className="text-gray-400">—</span>;
+    case 'confirmed_by':
+      return <span className="text-xs text-gray-700">{pref.confirmed_by ?? '—'}</span>;
+    case 'created_by':
+      return <span className="text-xs text-gray-700">{pref.created_by ?? '—'}</span>;
+    case 'updated_by':
+      return <span className="text-xs text-gray-700">{pref.updated_by ?? '—'}</span>;
+    case 'confirmed_at':
+    case 'created_at':
+    case 'updated_at': {
+      const raw =
+        col === 'confirmed_at' ? pref.confirmed_at : col === 'created_at' ? pref.created_at : pref.updated_at;
+      const formatted = formatDateTime(raw, locale);
+      return <span className="text-xs text-gray-600 whitespace-nowrap">{formatted ?? '—'}</span>;
+    }
+    case 'rec_status':
+      return <span className="tabular-nums text-xs">{pref.rec_status ?? '—'}</span>;
+    default:
+      return <span className="text-gray-400">—</span>;
+  }
 }
 
 interface PrefGroupProps {
@@ -95,11 +195,12 @@ interface PrefGroupProps {
   icon: React.ReactNode;
   isRTL: boolean;
   currencyCode: string;
-  locale: string;
+  locale: 'en' | 'ar';
   t: OrdersPreferencesTabRprtProps['translations'];
+  dtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
 }
 
-function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t }: PrefGroupProps) {
+function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColumnLabels }: PrefGroupProps) {
   if (prefs.length === 0) return null;
 
   const totalExtra = prefs.reduce((sum, p) => sum + p.extra_price, 0);
@@ -121,82 +222,27 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t }: PrefG
         </CmxCardTitle>
       </CmxCardHeader>
       <CmxCardContent className="pt-0 overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
+        <table className="w-full border-collapse text-sm min-w-[72rem]">
           <thead>
             <tr className="border-b border-gray-200 bg-gray-50">
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>#</th>
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.prefCode}</th>
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.prefKind}</th>
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.owner}</th>
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.source}</th>
-              <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.extraCharge}</th>
-              {prefs[0].prefs_level === LEVEL_ITEM && (
-                <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.itemRef}</th>
-              )}
-              {prefs[0].prefs_level === LEVEL_PIECE && (
-                <>
-                  <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.itemRef}</th>
-                  <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.pieceRef}</th>
-                  <th className={`px-3 py-2 text-xs font-medium text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.confirmed}</th>
-                </>
-              )}
+              {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
+                <th
+                  key={col}
+                  className={`px-2 py-2 text-xs font-medium text-gray-600 whitespace-nowrap ${isRTL ? 'text-right' : 'text-left'}`}
+                >
+                  {dtlColumnLabels[col]}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {prefs.map((pref) => (
               <tr key={pref.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                <td className={`px-3 py-2 text-gray-500 tabular-nums ${isRTL ? 'text-right' : 'text-left'}`}>{pref.prefs_no}</td>
-                <td className={`px-3 py-2 font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {pref.preference_code}
-                  {pref.preference_category && (
-                    <span className="text-gray-400 text-xs ms-1">({pref.preference_category})</span>
-                  )}
-                </td>
-                <td className={`px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {kindBadge(pref.preference_sys_kind, t)}
-                </td>
-                <td className={`px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {ownerBadge(pref.prefs_owner_type, t)}
-                </td>
-                <td className={`px-3 py-2 text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {sourceLabel(pref.prefs_source, t)}
-                </td>
-                <td className={`px-3 py-2 tabular-nums ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {pref.extra_price > 0 ? (
-                    <span className="text-green-700 font-medium">
-                      +{pref.extra_price.toLocaleString(locale === 'ar' ? 'ar' : 'en', { minimumFractionDigits: 2 })} {currencyCode}
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                {pref.prefs_level === LEVEL_ITEM && (
-                  <td className={`px-3 py-2 text-xs text-gray-500 font-mono ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {shortId(pref.order_item_id)}
+                {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
+                  <td key={col} className={`px-2 py-2 align-top ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {renderDtlCell(col, pref, t, currencyCode, locale)}
                   </td>
-                )}
-                {pref.prefs_level === LEVEL_PIECE && (
-                  <>
-                    <td className={`px-3 py-2 text-xs text-gray-500 font-mono ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {shortId(pref.order_item_id)}
-                    </td>
-                    <td className={`px-3 py-2 text-xs text-gray-500 font-mono ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {shortId(pref.order_item_piece_id)}
-                    </td>
-                    <td className={`px-3 py-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {pref.processing_confirmed ? (
-                        <span className="inline-flex items-center gap-1 text-green-700 text-xs">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          {pref.confirmed_by ? <span className="text-gray-500">{pref.confirmed_by}</span> : null}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-gray-400 text-xs">
-                          <Clock className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                    </td>
-                  </>
-                )}
+                ))}
               </tr>
             ))}
           </tbody>
@@ -206,12 +252,13 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t }: PrefG
   );
 }
 
-export function OrdersPreferencesTabRprt({
-  preferences,
-  currencyCode,
-  locale,
-  translations: t,
-}: OrdersPreferencesTabRprtProps) {
+/**
+ * Order full-details Preferences tab: every `org_order_preferences_dtl` column per row.
+ * @param props - Tab props (preferences, currency, locale, column labels, translations)
+ * @returns Preferences tab content
+ */
+export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
+  const { preferences, currencyCode, locale, dtlColumnLabels, translations: t } = props;
   const isRTL = useRTL();
 
   if (preferences.length === 0) {
@@ -232,9 +279,10 @@ export function OrdersPreferencesTabRprt({
 
   return (
     <div className="space-y-4">
-      {/* Summary bar */}
       <div className={`flex flex-wrap gap-4 items-center p-3 bg-gray-50 rounded-lg border border-gray-200 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-        <span className="text-gray-600 font-medium">{preferences.length} {t.emptyPreferences.includes('No') ? 'preferences' : 'تفضيلات'}</span>
+        <span className="text-gray-600 font-medium">
+          {preferences.length} {t.rowCountSuffix}
+        </span>
         <div className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {orderLevel.length > 0 && (
             <span className="inline-flex items-center gap-1 text-blue-700">
@@ -263,7 +311,6 @@ export function OrdersPreferencesTabRprt({
         )}
       </div>
 
-      {/* Groups */}
       <PrefGroup
         prefs={orderLevel}
         title={t.orderLevelPrefs}
@@ -272,6 +319,7 @@ export function OrdersPreferencesTabRprt({
         currencyCode={currencyCode}
         locale={locale}
         t={t}
+        dtlColumnLabels={dtlColumnLabels}
       />
       <PrefGroup
         prefs={itemLevel}
@@ -281,6 +329,7 @@ export function OrdersPreferencesTabRprt({
         currencyCode={currencyCode}
         locale={locale}
         t={t}
+        dtlColumnLabels={dtlColumnLabels}
       />
       <PrefGroup
         prefs={pieceLevel}
@@ -290,6 +339,7 @@ export function OrdersPreferencesTabRprt({
         currencyCode={currencyCode}
         locale={locale}
         t={t}
+        dtlColumnLabels={dtlColumnLabels}
       />
     </div>
   );
