@@ -9,11 +9,11 @@ import { getVouchersForOrder } from '@/lib/services/voucher-service';
 import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
+import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
 import {
-  getOrderPreferencesAction,
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
-} from '@/app/actions/orders/get-order-preferences';
+} from '@/lib/orders/order-preferences-dtl';
 import { OrderDetailsFullClient } from './order-details-full-client';
 import { OrderDetailError } from '../order-detail-error';
 

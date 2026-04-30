@@ -7,10 +7,10 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { Badge } from '@ui/primitives';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import {
-  type OrderPreferenceRow,
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
-} from '@/app/actions/orders/get-order-preferences';
+  type OrderPreferenceRow,
+} from '@/lib/orders/order-preferences-dtl';
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
 
