@@ -14,9 +14,6 @@
     },
     "supabase_remote": {
       "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
-    },
-    "supabase_remote2": {
-      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
     }
   }
 }

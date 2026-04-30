@@ -6,6 +6,18 @@
 
 import { z } from 'zod';
 
+/**
+ * Coerces optional UUID JSON fields to undefined when absent, blank, or non-string.
+ * Prevents Zod 4 failures like "expected string, received number" when clients send
+ * `0`, `false`, or malformed values for unused promo/gift fields.
+ */
+function optionalUuidJsonPreprocess(val: unknown): unknown {
+  if (val === '' || val == null) return undefined;
+  if (typeof val !== 'string') return undefined;
+  const trimmed = val.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
+
 // Payment method codes (server/action side – uppercase)
 const paymentMethodCodeSchema = z.enum([
   'CASH',
@@ -150,17 +162,11 @@ export const createWithPaymentRequestSchema = z.object({
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   promoCode: z.string().optional(),
-  promoCodeId: z.preprocess(
-    (val) => (val === '' || val == null ? undefined : val),
-    z.string().uuid().optional()
-  ),
+  promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
   promoDiscount: z.number().min(0).optional(),
   giftCardNumber: z.string().optional(),
   giftCardAmount: z.number().min(0).optional(),
-  giftCardId: z.preprocess(
-    (val) => (val === '' || val == null ? undefined : val),
-    z.string().uuid().optional()
-  ),
+  giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
   checkNumber: z.string().optional(),
   checkBank: z.string().optional(),
   checkDate: z.string().optional(),
@@ -230,10 +236,10 @@ export const processPaymentActionInputSchema = z
     checkDate: z.date().optional(),
     manualDiscount: z.number().min(0).optional(),
     promoCode: z.string().optional(),
-    promoCodeId: z.string().uuid().optional(),
+    promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
     giftCardNumber: z.string().optional(),
     giftCardAmount: z.number().min(0).optional(),
-    giftCardId: z.string().uuid().optional(),
+    giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
     notes: z.string().optional(),
     // Amount breakdown (new-order flow)
     subtotal: z.number().min(0).optional(),

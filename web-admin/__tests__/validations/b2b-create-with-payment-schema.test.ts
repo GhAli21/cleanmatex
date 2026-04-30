@@ -72,4 +72,34 @@ describe('createWithPaymentRequestSchema (B2B)', () => {
       expect(data.poNumber).toBe('PO-12345');
     }
   });
+
+  it('treats empty, null, or non-string promoCodeId / giftCardId as omitted (no promo/gift)', () => {
+    const uuid = '770e8400-e29b-41d4-a716-446655440003';
+    for (const extra of [
+      {},
+      { promoCodeId: '', giftCardId: '' },
+      { promoCodeId: null, giftCardId: null },
+      { promoCodeId: 0, giftCardId: 0 },
+      { promoCodeId: false, giftCardId: false },
+      { promoCodeId: '   ', giftCardId: '\t' },
+    ]) {
+      const result = createWithPaymentRequestSchema.safeParse({ ...basePayload, ...extra });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        const data = result.data as CreateWithPaymentRequest;
+        expect(data.promoCodeId).toBeUndefined();
+        expect(data.giftCardId).toBeUndefined();
+      }
+    }
+    const withIds = createWithPaymentRequestSchema.safeParse({
+      ...basePayload,
+      promoCodeId: uuid,
+      giftCardId: uuid,
+    });
+    expect(withIds.success).toBe(true);
+    if (withIds.success) {
+      expect((withIds.data as CreateWithPaymentRequest).promoCodeId).toBe(uuid);
+      expect((withIds.data as CreateWithPaymentRequest).giftCardId).toBe(uuid);
+    }
+  });
 });
