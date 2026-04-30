@@ -1,26 +1,48 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { Settings2, Package, Layers, CheckCircle2, Clock, DollarSign } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { Badge } from '@ui/primitives';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
+import { CmxDataGrid } from '@ui/data-display/cmx-data-grid';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
   type OrderPreferenceRow,
 } from '@/lib/orders/order-preferences-dtl';
 
-const PAGE_SIZE_OPTIONS = [10, 25, 50] as const;
+/** Columns hidden below `md` to reduce horizontal scroll on smaller viewports. */
+const PREF_GRID_HIDE_MD_COLS = new Set<OrderPreferenceDtlColumn>([
+  'tenant_org_id',
+  'order_id',
+  'branch_id',
+  'order_item_id',
+  'order_item_piece_id',
+  'preference_id',
+  'preference_category',
+  'rec_status',
+  'created_by',
+  'updated_by',
+  'created_at',
+  'updated_at',
+  'confirmed_by',
+  'confirmed_at',
+]);
 
-function fillPlaceholders(template: string, vars: Record<string, string | number>): string {
-  let s = template;
-  for (const [k, v] of Object.entries(vars)) {
-    s = s.split(`{${k}}`).join(String(v));
-  }
-  return s;
-}
+/** IDs and codes where copy-to-clipboard is high value (not booleans/dates/status chips). */
+const PREF_GRID_COPYABLE_COLS = new Set<OrderPreferenceDtlColumn>([
+  'id',
+  'tenant_org_id',
+  'order_id',
+  'branch_id',
+  'order_item_id',
+  'order_item_piece_id',
+  'preference_id',
+  'preference_code',
+]);
 
 interface OrdersPreferencesTabRprtProps {
   preferences: OrderPreferenceRow[];
@@ -54,6 +76,24 @@ interface OrdersPreferencesTabRprtProps {
     paginationPrevious: string;
     paginationNext: string;
     paginationPageOf: string;
+    paginationFirst: string;
+    paginationLast: string;
+    paginationGoToPage: string;
+    paginationGo: string;
+    paginationResetFilters: string;
+    paginationFilterPlaceholder: string;
+    paginationEmptyFiltered: string;
+    paginationGlobalSearchPlaceholder: string;
+    paginationExportCsv: string;
+    paginationColumnsMenu: string;
+    paginationToggleColumns: string;
+    paginationClearColumnFilter: string;
+    paginationEmptyFilteredHint: string;
+    paginationDensity: string;
+    paginationDensityCompact: string;
+    paginationDensityStandard: string;
+    paginationDensityComfortable: string;
+    paginationCopyToClipboard: string;
     valueYes: string;
     valueNo: string;
   };
@@ -214,31 +254,66 @@ interface PrefGroupProps {
   locale: 'en' | 'ar';
   t: OrdersPreferencesTabRprtProps['translations'];
   dtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
+  /** Stable key for column visibility persistence (not localized title). */
+  columnVisibilityStorageKey: string;
 }
 
-function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColumnLabels }: PrefGroupProps) {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
+function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColumnLabels, columnVisibilityStorageKey }: PrefGroupProps) {
+  const columns = useMemo(
+    (): ColumnDef<OrderPreferenceRow, unknown>[] =>
+      ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => ({
+        accessorKey: col,
+        header: () => dtlColumnLabels[col],
+        cell: ({ row }) => renderDtlCell(col, row.original, t, currencyCode, locale),
+        meta:
+          PREF_GRID_HIDE_MD_COLS.has(col) || PREF_GRID_COPYABLE_COLS.has(col)
+            ? {
+                ...(PREF_GRID_HIDE_MD_COLS.has(col) ? { hideBelow: 'md' as const } : {}),
+                ...(PREF_GRID_COPYABLE_COLS.has(col) ? { isCopyable: true as const } : {}),
+              }
+            : undefined,
+      })),
+    [dtlColumnLabels, t, currencyCode, locale]
+  );
 
-  const total = prefs.length;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const currentPage = Math.min(page, totalPages);
-
-  useEffect(() => {
-    setPage(1);
-  }, [total, title]);
-
-  useEffect(() => {
-    if (page > totalPages) setPage(totalPages);
-  }, [page, totalPages]);
-
-  if (total === 0) return null;
+  if (prefs.length === 0) return null;
 
   const totalExtra = prefs.reduce((sum, p) => sum + p.extra_price, 0);
   const hasCharges = totalExtra > 0;
-  const from = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const to = Math.min(currentPage * pageSize, total);
-  const slice = prefs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const gridLabels = {
+    resetFilters: t.paginationResetFilters,
+    rowsPerPage: t.paginationRowsPerPage,
+    showing: t.paginationShowing,
+    page: t.paginationPageOf,
+    firstPage: t.paginationFirst,
+    previousPage: t.paginationPrevious,
+    nextPage: t.paginationNext,
+    lastPage: t.paginationLast,
+    goToPage: t.paginationGoToPage,
+    go: t.paginationGo,
+    filterPlaceholder: t.paginationFilterPlaceholder,
+    empty: t.paginationEmptyFiltered,
+    columnsMenu: t.paginationColumnsMenu,
+    toggleColumns: t.paginationToggleColumns,
+    globalSearchPlaceholder: t.paginationGlobalSearchPlaceholder,
+    clearFilters: t.paginationResetFilters,
+    exportCsv: t.paginationExportCsv,
+    clearColumnFilter: t.paginationClearColumnFilter,
+    emptyFilteredHint: t.paginationEmptyFilteredHint,
+    density: t.paginationDensity,
+    densityCompact: t.paginationDensityCompact,
+    densityStandard: t.paginationDensityStandard,
+    densityComfortable: t.paginationDensityComfortable,
+    copyToClipboard: t.paginationCopyToClipboard,
+  };
+
+  const exportBasename =
+    title === t.orderLevelPrefs
+      ? 'order-preferences-order-level'
+      : title === t.itemLevelPrefs
+        ? 'order-preferences-item-level'
+        : 'order-preferences-piece-level';
 
   return (
     <CmxCard>
@@ -246,7 +321,7 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColu
         <CmxCardTitle className={`text-sm font-semibold flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
           {icon}
           <span>{title}</span>
-          <span className="text-gray-400 font-normal text-xs">({total})</span>
+          <span className="text-gray-400 font-normal text-xs">({prefs.length})</span>
           {hasCharges && (
             <span className={`${isRTL ? 'mr-auto' : 'ml-auto'} flex items-center gap-1 text-xs text-green-700 font-medium`}>
               <DollarSign className="w-3 h-3" />
@@ -255,86 +330,24 @@ function PrefGroup({ prefs, title, icon, isRTL, currencyCode, locale, t, dtlColu
           )}
         </CmxCardTitle>
       </CmxCardHeader>
-      <CmxCardContent className="pt-0 flex flex-col gap-0 min-h-0">
-        <div
-          className="overflow-auto max-h-[min(48vh,26rem)] rounded-md border border-gray-200 bg-white"
+      <CmxCardContent className="pt-0 min-h-0">
+        <CmxDataGrid
+          data={prefs}
+          columns={columns}
+          getRowId={(row) => row.id}
+          initialPageSize={10}
+          pageSizeOptions={[10, 25, 50, 100]}
+          labels={gridLabels}
           dir={isRTL ? 'rtl' : 'ltr'}
-        >
-          <table className="min-w-[72rem] w-full border-collapse text-sm">
-            <thead className="sticky top-0 z-10 border-b border-gray-200 bg-gray-50 shadow-[0_1px_0_rgba(0,0,0,0.06)]">
-              <tr>
-                {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
-                  <th
-                    key={col}
-                    className={`px-2 py-2 text-xs font-medium text-gray-600 whitespace-nowrap bg-gray-50 ${isRTL ? 'text-right' : 'text-left'}`}
-                  >
-                    {dtlColumnLabels[col]}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {slice.map((pref) => (
-                <tr key={pref.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                  {ORDER_PREF_DTL_DISPLAY_COLUMNS.map((col) => (
-                    <td key={col} className={`px-2 py-2 align-top ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {renderDtlCell(col, pref, t, currencyCode, locale)}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        <div
-          className={`mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-3 text-xs text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}
-        >
-          <label className={`inline-flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="whitespace-nowrap">{t.paginationRowsPerPage}</span>
-            <select
-              className="rounded border border-gray-300 bg-white px-2 py-1 text-gray-800"
-              value={pageSize}
-              onChange={(e) => {
-                setPageSize(Number(e.target.value));
-                setPage(1);
-              }}
-              aria-label={t.paginationRowsPerPage}
-            >
-              {PAGE_SIZE_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="tabular-nums whitespace-nowrap">
-            {fillPlaceholders(t.paginationShowing, { from, to, total })}
-          </span>
-          <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            <span className="tabular-nums whitespace-nowrap text-gray-500">
-              {fillPlaceholders(t.paginationPageOf, { current: currentPage, totalPages })}
-            </span>
-            <div className={`flex gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <button
-                type="button"
-                disabled={currentPage <= 1}
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="rounded border border-gray-300 px-2 py-1 text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {t.paginationPrevious}
-              </button>
-              <button
-                type="button"
-                disabled={currentPage >= totalPages}
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="rounded border border-gray-300 px-2 py-1 text-gray-800 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                {t.paginationNext}
-              </button>
-            </div>
-          </div>
-        </div>
+          enableZebra
+          enableGlobalSearch
+          enableExportCsv
+          exportFileName={exportBasename}
+          enableStickyFirstColumn
+          columnVisibilityStorageKey={columnVisibilityStorageKey}
+          enableDensityToggle
+          tableWrapperClassName="max-h-[min(48vh,26rem)] min-w-0"
+        />
       </CmxCardContent>
     </CmxCard>
   );
@@ -409,6 +422,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
           locale={locale}
           t={t}
           dtlColumnLabels={dtlColumnLabels}
+          columnVisibilityStorageKey="cmx-grid:order-full-prefs:order"
         />
         <PrefGroup
           prefs={itemLevel}
@@ -419,6 +433,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
           locale={locale}
           t={t}
           dtlColumnLabels={dtlColumnLabels}
+          columnVisibilityStorageKey="cmx-grid:order-full-prefs:item"
         />
         <PrefGroup
           prefs={pieceLevel}
@@ -429,6 +444,7 @@ export function OrdersPreferencesTabRprt(props: OrdersPreferencesTabRprtProps) {
           locale={locale}
           t={t}
           dtlColumnLabels={dtlColumnLabels}
+          columnVisibilityStorageKey="cmx-grid:order-full-prefs:piece"
         />
       </div>
     </div>

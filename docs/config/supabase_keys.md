@@ -45,4 +45,5 @@ jhtest.dev21@gmail.com
 password
 Jh@supa12
 Database Password:
-JhMD2326AbooD
+fNyNJhMD2315BrBr
+fNyNJhMD2315BrBr

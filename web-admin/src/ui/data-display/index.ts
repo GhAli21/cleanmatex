@@ -3,6 +3,7 @@
  * @module ui/data-display
  */
 
+export * from './cmx-data-grid'
 export * from './cmx-datatable'
 export * from './cmx-kpi-stat-card'
 export * from './cmx-empty-state'

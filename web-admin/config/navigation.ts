@@ -83,6 +83,29 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         path: '/dashboard/orders',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
+      /*
+      TESTING:
+      do this if I decide to add three new screens in the navigation tree using the command: 
+      /navigation /create-ui-screen-in-sys-tree add three new screens thier parent code "orders" and display_order=1 and labels are All Orders TEST1 to All Orders TEST3 and paths are /dashboard/orders/test1 /dashboard/orders/test2 /dashboard/orders/test3
+      {
+        key: 'orders_list',
+        label: 'All Orders TEST1',
+        path: '/dashboard/orders',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+      },
+      {
+        key: 'orders_list',
+        label: 'All Orders TEST2',
+        path: '/dashboard/orders',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+      },
+      {
+        key: 'orders_list',
+        label: 'All Orders TEST3',
+        path: '/dashboard/orders',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+      },
+      */
       {
         key: 'orders_new',
         label: 'New Order',

@@ -10,11 +10,12 @@
       ]
     },
     "supabase_local": {
-      "type": "http",
       "url": "http://127.0.0.1:54321/mcp"
     },
     "supabase_remote": {
-      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+    },
+    "supabase_remote2": {
       "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
     }
   }
