@@ -7,8 +7,14 @@
 
 import { z } from 'zod';
 
+const updateOrderPieceServicePrefSchema = z.object({
+  preference_code: z.string(),
+  source: z.string().optional(),
+  extra_price: z.number().nonnegative(),
+});
+
 /**
- * Piece data for order update (similar to CreateOrderPieceData)
+ * Piece data for order update (parity with create-with-payment piece payload)
  */
 export const updateOrderPieceSchema = z.object({
   pieceSeq: z.number().int().min(1),
@@ -19,6 +25,9 @@ export const updateOrderPieceSchema = z.object({
   notes: z.string().max(500).optional(),
   rackLocation: z.string().max(100).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  conditions: z.array(z.string()).optional(),
+  servicePrefs: z.array(updateOrderPieceServicePrefSchema).optional(),
+  packingPrefCode: z.string().max(100).optional(),
 });
 
 /**

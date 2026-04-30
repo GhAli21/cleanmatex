@@ -41,7 +41,9 @@ export class PreferenceCatalogService {
 
       const { data: tenantCf } = await supabase
         .from('org_service_preference_cf')
-        .select('preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order')
+        .select(
+          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category'
+        )
         .eq('tenant_org_id', tenantId);
 
       const cfMap = new Map(
@@ -61,7 +63,7 @@ export class PreferenceCatalogService {
             name2: cf?.name2 ?? s.name2,
             description: s.description,
             description2: s.description2,
-            preference_category: s.preference_category,
+            preference_category: (cf?.preference_category as string | null | undefined) ?? s.preference_category,
             preference_sys_kind: s.preference_sys_kind ?? null,
             color_hex: s.color_hex ?? null,
             applies_to_fabric_types: s.applies_to_fabric_types,
@@ -337,7 +339,9 @@ export class PreferenceCatalogService {
 
       const { data: tenantCf } = await supabase
         .from('org_service_preference_cf')
-        .select('id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order')
+        .select(
+          'id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category'
+        )
         .eq('tenant_org_id', tenantId);
 
       const cfMap = new Map(
@@ -350,7 +354,7 @@ export class PreferenceCatalogService {
           code: s.code,
           name: s.name,
           name2: s.name2,
-          preference_category: s.preference_category,
+          preference_category: (cf?.preference_category as string | null | undefined) ?? s.preference_category,
           preference_sys_kind: s.preference_sys_kind ?? null,
           default_extra_price: Number(s.default_extra_price ?? 0),
           extra_turnaround_minutes: s.extra_turnaround_minutes,
@@ -503,26 +507,43 @@ export class PreferenceCatalogService {
       is_active?: boolean;
       display_order?: number;
       extra_turnaround_minutes?: number | null;
+      preference_category?: string | null;
     },
     userId: string,
     userName: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const { data: sysRow, error: sysLookupError } = await supabase
-        .from('sys_service_preference_cd')
-        .select('preference_sys_kind')
-        .eq('code', preferenceCode)
-        .single();
+      const [{ data: sysRow, error: sysLookupError }, { data: existingCf }] = await Promise.all([
+        supabase
+          .from('sys_service_preference_cd')
+          .select('preference_sys_kind, preference_category')
+          .eq('code', preferenceCode)
+          .single(),
+        supabase
+          .from('org_service_preference_cf')
+          .select(
+            'preference_category, name, name2, extra_price, is_included_in_base, is_active, display_order, extra_turnaround_minutes'
+          )
+          .eq('tenant_org_id', tenantId)
+          .eq('preference_code', preferenceCode)
+          .maybeSingle(),
+      ]);
 
       if (sysLookupError || !sysRow) {
         return { success: false, error: 'Invalid preference code' };
       }
+
+      const resolvedCategory =
+        input.preference_category !== undefined
+          ? input.preference_category
+          : (existingCf?.preference_category ?? sysRow.preference_category ?? null);
 
       const now = new Date().toISOString();
       const payload = {
         tenant_org_id: tenantId,
         preference_code: preferenceCode,
         preference_sys_kind: sysRow.preference_sys_kind,
+        preference_category: resolvedCategory,
         name: input.name ?? null,
         name2: input.name2 ?? null,
         extra_price: input.extra_price ?? 0,

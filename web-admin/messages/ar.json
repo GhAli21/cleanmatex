@@ -2291,6 +2291,15 @@
       "name": "الاسم",
       "nameAr": "الاسم (AR)",
       "category": "الفئة",
+      "prefCategory": {
+        "washing": "الغسيل",
+        "processing": "المعالجة",
+        "finishing": "اللمسات النهائية",
+        "stain": "بقع",
+        "damage": "تلف",
+        "special": "خاص",
+        "color": "اللون"
+      },
       "packagingType": "نوع التغليف",
       "edit": "تعديل",
       "delete": "حذف",
@@ -3009,6 +3018,7 @@
       "copyToAllPieces": "نسخ لجميع القطع",
       "copyToAllItems": "نسخ لجميع العناصر",
       "editItemNotes": "تحرير ملاحظات العناصر",
+      "editItemPreferences": "تحرير تفضيلات العناصر",
       "showAllItems": "عرض كل العناصر",
       "showMultiPieceOnly": "القطع المتعددة فقط",
       "damage": "الأضرار",
@@ -3017,6 +3027,22 @@
       "addUpcharge": "إضافة رسوم إضافية",
       "noPiecesToShow": "لا توجد عناصر متعددة القطع. اضغط \"عرض كل العناصر\" لعرض الكل.",
       "focusPieceHint": "انقر على صف لتعديل الحالات في اللوحة أدناه"
+    },
+    "piecePreferences": {
+      "sectionTitle": "تحرير تفضيلات العناصر",
+      "sectionHint": "اختر فئة، أضف رقاقات لكل قطعة، ثم استخدم النسخ لتطبيق التفضيلات على القطع الأخرى من نفس الصنف.",
+      "copyAll": "نسخ الكل",
+      "copyAllTooltip": "نسخ كل تفضيلات هذه القطعة إلى القطع الأخرى من هذا الصنف",
+      "copiedPreference": "تم نسخ التفضيل إلى القطع الأخرى",
+      "copiedAll": "تم نسخ كل التفضيلات إلى القطع الأخرى",
+      "loadingKinds": "جارٍ تحميل الفئات…",
+      "removeChip": "إزالة التفضيل",
+      "copyChip": "نسخ التفضيل إلى القطع الأخرى",
+      "noItemsForKind": "لا توجد عناصر في الكتالوج لهذه الفئة",
+      "noColors": "لا توجد ألوان في الكتالوج",
+      "useNotesTab": "تُحرَّر الملاحظات في تبويب تحرير ملاحظات العناصر.",
+      "unsupportedKind": "نوع التفضيل هذا غير متاح هنا.",
+      "cardAriaLabel": "تفضيلات {item}، القطعة {piece}"
     },
     "topBar": {
       "expressLabel": "سريع",

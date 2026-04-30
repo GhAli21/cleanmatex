@@ -16,7 +16,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
-import { CmxButton, CmxInput, CmxSwitch } from '@ui/primitives';
+import { CmxButton, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import {
   CmxDialog,
@@ -33,6 +33,7 @@ import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
+import { ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS, PREFERENCE_CATEGORIES } from '@/lib/constants/service-preferences';
 
 interface ServicePref {
   code: string;
@@ -270,7 +271,7 @@ function ServicePrefsTable({
                   const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
                   const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
                   const isActive = adminRow ? adminRow.cf_is_active !== false : true;
-                  const category = adminRow?.preference_category ?? (p as ServicePref).preference_category ?? '—';
+                  const category = p.preference_category ?? '—';
 
                   return (
                     <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
@@ -1221,11 +1222,26 @@ function ServicePrefEditDialog({
   const t = useTranslations('catalog.preferences');
   const [name, setName] = useState(pref.cf_name ?? pref.name ?? '');
   const [name2, setName2] = useState(pref.cf_name2 ?? pref.name2 ?? '');
+  const [prefCategory, setPrefCategory] = useState(
+    () => pref.preference_category || PREFERENCE_CATEGORIES.PROCESSING
+  );
   const [extraPrice, setExtraPrice] = useState(String(pref.cf_extra_price ?? pref.default_extra_price ?? 0));
   const [isIncludedInBase, setIsIncludedInBase] = useState(pref.cf_is_included_in_base ?? false);
   const [isActive, setIsActive] = useState(pref.cf_is_active ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const categorySelectOptions = useMemo(() => {
+    const values = new Set<string>([...ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS]);
+    const cur = pref.preference_category;
+    if (cur) values.add(cur);
+    return [...values]
+      .sort()
+      .map((v) => ({
+        value: v,
+        label: t(`prefCategory.${v}`, v.replace(/_/g, ' ')),
+      }));
+  }, [pref.preference_category, t]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1241,6 +1257,7 @@ function ServicePrefEditDialog({
           extra_price: Number(extraPrice) || 0,
           is_included_in_base: isIncludedInBase,
           is_active: isActive,
+          preference_category: prefCategory || null,
         }),
       });
       const data = await res.json();
@@ -1307,6 +1324,14 @@ function ServicePrefEditDialog({
               onChange={(e) => setName2(e.target.value)}
               placeholder={pref.name2 ?? ''}
               className="w-full"
+            />
+          </div>
+          <div>
+            <CmxSelect
+              label={t('category', 'Category')}
+              options={categorySelectOptions}
+              value={prefCategory}
+              onChange={(e) => setPrefCategory(e.target.value)}
             />
           </div>
           <div>

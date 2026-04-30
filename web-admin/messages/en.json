@@ -2291,6 +2291,15 @@
       "name": "Name",
       "nameAr": "Name (AR)",
       "category": "Category",
+      "prefCategory": {
+        "washing": "Washing",
+        "processing": "Processing",
+        "finishing": "Finishing",
+        "stain": "Stain",
+        "damage": "Damage",
+        "special": "Special",
+        "color": "Color"
+      },
       "packagingType": "Packaging Type",
       "edit": "Edit",
       "delete": "Delete",
@@ -3009,6 +3018,7 @@
       "copyToAllPieces": "Copy to all pieces",
       "copyToAllItems": "Copy to all items",
       "editItemNotes": "Edit Item Notes",
+      "editItemPreferences": "Edit Items Preferences",
       "showAllItems": "Show All Items",
       "showMultiPieceOnly": "Multi-Piece Only",
       "damage": "Damage",
@@ -3017,6 +3027,22 @@
       "addUpcharge": "Add upcharge",
       "noPiecesToShow": "No multi-piece items. Toggle \"Show All Items\" to view all.",
       "focusPieceHint": "Click a row to edit its conditions in the palette below"
+    },
+    "piecePreferences": {
+      "sectionTitle": "Edit items preferences",
+      "sectionHint": "Pick a category, add chips per piece, then use copy to apply preferences to other pieces of the same item.",
+      "copyAll": "Copy all",
+      "copyAllTooltip": "Copy all preferences on this piece to the other pieces of this item",
+      "copiedPreference": "Preference copied to other pieces",
+      "copiedAll": "All preferences copied to other pieces",
+      "loadingKinds": "Loading categories…",
+      "removeChip": "Remove preference",
+      "copyChip": "Copy preference to other pieces",
+      "noItemsForKind": "No catalog entries for this category",
+      "noColors": "No colors in catalog",
+      "useNotesTab": "Notes are edited on the Edit Item Notes tab.",
+      "unsupportedKind": "This preference type is not available here.",
+      "cardAriaLabel": "Preferences for {item}, piece {piece}"
     },
     "topBar": {
       "expressLabel": "Express",

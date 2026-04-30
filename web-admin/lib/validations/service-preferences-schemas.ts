@@ -79,6 +79,13 @@ export const upsertServicePreferenceCfSchema = z.object({
   is_active: z.boolean().optional(),
   display_order: z.number().int().min(0).optional(),
   extra_turnaround_minutes: z.number().int().min(-120).max(120).optional().nullable(),
+  /** Tenant catalog category (org_service_preference_cf.preference_category) */
+  preference_category: z
+    .union([
+      z.string().min(1).max(50).regex(/^[a-z][a-z0-9_]*$/i),
+      z.null(),
+    ])
+    .optional(),
 });
 
 /** Upsert packing preference tenant override (org_packing_preference_cf) */

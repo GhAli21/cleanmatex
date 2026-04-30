@@ -307,10 +307,11 @@ export function useOrderSubmission() {
                                     notes: piece.notes,
                                     rackLocation: piece.rackLocation,
                                     metadata: piece.metadata,
+                                    conditions: piece.conditions,
                                     ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                         packingPrefCode: piece.packingPrefCode,
                                     }),
-                                    ...(packingPerPieceEnabled && piece.servicePrefs && piece.servicePrefs.length > 0 && {
+                                    ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                         servicePrefs: piece.servicePrefs,
                                     }),
                                 })),
@@ -568,6 +569,7 @@ export function useOrderSubmission() {
             tWorkflow,
             state,
             trackByPiece,
+            packingPerPieceEnabled,
             csrfToken,
             currentTenant,
             user,
@@ -626,7 +628,7 @@ export function useOrderSubmission() {
                             ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                 packingPrefCode: piece.packingPrefCode,
                             }),
-                            ...(packingPerPieceEnabled && piece.servicePrefs && piece.servicePrefs.length > 0 && {
+                            ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                 servicePrefs: piece.servicePrefs,
                             }),
                         })),
@@ -700,7 +702,7 @@ export function useOrderSubmission() {
             setIsSubmitting(false);
             state.setLoading(false);
         }
-    }, [state, trackByPiece, csrfToken, t, tEdit, router]);
+    }, [state, trackByPiece, packingPerPieceEnabled, csrfToken, t, tEdit, router]);
 
     return {
         submitOrder,

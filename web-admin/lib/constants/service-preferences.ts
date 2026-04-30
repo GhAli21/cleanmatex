@@ -44,6 +44,20 @@ export const PREFERENCE_CATEGORIES = {
 export type PreferenceCategory =
   (typeof PREFERENCE_CATEGORIES)[keyof typeof PREFERENCE_CATEGORIES];
 
+/**
+ * Allowed `preference_category` values on org_service_preference_cf for catalog UI
+ * (service workflow groups plus condition/color seeds from sys_service_preference_cd).
+ */
+export const ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS = [
+  PREFERENCE_CATEGORIES.WASHING,
+  PREFERENCE_CATEGORIES.PROCESSING,
+  PREFERENCE_CATEGORIES.FINISHING,
+  'stain',
+  'damage',
+  'special',
+  'color',
+] as const;
+
 /** Source of preference (how it was applied) */
 export const PREFERENCE_SOURCES = {
   MANUAL: 'manual',

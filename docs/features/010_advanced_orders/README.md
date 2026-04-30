@@ -1,7 +1,7 @@
 # Advanced Orders
 
 **Status:** Active feature cluster with mixed historical material  
-**Last Updated:** 2026-03-10
+**Last Updated:** 2026-04-30
 
 ## Overview
 
@@ -27,6 +27,10 @@ Start with:
 3. `NEW_ORDER_QUICK_REFERENCE.md`
 4. `PAYMENT_IMPLEMENTATION_SUMMARY.md`
 5. `Processing_Details_Enhancement_Summary.md`
+
+**Planning (New Order UI):**
+
+- **[New Order — Edit Item Notes / piece preferences UI (PRD outline)](../orders/new_order_piece_notes_preferences_ui_prd.md)** — piece-level summary row + detail drawer/sheet, states, empty/error handling, accessibility, phased rollout. Complements the wizard docs above when improving step “Edit Item Notes.”
 
 Use these older materials only for historical comparison:
 

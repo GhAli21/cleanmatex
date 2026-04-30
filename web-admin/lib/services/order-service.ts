@@ -10,7 +10,7 @@ import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { Prisma } from '@prisma/client';
 import { WorkflowService } from './workflow-service';
-import { OrderPieceService } from './order-piece-service';
+import { OrderPieceService, type OrderPreferencesSourceDefault } from './order-piece-service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { logger } from '@/lib/utils/logger';
 import type { OrderStatus } from '@/lib/types/workflow';
@@ -1067,6 +1067,9 @@ export class OrderService {
 
     const orderNo = await generateOrderNumberWithTx(tx, tenantId);
 
+    /** Piece-level preference rows on order create (distinct from ORDER_EDIT on update). */
+    const prefsSourceOnCreate: OrderPreferencesSourceDefault = 'ORDER_CREATE';
+
     const subtotal =
       totals?.subtotal ??
       items.reduce(
@@ -1286,7 +1289,7 @@ export class OrderService {
                     order_item_piece_id: createdPiece.id,
                     preference_code,
                     preference_sys_kind,
-                    prefs_source: 'ORDER_CREATE',
+                    prefs_source: prefsSourceOnCreate,
                     extra_price: 0,
                     branch_id: branchId ?? null,
                     created_by: userId,
@@ -1329,7 +1332,7 @@ export class OrderService {
                   preference_code: pieceInput.packingPrefCode,
                   preference_sys_kind: 'packing_prefs',
                   prefs_owner_type: 'SYSTEM',
-                  prefs_source: 'ORDER_CREATE',
+                  prefs_source: prefsSourceOnCreate,
                   extra_price: 0,
                   branch_id: branchId ?? null,
                   created_by: userId,
@@ -2211,7 +2214,8 @@ export class OrderService {
                 metadata: {},
               },
               piecesData,
-              branchId ?? existingOrder.branch_id ?? undefined
+              branchId ?? existingOrder.branch_id ?? undefined,
+              'ORDER_EDIT'
             );
           }
         }

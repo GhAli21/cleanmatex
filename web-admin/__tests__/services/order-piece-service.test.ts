@@ -48,6 +48,22 @@ jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(() => mockSupabaseClient),
 }));
 
+/** Matches Supabase chain: .select(..., { count, head }).eq().eq().eq().eq() → Promise<{ count, error }> */
+function mockHeadCountChain(count: number | null, error: { message: string } | null) {
+  const terminal = Promise.resolve({ count, error });
+  return {
+    select: jest.fn(() => ({
+      eq: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          eq: jest.fn(() => ({
+            eq: jest.fn(() => terminal),
+          })),
+        })),
+      })),
+    })),
+  };
+}
+
 describe('OrderPieceService', () => {
   const tenantId = 'tenant-123';
   const orderId = 'order-456';
@@ -55,6 +71,7 @@ describe('OrderPieceService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('createPiecesForItem', () => {
@@ -64,6 +81,11 @@ describe('OrderPieceService', () => {
         pricePerUnit: 10,
         totalPrice: 30,
       };
+
+      jest.spyOn(OrderPieceService, 'syncItemQuantityReady').mockResolvedValue({
+        success: true,
+        quantityReady: 0,
+      });
 
       mockSupabaseClient.from.mockReturnValueOnce({
         select: jest.fn(() => ({
@@ -187,7 +209,11 @@ describe('OrderPieceService', () => {
       const result = await OrderPieceService.getPiecesByItem(tenantId, itemId);
 
       expect(result.success).toBe(true);
-      expect(result.pieces).toEqual(mockPieces);
+      expect(result.pieces).toHaveLength(2);
+      expect(result.pieces?.[0].id).toBe('piece-1');
+      expect(result.pieces?.[0].piece_seq).toBe(1);
+      expect(result.pieces?.[1].id).toBe('piece-2');
+      expect(result.pieces?.[1].piece_seq).toBe(2);
     });
 
     it('should return error on fetch failure', async () => {
@@ -220,6 +246,11 @@ describe('OrderPieceService', () => {
         piece_status: 'ready' as const,
         rack_location: 'A-12',
       };
+
+      jest.spyOn(OrderPieceService, 'syncItemQuantityReady').mockResolvedValue({
+        success: true,
+        quantityReady: 1,
+      });
 
       mockSupabaseClient.from.mockReturnValueOnce({
         update: jest.fn(() => ({
@@ -350,24 +381,7 @@ describe('OrderPieceService', () => {
     it('should sync quantity_ready successfully', async () => {
       const readyCount = 5;
 
-      mockSupabaseClient.from.mockReturnValueOnce({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  count: jest.fn(() =>
-                    Promise.resolve({
-                      count: readyCount,
-                      error: null,
-                    })
-                  ),
-                })),
-              })),
-            })),
-          })),
-        })),
-      });
+      mockSupabaseClient.from.mockReturnValueOnce(mockHeadCountChain(readyCount, null));
 
       mockSupabaseClient.from.mockReturnValueOnce({
         update: jest.fn(() => ({
@@ -391,24 +405,9 @@ describe('OrderPieceService', () => {
     });
 
     it('should return error if count fails', async () => {
-      mockSupabaseClient.from.mockReturnValueOnce({
-        select: jest.fn(() => ({
-          eq: jest.fn(() => ({
-            eq: jest.fn(() => ({
-              eq: jest.fn(() => ({
-                eq: jest.fn(() => ({
-                  count: jest.fn(() =>
-                    Promise.resolve({
-                      count: null,
-                      error: { message: 'Count failed' },
-                    })
-                  ),
-                })),
-              })),
-            })),
-          })),
-        })),
-      });
+      mockSupabaseClient.from.mockReturnValueOnce(
+        mockHeadCountChain(null, { message: 'Count failed' })
+      );
 
       const result = await OrderPieceService.syncItemQuantityReady(
         tenantId,

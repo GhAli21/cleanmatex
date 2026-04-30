@@ -16,6 +16,9 @@ import {
 } from '@/lib/mappers/order-piece.mapper';
 import { getConditionPrefKind, toUICode } from '@/lib/utils/condition-codes';
 
+/** Default for piece/item preference rows created in create vs edit-order flows */
+export type OrderPreferencesSourceDefault = 'ORDER_CREATE' | 'ORDER_EDIT';
+
 /** Prisma transaction client — same shape used in order-service.ts */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
@@ -111,7 +114,8 @@ export class OrderPieceService {
       conditions?: string[];
     }>,
     branchId?: string,
-    supabaseClient?: SupabaseClient
+    supabaseClient?: SupabaseClient,
+    preferencesSourceDefault: OrderPreferencesSourceDefault = 'ORDER_CREATE'
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
     try {
       const supabase = supabaseClient ?? (await createClient());
@@ -194,25 +198,56 @@ export class OrderPieceService {
         return { success: false, error: insertError.message };
       }
 
-      // Insert piece-level service prefs and conditions (org_order_preferences_dtl, prefs_level=PIECE)
+      // Insert piece-level preferences (org_order_preferences_dtl, prefs_level=PIECE).
+      // Order and prefs_no match Prisma createOrderInTransaction: conditions, then service_prefs, then packing.
       const createdPieces = pieces as Array<{ id: string; piece_seq: number }>;
       for (const pieceData of piecesData ?? []) {
         const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
         if (!createdPiece) continue;
 
-        // Service prefs
-        const prefs = pieceData.servicePrefs;
-        if (prefs && prefs.length > 0) {
+        const conditions = pieceData.conditions ?? [];
+        const prefs = pieceData.servicePrefs ?? [];
+        const condCount = conditions.length;
+        const svcCount = prefs.length;
+
+        if (conditions.length > 0) {
+          const condRows = conditions.map((code, idx) => {
+            const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+            return {
+              tenant_org_id: tenantId,
+              order_id: orderId,
+              prefs_no: idx + 1,
+              prefs_level: 'PIECE' as const,
+              order_item_id: orderItemId,
+              order_item_piece_id: createdPiece.id,
+              preference_code,
+              preference_sys_kind,
+              prefs_source: preferencesSourceDefault,
+              branch_id: branchId ?? null,
+            };
+          });
+          const { error: condError } = await supabase.from('org_order_preferences_dtl').insert(condRows);
+          if (condError) {
+            log.warn('[OrderPieceService] Failed to insert piece conditions', {
+              feature: 'order_pieces',
+              action: 'create_piece_conditions',
+              pieceId: createdPiece.id,
+              error: condError.message,
+            });
+          }
+        }
+
+        if (prefs.length > 0) {
           const rows = prefs.map((p, idx) => ({
             tenant_org_id: tenantId,
             order_id: orderId,
-            prefs_no: idx + 1,
+            prefs_no: condCount + idx + 1,
             prefs_level: 'PIECE' as const,
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
             preference_code: p.preference_code,
             preference_sys_kind: 'service_prefs',
-            prefs_source: p.source ?? 'manual',
+            prefs_source: p.source ?? preferencesSourceDefault,
             extra_price: Number(p.extra_price ?? 0),
             branch_id: branchId ?? null,
           }));
@@ -227,31 +262,27 @@ export class OrderPieceService {
           }
         }
 
-        // Conditions (stains, damage, special)
-        const conditions = pieceData.conditions;
-        if (conditions && conditions.length > 0) {
-          const condRows = conditions.map((code, idx) => {
-            const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
-            return {
-              tenant_org_id: tenantId,
-              order_id: orderId,
-              prefs_no: idx + 1,
-              prefs_level: 'PIECE' as const,
-              order_item_id: orderItemId,
-              order_item_piece_id: createdPiece.id,
-              preference_code,
-              preference_sys_kind,
-              prefs_source: 'ORDER_CREATE' as const,
-              branch_id: branchId ?? null,
-            };
+        if (pieceData.packingPrefCode) {
+          const { error: packError } = await supabase.from('org_order_preferences_dtl').insert({
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            prefs_no: condCount + svcCount + 1,
+            prefs_level: 'PIECE',
+            order_item_id: orderItemId,
+            order_item_piece_id: createdPiece.id,
+            preference_code: pieceData.packingPrefCode,
+            preference_sys_kind: 'packing_prefs',
+            prefs_owner_type: 'SYSTEM',
+            prefs_source: preferencesSourceDefault,
+            extra_price: 0,
+            branch_id: branchId ?? null,
           });
-          const { error: condError } = await supabase.from('org_order_preferences_dtl').insert(condRows);
-          if (condError) {
-            log.warn('[OrderPieceService] Failed to insert piece conditions', {
+          if (packError) {
+            log.warn('[OrderPieceService] Failed to insert piece packing pref', {
               feature: 'order_pieces',
-              action: 'create_piece_conditions',
+              action: 'create_piece_packing_pref',
               pieceId: createdPiece.id,
-              error: condError.message,
+              error: packError.message,
             });
           }
         }
@@ -319,7 +350,8 @@ export class OrderPieceService {
       servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
       conditions?: string[];
     }>,
-    branchId?: string
+    branchId?: string,
+    preferencesSourceDefault: OrderPreferencesSourceDefault = 'ORDER_CREATE'
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const pricePerPiece = baseData.pricePerUnit / quantity;
@@ -386,26 +418,13 @@ export class OrderPieceService {
           const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
           if (!createdPiece) continue;
 
-          if (pieceData.servicePrefs && pieceData.servicePrefs.length > 0) {
-            await tx.org_order_preferences_dtl.createMany({
-              data: pieceData.servicePrefs.map((p, idx) => ({
-                tenant_org_id: tenantId,
-                order_id: orderId,
-                prefs_no: idx + 1,
-                prefs_level: 'PIECE',
-                order_item_id: orderItemId,
-                order_item_piece_id: createdPiece.id,
-                preference_code: p.preference_code,
-                preference_sys_kind: 'service_prefs',
-                prefs_source: p.source ?? 'manual',
-                extra_price: p.extra_price ?? 0,
-                branch_id: branchId ?? null,
-              })),
-            });
-          }
+          const conditions = pieceData.conditions ?? [];
+          const pieceSvcPrefs = pieceData.servicePrefs ?? [];
+          const condCount = conditions.length;
+          const svcCount = pieceSvcPrefs.length;
 
-          if (pieceData.conditions && pieceData.conditions.length > 0) {
-            const condData = pieceData.conditions.map((code, idx) => {
+          if (conditions.length > 0) {
+            const condData = conditions.map((code, idx) => {
               const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
               return {
                 tenant_org_id: tenantId,
@@ -416,11 +435,48 @@ export class OrderPieceService {
                 order_item_piece_id: createdPiece.id,
                 preference_code,
                 preference_sys_kind,
-                prefs_source: 'ORDER_CREATE',
+                prefs_source: preferencesSourceDefault,
                 branch_id: branchId ?? null,
               };
             });
             await tx.org_order_preferences_dtl.createMany({ data: condData });
+          }
+
+          if (pieceSvcPrefs.length > 0) {
+            await tx.org_order_preferences_dtl.createMany({
+              data: pieceSvcPrefs.map((p, idx) => ({
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: condCount + idx + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code: p.preference_code,
+                preference_sys_kind: 'service_prefs',
+                prefs_source: p.source ?? preferencesSourceDefault,
+                extra_price: p.extra_price ?? 0,
+                branch_id: branchId ?? null,
+              })),
+            });
+          }
+
+          if (pieceData.packingPrefCode) {
+            await tx.org_order_preferences_dtl.create({
+              data: {
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: condCount + svcCount + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code: pieceData.packingPrefCode,
+                preference_sys_kind: 'packing_prefs',
+                prefs_owner_type: 'SYSTEM',
+                prefs_source: preferencesSourceDefault,
+                extra_price: 0,
+                branch_id: branchId ?? null,
+              },
+            });
           }
         }
       }

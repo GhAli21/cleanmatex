@@ -1,6 +1,6 @@
 # Edit Order Feature - Documentation Index
 
-**Last Updated:** 2026-03-07
+**Last Updated:** 2026-04-30
 **Feature Status:** ✅ Phases 1-2 Complete, Ready for QA
 
 ---
@@ -25,6 +25,9 @@ This folder contains comprehensive documentation for the Edit Order feature. Cho
 ### For Product/Project Managers
 - 📊 **[STATUS.md](./STATUS.md)** - Implementation progress and metrics
 - 🔮 **[FUTURE_ENHANCEMENTS.md](./FUTURE_ENHANCEMENTS.md)** - Roadmap and planned features
+
+### Related: New Order wizard (piece notes & preferences)
+- 📝 **[New Order — Edit Item Notes / piece preferences UI (PRD outline)](../new_order_piece_notes_preferences_ui_prd.md)** — screens, states, errors, accessibility; planned UX for step “Edit Item Notes”; may later align with Edit Order if the same piece-detail pattern is reused.
 
 ---
 
