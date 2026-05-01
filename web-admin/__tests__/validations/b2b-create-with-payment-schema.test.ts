@@ -102,4 +102,18 @@ describe('createWithPaymentRequestSchema (B2B)', () => {
       expect((withIds.data as CreateWithPaymentRequest).giftCardId).toBe(uuid);
     }
   });
+
+  it('treats non-UUID promoCodeId / giftCardId strings as omitted', () => {
+    const result = createWithPaymentRequestSchema.safeParse({
+      ...basePayload,
+      promoCodeId: 'not-a-uuid',
+      giftCardId: '00000000-0000-0000-0000-000000000000',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      const data = result.data as CreateWithPaymentRequest;
+      expect(data.promoCodeId).toBeUndefined();
+      expect(data.giftCardId).toBeUndefined();
+    }
+  });
 });

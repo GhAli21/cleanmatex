@@ -343,5 +343,32 @@ describe('newOrderReducer', () => {
             expect(result.isInitialLoading).toBe(false);
         });
     });
-});
 
+    describe('UPDATE_ITEM_SERVICE_PREFS', () => {
+        it('recalculates totalPrice as qty * pricePerUnit + servicePrefCharge', () => {
+            const item: OrderItem = {
+                productId: 'product-1',
+                productName: 'Tank Top',
+                productName2: null,
+                quantity: 2,
+                pricePerUnit: 3.5,
+                totalPrice: 7.0,
+                defaultSellPrice: 3.5,
+                defaultExpressSellPrice: null,
+                servicePrefCharge: 0,
+            };
+            const state: NewOrderState = { ...initialState, items: [item] };
+            const action: NewOrderAction = {
+                type: 'UPDATE_ITEM_SERVICE_PREFS',
+                payload: {
+                    productId: 'product-1',
+                    servicePrefs: [{ preference_code: 'SEP_WASH', source: 'ORDER_CREATE', extra_price: 0.5 }],
+                    servicePrefCharge: 0.5,
+                },
+            };
+            const result = newOrderReducer(state, action);
+            expect(result.items[0].servicePrefCharge).toBe(0.5);
+            expect(result.items[0].totalPrice).toBe(2 * 3.5 + 0.5);
+        });
+    });
+});

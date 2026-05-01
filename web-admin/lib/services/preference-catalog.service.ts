@@ -26,7 +26,9 @@ export class PreferenceCatalogService {
     try {
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
-        .select('code, name, name2, description, description2, preference_category, preference_sys_kind, color_hex, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active')
+        .select(
+          'code, name, name2, description, description2, preference_category, preference_sys_kind, color_hex, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active, is_show_in_quick_bar, is_used_by_system, is_allow_to_show_for_user'
+        )
         .eq('is_active', true)
         .order('display_order', { ascending: true });
 
@@ -42,7 +44,7 @@ export class PreferenceCatalogService {
       const { data: tenantCf } = await supabase
         .from('org_service_preference_cf')
         .select(
-          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category'
+          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, is_show_in_quick_bar'
         )
         .eq('tenant_org_id', tenantId);
 
@@ -50,12 +52,13 @@ export class PreferenceCatalogService {
         (tenantCf || []).map((c) => [c.preference_code, c])
       );
 
+      type SysPrefRow = (typeof sysPrefs)[number];
       return (sysPrefs || [])
-        .filter((s) => {
+        .filter((s: SysPrefRow) => {
           const cf = cfMap.get(s.code);
-          return !cf || cf.is_active;
+          return !cf || cf.is_active !== false;
         })
-        .map((s) => {
+        .map((s: SysPrefRow) => {
           const cf = cfMap.get(s.code);
           return {
             code: s.code,
@@ -75,6 +78,9 @@ export class PreferenceCatalogService {
             icon: s.icon,
             display_order: s.display_order,
             is_active: true,
+            is_show_in_quick_bar: cf?.is_show_in_quick_bar ?? s.is_show_in_quick_bar,
+            is_used_by_system: s.is_used_by_system ?? null,
+            is_allow_to_show_for_user: s.is_allow_to_show_for_user ?? null,
           } as ServicePreference;
         });
     } catch (err) {
@@ -746,7 +752,7 @@ export class PreferenceCatalogService {
       
       const { data: tenantKinds } = await supabase
         .from('org_preference_kind_cf')
-        .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas')
+        .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas, rec_order')
         .eq('tenant_org_id', tenantId)
         .eq('is_active', true)
         //.eq('is_show_in_quick_bar', true)
@@ -758,14 +764,14 @@ export class PreferenceCatalogService {
         (tenantKinds || []).map((c) => [c.kind_code, c])
       );
 
-      return (sysKinds || [])
+      const merged = (sysKinds || [])
         .filter((s) => {
           const cf = cfMap.get(s.kind_code);
           if (cf && cf.is_stopped_by_saas) return false;
           if (cf && !cf.is_active) return false;
           if (quickBarOnly) {
             const show = cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar;
-            if (!show) return false;
+            if (show !== true) return false;
           }
           return true;
         })
@@ -781,9 +787,11 @@ export class PreferenceCatalogService {
             is_show_in_quick_bar: cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar,
             is_show_for_customer: cf ? cf.is_show_for_customer : s.is_show_for_customer,
             is_active:            true,
-            rec_order:            s.rec_order,
+            rec_order:            cf?.rec_order ?? s.rec_order,
           } as PreferenceKind;
         });
+
+      return merged.sort((a, b) => (a.rec_order ?? 0) - (b.rec_order ?? 0));
     } catch (err) {
       logger.error('PreferenceCatalogService.getPreferenceKinds failed', err instanceof Error ? err : new Error(String(err)), {
         tenantId,

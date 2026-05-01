@@ -9,6 +9,7 @@ import { useTranslations } from 'next-intl';
 import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
@@ -41,7 +42,16 @@ function chipKindClass(kind: string): string | undefined {
   return undefined;
 }
 
+/** Map DB kind_bg_color (e.g. tailwind classes) onto tab button / chip ring */
+function PREFERENCE_KIND_INACTIVE_TAB_CLASS(kindBg: string | null | undefined): string | undefined {
+  if (!kindBg || !kindBg.trim()) return undefined;
+  const t = kindBg.trim();
+  if (/^(bg-|text-|border-)/.test(t)) return t;
+  return undefined;
+}
+
 export interface PiecePreferenceCardProps {
+  categoryLabel?: string;
   itemTitle: string;
   piece: PreSubmissionPiece;
   preferences: SelectedPreference[];
@@ -62,6 +72,7 @@ export interface PiecePreferenceCardProps {
 }
 
 export function PiecePreferenceCard({
+  categoryLabel,
   itemTitle,
   piece,
   preferences,
@@ -83,6 +94,7 @@ export function PiecePreferenceCard({
   const t = useTranslations('newOrder.piecePreferences');
   const tPieces = useTranslations('newOrder.pieces');
   const getBilingual = useBilingual();
+  const isRTL = useRTL();
   const [pickerKind, setPickerKind] = useState<PreferenceKind | null>(null);
 
   const nameByCode = useMemo(() => {
@@ -120,15 +132,36 @@ export function PiecePreferenceCard({
     [siblingPieceIds, piece.id]
   );
 
+  const kindStyleByKindCode = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const k of kindsForBar) {
+      const cls =
+        PREFERENCE_KIND_INACTIVE_TAB_CLASS(k.kind_bg_color) ||
+        'border-gray-200 bg-gray-50 text-gray-800';
+      m.set(k.kind_code, cls);
+    }
+    return m;
+  }, [kindsForBar]);
+
+  const pieceHeading = useMemo(() => {
+    const pieceLabel = tPieces('pieceNumber', { number: piece.pieceSeq });
+    if (categoryLabel?.trim()) {
+      return `${categoryLabel.trim()} - ${itemTitle} - ${pieceLabel}`;
+    }
+    return `${itemTitle} - ${pieceLabel}`;
+  }, [categoryLabel, itemTitle, piece.pieceSeq, tPieces]);
+
   return (
     <div
       className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
       aria-label={t('cardAriaLabel', { item: itemTitle, piece: piece.pieceSeq })}
     >
-      <div className="flex flex-row items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-gray-900">
-          {itemTitle} — {tPieces('pieceNumber', { number: piece.pieceSeq })}
-        </h3>
+      <div
+        className={`flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}
+      >
+        <div className="min-w-0 flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+          <h3 className="text-sm font-semibold leading-snug text-gray-900">{pieceHeading}</h3>
+        </div>
         {targetsForCopy.length > 0 && (
           <CmxButton
             type="button"
@@ -145,7 +178,11 @@ export function PiecePreferenceCard({
         )}
       </div>
 
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        className={`mt-3 flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+        role="toolbar"
+        aria-label={t('kindToolbarAria')}
+      >
         {kindsLoading ? (
           <span className="text-sm text-gray-400">{t('loadingKinds')}</span>
         ) : (
@@ -158,7 +195,7 @@ export function PiecePreferenceCard({
                 type="button"
                 onClick={() => setPickerKind(kind)}
                 className={cn(
-                  'shrink-0 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                  'rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
                   'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
                   inactiveCls
                 )}
@@ -171,25 +208,32 @@ export function PiecePreferenceCard({
       </div>
 
       {preferences.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {preferences.map((pref) => (
-            <PreferenceChip
-              key={pref.id}
-              label={chipLabel(pref, getBilingual, nameByCode)}
-              extraPrice={pref.extra_price}
-              currencyCode={currencyCode}
-              kindClassName={chipKindClass(pref.preference_sys_kind)}
-              onRemove={() => onRemovePreference(pref.id)}
-              onCopy={() => {
-                if (targetsForCopy.length > 0) {
-                  onCopyPreferenceToPieces(pref.id, targetsForCopy);
-                }
-              }}
-              removeLabel={t('removeChip')}
-              copyLabel={t('copyChip')}
-            />
-          ))}
-        </div>
+        <>
+          <div className="my-3 border-t border-gray-200" role="separator" aria-hidden />
+          <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            {preferences.map((pref) => {
+              const fromKind = kindStyleByKindCode.get(pref.preference_sys_kind);
+              const chipSurround = fromKind ?? chipKindClass(pref.preference_sys_kind);
+              return (
+                <PreferenceChip
+                  key={pref.id}
+                  label={chipLabel(pref, getBilingual, nameByCode)}
+                  extraPrice={pref.extra_price}
+                  currencyCode={currencyCode}
+                  kindClassName={chipSurround}
+                  onRemove={() => onRemovePreference(pref.id)}
+                  onCopy={() => {
+                    if (targetsForCopy.length > 0) {
+                      onCopyPreferenceToPieces(pref.id, targetsForCopy);
+                    }
+                  }}
+                  removeLabel={t('removeChip')}
+                  copyLabel={t('copyChip')}
+                />
+              );
+            })}
+          </div>
+        </>
       )}
 
       <PieceKindPickerDialog
@@ -221,12 +265,4 @@ export function PiecePreferenceCard({
       />
     </div>
   );
-}
-
-/** Map DB kind_bg_color (e.g. tailwind classes) onto tab button */
-function PREFERENCE_KIND_INACTIVE_TAB_CLASS(kindBg: string | null | undefined): string | undefined {
-  if (!kindBg || !kindBg.trim()) return undefined;
-  const t = kindBg.trim();
-  if (/^(bg-|text-|border-)/.test(t)) return t;
-  return undefined;
 }

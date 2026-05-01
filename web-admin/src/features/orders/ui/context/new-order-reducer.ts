@@ -137,7 +137,8 @@ export function newOrderReducer(
             ? {
                 ...item,
                 quantity: item.quantity + 1,
-                totalPrice: (item.quantity + 1) * item.pricePerUnit,
+                totalPrice:
+                  (item.quantity + 1) * item.pricePerUnit + (item.servicePrefCharge ?? 0),
                 pieces: action.payload.pieces || item.pieces,
               }
             : item
@@ -245,7 +246,12 @@ export function newOrderReducer(
         ...state,
         items: state.items.map((item) =>
           item.productId === productId
-            ? { ...item, servicePrefs, servicePrefCharge }
+            ? {
+                ...item,
+                servicePrefs,
+                servicePrefCharge,
+                totalPrice: item.quantity * item.pricePerUnit + servicePrefCharge,
+              }
             : item
         ),
       };
@@ -293,7 +299,7 @@ export function newOrderReducer(
             overrideReason,
             overrideBy,
             pricePerUnit: effectivePrice,
-            totalPrice: item.quantity * effectivePrice,
+            totalPrice: item.quantity * effectivePrice + (item.servicePrefCharge ?? 0),
           };
         }),
       };
@@ -325,7 +331,7 @@ export function newOrderReducer(
           return {
             ...item,
             pricePerUnit: newPricePerUnit,
-            totalPrice: item.quantity * newPricePerUnit,
+            totalPrice: item.quantity * newPricePerUnit + (item.servicePrefCharge ?? 0),
           };
         }),
       };

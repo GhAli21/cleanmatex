@@ -7,15 +7,19 @@
 import { z } from 'zod';
 
 /**
- * Coerces optional UUID JSON fields to undefined when absent, blank, or non-string.
- * Prevents Zod 4 failures like "expected string, received number" when clients send
- * `0`, `false`, or malformed values for unused promo/gift fields.
+ * Coerces optional UUID JSON fields to undefined when absent, blank, non-string,
+ * or not a valid UUID (avoids Zod "Invalid uuid" / "Invalid input" on unused promo/gift fields).
  */
+const OPTIONAL_FIELD_UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 function optionalUuidJsonPreprocess(val: unknown): unknown {
   if (val === '' || val == null) return undefined;
   if (typeof val !== 'string') return undefined;
   const trimmed = val.trim();
-  return trimmed === '' ? undefined : trimmed;
+  if (trimmed === '') return undefined;
+  if (!OPTIONAL_FIELD_UUID_RE.test(trimmed)) return undefined;
+  return trimmed;
 }
 
 // Payment method codes (server/action side – uppercase)

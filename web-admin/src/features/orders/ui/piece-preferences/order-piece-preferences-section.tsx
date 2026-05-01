@@ -73,9 +73,12 @@ export function OrderPiecePreferencesSection({
               itemId: item.productId,
               pieceSeq: i + 1,
             }));
-      return { item, pieces };
+      const cat = state.categories.find((c) => c.service_category_code === item.serviceCategoryCode);
+      const categoryLabel =
+        cat != null ? (getBilingual(cat.ctg_name, cat.ctg_name2 ?? null) || undefined) : undefined;
+      return { item, pieces, categoryLabel };
     });
-  }, [state.items]);
+  }, [state.items, state.categories, getBilingual]);
 
   return (
     <section aria-label={t('sectionTitle')} className="space-y-4">
@@ -83,7 +86,7 @@ export function OrderPiecePreferencesSection({
       <p className="text-sm text-gray-600">{t('sectionHint')}</p>
 
       <div className="space-y-4">
-        {itemGroups.map(({ item, pieces }) => {
+        {itemGroups.map(({ item, pieces, categoryLabel }) => {
           const title = getBilingual(item.productName, item.productName2) || '—';
           const siblingIds = pieces.map((p) => p.id);
           return (
@@ -92,6 +95,7 @@ export function OrderPiecePreferencesSection({
               {pieces.map((piece) => (
                 <PiecePreferenceCard
                   key={piece.id}
+                  categoryLabel={categoryLabel}
                   itemTitle={title}
                   piece={piece}
                   preferences={pieceToSelectedPreferences(piece)}

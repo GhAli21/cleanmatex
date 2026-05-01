@@ -43,14 +43,25 @@ async function fetchPreferenceKinds(tenantId: string, quickBarOnly = false): Pro
   return json.success && json.data ? json.data : [];
 }
 
-export function usePreferenceCatalog(branchId?: string | null, quickBarOnly = false) {
+function preferenceVisibleInOrderQuickBar(p: ServicePreference): boolean {
+  if (p.is_show_in_quick_bar !== true) return false;
+  if (p.is_used_by_system === true) return false;
+  if (p.is_allow_to_show_for_user === false) return false;
+  return true;
+}
+
+export function usePreferenceCatalog(
+  branchId?: string | null,
+  quickBarOnlyKinds = false,
+  orderQuickBarPrefs = false
+) {
   const { currentTenant } = useAuth();
   const tenantId = currentTenant?.tenant_id ?? '';
 
   const STALE_TIME = 5 * 60 * 1000; // 5 minutes — catalog data rarely changes
 
   const servicePrefsQuery = useQuery({
-    queryKey: ['preference-catalog', 'service', tenantId, branchId],
+    queryKey: ['preference-catalog', 'service', tenantId, branchId, orderQuickBarPrefs],
     queryFn: () => fetchServicePreferences(tenantId, branchId),
     enabled: !!tenantId,
     staleTime: STALE_TIME,
@@ -64,13 +75,18 @@ export function usePreferenceCatalog(branchId?: string | null, quickBarOnly = fa
   });
 
   const kindsQuery = useQuery<PreferenceKind[]>({
-    queryKey: ['preference-kinds', tenantId, quickBarOnly],
-    queryFn: () => fetchPreferenceKinds(tenantId, quickBarOnly),
+    queryKey: ['preference-kinds', tenantId, quickBarOnlyKinds],
+    queryFn: () => fetchPreferenceKinds(tenantId, quickBarOnlyKinds),
     enabled: !!tenantId,
     staleTime: STALE_TIME,
   });
 
-  const allPrefs = servicePrefsQuery.data ?? [];
+  const allPrefsRaw = servicePrefsQuery.data ?? [];
+
+  const allPrefs = useMemo(() => {
+    if (!orderQuickBarPrefs) return allPrefsRaw;
+    return allPrefsRaw.filter(preferenceVisibleInOrderQuickBar);
+  }, [allPrefsRaw, orderQuickBarPrefs]);
 
   const conditionCatalog = {
     stains: allPrefs.filter((p) => p.preference_sys_kind === 'condition_stain'),

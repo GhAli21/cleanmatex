@@ -3042,7 +3042,8 @@
       "noColors": "No colors in catalog",
       "useNotesTab": "Notes are edited on the Edit Item Notes tab.",
       "unsupportedKind": "This preference type is not available here.",
-      "cardAriaLabel": "Preferences for {item}, piece {piece}"
+      "cardAriaLabel": "Preferences for {item}, piece {piece}",
+      "kindToolbarAria": "Preference categories"
     },
     "topBar": {
       "expressLabel": "Express",

@@ -79,6 +79,10 @@ export interface ServicePreference {
   icon?: string | null;
   display_order?: number | null;
   is_active: boolean;
+  /** Tenant CF overrides sys when present; used for order piece quick-bar visibility. */
+  is_show_in_quick_bar?: boolean | null;
+  is_used_by_system?: boolean | null;
+  is_allow_to_show_for_user?: boolean | null;
 }
 
 export interface PackingPreference {

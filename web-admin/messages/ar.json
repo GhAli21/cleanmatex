@@ -3042,7 +3042,8 @@
       "noColors": "لا توجد ألوان في الكتالوج",
       "useNotesTab": "تُحرَّر الملاحظات في تبويب تحرير ملاحظات العناصر.",
       "unsupportedKind": "نوع التفضيل هذا غير متاح هنا.",
-      "cardAriaLabel": "تفضيلات {item}، القطعة {piece}"
+      "cardAriaLabel": "تفضيلات {item}، القطعة {piece}",
+      "kindToolbarAria": "فئات التفضيلات"
     },
     "topBar": {
       "expressLabel": "سريع",

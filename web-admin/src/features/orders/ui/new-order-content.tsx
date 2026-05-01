@@ -67,14 +67,22 @@ export function NewOrderContent() {
         branchId: state.state.branchId,
         enabled: true,
     });
+    /** Full catalog for pricing, customer pref resolution, and summary colors */
+    const orderCatalog = usePreferenceCatalog(state.state.branchId, false, false);
+    /** Quick-bar kinds + visibility-filtered prefs for Edit Items Preferences tab */
+    const pieceWizardCatalog = usePreferenceCatalog(state.state.branchId, true, true);
     const {
         servicePrefs,
         conditionCatalog,
+        packingPrefs,
+    } = orderCatalog;
+    const {
         preferenceKinds,
         kindsLoading,
         prefsByKind,
-        packingPrefs,
-    } = usePreferenceCatalog(state.state.branchId);
+        servicePrefs: pieceWizardServicePrefs,
+        conditionCatalog: pieceConditionCatalog,
+    } = pieceWizardCatalog;
     const { trackItemAddition, trackModalOpen, resetMetrics } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details' | 'piecePreferences' | 'pieces' | 'customer'>('select');
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
@@ -683,8 +691,8 @@ export function NewOrderContent() {
                                     preferenceKinds={preferenceKinds}
                                     prefsByKind={prefsByKind}
                                     packingPrefs={packingPrefs}
-                                    servicePrefsFallback={servicePrefs}
-                                    conditionCatalog={conditionCatalog}
+                                    servicePrefsFallback={pieceWizardServicePrefs}
+                                    conditionCatalog={pieceConditionCatalog}
                                     kindsLoading={kindsLoading}
                                     currencyCode={currencyCode}
                                     enforcePrefCompatibility={enforcePrefCompatibility}
