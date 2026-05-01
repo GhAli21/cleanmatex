@@ -43,10 +43,12 @@ async function fetchPreferenceKinds(tenantId: string, quickBarOnly = false): Pro
   return json.success && json.data ? json.data : [];
 }
 
-/** Piece wizard: hide only when explicitly false / system / disallowed; NULL from API = visible. */
+/**
+ * Piece wizard / quick-bar: tenant + HQ visibility only.
+ * `is_used_by_system` is true for normal HQ catalog rows (system-managed vs custom); it must not hide the whole catalog.
+ */
 function preferenceVisibleInOrderQuickBar(p: ServicePreference): boolean {
   if (p.is_show_in_quick_bar === false) return false;
-  if (p.is_used_by_system === true) return false;
   if (p.is_allow_to_show_for_user === false) return false;
   return true;
 }
