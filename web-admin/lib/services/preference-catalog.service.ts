@@ -16,21 +16,55 @@ import { logger } from '@/lib/utils/logger';
 
 export class PreferenceCatalogService {
   /**
-   * Get service preferences for tenant (sys + org overrides)
+   * Get service preferences for tenant: **only** codes present in `org_service_preference_cf`
+   * (active rows), merged with `sys_service_preference_cd` for template fields. No org row ⇒ not returned.
    */
   static async getServicePreferences(
     supabase: SupabaseClient,
     tenantId: string,
-    branchId?: string | null
+    _branchId?: string | null
   ): Promise<ServicePreference[]> {
     try {
+      const { data: tenantCf, error: cfError } = await supabase
+        .from('org_service_preference_cf')
+        .select(
+          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, is_show_in_quick_bar'
+        )
+        .eq('tenant_org_id', tenantId);
+
+      if (cfError) {
+        logger.error('Failed to fetch org_service_preference_cf', new Error(cfError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_service_preferences',
+        });
+        return [];
+      }
+
+      const cfRows = (tenantCf || []).filter((c) => c.is_active !== false);
+      if (cfRows.length === 0) {
+        return [];
+      }
+
+      /** One CF row per code (ignore branch nuances until branch-scoped catalog is modeled in API). */
+      const cfByCode = new Map<string, (typeof cfRows)[number]>();
+      for (const c of cfRows) {
+        if (!cfByCode.has(c.preference_code)) {
+          cfByCode.set(c.preference_code, c);
+        }
+      }
+      const codes = [...cfByCode.keys()];
+      if (codes.length === 0) {
+        return [];
+      }
+
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
         .select(
           'code, name, name2, description, description2, preference_category, preference_sys_kind, color_hex, applies_to_fabric_types, is_incompatible_with, default_extra_price, workflow_impact, extra_turnaround_minutes, sustainability_score, icon, display_order, is_active, is_show_in_quick_bar, is_used_by_system, is_allow_to_show_for_user'
         )
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .in('code', codes)
+        .eq('is_active', true);
 
       if (sysError) {
         logger.error('Failed to fetch sys_service_preference_cd', new Error(sysError.message), {
@@ -41,48 +75,47 @@ export class PreferenceCatalogService {
         return [];
       }
 
-      const { data: tenantCf } = await supabase
-        .from('org_service_preference_cf')
-        .select(
-          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, is_show_in_quick_bar'
-        )
-        .eq('tenant_org_id', tenantId);
+      const sysRows = sysPrefs ?? [];
+      const sysMap = new Map(sysRows.map((s) => [s.code, s]));
+      type SysPrefRow = (typeof sysRows)[number];
 
-      const cfMap = new Map(
-        (tenantCf || []).map((c) => [c.preference_code, c])
-      );
-
-      type SysPrefRow = (typeof sysPrefs)[number];
-      return (sysPrefs || [])
-        .filter((s: SysPrefRow) => {
-          const cf = cfMap.get(s.code);
-          return !cf || cf.is_active !== false;
-        })
-        .map((s: SysPrefRow) => {
-          const cf = cfMap.get(s.code);
+      const merged = codes
+        .map((code) => {
+          const cf = cfByCode.get(code)!;
+          const s: SysPrefRow | undefined = sysMap.get(code);
+          if (!s) {
+            return null;
+          }
           return {
             code: s.code,
-            name: cf?.name ?? s.name,
-            name2: cf?.name2 ?? s.name2,
+            name: cf.name ?? s.name,
+            name2: cf.name2 ?? s.name2,
             description: s.description,
             description2: s.description2,
-            preference_category: (cf?.preference_category as string | null | undefined) ?? s.preference_category,
+            preference_category: (cf.preference_category as string | null | undefined) ?? s.preference_category,
             preference_sys_kind: s.preference_sys_kind ?? null,
             color_hex: s.color_hex ?? null,
             applies_to_fabric_types: s.applies_to_fabric_types,
             is_incompatible_with: s.is_incompatible_with,
-            default_extra_price: cf ? Number(cf.extra_price) : Number(s.default_extra_price),
+            default_extra_price: cf.extra_price != null ? Number(cf.extra_price) : Number(s.default_extra_price),
             workflow_impact: s.workflow_impact,
             extra_turnaround_minutes: s.extra_turnaround_minutes,
             sustainability_score: s.sustainability_score,
             icon: s.icon,
-            display_order: s.display_order,
+            display_order: cf.display_order ?? s.display_order,
             is_active: true,
-            is_show_in_quick_bar: cf?.is_show_in_quick_bar ?? s.is_show_in_quick_bar,
+            is_show_in_quick_bar:
+              (cf.is_show_in_quick_bar ?? s.is_show_in_quick_bar) !== false,
             is_used_by_system: s.is_used_by_system ?? null,
             is_allow_to_show_for_user: s.is_allow_to_show_for_user ?? null,
           } as ServicePreference;
-        });
+        })
+        .filter((row): row is ServicePreference => row !== null);
+
+      merged.sort(
+        (a, b) => (a.display_order ?? 9999) - (b.display_order ?? 9999) || a.code.localeCompare(b.code)
+      );
+      return merged;
     } catch (err) {
       logger.error('PreferenceCatalogService.getServicePreferences failed', err instanceof Error ? err : new Error(String(err)), {
         tenantId,
@@ -93,18 +126,49 @@ export class PreferenceCatalogService {
   }
 
   /**
-   * Get packing preferences for tenant
+   * Get packing preferences for tenant: **only** codes present in `org_packing_preference_cf`
+   * (active rows), merged with `sys_packing_preference_cd` for template fields. No org row ⇒ not returned.
    */
   static async getPackingPreferences(
     supabase: SupabaseClient,
     tenantId: string
   ): Promise<PackingPreference[]> {
     try {
+      const { data: tenantCf, error: cfError } = await supabase
+        .from('org_packing_preference_cf')
+        .select('packing_pref_code, name, name2, extra_price, is_active, display_order')
+        .eq('tenant_org_id', tenantId);
+
+      if (cfError) {
+        logger.error('Failed to fetch org_packing_preference_cf', new Error(cfError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_packing_preferences',
+        });
+        return [];
+      }
+
+      const cfRows = (tenantCf || []).filter((c) => c.is_active !== false);
+      if (cfRows.length === 0) {
+        return [];
+      }
+
+      const cfByCode = new Map<string, (typeof cfRows)[number]>();
+      for (const c of cfRows) {
+        if (!cfByCode.has(c.packing_pref_code)) {
+          cfByCode.set(c.packing_pref_code, c);
+        }
+      }
+      const codes = [...cfByCode.keys()];
+      if (codes.length === 0) {
+        return [];
+      }
+
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_packing_preference_cd')
         .select('code, name, name2, description, description2, maps_to_packaging_type, sustainability_score, display_order, is_active')
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .in('code', codes)
+        .eq('is_active', true);
 
       if (sysError) {
         logger.error('Failed to fetch sys_packing_preference_cd', new Error(sysError.message), {
@@ -115,34 +179,36 @@ export class PreferenceCatalogService {
         return [];
       }
 
-      const { data: tenantCf } = await supabase
-        .from('org_packing_preference_cf')
-        .select('packing_pref_code, name, name2, extra_price, is_active, display_order')
-        .eq('tenant_org_id', tenantId);
+      const sysRows = sysPrefs ?? [];
+      const sysMap = new Map(sysRows.map((s) => [s.code, s]));
+      type SysPackingRow = (typeof sysRows)[number];
 
-      const cfMap = new Map(
-        (tenantCf || []).map((c) => [c.packing_pref_code, c])
-      );
-
-      return (sysPrefs || [])
-        .filter((s) => {
-          const cf = cfMap.get(s.code);
-          return !cf || cf.is_active;
-        })
-        .map((s) => {
-          const cf = cfMap.get(s.code);
+      const merged = codes
+        .map((code) => {
+          const cf = cfByCode.get(code)!;
+          const s: SysPackingRow | undefined = sysMap.get(code);
+          if (!s) {
+            return null;
+          }
           return {
             code: s.code,
-            name: cf?.name ?? s.name,
-            name2: cf?.name2 ?? s.name2,
+            name: cf.name ?? s.name,
+            name2: cf.name2 ?? s.name2,
             description: s.description,
             description2: s.description2,
             maps_to_packaging_type: s.maps_to_packaging_type,
             sustainability_score: s.sustainability_score,
-            display_order: s.display_order,
+            display_order: cf.display_order ?? s.display_order,
             is_active: true,
           } as PackingPreference;
-        });
+        })
+        .filter((row): row is PackingPreference => row !== null);
+
+      merged.sort(
+        (a, b) =>
+          (a.display_order ?? 9999) - (b.display_order ?? 9999) || a.code.localeCompare(b.code)
+      );
+      return merged;
     } catch (err) {
       logger.error('PreferenceCatalogService.getPackingPreferences failed', err instanceof Error ? err : new Error(String(err)), {
         tenantId,
@@ -725,8 +791,9 @@ export class PreferenceCatalogService {
   }
 
   /**
-   * Get preference kinds for tenant (sys catalog + org overrides merged).
-   * @param quickBarOnly - When true, only return kinds with is_show_in_quick_bar=true
+   * Get preference kinds for tenant: **only** rows in `org_preference_kind_cf` for the tenant,
+   * merged with `sys_preference_kind_cd`. No org row ⇒ kind not returned.
+   * @param quickBarOnly - When true, only return kinds with merged is_show_in_quick_bar=true
    */
   static async getPreferenceKinds(
     supabase: SupabaseClient,
@@ -734,12 +801,35 @@ export class PreferenceCatalogService {
     quickBarOnly = true //true means only return quick bar preferences
   ): Promise<PreferenceKind[]> {
     try {
-      
+      const { data: tenantKinds, error: cfError } = await supabase
+        .from('org_preference_kind_cf')
+        .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas, rec_order')
+        .eq('tenant_org_id', tenantId)
+        .eq('is_active', true)
+        .order('rec_order', { ascending: true });
+
+      if (cfError) {
+        logger.error('Failed to fetch org_preference_kind_cf', new Error(cfError.message), {
+          tenantId,
+          feature: 'preference_catalog',
+          action: 'get_preference_kinds',
+        });
+        return [];
+      }
+
+      const cfRows = (tenantKinds || []).filter(
+        (c) => c.is_active !== false && !c.is_stopped_by_saas
+      );
+      if (cfRows.length === 0) {
+        return [];
+      }
+
+      const kindCodes = [...new Set(cfRows.map((c) => c.kind_code))];
       const { data: sysKinds, error: sysError } = await supabase
         .from('sys_preference_kind_cd')
         .select('kind_code, name, name2, kind_bg_color, main_type_code, icon, is_show_in_quick_bar, is_show_for_customer, rec_order, is_active')
-        .eq('is_active', true)
-        .order('rec_order', { ascending: true });
+        .in('kind_code', kindCodes)
+        .eq('is_active', true);
 
       if (sysError) {
         logger.error('Failed to fetch sys_preference_kind_cd', new Error(sysError.message), {
@@ -749,47 +839,33 @@ export class PreferenceCatalogService {
         });
         return [];
       }
-      
-      const { data: tenantKinds } = await supabase
-        .from('org_preference_kind_cf')
-        .select('kind_code, name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active, is_stopped_by_saas, rec_order')
-        .eq('tenant_org_id', tenantId)
-        .eq('is_active', true)
-        //.eq('is_show_in_quick_bar', true)
-        //.eq('is_stopped_by_saas', false)
-        //.eq('rec_status', 1)
-        .order('rec_order', { ascending: true });
 
-      const cfMap = new Map(
-        (tenantKinds || []).map((c) => [c.kind_code, c])
-      );
+      const sysMap = new Map((sysKinds || []).map((s) => [s.kind_code, s]));
 
-      const merged = (sysKinds || [])
-        .filter((s) => {
-          const cf = cfMap.get(s.kind_code);
-          if (cf && cf.is_stopped_by_saas) return false;
-          if (cf && !cf.is_active) return false;
-          if (quickBarOnly) {
-            const show = cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar;
-            if (show !== true) return false;
+      const merged = cfRows
+        .map((cf) => {
+          const s = sysMap.get(cf.kind_code);
+          if (!s) {
+            return null;
           }
-          return true;
-        })
-        .map((s) => {
-          const cf = cfMap.get(s.kind_code);
+          const showQb = cf.is_show_in_quick_bar ?? s.is_show_in_quick_bar;
+          if (quickBarOnly && showQb !== true) {
+            return null;
+          }
           return {
-            kind_code:            s.kind_code,
-            name:                 (cf?.name ?? s.name),
-            name2:                (cf?.name2 ?? s.name2),
-            kind_bg_color:        cf?.kind_bg_color ?? s.kind_bg_color,
-            main_type_code:       s.main_type_code as PreferenceMainType | null,
-            icon:                 s.icon,
-            is_show_in_quick_bar: cf ? cf.is_show_in_quick_bar : s.is_show_in_quick_bar,
-            is_show_for_customer: cf ? cf.is_show_for_customer : s.is_show_for_customer,
-            is_active:            true,
-            rec_order:            cf?.rec_order ?? s.rec_order,
+            kind_code: s.kind_code,
+            name: cf.name ?? s.name,
+            name2: cf.name2 ?? s.name2,
+            kind_bg_color: cf.kind_bg_color ?? s.kind_bg_color,
+            main_type_code: s.main_type_code as PreferenceMainType | null,
+            icon: s.icon,
+            is_show_in_quick_bar: cf.is_show_in_quick_bar ?? s.is_show_in_quick_bar,
+            is_show_for_customer: cf.is_show_for_customer ?? s.is_show_for_customer,
+            is_active: true,
+            rec_order: cf.rec_order ?? s.rec_order,
           } as PreferenceKind;
-        });
+        })
+        .filter((row): row is PreferenceKind => row !== null);
 
       return merged.sort((a, b) => (a.rec_order ?? 0) - (b.rec_order ?? 0));
     } catch (err) {
