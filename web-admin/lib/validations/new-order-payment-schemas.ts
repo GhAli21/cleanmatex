@@ -144,6 +144,13 @@ export const createWithPaymentRequestSchema = z.object({
         notes: z.string().optional(),
         rackLocation: z.string().optional(),
         metadata: z.record(z.string(), z.unknown()).optional(),
+        conditions: z.array(z.string()).optional(),
+        servicePrefs: z.array(z.object({
+          preference_code: z.string(),
+          source: z.string(),
+          extra_price: z.number().nonnegative(),
+        })).optional(),
+        packingPrefCode: z.string().optional(),
       })).optional(),
       servicePrefs: z.array(z.object({
         preference_code: z.string(),

@@ -1339,6 +1339,50 @@ export class OrderService {
                 },
               });
             }
+
+            const packingOffset = pieceInput?.packingPrefCode ? 1 : 0;
+
+            // Save piece color to org_order_preferences_dtl (PIECE level)
+            if (pieceInput?.color) {
+              await tx.org_order_preferences_dtl.create({
+                data: {
+                  tenant_org_id: tenantId,
+                  order_id: order.id,
+                  prefs_no: conditions.length + piecePrefs.length + packingOffset + 1,
+                  prefs_level: 'PIECE',
+                  order_item_id: createdItem.id,
+                  order_item_piece_id: createdPiece.id,
+                  preference_code: pieceInput.color,
+                  preference_sys_kind: 'color',
+                  prefs_source: prefsSourceOnCreate,
+                  extra_price: 0,
+                  branch_id: branchId ?? null,
+                  created_by: userId,
+                },
+              });
+            }
+
+            const colorOffset = pieceInput?.color ? 1 : 0;
+
+            // Save piece notes to org_order_preferences_dtl (PIECE level)
+            if (pieceInput?.notes) {
+              await tx.org_order_preferences_dtl.create({
+                data: {
+                  tenant_org_id: tenantId,
+                  order_id: order.id,
+                  prefs_no: conditions.length + piecePrefs.length + packingOffset + colorOffset + 1,
+                  prefs_level: 'PIECE',
+                  order_item_id: createdItem.id,
+                  order_item_piece_id: createdPiece.id,
+                  preference_code: pieceInput.notes,
+                  preference_sys_kind: 'note',
+                  prefs_source: prefsSourceOnCreate,
+                  extra_price: 0,
+                  branch_id: branchId ?? null,
+                  created_by: userId,
+                },
+              });
+            }
           }
         }
       }

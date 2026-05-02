@@ -286,6 +286,58 @@ export class OrderPieceService {
             });
           }
         }
+
+        const packingOffset = pieceData.packingPrefCode ? 1 : 0;
+
+        if (pieceData.color) {
+          const { error: colorError } = await supabase.from('org_order_preferences_dtl').insert({
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            prefs_no: condCount + svcCount + packingOffset + 1,
+            prefs_level: 'PIECE',
+            order_item_id: orderItemId,
+            order_item_piece_id: createdPiece.id,
+            preference_code: pieceData.color,
+            preference_sys_kind: 'color',
+            prefs_source: preferencesSourceDefault,
+            extra_price: 0,
+            branch_id: branchId ?? null,
+          });
+          if (colorError) {
+            log.warn('[OrderPieceService] Failed to insert piece color pref', {
+              feature: 'order_pieces',
+              action: 'create_piece_color',
+              pieceId: createdPiece.id,
+              error: colorError.message,
+            });
+          }
+        }
+
+        const colorOffset = pieceData.color ? 1 : 0;
+
+        if (pieceData.notes) {
+          const { error: noteError } = await supabase.from('org_order_preferences_dtl').insert({
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            prefs_no: condCount + svcCount + packingOffset + colorOffset + 1,
+            prefs_level: 'PIECE',
+            order_item_id: orderItemId,
+            order_item_piece_id: createdPiece.id,
+            preference_code: pieceData.notes,
+            preference_sys_kind: 'note',
+            prefs_source: preferencesSourceDefault,
+            extra_price: 0,
+            branch_id: branchId ?? null,
+          });
+          if (noteError) {
+            log.warn('[OrderPieceService] Failed to insert piece note pref', {
+              feature: 'order_pieces',
+              action: 'create_piece_note',
+              pieceId: createdPiece.id,
+              error: noteError.message,
+            });
+          }
+        }
       }
 
       // Sync quantity_ready on item (starts at 0)
@@ -472,6 +524,46 @@ export class OrderPieceService {
                 preference_code: pieceData.packingPrefCode,
                 preference_sys_kind: 'packing_prefs',
                 prefs_owner_type: 'SYSTEM',
+                prefs_source: preferencesSourceDefault,
+                extra_price: 0,
+                branch_id: branchId ?? null,
+              },
+            });
+          }
+
+          const packingOffset = pieceData.packingPrefCode ? 1 : 0;
+
+          if (pieceData.color) {
+            await tx.org_order_preferences_dtl.create({
+              data: {
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: condCount + svcCount + packingOffset + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code: pieceData.color,
+                preference_sys_kind: 'color',
+                prefs_source: preferencesSourceDefault,
+                extra_price: 0,
+                branch_id: branchId ?? null,
+              },
+            });
+          }
+
+          const colorOffset = pieceData.color ? 1 : 0;
+
+          if (pieceData.notes) {
+            await tx.org_order_preferences_dtl.create({
+              data: {
+                tenant_org_id: tenantId,
+                order_id: orderId,
+                prefs_no: condCount + svcCount + packingOffset + colorOffset + 1,
+                prefs_level: 'PIECE',
+                order_item_id: orderItemId,
+                order_item_piece_id: createdPiece.id,
+                preference_code: pieceData.notes,
+                preference_sys_kind: 'note',
                 prefs_source: preferencesSourceDefault,
                 extra_price: 0,
                 branch_id: branchId ?? null,
