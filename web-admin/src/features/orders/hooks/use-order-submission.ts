@@ -20,6 +20,7 @@ import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { newOrderPaymentPayloadSchema } from '@/lib/validations/new-order-payment-schemas';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
@@ -242,12 +243,21 @@ export function useOrderSubmission() {
                     paymentMethod: paymentData.paymentMethod,
                     percentDiscount: paymentData.percentDiscount ?? 0,
                     amountDiscount: paymentData.amountDiscount ?? 0,
-                    promoCode: paymentData.promoCode?.trim() || undefined,
-                    ...(paymentData.promoCodeId?.trim() && { promoCodeId: paymentData.promoCodeId.trim() }),
-                    promoDiscount: payload.totals.promoDiscount ?? 0,
-                    giftCardNumber: paymentData.giftCardNumber?.trim() || undefined,
-                    giftCardAmount: paymentData.giftCardAmount ?? 0,
-                    ...(paymentData.giftCardId?.trim() && { giftCardId: paymentData.giftCardId.trim() }),
+                    /* Promo / gift — re-enable when NEW_ORDER_PROMO_GIFT_DISABLED is false (order-checkout-flags.ts) */
+                    ...(NEW_ORDER_PROMO_GIFT_DISABLED
+                        ? {}
+                        : {
+                              promoCode: paymentData.promoCode?.trim() || undefined,
+                              ...(paymentData.promoCodeId?.trim() && {
+                                  promoCodeId: paymentData.promoCodeId.trim(),
+                              }),
+                              giftCardNumber: paymentData.giftCardNumber?.trim() || undefined,
+                              giftCardAmount: paymentData.giftCardAmount ?? 0,
+                              ...(paymentData.giftCardId?.trim() && {
+                                  giftCardId: paymentData.giftCardId.trim(),
+                              }),
+                          }),
+                    promoDiscount: NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (payload.totals.promoDiscount ?? 0),
                     checkNumber: paymentData.checkNumber ? sanitizeInput(paymentData.checkNumber) : undefined,
                     checkBank: paymentData.checkBank ? sanitizeInput(paymentData.checkBank) : undefined,
                     checkDate: paymentData.checkDate,
@@ -267,7 +277,7 @@ export function useOrderSubmission() {
                     clientTotals: {
                         subtotal: payload.totals.subtotal,
                         manualDiscount: payload.totals.manualDiscount ?? 0,
-                        promoDiscount: payload.totals.promoDiscount ?? 0,
+                        promoDiscount: NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (payload.totals.promoDiscount ?? 0),
                         vatValue: payload.totals.vatValue,
                         finalTotal: payload.totals.finalTotal,
                     },

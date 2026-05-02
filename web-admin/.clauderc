@@ -140,6 +140,7 @@ ui_components:
   textarea: "import { CmxTextarea } from '@ui/primitives'"
   select: "import { CmxSelect } from '@ui/primitives'"
   checkbox: "import { CmxCheckbox } from '@ui/primitives'"
+  hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   switch: "import { CmxSwitch } from '@ui/primitives'"
   label: "import { Label } from '@ui/primitives'"
   card: "import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'"

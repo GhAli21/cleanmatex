@@ -81,11 +81,11 @@ export function OrderPiecePreferencesSection({
   }, [state.items, state.categories, getBilingual]);
 
   return (
-    <section aria-label={t('sectionTitle')} className="space-y-4">
+    <section aria-label={t('sectionTitle')} className="space-y-3">
       <h2 className="text-base font-semibold text-gray-900">{t('sectionTitle')}</h2>
       <p className="text-sm text-gray-600">{t('sectionHint')}</p>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {itemGroups.map(({ item, pieces, categoryLabel }) => {
           const title = getBilingual(item.productName, item.productName2) || '—';
           const siblingIds = pieces.map((p) => p.id);

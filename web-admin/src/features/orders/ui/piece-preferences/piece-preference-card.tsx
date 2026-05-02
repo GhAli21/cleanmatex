@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
@@ -27,7 +28,7 @@ import {
 interface ConditionCatalog {
   stains: Array<{ code: string; name: string; name2?: string | null }>;
   damages: Array<{ code: string; name: string; name2?: string | null }>;
-  colors: Array<{ code: string; name: string; name2?: string | null }>;
+  colors: Array<{ code: string; name: string; name2?: string | null; color_hex?: string | null }>;
 }
 
 function chipLabel(
@@ -54,6 +55,11 @@ function chipFallbackClass(kind: string): string | undefined {
 function tailwindKindTokenClass(kindBg: string | null | undefined): string | undefined {
   if (!kindBg || !isTailwindKindBgToken(kindBg)) return undefined;
   return kindBg.trim();
+}
+
+/** DB kind row for notes: main_type_code `notes` and/or kind_code `note` */
+function isNotesKindRow(k: PreferenceKind): boolean {
+  return k.main_type_code === PREFERENCE_MAIN_TYPES.NOTES || k.kind_code === 'note';
 }
 
 export interface PiecePreferenceCardProps {
@@ -125,12 +131,21 @@ export function PiecePreferenceCard({
   }, [servicePrefsFallback, packingPrefs, conditionCatalog, getBilingual]);
 
   const kindsForBar = useMemo(
-    () =>
-      preferenceKinds.filter(
-        (k) => k.is_active && k.main_type_code !== PREFERENCE_MAIN_TYPES.NOTES
-      ),
+    () => preferenceKinds.filter((k) => k.is_active).sort((a, b) => (a.rec_order ?? 0) - (b.rec_order ?? 0)),
     [preferenceKinds]
   );
+
+  const colorHexByCode = useMemo(() => {
+    const m = new Map<string, string | null | undefined>();
+    for (const c of conditionCatalog.colors) {
+      m.set(c.code, c.color_hex ?? null);
+    }
+    return m;
+  }, [conditionCatalog.colors]);
+
+  const notesToolbarActive =
+    toolbarActiveKind != null &&
+    kindsForBar.some((k) => k.kind_code === toolbarActiveKind && isNotesKindRow(k));
 
   const prefsForPicker = pickerKind ? prefsByKind.get(pickerKind.kind_code) ?? [] : [];
 
@@ -200,13 +215,13 @@ export function PiecePreferenceCard({
 
   return (
     <div
-      className="rounded-xl border border-slate-300/80 bg-white p-4 shadow-md ring-1 ring-slate-200/60"
+      className="rounded-xl border border-slate-300/80 bg-white p-3 shadow-sm ring-1 ring-slate-200/60"
       aria-label={t('cardAriaLabel', { item: itemTitle, piece: piece.pieceSeq })}
     >
       <div
-        className={`flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}
+        className={`flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}
       >
-        <div className="min-w-0 flex-1 rounded-lg border border-slate-300/70 bg-gradient-to-b from-slate-200/90 to-slate-100/95 px-3 py-2.5 shadow-sm">
+        <div className="min-w-0 flex-1 rounded-lg border border-slate-300/70 bg-gradient-to-b from-slate-200/90 to-slate-100/95 px-3 py-2 shadow-sm">
           <h3 className="text-sm font-semibold leading-snug text-slate-900">{pieceHeading}</h3>
         </div>
         {targetsForCopy.length > 0 && (
@@ -227,7 +242,7 @@ export function PiecePreferenceCard({
 
       <div
         className={cn(
-          'mt-4 rounded-xl border border-slate-200 bg-slate-100/95 p-1.5 shadow-inner',
+          'mt-3 rounded-xl border border-slate-200 bg-slate-100/95 p-1.5 shadow-inner',
           isRTL && 'rtl'
         )}
         role="toolbar"
@@ -262,7 +277,11 @@ export function PiecePreferenceCard({
                   type="button"
                   onClick={() => {
                     setToolbarActiveKind(kind.kind_code);
-                    setPickerKind(kind);
+                    if (isNotesKindRow(kind)) {
+                      setPickerKind(null);
+                    } else {
+                      setPickerKind(kind);
+                    }
                   }}
                   className={cn(
                     'rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all',
@@ -286,19 +305,55 @@ export function PiecePreferenceCard({
         )}
       </div>
 
+      {notesToolbarActive && (
+        <div className={cn('mt-2 space-y-1.5', isRTL && 'text-right')}>
+          <label
+            htmlFor={`piece-pref-notes-${piece.id}`}
+            className={cn(
+              'block text-xs font-bold uppercase tracking-wide text-slate-600',
+              isRTL ? 'text-right' : 'text-left'
+            )}
+          >
+            {t('notesFieldLabel')}
+          </label>
+          <CmxTextarea
+            id={`piece-pref-notes-${piece.id}`}
+            dir={isRTL ? 'rtl' : 'ltr'}
+            rows={3}
+            maxLength={1000}
+            className="min-h-[4.5rem] text-sm"
+            value={piece.notes ?? ''}
+            placeholder={t('notesFieldPlaceholder')}
+            onChange={(e) =>
+              updatePieceFields(piece.id, {
+                notes: e.target.value.length > 0 ? e.target.value : undefined,
+              })
+            }
+          />
+          <p
+            className={cn(
+              'text-[11px] leading-snug text-slate-500',
+              isRTL ? 'text-right' : 'text-left'
+            )}
+          >
+            {t('notesFieldHint')}
+          </p>
+        </div>
+      )}
+
       {preferences.length > 0 && (
         <>
           <div
-            className="my-4 h-1.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-indigo-500 to-cyan-500 opacity-90 shadow-sm"
+            className="my-3 border-t border-slate-200 pt-3"
             role="separator"
             aria-hidden
           />
-          <div className="space-y-4">
+          <div className="space-y-2">
             {groupedPreferences.map((group) => (
               <div key={group.kindCode}>
                 <p
                   className={cn(
-                    'mb-2 text-xs font-bold uppercase tracking-wide text-slate-600',
+                    'mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600',
                     isRTL ? 'text-right' : 'text-left'
                   )}
                 >
@@ -307,14 +362,20 @@ export function PiecePreferenceCard({
                 <div className={cn('flex flex-wrap gap-2', isRTL ? 'flex-row-reverse' : '')}>
                   {group.prefs.map((pref) => {
                     const pres = chipPresentation(pref.preference_sys_kind);
+                    const catalogHex =
+                      pref.preference_sys_kind === 'color'
+                        ? colorHexByCode.get(pref.preference_code)
+                        : null;
+                    const parsed = catalogHex ? parseKindBgHex(catalogHex) : null;
                     return (
                       <PreferenceChip
                         key={pref.id}
                         label={chipLabel(pref, getBilingual, nameByCode)}
                         extraPrice={pref.extra_price}
                         currencyCode={currencyCode}
-                        kindClassName={pres.className}
-                        accentStyle={pres.style}
+                        kindClassName={parsed ? undefined : pres.className}
+                        accentStyle={parsed ? undefined : pres.style}
+                        catalogColorHex={catalogHex}
                         onRemove={() => onRemovePreference(pref.id)}
                         onCopy={() => {
                           if (targetsForCopy.length > 0) {

@@ -2314,7 +2314,13 @@
       "mainType": "النوع الرئيسي",
       "kindCode": "رمز النوع",
       "yes": "نعم",
-      "no": "لا"
+      "no": "لا",
+      "preferenceColor": "لون بطاقة قطعة الغسيل",
+      "preferenceColorShort": "عيّنة",
+      "colorPickLabel": "فتح منتقي اللون",
+      "clearPreferenceColor": "استخدام افتراضي الكتالوج",
+      "preferenceColorPlaceholder": "#1976D2",
+      "preferenceColorHint": "#RRGGBB أو اتركه فارغًا للافتراضي"
     }
   },
   "validation": {
@@ -2880,6 +2886,7 @@
       "searchHint": "اكتب حرفين على الأقل للبحث",
       "loading": "جاري التحميل...",
       "noCustomersFound": "لا يوجد عملاء",
+      "noCustomersFoundHint": "جرّب مصطلحات بحث أخرى أو أنشئ عميلاً جديداً.",
       "unnamed": "بدون اسم",
       "createNewCustomer": "إنشاء عميل جديد",
       "global": "عام",
@@ -3041,6 +3048,10 @@
       "noItemsForKind": "لا توجد عناصر في الكتالوج لهذه الفئة",
       "noColors": "لا توجد ألوان في الكتالوج",
       "useNotesTab": "تُحرَّر الملاحظات في تبويب تحرير ملاحظات العناصر.",
+      "notesOpenToolbar": "اختر «الملاحظات» في صف الفئات أعلاه — يظهر حقل نص في البطاقة لهذه القطعة.",
+      "notesFieldLabel": "ملاحظات القطعة",
+      "notesFieldPlaceholder": "تعليمات المعالجة، تفاصيل التلف، طلبات العميل…",
+      "notesFieldHint": "حتى 1000 حرف. يمكنك أيضًا تعديل الملاحظات في خطوة «تحرير ملاحظات العناصر».",
       "unsupportedKind": "نوع التفضيل هذا غير متاح هنا.",
       "cardAriaLabel": "تفضيلات {item}، القطعة {piece}",
       "kindToolbarAria": "فئات التفضيلات"

@@ -13,6 +13,7 @@ import type {
   PreferenceMainType,
 } from '@/lib/types/service-preferences';
 import { logger } from '@/lib/utils/logger';
+import { parseCssHexToFull } from '@/lib/utils/color-hex';
 
 export class PreferenceCatalogService {
   /**
@@ -385,6 +386,7 @@ export class PreferenceCatalogService {
       extra_turnaround_minutes: number | null;
       display_order: number;
       sys_is_active: boolean;
+      color_hex: string | null;
       cf_id: string | null;
       cf_name: string | null;
       cf_name2: string | null;
@@ -392,12 +394,13 @@ export class PreferenceCatalogService {
       cf_is_included_in_base: boolean | null;
       cf_is_active: boolean | null;
       cf_display_order: number | null;
+      cf_color_hex: string | null;
     }>
   > {
     try {
       const { data: sysPrefs, error: sysError } = await supabase
         .from('sys_service_preference_cd')
-        .select('code, name, name2, preference_category, preference_sys_kind, default_extra_price, extra_turnaround_minutes, display_order, is_active')
+        .select('code, name, name2, preference_category, preference_sys_kind, default_extra_price, extra_turnaround_minutes, display_order, is_active, color_hex')
         .order('display_order', { ascending: true });
 
       if (sysError) {
@@ -412,7 +415,7 @@ export class PreferenceCatalogService {
       const { data: tenantCf } = await supabase
         .from('org_service_preference_cf')
         .select(
-          'id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category'
+          'id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, color_hex'
         )
         .eq('tenant_org_id', tenantId);
 
@@ -432,6 +435,7 @@ export class PreferenceCatalogService {
           extra_turnaround_minutes: s.extra_turnaround_minutes,
           display_order: s.display_order ?? 0,
           sys_is_active: s.is_active ?? true,
+          color_hex: s.color_hex ?? null,
           cf_id: cf?.id ?? null,
           cf_name: cf?.name ?? null,
           cf_name2: cf?.name2 ?? null,
@@ -439,6 +443,7 @@ export class PreferenceCatalogService {
           cf_is_included_in_base: cf?.is_included_in_base ?? null,
           cf_is_active: cf?.is_active ?? null,
           cf_display_order: cf?.display_order ?? null,
+          cf_color_hex: (cf?.color_hex as string | null | undefined) ?? null,
         };
       });
     } catch (err) {
@@ -580,6 +585,7 @@ export class PreferenceCatalogService {
       display_order?: number;
       extra_turnaround_minutes?: number | null;
       preference_category?: string | null;
+      color_hex?: string | null;
     },
     userId: string,
     userName: string
@@ -594,7 +600,7 @@ export class PreferenceCatalogService {
         supabase
           .from('org_service_preference_cf')
           .select(
-            'preference_category, name, name2, extra_price, is_included_in_base, is_active, display_order, extra_turnaround_minutes'
+            'preference_category, name, name2, extra_price, is_included_in_base, is_active, display_order, extra_turnaround_minutes, color_hex'
           )
           .eq('tenant_org_id', tenantId)
           .eq('preference_code', preferenceCode)
@@ -610,6 +616,22 @@ export class PreferenceCatalogService {
           ? input.preference_category
           : (existingCf?.preference_category ?? sysRow.preference_category ?? null);
 
+      let resolvedColorHex: string | null;
+      if (input.color_hex !== undefined) {
+        if (input.color_hex === null) {
+          resolvedColorHex = null;
+        } else {
+          const normalized = parseCssHexToFull(input.color_hex);
+          if (!normalized) {
+            return { success: false, error: 'Invalid color hex' };
+          }
+          resolvedColorHex = normalized;
+        }
+      } else {
+        resolvedColorHex =
+          ((existingCf as { color_hex?: string | null } | null)?.color_hex as string | null | undefined) ?? null;
+      }
+
       const now = new Date().toISOString();
       const payload = {
         tenant_org_id: tenantId,
@@ -623,6 +645,7 @@ export class PreferenceCatalogService {
         is_active: input.is_active ?? true,
         display_order: input.display_order ?? 0,
         extra_turnaround_minutes: input.extra_turnaround_minutes ?? null,
+        color_hex: resolvedColorHex,
         created_by: userId,
         created_info: userName,
         updated_at: now,
@@ -974,16 +997,54 @@ export class PreferenceCatalogService {
     userName: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
+      const { data: existingCf, error: cfReadError } = await supabase
+        .from('org_preference_kind_cf')
+        .select(
+          'name, name2, kind_bg_color, is_show_in_quick_bar, is_show_for_customer, is_active'
+        )
+        .eq('tenant_org_id', tenantId)
+        .eq('kind_code', kindCode)
+        .maybeSingle();
+
+      if (cfReadError) {
+        logger.error(
+          'Failed to read org_preference_kind_cf for upsert',
+          new Error(cfReadError.message),
+          { tenantId, kindCode, feature: 'preference_catalog' }
+        );
+        return { success: false, error: cfReadError.message };
+      }
+
+      let resolvedBg: string | null;
+      if (input.kind_bg_color === undefined) {
+        resolvedBg = existingCf?.kind_bg_color ?? null;
+      } else if (input.kind_bg_color === null) {
+        resolvedBg = null;
+      } else {
+        const normalized = parseCssHexToFull(input.kind_bg_color);
+        if (!normalized) {
+          return { success: false, error: 'Invalid color hex' };
+        }
+        resolvedBg = normalized;
+      }
+
       const now = new Date().toISOString();
       const payload = {
         tenant_org_id: tenantId,
         kind_code: kindCode,
-        name: input.name ?? null,
-        name2: input.name2 ?? null,
-        kind_bg_color: input.kind_bg_color ?? null,
-        is_show_in_quick_bar: input.is_show_in_quick_bar ?? true,
-        is_show_for_customer: input.is_show_for_customer ?? true,
-        is_active: input.is_active ?? true,
+        name: input.name !== undefined ? input.name : existingCf?.name ?? null,
+        name2: input.name2 !== undefined ? input.name2 : existingCf?.name2 ?? null,
+        kind_bg_color: resolvedBg,
+        is_show_in_quick_bar:
+          input.is_show_in_quick_bar !== undefined
+            ? input.is_show_in_quick_bar
+            : existingCf?.is_show_in_quick_bar ?? true,
+        is_show_for_customer:
+          input.is_show_for_customer !== undefined
+            ? input.is_show_for_customer
+            : existingCf?.is_show_for_customer ?? true,
+        is_active:
+          input.is_active !== undefined ? input.is_active : existingCf?.is_active ?? true,
         created_by: userId,
         created_info: userName,
         updated_at: now,

@@ -17,6 +17,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { usePreferenceBundles } from '@/src/features/orders/hooks/use-preference-bundles';
 import { CmxCard } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxInput, CmxSelect, CmxSwitch } from '@ui/primitives';
+import { CmxHexColorField } from '@ui/forms';
 import { Badge } from '@ui/primitives/badge';
 import {
   CmxDialog,
@@ -34,6 +35,7 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
 import { ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS, PREFERENCE_CATEGORIES } from '@/lib/constants/service-preferences';
+import { normalizeHexDraftForApi } from '@/lib/utils/color-hex';
 
 interface ServicePref {
   code: string;
@@ -44,6 +46,7 @@ interface ServicePref {
   default_extra_price?: number;
   extra_turnaround_minutes?: number;
   is_active?: boolean;
+  color_hex?: string | null;
 }
 
 interface PackingPref {
@@ -63,6 +66,7 @@ interface ServicePrefAdmin {
   default_extra_price: number;
   display_order: number;
   sys_is_active: boolean;
+  color_hex: string | null;
   cf_id: string | null;
   cf_name: string | null;
   cf_name2: string | null;
@@ -70,6 +74,7 @@ interface ServicePrefAdmin {
   cf_is_included_in_base: boolean | null;
   cf_is_active: boolean | null;
   cf_display_order: number | null;
+  cf_color_hex: string | null;
 }
 
 interface PackingPrefAdmin {
@@ -111,6 +116,16 @@ function formatPreferenceKindCode(kindCode: string) {
 
 function getServicePrefKind(row: ServicePrefRow) {
   return row.preference_sys_kind || 'service_prefs';
+}
+
+function isColorPreferenceGroupOrRow(rowOrKind: ServicePrefRow | string): boolean {
+  if (typeof rowOrKind === 'string') {
+    return rowOrKind === 'color';
+  }
+  return (
+    getServicePrefKind(rowOrKind) === 'color' ||
+    rowOrKind.preference_category === 'color'
+  );
 }
 
 function TableSkeleton({ rows = 5 }: { rows?: number }) {
@@ -226,7 +241,10 @@ function ServicePrefsTable({
       className="space-y-4"
       data-testid="service-prefs-table"
     >
-      {groupedRows.map((group) => (
+      {groupedRows.map((group) => {
+        const showSwatchCol = isColorPreferenceGroupOrRow(group.kindCode);
+
+        return (
         <section
           key={group.kindCode}
           className="overflow-hidden rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white"
@@ -253,6 +271,11 @@ function ServicePrefsTable({
               <thead className="bg-white text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">{t('code', 'Code')}</th>
+                  {showSwatchCol ? (
+                    <th className="px-4 py-3 text-left font-medium w-[4.5rem]">
+                      {t('preferenceColorShort', 'Swatch')}
+                    </th>
+                  ) : null}
                   <th className="px-4 py-3 text-left font-medium">{t('name', 'Name')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('nameAr', 'Name (AR)')}</th>
                   <th className="px-4 py-3 text-left font-medium">{t('category', 'Category')}</th>
@@ -272,10 +295,32 @@ function ServicePrefsTable({
                   const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
                   const isActive = adminRow ? adminRow.cf_is_active !== false : true;
                   const category = p.preference_category ?? '—';
+                  const swatchHex = adminRow
+                    ? adminRow.cf_color_hex ?? adminRow.color_hex
+                    : (p as ServicePref).color_hex ?? null;
 
                   return (
                     <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
                       <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
+                      {showSwatchCol ? (
+                        <td className="px-4 py-3 align-middle">
+                          {swatchHex ? (
+                            <span className="inline-flex items-center gap-2">
+                              <span
+                                className="h-7 w-7 shrink-0 rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] shadow-inner"
+                                style={{ backgroundColor: swatchHex }}
+                                title={swatchHex}
+                                aria-hidden="true"
+                              />
+                              <span className="font-mono text-[11px] text-gray-600 max-w-[5.5rem] truncate" dir="ltr" lang="en">
+                                {swatchHex}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                        </td>
+                      ) : null}
                       <td className="px-4 py-3">{primaryName || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{category}</td>
@@ -318,7 +363,8 @@ function ServicePrefsTable({
             </table>
           </div>
         </section>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -686,6 +732,7 @@ function PreferenceKindEditDialog({
   onSuccess: () => void;
 }) {
   const t = useTranslations('catalog.preferences');
+  const tv = useTranslations('validation');
   const [name, setName] = useState(kind.cf_name ?? kind.name ?? '');
   const [name2, setName2] = useState(kind.cf_name2 ?? kind.name2 ?? '');
   const [bgColor, setBgColor] = useState(kind.cf_kind_bg_color ?? kind.kind_bg_color ?? '');
@@ -700,6 +747,11 @@ function PreferenceKindEditDialog({
     setError(null);
     setSaving(true);
     try {
+      const normalizedBg = normalizeHexDraftForApi(bgColor);
+      if (normalizedBg === 'invalid') {
+        setError(tv('invalidFormat'));
+        return;
+      }
       const res = await fetch('/api/v1/catalog/preference-kinds/admin', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
@@ -707,7 +759,7 @@ function PreferenceKindEditDialog({
           kindCode: kind.kind_code,
           name: name || null,
           name2: name2 || null,
-          kind_bg_color: bgColor || null,
+          kind_bg_color: normalizedBg,
           is_show_in_quick_bar: showInQuickBar,
           is_show_for_customer: showForCustomer,
           is_active: isActive,
@@ -752,15 +804,16 @@ function PreferenceKindEditDialog({
               className="w-full"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">{t('bgColor', 'Background Color')}</label>
-            <CmxInput
-              value={bgColor}
-              onChange={(e) => setBgColor(e.target.value)}
-              placeholder="#6366f1"
-              className="w-full"
-            />
-          </div>
+          <CmxHexColorField
+            label={t('bgColor', 'Background Color')}
+            helperText={t('preferenceColorHint', '#RRGGBB or blank to use catalog default')}
+            hexPlaceholder={t('preferenceColorPlaceholder', '#1976D2')}
+            pickerAriaLabel={t('colorPickLabel', 'Open color picker')}
+            clearLabel={t('clearPreferenceColor', 'Use catalog default')}
+            invalidMessage={tv('invalidFormat')}
+            value={bgColor}
+            onChange={setBgColor}
+          />
           <div className="flex items-center gap-2">
             <CmxSwitch
               checked={showInQuickBar}
@@ -1220,6 +1273,8 @@ function ServicePrefEditDialog({
   onSuccess: () => void;
 }) {
   const t = useTranslations('catalog.preferences');
+  const tv = useTranslations('validation');
+  const editsColorSwatch = isColorPreferenceGroupOrRow(pref);
   const [name, setName] = useState(pref.cf_name ?? pref.name ?? '');
   const [name2, setName2] = useState(pref.cf_name2 ?? pref.name2 ?? '');
   const [prefCategory, setPrefCategory] = useState(
@@ -1228,6 +1283,7 @@ function ServicePrefEditDialog({
   const [extraPrice, setExtraPrice] = useState(String(pref.cf_extra_price ?? pref.default_extra_price ?? 0));
   const [isIncludedInBase, setIsIncludedInBase] = useState(pref.cf_is_included_in_base ?? false);
   const [isActive, setIsActive] = useState(pref.cf_is_active ?? true);
+  const [colorHex, setColorHex] = useState(pref.cf_color_hex ?? pref.color_hex ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -1248,6 +1304,16 @@ function ServicePrefEditDialog({
     setError(null);
     setSaving(true);
     try {
+      let color_hex: string | null | undefined;
+      if (editsColorSwatch) {
+        const nh = normalizeHexDraftForApi(colorHex);
+        if (nh === 'invalid') {
+          setError(tv('invalidFormat'));
+          return;
+        }
+        color_hex = nh;
+      }
+
       const res = await fetch(`/api/v1/catalog/service-preferences/${encodeURIComponent(pref.code)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
@@ -1258,6 +1324,7 @@ function ServicePrefEditDialog({
           is_included_in_base: isIncludedInBase,
           is_active: isActive,
           preference_category: prefCategory || null,
+          ...(editsColorSwatch ? { color_hex } : {}),
         }),
       });
       const data = await res.json();
@@ -1334,6 +1401,21 @@ function ServicePrefEditDialog({
               onChange={(e) => setPrefCategory(e.target.value)}
             />
           </div>
+          {editsColorSwatch ? (
+            <CmxHexColorField
+              label={t('preferenceColor', 'Garment swatch color')}
+              helperText={t(
+                'preferenceColorHint',
+                '#RRGGBB or blank to use catalog default'
+              )}
+              hexPlaceholder={t('preferenceColorPlaceholder', '#1976D2')}
+              pickerAriaLabel={t('colorPickLabel', 'Open color picker')}
+              clearLabel={t('clearPreferenceColor', 'Use catalog default')}
+              invalidMessage={tv('invalidFormat')}
+              value={colorHex}
+              onChange={setColorHex}
+            />
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t('extraPrice', 'Extra Price')}</label>
             <CmxInput

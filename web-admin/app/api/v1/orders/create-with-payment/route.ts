@@ -129,6 +129,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Promo / gift fields are optional; clients may omit while checkout promo/gift UI is disabled.
     const serverTotals = await calculateOrderTotals({
       tenantId,
       branchId,

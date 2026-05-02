@@ -2314,7 +2314,13 @@
       "mainType": "Main Type",
       "kindCode": "Kind Code",
       "yes": "Yes",
-      "no": "No"
+      "no": "No",
+      "preferenceColor": "Garment swatch color",
+      "preferenceColorShort": "Swatch",
+      "colorPickLabel": "Open color picker",
+      "clearPreferenceColor": "Use catalog default",
+      "preferenceColorPlaceholder": "#1976D2",
+      "preferenceColorHint": "#RRGGBB or blank to use catalog default"
     }
   },
   "validation": {
@@ -2885,6 +2891,7 @@
       "searchHint": "Type at least 2 characters to search",
       "loading": "Loading...",
       "noCustomersFound": "No customers found",
+      "noCustomersFoundHint": "Try different search terms or create a new customer.",
       "unnamed": "Unnamed",
       "createNewCustomer": "Create New Customer",
       "global": "Global",
@@ -3041,6 +3048,10 @@
       "noItemsForKind": "No catalog entries for this category",
       "noColors": "No colors in catalog",
       "useNotesTab": "Notes are edited on the Edit Item Notes tab.",
+      "notesOpenToolbar": "Choose “Notes” in the category row above — a text field opens on the card for this piece.",
+      "notesFieldLabel": "Piece notes",
+      "notesFieldPlaceholder": "Handling instructions, damage details, customer requests…",
+      "notesFieldHint": "Up to 1000 characters. You can also edit notes on the “Edit Item Notes” step.",
       "unsupportedKind": "This preference type is not available here.",
       "cardAriaLabel": "Preferences for {item}, piece {piece}",
       "kindToolbarAria": "Preference categories"

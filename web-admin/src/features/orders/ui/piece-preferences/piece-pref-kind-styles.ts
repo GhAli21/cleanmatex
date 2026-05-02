@@ -61,6 +61,27 @@ export function kindChipAccentStyle(hex: string | null): CSSProperties | undefin
   };
 }
 
+/** Readable text on top of a solid-ish tinted chip background */
+export function contrastTextForHexBg(hex: string): string {
+  const full = normalizeFullHex(hex).replace('#', '');
+  const r = parseInt(full.slice(0, 2), 16) / 255;
+  const g = parseInt(full.slice(2, 4), 16) / 255;
+  const b = parseInt(full.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return luminance > 0.55 ? '#111827' : '#ffffff';
+}
+
+/** Color-catalog chips: background/tint from the swatch hex (not the kind tab color). */
+export function catalogColorChipStyle(hex: string): CSSProperties {
+  const full = normalizeFullHex(hex);
+  return {
+    borderWidth: 1,
+    borderColor: full,
+    backgroundColor: hexToRgba(full, 0.38),
+    color: contrastTextForHexBg(full),
+  };
+}
+
 /** True if value looks like Tailwind utility fragments (legacy seed data). */
 export function isTailwindKindBgToken(kindBg: string | null | undefined): boolean {
   if (!kindBg?.trim()) return false;

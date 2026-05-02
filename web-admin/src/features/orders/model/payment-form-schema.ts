@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
+import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 
 /**
  * Payment method schema
@@ -75,7 +76,8 @@ export const paymentFormSchema = paymentFormBaseSchema
   )
   .refine(
     (data) => {
-      // If promo code is provided (non-empty), promoCodeId should be provided
+      // Promo on new order: disabled until gifts/promotions ship (order-checkout-flags.ts)
+      if (NEW_ORDER_PROMO_GIFT_DISABLED) return true;
       const hasPromoCode = data.promoCode && data.promoCode.trim().length > 0;
       if (hasPromoCode && !data.promoCodeId) {
         return false;
@@ -89,6 +91,7 @@ export const paymentFormSchema = paymentFormBaseSchema
   )
   .refine(
     (data) => {
+      if (NEW_ORDER_PROMO_GIFT_DISABLED) return true;
       const hasGiftCard = data.giftCardNumber && data.giftCardNumber.trim().length > 0;
       if (hasGiftCard && !data.giftCardAmount) {
         return false;

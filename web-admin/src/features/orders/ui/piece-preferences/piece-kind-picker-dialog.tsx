@@ -198,7 +198,7 @@ export function PieceKindPickerDialog({
       break;
     }
     case PREFERENCE_MAIN_TYPES.NOTES:
-      body = <p className="text-sm text-gray-600">{t('useNotesTab')}</p>;
+      body = <p className="text-sm text-gray-600">{t('notesOpenToolbar')}</p>;
       break;
     default:
       body = <p className="text-sm text-gray-500">{t('unsupportedKind')}</p>;

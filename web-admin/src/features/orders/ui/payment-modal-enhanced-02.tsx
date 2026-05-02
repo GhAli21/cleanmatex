@@ -1,7 +1,8 @@
 /**
  * Payment Modal Component (Canonical)
  * Single-screen layout with fixed footer, dense grid, and collapsible promo section.
- * Promo code and gift card validation via validatePromoCodeAction / validateGiftCardAction.
+ * Promo / gift UI and preview fields are gated by `NEW_ORDER_PROMO_GIFT_DISABLED`
+ * in `order-checkout-flags.ts` until gifts & promotions are fully implemented.
  */
 
 'use client';
@@ -27,6 +28,7 @@ import { taxService } from '@/lib/services/tax.service';
 import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { cmxMessage } from '@ui/feedback';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { Control } from 'react-hook-form';
 
@@ -250,8 +252,10 @@ export function PaymentModalEnhanced02({
           isExpress,
           percentDiscount: percentDiscount ?? 0,
           amountDiscount: amountDiscount ?? 0,
-          promoCode: (appliedPromoCode?.code ?? promoCode) || undefined,
-          giftCardNumber: (appliedGiftCard?.number ?? giftCardNumber) || undefined,
+          ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
+            promoCode: (appliedPromoCode?.code ?? promoCode) || undefined,
+            giftCardNumber: (appliedGiftCard?.number ?? giftCardNumber) || undefined,
+          }),
         }),
       });
       const json = await res.json();
@@ -354,7 +358,7 @@ export function PaymentModalEnhanced02({
       percentDiscount > 0
         ? Math.min((subtotal * percentDiscount) / 100, subtotal)
         : Math.min(amountDiscount, subtotal);
-    const promoDiscount = appliedPromoCode?.discount || 0;
+    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
     return Math.max(0, subtotal - manualDiscount - promoDiscount);
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
 
@@ -398,12 +402,12 @@ export function PaymentModalEnhanced02({
       percentDiscount > 0
         ? Math.min((subtotal * percentDiscount) / 100, subtotal)
         : Math.min(amountDiscount, subtotal);
-    const promoDiscount = appliedPromoCode?.discount || 0;
+    const promoDiscount = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
     const taxAmount = orderTaxAmount > 0 ? orderTaxAmount : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(decimalPlaces));
     const afterTax = afterDiscounts + taxAmount;
     const vatValue = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
-    const giftCardApplied = appliedGiftCard?.amount || 0;
+    const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
     const finalTotal = Math.max(0, afterTax + vatValue - giftCardApplied);
     return {
       subtotal,
@@ -427,6 +431,7 @@ export function PaymentModalEnhanced02({
   }, [payPartial, isImmediatePayment, totals.finalTotal, partialAmount, decimalPlaces]);
 
   const handleValidatePromoCode = async () => {
+    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!promoCode?.trim()) return;
     setPromoCodeValidating(true);
     setPromoCodeResult(null);
@@ -460,6 +465,7 @@ export function PaymentModalEnhanced02({
   };
 
   const handleClearPromoCode = () => {
+    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     setValue('promoCode', '');
     setValue('promoCodeId', '');
     setValue('promoDiscount', 0);
@@ -468,6 +474,7 @@ export function PaymentModalEnhanced02({
   };
 
   const handleValidateGiftCard = async () => {
+    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!giftCardNumber?.trim()) return;
     setGiftCardValidating(true);
     setGiftCardResult(null);
@@ -496,6 +503,7 @@ export function PaymentModalEnhanced02({
   };
 
   const handleClearGiftCard = () => {
+    if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     setValue('giftCardNumber', '');
     setValue('giftCardAmount', 0);
     setGiftCardResult(null);
@@ -559,7 +567,9 @@ export function PaymentModalEnhanced02({
     }
   };
 
-  const showCouponContent = couponOpen || appliedPromoCode || appliedGiftCard;
+  const showCouponContent = NEW_ORDER_PROMO_GIFT_DISABLED
+    ? false
+    : (couponOpen || appliedPromoCode || appliedGiftCard);
 
   if (!open) return null;
 
@@ -1006,7 +1016,8 @@ export function PaymentModalEnhanced02({
               />
             </div>
 
-            {/* Collapsible: Have a coupon? */}
+            {/* Collapsible: Have a coupon? — hidden while NEW_ORDER_PROMO_GIFT_DISABLED */}
+            {!NEW_ORDER_PROMO_GIFT_DISABLED && (
             <div>
               {(appliedPromoCode || appliedGiftCard) && (
                 <div className={`flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg mb-2 gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -1135,6 +1146,7 @@ export function PaymentModalEnhanced02({
                 </div>
               )}
             </div>
+            )}
           </div>
 
           {/* Fixed Footer */}

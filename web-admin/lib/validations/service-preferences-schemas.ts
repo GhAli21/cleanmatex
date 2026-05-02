@@ -9,6 +9,7 @@ import {
   PACKING_PREFERENCE_CODES,
   PREFERENCE_SOURCES,
 } from '@/lib/constants/service-preferences';
+import { zOptionalNormalizedHexIngress } from '@/lib/validations/css-color-schema';
 
 const servicePreferenceCodeSchema = z.enum(
   Object.values(SERVICE_PREFERENCE_CODES) as [string, ...string[]]
@@ -86,6 +87,7 @@ export const upsertServicePreferenceCfSchema = z.object({
       z.null(),
     ])
     .optional(),
+  color_hex: zOptionalNormalizedHexIngress,
 });
 
 /** Upsert packing preference tenant override (org_packing_preference_cf) */

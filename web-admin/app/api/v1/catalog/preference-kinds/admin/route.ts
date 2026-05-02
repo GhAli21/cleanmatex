@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PreferenceCatalogService } from '@/lib/services/preference-catalog.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
+import { preferenceKindAdminPutSchema } from '@/lib/validations/preference-kind-admin-schema';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,36 +48,24 @@ export async function PUT(request: NextRequest) {
     if (authCheck instanceof NextResponse) return authCheck;
     const { tenantId, userId, userName } = authCheck;
 
-    const body = await request.json() as {
-      kindCode: string;
-      name?: string | null;
-      name2?: string | null;
-      kind_bg_color?: string | null;
-      is_show_in_quick_bar?: boolean;
-      is_show_for_customer?: boolean;
-      is_active?: boolean;
-    };
+    const raw = await request.json();
+    const parsed = preferenceKindAdminPutSchema.safeParse(raw);
 
-    if (!body.kindCode || typeof body.kindCode !== 'string') {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'kindCode is required' },
+        { success: false, error: 'Validation failed', details: parsed.error.flatten() },
         { status: 400 }
       );
     }
+
+    const { kindCode, ...input } = parsed.data;
 
     const supabase = await createClient();
     const result = await PreferenceCatalogService.upsertPreferenceKindCf(
       supabase,
       tenantId,
-      body.kindCode,
-      {
-        name: body.name,
-        name2: body.name2,
-        kind_bg_color: body.kind_bg_color,
-        is_show_in_quick_bar: body.is_show_in_quick_bar,
-        is_show_for_customer: body.is_show_for_customer,
-        is_active: body.is_active,
-      },
+      kindCode,
+      input,
       userId,
       userName
     );
