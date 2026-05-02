@@ -88,11 +88,11 @@ export const previewPaymentRequestSchema = z.object({
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().uuid().optional()
-  ),
+  ).optional(),
   customerId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().uuid().optional()
-  ),
+  ).optional(),
   isExpress: z.boolean().optional(),
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
@@ -166,18 +166,18 @@ export const createWithPaymentRequestSchema = z.object({
   percentDiscount: z.number().min(0).max(100).optional(),
   amountDiscount: z.number().min(0).optional(),
   promoCode: z.string().optional(),
-  promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
+  promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
   promoDiscount: z.number().min(0).optional(),
   giftCardNumber: z.string().optional(),
   giftCardAmount: z.number().min(0).optional(),
-  giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
+  giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
   checkNumber: z.string().optional(),
   checkBank: z.string().optional(),
   checkDate: z.string().optional(),
   branchId: z.preprocess(
     (val) => (val === '' || val == null ? undefined : val),
     z.string().optional() // z.string().uuid().optional()
-  ),
+  ).optional(),
   /** Customer snapshot at order time (order-level, not customer master) */
   customerMobile: z.string().max(50).optional(),
   customerEmail: z.string().max(255).optional(),
@@ -240,10 +240,10 @@ export const processPaymentActionInputSchema = z
     checkDate: z.date().optional(),
     manualDiscount: z.number().min(0).optional(),
     promoCode: z.string().optional(),
-    promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
+    promoCodeId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
     giftCardNumber: z.string().optional(),
     giftCardAmount: z.number().min(0).optional(),
-    giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()),
+    giftCardId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
     notes: z.string().optional(),
     // Amount breakdown (new-order flow)
     subtotal: z.number().min(0).optional(),

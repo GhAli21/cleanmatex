@@ -10,4 +10,4 @@ export const zOptionalNormalizedHexIngress = z.preprocess(
   z
     .union([z.null(), z.string().regex(CSS_HEX_INPUT_PATTERN).max(COLOR_HEX_DB_MAX_LENGTH)])
     .optional()
-);
+).optional();

@@ -39,6 +39,7 @@ interface ProcessPaymentActionInput {
   giftCardAmount?: number;
   giftCardId?: string;
   notes?: string;
+  trans_desc?: string;
   subtotal?: number;
   discountRate?: number;
   discountAmount?: number;

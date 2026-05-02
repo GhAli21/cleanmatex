@@ -35,7 +35,7 @@ const paymentMethodSchema = z.enum([
 const emptyStringToUndefined = z.preprocess(
   (val) => (val === '' || (typeof val === 'string' && val.trim() === '') ? undefined : val),
   z.string().optional()
-);
+).optional();
 
 const paymentFormBaseSchema = z.object({
   paymentMethod: paymentMethodSchema,
