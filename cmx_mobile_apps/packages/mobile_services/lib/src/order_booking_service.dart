@@ -186,9 +186,29 @@ class OrderBookingService {
           'serviceId': draft.service?.id,
           'fulfillmentType': fulfillmentType,
           // new item-based fields
-          'items': draft.cartItems.entries
-              .map((e) => {'itemId': e.key, 'qty': e.value})
-              .toList(),
+          'items': draft.cartItems.entries.map((e) {
+            final qty = e.value;
+            final rawPieces = draft.piecePreferences[e.key] ??
+                List.generate(
+                  qty,
+                  (i) => BookingPiecePreferenceModel(pieceSeq: i + 1),
+                  growable: false,
+                );
+            return {
+              'itemId': e.key,
+              'qty': qty,
+              'pieces': rawPieces
+                  .map((p) => {
+                        'pieceSeq': p.pieceSeq,
+                        'servicePreferenceIds': p.servicePreferenceIds,
+                        if (p.packingPrefCode != null)
+                          'packingPrefCode': p.packingPrefCode,
+                        if (p.colorCode != null) 'colorCode': p.colorCode,
+                        if (p.notes.isNotEmpty) 'notes': p.notes,
+                      })
+                  .toList(growable: false),
+            };
+          }).toList(),
           'servicePreferenceIds': draft.selectedServicePreferenceIds,
           'pickupPreferenceIds': draft.selectedPickupPreferenceIds,
           'isPickupFromAddress': draft.isPickupFromAddress,

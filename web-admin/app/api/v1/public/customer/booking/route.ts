@@ -12,9 +12,18 @@ import { createTenantSettingsService } from '@/lib/services/tenant-settings.serv
 import { logger } from '@/lib/utils/logger';
 import { withTenantContext } from '@/lib/db/tenant-context';
 
+const bookingItemPieceSchema = z.object({
+  pieceSeq: z.coerce.number().int().min(1),
+  servicePreferenceIds: z.array(z.string().min(1).max(120)).optional().default([]),
+  packingPrefCode: z.string().max(120).optional().nullable(),
+  colorCode: z.string().max(120).optional().nullable(),
+  notes: z.string().max(500).optional().default(''),
+});
+
 const bookingItemSchema = z.object({
   itemId: z.string().uuid(),
   qty: z.coerce.number().int().min(1).max(99),
+  pieces: z.array(bookingItemPieceSchema).optional(),
 });
 
 const submitBookingSchema = z.object({
@@ -701,6 +710,7 @@ export async function POST(request: NextRequest) {
       );
     }
     const requestedItemIds = Array.from(requestedItems.keys());
+    const bodyItemsMap = new Map(body.items.map((item) => [item.itemId, item]));
     const requiresAddress = body.isPickupFromAddress;
     logger.info('Public customer booking submit items normalized', {
       ...submitContext,
@@ -892,6 +902,24 @@ export async function POST(request: NextRequest) {
         servicePrefCharge,
         packingPrefCode: preferredPackingCode ?? product.default_packing_pref ?? undefined,
         packingPrefSource: preferredPackingCode ? 'customer_mobile_app' : undefined,
+        pieces: (() => {
+          const bodyItem = bodyItemsMap.get(product.id);
+          if (!bodyItem?.pieces?.length) return undefined;
+          return bodyItem.pieces.map((p) => ({
+            pieceSeq: p.pieceSeq,
+            servicePrefs: (p.servicePreferenceIds ?? []).map((code) => {
+              const pref = servicePreferenceMap.get(code);
+              return {
+                preference_code: code,
+                source: 'customer_mobile_app',
+                extra_price: pref ? Number(pref.default_extra_price ?? 0) : 0,
+              };
+            }),
+            packingPrefCode: p.packingPrefCode ?? undefined,
+            color: p.colorCode ?? undefined,
+            notes: p.notes || undefined,
+          }));
+        })(),
       };
     });
     const subtotal = items.reduce(

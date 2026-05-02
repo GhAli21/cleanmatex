@@ -18,6 +18,23 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
+subprojects {
+    fun forceWorkingNdk() {
+        extensions.findByName("android")?.let { androidExtension ->
+            androidExtension.javaClass.methods
+                .firstOrNull { method -> method.name == "setNdkVersion" && method.parameterCount == 1 }
+                ?.invoke(androidExtension, "30.0.14904198")
+        }
+    }
+
+    pluginManager.withPlugin("com.android.application") {
+        forceWorkingNdk()
+    }
+
+    pluginManager.withPlugin("com.android.library") {
+        forceWorkingNdk()
+    }
+}
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)

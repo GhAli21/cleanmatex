@@ -2,6 +2,7 @@ library mobile_domain;
 
 export 'src/address_option_model.dart';
 export 'src/booking_catalog_category_model.dart';
+export 'src/booking_piece_preference_model.dart';
 export 'src/booking_catalog_item_model.dart';
 export 'src/booking_preference_kind_model.dart';
 export 'src/booking_preference_option_model.dart';

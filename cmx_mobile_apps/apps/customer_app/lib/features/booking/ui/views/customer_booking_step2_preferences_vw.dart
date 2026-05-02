@@ -1,14 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import 'package:mobile_core/mobile_core.dart';
 import 'package:mobile_domain/mobile_domain.dart';
 import 'package:mobile_l10n/mobile_l10n.dart';
 import 'package:mobile_ui/mobile_ui.dart';
 
 import '../../providers/customer_order_booking_provider.dart';
-import '../cards/customer_booking_preference_chip_card.dart';
 import '../widgets/customer_booking_step_header_widget.dart';
+
+const _kPackingKindCode = 'packing_prefs';
+const _kColorKindCode = 'color';
+const _kNotesMaxLength = 200;
 
 class CustomerBookingStep2PreferencesVw extends ConsumerStatefulWidget {
   const CustomerBookingStep2PreferencesVw({super.key});
@@ -20,9 +24,86 @@ class CustomerBookingStep2PreferencesVw extends ConsumerStatefulWidget {
 
 class _CustomerBookingStep2PreferencesVwState
     extends ConsumerState<CustomerBookingStep2PreferencesVw> {
-  String? _activeKindCode;
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final booking = ref.watch(customerOrderBookingProvider);
+    final notifier = ref.read(customerOrderBookingProvider.notifier);
 
-  String _localizedLabel(AppLocalizations l10n, String label, String? label2) {
+    AppLogger.info(
+      'booking_step2.render cartItems=${booking.draft.cartItems.length} '
+      'kinds=${booking.visiblePreferenceKinds.length}',
+    );
+
+    // Lazily init per-piece state for any cart item not yet tracked.
+    for (final entry in booking.draft.cartItems.entries) {
+      if (!booking.piecePreferences.containsKey(entry.key)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) notifier.initPiecePreferences(entry.key, entry.value);
+        });
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomerBookingStepHeaderWidget(
+          title: l10n.text('booking.step2Title'),
+          description: l10n.text('booking.step2.perPieceTitle'),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        if (booking.isLoading)
+          const AppLoadingIndicator()
+        else if (!booking.hasCartItems)
+          AppCardWidget(
+            child: Text(
+              l10n.text('booking.step2.emptyCart'),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: booking.draft.cartItems.length,
+            separatorBuilder: (_, __) =>
+                const SizedBox(height: AppSpacing.md),
+            itemBuilder: (context, index) {
+              final entry =
+                  booking.draft.cartItems.entries.elementAt(index);
+              final item = _findItem(booking.categories, entry.key);
+              final itemName = item != null
+                  ? _localizedLabel(l10n, item.name, item.name2)
+                  : entry.key;
+              final pieces =
+                  booking.piecePreferences[entry.key] ?? const [];
+
+              return _ItemPiecesSection(
+                itemId: entry.key,
+                itemName: itemName,
+                qty: entry.value,
+                pieces: pieces,
+                visibleKinds: booking.visiblePreferenceKinds,
+                optionsForKind: booking.preferenceOptionsForKind,
+                l10n: l10n,
+                localizeLabel: (opt) =>
+                    _localizedLabel(l10n, opt.label, opt.label2),
+                onToggleServicePref: notifier.togglePieceServicePref,
+                onSetPacking: notifier.setPiecePacking,
+                onSetColor: notifier.setPieceColor,
+                onSetNotes: notifier.setPieceNotes,
+              );
+            },
+          ),
+      ],
+    );
+  }
+
+  String _localizedLabel(
+    AppLocalizations l10n,
+    String label,
+    String? label2,
+  ) {
     if (l10n.locale.languageCode == 'ar' &&
         label2 != null &&
         label2.trim().isNotEmpty) {
@@ -31,371 +112,521 @@ class _CustomerBookingStep2PreferencesVwState
     return label;
   }
 
-  String _localizedKindLabel(
-    AppLocalizations l10n,
-    BookingPreferenceKindModel kind,
+  BookingCatalogItemModel? _findItem(
+    List<BookingCatalogCategoryModel> categories,
+    String itemId,
   ) {
-    final configuredLabel = _localizedLabel(l10n, kind.name, kind.name2);
-    if (configuredLabel.trim().isNotEmpty) return configuredLabel;
-
-    return switch (kind.kindCode) {
-      'packing_prefs' => l10n.text('booking.pickupPrefsTitle'),
-      'service_prefs' => l10n.text('booking.servicePrefsTitle'),
-      _ => kind.kindCode,
-    };
-  }
-
-  String _formatPrice(
-    BuildContext context,
-    AppLocalizations l10n,
-    double price,
-    String currencyCode,
-  ) {
-    if (price <= 0) return l10n.text('booking.prefIncluded');
-
-    final formatter = NumberFormat.currency(
-      locale: Localizations.localeOf(context).toLanguageTag(),
-      name: currencyCode,
-      symbol: '',
-      decimalDigits: 3,
-    );
-    return '+${formatter.format(price).trim()} $currencyCode';
-  }
-
-  List<String> _metadataLabels(
-    AppLocalizations l10n,
-    BookingPreferenceOptionModel preference,
-  ) {
-    return [
-      if ((preference.extraTurnaroundMinutes ?? 0) > 0)
-        l10n.textWithArg(
-          'booking.prefExtraTime',
-          preference.extraTurnaroundMinutes.toString(),
-        ),
-      if ((preference.sustainabilityScore ?? 0) > 0)
-        l10n.textWithArg(
-          'booking.prefSustainability',
-          preference.sustainabilityScore.toString(),
-        ),
-    ];
-  }
-
-  Color? _parseHexColor(String? value) {
-    if (value == null || value.trim().isEmpty) return null;
-    final normalized = value.replaceFirst('#', '');
-    if (normalized.length != 6) return null;
-    final parsed = int.tryParse('FF$normalized', radix: 16);
-    if (parsed == null) return null;
-    return Color(parsed);
-  }
-
-  IconData _iconForKind(String kindCode) {
-    return switch (kindCode) {
-      'packing_prefs' => Icons.inventory_2_outlined,
-      'condition_stain' => Icons.water_drop_outlined,
-      'condition_damag' => Icons.report_problem_outlined,
-      'condition_special' => Icons.favorite_border,
-      'color' => Icons.palette_outlined,
-      _ => Icons.tune_outlined,
-    };
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    final booking = ref.watch(customerOrderBookingProvider);
-    final notifier = ref.read(customerOrderBookingProvider.notifier);
-    final visibleKinds = booking.visiblePreferenceKinds;
-    final activeKind = visibleKinds.where((kind) {
-          return kind.kindCode == _activeKindCode;
-        }).firstOrNull ??
-        (visibleKinds.isNotEmpty ? visibleKinds.first : null);
-    final activeOptions = activeKind == null
-        ? const <BookingPreferenceOptionModel>[]
-        : booking.preferenceOptionsForKind(activeKind.kindCode);
-
-    AppLogger.info(
-      'booking_step2.render servicePrefs=${booking.servicePreferenceOptions.length} '
-      'pickupPrefs=${booking.pickupPreferenceOptions.length} '
-      'kinds=${visibleKinds.length} '
-      'selectedService=${booking.draft.selectedServicePreferenceIds.length} '
-      'selectedPickup=${booking.draft.selectedPickupPreferenceIds.length}',
-    );
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        CustomerBookingStepHeaderWidget(
-          title: localizations.text('booking.step2Title'),
-          description: localizations.text('booking.step2Description'),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        if (visibleKinds.isEmpty)
-          AppCardWidget(
-            child: Text(
-              localizations.text('booking.noPrefsForKind'),
-              style: theme.textTheme.bodyLarge,
-            ),
-          )
-        else ...[
-          _PreferenceKindTabs(
-            kinds: visibleKinds,
-            activeKindCode: activeKind!.kindCode,
-            localizeKind: (kind) => _localizedKindLabel(localizations, kind),
-            parseColor: _parseHexColor,
-            iconForKind: _iconForKind,
-            onSelect: (kindCode) {
-              setState(() => _activeKindCode = kindCode);
-            },
-          ),
-          const SizedBox(height: AppSpacing.md),
-          _PreferenceOptionsGrid(
-            options: activeOptions,
-            kindCode: activeKind.kindCode,
-            booking: booking,
-            localizations: localizations,
-            formatPrice: (preference) => _formatPrice(
-              context,
-              localizations,
-              preference.extraPrice,
-              booking.currencyCode,
-            ),
-            metadataLabels: (preference) =>
-                _metadataLabels(localizations, preference),
-            localizedLabel: (preference) => _localizedLabel(
-              localizations,
-              preference.label,
-              preference.label2,
-            ),
-            localizedDescription: (preference) => _localizedLabel(
-              localizations,
-              preference.description ?? '',
-              preference.description2,
-            ),
-            onToggle: notifier.togglePreferenceForKind,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _SelectedPreferenceSummary(
-            booking: booking,
-            localizations: localizations,
-            localizedLabel: (preference) => _localizedLabel(
-              localizations,
-              preference.label,
-              preference.label2,
-            ),
-            onRemove: (preference) {
-              final kindCode = booking.draft.selectedPickupPreferenceIds
-                      .contains(preference.id)
-                  ? 'packing_prefs'
-                  : preference.preferenceSysKind;
-              notifier.togglePreferenceForKind(kindCode, preference.id);
-            },
-          ),
-        ],
-      ],
-    );
+    for (final cat in categories) {
+      for (final item in cat.items) {
+        if (item.id == itemId) return item;
+      }
+    }
+    return null;
   }
 }
 
-class _PreferenceKindTabs extends StatelessWidget {
-  const _PreferenceKindTabs({
-    required this.kinds,
-    required this.activeKindCode,
-    required this.localizeKind,
-    required this.parseColor,
-    required this.iconForKind,
-    required this.onSelect,
+// ── Item section ───────────────────────────────────────────────────────────
+
+class _ItemPiecesSection extends StatelessWidget {
+  const _ItemPiecesSection({
+    required this.itemId,
+    required this.itemName,
+    required this.qty,
+    required this.pieces,
+    required this.visibleKinds,
+    required this.optionsForKind,
+    required this.l10n,
+    required this.localizeLabel,
+    required this.onToggleServicePref,
+    required this.onSetPacking,
+    required this.onSetColor,
+    required this.onSetNotes,
   });
 
-  final List<BookingPreferenceKindModel> kinds;
-  final String activeKindCode;
-  final String Function(BookingPreferenceKindModel kind) localizeKind;
-  final Color? Function(String? value) parseColor;
-  final IconData Function(String kindCode) iconForKind;
-  final ValueChanged<String> onSelect;
+  final String itemId;
+  final String itemName;
+  final int qty;
+  final List<BookingPiecePreferenceModel> pieces;
+  final List<BookingPreferenceKindModel> visibleKinds;
+  final List<BookingPreferenceOptionModel> Function(String kindCode)
+      optionsForKind;
+  final AppLocalizations l10n;
+  final String Function(BookingPreferenceOptionModel) localizeLabel;
+  final void Function(String itemId, int pieceSeq, String prefId)
+      onToggleServicePref;
+  final void Function(String itemId, int pieceSeq, String? code) onSetPacking;
+  final void Function(String itemId, int pieceSeq, String? colorCode)
+      onSetColor;
+  final void Function(String itemId, int pieceSeq, String notes) onSetNotes;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: kinds.map((kind) {
-          final isActive = kind.kindCode == activeKindCode;
-          final kindColor = parseColor(kind.kindBgColor);
-          final activeColor = kindColor ?? colorScheme.primary;
-          final foregroundColor = isActive ? Colors.white : AppColors.textMuted;
-
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
-            child: ChoiceChip(
-              selected: isActive,
-              showCheckmark: false,
-              avatar: Icon(
-                iconForKind(kind.kindCode),
-                size: 18,
-                color: foregroundColor,
+    return Theme(
+      // Remove the divider that ExpansionTile draws between header and children.
+      data: theme.copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        tilePadding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                itemName,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-              label: Text(localizeKind(kind)),
-              labelStyle: theme.textTheme.bodyMedium?.copyWith(
-                color: isActive ? Colors.white : AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-              selectedColor: activeColor,
-              backgroundColor: colorScheme.surface,
-              side: BorderSide(
-                color: isActive ? activeColor : AppColors.border,
-              ),
-              onSelected: (_) => onSelect(kind.kindCode),
             ),
-          );
-        }).toList(growable: false),
+            const SizedBox(width: AppSpacing.sm),
+            Container(
+              padding: const EdgeInsetsDirectional.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 2,
+              ),
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '×$qty',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        children: [
+          if (pieces.isEmpty)
+            const Padding(
+              padding: EdgeInsetsDirectional.all(AppSpacing.md),
+              child: AppLoadingIndicator(),
+            )
+          else
+            Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: AppSpacing.md,
+                end: AppSpacing.md,
+                bottom: AppSpacing.md,
+              ),
+              child: Column(
+                children: [
+                  for (final piece in pieces) ...[
+                    if (piece.pieceSeq > 1)
+                      const SizedBox(height: AppSpacing.sm),
+                    _PiecePreferenceCard(
+                      itemId: itemId,
+                      piece: piece,
+                      visibleKinds: visibleKinds,
+                      optionsForKind: optionsForKind,
+                      l10n: l10n,
+                      localizeLabel: localizeLabel,
+                      onToggleServicePref: onToggleServicePref,
+                      onSetPacking: onSetPacking,
+                      onSetColor: onSetColor,
+                      onSetNotes: onSetNotes,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _PreferenceOptionsGrid extends StatelessWidget {
-  const _PreferenceOptionsGrid({
-    required this.options,
-    required this.kindCode,
-    required this.booking,
-    required this.localizations,
-    required this.formatPrice,
-    required this.metadataLabels,
-    required this.localizedLabel,
-    required this.localizedDescription,
-    required this.onToggle,
+// ── Piece card ─────────────────────────────────────────────────────────────
+
+class _PiecePreferenceCard extends StatelessWidget {
+  const _PiecePreferenceCard({
+    required this.itemId,
+    required this.piece,
+    required this.visibleKinds,
+    required this.optionsForKind,
+    required this.l10n,
+    required this.localizeLabel,
+    required this.onToggleServicePref,
+    required this.onSetPacking,
+    required this.onSetColor,
+    required this.onSetNotes,
   });
 
-  final List<BookingPreferenceOptionModel> options;
-  final String kindCode;
-  final BookingState booking;
-  final AppLocalizations localizations;
-  final String Function(BookingPreferenceOptionModel preference) formatPrice;
-  final List<String> Function(BookingPreferenceOptionModel preference)
-      metadataLabels;
-  final String Function(BookingPreferenceOptionModel preference) localizedLabel;
-  final String Function(BookingPreferenceOptionModel preference)
-      localizedDescription;
-  final void Function(String kindCode, String id) onToggle;
+  final String itemId;
+  final BookingPiecePreferenceModel piece;
+  final List<BookingPreferenceKindModel> visibleKinds;
+  final List<BookingPreferenceOptionModel> Function(String kindCode)
+      optionsForKind;
+  final AppLocalizations l10n;
+  final String Function(BookingPreferenceOptionModel) localizeLabel;
+  final void Function(String itemId, int pieceSeq, String prefId)
+      onToggleServicePref;
+  final void Function(String itemId, int pieceSeq, String? code) onSetPacking;
+  final void Function(String itemId, int pieceSeq, String? colorCode)
+      onSetColor;
+  final void Function(String itemId, int pieceSeq, String notes) onSetNotes;
 
   @override
   Widget build(BuildContext context) {
-    if (options.isEmpty) {
-      return AppCardWidget(
-        child: Text(
-          localizations.text('booking.noPrefsForKind'),
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      );
-    }
+    final theme = Theme.of(context);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columnCount = constraints.maxWidth >= 360 ? 2 : 1;
-
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: options.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columnCount,
-            crossAxisSpacing: AppSpacing.sm,
-            mainAxisSpacing: AppSpacing.sm,
-            mainAxisExtent: columnCount == 1 ? 150 : 184,
+    return AppCardWidget(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.textWithArg(
+              'booking.step2.pieceLabel',
+              piece.pieceSeq.toString(),
+            ),
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.primary,
+            ),
           ),
-          itemBuilder: (context, index) {
-            final preference = options[index];
-            final label = localizedLabel(preference);
-            final description = localizedDescription(preference);
-            final priceLabel = formatPrice(preference);
-            final metadata = metadataLabels(preference);
-            final semanticParts = [
-              label,
-              priceLabel,
-              ...metadata,
-            ].where((part) => part.trim().isNotEmpty).join(', ');
-
-            return CustomerBookingPreferenceChipCard(
-              label: label,
-              description: description,
-              priceLabel: priceLabel,
-              metadataLabels: metadata,
-              isSelected: booking.isPreferenceSelected(kindCode, preference.id),
-              semanticLabel: semanticParts,
-              onTap: () => onToggle(kindCode, preference.id),
-            );
-          },
-        );
-      },
+          for (final kind in visibleKinds) ...[
+            const SizedBox(height: AppSpacing.md),
+            if (kind.kindCode == _kPackingKindCode)
+              _PackingSection(
+                itemId: itemId,
+                piece: piece,
+                options: optionsForKind(kind.kindCode),
+                l10n: l10n,
+                localizeLabel: localizeLabel,
+                onSetPacking: onSetPacking,
+              )
+            else if (kind.kindCode == _kColorKindCode)
+              _ColorSection(
+                itemId: itemId,
+                piece: piece,
+                options: optionsForKind(kind.kindCode),
+                l10n: l10n,
+                localizeLabel: localizeLabel,
+                onSetColor: onSetColor,
+              )
+            else
+              _ServicePrefsSection(
+                itemId: itemId,
+                piece: piece,
+                kind: kind,
+                options: optionsForKind(kind.kindCode),
+                l10n: l10n,
+                localizeLabel: localizeLabel,
+                onToggle: onToggleServicePref,
+              ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          _PieceNotesField(
+            itemId: itemId,
+            pieceSeq: piece.pieceSeq,
+            initialNotes: piece.notes,
+            l10n: l10n,
+            onChanged: onSetNotes,
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _SelectedPreferenceSummary extends StatelessWidget {
-  const _SelectedPreferenceSummary({
-    required this.booking,
-    required this.localizations,
-    required this.localizedLabel,
-    required this.onRemove,
+// ── Service prefs section (multi-select chips) ─────────────────────────────
+
+class _ServicePrefsSection extends StatelessWidget {
+  const _ServicePrefsSection({
+    required this.itemId,
+    required this.piece,
+    required this.kind,
+    required this.options,
+    required this.l10n,
+    required this.localizeLabel,
+    required this.onToggle,
   });
 
-  final BookingState booking;
-  final AppLocalizations localizations;
-  final String Function(BookingPreferenceOptionModel preference) localizedLabel;
-  final ValueChanged<BookingPreferenceOptionModel> onRemove;
+  final String itemId;
+  final BookingPiecePreferenceModel piece;
+  final BookingPreferenceKindModel kind;
+  final List<BookingPreferenceOptionModel> options;
+  final AppLocalizations l10n;
+  final String Function(BookingPreferenceOptionModel) localizeLabel;
+  final void Function(String itemId, int pieceSeq, String prefId) onToggle;
+
+  String _kindLabel() {
+    final ar = l10n.locale.languageCode == 'ar';
+    final configured =
+        ar && (kind.name2?.trim().isNotEmpty ?? false) ? kind.name2! : kind.name;
+    if (configured.trim().isNotEmpty) return configured;
+    return l10n.text('booking.step2.servicePrefsSection');
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selectedOptions = booking.selectedPreferenceOptions;
-    if (selectedOptions.isEmpty) return const SizedBox.shrink();
-
     final theme = Theme.of(context);
+    if (options.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                localizations.text('booking.selectedPrefsTitle'),
-                style: theme.textTheme.titleMedium,
-              ),
-            ),
-            Text(
-              localizations.textWithArg(
-                'booking.selectedPrefsCount',
-                booking.selectedPreferenceCount.toString(),
-              ),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: AppColors.textMuted,
-              ),
-            ),
-          ],
+        Text(
+          _kindLabel(),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
-          children: selectedOptions.map((preference) {
-            final label = localizedLabel(preference);
-            return InputChip(
-              label: Text(label),
-              onDeleted: () => onRemove(preference),
-              deleteIcon: const Icon(Icons.close, size: 18),
-              deleteButtonTooltipMessage: localizations.textWithArg(
-                'booking.removePreferenceLabel',
-                label,
+          children: options.map((opt) {
+            final isSelected =
+                piece.servicePreferenceIds.contains(opt.id);
+            return FilterChip(
+              label: Text(localizeLabel(opt)),
+              selected: isSelected,
+              showCheckmark: false,
+              onSelected: (_) => onToggle(itemId, piece.pieceSeq, opt.id),
+            );
+          }).toList(growable: false),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Packing section (single-select chips) ─────────────────────────────────
+
+class _PackingSection extends StatelessWidget {
+  const _PackingSection({
+    required this.itemId,
+    required this.piece,
+    required this.options,
+    required this.l10n,
+    required this.localizeLabel,
+    required this.onSetPacking,
+  });
+
+  final String itemId;
+  final BookingPiecePreferenceModel piece;
+  final List<BookingPreferenceOptionModel> options;
+  final AppLocalizations l10n;
+  final String Function(BookingPreferenceOptionModel) localizeLabel;
+  final void Function(String itemId, int pieceSeq, String? code) onSetPacking;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.text('booking.step2.packingSection'),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: options.map((opt) {
+            final isSelected = piece.packingPrefCode == opt.id;
+            return ChoiceChip(
+              label: Text(localizeLabel(opt)),
+              selected: isSelected,
+              showCheckmark: false,
+              // Tapping the active chip deselects it.
+              onSelected: (_) => onSetPacking(
+                itemId,
+                piece.pieceSeq,
+                isSelected ? null : opt.id,
               ),
             );
           }).toList(growable: false),
         ),
       ],
+    );
+  }
+}
+
+// ── Color section (horizontal dot row) ────────────────────────────────────
+
+class _ColorSection extends StatelessWidget {
+  const _ColorSection({
+    required this.itemId,
+    required this.piece,
+    required this.options,
+    required this.l10n,
+    required this.localizeLabel,
+    required this.onSetColor,
+  });
+
+  final String itemId;
+  final BookingPiecePreferenceModel piece;
+  final List<BookingPreferenceOptionModel> options;
+  final AppLocalizations l10n;
+  final String Function(BookingPreferenceOptionModel) localizeLabel;
+  final void Function(String itemId, int pieceSeq, String? colorCode)
+      onSetColor;
+
+  Color _resolveColor(String? hex) {
+    if (hex == null || hex.trim().isEmpty) return Colors.grey.shade400;
+    final normalized = hex.replaceFirst('#', '');
+    if (normalized.length != 6) return Colors.grey.shade400;
+    final parsed = int.tryParse('FF$normalized', radix: 16);
+    return parsed != null ? Color(parsed) : Colors.grey.shade400;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    if (options.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.text('booking.step2.colorSection'),
+          style: theme.textTheme.labelMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: options.map((opt) {
+              final isSelected = piece.colorCode == opt.id;
+              final dotColor = _resolveColor(opt.colorHex);
+              return Padding(
+                padding:
+                    const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+                child: Semantics(
+                  label: localizeLabel(opt),
+                  selected: isSelected,
+                  button: true,
+                  child: GestureDetector(
+                    onTap: () => onSetColor(
+                      itemId,
+                      piece.pieceSeq,
+                      isSelected ? null : opt.id,
+                    ),
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: dotColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : Colors.transparent,
+                          width: 3,
+                        ),
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary
+                                      // ignore: deprecated_member_use
+                                      .withOpacity(0.35),
+                                  blurRadius: 6,
+                                  spreadRadius: 1,
+                                ),
+                              ]
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(growable: false),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Notes field with 300ms debounce ───────────────────────────────────────
+
+class _PieceNotesField extends StatefulWidget {
+  const _PieceNotesField({
+    required this.itemId,
+    required this.pieceSeq,
+    required this.initialNotes,
+    required this.l10n,
+    required this.onChanged,
+  });
+
+  final String itemId;
+  final int pieceSeq;
+  final String initialNotes;
+  final AppLocalizations l10n;
+  final void Function(String itemId, int pieceSeq, String notes) onChanged;
+
+  @override
+  State<_PieceNotesField> createState() => _PieceNotesFieldState();
+}
+
+class _PieceNotesFieldState extends State<_PieceNotesField> {
+  late final TextEditingController _controller;
+  Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialNotes);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 300), () {
+      widget.onChanged(widget.itemId, widget.pieceSeq, value);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isAr = widget.l10n.locale.languageCode == 'ar';
+
+    return TextField(
+      controller: _controller,
+      onChanged: _onTextChanged,
+      maxLength: _kNotesMaxLength,
+      maxLines: 2,
+      // Explicitly set text direction to match active locale.
+      textDirection: isAr ? TextDirection.rtl : TextDirection.ltr,
+      style: theme.textTheme.bodyMedium,
+      decoration: InputDecoration(
+        hintText: widget.l10n.text('booking.step2.notesHint'),
+        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        counterText: '',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSpacing.sm.toDouble()),
+          borderSide: BorderSide(color: theme.colorScheme.outline),
+        ),
+        contentPadding: const EdgeInsetsDirectional.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+      ),
     );
   }
 }

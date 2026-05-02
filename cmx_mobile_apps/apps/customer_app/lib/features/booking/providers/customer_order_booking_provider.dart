@@ -67,6 +67,9 @@ class BookingState {
 
   // ── Computed getters ────────────────────────────────────────────────────
 
+  Map<String, List<BookingPiecePreferenceModel>> get piecePreferences =>
+      draft.piecePreferences;
+
   bool get hasLoadError =>
       errorMessageKey != null && categories.isEmpty && services.isEmpty;
 
@@ -455,6 +458,106 @@ class CustomerOrderBookingNotifier extends Notifier<BookingState> {
     }
 
     toggleServicePreference(id);
+  }
+
+  // ── Step 2 — Per-piece preferences ─────────────────────────────────────
+
+  void initPiecePreferences(String itemId, int qty) {
+    if (state.draft.piecePreferences.containsKey(itemId)) return;
+    final pieces = List<BookingPiecePreferenceModel>.generate(
+      qty,
+      (i) => BookingPiecePreferenceModel(pieceSeq: i + 1),
+      growable: false,
+    );
+    final updated = Map<String, List<BookingPiecePreferenceModel>>.from(
+      state.draft.piecePreferences,
+    );
+    updated[itemId] = List.unmodifiable(pieces);
+    AppLogger.info(
+      'booking_provider.piece_prefs_initialized itemId=$itemId qty=$qty',
+    );
+    state = state.copyWith(
+      draft: state.draft.copyWith(
+        piecePreferences: Map.unmodifiable(updated),
+      ),
+    );
+  }
+
+  void togglePieceServicePref(String itemId, int pieceSeq, String prefId) {
+    _updatePiece(itemId, pieceSeq, (piece) {
+      final current = List<String>.from(piece.servicePreferenceIds);
+      if (current.contains(prefId)) {
+        current.remove(prefId);
+      } else {
+        current.add(prefId);
+      }
+      AppLogger.info(
+        'booking_provider.piece_service_pref_toggled itemId=$itemId '
+        'pieceSeq=$pieceSeq prefId=$prefId selected=${current.contains(prefId)}',
+      );
+      return piece.copyWith(
+        servicePreferenceIds: List.unmodifiable(current),
+      );
+    });
+  }
+
+  void setPiecePacking(String itemId, int pieceSeq, String? code) {
+    AppLogger.info(
+      'booking_provider.piece_packing_set itemId=$itemId pieceSeq=$pieceSeq code=$code',
+    );
+    _updatePiece(
+      itemId,
+      pieceSeq,
+      (piece) => piece.copyWith(
+        packingPrefCode: code,
+        clearPackingPref: code == null,
+      ),
+    );
+  }
+
+  void setPieceColor(String itemId, int pieceSeq, String? colorCode) {
+    AppLogger.info(
+      'booking_provider.piece_color_set itemId=$itemId pieceSeq=$pieceSeq colorCode=$colorCode',
+    );
+    _updatePiece(
+      itemId,
+      pieceSeq,
+      (piece) => piece.copyWith(
+        colorCode: colorCode,
+        clearColorCode: colorCode == null,
+      ),
+    );
+  }
+
+  void setPieceNotes(String itemId, int pieceSeq, String notes) {
+    _updatePiece(
+      itemId,
+      pieceSeq,
+      (piece) => piece.copyWith(notes: notes),
+    );
+  }
+
+  void _updatePiece(
+    String itemId,
+    int pieceSeq,
+    BookingPiecePreferenceModel Function(BookingPiecePreferenceModel) update,
+  ) {
+    final pieces = state.draft.piecePreferences[itemId];
+    if (pieces == null) return;
+    final index = pieceSeq - 1;
+    if (index < 0 || index >= pieces.length) return;
+    final updated = List<BookingPiecePreferenceModel>.from(pieces);
+    updated[index] = update(pieces[index]);
+    final updatedMap =
+        Map<String, List<BookingPiecePreferenceModel>>.from(
+      state.draft.piecePreferences,
+    );
+    updatedMap[itemId] = List.unmodifiable(updated);
+    state = state.copyWith(
+      draft: state.draft.copyWith(
+        piecePreferences: Map.unmodifiable(updatedMap),
+      ),
+    );
   }
 
   // ── Step 3 — Schedule ───────────────────────────────────────────────────

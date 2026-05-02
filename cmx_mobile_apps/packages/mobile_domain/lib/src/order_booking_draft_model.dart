@@ -1,4 +1,5 @@
 import 'address_option_model.dart';
+import 'booking_piece_preference_model.dart';
 import 'new_address_input_model.dart';
 import 'pickup_slot_model.dart';
 import 'service_option_model.dart';
@@ -12,6 +13,7 @@ class OrderBookingDraftModel {
     this.cartItems = const {},
     this.selectedServicePreferenceIds = const [],
     this.selectedPickupPreferenceIds = const [],
+    this.piecePreferences = const {},
     this.isPickupFromAddress = false,
     this.isAsap = true,
     this.scheduledAt,
@@ -29,6 +31,9 @@ class OrderBookingDraftModel {
   final List<String> selectedServicePreferenceIds;
   final List<String> selectedPickupPreferenceIds;
 
+  /// Per-piece preferences keyed by itemId; value indexed by pieceSeq - 1.
+  final Map<String, List<BookingPiecePreferenceModel>> piecePreferences;
+
   final bool isPickupFromAddress;
   final bool isAsap;
   final DateTime? scheduledAt;
@@ -42,6 +47,7 @@ class OrderBookingDraftModel {
     Map<String, int>? cartItems,
     List<String>? selectedServicePreferenceIds,
     List<String>? selectedPickupPreferenceIds,
+    Map<String, List<BookingPiecePreferenceModel>>? piecePreferences,
     bool? isPickupFromAddress,
     bool? isAsap,
     DateTime? scheduledAt,
@@ -58,6 +64,7 @@ class OrderBookingDraftModel {
           selectedServicePreferenceIds ?? this.selectedServicePreferenceIds,
       selectedPickupPreferenceIds:
           selectedPickupPreferenceIds ?? this.selectedPickupPreferenceIds,
+      piecePreferences: piecePreferences ?? this.piecePreferences,
       isPickupFromAddress: isPickupFromAddress ?? this.isPickupFromAddress,
       isAsap: isAsap ?? this.isAsap,
       scheduledAt: scheduledAt ?? this.scheduledAt,
