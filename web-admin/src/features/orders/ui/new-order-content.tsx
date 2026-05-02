@@ -42,10 +42,12 @@ import { ProductGridSkeleton } from './loading-skeletons';
 import { OrderDetailsSection } from './order-details-section';
 import { OrderCustomerDetailsSection } from './order-customer-details-section';
 import { OrderPiecePreferencesSection } from './piece-preferences/order-piece-preferences-section';
+import { OrderPiecesNotesSection } from './order-pieces-notes-section';
 import { EditOrderBar } from './edit-order-bar';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
+import { useBilingual } from '@/lib/utils/bilingual';
 
 /**
  * New Order Content Component
@@ -83,6 +85,20 @@ export function NewOrderContent() {
         servicePrefs: pieceWizardServicePrefs,
         conditionCatalog: pieceConditionCatalog,
     } = pieceWizardCatalog;
+    const getBilingual = useBilingual();
+    const preferenceLabelByCode = useMemo(() => {
+        const m: Record<string, string> = {};
+        const put = (code: string, name: string | null | undefined, name2: string | null | undefined) => {
+            if (!code) return;
+            m[code] = getBilingual(name, name2 ?? null);
+        };
+        for (const p of servicePrefs) put(p.code, p.name, p.name2 ?? null);
+        for (const p of packingPrefs) put(p.code, p.name, p.name2 ?? null);
+        for (const c of conditionCatalog.stains) put(c.code, c.name, c.name2 ?? null);
+        for (const c of conditionCatalog.damages) put(c.code, c.name, c.name2 ?? null);
+        for (const c of conditionCatalog.colors) put(c.code, c.name, c.name2 ?? null);
+        return m;
+    }, [servicePrefs, packingPrefs, conditionCatalog, getBilingual]);
     const { trackItemAddition, trackModalOpen, resetMetrics } = useOrderPerformance();
     const [activeTab, setActiveTab] = useState<'select' | 'details' | 'piecePreferences' | 'pieces' | 'customer'>('select');
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
@@ -503,6 +519,7 @@ export function NewOrderContent() {
         canSubmit,
         onOpenPaymentModal: () => state.openModal('payment'),
         colorCatalog: conditionCatalog.colors,
+        preferenceLabelByCode,
         // Customer header
         customerName: state.state.customerName,
         onSelectCustomer: () => state.openModal('customerPicker'),

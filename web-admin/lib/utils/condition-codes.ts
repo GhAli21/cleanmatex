@@ -44,11 +44,18 @@ export function toUICode(catalogCode: string): string {
 /** Get preference_code and preference_sys_kind for a condition code */
 export function getConditionPrefKind(
   code: string
-): { preference_code: string; preference_sys_kind: 'condition_stain' | 'condition_damag' } {
+): {
+  preference_code: string;
+  preference_sys_kind: 'condition_stain' | 'condition_damag' | 'condition_special';
+} {
   const preference_code = toCatalogCode(code);
   const condition = STAIN_CONDITIONS.find((c) => c.code.toLowerCase() === code.toLowerCase());
   const category = condition?.category ?? 'stain';
   const preference_sys_kind =
-    category === 'damage' || category === 'special' ? 'condition_damag' : 'condition_stain';
+    category === 'damage'
+      ? 'condition_damag'
+      : category === 'special'
+        ? 'condition_special'
+        : 'condition_stain';
   return { preference_code, preference_sys_kind };
 }

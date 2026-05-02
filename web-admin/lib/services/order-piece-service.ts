@@ -588,7 +588,11 @@ export class OrderPieceService {
               source: row.prefs_source ?? 'manual',
               extra_price: Number(row.extra_price ?? 0),
             });
-          } else if (sysKind === 'condition_stain' || sysKind === 'condition_damag') {
+          } else if (
+            sysKind === 'condition_stain' ||
+            sysKind === 'condition_damag' ||
+            sysKind === 'condition_special'
+          ) {
             if (!pieceConditionsMap[pieceId]) pieceConditionsMap[pieceId] = [];
             pieceConditionsMap[pieceId].push(toUICode(row.preference_code));
           }

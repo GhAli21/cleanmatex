@@ -15,9 +15,41 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { useBilingual } from '@/lib/utils/bilingual';
+import { cn } from '@/lib/utils';
 import { Pencil, Trash2 } from 'lucide-react';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
-import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
+import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
+
+function humanizePreferenceCode(code: string): string {
+  if (!code) return '';
+  return code
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
+/** Match catalog keys case-insensitively (DB/API often uses upper snake_case; static lists may differ). */
+function resolveCatalogLabel(lookup: Record<string, string>, code: string): string | undefined {
+  if (!code) return undefined;
+  const direct = lookup[code]?.trim();
+  if (direct) return direct;
+  const needle = code.toLowerCase();
+  for (const [key, val] of Object.entries(lookup)) {
+    if (key.toLowerCase() === needle && val?.trim()) return val.trim();
+  }
+  return undefined;
+}
+
+/** When catalog has no row: optional match to legacy `STAIN_CONDITIONS` (POS seed list — not authoritative vs DB). */
+function legacyStaticConditionLabel(
+  code: string,
+  getBilingual: (a: string | null | undefined, b: string | null | undefined) => string
+): string | undefined {
+  const row = STAIN_CONDITIONS.find((s) => s.code.toLowerCase() === code.toLowerCase());
+  if (!row) return undefined;
+  return getBilingual(row.label, row.label2 ?? null) || row.label;
+}
 
 interface ColorCatalogEntry {
   code: string;
@@ -41,6 +73,8 @@ interface SummaryCartItemProps {
   currencyCode?: string;
   trackByPiece?: boolean;
   colorCatalog?: ColorCatalogEntry[];
+  /** Bilingual labels for preference / packing codes (piece-level summary chips) */
+  preferenceLabelByCode?: Record<string, string>;
   onEditPrice?: () => void;
   onEditNotes?: () => void;
   onDelete: () => void;
@@ -59,6 +93,7 @@ function SummaryCartItemComponent({
   currencyCode = ORDER_DEFAULTS.CURRENCY,
   trackByPiece = false,
   colorCatalog,
+  preferenceLabelByCode = {},
   onEditPrice,
   onEditNotes,
   onDelete,
@@ -71,34 +106,60 @@ function SummaryCartItemComponent({
 
   const displayName = getBilingual(productName, productName2) || '—';
 
-  // Build condition/notes text lines
-  const conditionLines = useMemo((): string[] => {
-    const colorOptions = colorCatalog && colorCatalog.length > 0 ? colorCatalog : [];
+  // Per-piece preference labels as mini-chips (readable; includes service + packing)
+  const piecePreferenceRows = useMemo((): { labels: string[] }[] => {
+    const lookup = preferenceLabelByCode;
+
+    const labelForCode = (code: string, fallback: () => string): string => {
+      const mapped = resolveCatalogLabel(lookup, code);
+      if (mapped) return mapped;
+      return fallback();
+    };
 
     if (trackByPiece && pieces.length > 0) {
+      const colorOpts = colorCatalog && colorCatalog.length > 0 ? colorCatalog : [];
       return pieces.map((piece) => {
-        const parts: string[] = [];
+        const labels: string[] = [];
         if (piece.color) {
-          const colorEntry = colorOptions.find((c) => c.code === piece.color);
-          parts.push(colorEntry ? (getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name) : piece.color);
+          const colorEntry = colorOpts.find((c) => c.code === piece.color);
+          labels.push(
+            labelForCode(piece.color, () =>
+              colorEntry ? (getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name) : humanizePreferenceCode(piece.color!)
+            )
+          );
         }
         (piece.conditions ?? []).forEach((code) => {
-          const cond = STAIN_CONDITIONS.find((s) => s.code === code);
-          parts.push(cond ? cond.label : code.replace(/_/g, ' '));
+          labels.push(
+            labelForCode(code, () => {
+              const legacy = legacyStaticConditionLabel(code, getBilingual);
+              return legacy ?? humanizePreferenceCode(code);
+            })
+          );
         });
-        if (piece.notes) parts.push(piece.notes);
-        return parts.join('/');
-      }).filter(Boolean);
+        (piece.servicePrefs ?? []).forEach((sp) => {
+          labels.push(
+            labelForCode(sp.preference_code, () => humanizePreferenceCode(sp.preference_code))
+          );
+        });
+        if (piece.packingPrefCode) {
+          labels.push(
+            labelForCode(piece.packingPrefCode, () => humanizePreferenceCode(piece.packingPrefCode!))
+          );
+        }
+        if (piece.notes?.trim()) labels.push(piece.notes.trim());
+        return { labels };
+      });
     }
 
-    // Item-level conditions
-    const parts: string[] = conditions.map((code) => {
-      const cond = STAIN_CONDITIONS.find((s) => s.code === code);
-      return cond ? cond.label : code.replace(/_/g, ' ');
-    });
-    if (notes) parts.push(notes);
-    return parts.length > 0 ? [parts.join('/')] : [];
-  }, [trackByPiece, pieces, conditions, notes, colorCatalog, getBilingual]);
+    const parts: string[] = conditions.map((code) =>
+      labelForCode(code, () => {
+        const legacy = legacyStaticConditionLabel(code, getBilingual);
+        return legacy ?? humanizePreferenceCode(code);
+      })
+    );
+    if (notes?.trim()) parts.push(notes.trim());
+    return parts.length > 0 ? [{ labels: parts }] : [];
+  }, [trackByPiece, pieces, conditions, notes, colorCatalog, getBilingual, preferenceLabelByCode]);
 
   const displayPrice = formatMoneyAmountWithCode(totalPrice, {
     currencyCode: currencyCode as string,
@@ -179,14 +240,25 @@ function SummaryCartItemComponent({
         </button>
       </div>
 
-      {/* Condition / notes lines */}
-      {conditionLines.length > 0 && (
-        <div className={`px-2 pb-1.5 ${isRTL ? 'pe-8 text-right' : 'ps-8'}`}>
-          {conditionLines.map((line, i) => (
-            <p key={i} className="text-xs text-teal-600 leading-snug">
-              {line}
-            </p>
-          ))}
+      {piecePreferenceRows.some((r) => r.labels.length > 0) && (
+        <div className={`px-2 pb-1.5 space-y-1.5 ${isRTL ? 'pe-8' : 'ps-8'}`}>
+          {piecePreferenceRows.map((row, i) =>
+            row.labels.length === 0 ? null : (
+              <div
+                key={i}
+                className={cn('flex flex-wrap gap-1', isRTL ? 'flex-row-reverse justify-end' : '')}
+              >
+                {row.labels.map((label, j) => (
+                  <span
+                    key={`${i}-${j}`}
+                    className="inline-flex max-w-full rounded-md border border-teal-200/90 bg-teal-50/90 px-1.5 py-0.5 text-[10px] font-medium leading-tight text-teal-900"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )
+          )}
         </div>
       )}
     </div>

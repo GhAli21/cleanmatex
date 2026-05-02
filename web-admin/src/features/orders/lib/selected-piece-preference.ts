@@ -128,7 +128,11 @@ export function applySelectedPreferencesToPiece(
 
   for (const p of forPiece) {
     const kind = p.preference_sys_kind;
-    if (kind === 'condition_stain' || kind === 'condition_damag') {
+    if (
+      kind === 'condition_stain' ||
+      kind === 'condition_damag' ||
+      kind === 'condition_special'
+    ) {
       conditions.push(toUICode(p.preference_code));
     } else if (kind === 'service_prefs') {
       servicePrefs.push({

@@ -75,6 +75,7 @@ interface OrderSummaryPanelProps {
   onSelectPiece?: (pieceId: string | null) => void;
   canSubmit: boolean;
   colorCatalog?: ColorCatalogEntry[];
+  preferenceLabelByCode?: Record<string, string>;
   // Customer header props
   customerName?: string;
   onSelectCustomer?: () => void;
@@ -122,6 +123,7 @@ function OrderSummaryPanelComponent({
   onSelectPiece,
   canSubmit,
   colorCatalog,
+  preferenceLabelByCode,
   customerName,
   onSelectCustomer,
   onEditCustomer,
@@ -269,6 +271,7 @@ function OrderSummaryPanelComponent({
           selectedPieceId={selectedPieceId}
           onSelectPiece={onSelectPiece}
           colorCatalog={colorCatalog}
+          preferenceLabelByCode={preferenceLabelByCode}
         />
       </div>
 

@@ -4,6 +4,7 @@
 
 'use client';
 
+import type { CSSProperties } from 'react';
 import { Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -12,6 +13,8 @@ export interface PreferenceChipProps {
   extraPrice: number;
   currencyCode: string;
   kindClassName?: string;
+  /** Kind color accent (hex from DB) layered under optional Tailwind kindClassName */
+  accentStyle?: CSSProperties;
   onRemove: () => void;
   onCopy: () => void;
   removeLabel: string;
@@ -23,6 +26,7 @@ export function PreferenceChip({
   extraPrice,
   currencyCode,
   kindClassName,
+  accentStyle,
   onRemove,
   onCopy,
   removeLabel,
@@ -33,14 +37,15 @@ export function PreferenceChip({
   return (
     <span
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-full border px-3 py-1 text-sm',
-        'border-gray-200 bg-gray-50 text-gray-900',
+        'inline-flex max-w-full items-center gap-1.5 rounded-2xl border px-3 py-1.5 text-sm',
+        'border-gray-200/90 bg-white text-gray-900 shadow-sm',
         kindClassName
       )}
+      style={accentStyle}
     >
       <span className="truncate font-medium">{label}</span>
       {showPrice && (
-        <span className="shrink-0 font-semibold text-gray-800">
+        <span className="shrink-0 text-xs font-bold text-emerald-700 tabular-nums">
           +{extraPrice.toFixed(3)} {currencyCode}
         </span>
       )}

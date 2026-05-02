@@ -56,7 +56,7 @@ describe('pieceToSelectedPreferences / applySelectedPreferencesToPiece', () => {
     };
     const chips = pieceToSelectedPreferences(piece);
     expect(chips).toHaveLength(1);
-    expect(chips[0].preference_sys_kind).toBe('condition_damag');
+    expect(chips[0].preference_sys_kind).toBe('condition_special');
     expect(chips[0].preference_code).toBe('DELICATE_COND');
     const merged = applySelectedPreferencesToPiece(basePiece(), chips);
     expect(merged.conditions).toEqual(['delicate']);

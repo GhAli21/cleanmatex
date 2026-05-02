@@ -1,5 +1,5 @@
 /**
- * One card per piece: kind action bar + preference chips + copy-all.
+ * One card per piece: kind toolbar (segmented tabs) + preference chips grouped by kind + copy-all.
  */
 
 'use client';
@@ -17,6 +17,12 @@ import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-t
 import type { SelectedPreference } from '@/src/features/orders/lib/selected-piece-preference';
 import { PreferenceChip } from './preference-chip';
 import { PieceKindPickerDialog } from './piece-kind-picker-dialog';
+import {
+  kindChipAccentStyle,
+  kindToolbarInactiveSurface,
+  parseKindBgHex,
+  isTailwindKindBgToken,
+} from './piece-pref-kind-styles';
 
 interface ConditionCatalog {
   stains: Array<{ code: string; name: string; name2?: string | null }>;
@@ -34,20 +40,20 @@ function chipLabel(
   return pref.preference_code;
 }
 
-function chipKindClass(kind: string): string | undefined {
-  if (kind === 'condition_stain' || kind === 'condition_damag') return 'border-rose-200 bg-rose-50 text-rose-900';
+function chipFallbackClass(kind: string): string | undefined {
+  if (kind === 'condition_stain' || kind === 'condition_damag' || kind === 'condition_special') {
+    return 'border-rose-200 bg-rose-50 text-rose-900';
+  }
   if (kind === 'service_prefs') return 'border-blue-200 bg-blue-50 text-blue-900';
   if (kind === 'packing_prefs') return 'border-emerald-200 bg-emerald-50 text-emerald-900';
   if (kind === 'color') return 'border-violet-200 bg-violet-50 text-violet-900';
   return undefined;
 }
 
-/** Map DB kind_bg_color (e.g. tailwind classes) onto tab button / chip ring */
-function PREFERENCE_KIND_INACTIVE_TAB_CLASS(kindBg: string | null | undefined): string | undefined {
-  if (!kindBg || !kindBg.trim()) return undefined;
-  const t = kindBg.trim();
-  if (/^(bg-|text-|border-)/.test(t)) return t;
-  return undefined;
+/** Legacy: DB sometimes stores tailwind class fragments */
+function tailwindKindTokenClass(kindBg: string | null | undefined): string | undefined {
+  if (!kindBg || !isTailwindKindBgToken(kindBg)) return undefined;
+  return kindBg.trim();
 }
 
 export interface PiecePreferenceCardProps {
@@ -96,6 +102,7 @@ export function PiecePreferenceCard({
   const getBilingual = useBilingual();
   const isRTL = useRTL();
   const [pickerKind, setPickerKind] = useState<PreferenceKind | null>(null);
+  const [toolbarActiveKind, setToolbarActiveKind] = useState<string | null>(null);
 
   const nameByCode = useMemo(() => {
     const m = new Map<string, string>();
@@ -132,16 +139,56 @@ export function PiecePreferenceCard({
     [siblingPieceIds, piece.id]
   );
 
-  const kindStyleByKindCode = useMemo(() => {
-    const m = new Map<string, string>();
+  /** Per kind_code: hex (from DB) or tailwind token string for chips */
+  const kindVisualByCode = useMemo(() => {
+    const m = new Map<string, { hex: string | null; tw?: string }>();
     for (const k of kindsForBar) {
-      const cls =
-        PREFERENCE_KIND_INACTIVE_TAB_CLASS(k.kind_bg_color) ||
-        'border-gray-200 bg-gray-50 text-gray-800';
-      m.set(k.kind_code, cls);
+      const tw = tailwindKindTokenClass(k.kind_bg_color);
+      const hex = tw ? null : parseKindBgHex(k.kind_bg_color);
+      m.set(k.kind_code, { hex, tw });
     }
     return m;
   }, [kindsForBar]);
+
+  const chipPresentation = useMemo(() => {
+    return (kindCode: string) => {
+      const v = kindVisualByCode.get(kindCode);
+      const hex = v?.hex ?? null;
+      const tw = v?.tw;
+      const style = kindChipAccentStyle(hex);
+      const tailClass = tw || (!hex && !tw ? chipFallbackClass(kindCode) : undefined);
+      return { style, className: tailClass };
+    };
+  }, [kindVisualByCode]);
+
+  const groupedPreferences = useMemo(() => {
+    if (preferences.length === 0) return [];
+    const byKind = new Map<string, SelectedPreference[]>();
+    for (const p of preferences) {
+      const k = p.preference_sys_kind;
+      if (!byKind.has(k)) byKind.set(k, []);
+      byKind.get(k)!.push(p);
+    }
+    const ordered: { kindCode: string; sectionLabel: string; prefs: SelectedPreference[] }[] = [];
+    const seen = new Set<string>();
+    for (const k of kindsForBar) {
+      const list = byKind.get(k.kind_code);
+      if (list?.length) {
+        ordered.push({
+          kindCode: k.kind_code,
+          sectionLabel: getBilingual(k.name, k.name2 ?? null) || k.kind_code,
+          prefs: list,
+        });
+        seen.add(k.kind_code);
+      }
+    }
+    for (const [kindCode, prefs] of byKind) {
+      if (!seen.has(kindCode) && prefs.length > 0) {
+        ordered.push({ kindCode, sectionLabel: kindCode, prefs });
+      }
+    }
+    return ordered;
+  }, [preferences, kindsForBar, getBilingual]);
 
   const pieceHeading = useMemo(() => {
     const pieceLabel = tPieces('pieceNumber', { number: piece.pieceSeq });
@@ -153,14 +200,14 @@ export function PiecePreferenceCard({
 
   return (
     <div
-      className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+      className="rounded-xl border border-slate-300/80 bg-white p-4 shadow-md ring-1 ring-slate-200/60"
       aria-label={t('cardAriaLabel', { item: itemTitle, piece: piece.pieceSeq })}
     >
       <div
         className={`flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between ${isRTL ? 'sm:flex-row-reverse' : ''}`}
       >
-        <div className="min-w-0 flex-1 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-          <h3 className="text-sm font-semibold leading-snug text-gray-900">{pieceHeading}</h3>
+        <div className="min-w-0 flex-1 rounded-lg border border-slate-300/70 bg-gradient-to-b from-slate-200/90 to-slate-100/95 px-3 py-2.5 shadow-sm">
+          <h3 className="text-sm font-semibold leading-snug text-slate-900">{pieceHeading}</h3>
         </div>
         {targetsForCopy.length > 0 && (
           <CmxButton
@@ -179,59 +226,109 @@ export function PiecePreferenceCard({
       </div>
 
       <div
-        className={`mt-3 flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+        className={cn(
+          'mt-4 rounded-xl border border-slate-200 bg-slate-100/95 p-1.5 shadow-inner',
+          isRTL && 'rtl'
+        )}
         role="toolbar"
         aria-label={t('kindToolbarAria')}
       >
         {kindsLoading ? (
-          <span className="text-sm text-gray-400">{t('loadingKinds')}</span>
+          <span className="block px-2 py-2 text-sm text-gray-500">{t('loadingKinds')}</span>
         ) : (
-          kindsForBar.map((kind) => {
-            const inactiveCls =
-              PREFERENCE_KIND_INACTIVE_TAB_CLASS(kind.kind_bg_color) || 'bg-gray-100 text-gray-800';
-            return (
-              <button
-                key={kind.kind_code}
-                type="button"
-                onClick={() => setPickerKind(kind)}
-                className={cn(
-                  'rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors',
-                  'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1',
-                  inactiveCls
-                )}
-              >
-                {getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code}
-              </button>
-            );
-          })
+          <div
+            className={cn(
+              'flex flex-wrap gap-x-2 gap-y-2',
+              isRTL ? 'flex-row-reverse justify-end' : ''
+            )}
+          >
+            {kindsForBar.map((kind) => {
+              const isActive = toolbarActiveKind === kind.kind_code;
+              const hex = kindVisualByCode.get(kind.kind_code)?.hex ?? null;
+              const tw = kindVisualByCode.get(kind.kind_code)?.tw;
+              const inactiveSurf = kindToolbarInactiveSurface(hex);
+              const inactiveClass = tw
+                ? cn(
+                    'border border-gray-200 bg-white text-gray-800 shadow-sm hover:brightness-[0.98]',
+                    tw
+                  )
+                : cn(
+                    hex ? 'hover:brightness-[0.99]' : inactiveSurf.textClass,
+                    'hover:brightness-[0.98]'
+                  );
+              return (
+                <button
+                  key={kind.kind_code}
+                  type="button"
+                  onClick={() => {
+                    setToolbarActiveKind(kind.kind_code);
+                    setPickerKind(kind);
+                  }}
+                  className={cn(
+                    'rounded-lg px-3 py-2 text-sm font-semibold whitespace-nowrap transition-all',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1',
+                    isActive ? 'bg-blue-600 text-white shadow-md' : inactiveClass
+                  )}
+                  style={
+                    isActive || tw
+                      ? undefined
+                      : Object.keys(inactiveSurf.style).length > 0
+                        ? inactiveSurf.style
+                        : undefined
+                  }
+                  aria-pressed={isActive}
+                >
+                  {getBilingual(kind.name, kind.name2 ?? null) || kind.kind_code}
+                </button>
+              );
+            })}
+          </div>
         )}
       </div>
 
       {preferences.length > 0 && (
         <>
-          <div className="my-3 border-t border-gray-200" role="separator" aria-hidden />
-          <div className={`flex flex-wrap gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-            {preferences.map((pref) => {
-              const fromKind = kindStyleByKindCode.get(pref.preference_sys_kind);
-              const chipSurround = fromKind ?? chipKindClass(pref.preference_sys_kind);
-              return (
-                <PreferenceChip
-                  key={pref.id}
-                  label={chipLabel(pref, getBilingual, nameByCode)}
-                  extraPrice={pref.extra_price}
-                  currencyCode={currencyCode}
-                  kindClassName={chipSurround}
-                  onRemove={() => onRemovePreference(pref.id)}
-                  onCopy={() => {
-                    if (targetsForCopy.length > 0) {
-                      onCopyPreferenceToPieces(pref.id, targetsForCopy);
-                    }
-                  }}
-                  removeLabel={t('removeChip')}
-                  copyLabel={t('copyChip')}
-                />
-              );
-            })}
+          <div
+            className="my-4 h-1.5 w-full rounded-full bg-gradient-to-r from-blue-400 via-indigo-500 to-cyan-500 opacity-90 shadow-sm"
+            role="separator"
+            aria-hidden
+          />
+          <div className="space-y-4">
+            {groupedPreferences.map((group) => (
+              <div key={group.kindCode}>
+                <p
+                  className={cn(
+                    'mb-2 text-xs font-bold uppercase tracking-wide text-slate-600',
+                    isRTL ? 'text-right' : 'text-left'
+                  )}
+                >
+                  {group.sectionLabel}
+                </p>
+                <div className={cn('flex flex-wrap gap-2', isRTL ? 'flex-row-reverse' : '')}>
+                  {group.prefs.map((pref) => {
+                    const pres = chipPresentation(pref.preference_sys_kind);
+                    return (
+                      <PreferenceChip
+                        key={pref.id}
+                        label={chipLabel(pref, getBilingual, nameByCode)}
+                        extraPrice={pref.extra_price}
+                        currencyCode={currencyCode}
+                        kindClassName={pres.className}
+                        accentStyle={pres.style}
+                        onRemove={() => onRemovePreference(pref.id)}
+                        onCopy={() => {
+                          if (targetsForCopy.length > 0) {
+                            onCopyPreferenceToPieces(pref.id, targetsForCopy);
+                          }
+                        }}
+                        removeLabel={t('removeChip')}
+                        copyLabel={t('copyChip')}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </>
       )}

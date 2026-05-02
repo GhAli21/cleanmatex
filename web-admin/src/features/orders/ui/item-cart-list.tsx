@@ -55,6 +55,7 @@ interface ItemCartListProps {
   selectedPieceId?: string | null;
   onSelectPiece?: (pieceId: string | null) => void;
   colorCatalog?: ColorCatalogEntry[];
+  preferenceLabelByCode?: Record<string, string>;
 }
 
 function ItemCartListComponent({
@@ -65,6 +66,7 @@ function ItemCartListComponent({
   trackByPiece = false,
   currencyCode = ORDER_DEFAULTS.CURRENCY,
   colorCatalog,
+  preferenceLabelByCode,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -126,6 +128,7 @@ function ItemCartListComponent({
             overrideReason={item.overrideReason}
             currencyCode={currencyCode}
             colorCatalog={colorCatalog}
+            preferenceLabelByCode={preferenceLabelByCode}
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
             onEditNotes={onEditItemNotes ? () => onEditItemNotes(item.id) : undefined}
             onDelete={() => onDeleteItem(item.id)}

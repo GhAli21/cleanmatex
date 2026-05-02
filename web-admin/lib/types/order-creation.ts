@@ -73,6 +73,11 @@ export interface StainCondition {
   category: 'stain' | 'damage' | 'special';
 }
 
+/**
+ * Piece condition codes used by POS UI and by `condition-codes.ts` UI_TO_CATALOG.
+ * Canonical DB rows: `sys_service_preference_cd` (migration 0248 parity upsert).
+ * display: use catalog names; this list is fallback only.
+ */
 export const STAIN_CONDITIONS: StainCondition[] = [
   // Stains
   { code: 'bubble', label: 'Bubble', category: 'stain' },
