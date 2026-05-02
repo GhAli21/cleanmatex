@@ -348,12 +348,12 @@ export function PiecePreferenceCard({
             role="separator"
             aria-hidden
           />
-          <div className="space-y-2">
+          <div className={cn('flex flex-col gap-y-3 sm:flex-row sm:flex-wrap sm:gap-x-6', isRTL && 'sm:flex-row-reverse')}>
             {groupedPreferences.map((group) => (
-              <div key={group.kindCode}>
+              <div key={group.kindCode} className="flex flex-col gap-1.5">
                 <p
                   className={cn(
-                    'mb-1.5 text-xs font-bold uppercase tracking-wide text-slate-600',
+                    'text-xs font-bold uppercase tracking-wide text-slate-600',
                     isRTL ? 'text-right' : 'text-left'
                   )}
                 >
