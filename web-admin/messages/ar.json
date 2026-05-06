@@ -90,6 +90,93 @@
       "finalTotal": "المجموع النهائي"
     }
   },
+  "marketing": {
+    "title": "التسويق",
+    "promos": {
+      "title": "رموز الترويج",
+      "create": "إنشاء رمز ترويجي",
+      "edit": "تعديل رمز ترويجي",
+      "archive": "أرشفة",
+      "usageReport": "تقرير الاستخدام",
+      "fields": {
+        "code": "الرمز",
+        "name": "الاسم",
+        "discountType": "نوع الخصم",
+        "discountValue": "قيمة الخصم",
+        "maxUses": "الحد الأقصى للاستخدام",
+        "validFrom": "صالح من",
+        "validTo": "صالح حتى",
+        "minOrder": "الحد الأدنى للطلب",
+        "categories": "الفئات المنطبقة"
+      },
+      "status": {
+        "active": "نشط",
+        "expired": "منتهي",
+        "maxReached": "تم الوصول للحد"
+      },
+      "errors": {
+        "codeExists": "رمز الترويج موجود بالفعل",
+        "maxUsesExceeded": "تم الوصول للحد الأقصى — لا يمكن الحفظ"
+      }
+    },
+    "giftCards": {
+      "title": "بطاقات الهدايا",
+      "issue": "إصدار بطاقة هدية",
+      "detail": "تفاصيل بطاقة الهدية",
+      "adjust": "تعديل الرصيد",
+      "cancel": "إلغاء البطاقة",
+      "transactions": "المعاملات",
+      "fields": {
+        "cardNumber": "رقم البطاقة",
+        "cardName": "اسم البطاقة",
+        "amount": "المبلغ",
+        "balance": "الرصيد الحالي",
+        "issuedTo": "صادرة إلى",
+        "expiryDate": "تاريخ الانتهاء",
+        "pin": "الرقم السري (اختياري)"
+      },
+      "status": {
+        "active": "نشطة",
+        "used": "مستخدمة",
+        "expired": "منتهية",
+        "cancelled": "ملغاة",
+        "suspended": "موقوفة"
+      },
+      "errors": {
+        "insufficientBalance": "الرصيد غير كافٍ",
+        "cardCancelled": "البطاقة ملغاة"
+      }
+    },
+    "discountRules": {
+      "title": "قواعد الخصم",
+      "create": "إنشاء قاعدة",
+      "edit": "تعديل القاعدة",
+      "archive": "أرشفة",
+      "fields": {
+        "code": "رمز القاعدة",
+        "name": "اسم القاعدة",
+        "priority": "الأولوية",
+        "discountType": "نوع الخصم",
+        "discountValue": "القيمة",
+        "stackWithPromo": "التجميع مع رمز الترويج",
+        "stackWithRules": "التجميع مع قواعد أخرى",
+        "validFrom": "صالح من",
+        "validTo": "صالح حتى"
+      },
+      "conditions": {
+        "title": "الشروط",
+        "minOrder": "الحد الأدنى لمبلغ الطلب",
+        "minItems": "الحد الأدنى للعناصر",
+        "categories": "فئات الخدمة",
+        "customerTiers": "مستويات العملاء",
+        "daysOfWeek": "أيام الأسبوع",
+        "timeRanges": "النطاقات الزمنية"
+      },
+      "errors": {
+        "codeExists": "رمز القاعدة موجود بالفعل"
+      }
+    }
+  },
   "publicOrderTracking": {
     "title": "تتبع طلبك",
     "description": "شاهد حالة طلب الغسيل وتفاصيله بسهولة.",

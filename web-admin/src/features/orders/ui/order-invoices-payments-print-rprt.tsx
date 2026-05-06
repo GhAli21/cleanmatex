@@ -14,7 +14,17 @@ export interface OrderInvoicesPaymentsPrintRprtData {
     order_no: string;
     customer: { name: string; phone: string };
   };
-  invoices: Array<Invoice & { payments: PaymentTransaction[] }>;
+  invoices: Array<
+    Invoice & {
+      payments: PaymentTransaction[];
+      /** Discount from the best-matching auto rule (if any) */
+      auto_rule_discount?: number;
+      /** Promo code that was applied, e.g. "SUMMER20" */
+      promo_code?: string;
+      /** Last 4 digits of the gift card number */
+      gift_card_last4?: string;
+    }
+  >;
 }
 
 interface OrderInvoicesPaymentsPrintRprtProps {
@@ -94,6 +104,65 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
                   })}
                 </span>
               </div>
+
+              {/* Auto discount rule line — shown when a rule discount was applied */}
+              {Number(inv.auto_rule_discount ?? 0) > 0 && (
+                <div className="flex justify-between print-row text-blue-700">
+                  <span>{'Discount'}</span>
+                  <span>
+                    {`−${formatMoneyAmountWithCode(Number(inv.auto_rule_discount), {
+                      currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                      decimalPlaces,
+                      locale: moneyLocale,
+                    })}`}
+                  </span>
+                </div>
+              )}
+
+              {/* Promo code discount line */}
+              {Number(inv.promo_discount_amount ?? 0) > 0 && (
+                <div className="flex justify-between print-row text-blue-700">
+                  <span>
+                    {`Promo${inv.promo_code ? ` (${inv.promo_code})` : ''}`}
+                  </span>
+                  <span>
+                    {`−${formatMoneyAmountWithCode(Number(inv.promo_discount_amount), {
+                      currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                      decimalPlaces,
+                      locale: moneyLocale,
+                    })}`}
+                  </span>
+                </div>
+              )}
+
+              {/* Gift card line */}
+              {Number(inv.gift_card_discount_amount ?? 0) > 0 && (
+                <div className="flex justify-between print-row text-blue-700">
+                  <span>
+                    {`Gift Card${inv.gift_card_last4 ? ` (···${inv.gift_card_last4})` : ''}`}
+                  </span>
+                  <span>
+                    {`−${formatMoneyAmountWithCode(Number(inv.gift_card_discount_amount), {
+                      currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                      decimalPlaces,
+                      locale: moneyLocale,
+                    })}`}
+                  </span>
+                </div>
+              )}
+
+              {/* Total Charged — always shown */}
+              <div className="flex justify-between print-row font-semibold border-t border-gray-200 pt-0.5 mt-0.5">
+                <span>{'Total Charged'}</span>
+                <span>
+                  {formatMoneyAmountWithCode(Number(inv.paid_amount ?? 0), {
+                    currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                    decimalPlaces,
+                    locale: moneyLocale,
+                  })}
+                </span>
+              </div>
+
               <div className="flex justify-between print-row">
                 <span>{tOrders('paidAmount') ?? 'Paid'}</span>
                 <span className="text-green-700">

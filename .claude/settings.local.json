@@ -49,7 +49,12 @@
       "PowerShell(Get-Command supabase -ErrorAction SilentlyContinue)",
       "PowerShell($env:PATH = \"$env:USERPROFILE\\\\scoop\\\\shims;$env:PATH\"; scoop info supabase 2>&1 | Select-String \"Version|version\")",
       "PowerShell($env:PATH = \"$env:USERPROFILE\\\\scoop\\\\shims;$env:PATH\"; cd f:\\\\jhapp\\\\cleanmatex; .\\\\scripts\\\\dev\\\\start-services.ps1 2>&1)",
-      "PowerShell(docker volume ls --filter \"name=supabase\" 2>&1)"
+      "PowerShell(docker volume ls --filter \"name=supabase\" 2>&1)",
+      "PowerShell($projectsDir = \"$env:USERPROFILE\\\\.claude\\\\projects\"; if \\(Test-Path $projectsDir\\) { Get-ChildItem $projectsDir -Recurse | Select-Object -First 20 | Select-Object FullName } else { \"NOT FOUND: $projectsDir\" })",
+      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.claude\"; $env:USERPROFILE)",
+      "Bash(node -e ' *)",
+      "Bash(npx jest *)",
+      "Bash(grep -n 'applyPromoCodeTx\\\\|applyGiftCardTx\\\\|prisma.$transaction\\\\|withTenantContext\\\\|input.giftCardNumber\\\\|input.promoCodeId' f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/create-with-payment/route.ts)"
     ],
     "deny": [
       "Read(node_modules)",

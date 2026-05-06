@@ -90,6 +90,93 @@
       "finalTotal": "Final total"
     }
   },
+  "marketing": {
+    "title": "Marketing",
+    "promos": {
+      "title": "Promo Codes",
+      "create": "Create Promo Code",
+      "edit": "Edit Promo Code",
+      "archive": "Archive",
+      "usageReport": "Usage Report",
+      "fields": {
+        "code": "Code",
+        "name": "Name",
+        "discountType": "Discount Type",
+        "discountValue": "Discount Value",
+        "maxUses": "Max Uses",
+        "validFrom": "Valid From",
+        "validTo": "Valid To",
+        "minOrder": "Min Order Amount",
+        "categories": "Applicable Categories"
+      },
+      "status": {
+        "active": "Active",
+        "expired": "Expired",
+        "maxReached": "Limit Reached"
+      },
+      "errors": {
+        "codeExists": "Promo code already exists",
+        "maxUsesExceeded": "Usage limit already reached — cannot save"
+      }
+    },
+    "giftCards": {
+      "title": "Gift Cards",
+      "issue": "Issue Gift Card",
+      "detail": "Gift Card Detail",
+      "adjust": "Adjust",
+      "cancel": "Cancel Card",
+      "transactions": "Transactions",
+      "fields": {
+        "cardNumber": "Card Number",
+        "cardName": "Card Name",
+        "amount": "Amount",
+        "balance": "Current Balance",
+        "issuedTo": "Issued To",
+        "expiryDate": "Expiry Date",
+        "pin": "PIN (optional)"
+      },
+      "status": {
+        "active": "Active",
+        "used": "Used",
+        "expired": "Expired",
+        "cancelled": "Cancelled",
+        "suspended": "Suspended"
+      },
+      "errors": {
+        "insufficientBalance": "Insufficient balance",
+        "cardCancelled": "Card has been cancelled"
+      }
+    },
+    "discountRules": {
+      "title": "Discount Rules",
+      "create": "Create Rule",
+      "edit": "Edit Rule",
+      "archive": "Archive",
+      "fields": {
+        "code": "Rule Code",
+        "name": "Rule Name",
+        "priority": "Priority",
+        "discountType": "Discount Type",
+        "discountValue": "Value",
+        "stackWithPromo": "Stack with Promo Code",
+        "stackWithRules": "Stack with Other Rules",
+        "validFrom": "Valid From",
+        "validTo": "Valid To"
+      },
+      "conditions": {
+        "title": "Conditions",
+        "minOrder": "Minimum Order Amount",
+        "minItems": "Minimum Items",
+        "categories": "Service Categories",
+        "customerTiers": "Customer Tiers",
+        "daysOfWeek": "Days of Week",
+        "timeRanges": "Time Ranges"
+      },
+      "errors": {
+        "codeExists": "Rule code already exists"
+      }
+    }
+  },
   "publicOrderTracking": {
     "title": "Track Your Order",
     "description": "View the latest status and details of your laundry order.",

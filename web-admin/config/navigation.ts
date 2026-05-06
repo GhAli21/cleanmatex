@@ -29,7 +29,8 @@ import {
   CircleCheck,
   Bug,
   Building2,
-  FileText
+  FileText,
+  Megaphone,
 } from 'lucide-react'
 
 export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer'
@@ -528,6 +529,37 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         roles: ['admin', 'super_admin', 'tenant_admin'],
         permissions: ['erp_lite_reports:view'],
         featureFlag: FLAG_KEYS.ERP_LITE_ENABLED,
+      },
+    ],
+  },
+  {
+    key: 'marketing',
+    label: 'Marketing',
+    icon: Megaphone,
+    path: '/dashboard/marketing',
+    roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+    permissions: ['promotions:read'],
+    children: [
+      {
+        key: 'marketing_promos',
+        label: 'Promo Codes',
+        path: '/dashboard/marketing/promos',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['promotions:read'],
+      },
+      {
+        key: 'marketing_gift_cards',
+        label: 'Gift Cards',
+        path: '/dashboard/marketing/gift-cards',
+        roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
+        permissions: ['gift_cards:read'],
+      },
+      {
+        key: 'marketing_discount_rules',
+        label: 'Discount Rules',
+        path: '/dashboard/marketing/discount-rules',
+        roles: ['admin', 'super_admin', 'tenant_admin'],
+        permissions: ['discount_rules:read'],
       },
     ],
   },

@@ -11,6 +11,8 @@ import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { createInvoice } from '@/lib/services/invoice-service';
 import { recordPaymentTransaction } from '@/lib/services/payment-service';
+import { applyPromoCodeTx } from '@/lib/services/discount-service';
+import { applyGiftCardTx } from '@/lib/services/gift-card-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {
@@ -383,6 +385,37 @@ export async function POST(request: NextRequest) {
           });
         }
 
+        // Apply promo code usage atomically within this transaction.
+        // SELECT FOR UPDATE inside applyPromoCodeTx prevents TOCTOU races on max_uses.
+        if (input.promoCodeId && serverTotals.promoDiscount > 0) {
+          await applyPromoCodeTx(tx, {
+            promoCodeId: input.promoCodeId,
+            orderId,
+            invoiceId: invoice.id,
+            tenantOrgId: tenantId,
+            customerId: input.customerId ?? undefined,
+            discountAmount: serverTotals.promoDiscount,
+            orderTotalBefore: serverTotals.afterDiscounts + serverTotals.promoDiscount,
+            appliedBy: userId,
+          });
+        }
+
+        // Debit gift card atomically within this transaction.
+        // SELECT FOR UPDATE inside applyGiftCardTx prevents double-debit races.
+        if (input.giftCardNumber && serverTotals.giftCardApplied > 0) {
+          await applyGiftCardTx(tx, {
+            cardNumber: input.giftCardNumber,
+            amount: serverTotals.giftCardApplied,
+            orderId,
+            invoiceId: invoice.id,
+            branchId,
+            processedBy: userId,
+            currencyCode: serverTotals.currencyCode,
+            decimalPlaces: serverTotals.decimalPlaces,
+            tenantOrgId: tenantId,
+          });
+        }
+
         return { orderId, orderNo, currentStatus: orderResult.order.currentStatus };
       })
     );
@@ -413,7 +446,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.error('[create-with-payment] Error:', error);
+    logger.error('[create-with-payment] Error', error instanceof Error ? error : new Error(String(error)), {});
     return NextResponse.json(
       {
         success: false,

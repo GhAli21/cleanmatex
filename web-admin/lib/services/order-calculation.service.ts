@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/server';
 import { pricingService } from './pricing.service';
 import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
-import { validatePromoCode } from './discount-service';
+import { validatePromoCode, getBestDiscount } from './discount-service';
 import { validateGiftCard } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
@@ -45,6 +45,8 @@ export interface OrderCalculationParams {
 export interface OrderCalculationResult {
   subtotal: number;
   manualDiscount: number;
+  /** Discount from the best-matching automatic discount rule (no code required). */
+  autoRuleDiscount: number;
   promoDiscount: number;
   afterDiscounts: number;
   taxRate: number;
@@ -102,6 +104,7 @@ export async function calculateOrderTotals(
     return {
       subtotal: 0,
       manualDiscount: 0,
+      autoRuleDiscount: 0,
       promoDiscount: 0,
       afterDiscounts: 0,
       taxRate: 0,
@@ -156,24 +159,66 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
+  // Evaluate automatic discount rules — best single rule wins.
+  let autoRuleDiscount = 0;
+  const bestRule = await getBestDiscount(tenantId, {
+    order_total: afterManualDiscount,
+    items_count: items.length,
+    service_categories: serviceCategories ?? [],
+    order_date: new Date().toISOString(),
+  });
+  if (bestRule) {
+    autoRuleDiscount = round(
+      Math.min(bestRule.discount_amount, afterManualDiscount),
+      decimalPlaces
+    );
+  }
+
+  const afterAutoRuleDiscount = round(
+    Math.max(0, afterManualDiscount - autoRuleDiscount),
+    decimalPlaces
+  );
+
   let promoDiscount = 0;
   if (promoCode?.trim()) {
-    const promoResult = await validatePromoCode({
-      promo_code: promoCode,
-      order_total: afterManualDiscount,
-      customer_id: customerId,
-      service_categories: serviceCategories,
-    });
-    if (promoResult.isValid && promoResult.discountAmount != null) {
-      promoDiscount = round(
-        Math.min(promoResult.discountAmount, afterManualDiscount),
-        decimalPlaces
-      );
+    // If the best auto rule does not allow stacking with a promo code,
+    // compare the two and keep only the larger discount.
+    if (bestRule && !bestRule.rule.can_stack_with_promo) {
+      const promoResult = await validatePromoCode({
+        promo_code: promoCode,
+        order_total: afterManualDiscount,
+        customer_id: customerId,
+        service_categories: serviceCategories,
+      });
+      const promoAmt = promoResult.isValid && promoResult.discountAmount != null
+        ? round(Math.min(promoResult.discountAmount, afterManualDiscount), decimalPlaces)
+        : 0;
+
+      if (promoAmt >= autoRuleDiscount) {
+        // Promo wins — suppress the auto rule discount.
+        autoRuleDiscount = 0;
+        promoDiscount = promoAmt;
+      }
+      // else: auto rule wins — promoDiscount stays 0.
+    } else {
+      // Stackable path: apply both auto rule and promo.
+      const promoResult = await validatePromoCode({
+        promo_code: promoCode,
+        order_total: afterAutoRuleDiscount,
+        customer_id: customerId,
+        service_categories: serviceCategories,
+      });
+      if (promoResult.isValid && promoResult.discountAmount != null) {
+        promoDiscount = round(
+          Math.min(promoResult.discountAmount, afterAutoRuleDiscount),
+          decimalPlaces
+        );
+      }
     }
   }
 
   const afterDiscounts = round(
-    Math.max(0, afterManualDiscount - promoDiscount),
+    Math.max(0, afterManualDiscount - autoRuleDiscount - promoDiscount),
     decimalPlaces
   );
 
@@ -222,6 +267,7 @@ export async function calculateOrderTotals(
   return {
     subtotal: subtotalRounded,
     manualDiscount,
+    autoRuleDiscount,
     promoDiscount,
     afterDiscounts,
     taxRate: vatRate,

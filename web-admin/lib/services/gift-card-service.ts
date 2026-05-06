@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { logger } from '@/lib/utils/logger';
 import type {
   GiftCard,
   GiftCardStatus,
@@ -24,6 +25,9 @@ import type {
   ValidateGiftCardResult,
   ApplyGiftCardInput,
 } from '../types/payment';
+
+/** Prisma interactive-transaction client type — matches what prisma.$transaction callback receives */
+type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
 // ============================================================================
 // Gift Card Validation
@@ -64,9 +68,10 @@ export async function validateGiftCard(
       };
     }
 
-    // Check PIN if provided
-    if (giftCard.card_pin && input.card_pin) {
-      if (giftCard.card_pin !== input.card_pin) {
+    // PIN guard: if the card has a PIN, the caller MUST supply the correct one.
+    // Passing when PIN is set but not sent is a security bug — reject explicitly.
+    if (giftCard.card_pin) {
+      if (!input.card_pin || giftCard.card_pin !== input.card_pin) {
         return {
           isValid: false,
           error: 'Invalid gift card PIN',
@@ -98,20 +103,11 @@ export async function validateGiftCard(
       };
     }
 
-    // Check expiry date
+    // Check expiry date — read-only; mutation happens inside applyGiftCardTx with row lock.
     if (giftCard.expiry_date) {
       const now = new Date();
       const expiryDate = new Date(giftCard.expiry_date);
       if (now > expiryDate) {
-        // Mark as expired
-        await prisma.org_gift_cards_mst.update({
-          where: { id: giftCard.id },
-          data: {
-            status: 'expired',
-            updated_at: new Date(),
-          },
-        });
-
         return {
           isValid: false,
           error: 'Gift card has expired',
@@ -120,18 +116,9 @@ export async function validateGiftCard(
       }
     }
 
-    // Check balance
+    // Check balance — read-only; no mutation here.
     const currentBalance = Number(giftCard.current_balance);
     if (currentBalance <= 0) {
-      // Mark as used
-      await prisma.org_gift_cards_mst.update({
-        where: { id: giftCard.id },
-        data: {
-          status: 'used',
-          updated_at: new Date(),
-        },
-      });
-
       return {
         isValid: false,
         error: 'Gift card has no remaining balance',
@@ -145,7 +132,7 @@ export async function validateGiftCard(
         availableBalance: currentBalance,
       };
     } catch (error) {
-      console.error('Error validating gift card:', error);
+      logger.error('Error validating gift card', error as Error, {});
       return {
         isValid: false,
         error: 'An error occurred while validating gift card',
@@ -179,6 +166,11 @@ export async function getGiftCardBalance(
       return null;
     }
 
+    // Expiry check — read-only; return expired status without writing.
+    if (giftCard.expiry_date && new Date() > new Date(giftCard.expiry_date)) {
+      return { balance: 0, status: 'expired' as GiftCardStatus };
+    }
+
     return {
       balance: Number(giftCard.current_balance),
       status: giftCard.status as GiftCardStatus,
@@ -191,12 +183,110 @@ export async function getGiftCardBalance(
 // ============================================================================
 
 /**
- * Apply gift card to order payment
+ * Apply gift card inside an existing Prisma transaction.
+ *
+ * Uses SELECT FOR UPDATE to prevent double-debit on concurrent requests.
+ * Currency config must be fetched BEFORE calling this function (outside tx)
+ * to avoid running I/O inside the transaction that is unrelated to the tx.
+ */
+export async function applyGiftCardTx(
+  tx: PrismaTransactionClient,
+  params: {
+    cardNumber: string;
+    amount: number;
+    orderId?: string;
+    invoiceId?: string;
+    branchId?: string;
+    processedBy?: string;
+    currencyCode: string;
+    decimalPlaces: number;
+    tenantOrgId: string;
+  }
+): Promise<{ newBalance: number }> {
+  const { cardNumber, amount, orderId, invoiceId, branchId, processedBy, tenantOrgId } = params;
+
+  // SELECT FOR UPDATE prevents double-debit when the same card is used
+  // concurrently (e.g. two tabs race to apply the same gift card).
+  const locked = await tx.$queryRaw<
+    {
+      id: string;
+      current_balance: number;
+      status: string;
+      card_pin: string | null;
+      expiry_date: Date | null;
+      tenant_org_id: string;
+    }[]
+  >`
+    SELECT id, current_balance, status, card_pin, expiry_date, tenant_org_id
+    FROM org_gift_cards_mst
+    WHERE card_number = ${cardNumber}
+      AND tenant_org_id = ${tenantOrgId}
+      AND is_active = true
+    FOR UPDATE
+  `;
+
+  if (!locked.length) throw new Error('GIFT_CARD_NOT_FOUND');
+
+  const row = locked[0];
+
+  // Inline expiry check with mutation — primary enforcement point per plan §6.
+  // This is the authoritative write path; validateGiftCard is read-only.
+  if (row.expiry_date && new Date() > new Date(row.expiry_date)) {
+    await tx.org_gift_cards_mst.update({
+      where: { id: row.id },
+      data: { status: 'expired', updated_at: new Date() },
+    });
+    throw new Error('GIFT_CARD_EXPIRED');
+  }
+
+  if (row.status !== 'active') throw new Error('GIFT_CARD_NOT_ACTIVE');
+
+  const balanceBefore = Number(row.current_balance);
+  if (balanceBefore < amount) throw new Error('INSUFFICIENT_BALANCE');
+
+  const balanceAfter = balanceBefore - amount;
+  const newStatus: GiftCardStatus = balanceAfter <= 0 ? 'used' : 'active';
+
+  await tx.org_gift_card_transactions.create({
+    data: {
+      tenant_org_id: row.tenant_org_id,
+      gift_card_id: row.id,
+      branch_id: branchId,
+      transaction_type: 'redemption',
+      amount,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
+      order_id: orderId,
+      invoice_id: invoiceId,
+      transaction_date: new Date(),
+      processed_by: processedBy,
+      notes: orderId ? `Applied to order ${orderId}` : 'Gift card redemption',
+    },
+  });
+
+  await tx.org_gift_cards_mst.update({
+    where: { id: row.id },
+    data: {
+      current_balance: balanceAfter,
+      status: newStatus,
+      updated_at: new Date(),
+      updated_by: processedBy,
+    },
+  });
+
+  return { newBalance: balanceAfter };
+}
+
+/**
+ * Apply gift card to order payment.
+ *
+ * Currency config is fetched BEFORE the transaction starts so that async
+ * I/O (Supabase call) does not run inside the Prisma transaction block.
+ * Internally delegates to applyGiftCardTx for row-level locking.
  */
 export async function applyGiftCard(
   input: ApplyGiftCardInput
 ): Promise<{ success: boolean; newBalance: number; error?: string }> {
-  // Get tenant ID from session
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) {
     return {
@@ -206,96 +296,50 @@ export async function applyGiftCard(
     };
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     try {
+      // Fetch currency config OUTSIDE the transaction — Supabase call must not
+      // run inside prisma.$transaction (unrelated async I/O extends tx duration).
       const supabaseMoney = await createClient();
       const moneyCfg = await createTenantSettingsService(supabaseMoney).getCurrencyConfig(
         tenantId,
         undefined,
         undefined
       );
-
-      return await prisma.$transaction(async (tx) => {
-      // Get gift card
-      const giftCard = await tx.org_gift_cards_mst.findFirst({
-        where: {
-          card_number: input.card_number,
-          is_active: true,
-        },
-      });
-
-      if (!giftCard) {
-        throw new Error('Gift card not found');
-      }
-
-      const currentBalance = Number(giftCard.current_balance);
-
-      // Validate amount
-      if (input.amount > currentBalance) {
-        const available = formatMoneyAmountWithCode(currentBalance, {
-          currencyCode: moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY,
-          decimalPlaces: moneyCfg.decimalPlaces ?? ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
-          locale: 'en',
-        });
-        throw new Error(`Insufficient balance. Available: ${available}`);
-      }
+      const currencyCode = moneyCfg.currencyCode || ORDER_DEFAULTS.CURRENCY;
+      const decimalPlaces = moneyCfg.decimalPlaces ?? ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
 
       if (input.amount <= 0) {
-        throw new Error('Amount must be greater than zero');
+        return { success: false, newBalance: 0, error: 'Amount must be greater than zero' };
       }
 
-      const balanceBefore = currentBalance;
-      const balanceAfter = currentBalance - input.amount;
-
-      // Derive branch_id from order when available
-      let branchId: string | undefined;
+      // Derive branchId from order before entering tx (avoids nested async I/O).
+      let resolvedBranchId: string | undefined;
       if (input.order_id) {
-        const order = await tx.org_orders_mst.findUnique({
+        const order = await prisma.org_orders_mst.findUnique({
           where: { id: input.order_id },
           select: { branch_id: true },
         });
-        branchId = order?.branch_id ?? undefined;
+        resolvedBranchId = order?.branch_id ?? undefined;
       }
 
-      // Record transaction
-      await tx.org_gift_card_transactions.create({
-        data: {
-          tenant_org_id: giftCard.tenant_org_id,
-          gift_card_id: giftCard.id,
-          branch_id: branchId,
-          transaction_type: 'redemption',
+      const { newBalance } = await prisma.$transaction((tx) =>
+        applyGiftCardTx(tx, {
+          cardNumber: input.card_number,
           amount: input.amount,
-          balance_before: balanceBefore,
-          balance_after: balanceAfter,
-          order_id: input.order_id,
-          invoice_id: input.invoice_id,
-          transaction_date: new Date(),
-          processed_by: input.processed_by,
-          notes: `Applied to order ${input.order_id}`,
-        },
-      });
+          orderId: input.order_id,
+          invoiceId: input.invoice_id,
+          branchId: resolvedBranchId,
+          processedBy: input.processed_by,
+          currencyCode,
+          decimalPlaces,
+          tenantOrgId: tenantId,
+        })
+      );
 
-      // Update gift card balance
-      const newStatus: GiftCardStatus = balanceAfter <= 0 ? 'used' : 'active';
-
-      await tx.org_gift_cards_mst.update({
-        where: { id: giftCard.id },
-        data: {
-          current_balance: balanceAfter,
-          status: newStatus,
-          updated_at: new Date(),
-          updated_by: input.processed_by,
-        },
-      });
-
-        return {
-          success: true,
-          newBalance: balanceAfter,
-        };
-      });
+      return { success: true, newBalance };
     } catch (error) {
-      console.error('Error applying gift card:', error);
+      logger.error('Error applying gift card', error as Error, { tenantId });
       return {
         success: false,
         newBalance: 0,
@@ -306,7 +350,102 @@ export async function applyGiftCard(
 }
 
 /**
- * Refund gift card (restore balance)
+ * Refund gift card inside an existing Prisma transaction.
+ *
+ * Uses SELECT FOR UPDATE on the card row to prevent races on `current_balance`
+ * (e.g. concurrent redemption + refund). The refund is capped at
+ * `original_amount`, so callers must inspect `actualRefundAmount` to detect
+ * partial refunds.
+ *
+ * @remarks
+ * Compose this from `refundToGiftCard` (own tx) or from any outer transaction
+ * such as cancellation flows that need promo reversal + gift refund atomically.
+ *
+ * @throws GIFT_CARD_NOT_FOUND when the card is not found for the tenant.
+ */
+export async function refundToGiftCardTx(
+  tx: PrismaTransactionClient,
+  params: {
+    cardNumber: string;
+    amount: number;
+    orderId: string;
+    invoiceId: string;
+    reason: string;
+    processedBy?: string;
+    tenantOrgId: string;
+  }
+): Promise<{ newBalance: number; actualRefundAmount: number }> {
+  const { cardNumber, amount, orderId, invoiceId, reason, processedBy, tenantOrgId } = params;
+
+  // SELECT FOR UPDATE locks the gift card row for the duration of the tx —
+  // prevents racy double-refund or refund-during-redemption.
+  const locked = await tx.$queryRaw<
+    {
+      id: string;
+      tenant_org_id: string;
+      current_balance: number;
+      original_amount: number;
+    }[]
+  >`
+    SELECT id, tenant_org_id, current_balance, original_amount
+    FROM org_gift_cards_mst
+    WHERE card_number = ${cardNumber}
+      AND tenant_org_id = ${tenantOrgId}
+      AND is_active = true
+    FOR UPDATE
+  `;
+
+  if (!locked.length) throw new Error('GIFT_CARD_NOT_FOUND');
+
+  const row = locked[0];
+  const currentBalance = Number(row.current_balance);
+  const originalAmount = Number(row.original_amount);
+
+  // Cap at original_amount — never restore more than the card was issued for.
+  const newBalance = Math.min(currentBalance + amount, originalAmount);
+  const actualRefundAmount = newBalance - currentBalance;
+
+  // Derive branch_id from the order if linked (best-effort).
+  const order = await tx.org_orders_mst.findUnique({
+    where: { id: orderId },
+    select: { branch_id: true },
+  });
+  const branchId = order?.branch_id ?? undefined;
+
+  await tx.org_gift_card_transactions.create({
+    data: {
+      tenant_org_id: row.tenant_org_id,
+      gift_card_id: row.id,
+      branch_id: branchId,
+      transaction_type: 'refund',
+      amount: actualRefundAmount,
+      balance_before: currentBalance,
+      balance_after: newBalance,
+      order_id: orderId,
+      invoice_id: invoiceId,
+      transaction_date: new Date(),
+      processed_by: processedBy,
+      notes: `Refund: ${reason}`,
+    },
+  });
+
+  await tx.org_gift_cards_mst.update({
+    where: { id: row.id },
+    data: {
+      current_balance: newBalance,
+      status: newBalance > 0 ? 'active' : 'used',
+      updated_at: new Date(),
+      updated_by: processedBy,
+    },
+  });
+
+  return { newBalance, actualRefundAmount };
+}
+
+/**
+ * Refund gift card (restore balance).
+ *
+ * Thin wrapper around `refundToGiftCardTx` that opens its own transaction.
  */
 export async function refundToGiftCard(
   cardNumber: string,
@@ -315,87 +454,37 @@ export async function refundToGiftCard(
   invoiceId: string,
   reason: string,
   processedBy?: string
-): Promise<{ success: boolean; newBalance: number; error?: string }> {
-  // Get tenant ID from session
+): Promise<{ success: boolean; newBalance: number; actualRefundAmount: number; error?: string }> {
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) {
     return {
       success: false,
       newBalance: 0,
+      actualRefundAmount: 0,
       error: 'Unauthorized: Tenant ID required',
     };
   }
 
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     try {
-      return await prisma.$transaction(async (tx) => {
-      // Get gift card
-      const giftCard = await tx.org_gift_cards_mst.findFirst({
-        where: {
-          card_number: cardNumber,
-          is_active: true,
-        },
-      });
-
-      if (!giftCard) {
-        throw new Error('Gift card not found');
-      }
-
-      const currentBalance = Number(giftCard.current_balance);
-      const originalAmount = Number(giftCard.original_amount);
-
-      // Ensure refund doesn't exceed original amount
-      const newBalance = Math.min(currentBalance + amount, originalAmount);
-      const actualRefund = newBalance - currentBalance;
-
-      // Derive branch_id from order
-      let branchId: string | undefined;
-      const order = await tx.org_orders_mst.findUnique({
-        where: { id: orderId },
-        select: { branch_id: true },
-      });
-      branchId = order?.branch_id ?? undefined;
-
-      // Record transaction
-      await tx.org_gift_card_transactions.create({
-        data: {
-          tenant_org_id: giftCard.tenant_org_id,
-          gift_card_id: giftCard.id,
-          branch_id: branchId,
-          transaction_type: 'refund',
-          amount: actualRefund,
-          balance_before: currentBalance,
-          balance_after: newBalance,
-          order_id: orderId,
-          invoice_id: invoiceId,
-          transaction_date: new Date(),
-          processed_by: processedBy,
-          notes: `Refund: ${reason}`,
-        },
-      });
-
-      // Update gift card balance and status
-      await tx.org_gift_cards_mst.update({
-        where: { id: giftCard.id },
-        data: {
-          current_balance: newBalance,
-          status: newBalance > 0 ? 'active' : 'used',
-          updated_at: new Date(),
-          updated_by: processedBy,
-        },
-      });
-
-        return {
-          success: true,
-          newBalance,
-        };
-      });
+      const { newBalance, actualRefundAmount } = await prisma.$transaction((tx) =>
+        refundToGiftCardTx(tx, {
+          cardNumber,
+          amount,
+          orderId,
+          invoiceId,
+          reason,
+          processedBy,
+          tenantOrgId: tenantId,
+        })
+      );
+      return { success: true, newBalance, actualRefundAmount };
     } catch (error) {
-      console.error('Error refunding to gift card:', error);
+      logger.error('Error refunding to gift card', error as Error, {});
       return {
         success: false,
         newBalance: 0,
+        actualRefundAmount: 0,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
       };
     }
@@ -582,7 +671,7 @@ export async function deactivateGiftCard(
 
       return { success: true };
     } catch (error) {
-      console.error('Error deactivating gift card:', error);
+      logger.error('Error deactivating gift card', error as Error, {});
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',

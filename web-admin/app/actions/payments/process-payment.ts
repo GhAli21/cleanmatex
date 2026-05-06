@@ -12,6 +12,10 @@ import {
   processPayment as processPaymentService,
   validatePaymentData,
 } from '@/lib/services/payment-service';
+import { logger } from '@/lib/utils/logger';
+// applyPromoCode / applyGiftCard imports kept for future standalone payment use-cases.
+// The create-with-payment route uses applyPromoCodeTx / applyGiftCardTx instead
+// (inside its own transaction) to ensure atomic commit.
 import { applyPromoCode } from '@/lib/services/discount-service';
 import { applyGiftCard } from '@/lib/services/gift-card-service';
 import type {
@@ -158,27 +162,11 @@ export async function processPayment(
       // This is just for additional validation if needed
     }
 
-    if (input.giftCardNumber && input.giftCardAmount && result.invoice_id && input.orderId) {
-      const giftCardResult = await applyGiftCard({
-        card_number: input.giftCardNumber,
-        amount: input.giftCardAmount,
-        order_id: input.orderId,
-        invoice_id: result.invoice_id,
-        processed_by: userId,
-      });
-
-      if (!giftCardResult.success) {
-        return {
-          success: false,
-          invoice_id: result.invoice_id,
-          payment_status: 'failed',
-          amount_paid: 0,
-          remaining_balance: input.amount,
-          error: giftCardResult.error,
-          errorCode: 'GIFT_CARD_ERROR',
-        };
-      }
-    }
+    // Gift card debit is handled atomically inside the create-with-payment route
+    // transaction via applyGiftCardTx. This post-hoc standalone call was a race
+    // condition (payment committed but gift card debit could fail independently).
+    // For standalone payment processing (not create-with-payment), callers should
+    // use applyGiftCardTx / applyPromoCodeTx inside their own transactions.
 
     // Revalidate order and invoice pages
     revalidatePath('/dashboard/orders');
@@ -193,7 +181,7 @@ export async function processPayment(
 
     return result;
   } catch (error) {
-    console.error('Error processing payment:', error);
+    logger.error('Error processing payment', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       invoice_id: input.invoiceId || '',
@@ -221,7 +209,7 @@ export async function getPaymentMethods() {
       data: methods,
     };
   } catch (error) {
-    console.error('Error fetching payment methods:', error);
+    logger.error('Error fetching payment methods', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payment methods',
@@ -244,7 +232,7 @@ export async function getPaymentStatus(orderId: string) {
       data: status,
     };
   } catch (error) {
-    console.error('Error fetching payment status:', error);
+    logger.error('Error fetching payment status', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payment status',
@@ -267,7 +255,7 @@ export async function getPaymentHistory(invoiceId: string) {
       data: history,
     };
   } catch (error) {
-    console.error('Error fetching payment history:', error);
+    logger.error('Error fetching payment history', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payment history',
@@ -286,7 +274,7 @@ export async function getPaymentsForOrder(orderId: string) {
     const payments = await getOrderPayments(orderId);
     return { success: true, data: payments };
   } catch (error) {
-    console.error('Error fetching payments for order:', error);
+    logger.error('Error fetching payments for order', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payments',
@@ -305,7 +293,7 @@ export async function getPaymentsForCustomer(customerId: string) {
     const payments = await getCustomerPayments(customerId);
     return { success: true, data: payments };
   } catch (error) {
-    console.error('Error fetching payments for customer:', error);
+    logger.error('Error fetching payments for customer', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch payments',
@@ -335,7 +323,7 @@ export async function applyPaymentToInvoice(
     }
     return result;
   } catch (error) {
-    console.error('Error applying payment to invoice:', error);
+    logger.error('Error applying payment to invoice', error instanceof Error ? error : new Error(String(error)), {});
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to apply payment',

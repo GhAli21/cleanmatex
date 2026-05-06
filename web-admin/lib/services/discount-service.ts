@@ -10,6 +10,10 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
+import { logger } from '@/lib/utils/logger';
+
+/** Prisma interactive-transaction client type — matches what prisma.$transaction callback receives */
+type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import type {
   PromoCode,
   PromoCodeUsage,
@@ -180,7 +184,7 @@ export async function validatePromoCode(
         discountAmount,
       };
     } catch (error) {
-      console.error('Error validating promo code:', error);
+      logger.error('Error validating promo code', error as Error, { tenantId: undefined });
       return {
         isValid: false,
         error: 'An error occurred while validating promo code',
@@ -218,7 +222,87 @@ function calculatePromoDiscount(
 // ============================================================================
 
 /**
- * Apply promo code to order and record usage
+ * Apply promo code inside an existing Prisma transaction.
+ *
+ * Uses SELECT FOR UPDATE to prevent TOCTOU race conditions on max_uses.
+ * Must be called from within a prisma.$transaction callback.
+ */
+export async function applyPromoCodeTx(
+  tx: PrismaTransactionClient,
+  params: {
+    promoCodeId: string;
+    orderId: string;
+    invoiceId: string;
+    tenantOrgId: string;
+    customerId?: string;
+    discountAmount: number;
+    orderTotalBefore: number;
+    appliedBy?: string;
+  }
+): Promise<void> {
+  const {
+    promoCodeId,
+    orderId,
+    invoiceId,
+    tenantOrgId,
+    customerId,
+    discountAmount,
+    orderTotalBefore,
+    appliedBy,
+  } = params;
+
+  // SELECT FOR UPDATE locks the row for the duration of the transaction.
+  // This prevents a concurrent request from reading the same current_uses
+  // value before the increment is committed (TOCTOU race).
+  const locked = await tx.$queryRaw<
+    { id: string; current_uses: number; max_uses: number | null }[]
+  >`
+    SELECT id, current_uses, max_uses
+    FROM org_promo_codes_mst
+    WHERE id = ${promoCodeId}
+      AND tenant_org_id = ${tenantOrgId}
+    FOR UPDATE
+  `;
+
+  if (!locked.length) throw new Error('PROMO_NOT_FOUND');
+
+  const row = locked[0];
+  if (row.max_uses !== null && row.current_uses >= row.max_uses) {
+    throw new Error('PROMO_MAX_USES_EXCEEDED');
+  }
+
+  await tx.org_promo_usage_log.create({
+    data: {
+      tenant_org_id: tenantOrgId,
+      promo_code_id: promoCodeId,
+      customer_id: customerId,
+      order_id: orderId,
+      invoice_id: invoiceId,
+      discount_amount: discountAmount,
+      order_total_before: orderTotalBefore,
+      order_total_after: orderTotalBefore - discountAmount,
+      used_at: new Date(),
+      used_by: appliedBy,
+    },
+  });
+
+  // Safe to increment here because SELECT FOR UPDATE held the lock.
+  await tx.org_promo_codes_mst.update({
+    where: { id: promoCodeId },
+    data: {
+      current_uses: { increment: 1 },
+      updated_at: new Date(),
+      updated_by: appliedBy,
+    },
+  });
+}
+
+/**
+ * Apply promo code to order and record usage.
+ *
+ * Thin standalone wrapper around applyPromoCodeTx. Starts its own
+ * transaction so the SELECT FOR UPDATE is still honoured when called
+ * outside a larger transaction context.
  */
 export async function applyPromoCode(
   promoCodeId: string,
@@ -230,49 +314,118 @@ export async function applyPromoCode(
   orderTotalBefore: number,
   appliedBy?: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantOrgId, async () => {
     try {
-      // Start transaction - tenant context is preserved
-      await prisma.$transaction(async (tx) => {
-      // Record usage
-      await tx.org_promo_usage_log.create({
-        data: {
-          tenant_org_id: tenantOrgId,
-          promo_code_id: promoCodeId,
-          customer_id: customerId,
-          order_id: orderId,
-          invoice_id: invoiceId,
-          discount_amount: discountAmount,
-          order_total_before: orderTotalBefore,
-          order_total_after: orderTotalBefore - discountAmount,
-          used_at: new Date(),
-          used_by: appliedBy,
-        },
-      });
-
-        // Increment usage count
-        await tx.org_promo_codes_mst.update({
-          where: { id: promoCodeId },
-          data: {
-            current_uses: {
-              increment: 1,
-            },
-            updated_at: new Date(),
-            updated_by: appliedBy,
-          },
-        });
-      });
-
+      await prisma.$transaction((tx) =>
+        applyPromoCodeTx(tx, {
+          promoCodeId,
+          orderId,
+          invoiceId,
+          tenantOrgId,
+          customerId,
+          discountAmount,
+          orderTotalBefore,
+          appliedBy,
+        })
+      );
       return { success: true };
     } catch (error) {
-      console.error('Error applying promo code:', error);
+      logger.error('Error applying promo code', error as Error, { tenantOrgId, promoCodeId });
       return {
         success: false,
-        error: 'Failed to apply promo code',
+        error: error instanceof Error ? error.message : 'Failed to apply promo code',
       };
     }
   });
+}
+
+/**
+ * Reverse promo code usage for a cancelled order.
+ *
+ * Marks all non-voided usage log rows for the order as voided (sets
+ * `voided_at` + `voided_by`) and decrements `current_uses` on each affected
+ * promo by the number of reversed usages for that promo.
+ *
+ * @remarks
+ * Uses SELECT FOR UPDATE on each affected promo row to avoid TOCTOU races
+ * with concurrent applies. Aggregates voided rows per `promo_code_id` to
+ * apply a single decrement per promo (avoids double-decrement when an order
+ * has multiple usage rows for the same promo).
+ *
+ * @returns the number of usage log rows reversed.
+ * @throws when the underlying writes fail.
+ */
+export async function reversePromoUsageTx(
+  tx: PrismaTransactionClient,
+  params: {
+    orderId: string;
+    tenantOrgId: string;
+    voidedBy?: string;
+  }
+): Promise<{ reversedCount: number }> {
+  const { orderId, tenantOrgId, voidedBy } = params;
+
+  // Find non-voided usage rows for this order — middleware adds tenant filter
+  // but we also pass it explicitly for clarity.
+  const usages = await tx.org_promo_usage_log.findMany({
+    where: {
+      tenant_org_id: tenantOrgId,
+      order_id: orderId,
+      voided_at: null,
+    },
+    select: {
+      id: true,
+      promo_code_id: true,
+    },
+  });
+
+  if (usages.length === 0) {
+    return { reversedCount: 0 };
+  }
+
+  // Aggregate count per promo so we issue exactly one decrement per promo.
+  const decrementByPromo = new Map<string, number>();
+  for (const u of usages) {
+    decrementByPromo.set(u.promo_code_id, (decrementByPromo.get(u.promo_code_id) ?? 0) + 1);
+  }
+
+  // Lock affected promo rows BEFORE updating to prevent races with concurrent
+  // applyPromoCodeTx calls reading stale current_uses.
+  for (const promoCodeId of decrementByPromo.keys()) {
+    await tx.$queryRaw`
+      SELECT id FROM org_promo_codes_mst
+      WHERE id = ${promoCodeId}
+        AND tenant_org_id = ${tenantOrgId}
+      FOR UPDATE
+    `;
+  }
+
+  // Mark all matching usage rows as voided in one statement.
+  await tx.org_promo_usage_log.updateMany({
+    where: {
+      tenant_org_id: tenantOrgId,
+      order_id: orderId,
+      voided_at: null,
+    },
+    data: {
+      voided_at: new Date(),
+      voided_by: voidedBy,
+    },
+  });
+
+  // Decrement current_uses per promo by exactly the count we voided.
+  for (const [promoCodeId, decBy] of decrementByPromo) {
+    await tx.org_promo_codes_mst.update({
+      where: { id: promoCodeId },
+      data: {
+        current_uses: { decrement: decBy },
+        updated_at: new Date(),
+        updated_by: voidedBy,
+      },
+    });
+  }
+
+  return { reversedCount: usages.length };
 }
 
 /**
