@@ -68,28 +68,16 @@ ON CONFLICT (code) DO UPDATE SET
   updated_info = 'Migration 0176 ERP-Lite Phase 1';
 
 INSERT INTO public.sys_auth_role_default_permissions (
-  role_code,
-  permission_code,
-  is_enabled,
-  is_active,
-  rec_status,
-  created_at,
-  created_by,
-  created_info
+  role_code, permission_code,
+  is_enabled, is_active, rec_status, created_at, created_by, created_info
 )
 SELECT
-  role_code,
-  permission_code,
-  true,
-  true,
-  1,
-  CURRENT_TIMESTAMP,
-  'system_admin',
-  'Migration 0176 ERP-Lite Phase 1'
-FROM (
-  SELECT role_code, permission_code
-  FROM unnest(ARRAY['super_admin', 'tenant_admin']) AS role_code
-  CROSS JOIN unnest(ARRAY[
+  r.code, p.code,
+  true, true, 1, CURRENT_TIMESTAMP, 'system_admin', 'Migration 0176 ERP-Lite Phase 1'
+FROM sys_auth_roles r
+CROSS JOIN sys_auth_permissions p
+WHERE r.code IN ('super_admin', 'tenant_admin')
+  AND p.code IN (
     'erp_lite:view',
     'erp_lite_coa:view',
     'erp_lite_coa:create',
@@ -121,8 +109,10 @@ FROM (
     'erp_lite_periods:view',
     'erp_lite_periods:close',
     'erp_lite_periods:reopen'
-  ]) AS permission_code
-) AS seed_rows
-ON CONFLICT (role_code, permission_code) DO NOTHING;
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
 
 COMMIT;

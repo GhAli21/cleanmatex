@@ -9,6 +9,7 @@
 # 2. Loads all seed data (lookup tables + demo tenants)
 # ==================================================================
 # Usage: .\scripts\db\reset-with-seeds.ps1
+# Full guide: docs/dev/cleanmatex_infra_guide.md  (Section 6 — Option B)
 # ==================================================================
 
 param(

@@ -426,7 +426,7 @@ LANGUAGE SQL
 STABLE
 SECURITY DEFINER
 AS $$
-  SELECT cmx_can(p_permission, p_resource_type, p_resource_id);
+  SELECT cmx_can(p_perm => p_permission, p_resource_type => p_resource_type, p_resource_id => p_resource_id);
 $$;
 
 COMMENT ON FUNCTION has_resource_permission IS 'Check if current user has resource-scoped permission';

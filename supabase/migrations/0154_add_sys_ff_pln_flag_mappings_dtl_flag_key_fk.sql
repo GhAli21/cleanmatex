@@ -4,7 +4,7 @@
 -- Description: Enforce referential integrity for plan-flag mappings
 -- =====================================================
 
-BEGIN
+BEGIN;
 -- Ensure no orphaned rows before adding FK (flag_key must exist in hq_ff_feature_flags_mst)
 DELETE FROM sys_ff_pln_flag_mappings_dtl
 WHERE flag_key NOT IN (SELECT flag_key FROM hq_ff_feature_flags_mst);

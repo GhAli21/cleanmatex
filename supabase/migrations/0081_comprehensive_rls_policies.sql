@@ -419,11 +419,12 @@ CREATE POLICY tenant_isolation_org_tenant_settings_cf ON org_tenant_settings_cf
   FOR ALL USING (tenant_org_id = current_tenant_id())
   WITH CHECK (tenant_org_id = current_tenant_id());
 
-SELECT drop_old_policies_for_table('org_stng_settings_cf');
-DROP POLICY IF EXISTS tenant_isolation_org_stng_settings_cf ON org_stng_settings_cf;
-CREATE POLICY tenant_isolation_org_stng_settings_cf ON org_stng_settings_cf
-  FOR ALL USING (tenant_org_id = current_tenant_id())
-  WITH CHECK (tenant_org_id = current_tenant_id());
+-- org_stng_settings_cf was never created; skipping RLS for non-existent table
+-- SELECT drop_old_policies_for_table('org_stng_settings_cf');
+-- DROP POLICY IF EXISTS tenant_isolation_org_stng_settings_cf ON org_stng_settings_cf;
+-- CREATE POLICY tenant_isolation_org_stng_settings_cf ON org_stng_settings_cf
+--   FOR ALL USING (tenant_org_id = current_tenant_id())
+--   WITH CHECK (tenant_org_id = current_tenant_id());
 
 SELECT drop_old_policies_for_table('org_stng_effective_cache_cf');
 DROP POLICY IF EXISTS tenant_isolation_org_stng_effective_cache_cf ON org_stng_effective_cache_cf;

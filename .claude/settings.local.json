@@ -39,7 +39,17 @@
       "Bash(flutter analyze *)",
       "Bash(adb -s R58N13NLPVJ install -r \"f:/jhapp/cleanmatex/cmx_mobile_apps/apps/customer_app/build/app/outputs/flutter-apk/app-debug.apk\")",
       "Bash(flutter build *)",
-      "Read(//f:/jhapp/**)"
+      "Read(//f:/jhapp/**)",
+      "WebSearch",
+      "WebFetch(domain:supabase.com)",
+      "Bash(supabase --version)",
+      "Bash(supabase status *)",
+      "PowerShell(supabase --version)",
+      "PowerShell(supabase status 2>&1)",
+      "PowerShell(Get-Command supabase -ErrorAction SilentlyContinue)",
+      "PowerShell($env:PATH = \"$env:USERPROFILE\\\\scoop\\\\shims;$env:PATH\"; scoop info supabase 2>&1 | Select-String \"Version|version\")",
+      "PowerShell($env:PATH = \"$env:USERPROFILE\\\\scoop\\\\shims;$env:PATH\"; cd f:\\\\jhapp\\\\cleanmatex; .\\\\scripts\\\\dev\\\\start-services.ps1 2>&1)",
+      "PowerShell(docker volume ls --filter \"name=supabase\" 2>&1)"
     ],
     "deny": [
       "Read(node_modules)",

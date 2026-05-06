@@ -50,7 +50,7 @@
     "packages/*"
   ],
   "devDependencies": {
-    "supabase": "^2.84.5",
+    "supabase": "^2.98.2",
     "tsx": "^4.19.0"
   }
 }

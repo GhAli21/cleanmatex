@@ -37,7 +37,7 @@ CREATE POLICY tenant_isolation_user_tenant ON org_users_mst
   --USING (tenant_org_id = current_tenant_id())
   --WITH CHECK (tenant_org_id = current_tenant_id());
 
-COMMENT ON POLICY tenant_isolation_user_tenants ON org_users_mst IS 
+COMMENT ON POLICY tenant_isolation_user_tenant ON org_users_mst IS
   'Allow users to access only their current user record';
 
 

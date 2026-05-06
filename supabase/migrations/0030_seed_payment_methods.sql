@@ -26,8 +26,8 @@ INSERT INTO sys_payment_method_cd (
   payment_method_name2,
   is_enabled,
   is_active,
-  payment_type_icon,
-  payment_type_color1,
+  payment_method_icon,
+  payment_method_color1,
   rec_notes
 ) VALUES
   -- Cash Payment
@@ -153,8 +153,8 @@ INSERT INTO sys_payment_method_cd (
 ON CONFLICT (payment_method_code) DO UPDATE SET
   payment_method_name = EXCLUDED.payment_method_name,
   payment_method_name2 = EXCLUDED.payment_method_name2,
-  payment_type_icon = EXCLUDED.payment_type_icon,
-  payment_type_color1 = EXCLUDED.payment_type_color1,
+  payment_method_icon = EXCLUDED.payment_method_icon,
+  payment_method_color1 = EXCLUDED.payment_method_color1,
   rec_notes = EXCLUDED.rec_notes,
   updated_at = CURRENT_TIMESTAMP;
 

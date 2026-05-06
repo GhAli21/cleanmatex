@@ -34,17 +34,17 @@ INSERT INTO sys_auth_permissions (
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO sys_auth_role_default_permissions (
-  role_code,
-  permission_code,
-  is_enabled,
-  is_active,
-  rec_status,
-  created_at,
-  created_by
-) VALUES
-  ('super_admin', 'orders:return', true, true, 1, CURRENT_TIMESTAMP, 'system_admin'),
-  ('tenant_admin', 'orders:return', true, true, 1, CURRENT_TIMESTAMP, 'system_admin'),
-  ('operator', 'orders:return', true, true, 1, CURRENT_TIMESTAMP, 'system_admin')
-ON CONFLICT (role_code, permission_code) DO NOTHING;
+  role_code, permission_code,
+  is_enabled, is_active, rec_status, created_at, created_by
+)
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM sys_auth_roles r
+CROSS JOIN sys_auth_permissions p
+WHERE r.code IN ('super_admin', 'tenant_admin', 'operator')
+  AND p.code = 'orders:return'
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
 
 COMMIT;

@@ -37,7 +37,7 @@ CREATE INDEX IF NOT EXISTS idx_order_edit_locks_locked_by
 ALTER TABLE org_order_edit_locks ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policy: Users can see locks in their tenant
-CREATE POLICY IF NOT EXISTS org_order_edit_locks_select_policy ON org_order_edit_locks
+CREATE POLICY org_order_edit_locks_select_policy ON org_order_edit_locks
   FOR SELECT
   USING (
     tenant_org_id IN (

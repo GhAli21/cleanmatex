@@ -34,15 +34,20 @@ VALUES
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO sys_auth_role_default_permissions (role_code, permission_code, is_enabled, is_active, rec_status, created_at, created_by)
-SELECT r, p, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
-FROM (VALUES ('super_admin'), ('tenant_admin')) AS roles(r)
-CROSS JOIN (VALUES
-  ('b2b_customers:view'), ('b2b_customers:create'), ('b2b_customers:edit'),
-  ('b2b_contacts:view'), ('b2b_contacts:create'),
-  ('b2b_contracts:view'), ('b2b_contracts:create'),
-  ('b2b_statements:view'), ('b2b_statements:create')
-) AS perms(p)
-ON CONFLICT (role_code, permission_code) DO NOTHING;
+SELECT r.code, p.code, true, true, 1, CURRENT_TIMESTAMP, 'system_admin'
+FROM sys_auth_roles r
+CROSS JOIN sys_auth_permissions p
+WHERE r.code IN ('super_admin', 'tenant_admin')
+  AND p.code IN (
+    'b2b_customers:view', 'b2b_customers:create', 'b2b_customers:edit',
+    'b2b_contacts:view', 'b2b_contacts:create',
+    'b2b_contracts:view', 'b2b_contracts:create',
+    'b2b_statements:view', 'b2b_statements:create'
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
 
 -- ==================================================================
 -- 2. B2B Navigation Section (gated by b2b_contracts feature flag)

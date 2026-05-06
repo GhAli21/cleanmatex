@@ -44,7 +44,7 @@ BEGIN
     NULL::UUID,
     true
   FROM org_auth_user_roles our
-  JOIN sys_auth_role_default_permissions srdp ON srdp.role_code = our.role_code
+  JOIN sys_auth_role_default_permissions srdp ON srdp.role_id = our.role_id
   JOIN sys_auth_permissions sp ON sp.code = srdp.permission_code
   WHERE our.user_id = p_user_id
     AND our.tenant_org_id = p_tenant_id
@@ -70,7 +70,7 @@ BEGIN
     urr.resource_id,
     true
   FROM org_auth_user_resource_roles urr
-  JOIN sys_auth_role_default_permissions srdp ON srdp.role_code = urr.role_code
+  JOIN sys_auth_role_default_permissions srdp ON srdp.role_id = urr.role_id
   JOIN sys_auth_permissions sp ON sp.code = srdp.permission_code
   WHERE urr.user_id = p_user_id
     AND urr.tenant_org_id = p_tenant_id
@@ -221,9 +221,10 @@ BEGIN
   ) OR EXISTS (
     SELECT 1
     FROM org_auth_user_roles uar
+    JOIN sys_auth_roles sr ON sr.role_id = uar.role_id
     WHERE uar.user_id = v_user_id
       AND uar.tenant_org_id = v_tenant_id
-      AND uar.role_code IN ('super_admin', 'tenant_admin')
+      AND sr.code IN ('super_admin', 'tenant_admin')
       AND uar.is_active = true
   ) THEN
     RETURN true;

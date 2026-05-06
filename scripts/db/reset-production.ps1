@@ -3,6 +3,7 @@
 # Purpose: Reset database with production migrations only (no seeds)
 # Author: CleanMateX Development Team
 # Created: 2025-10-24
+# Full guide: docs/dev/cleanmatex_infra_guide.md  (Section 6 — Option A)
 # ==================================================================
 
 param(

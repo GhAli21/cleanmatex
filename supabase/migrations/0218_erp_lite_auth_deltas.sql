@@ -131,26 +131,16 @@ ON CONFLICT (code) DO UPDATE SET
 --    super_admin and tenant_admin get all new permissions by default.
 -- ------------------------------------------------------------------
 INSERT INTO public.sys_auth_role_default_permissions (
-  role_code,
-  permission_code,
-  is_enabled,
-  is_active,
-  rec_status,
-  created_at,
-  created_by,
-  created_info
+  role_code, permission_code,
+  is_enabled, is_active, rec_status, created_at, created_by, created_info
 )
 SELECT
-  role_code,
-  permission_code,
-  true, true, 1,
-  CURRENT_TIMESTAMP,
-  'system_admin',
-  'Migration 0218 ERP-Lite auth deltas'
-FROM (
-  SELECT role_code, permission_code
-  FROM unnest(ARRAY['super_admin', 'tenant_admin']) AS role_code
-  CROSS JOIN unnest(ARRAY[
+  r.code, p.code,
+  true, true, 1, CURRENT_TIMESTAMP, 'system_admin', 'Migration 0218 ERP-Lite auth deltas'
+FROM sys_auth_roles r
+CROSS JOIN sys_auth_permissions p
+WHERE r.code IN ('super_admin', 'tenant_admin')
+  AND p.code IN (
     'erp_lite_usage_map:view',
     'erp_lite_usage_map:create',
     'erp_lite_usage_map:edit',
@@ -158,9 +148,11 @@ FROM (
     'erp_lite_usage_map:inactivate',
     'erp_lite_usage_map:validate',
     'erp_lite_post_audit:view'
-  ]) AS permission_code
-) AS seed_rows
-ON CONFLICT (role_code, permission_code) DO NOTHING;
+  )
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_auth_role_default_permissions e
+    WHERE e.role_code = r.code AND e.permission_code = p.code
+  );
 
 -- ------------------------------------------------------------------
 -- 3. New feature flags for Phase 4 tenant operations UI surfaces

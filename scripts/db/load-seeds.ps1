@@ -5,6 +5,7 @@
 # Created: 2025-10-24
 # ==================================================================
 # Usage: .\scripts\db\load-seeds.ps1
+# Full guide: docs/dev/cleanmatex_infra_guide.md  (Section 6 — Option C)
 # ==================================================================
 
 param(

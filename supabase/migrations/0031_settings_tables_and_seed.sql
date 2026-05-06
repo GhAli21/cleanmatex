@@ -216,7 +216,8 @@ INSERT INTO sys_tenant_settings_cd (
   is_per_tenant_org_id, is_per_branch_id, is_per_user_id,
   rec_order, rec_notes, rec_status,
   created_by, created_info, updated_at, updated_by, updated_info
-  stng_category_code,
+  /*
+  ,stng_category_code,
   stng_scope,
   stng_data_type,
   stng_default_value_jsonb,
@@ -225,6 +226,7 @@ INSERT INTO sys_tenant_settings_cd (
   stng_is_sensitive,
   stng_requires_restart,
   stng_depends_on_flags
+  */
 )
 VALUES
   -- boolean 
