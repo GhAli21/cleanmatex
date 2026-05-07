@@ -3387,6 +3387,11 @@
         "appliedAmount": "المطبّق",
         "checking": "جاري الفحص",
         "fetch": "استعلام",
+        "details": "تفاصيل بطاقة الهدية",
+        "expiry": "تاريخ الانتهاء",
+        "applyAmount": "تطبيق المبلغ",
+        "amountHint": "أدخل المبلغ المراد تطبيقه",
+        "amountPlaceholder": "0.00",
         "errors": {
           "notFound": "بطاقة الهدية غير موجودة",
           "expired": "انتهت صلاحية بطاقة الهدية",

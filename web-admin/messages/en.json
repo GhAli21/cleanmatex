@@ -3387,6 +3387,11 @@
         "appliedAmount": "Applied",
         "checking": "Checking",
         "fetch": "Fetch",
+        "details": "Gift Card Details",
+        "expiry": "Expiry Date",
+        "applyAmount": "Apply Amount",
+        "amountHint": "Enter amount to apply",
+        "amountPlaceholder": "0.00",
         "errors": {
           "notFound": "Gift card not found",
           "expired": "Gift card has expired",
