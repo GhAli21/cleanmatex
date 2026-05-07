@@ -12,48 +12,101 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { ReactNode } from 'react'
+import { ReactNode, useMemo } from 'react'
 import { CmxSpinner } from '../primitives/cmx-spinner'
 
+/**
+ * Lightweight column descriptor used by feature screens.
+ * Internally translated into TanStack `ColumnDef` so callers don't need to
+ * know about the underlying table library.
+ */
+export interface CmxDataTableSimpleColumn<TData> {
+  key: string
+  header: ReactNode
+  render: (row: TData) => ReactNode
+}
+
+type AnyColumn<TData> =
+  | ColumnDef<TData, unknown>
+  | CmxDataTableSimpleColumn<TData>
+
 interface CmxDataTableProps<TData> {
-  columns: ColumnDef<TData, unknown>[]
+  columns: AnyColumn<TData>[]
   data: TData[]
+  /** Preferred name. `isLoading` is accepted as an alias for ergonomics. */
   loading?: boolean
-  page: number
-  pageSize: number
-  total: number
+  isLoading?: boolean
+  /** Zero-based page index. `currentPage` (1-based) is accepted as an alias. */
+  page?: number
+  currentPage?: number
+  pageSize?: number
+  /** Preferred name. `totalCount` is accepted as an alias. */
+  total?: number
+  totalCount?: number
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
   emptyMessage?: ReactNode
+}
+
+function isSimpleColumn<TData>(
+  col: AnyColumn<TData>,
+): col is CmxDataTableSimpleColumn<TData> {
+  return typeof (col as CmxDataTableSimpleColumn<TData>).render === 'function'
 }
 
 export function CmxDataTable<TData>({
   columns,
   data,
   loading,
+  isLoading,
   page,
-  pageSize,
+  currentPage,
+  pageSize = 25,
   total,
+  totalCount,
   onPageChange,
   onPageSizeChange,
   emptyMessage,
 }: CmxDataTableProps<TData>) {
+  const effectiveLoading = loading ?? isLoading ?? false
+  const effectiveTotal = total ?? totalCount ?? 0
+  // `currentPage` is 1-based (UI convention); TanStack expects 0-based.
+  const effectivePageIndex = page ?? (currentPage != null ? currentPage - 1 : 0)
+
+  const tanstackColumns = useMemo<ColumnDef<TData, unknown>[]>(
+    () =>
+      columns.map((col) => {
+        if (isSimpleColumn(col)) {
+          return {
+            id: col.key,
+            header: () => col.header,
+            cell: ({ row }) => col.render(row.original),
+          }
+        }
+        return col
+      }),
+    [columns],
+  )
+
   const table = useReactTable({
     data,
-    columns,
+    columns: tanstackColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
-    pageCount: Math.ceil(total / pageSize),
+    pageCount: Math.max(1, Math.ceil(effectiveTotal / pageSize)),
     state: {
-      pagination: { pageIndex: page, pageSize },
+      pagination: { pageIndex: effectivePageIndex, pageSize },
     },
     onPaginationChange: (updater) => {
       const next =
         typeof updater === 'function'
-          ? updater({ pageIndex: page, pageSize })
+          ? updater({ pageIndex: effectivePageIndex, pageSize })
           : updater
-      onPageChange?.(next.pageIndex)
+      // Mirror the input convention back to the caller: if they passed
+      // 1-based `currentPage`, hand back 1-based; otherwise 0-based.
+      if (currentPage != null) onPageChange?.(next.pageIndex + 1)
+      else onPageChange?.(next.pageIndex)
       onPageSizeChange?.(next.pageSize)
     },
   })
@@ -79,10 +132,10 @@ export function CmxDataTable<TData>({
             ))}
           </thead>
           <tbody>
-            {loading ? (
+            {effectiveLoading ? (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={tanstackColumns.length}
                   className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
                 >
                   <CmxSpinner />
@@ -104,7 +157,7 @@ export function CmxDataTable<TData>({
             ) : (
               <tr>
                 <td
-                  colSpan={columns.length}
+                  colSpan={tanstackColumns.length}
                   className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
                 >
                   {emptyMessage ?? 'No data to display.'}
