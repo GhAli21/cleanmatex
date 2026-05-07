@@ -528,7 +528,7 @@ export function PaymentModalEnhanced02({
 
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
-    const amountToUse = giftCardAmount ?? 0;
+    const amountToUse = Number(giftCardAmount) || 0;
     const maxAmount = Math.min(giftCardDetails.balance, totals.afterDiscounts);
     if (amountToUse <= 0) {
       cmxMessage.error(t('giftCard.errors.amountRequired'));
