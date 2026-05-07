@@ -3386,6 +3386,7 @@
         "balance": "Available Balance",
         "appliedAmount": "Applied",
         "checking": "Checking",
+        "fetch": "Fetch",
         "errors": {
           "notFound": "Gift card not found",
           "expired": "Gift card has expired",
