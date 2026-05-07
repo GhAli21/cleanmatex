@@ -41,8 +41,15 @@ const schema = z.object({
     .regex(/^[A-Z0-9_-]+$/, 'Uppercase letters, digits, hyphens, underscores only'),
   rule_name: z.string().min(1, 'Required').max(200),
   rule_name2: z.string().max(200).optional(),
-  rule_type: z.string().default('auto'),
-  discount_type: z.enum(['percentage', 'fixed']),
+  rule_type: z.enum([
+    'bulk_discount',
+    'category_discount',
+    'customer_tier',
+    'seasonal',
+    'first_order',
+    'loyalty',
+  ]).default('seasonal'),
+  discount_type: z.enum(['percentage', 'fixed_amount']),
   discount_value: z.coerce.number().positive(),
   priority: z.coerce.number().int().min(0).default(0),
   can_stack_with_promo: z.boolean().default(false),
@@ -84,7 +91,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
     defaultValues: {
       rule_code: '',
       rule_name: '',
-      rule_type: 'auto',
+      rule_type: 'seasonal',
       discount_type: 'percentage',
       discount_value: 0,
       priority: 0,
@@ -204,6 +211,32 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
             </div>
 
             <div>
+              <Label>{t('fields.ruleType')}</Label>
+              <Controller
+                control={form.control}
+                name="rule_type"
+                render={({ field }) => (
+                  <CmxSelectDropdown value={field.value} onValueChange={field.onChange}>
+                    <CmxSelectDropdownTrigger>
+                      <CmxSelectDropdownValue />
+                    </CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      <CmxSelectDropdownItem value="bulk_discount">{t('ruleTypes.bulk_discount')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="category_discount">{t('ruleTypes.category_discount')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="customer_tier">{t('ruleTypes.customer_tier')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="seasonal">{t('ruleTypes.seasonal')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="first_order">{t('ruleTypes.first_order')}</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="loyalty">{t('ruleTypes.loyalty')}</CmxSelectDropdownItem>
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                )}
+              />
+              {form.formState.errors.rule_type && (
+                <p className="text-destructive text-xs mt-1">{form.formState.errors.rule_type.message}</p>
+              )}
+            </div>
+
+            <div>
               <Label>{t('fields.discountType')}</Label>
               <Controller
                 control={form.control}
@@ -215,7 +248,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
                     </CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
                       <CmxSelectDropdownItem value="percentage">%</CmxSelectDropdownItem>
-                      <CmxSelectDropdownItem value="fixed">Fixed</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="fixed_amount">Fixed</CmxSelectDropdownItem>
                     </CmxSelectDropdownContent>
                   </CmxSelectDropdown>
                 )}

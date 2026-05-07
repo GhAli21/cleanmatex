@@ -161,6 +161,7 @@
       "fields": {
         "code": "رمز القاعدة",
         "name": "اسم القاعدة",
+        "ruleType": "نوع القاعدة",
         "priority": "الأولوية",
         "discountType": "نوع الخصم",
         "discountValue": "القيمة",
@@ -168,6 +169,14 @@
         "stackWithRules": "التجميع مع قواعد أخرى",
         "validFrom": "صالح من",
         "validTo": "صالح حتى"
+      },
+      "ruleTypes": {
+        "bulk_discount": "خصم بالجملة",
+        "category_discount": "خصم الفئة",
+        "customer_tier": "مستوى العميل",
+        "seasonal": "موسمي",
+        "first_order": "الطلب الأول",
+        "loyalty": "الولاء"
       },
       "conditions": {
         "title": "الشروط",

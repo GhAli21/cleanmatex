@@ -161,6 +161,7 @@
       "fields": {
         "code": "Rule Code",
         "name": "Rule Name",
+        "ruleType": "Rule Type",
         "priority": "Priority",
         "discountType": "Discount Type",
         "discountValue": "Value",
@@ -168,6 +169,14 @@
         "stackWithRules": "Stack with Other Rules",
         "validFrom": "Valid From",
         "validTo": "Valid To"
+      },
+      "ruleTypes": {
+        "bulk_discount": "Bulk Discount",
+        "category_discount": "Category Discount",
+        "customer_tier": "Customer Tier",
+        "seasonal": "Seasonal",
+        "first_order": "First Order",
+        "loyalty": "Loyalty"
       },
       "conditions": {
         "title": "Conditions",
