@@ -6,7 +6,7 @@ last_updated: 2026-03-28
 
 > Superseded review artifact.
 > Do not use this file as the canonical finance control document.
-> Use [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md) instead.
+> Use [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md) instead.
 
 Below is the **missing control layer** your system needs.
 This is the document that upgrades your design from *architecturally strong* → *audit-safe and production-grade*.

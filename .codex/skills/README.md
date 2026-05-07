@@ -156,7 +156,7 @@ user-invocable: true
 
 - Main project file: [CLAUDE.md](../../CLAUDE.md)
 - Original docs archive: [.claude/docs/](../docs/)
-- Implementation plan: [C:\Users\DELL\.claude\plans\elegant-whistling-shell.md]
+- Implementation plan: [C:\Users\JHNLP\.claude\plans\elegant-whistling-shell.md]
 
 ## Maintenance
 

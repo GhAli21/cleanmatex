@@ -29,11 +29,11 @@ Phase 9 must not:
 
 ## 2. Canonical Dependencies
 
-- [V2_V3_READINESS_ASSESSMENT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
-- [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md)
-- [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md)
+- [V2_V3_READINESS_ASSESSMENT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2B_HQ_GOVERNANCE_APP_EXECUTION_PACKAGE.md)
+- [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md)
 
 ## 3. Phase 9 Outcome
 

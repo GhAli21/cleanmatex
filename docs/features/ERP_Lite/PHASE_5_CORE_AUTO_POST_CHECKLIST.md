@@ -33,13 +33,13 @@ Phase 5 must not:
 
 This checklist depends on:
 
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [BLOCKING_POLICY_TABLE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
-- [V1_POSTING_RULES_CATALOG.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
-- [PHASE_4_POSTING_ENGINE_CHECKLIST.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_4_POSTING_ENGINE_CHECKLIST.md)
-- [PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [BLOCKING_POLICY_TABLE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
+- [V1_POSTING_RULES_CATALOG.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
+- [PHASE_4_POSTING_ENGINE_CHECKLIST.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_4_POSTING_ENGINE_CHECKLIST.md)
+- [PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_4_POSTING_ENGINE_EXECUTION_PACKAGE.md)
 
 ---
 

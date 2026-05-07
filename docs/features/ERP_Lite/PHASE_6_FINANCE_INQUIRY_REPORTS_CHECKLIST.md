@@ -30,9 +30,9 @@ Phase 6 must not:
 
 ## 2. Canonical Dependencies
 
-- [PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_5_CORE_AUTO_POST_EXECUTION_PACKAGE.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 ## 3. Phase 6 Outcome
 

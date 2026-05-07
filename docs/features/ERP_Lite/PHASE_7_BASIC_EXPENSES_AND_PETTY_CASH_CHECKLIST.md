@@ -29,10 +29,10 @@ Phase 7 must not:
 
 ## 2. Canonical Dependencies
 
-- [PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [BLOCKING_POLICY_TABLE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
+- [PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_6_FINANCE_INQUIRY_REPORTS_EXECUTION_PACKAGE.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [BLOCKING_POLICY_TABLE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
 
 ## 3. Phase 7 Outcome
 

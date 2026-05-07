@@ -36,9 +36,9 @@ Excluded:
 
 ## 4. Required ADR Set
 
-- [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md)
-- [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md)
-- [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md)
+- [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md)
+- [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md)
+- [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md)
 
 ## 5. Start Gate
 

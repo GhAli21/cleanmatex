@@ -19,9 +19,9 @@ This document converts the approved ERP-Lite direction into an execution plan fo
 
 It is based on:
 
-- [validated scope](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
-- [gap analysis](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/GAP_ANALYSIS_REPORT.md)
-- [implementation requirements](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/implementation_requirements.md)
+- [validated scope](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [gap analysis](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/GAP_ANALYSIS_REPORT.md)
+- [implementation requirements](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/implementation_requirements.md)
 
 This is not a traditional high-level roadmap only. It is an execution-oriented plan designed for:
 
@@ -36,11 +36,11 @@ This is not a traditional high-level roadmap only. It is an execution-oriented p
 
 This plan must be read together with the canonical approval pack:
 
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 No execution step in this plan should contradict those documents.
 

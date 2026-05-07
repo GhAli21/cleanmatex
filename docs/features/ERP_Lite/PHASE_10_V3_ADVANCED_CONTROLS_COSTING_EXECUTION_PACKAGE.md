@@ -33,10 +33,10 @@ Phase 10 does not include:
 Phase 10 is no longer blocked on design approval only.
 
 The governing design pack now exists:
-- [V3_SCOPE_AND_DECISION_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V3_SCOPE_AND_DECISION_PACK.md)
-- [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md)
-- [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md)
-- [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md)
+- [V3_SCOPE_AND_DECISION_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V3_SCOPE_AND_DECISION_PACK.md)
+- [ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_008_ADVANCED_EXPENSES_AND_PETTY_CASH_CONTROLS.md)
+- [ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_009_BRANCH_PROFITABILITY_SOURCE_OF_TRUTH.md)
+- [ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_010_LAUNDRY_SPECIFIC_COSTING_MODEL.md)
 
 ## 4. Data and Reporting Rule
 

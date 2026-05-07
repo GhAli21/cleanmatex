@@ -1,7 +1,7 @@
 # User Management & RBAC — Progress Status
 
 **Feature:** Full Tenant RBAC & User Management in cleanmatex (web-admin)
-**Plan file:** `/home/dellunix/.claude/plans/virtual-fluttering-wren.md`
+**Plan file:** `/home/JHNLPunix/.claude/plans/virtual-fluttering-wren.md`
 **Last updated:** 2026-04-03
 **Status:** ✅ Implementation Complete
 

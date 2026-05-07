@@ -42,9 +42,9 @@ Excluded:
 
 ## 4. Required ADR Set
 
-- [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md)
-- [ADR_006_BANK_RECONCILIATION_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_006_BANK_RECONCILIATION_MODEL.md)
-- [ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md)
+- [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md)
+- [ADR_006_BANK_RECONCILIATION_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_006_BANK_RECONCILIATION_MODEL.md)
+- [ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_007_PO_TO_AP_POSTING_BOUNDARIES.md)
 
 ## 5. Start Gate
 

@@ -134,7 +134,7 @@ Phase 5 must consume:
 
 ### 6.3 V1 Runtime Defaults
 
-Until HQ governance UI exists, Phase 5 must still enforce the applied v1 policy data and the approved table in [BLOCKING_POLICY_TABLE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md).
+Until HQ governance UI exists, Phase 5 must still enforce the applied v1 policy data and the approved table in [BLOCKING_POLICY_TABLE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md).
 
 ---
 

@@ -125,6 +125,6 @@ Use it after the broader UAT pack is accepted.
 
 ## 9. Related Documents
 
-- [ERP_LITE_UAT_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)
-- [ERP_LITE_REMAINING_ITEMS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_REMAINING_ITEMS.md)
-- [IMPLEMENTATION_STATUS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)
+- [ERP_LITE_UAT_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)
+- [ERP_LITE_REMAINING_ITEMS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_REMAINING_ITEMS.md)
+- [IMPLEMENTATION_STATUS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)

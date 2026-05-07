@@ -124,5 +124,5 @@ This is a ready-to-fill template for the first ERP-Lite pilot tenant.
 
 ## 9. Related Documents
 
-- [ERP_LITE_PILOT_TENANT_CHECKLIST.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_PILOT_TENANT_CHECKLIST.md)
-- [ERP_LITE_UAT_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)
+- [ERP_LITE_PILOT_TENANT_CHECKLIST.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_PILOT_TENANT_CHECKLIST.md)
+- [ERP_LITE_UAT_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)

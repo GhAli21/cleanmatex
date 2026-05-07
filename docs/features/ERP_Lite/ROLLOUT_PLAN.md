@@ -21,9 +21,9 @@ It is a rollout and milestone document, not the detailed task tracker.
 
 Use it together with:
 
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
-- [ROADMAP_TASK_BY_TASK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ROADMAP_TASK_BY_TASK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
 
 ---
 

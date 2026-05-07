@@ -33,7 +33,7 @@
 
 ● Bash(ls -lh docs/plan/)
   ⎿  total 192K
-     -rw-r--r-- 1 DELL 197609  22K Oct 10 02:22     
+     -rw-r--r-- 1 JHNLP 197609  22K Oct 10 02:22     
      001_auth_dev_prd.md
      … +16 lines (ctrl+o to expand)
 

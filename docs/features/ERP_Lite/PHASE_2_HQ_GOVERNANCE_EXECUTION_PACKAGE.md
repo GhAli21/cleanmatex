@@ -213,9 +213,9 @@ After Phase 2 drafting:
 - validate migration filenames and sequence
 - validate table names and index names against repo DB rules
 - validate v1 seeds against:
-  - [ACCOUNT_USAGE_CODE_CATALOG.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ACCOUNT_USAGE_CODE_CATALOG.md)
-  - [V1_POSTING_RULES_CATALOG.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
-  - [BLOCKING_POLICY_TABLE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
+  - [ACCOUNT_USAGE_CODE_CATALOG.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ACCOUNT_USAGE_CODE_CATALOG.md)
+  - [V1_POSTING_RULES_CATALOG.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
+  - [BLOCKING_POLICY_TABLE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
 
 Do not:
 

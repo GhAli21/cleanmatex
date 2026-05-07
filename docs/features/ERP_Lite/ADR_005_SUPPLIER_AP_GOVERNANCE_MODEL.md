@@ -34,6 +34,6 @@ V2 introduces supplier master and AP lifecycle on top of the existing governed f
 
 ## Related Documents
 
-- [V2_SCOPE_AND_DECISION_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
-- [V2_V3_READINESS_ASSESSMENT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
+- [V2_SCOPE_AND_DECISION_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
+- [V2_V3_READINESS_ASSESSMENT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
 

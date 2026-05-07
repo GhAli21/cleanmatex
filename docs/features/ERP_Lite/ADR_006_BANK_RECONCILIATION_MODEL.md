@@ -35,6 +35,6 @@ V2 requires bank statement import, matching, and reconciliation without breaking
 
 ## Related Documents
 
-- [V2_SCOPE_AND_DECISION_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [V2_SCOPE_AND_DECISION_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 

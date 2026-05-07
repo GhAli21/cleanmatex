@@ -34,6 +34,6 @@ V2 introduces PO and AP together, and their posting boundaries must be explicit 
 
 ## Related Documents
 
-- [V2_SCOPE_AND_DECISION_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
-- [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md)
+- [V2_SCOPE_AND_DECISION_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_SCOPE_AND_DECISION_PACK.md)
+- [ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_005_SUPPLIER_AP_GOVERNANCE_MODEL.md)
 

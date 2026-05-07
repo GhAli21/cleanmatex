@@ -29,10 +29,10 @@ It defines for each phase:
 
 This document should be used together with:
 
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
 
 ---
 
@@ -181,7 +181,7 @@ Dependency marker values:
 ### Task 0.1 Approve cross-project product scope
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -238,8 +238,8 @@ Dependency marker values:
 ### Task 0.3 Freeze cross-project ownership split
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -267,8 +267,8 @@ Dependency marker values:
 ### Task 0.4 Freeze operational control layer
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -304,8 +304,8 @@ Dependency marker values:
 ### Task 1.1 Build Phase 0 checklist
 
 **Source document**
-- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -337,7 +337,7 @@ Dependency marker values:
 ### Task 1.2 Define feature flags
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Parallel`
@@ -369,8 +369,8 @@ Dependency marker values:
 ### Task 1.3 Define permissions
 
 **Source document**
-- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Parallel`
@@ -401,8 +401,8 @@ Dependency marker values:
 ### Task 1.4 Define tenant settings
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -436,7 +436,7 @@ Dependency marker values:
 ### Task 1.5 Define navigation and route shell
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -467,7 +467,7 @@ Dependency marker values:
 ### Task 1.6 Implement platform shell
 
 **Source document**
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
 
 **Dependency marker**
 - `Parallel`
@@ -502,8 +502,8 @@ Dependency marker values:
 ### Task 2.1 Define account type master model
 
 **Source document**
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -535,8 +535,8 @@ Dependency marker values:
 ### Task 2.2 Define mapping rule model
 
 **Source document**
-- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -567,8 +567,8 @@ Dependency marker values:
 ### Task 2.3 Define publishing/versioning model
 
 **Source document**
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
-- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -599,8 +599,8 @@ Dependency marker values:
 ### Task 2.4 Define HQ auto-post runtime policy model
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -632,7 +632,7 @@ Dependency marker values:
 ### Task 2.5 Define HQ admin UI scope
 
 **Source document**
-- [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
+- [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -664,8 +664,8 @@ Dependency marker values:
 ### Task 3.1 Define tenant COA schema
 
 **Source document**
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -696,8 +696,8 @@ Dependency marker values:
 ### Task 3.2 Define GL schema
 
 **Source document**
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -728,8 +728,8 @@ Dependency marker values:
 ### Task 3.3 Define posting execution log and exception schema
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -760,8 +760,8 @@ Dependency marker values:
 ### Task 3.4 Define VAT/tax runtime schema
 
 **Source document**
-- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -789,8 +789,8 @@ Dependency marker values:
 ### Task 3.5 Define basic expenses and petty cash schema
 
 **Source document**
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -821,8 +821,8 @@ Dependency marker values:
 ### Task 3.6 Create migration files
 
 **Source document**
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -857,8 +857,8 @@ Dependency marker values:
 ### Task 4.1 Build posting engine contracts
 
 **Source document**
-- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -886,8 +886,8 @@ Dependency marker values:
 ### Task 4.2 Build mapping evaluator
 
 **Source document**
-- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -918,8 +918,8 @@ Dependency marker values:
 ### Task 4.3 Build accounting validation
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -947,8 +947,8 @@ Dependency marker values:
 ### Task 4.4 Build execution audit trail
 
 **Source document**
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -976,8 +976,8 @@ Dependency marker values:
 ### Task 4.5 Build repost/retry mechanism
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1005,8 +1005,8 @@ Dependency marker values:
 ### Task 4.6 Write posting engine tests
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Parallel`
@@ -1038,8 +1038,8 @@ Dependency marker values:
 ### Task 5.1 Define transaction policy matrix
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -1066,8 +1066,8 @@ Dependency marker values:
 ### Task 5.2 Integrate invoice auto-post
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -1095,8 +1095,8 @@ Dependency marker values:
 ### Task 5.3 Integrate payment auto-post
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -1124,8 +1124,8 @@ Dependency marker values:
 ### Task 5.4 Integrate refund auto-post
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -1153,8 +1153,8 @@ Dependency marker values:
 ### Task 5.5 Implement failure visibility
 
 **Source document**
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1186,8 +1186,8 @@ Dependency marker values:
 ### Task 6.1 Build COA UI
 
 **Source document**
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1215,7 +1215,7 @@ Dependency marker values:
 ### Task 6.2 Build GL inquiry
 
 **Source document**
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1243,8 +1243,8 @@ Dependency marker values:
 ### Task 6.3 Build AR aging
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1273,7 +1273,7 @@ Dependency marker values:
 ### Task 6.4 Build trial balance
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1302,8 +1302,8 @@ Dependency marker values:
 ### Task 6.5 Build P&L
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1332,8 +1332,8 @@ Dependency marker values:
 ### Task 6.6 Build balance sheet
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1362,8 +1362,8 @@ Dependency marker values:
 ### Task 6.7 Build VAT/tax visibility
 
 **Source document**
-- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1394,8 +1394,8 @@ Dependency marker values:
 ### Task 7.1 Build expense categories and entry flow
 
 **Source document**
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1423,8 +1423,8 @@ Dependency marker values:
 ### Task 7.2 Build petty cash expense flow
 
 **Source document**
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1452,8 +1452,8 @@ Dependency marker values:
 ### Task 7.3 Build petty cash top-up flow
 
 **Source document**
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1481,7 +1481,7 @@ Dependency marker values:
 ### Task 7.4 Build running balance view
 
 **Source document**
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1509,8 +1509,8 @@ Dependency marker values:
 ### Task 7.5 Build expense and petty cash posting tests
 
 **Source document**
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 **Dependency marker**
 - `Parallel`
@@ -1542,8 +1542,8 @@ Dependency marker values:
 ### Task 8.1 Prepare pilot scenarios
 
 **Source document**
-- [ROLLOUT_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ROLLOUT_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -1570,7 +1570,7 @@ Dependency marker values:
 ### Task 8.2 Run pilot validation
 
 **Source document**
-- [ROLLOUT_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
+- [ROLLOUT_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
 
 **Dependency marker**
 - `Parallel`
@@ -1599,7 +1599,7 @@ Dependency marker values:
 ### Task 8.3 Fix priority defects
 
 **Source document**
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
 
 **Dependency marker**
 - `Parallel`
@@ -1627,8 +1627,8 @@ Dependency marker values:
 ### Task 8.4 Final v1 readiness review
 
 **Source document**
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
-- [ROLLOUT_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [ROLLOUT_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROLLOUT_PLAN.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -1661,7 +1661,7 @@ Dependency marker values:
 ### Task 9.1 Define bank account and statement model
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `HQ-first`
@@ -1692,7 +1692,7 @@ Dependency marker values:
 ### Task 9.2 Build bank statement import and matching
 
 **Source document**
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1720,7 +1720,7 @@ Dependency marker values:
 ### Task 9.3 Define supplier master and AP model
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -1748,7 +1748,7 @@ Dependency marker values:
 ### Task 9.4 Build AP invoice and AP payment flows
 
 **Source document**
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1776,7 +1776,7 @@ Dependency marker values:
 ### Task 9.5 Build purchase order workflow
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1811,7 +1811,7 @@ Dependency marker values:
 ### Task 10.1 Define advanced expenses workflow
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -1839,7 +1839,7 @@ Dependency marker values:
 ### Task 10.2 Define advanced petty cash controls
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Review-blocked`
@@ -1867,8 +1867,8 @@ Dependency marker values:
 ### Task 10.3 Build branch profitability model
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 **Dependency marker**
 - `Runtime-first`
@@ -1896,7 +1896,7 @@ Dependency marker values:
 ### Task 10.4 Build laundry-specific costing
 
 **Source document**
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 **Dependency marker**
 - `Runtime-first`

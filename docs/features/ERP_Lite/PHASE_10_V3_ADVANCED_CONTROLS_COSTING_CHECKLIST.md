@@ -18,9 +18,9 @@ This document defines the exact checklist for `Phase 10: V3 Advanced Controls + 
 
 ## 2. Canonical Dependencies
 
-- [V2_V3_READINESS_ASSESSMENT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
-- [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [V2_V3_READINESS_ASSESSMENT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V2_V3_READINESS_ASSESSMENT.md)
+- [PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_9_V2_TREASURY_AP_PO_EXECUTION_PACKAGE.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
 
 ## 3. Phase 10 Outcome
 

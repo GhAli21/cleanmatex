@@ -33,12 +33,12 @@ Phase 1 must not implement finance posting logic, reports, or schema-heavy finan
 
 This checklist depends on:
 
-- [V1_0_APPROVAL_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
-- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
+- [V1_0_APPROVAL_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_0_APPROVAL_PACK.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
 
 If any of the above are revised, this checklist must be revalidated.
 

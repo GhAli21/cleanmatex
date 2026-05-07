@@ -21,7 +21,7 @@ Use this document to approve item by item.
 
 ### 2.1 Cross-Project Product Approval
 
-- [ ] Approve [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ ] Approve [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
 
 Meaning:
 
@@ -34,7 +34,7 @@ Meaning:
 
 ### 2.2 Account Type Governance Approval
 
-- [ ] Approve [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ ] Approve [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
 
 Meaning:
 
@@ -47,7 +47,7 @@ Meaning:
 
 ### 2.3 Posting Engine and Mapping Governance Approval
 
-- [ ] Approve [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ ] Approve [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
 
 Meaning:
 
@@ -62,7 +62,7 @@ Meaning:
 
 ### 2.4 Auto-Post Policy Approval
 
-- [ ] Approve [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ ] Approve [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
 
 Meaning:
 
@@ -76,7 +76,7 @@ Meaning:
 
 ### 2.5 VAT / Tax v1 Approval
 
-- [ ] Approve [ADR_004_VAT_TAX_V1_SCOPE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
+- [ ] Approve [ADR_004_VAT_TAX_V1_SCOPE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
 
 Meaning:
 
@@ -87,7 +87,7 @@ Meaning:
 
 ### 2.6 V1 Scope Approval
 
-- [ ] Approve [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [ ] Approve [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
 
 Meaning:
 
@@ -109,8 +109,8 @@ Meaning:
 
 ### 2.7 Project Split Approval
 
-- [ ] Approve [CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md)
-- [ ] Approve [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
+- [ ] Approve [CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md)
+- [ ] Approve [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
 
 Meaning:
 
@@ -122,8 +122,8 @@ Meaning:
 
 ### 2.8 Execution Model Approval
 
-- [ ] Approve [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
-- [ ] Approve [ROADMAP_TASK_BY_TASK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
+- [ ] Approve [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ ] Approve [ROADMAP_TASK_BY_TASK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
 
 Meaning:
 
@@ -135,8 +135,8 @@ Meaning:
 
 ### 2.9 Operational Freeze Items Before Phase 0
 
-- [ ] Approve [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ ] Approve [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ ] Approve [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ ] Approve [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
 
 Meaning:
 

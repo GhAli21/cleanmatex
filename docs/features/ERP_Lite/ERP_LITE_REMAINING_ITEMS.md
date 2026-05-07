@@ -107,6 +107,6 @@ ERP-Lite is not yet fully closed operationally until:
 
 ## 6. Related Documents
 
-- [IMPLEMENTATION_STATUS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)
-- [ERP_LITE_UAT_PACK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)
-- [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md)
+- [IMPLEMENTATION_STATUS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)
+- [ERP_LITE_UAT_PACK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_UAT_PACK.md)
+- [PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_CHECKLIST.md)

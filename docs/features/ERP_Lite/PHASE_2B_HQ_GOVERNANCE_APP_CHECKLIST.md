@@ -31,12 +31,12 @@ Phase 2B must not:
 
 This checklist depends on:
 
-- [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2_HQ_GOVERNANCE_CHECKLIST.md)
-- [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
-- [ACCOUNT_USAGE_CODE_CATALOG.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ACCOUNT_USAGE_CODE_CATALOG.md)
-- [V1_POSTING_RULES_CATALOG.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
-- [BLOCKING_POLICY_TABLE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
+- [PHASE_2_HQ_GOVERNANCE_CHECKLIST.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2_HQ_GOVERNANCE_CHECKLIST.md)
+- [PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_2_HQ_GOVERNANCE_EXECUTION_PACKAGE.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ACCOUNT_USAGE_CODE_CATALOG.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ACCOUNT_USAGE_CODE_CATALOG.md)
+- [V1_POSTING_RULES_CATALOG.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/V1_POSTING_RULES_CATALOG.md)
+- [BLOCKING_POLICY_TABLE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/BLOCKING_POLICY_TABLE.md)
 
 ---
 

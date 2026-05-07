@@ -179,6 +179,6 @@ Use this simple signoff block:
 
 ## 9. Related Documents
 
-- [ERP_LITE_REMAINING_ITEMS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_REMAINING_ITEMS.md)
-- [IMPLEMENTATION_STATUS.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)
-- [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md)
+- [ERP_LITE_REMAINING_ITEMS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_REMAINING_ITEMS.md)
+- [IMPLEMENTATION_STATUS.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_STATUS.md)
+- [PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/PHASE_8_V1_PILOT_AND_HARDENING_EXECUTION_PACKAGE.md)

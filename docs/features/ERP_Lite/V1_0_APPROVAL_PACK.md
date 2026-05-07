@@ -24,29 +24,29 @@ The following documents form the canonical approval pack:
 
 ### 2.1 Product and Scope
 
-- [CROSS_PROJECT_PRD.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
-- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
+- [CROSS_PROJECT_PRD.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CROSS_PROJECT_PRD.md)
+- [ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_VALIDATED_SCOPE_AND_DECISION_REPORT.md)
 
 ### 2.2 Architecture Decisions
 
-- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
-- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
-- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
-- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
+- [ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_001_ACCOUNT_TYPE_GOVERNANCE_MODEL.md)
+- [ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_002_POSTING_ENGINE_AND_MAPPING_GOVERNANCE.md)
+- [ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_003_AUTO_POST_EXCEPTION_AND_REPOST_MODEL.md)
+- [ADR_004_VAT_TAX_V1_SCOPE.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ADR_004_VAT_TAX_V1_SCOPE.md)
 
 ### 2.3 Control and Runtime Contracts
 
-- [ERP_LITE_FINANCE_CORE_RULES.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
-- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
-- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
+- [ERP_LITE_FINANCE_CORE_RULES.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES.md)
+- [ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_RUNTIME_DOMAIN_CONTRACT.md)
+- [ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_GOVERNANCE_PUBLICATION_CONTRACT.md)
 
 ### 2.4 Implementation and Approval Control
 
-- [CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md)
-- [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
-- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
-- [ROADMAP_TASK_BY_TASK.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
-- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
+- [CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEX_RUNTIME_IMPLEMENTATION_PLAN.md)
+- [CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/CLEANMATEXSAAS_GOVERNANCE_IMPLEMENTATION_PLAN.md)
+- [IMPLEMENTATION_GAP_CLOSURE_PLAN.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/IMPLEMENTATION_GAP_CLOSURE_PLAN.md)
+- [ROADMAP_TASK_BY_TASK.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ROADMAP_TASK_BY_TASK.md)
+- [APPROVAL_CHECKLIST_FOR_PHASE_0.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/APPROVAL_CHECKLIST_FOR_PHASE_0.md)
 
 ---
 
@@ -54,11 +54,11 @@ The following documents form the canonical approval pack:
 
 The following files are review inputs only and must not be used as the canonical approval basis:
 
-- [ERP_LITE_FINANCE_CORE_RULES_01.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES_01.md)
-- [ERP_LITE_FINANCE_CORE_RULES_02.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES_02.md)
-- [Validation Verdict.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/Validation%20Verdict.md)
-- [Validation assessment_01.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/Validation%20assessment_01.md)
-- [Critical Gaps in files.md](/home/dellunix/jhapp/cleanmatex/docs/features/ERP_Lite/Critical%20Gaps%20in%20files.md)
+- [ERP_LITE_FINANCE_CORE_RULES_01.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES_01.md)
+- [ERP_LITE_FINANCE_CORE_RULES_02.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/ERP_LITE_FINANCE_CORE_RULES_02.md)
+- [Validation Verdict.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/Validation%20Verdict.md)
+- [Validation assessment_01.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/Validation%20assessment_01.md)
+- [Critical Gaps in files.md](/home/JHNLPunix/jhapp/cleanmatex/docs/features/ERP_Lite/Critical%20Gaps%20in%20files.md)
 
 These remain useful as:
 - review history
