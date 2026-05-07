@@ -16,11 +16,10 @@ import {
 } from '@tanstack/react-table'
 import { ReactNode, useMemo, useState } from 'react'
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
-import { CmxSpinner } from '../primitives/cmx-spinner'
-import { CmxSkeletonTable } from '../primitives/cmx-skeleton'
+import { CmxButton } from '../primitives/cmx-button'
+import { CmxCard, CmxCardContent, CmxCardFooter } from '../primitives/cmx-card'
 import { CmxEmptyState } from './cmx-empty-state'
 import { CmxPagination } from '../navigation/cmx-pagination'
-import { CmxButton } from '../primitives/cmx-button'
 import { cn } from '@/lib/utils'
 
 /**
@@ -176,90 +175,111 @@ export function CmxDataTable<TData>({
   })
 
   return (
-    <div className={cn('space-y-3', className)}>
-      <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
-        <table className="min-w-full text-sm">
-          <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-3 py-3 text-left font-medium rtl:text-right">
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>
-            {effectiveLoading ? (
-              <CmxSkeletonTable
-                rows={skeletonRows}
-                columns={tanstackColumns.length}
-                showHeader={false}
-              />
-            ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row, index) => (
-                <tr
-                  key={row.id}
-                  className={cn(
-                    'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
-                    enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
-                  )}
-                >
-                  {row.getVisibleCells().map((cell) => {
-                    const simpleCol = columns.find(col => isSimpleColumn(col) && col.key === cell.column.id) as CmxDataTableSimpleColumn<TData> | undefined
-                    const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
-                    return (
-                      <td key={cell.id} className={cn('px-3 py-3', alignClass)}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    )
-                  })}
+    <CmxCard className={className}>
+      <CmxCardContent className="p-0">
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right"
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </th>
+                  ))}
                 </tr>
-              ))
-            ) : emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction ? (
-              <tr>
-                <td colSpan={tanstackColumns.length} className="p-0">
-                  <CmxEmptyState
-                    icon={emptyStateIcon}
-                    title={emptyStateTitle ?? 'No data found'}
-                    description={emptyStateDescription}
-                    action={emptyStateAction}
-                  />
-                </td>
-              </tr>
-            ) : (
-              <tr>
-                <td
-                  colSpan={tanstackColumns.length}
-                  className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
-                >
-                  {emptyMessage ?? 'No data to display.'}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              ))}
+            </thead>
+            <tbody>
+              {effectiveLoading ? (
+                Array.from({ length: skeletonRows }).map((_, rowIndex) => (
+                  <tr
+                    key={rowIndex}
+                    className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))] transition-colors"
+                  >
+                    {tanstackColumns.map((_, cellIndex) => (
+                      <td key={cellIndex} className="px-4 py-4">
+                        <div className="h-3 rounded-full bg-[rgb(var(--cmx-muted-rgb,241_245_249))] animate-pulse" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : table.getRowModel().rows.length ? (
+                table.getRowModel().rows.map((row, index) => (
+                  <tr
+                    key={row.id}
+                    className={cn(
+                      'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                      enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
+                    )}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const simpleCol = columns.find(
+                        (col) => isSimpleColumn(col) && col.key === cell.column.id,
+                      ) as CmxDataTableSimpleColumn<TData> | undefined
+                      const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
+                      return (
+                        <td key={cell.id} className={cn('px-4 py-4 align-middle', alignClass)}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))
+              ) : emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction ? (
+                <tr>
+                  <td colSpan={tanstackColumns.length} className="p-0">
+                    <CmxEmptyState
+                      icon={emptyStateIcon}
+                      title={emptyStateTitle ?? 'No data found'}
+                      description={emptyStateDescription}
+                      action={emptyStateAction}
+                    />
+                  </td>
+                </tr>
+              ) : (
+                <tr>
+                  <td
+                    colSpan={tanstackColumns.length}
+                    className="px-4 py-12 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+                  >
+                    {emptyMessage ?? 'No data to display.'}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </CmxCardContent>
 
       {effectiveTotal > pageSize && (
-        <CmxPagination
-          currentPage={effectivePageIndex + 1}
-          totalPages={Math.ceil(effectiveTotal / pageSize)}
-          pageSize={pageSize}
-          totalItems={effectiveTotal}
-          onPageChange={(page) => {
-            if (currentPage != null) onPageChange?.(page)
-            else onPageChange?.(page - 1)
-          }}
-          onPageSizeChange={onPageSizeChange}
-        />
+        <CmxCardFooter className="justify-between gap-4">
+          <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            Showing {(effectivePageIndex * pageSize) + 1} -{' '}
+            {Math.min((effectivePageIndex + 1) * pageSize, effectiveTotal)} of {effectiveTotal}
+          </div>
+          <CmxPagination
+            currentPage={effectivePageIndex + 1}
+            totalPages={Math.ceil(effectiveTotal / pageSize)}
+            pageSize={pageSize}
+            totalItems={effectiveTotal}
+            onPageChange={(page) => {
+              if (currentPage != null) onPageChange?.(page)
+              else onPageChange?.(page - 1)
+            }}
+            onPageSizeChange={onPageSizeChange}
+          />
+        </CmxCardFooter>
       )}
-    </div>
+    </CmxCard>
   )
 }
