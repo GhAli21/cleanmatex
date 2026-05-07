@@ -166,6 +166,7 @@ export function PaymentModalEnhanced02({
   const amountDiscount = watch('amountDiscount');
   const promoCode = watch('promoCode');
   const giftCardNumber = watch('giftCardNumber');
+  const giftCardAmount = watch('giftCardAmount');
 
   const [promoCodeValidating, setPromoCodeValidating] = useState(false);
   const [promoCodeResult, setPromoCodeResult] = useState<ValidatePromoCodeResult | null>(null);
@@ -177,6 +178,13 @@ export function PaymentModalEnhanced02({
 
   const [giftCardValidating, setGiftCardValidating] = useState(false);
   const [giftCardResult, setGiftCardResult] = useState<ValidateGiftCardResult | null>(null);
+  const [giftCardDetails, setGiftCardDetails] = useState<{
+    number: string;
+    balance: number;
+    status: string;
+    expiryDate?: string;
+    id?: string;
+  } | null>(null);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{
     number: string;
     amount: number;
@@ -237,6 +245,16 @@ export function PaymentModalEnhanced02({
     }
   }, [open, tenantOrgId, branchId, userId]);
 
+  useEffect(() => {
+    if (!giftCardNumber || appliedGiftCard) return;
+    if (giftCardDetails?.number && giftCardDetails.number !== giftCardNumber) {
+      setGiftCardDetails(null);
+      setGiftCardResult(null);
+      setValue('giftCardAmount', 0);
+      setValue('giftCardId', '');
+    }
+  }, [giftCardNumber, giftCardDetails, appliedGiftCard, setValue]);
+
   const fetchPreview = useCallback(async () => {
     if (!open || items.length === 0 || !tenantOrgId) return;
     setTotalsLoading(true);
@@ -255,6 +273,7 @@ export function PaymentModalEnhanced02({
           ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
             promoCode: (appliedPromoCode?.code ?? promoCode) || undefined,
             giftCardNumber: (appliedGiftCard?.number ?? giftCardNumber) || undefined,
+            giftCardAmount: appliedGiftCard?.amount || undefined,
           }),
         }),
       });
@@ -294,7 +313,7 @@ export function PaymentModalEnhanced02({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, promoCode, giftCardNumber, csrfToken]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, promoCode, giftCardNumber, csrfToken]);
 
   useEffect(() => {
     if (!open || items.length === 0) {
@@ -325,12 +344,14 @@ export function PaymentModalEnhanced02({
         promoDiscount: 0,
         giftCardNumber: '',
         giftCardAmount: 0,
+        giftCardId: '',
         payAllOrders: false,
         paymentNotes: initialPaymentNotes ?? '',
       });
       setPromoCodeResult(null);
       setAppliedPromoCode(null);
       setGiftCardResult(null);
+      setGiftCardDetails(null);
       setAppliedGiftCard(null);
       setCouponOpen(false);
       setPayPartial(false);
@@ -473,24 +494,27 @@ export function PaymentModalEnhanced02({
     setAppliedPromoCode(null);
   };
 
-  const handleValidateGiftCard = async () => {
+  const handleFetchGiftCardDetails = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!giftCardNumber?.trim()) return;
     setGiftCardValidating(true);
     setGiftCardResult(null);
+    setGiftCardDetails(null);
     try {
       const result = await validateGiftCardAction({ card_number: giftCardNumber });
       setGiftCardResult(result);
-      if (result.isValid && result.giftCard && result.availableBalance) {
-        const amountToApply = Math.min(result.availableBalance, totals.afterDiscounts);
-        const applied = {
+      if (result.isValid && result.giftCard && result.availableBalance != null) {
+        const details = {
           number: giftCardNumber,
-          amount: amountToApply,
           balance: result.availableBalance,
+          status: result.giftCard.status,
+          expiryDate: result.giftCard.expiry_date,
+          id: result.giftCard.id,
         };
-        setAppliedGiftCard(applied);
-        setValue('giftCardNumber', giftCardNumber);
-        setValue('giftCardAmount', amountToApply);
+        setGiftCardDetails(details);
+        const defaultAmount = Math.min(result.availableBalance, totals.afterDiscounts);
+        setValue('giftCardAmount', defaultAmount);
+        setValue('giftCardId', result.giftCard.id ?? '');
       }
     } catch (error) {
       setGiftCardResult({
@@ -502,15 +526,47 @@ export function PaymentModalEnhanced02({
     }
   };
 
+  const handleApplyGiftCard = () => {
+    if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
+    const amountToUse = giftCardAmount ?? 0;
+    const maxAmount = Math.min(giftCardDetails.balance, totals.afterDiscounts);
+    if (amountToUse <= 0) {
+      cmxMessage.error(t('giftCard.errors.amountRequired'));
+      return;
+    }
+    if (amountToUse > maxAmount) {
+      cmxMessage.error(t('giftCard.errors.maxAmountExceeded'));
+      setValue('giftCardAmount', maxAmount);
+      return;
+    }
+    setAppliedGiftCard({
+      number: giftCardDetails.number,
+      amount: amountToUse,
+      balance: giftCardDetails.balance,
+    });
+    setValue('giftCardNumber', giftCardDetails.number);
+    setValue('giftCardAmount', amountToUse);
+    setValue('giftCardId', giftCardDetails.id ?? '');
+  };
+
   const handleClearGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     setValue('giftCardNumber', '');
     setValue('giftCardAmount', 0);
+    setValue('giftCardId', '');
     setGiftCardResult(null);
+    setGiftCardDetails(null);
     setAppliedGiftCard(null);
   };
 
   const onSubmitForm = (data: PaymentFormData) => {
+    const submissionData: PaymentFormData = {
+      ...data,
+      giftCardNumber: appliedGiftCard ? appliedGiftCard.number : undefined,
+      giftCardAmount: appliedGiftCard ? appliedGiftCard.amount : undefined,
+      giftCardId: appliedGiftCard ? giftCardDetails?.id : undefined,
+    } as PaymentFormData;
+
     const payload = {
       amountToCharge: effectiveAmountToCharge,
       totals: {
@@ -541,7 +597,7 @@ export function PaymentModalEnhanced02({
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
-    onSubmit(data, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
+    onSubmit(submissionData, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
   };
 
   const getPaymentIcon = (id: string) => {
@@ -1097,7 +1153,7 @@ export function PaymentModalEnhanced02({
                   )}
 
                   {!appliedGiftCard ? (
-                    <div className="space-y-1">
+                    <div className="space-y-3">
                       <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <Controller
                           name="giftCardNumber"
@@ -1108,7 +1164,7 @@ export function PaymentModalEnhanced02({
                               type="text"
                               value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value.toUpperCase())}
-                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleValidateGiftCard())}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleFetchGiftCardDetails())}
                               dir="ltr"
                               className={`flex-1 min-w-0 px-3 py-2 text-sm border ${errors.giftCardNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
                               placeholder={t('giftCard.placeholder')}
@@ -1118,11 +1174,11 @@ export function PaymentModalEnhanced02({
                         />
                         <button
                           type="button"
-                          onClick={handleValidateGiftCard}
+                          onClick={handleFetchGiftCardDetails}
                           disabled={!giftCardNumber?.trim() || giftCardValidating}
                           className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
                         >
-                          {giftCardValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : t('giftCard.apply')}
+                          {giftCardValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : t('giftCard.fetch')}
                         </button>
                       </div>
                       {(giftCardResult && !giftCardResult.isValid) && (
@@ -1131,12 +1187,62 @@ export function PaymentModalEnhanced02({
                           <span>{giftCardResult.error}</span>
                         </div>
                       )}
+                      {giftCardDetails && (
+                        <div className={`space-y-3 p-3 rounded-lg border border-purple-200 bg-purple-50 ${isRTL ? 'text-right' : 'text-left'}`}>
+                          <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div>
+                              <p className="text-sm font-semibold text-purple-900">{t('giftCard.details')}</p>
+                              <p className="text-xs text-gray-600">{t('giftCard.balance')}: {currencyCode} {formatAmount(giftCardDetails.balance)}</p>
+                              {giftCardDetails.expiryDate && (
+                                <p className="text-xs text-gray-600">{t('giftCard.expiry')}: {new Date(giftCardDetails.expiryDate).toLocaleDateString()}</p>
+                              )}
+                            </div>
+                            <button type="button" onClick={handleClearGiftCard} className="text-xs text-red-600 hover:underline">
+                              {t('giftCard.remove')}
+                            </button>
+                          </div>
+                          <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+                            <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
+                              <span className={`px-2 text-gray-500 text-sm bg-gray-50 ${isRTL ? 'order-2' : ''}`}>{currencyCode}</span>
+                              <Controller
+                                name="giftCardAmount"
+                                control={control}
+                                render={({ field }) => (
+                                  <input
+                                    {...field}
+                                    type="number"
+                                    min={0}
+                                    max={Math.min(giftCardDetails.balance, totals.afterDiscounts)}
+                                    step={Math.pow(10, -decimalPlaces)}
+                                    dir="ltr"
+                                    disabled={!!appliedGiftCard}
+                                    className="flex-1 min-w-0 px-2 py-2 text-sm border-0 focus:ring-0"
+                                    placeholder={t('giftCard.amountPlaceholder')}
+                                  />
+                                )}
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleApplyGiftCard}
+                              disabled={giftCardAmount === undefined || giftCardAmount <= 0}
+                              className={`min-h-[44px] px-4 py-2 rounded-lg text-sm font-medium text-white ${giftCardAmount && giftCardAmount > 0 ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-300 cursor-not-allowed'}`}
+                            >
+                              {t('giftCard.applyAmount')}
+                            </button>
+                          </div>
+                          <p className="text-xs text-gray-500">{t('giftCard.amountHint')}</p>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className={`flex items-center justify-between p-2 bg-purple-50 border border-purple-200 rounded-lg ${isRTL ? 'flex-row-reverse' : ''}`}>
                       <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <Gift className="w-4 h-4 text-purple-600" />
-                        <span className="text-sm font-medium text-purple-900">{appliedGiftCard.number} -{currencyCode} {formatAmount(appliedGiftCard.amount)}</span>
+                        <div>
+                          <p className="text-sm font-medium text-purple-900">{appliedGiftCard.number}</p>
+                          <p className="text-xs text-gray-600">{t('giftCard.appliedAmount')}: {currencyCode} {formatAmount(appliedGiftCard.amount)} • {t('giftCard.locked')}</p>
+                        </div>
                       </div>
                       <button type="button" onClick={handleClearGiftCard} className="text-xs text-red-600 hover:underline">
                         {t('giftCard.remove')}

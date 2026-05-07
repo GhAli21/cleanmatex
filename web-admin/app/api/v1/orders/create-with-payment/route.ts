@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
       promoCode: input.promoCode,
       promoCodeId: input.promoCodeId,
       giftCardNumber: input.giftCardNumber,
+      giftCardAmount: input.giftCardAmount,
       additionalTaxRate: input.additionalTaxRate,
       additionalTaxAmount: input.additionalTaxAmount,
     });

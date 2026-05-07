@@ -98,6 +98,7 @@ export const previewPaymentRequestSchema = z.object({
   amountDiscount: z.number().min(0).optional(),
   promoCode: z.string().optional(),
   giftCardNumber: z.string().optional(),
+  giftCardAmount: z.number().min(0).optional(),
 });
 
 export type PreviewPaymentRequest = z.infer<typeof previewPaymentRequestSchema>;

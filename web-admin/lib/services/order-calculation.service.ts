@@ -33,6 +33,7 @@ export interface OrderCalculationParams {
   promoCode?: string;
   promoCodeId?: string;
   giftCardNumber?: string;
+  giftCardAmount?: number;
   serviceCategories?: string[];
   /** Additional tax (order tax) rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
   additionalTaxRate?: number;
@@ -83,6 +84,7 @@ export async function calculateOrderTotals(
     amountDiscount = 0,
     promoCode,
     giftCardNumber,
+    giftCardAmount,
     serviceCategories,
     additionalTaxRate,
     additionalTaxAmount: additionalTaxAmountParam,
@@ -252,10 +254,15 @@ export async function calculateOrderTotals(
       giftCardResult.availableBalance != null &&
       giftCardResult.availableBalance > 0
     ) {
-      giftCardApplied = round(
+      const maxApplicable = round(
         Math.min(giftCardResult.availableBalance, amountBeforeGiftCard),
         decimalPlaces
       );
+      if (giftCardAmount != null) {
+        giftCardApplied = round(Math.min(giftCardAmount, maxApplicable), decimalPlaces);
+      } else {
+        giftCardApplied = maxApplicable;
+      }
     }
   }
 

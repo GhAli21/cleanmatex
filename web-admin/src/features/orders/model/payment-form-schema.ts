@@ -49,6 +49,7 @@ const paymentFormBaseSchema = z.object({
   promoDiscount: z.number().nonnegative().optional(),
   giftCardNumber: emptyStringToUndefined,
   giftCardAmount: z.number().nonnegative().optional(),
+  giftCardId: z.string().uuid().optional().or(z.literal('')),
   payAllOrders: z.boolean().default(false),
   paymentNotes: z.string().max(1000).optional(),
   /** B2B: Contract, cost center, PO (when customer is B2B) */
