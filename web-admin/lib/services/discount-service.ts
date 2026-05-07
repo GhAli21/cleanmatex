@@ -260,7 +260,7 @@ export async function applyPromoCodeTx(
     SELECT id, current_uses, max_uses
     FROM org_promo_codes_mst
     WHERE id = ${promoCodeId}
-      AND tenant_org_id = ${tenantOrgId}
+      AND tenant_org_id = ${tenantOrgId}::uuid
     FOR UPDATE
   `;
 
@@ -395,7 +395,7 @@ export async function reversePromoUsageTx(
     await tx.$queryRaw`
       SELECT id FROM org_promo_codes_mst
       WHERE id = ${promoCodeId}
-        AND tenant_org_id = ${tenantOrgId}
+        AND tenant_org_id = ${tenantOrgId}::uuid
       FOR UPDATE
     `;
   }

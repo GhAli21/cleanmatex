@@ -245,7 +245,7 @@ export async function applyGiftCardTx(
     SELECT id, current_balance, status, card_pin, expiry_date, tenant_org_id
     FROM org_gift_cards_mst
     WHERE card_number = ${cardNumber}
-      AND tenant_org_id = ${tenantOrgId}
+      AND tenant_org_id = ${tenantOrgId}::uuid
       AND is_active = true
     FOR UPDATE
   `;
@@ -415,7 +415,7 @@ export async function refundToGiftCardTx(
     SELECT id, tenant_org_id, current_balance, original_amount
     FROM org_gift_cards_mst
     WHERE card_number = ${cardNumber}
-      AND tenant_org_id = ${tenantOrgId}
+      AND tenant_org_id = ${tenantOrgId}::uuid
       AND is_active = true
     FOR UPDATE
   `;
