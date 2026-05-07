@@ -184,6 +184,7 @@ export function PaymentModalEnhanced02({
     status: string;
     expiryDate?: string;
     id?: string;
+    searchStr?: string;
   } | null>(null);
   const [appliedGiftCard, setAppliedGiftCard] = useState<{
     number: string;
@@ -247,7 +248,7 @@ export function PaymentModalEnhanced02({
 
   useEffect(() => {
     if (!giftCardNumber || appliedGiftCard) return;
-    if (giftCardDetails?.number && giftCardDetails.number !== giftCardNumber) {
+    if (giftCardDetails?.number && giftCardDetails.number !== giftCardNumber && giftCardDetails.searchStr !== giftCardNumber) {
       setGiftCardDetails(null);
       setGiftCardResult(null);
       setValue('giftCardAmount', 0);
@@ -510,6 +511,7 @@ export function PaymentModalEnhanced02({
           status: result.giftCard.status,
           expiryDate: result.giftCard.expiry_date,
           id: result.giftCard.id,
+          searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
         const defaultAmount = Math.min(result.availableBalance, totals.afterDiscounts);
