@@ -3392,6 +3392,7 @@
         "applyAmount": "Apply Amount",
         "amountHint": "Enter amount to apply",
         "amountPlaceholder": "0.00",
+        "locked": "Locked",
         "errors": {
           "notFound": "Gift card not found",
           "expired": "Gift card has expired",

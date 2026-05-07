@@ -505,7 +505,7 @@ export function PaymentModalEnhanced02({
       setGiftCardResult(result);
       if (result.isValid && result.giftCard && result.availableBalance != null) {
         const details = {
-          number: giftCardNumber,
+          number: result.giftCard.card_number,
           balance: result.availableBalance,
           status: result.giftCard.status,
           expiryDate: result.giftCard.expiry_date,

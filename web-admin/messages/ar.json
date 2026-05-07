@@ -3392,6 +3392,7 @@
         "applyAmount": "تطبيق المبلغ",
         "amountHint": "أدخل المبلغ المراد تطبيقه",
         "amountPlaceholder": "0.00",
+        "locked": "مؤمّن",
         "errors": {
           "notFound": "بطاقة الهدية غير موجودة",
           "expired": "انتهت صلاحية بطاقة الهدية",
