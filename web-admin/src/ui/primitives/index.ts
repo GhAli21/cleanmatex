@@ -12,6 +12,7 @@ export * from './cmx-spinner'
 export * from './cmx-checkbox'
 export * from './cmx-select';
 export * from './cmx-switch';
+export * from './cmx-skeleton';
 export * from './tabs';
 
 // ===== Legacy shadcn/ui primitives (for backward compatibility) =====

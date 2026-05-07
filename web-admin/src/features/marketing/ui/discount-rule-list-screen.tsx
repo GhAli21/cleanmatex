@@ -13,6 +13,7 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
+import { CmxConfirmDialog } from '@ui/feedback';
 import { useDiscountRules } from '../hooks/use-discount-rules';
 import type { DiscountRule } from '@/lib/types/payment';
 import { DiscountRuleFormDialog } from './discount-rule-form-dialog';
@@ -112,14 +113,22 @@ export function DiscountRuleListScreen() {
                 >
                   <Edit className="h-4 w-4" />
                 </CmxButton>
-                <CmxButton
-                  variant="ghost"
-                  size="icon"
+                <CmxConfirmDialog
                   title={t('archive')}
-                  onClick={() => handleArchive(row.id)}
-                >
-                  <Archive className="h-4 w-4" />
-                </CmxButton>
+                  description={t('confirmArchive')}
+                  confirmLabel={t('archive')}
+                  cancelLabel={tCommon('cancel')}
+                  onConfirm={() => handleArchive(row.id)}
+                  trigger={
+                    <CmxButton
+                      variant="ghost"
+                      size="icon"
+                      title={t('archive')}
+                    >
+                      <Archive className="h-4 w-4" />
+                    </CmxButton>
+                  }
+                />
               </div>
             ),
           },

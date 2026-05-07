@@ -1,5 +1,5 @@
 /**
- * CmxDataTable - Server-side paginated data table
+ * CmxDataTable - Server-side paginated data table with enhanced UX
  * @module ui/data-display
  */
 
@@ -10,10 +10,18 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
+  SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ReactNode, useMemo } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
+import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
 import { CmxSpinner } from '../primitives/cmx-spinner'
+import { CmxSkeletonTable } from '../primitives/cmx-skeleton'
+import { CmxEmptyState } from './cmx-empty-state'
+import { CmxPagination } from '../navigation/cmx-pagination'
+import { CmxButton } from '../primitives/cmx-button'
+import { cn } from '@/lib/utils'
 
 /**
  * Lightweight column descriptor used by feature screens.
@@ -24,6 +32,8 @@ export interface CmxDataTableSimpleColumn<TData> {
   key: string
   header: ReactNode
   render: (row: TData) => ReactNode
+  sortable?: boolean
+  align?: 'left' | 'center' | 'right'
 }
 
 type AnyColumn<TData> =
@@ -45,6 +55,20 @@ interface CmxDataTableProps<TData> {
   totalCount?: number
   onPageChange?: (page: number) => void
   onPageSizeChange?: (size: number) => void
+  /** Sorting support */
+  sorting?: SortingState
+  onSortingChange?: (sorting: SortingState) => void
+  /** Enhanced empty state */
+  emptyStateTitle?: string
+  emptyStateDescription?: string
+  emptyStateIcon?: ReactNode
+  emptyStateAction?: ReactNode
+  /** Loading configuration */
+  skeletonRows?: number
+  /** Table styling */
+  className?: string
+  enableZebraStriping?: boolean
+  /** Legacy empty message (deprecated, use emptyState* props) */
   emptyMessage?: ReactNode
 }
 
@@ -66,6 +90,15 @@ export function CmxDataTable<TData>({
   totalCount,
   onPageChange,
   onPageSizeChange,
+  sorting,
+  onSortingChange,
+  emptyStateTitle,
+  emptyStateDescription,
+  emptyStateIcon,
+  emptyStateAction,
+  skeletonRows = 5,
+  className,
+  enableZebraStriping = false,
   emptyMessage,
 }: CmxDataTableProps<TData>) {
   const effectiveLoading = loading ?? isLoading ?? false
@@ -73,14 +106,34 @@ export function CmxDataTable<TData>({
   // `currentPage` is 1-based (UI convention); TanStack expects 0-based.
   const effectivePageIndex = page ?? (currentPage != null ? currentPage - 1 : 0)
 
+  const [internalSorting, setInternalSorting] = useState<SortingState>(sorting ?? [])
+
   const tanstackColumns = useMemo<ColumnDef<TData, unknown>[]>(
     () =>
       columns.map((col) => {
         if (isSimpleColumn(col)) {
           return {
             id: col.key,
-            header: () => col.header,
+            header: ({ column }) => {
+              if (!col.sortable) {
+                return col.header
+              }
+              return (
+                <CmxButton
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 font-medium hover:bg-transparent"
+                  onClick={() => column.toggleSorting()}
+                >
+                  {col.header}
+                  {column.getIsSorted() === 'asc' && <ArrowUp className="ml-1 h-3 w-3" />}
+                  {column.getIsSorted() === 'desc' && <ArrowDown className="ml-1 h-3 w-3" />}
+                  {column.getIsSorted() === false && <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />}
+                </CmxButton>
+              )
+            },
             cell: ({ row }) => col.render(row.original),
+            enableSorting: col.sortable,
           }
         }
         return col
@@ -93,10 +146,13 @@ export function CmxDataTable<TData>({
     columns: tanstackColumns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
+    manualSorting: true,
     pageCount: Math.max(1, Math.ceil(effectiveTotal / pageSize)),
     state: {
       pagination: { pageIndex: effectivePageIndex, pageSize },
+      sorting: sorting ?? internalSorting,
     },
     onPaginationChange: (updater) => {
       const next =
@@ -109,17 +165,25 @@ export function CmxDataTable<TData>({
       else onPageChange?.(next.pageIndex)
       onPageSizeChange?.(next.pageSize)
     },
+    onSortingChange: (updater) => {
+      const next = typeof updater === 'function' ? updater(sorting ?? internalSorting) : updater
+      if (onSortingChange) {
+        onSortingChange(next)
+      } else {
+        setInternalSorting(next)
+      }
+    },
   })
 
   return (
-    <div className="space-y-3">
+    <div className={cn('space-y-3', className)}>
       <div className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
         <table className="min-w-full text-sm">
           <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <th key={header.id} className="px-3 py-2 text-left font-medium rtl:text-right">
+                  <th key={header.id} className="px-3 py-3 text-left font-medium rtl:text-right">
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -133,27 +197,42 @@ export function CmxDataTable<TData>({
           </thead>
           <tbody>
             {effectiveLoading ? (
-              <tr>
-                <td
-                  colSpan={tanstackColumns.length}
-                  className="px-3 py-8 text-center text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
-                >
-                  <CmxSpinner />
-                </td>
-              </tr>
+              <CmxSkeletonTable
+                rows={skeletonRows}
+                columns={tanstackColumns.length}
+                showHeader={false}
+              />
             ) : table.getRowModel().rows.length ? (
-              table.getRowModel().rows.map((row) => (
+              table.getRowModel().rows.map((row, index) => (
                 <tr
                   key={row.id}
-                  className="border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]"
+                  className={cn(
+                    'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
+                    enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
+                  )}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-3 py-2">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const simpleCol = columns.find(col => isSimpleColumn(col) && col.key === cell.column.id) as CmxDataTableSimpleColumn<TData> | undefined
+                    const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
+                    return (
+                      <td key={cell.id} className={cn('px-3 py-3', alignClass)}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))
+            ) : emptyStateTitle || emptyStateDescription || emptyStateIcon || emptyStateAction ? (
+              <tr>
+                <td colSpan={tanstackColumns.length} className="p-0">
+                  <CmxEmptyState
+                    icon={emptyStateIcon}
+                    title={emptyStateTitle ?? 'No data found'}
+                    description={emptyStateDescription}
+                    action={emptyStateAction}
+                  />
+                </td>
+              </tr>
             ) : (
               <tr>
                 <td
@@ -167,7 +246,20 @@ export function CmxDataTable<TData>({
           </tbody>
         </table>
       </div>
-      {/* Pagination component (CmxDataTablePagination) would go here */}
+
+      {effectiveTotal > pageSize && (
+        <CmxPagination
+          currentPage={effectivePageIndex + 1}
+          totalPages={Math.ceil(effectiveTotal / pageSize)}
+          pageSize={pageSize}
+          totalItems={effectiveTotal}
+          onPageChange={(page) => {
+            if (currentPage != null) onPageChange?.(page)
+            else onPageChange?.(page - 1)
+          }}
+          onPageSizeChange={onPageSizeChange}
+        />
+      )}
     </div>
   )
 }

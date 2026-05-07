@@ -1,5 +1,22 @@
 # Plan: Settings Pages API Wiring (General and Branding)
 
+> **STATUS: ✅ Done — shipped 2026-05-07.**
+> Implemented per master plan `f-jhapp-cleanmatex-docs-dev-completepend-reactive-micali.md`.
+> Migration `0252_org_tenants_brand_color_accent.sql` applied.
+> Service: `web-admin/lib/services/tenant-profile.service.ts` (with `toDbHours`/`fromDbHours` normalizer).
+> Logo helpers: `uploadTenantLogo` / `deleteTenantLogo` in `web-admin/lib/storage/upload-photo.ts`.
+> API routes: `app/api/v1/settings/general/route.ts`, `.../branding/route.ts`, `.../branding/logo/route.ts`.
+> Pages: `app/dashboard/settings/general/page.tsx`, `.../branding/page.tsx` (fully wired, isDirty + skeleton + beforeunload + inline field errors + currency/country lock).
+> RBAC: reused existing `settings:read`, `settings:organization`, `settings:branding` (catalog 0035).
+> Tests: `__tests__/services/tenant-profile.service.test.ts`, `__tests__/api/v1/settings/general.test.ts`, `__tests__/api/v1/settings/branding.test.ts`.
+> i18n: added `settings.saveError` and `settings.colors.invalid` in en/ar.
+>
+> **Deploy reminder:** the MinIO bucket must allow anonymous read on the
+> `tenants/*/logo/*` prefix; `NEXT_PUBLIC_STORAGE_URL` must point to the
+> public host so the URL host-validator on PUT branding accepts the URL,
+> and `next.config.ts` `images.remotePatterns` should include that host
+> if any `<Image>` component renders the logo.
+
 ## Overview
 
 Two settings pages have TODO placeholders for API calls:

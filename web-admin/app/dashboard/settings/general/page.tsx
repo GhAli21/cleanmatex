@@ -6,20 +6,27 @@
  * Manages business information, hours, and locale settings:
  * - Business name and contact info
  * - Business hours configuration
- * - Timezone and currency settings
+ * - Timezone and currency settings (currency/country are lock-once when
+ *   the tenant has any orders — guarded server-side by tenant-profile service)
  * - Default language
  *
  * Features:
- * - Form validation
- * - Auto-save capability
- * - Bilingual support (EN/AR)
- * - RTL-aware layout
+ * - Form validation with inline server field errors
+ * - Dirty tracking + Save disabled when pristine
+ * - beforeunload guard against losing unsaved edits
+ * - Loading skeleton on first GET
+ * - Bilingual support (EN/AR), RTL-aware
  */
 
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin } from 'lucide-react'
+import { Save, Clock, Globe, DollarSign, Mail, Phone, MapPin, Lock } from 'lucide-react'
 import { BusinessHoursEditor } from '@features/settings/ui/BusinessHoursEditor'
+import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token'
+
+interface BusinessHours {
+  [key: string]: { open: string; close: string; closed: boolean }
+}
 
 interface GeneralSettings {
   businessName: string
@@ -35,8 +42,9 @@ interface GeneralSettings {
   businessHours: BusinessHours
 }
 
-interface BusinessHours {
-  [key: string]: { open: string; close: string; closed: boolean }
+interface IsLocked {
+  currency: boolean
+  country: boolean
 }
 
 const DEFAULT_HOURS: BusinessHours = {
@@ -49,63 +57,153 @@ const DEFAULT_HOURS: BusinessHours = {
   sunday: { open: '00:00', close: '00:00', closed: true }
 }
 
+const INITIAL_SETTINGS: GeneralSettings = {
+  businessName: '',
+  businessNameAr: '',
+  email: '',
+  phone: '',
+  address: '',
+  city: '',
+  country: 'OM',
+  timezone: 'Asia/Muscat',
+  currency: 'OMR',
+  defaultLanguage: 'en',
+  businessHours: DEFAULT_HOURS,
+}
+
 export default function GeneralSettingsPage() {
   const t = useTranslations('settings')
-  const [settings, setSettings] = useState<GeneralSettings>({
-    businessName: '',
-    businessNameAr: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    country: 'OM',
-    timezone: 'Asia/Muscat',
-    currency: 'OMR',
-    defaultLanguage: 'en',
-    businessHours: DEFAULT_HOURS
-  })
+  const { token: csrfToken } = useCSRFToken()
+  const [settings, setSettings] = useState<GeneralSettings>(INITIAL_SETTINGS)
+  const [baseline, setBaseline] = useState<GeneralSettings>(INITIAL_SETTINGS)
+  const [isLocked, setIsLocked] = useState<IsLocked>({ currency: false, country: false })
+  const [initialLoading, setInitialLoading] = useState(true)
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [topError, setTopError] = useState<string | null>(null)
 
-  // Load settings from API
+  const isDirty = useMemo(
+    () => JSON.stringify(settings) !== JSON.stringify(baseline),
+    [settings, baseline]
+  )
+
+  // Load on mount
   useEffect(() => {
-    loadSettings()
-  }, [])
-
-  const loadSettings = async () => {
-    try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/settings/general')
-      // const data = await response.json()
-      // setSettings(data)
-    } catch (error) {
-      console.error('Error loading settings:', error)
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/v1/settings/general', { credentials: 'include' })
+        if (!res.ok) throw new Error(`Failed (${res.status})`)
+        const json = await res.json()
+        if (!active) return
+        const data = json.data
+        const next: GeneralSettings = {
+          businessName: data.businessName ?? '',
+          businessNameAr: data.businessNameAr ?? '',
+          email: data.email ?? '',
+          phone: data.phone ?? '',
+          address: data.address ?? '',
+          city: data.city ?? '',
+          country: data.country || 'OM',
+          timezone: data.timezone || 'Asia/Muscat',
+          currency: data.currency || 'OMR',
+          defaultLanguage: data.defaultLanguage || 'en',
+          businessHours: data.businessHours ?? DEFAULT_HOURS,
+        }
+        setSettings(next)
+        setBaseline(next)
+        setIsLocked(data.isLocked ?? { currency: false, country: false })
+      } catch (err) {
+        console.error('Error loading settings:', err)
+        if (active) setTopError(t('saveError'))
+      } finally {
+        if (active) setInitialLoading(false)
+      }
+    })()
+    return () => {
+      active = false
     }
-  }
+  }, [t])
+
+  // beforeunload guard for unsaved edits
+  useEffect(() => {
+    if (!isDirty) return
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      // Modern browsers ignore the returned string but still show a generic prompt
+      // when preventDefault is called and returnValue is set.
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [isDirty])
 
   const handleSave = async () => {
     setLoading(true)
     setSaved(false)
-
+    setFieldErrors({})
+    setTopError(null)
     try {
-      // TODO: Replace with actual API call
-      // await fetch('/api/settings/general', {
-      //   method: 'PUT',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(settings)
-      // })
+      const res = await fetch('/api/v1/settings/general', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCSRFHeader(csrfToken),
+        },
+        body: JSON.stringify(settings),
+      })
+      const json = await res.json().catch(() => ({}))
 
+      if (!res.ok) {
+        if (json.fieldErrors) setFieldErrors(json.fieldErrors)
+        setTopError(json.error || t('saveError'))
+        return
+      }
+
+      const data = json.data
+      const next: GeneralSettings = {
+        businessName: data.businessName ?? '',
+        businessNameAr: data.businessNameAr ?? '',
+        email: data.email ?? '',
+        phone: data.phone ?? '',
+        address: data.address ?? '',
+        city: data.city ?? '',
+        country: data.country,
+        timezone: data.timezone,
+        currency: data.currency,
+        defaultLanguage: data.defaultLanguage,
+        businessHours: data.businessHours,
+      }
+      setSettings(next)
+      setBaseline(next)
+      setIsLocked(data.isLocked ?? isLocked)
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
-    } catch (error) {
-      console.error('Error saving settings:', error)
+    } catch (err) {
+      console.error('Error saving settings:', err)
+      setTopError(t('saveError'))
     } finally {
       setLoading(false)
     }
   }
 
+  if (initialLoading) {
+    return <SkeletonForm />
+  }
+
   return (
     <div className="max-w-4xl">
+      {topError && (
+        <div
+          role="alert"
+          className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+        >
+          {topError}
+        </div>
+      )}
+
       {/* Business Information Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -114,11 +212,7 @@ export default function GeneralSettingsPage() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Business Name (English) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('businessName')} (English)
-            </label>
+          <Field label={`${t('businessName')} (English)`} error={fieldErrors.businessName}>
             <input
               type="text"
               value={settings.businessName}
@@ -126,13 +220,9 @@ export default function GeneralSettingsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="My Laundry Business"
             />
-          </div>
+          </Field>
 
-          {/* Business Name (Arabic) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('businessName')} (العربية)
-            </label>
+          <Field label={`${t('businessName')} (العربية)`} error={fieldErrors.businessNameAr}>
             <input
               type="text"
               value={settings.businessNameAr}
@@ -141,14 +231,17 @@ export default function GeneralSettingsPage() {
               placeholder="مغسلة الملابس"
               dir="rtl"
             />
-          </div>
+          </Field>
 
-          {/* Email */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Mail className="inline h-4 w-4 mr-1" />
-              {t('email')}
-            </label>
+          <Field
+            label={
+              <>
+                <Mail className="inline h-4 w-4 mr-1" />
+                {t('email')}
+              </>
+            }
+            error={fieldErrors.email}
+          >
             <input
               type="email"
               value={settings.email}
@@ -156,14 +249,17 @@ export default function GeneralSettingsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="info@business.com"
             />
-          </div>
+          </Field>
 
-          {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Phone className="inline h-4 w-4 mr-1" />
-              {t('phone')}
-            </label>
+          <Field
+            label={
+              <>
+                <Phone className="inline h-4 w-4 mr-1" />
+                {t('phone')}
+              </>
+            }
+            error={fieldErrors.phone}
+          >
             <input
               type="tel"
               value={settings.phone}
@@ -171,14 +267,18 @@ export default function GeneralSettingsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="+968 9123 4567"
             />
-          </div>
+          </Field>
 
-          {/* Address */}
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <MapPin className="inline h-4 w-4 mr-1" />
-              {t('address')}
-            </label>
+          <Field
+            className="md:col-span-2"
+            label={
+              <>
+                <MapPin className="inline h-4 w-4 mr-1" />
+                {t('address')}
+              </>
+            }
+            error={fieldErrors.address}
+          >
             <input
               type="text"
               value={settings.address}
@@ -186,13 +286,9 @@ export default function GeneralSettingsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="123 Main Street"
             />
-          </div>
+          </Field>
 
-          {/* City */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('city')}
-            </label>
+          <Field label={t('city')} error={fieldErrors.city}>
             <input
               type="text"
               value={settings.city}
@@ -200,17 +296,23 @@ export default function GeneralSettingsPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Muscat"
             />
-          </div>
+          </Field>
 
-          {/* Country */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('country')}
-            </label>
+          <Field
+            label={
+              <span className="inline-flex items-center gap-1">
+                {t('country')}
+                {isLocked.country && <Lock className="h-3.5 w-3.5 text-gray-400" />}
+              </span>
+            }
+            error={fieldErrors.country}
+            hint={isLocked.country ? t('error.settingLocked') : undefined}
+          >
             <select
               value={settings.country}
+              disabled={isLocked.country}
               onChange={(e) => setSettings({ ...settings, country: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="OM">Oman</option>
               <option value="SA">Saudi Arabia</option>
@@ -219,7 +321,7 @@ export default function GeneralSettingsPage() {
               <option value="BH">Bahrain</option>
               <option value="QA">Qatar</option>
             </select>
-          </div>
+          </Field>
         </div>
       </div>
 
@@ -231,12 +333,15 @@ export default function GeneralSettingsPage() {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Timezone */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <Clock className="inline h-4 w-4 mr-1" />
-              {t('timezone')}
-            </label>
+          <Field
+            label={
+              <>
+                <Clock className="inline h-4 w-4 mr-1" />
+                {t('timezone')}
+              </>
+            }
+            error={fieldErrors.timezone}
+          >
             <select
               value={settings.timezone}
               onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
@@ -246,19 +351,27 @@ export default function GeneralSettingsPage() {
               <option value="Asia/Riyadh">Asia/Riyadh (GMT+3)</option>
               <option value="Asia/Dubai">Asia/Dubai (GMT+4)</option>
               <option value="Asia/Kuwait">Asia/Kuwait (GMT+3)</option>
+              <option value="Asia/Bahrain">Asia/Bahrain (GMT+3)</option>
+              <option value="Asia/Qatar">Asia/Qatar (GMT+3)</option>
             </select>
-          </div>
+          </Field>
 
-          {/* Currency */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              <DollarSign className="inline h-4 w-4 mr-1" />
-              {t('currency')}
-            </label>
+          <Field
+            label={
+              <span className="inline-flex items-center gap-1">
+                <DollarSign className="inline h-4 w-4 mr-1" />
+                {t('currency')}
+                {isLocked.currency && <Lock className="h-3.5 w-3.5 text-gray-400" />}
+              </span>
+            }
+            error={fieldErrors.currency}
+            hint={isLocked.currency ? t('error.settingLocked') : undefined}
+          >
             <select
               value={settings.currency}
+              disabled={isLocked.currency}
               onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
             >
               <option value="SAR">SAR - Saudi Riyal</option>
               <option value="OMR">OMR - Omani Rial</option>
@@ -267,13 +380,9 @@ export default function GeneralSettingsPage() {
               <option value="BHD">BHD - Bahraini Dinar</option>
               <option value="QAR">QAR - Qatari Riyal</option>
             </select>
-          </div>
+          </Field>
 
-          {/* Default Language */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              {t('language')}
-            </label>
+          <Field label={t('language')} error={fieldErrors.defaultLanguage}>
             <select
               value={settings.defaultLanguage}
               onChange={(e) => setSettings({ ...settings, defaultLanguage: e.target.value })}
@@ -282,7 +391,7 @@ export default function GeneralSettingsPage() {
               <option value="en">English</option>
               <option value="ar">العربية (Arabic)</option>
             </select>
-          </div>
+          </Field>
         </div>
       </div>
 
@@ -301,6 +410,9 @@ export default function GeneralSettingsPage() {
 
       {/* Save Button */}
       <div className="flex items-center justify-end gap-3">
+        <span className="sr-only" role="status" aria-live="polite">
+          {saved ? t('saveSuccess') : ''}
+        </span>
         {saved && (
           <span className="text-sm text-green-600 font-medium">
             ✓ {t('saveSuccess')}
@@ -308,12 +420,66 @@ export default function GeneralSettingsPage() {
         )}
         <button
           onClick={handleSave}
-          disabled={loading}
+          disabled={loading || !isDirty}
           className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
         >
           <Save className="h-5 w-5" />
           {loading ? t('saving') : t('saveChanges')}
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------- Local field & skeleton helpers (kept inline; trivial wrappers) ----------
+
+function Field({
+  label,
+  children,
+  error,
+  hint,
+  className,
+}: {
+  label: React.ReactNode
+  children: React.ReactNode
+  error?: string
+  hint?: string
+  className?: string
+}) {
+  return (
+    <div className={className}>
+      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      {children}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+      {!error && hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+    </div>
+  )
+}
+
+function SkeletonForm() {
+  return (
+    <div className="max-w-4xl animate-pulse">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i}>
+              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+              <div className="h-10 w-full bg-gray-100 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="h-5 w-40 bg-gray-200 rounded mb-4" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i}>
+              <div className="h-4 w-24 bg-gray-200 rounded mb-2" />
+              <div className="h-10 w-full bg-gray-100 rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

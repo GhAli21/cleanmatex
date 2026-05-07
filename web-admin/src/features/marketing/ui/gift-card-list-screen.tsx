@@ -13,6 +13,7 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
+import { CmxConfirmDialog } from '@ui/feedback';
 import { useGiftCards } from '../hooks/use-gift-cards';
 import type { GiftCard, GiftCardStatus } from '@/lib/types/payment';
 import { GiftCardIssueDialog } from './gift-card-issue-dialog';
@@ -129,14 +130,22 @@ export function GiftCardListScreen() {
                   <Settings2 className="h-4 w-4" />
                 </CmxButton>
                 {row.status === 'active' && (
-                  <CmxButton
-                    variant="ghost"
-                    size="icon"
+                  <CmxConfirmDialog
                     title={t('cancel')}
-                    onClick={() => handleCancel(row.id)}
-                  >
-                    <XCircle className="h-4 w-4" />
-                  </CmxButton>
+                    description={t('confirmCancel')}
+                    confirmLabel={t('cancel')}
+                    cancelLabel={tCommon('cancel')}
+                    onConfirm={() => handleCancel(row.id)}
+                    trigger={
+                      <CmxButton
+                        variant="ghost"
+                        size="icon"
+                        title={t('cancel')}
+                      >
+                        <XCircle className="h-4 w-4" />
+                      </CmxButton>
+                    }
+                  />
                 )}
               </div>
             ),

@@ -14,6 +14,7 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
+import { CmxConfirmDialog } from '@ui/feedback';
 import { usePromoCodes } from '../hooks/use-promos';
 import type { PromoCode } from '@/lib/types/payment';
 import { PromoFormDialog } from './promo-form-dialog';
@@ -136,14 +137,22 @@ export function PromoListScreen() {
               >
                 <BarChart2 className="h-4 w-4" />
               </CmxButton>
-              <CmxButton
-                variant="ghost"
-                size="icon"
+              <CmxConfirmDialog
                 title={t('archive')}
-                onClick={() => handleArchive(row.id)}
-              >
-                <Archive className="h-4 w-4" />
-              </CmxButton>
+                description={t('confirmArchive')}
+                confirmLabel={t('archive')}
+                cancelLabel={tCommon('cancel')}
+                onConfirm={() => handleArchive(row.id)}
+                trigger={
+                  <CmxButton
+                    variant="ghost"
+                    size="icon"
+                    title={t('archive')}
+                  >
+                    <Archive className="h-4 w-4" />
+                  </CmxButton>
+                }
+              />
             </div>
           )},
         ]}

@@ -100,6 +100,7 @@
       "create": "Create Promo Code",
       "edit": "Edit Promo Code",
       "archive": "Archive",
+      "confirmArchive": "Are you sure you want to archive this promo code? Customers will no longer be able to use it.",
       "usageReport": "Usage Report",
       "fields": {
         "code": "Code",
@@ -128,6 +129,7 @@
       "detail": "Gift Card Detail",
       "adjust": "Adjust",
       "cancel": "Cancel Card",
+      "confirmCancel": "Are you sure you want to cancel this gift card? You will be asked to provide a reason.",
       "transactions": "Transactions",
       "fields": {
         "cardNumber": "Card Number",
@@ -155,6 +157,7 @@
       "create": "Create Rule",
       "edit": "Edit Rule",
       "archive": "Archive",
+      "confirmArchive": "Are you sure you want to archive this discount rule? It will stop applying to new orders.",
       "fields": {
         "code": "Rule Code",
         "name": "Rule Name",
@@ -1882,6 +1885,10 @@
     "saveChanges": "Save Changes",
     "saving": "Saving...",
     "saveSuccess": "Settings saved successfully",
+    "saveError": "Could not save settings. Please try again.",
+    "colors": {
+      "invalid": "Color must be in #RRGGBB format"
+    },
     "cancel": "Cancel",
     "actions": "Actions",
     "editUser": "Edit User",

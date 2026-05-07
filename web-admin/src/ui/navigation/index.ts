@@ -3,6 +3,7 @@
  * @module ui/navigation
  */
 
+export * from './cmx-pagination';
 export * from './cmx-progress-steps';
 export * from './cmx-tabs-panel';
 export * from './cmx-language-switcher';
