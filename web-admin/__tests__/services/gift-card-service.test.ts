@@ -199,6 +199,14 @@ describe('gift-card-service', () => {
       expect(result.isValid).toBe(true);
     });
 
+    it('accepts the PIN code as the entry value when card number is not provided', async () => {
+      mockGcFindFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(makeCard());
+      const result = await validateGiftCard({ card_number: '1234' });
+      expect(result.isValid).toBe(true);
+    });
+
     it('does NOT mutate DB when expiry check fires in validateGiftCard', async () => {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);

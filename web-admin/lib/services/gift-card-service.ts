@@ -29,6 +29,39 @@ import type {
 /** Prisma interactive-transaction client type — matches what prisma.$transaction callback receives */
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+type GiftCardSearchResult = {
+  giftCard: Awaited<ReturnType<typeof prisma.org_gift_cards_mst.findFirst>>;
+  matchedByPin: boolean;
+} | null;
+
+async function findActiveGiftCardByNumberOrPin(
+  searchValue: string
+): Promise<GiftCardSearchResult> {
+  const giftCardByNumber = await prisma.org_gift_cards_mst.findFirst({
+    where: {
+      card_number: searchValue,
+      is_active: true,
+    },
+  });
+
+  if (giftCardByNumber) {
+    return { giftCard: giftCardByNumber, matchedByPin: false };
+  }
+
+  const giftCardByPin = await prisma.org_gift_cards_mst.findFirst({
+    where: {
+      card_pin: searchValue,
+      is_active: true,
+    },
+  });
+
+  if (giftCardByPin) {
+    return { giftCard: giftCardByPin, matchedByPin: true };
+  }
+
+  return null;
+}
+
 // ============================================================================
 // Gift Card Validation
 // ============================================================================
@@ -52,33 +85,30 @@ export async function validateGiftCard(
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     try {
-      // Find gift card - middleware adds tenant_org_id automatically
-      const giftCard = await prisma.org_gift_cards_mst.findFirst({
-        where: {
-          card_number: input.card_number,
-          is_active: true,
-        },
-      });
+      // Find gift card by number or PIN; allow entry of either value in the same field.
+      const searchResult = await findActiveGiftCardByNumberOrPin(input.card_number);
 
-    if (!giftCard) {
-      return {
-        isValid: false,
-        error: 'Gift card not found',
-        errorCode: 'NOT_FOUND',
-      };
-    }
-
-    // PIN guard: if the card has a PIN, the caller MUST supply the correct one.
-    // Passing when PIN is set but not sent is a security bug — reject explicitly.
-    if (giftCard.card_pin) {
-      if (!input.card_pin || giftCard.card_pin !== input.card_pin) {
+      if (!searchResult) {
         return {
           isValid: false,
-          error: 'Invalid gift card PIN',
-          errorCode: 'INVALID_PIN',
+          error: 'Gift card not found',
+          errorCode: 'NOT_FOUND',
         };
       }
-    }
+
+      const { giftCard, matchedByPin } = searchResult;
+
+      // PIN guard: if the card has a PIN and the user entered the card number, then
+      // the PIN must also be supplied. If the user entered the PIN directly, accept it.
+      if (giftCard.card_pin && !matchedByPin) {
+        if (!input.card_pin || giftCard.card_pin !== input.card_pin) {
+          return {
+            isValid: false,
+            error: 'Invalid gift card PIN',
+            errorCode: 'INVALID_PIN',
+          };
+        }
+      }
 
     // Check status
     if (giftCard.status !== 'active') {
@@ -155,12 +185,7 @@ export async function getGiftCardBalance(
 
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
-    const giftCard = await prisma.org_gift_cards_mst.findFirst({
-      where: {
-        card_number: cardNumber,
-        is_active: true,
-      },
-    });
+    const giftCard = await findActiveGiftCardByNumberOrPin(cardNumber);
 
     if (!giftCard) {
       return null;

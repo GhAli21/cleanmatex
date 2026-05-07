@@ -3377,7 +3377,7 @@
       "giftCard": {
         "title": "Gift Card",
         "label": "Gift Card",
-        "placeholder": "GIFT CARD NUMBER",
+        "placeholder": "GIFT CARD NUMBER OR PIN",
         "pinLabel": "PIN (if required)",
         "pinPlaceholder": "Enter PIN",
         "apply": "Apply",

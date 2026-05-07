@@ -3377,7 +3377,7 @@
       "giftCard": {
         "title": "بطاقة هدية",
         "label": "بطاقة هدية",
-        "placeholder": "رقم البطاقة",
+        "placeholder": "رقم البطاقة أو الرقم السري",
         "pinLabel": "الرقم السري (إن وجد)",
         "pinPlaceholder": "أدخل الرقم السري",
         "apply": "تطبيق",
