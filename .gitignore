@@ -2,6 +2,7 @@
 
 # Ignore worktrees created by Claude
 .claude/worktrees/
+.claude/scheduled_tasks.lock
 
 # Ignore ghost Windows device file
 web-admin/nul
