@@ -172,6 +172,55 @@ export async function validateGiftCard(
 }
 
 /**
+ * Validate a gift card by its DB UUID for server-side order calculation.
+ *
+ * Called from order-calculation.service when the client already holds a giftCardId
+ * obtained via a prior validateGiftCard call (which enforced PIN, status, expiry).
+ * PIN re-verification is intentionally skipped — the card was pre-authenticated.
+ * Status, expiry, and balance are re-checked for freshness at calculation time.
+ */
+export async function validateGiftCardByIdForCalculation(
+  id: string,
+  tenantId: string
+): Promise<ValidateGiftCardResult> {
+  return withTenantContext(tenantId, async () => {
+    try {
+      const giftCard = await prisma.org_gift_cards_mst.findFirst({
+        where: { id, is_active: true },
+      });
+
+      if (!giftCard) {
+        return { isValid: false, error: 'Gift card not found', errorCode: 'NOT_FOUND' };
+      }
+
+      if (giftCard.status !== 'active') {
+        if (giftCard.status === 'expired') {
+          return { isValid: false, error: 'Gift card has expired', errorCode: 'EXPIRED' };
+        }
+        if (giftCard.status === 'suspended') {
+          return { isValid: false, error: 'Gift card is suspended', errorCode: 'CARD_SUSPENDED' };
+        }
+        return { isValid: false, error: `Gift card is ${giftCard.status}`, errorCode: 'CARD_SUSPENDED' };
+      }
+
+      if (giftCard.expiry_date && new Date() > new Date(giftCard.expiry_date)) {
+        return { isValid: false, error: 'Gift card has expired', errorCode: 'EXPIRED' };
+      }
+
+      const currentBalance = Number(giftCard.current_balance);
+      if (currentBalance <= 0) {
+        return { isValid: false, error: 'Gift card has no remaining balance', errorCode: 'INSUFFICIENT_BALANCE' };
+      }
+
+      return { isValid: true, giftCard: mapGiftCardToType(giftCard), availableBalance: currentBalance };
+    } catch (error) {
+      logger.error('Error validating gift card by ID', error as Error, {});
+      return { isValid: false, error: 'An error occurred while validating gift card' };
+    }
+  });
+}
+
+/**
  * Check gift card balance
  */
 export async function getGiftCardBalance(

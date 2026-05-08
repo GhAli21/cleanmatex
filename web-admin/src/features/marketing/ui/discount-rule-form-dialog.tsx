@@ -48,18 +48,18 @@ const schema = z.object({
     'seasonal',
     'first_order',
     'loyalty',
-  ]).default('seasonal'),
+  ]),
   discount_type: z.enum(['percentage', 'fixed_amount']),
-  discount_value: z.coerce.number().positive(),
-  priority: z.coerce.number().int().min(0).default(0),
-  can_stack_with_promo: z.boolean().default(false),
-  can_stack_with_other_rules: z.boolean().default(false),
+  discount_value: z.number().positive(),
+  priority: z.number().int().min(0),
+  can_stack_with_promo: z.boolean(),
+  can_stack_with_other_rules: z.boolean(),
   valid_from: z.string().min(1, 'Required'),
   valid_to: z.string().optional(),
-  is_enabled: z.boolean().default(true),
+  is_enabled: z.boolean(),
   // Conditions fields
-  min_order_amount: z.coerce.number().nonnegative().optional(),
-  min_items: z.coerce.number().int().positive().optional(),
+  min_order_amount: z.number().nonnegative().optional(),
+  min_items: z.number().int().positive().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -124,7 +124,7 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
       });
     } else {
       form.reset({
-        rule_code: '', rule_name: '', rule_type: 'auto',
+        rule_code: '', rule_name: '', rule_type: 'seasonal',
         discount_type: 'percentage', discount_value: 0, priority: 0,
         can_stack_with_promo: false, can_stack_with_other_rules: false,
         valid_from: new Date().toISOString().slice(0, 16), valid_to: '',
@@ -256,22 +256,22 @@ export function DiscountRuleFormDialog({ open, rule, onClose, onSuccess }: Disco
             </div>
             <div>
               <Label>{t('fields.discountValue')}</Label>
-              <CmxInput type="number" step="0.01" {...form.register('discount_value')} />
+              <CmxInput type="number" step="0.01" {...form.register('discount_value', { valueAsNumber: true })} />
             </div>
 
             <div>
               <Label>{t('fields.priority')}</Label>
-              <CmxInput type="number" step="1" {...form.register('priority')} />
+              <CmxInput type="number" step="1" {...form.register('priority', { valueAsNumber: true })} />
             </div>
 
             <div>
               <Label>{tCond('minOrder')}</Label>
-              <CmxInput type="number" step="0.01" {...form.register('min_order_amount')} />
+              <CmxInput type="number" step="0.01" {...form.register('min_order_amount', { valueAsNumber: true })} />
             </div>
 
             <div>
               <Label>{tCond('minItems')}</Label>
-              <CmxInput type="number" step="1" {...form.register('min_items')} />
+              <CmxInput type="number" step="1" {...form.register('min_items', { valueAsNumber: true })} />
             </div>
 
             <div>

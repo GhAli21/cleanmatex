@@ -150,6 +150,31 @@
       "errors": {
         "insufficientBalance": "Insufficient balance",
         "cardCancelled": "Card has been cancelled"
+      },
+      "transactionLog": {
+        "title": "Transaction Log",
+        "filterByCard": "Search by card number",
+        "noTransactions": "No transactions found",
+        "noTransactionsDesc": "Transactions will appear here once gift cards are used.",
+        "transactionType": {
+          "redemption": "Redemption",
+          "refund": "Refund",
+          "adjustment": "Adjustment",
+          "cancellation": "Cancellation"
+        },
+        "fields": {
+          "type": "Type",
+          "balanceBefore": "Before",
+          "balanceAfter": "After",
+          "processedBy": "Processed By",
+          "transactionDate": "Date & Time",
+          "dateFrom": "From",
+          "dateTo": "To",
+          "orderNo": "Order"
+        },
+        "errors": {
+          "loadFailed": "Failed to load transaction log"
+        }
       }
     },
     "discountRules": {
@@ -1298,6 +1323,12 @@
         "orderIdentity": "Order identity",
         "customerReference": "Customer & reference",
         "financial": "Amounts & totals",
+        "financialCoreTotals": "Core Totals",
+        "financialVat": "VAT",
+        "financialDiscounts": "Discounts & Promotions",
+        "financialGiftCard": "Gift Card",
+        "financialServiceCharge": "Service Charge",
+        "financialCurrency": "Currency",
         "payment": "Payment",
         "datesAndTimeline": "Dates & timeline",
         "preparationAndWorkflow": "Preparation & workflow",
@@ -1340,7 +1371,17 @@
         "preparation_status": "Preparation status",
         "prepared_at": "Prepared at",
         "prepared_by": "Prepared by",
+        "vat_rate": "VAT Rate",
+        "vat_amount": "VAT Amount",
+        "discount_rate": "Discount Rate",
+        "discount_type": "Discount Type",
+        "promo_discount_amount": "Promo Discount",
+        "gift_card_discount_amount": "Gift Card Discount",
+        "gift_card_id": "Gift Card",
+        "service_charge": "Service Charge",
+        "service_charge_type": "Service Charge Type",
         "currency_code": "Currency",
+        "currency_ex_rate": "Exchange Rate",
         "bag_count": "Bag count",
         "is_retail": "Retail",
         "cancelled_at": "Cancelled at",

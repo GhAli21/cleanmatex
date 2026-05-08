@@ -150,6 +150,31 @@
       "errors": {
         "insufficientBalance": "الرصيد غير كافٍ",
         "cardCancelled": "البطاقة ملغاة"
+      },
+      "transactionLog": {
+        "title": "سجل المعاملات",
+        "filterByCard": "البحث برقم البطاقة",
+        "noTransactions": "لا توجد معاملات",
+        "noTransactionsDesc": "ستظهر المعاملات هنا عند استخدام بطاقات الهدايا.",
+        "transactionType": {
+          "redemption": "استرداد",
+          "refund": "استرجاع",
+          "adjustment": "تعديل",
+          "cancellation": "إلغاء"
+        },
+        "fields": {
+          "type": "النوع",
+          "balanceBefore": "قبل",
+          "balanceAfter": "بعد",
+          "processedBy": "نُفِّذ بواسطة",
+          "transactionDate": "التاريخ والوقت",
+          "dateFrom": "من",
+          "dateTo": "إلى",
+          "orderNo": "الطلب"
+        },
+        "errors": {
+          "loadFailed": "فشل تحميل سجل المعاملات"
+        }
       }
     },
     "discountRules": {
@@ -1299,6 +1324,12 @@
         "orderIdentity": "هوية الطلب",
         "customerReference": "العميل والمرجع",
         "financial": "المبالغ والمجاميع",
+        "financialCoreTotals": "المجاميع الأساسية",
+        "financialVat": "ضريبة القيمة المضافة",
+        "financialDiscounts": "الخصومات والعروض",
+        "financialGiftCard": "بطاقة الهدية",
+        "financialServiceCharge": "رسوم الخدمة",
+        "financialCurrency": "العملة",
         "payment": "الدفع",
         "datesAndTimeline": "التواريخ والجدول الزمني",
         "preparationAndWorkflow": "التحضير وسير العمل",
@@ -1341,7 +1372,17 @@
         "preparation_status": "حالة التحضير",
         "prepared_at": "تم التحضير في",
         "prepared_by": "حضّر بواسطة",
+        "vat_rate": "نسبة ضريبة القيمة المضافة",
+        "vat_amount": "مبلغ ضريبة القيمة المضافة",
+        "discount_rate": "نسبة الخصم",
+        "discount_type": "نوع الخصم",
+        "promo_discount_amount": "خصم العرض الترويجي",
+        "gift_card_discount_amount": "خصم بطاقة الهدية",
+        "gift_card_id": "بطاقة الهدية",
+        "service_charge": "رسوم الخدمة",
+        "service_charge_type": "نوع رسوم الخدمة",
         "currency_code": "العملة",
+        "currency_ex_rate": "سعر الصرف",
         "bag_count": "عدد الأكياس",
         "is_retail": "تجزئة",
         "cancelled_at": "تم الإلغاء في",

@@ -19,7 +19,7 @@ import {
   deactivateGiftCard,
 } from '@/lib/services/gift-card-service';
 import { logger } from '@/lib/utils/logger';
-import type { GiftCard, GiftCardStatus, GiftCardTransaction } from '@/lib/types/payment';
+import type { GiftCard, GiftCardStatus, GiftCardTransaction, GiftCardTransactionLogRow, GiftCardTransactionType } from '@/lib/types/payment';
 
 // ---------------------------------------------------------------------------
 // Schemas
@@ -296,6 +296,106 @@ export async function cancelGiftCard(
 
 // ---------------------------------------------------------------------------
 // Transactions
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Transaction log (tenant-wide)
+// ---------------------------------------------------------------------------
+
+/**
+ * List all gift card transactions for the current tenant with pagination and filters.
+ * Joins to org_gift_cards_mst to include card_number and card_name for display.
+ */
+export async function listGiftCardTransactionsAction(params: {
+  page?: number;
+  pageSize?: number;
+  cardNumber?: string;
+  transactionType?: GiftCardTransactionType;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<
+  | { success: true; data: GiftCardTransactionLogRow[]; total: number }
+  | { success: false; error: string }
+> {
+  try {
+    const auth = await getAuthContext();
+    if (!auth.tenantId) {
+      return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    const { tenantId } = auth;
+
+    const page = Math.max(1, params.page ?? 1);
+    const pageSize = Math.min(100, params.pageSize ?? 25);
+    const skip = (page - 1) * pageSize;
+
+    return withTenantContext(tenantId, async () => {
+      const where: Parameters<typeof prisma.org_gift_card_transactions.findMany>[0]['where'] = {
+        tenant_org_id: tenantId,
+      };
+
+      if (params.transactionType) {
+        where.transaction_type = params.transactionType;
+      }
+
+      if (params.dateFrom || params.dateTo) {
+        where.transaction_date = {};
+        if (params.dateFrom) {
+          (where.transaction_date as Record<string, unknown>).gte = new Date(params.dateFrom);
+        }
+        if (params.dateTo) {
+          const to = new Date(params.dateTo);
+          to.setHours(23, 59, 59, 999);
+          (where.transaction_date as Record<string, unknown>).lte = to;
+        }
+      }
+
+      if (params.cardNumber?.trim()) {
+        where.org_gift_cards_mst = {
+          card_number: { contains: params.cardNumber.trim(), mode: 'insensitive' },
+        };
+      }
+
+      const [rows, total] = await Promise.all([
+        prisma.org_gift_card_transactions.findMany({
+          where,
+          include: {
+            org_gift_cards_mst: { select: { card_number: true, card_name: true } },
+          },
+          orderBy: { transaction_date: 'desc' },
+          skip,
+          take: pageSize,
+        }),
+        prisma.org_gift_card_transactions.count({ where }),
+      ]);
+
+      const data: GiftCardTransactionLogRow[] = rows.map((row) => ({
+        id: row.id,
+        tenant_org_id: row.tenant_org_id,
+        gift_card_id: row.gift_card_id,
+        card_number: row.org_gift_cards_mst.card_number,
+        card_name: row.org_gift_cards_mst.card_name,
+        transaction_type: row.transaction_type as GiftCardTransactionType,
+        amount: Number(row.amount),
+        balance_before: Number(row.balance_before),
+        balance_after: Number(row.balance_after),
+        order_id: row.order_id ?? undefined,
+        invoice_id: row.invoice_id ?? undefined,
+        notes: row.notes ?? undefined,
+        transaction_date: row.transaction_date.toISOString(),
+        processed_by: row.processed_by ?? undefined,
+        metadata: row.metadata ? (row.metadata as Record<string, unknown>) : undefined,
+      }));
+
+      return { success: true, data, total };
+    });
+  } catch (error) {
+    logger.error('listGiftCardTransactionsAction failed', error as Error, {});
+    return { success: false, error: 'Failed to load transaction log' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-card transaction history
 // ---------------------------------------------------------------------------
 
 /**

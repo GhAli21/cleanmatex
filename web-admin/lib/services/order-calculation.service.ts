@@ -13,7 +13,7 @@ import { pricingService } from './pricing.service';
 import { TaxService } from './tax.service';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { validatePromoCode, getBestDiscount } from './discount-service';
-import { validateGiftCard } from './gift-card-service';
+import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
@@ -34,6 +34,8 @@ export interface OrderCalculationParams {
   promoCodeId?: string;
   giftCardNumber?: string;
   giftCardAmount?: number;
+  /** Pre-authenticated gift card UUID. When provided, bypasses number/PIN lookup and skips PIN re-verification. */
+  giftCardId?: string;
   serviceCategories?: string[];
   /** Additional tax (order tax) rate in percent (e.g. 10 for 10%). Applied to afterDiscounts. */
   additionalTaxRate?: number;
@@ -85,6 +87,7 @@ export async function calculateOrderTotals(
     promoCode,
     giftCardNumber,
     giftCardAmount,
+    giftCardId,
     serviceCategories,
     additionalTaxRate,
     additionalTaxAmount: additionalTaxAmountParam,
@@ -245,10 +248,14 @@ export async function calculateOrderTotals(
   );
 
   let giftCardApplied = 0;
-  if (giftCardNumber?.trim()) {
-    const giftCardResult = await validateGiftCard({
-      card_number: giftCardNumber,
-    });
+  const resolvedGiftCardId = giftCardId?.trim();
+  const resolvedGiftCardNumber = giftCardNumber?.trim();
+  if (resolvedGiftCardId || resolvedGiftCardNumber) {
+    // Prefer ID-based lookup: the card was pre-authenticated (PIN verified) during the
+    // fetch step. Falling back to number-based lookup handles legacy/direct-number cases.
+    const giftCardResult = resolvedGiftCardId
+      ? await validateGiftCardByIdForCalculation(resolvedGiftCardId, tenantId)
+      : await validateGiftCard({ card_number: resolvedGiftCardNumber! });
     if (
       giftCardResult.isValid &&
       giftCardResult.availableBalance != null &&

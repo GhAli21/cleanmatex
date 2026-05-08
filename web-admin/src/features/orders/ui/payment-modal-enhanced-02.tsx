@@ -190,6 +190,7 @@ export function PaymentModalEnhanced02({
     number: string;
     amount: number;
     balance: number;
+    id: string;
   } | null>(null);
 
   const [couponOpen, setCouponOpen] = useState(false);
@@ -275,6 +276,7 @@ export function PaymentModalEnhanced02({
             promoCode: appliedPromoCode?.code || undefined,
             giftCardNumber: appliedGiftCard?.number || undefined,
             giftCardAmount: appliedGiftCard?.amount || undefined,
+            giftCardId: appliedGiftCard?.id || undefined,
           }),
         }),
       });
@@ -314,7 +316,7 @@ export function PaymentModalEnhanced02({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, csrfToken]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, appliedGiftCard?.id, csrfToken]);
 
   useEffect(() => {
     if (!open || items.length === 0) {
@@ -551,6 +553,7 @@ export function PaymentModalEnhanced02({
       number: giftCardDetails.number,
       amount: amountToUse,
       balance: giftCardDetails.balance,
+      id: giftCardDetails.id ?? '',
     });
     setValue('giftCardNumber', giftCardDetails.number);
     setValue('giftCardAmount', amountToUse);

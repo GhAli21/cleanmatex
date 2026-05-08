@@ -477,6 +477,12 @@ export interface GiftCardTransaction {
   metadata?: Record<string, any>;
 }
 
+/** GiftCardTransaction enriched with parent card details — used by the tenant-wide transaction log. */
+export interface GiftCardTransactionLogRow extends GiftCardTransaction {
+  card_number: string;
+  card_name: string;
+}
+
 export interface ValidateGiftCardInput {
   card_number: string;
   card_pin?: string;

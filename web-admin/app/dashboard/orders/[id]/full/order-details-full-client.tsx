@@ -409,7 +409,6 @@ export function OrderDetailsFullClient({
         'created_info',
         'updated_info',
         'promo_code_id',
-        'gift_card_id',
       ],
     },
   ];
@@ -475,6 +474,62 @@ export function OrderDetailsFullClient({
     );
   };
 
+  const renderFinancialSection = () => {
+    const o = order as Record<string, unknown>;
+
+    const subGroups: { key: string; titleKey: string; defaultTitle: string; fields: string[]; wide?: boolean }[] = [
+      { key: 'coreTotals', titleKey: 'masterSectionFinancialCoreTotals', defaultTitle: 'Core Totals', fields: ['subtotal', 'discount', 'tax', 'total'], wide: true },
+      { key: 'vat', titleKey: 'masterSectionFinancialVat', defaultTitle: 'VAT', fields: ['vat_rate', 'vat_amount'] },
+      { key: 'discounts', titleKey: 'masterSectionFinancialDiscounts', defaultTitle: 'Discounts & Promotions', fields: ['discount_rate', 'discount_type', 'promo_discount_amount'] },
+      { key: 'giftCard', titleKey: 'masterSectionFinancialGiftCard', defaultTitle: 'Gift Card', fields: ['gift_card_id', 'gift_card_discount_amount'] },
+      { key: 'serviceCharge', titleKey: 'masterSectionFinancialServiceCharge', defaultTitle: 'Service Charge', fields: ['service_charge', 'service_charge_type'] },
+      { key: 'currency', titleKey: 'masterSectionFinancialCurrency', defaultTitle: 'Currency', fields: ['currency_code', 'currency_ex_rate'] },
+    ];
+
+    const hasAny = subGroups.some((g) => g.fields.some((f) => f in o));
+    if (!hasAny) return null;
+
+    return (
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+            {t.masterSectionFinancial ?? 'Amounts & totals'}
+          </CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent className="pt-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {subGroups.map(({ key, titleKey, defaultTitle, fields, wide }) => {
+              const presentFields = fields.filter((f) => f in o);
+              if (presentFields.length === 0) return null;
+              return (
+                <div
+                  key={key}
+                  className={`${wide ? 'sm:col-span-2' : ''} rounded-lg border border-gray-100 bg-gray-50/60 p-3`}
+                >
+                  <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {(t as Record<string, string>)[titleKey] ?? defaultTitle}
+                  </p>
+                  <dl className={`grid grid-cols-1 ${wide ? 'sm:grid-cols-2' : ''} gap-x-4 gap-y-1`}>
+                    {presentFields.map((field) => {
+                      const val = o[field];
+                      const displayKey = (t as Record<string, string>)[`masterField_${field}`] ?? field.replace(/_/g, ' ');
+                      return (
+                        <div key={field} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-1 last:border-0`}>
+                          <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
+                          <dd className="text-sm text-gray-900 break-all">{formatMasterValue(field, val)}</dd>
+                        </div>
+                      );
+                    })}
+                  </dl>
+                </div>
+              );
+            })}
+          </div>
+        </CmxCardContent>
+      </CmxCard>
+    );
+  };
+
   const tabs = [
     {
       id: 'master',
@@ -494,12 +549,8 @@ export function OrderDetailsFullClient({
               MASTER_CATEGORIES[1].keys
             )}
           </div>
-          {/* Full width: Amounts & totals */}
-          {renderMasterSection(
-            'financial',
-            t.masterSectionFinancial ?? 'Amounts & totals',
-            MASTER_CATEGORIES[2].keys
-          )}
+          {/* Full width: Amounts & totals — grouped sub-cards */}
+          {renderFinancialSection()}
           {/* Full width: Payment */}
           {renderMasterSection(
             'payment',

@@ -167,6 +167,7 @@ export async function POST(request: NextRequest) {
       promoCodeId: input.promoCodeId,
       giftCardNumber: input.giftCardNumber,
       giftCardAmount: input.giftCardAmount,
+      giftCardId: input.giftCardId,
       additionalTaxRate: input.additionalTaxRate,
       additionalTaxAmount: input.additionalTaxAmount,
     });

@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       promoCode: parsed.data.promoCode,
       giftCardNumber: parsed.data.giftCardNumber,
       giftCardAmount: parsed.data.giftCardAmount,
+      giftCardId: parsed.data.giftCardId,
     });
 
     let creditLimit: Awaited<ReturnType<typeof checkCreditLimit>> | undefined;
