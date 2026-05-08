@@ -16,6 +16,7 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import { OrderStatsCards } from '@features/orders/ui/order-stats-cards';
 import { OrderFiltersBar } from '@features/orders/ui/order-filters-bar';
 import { OrdersSimpleTable } from '@features/orders/ui/orders-simple-table';
+import { OrdersRefreshButton } from '@features/orders/ui/orders-refresh-button';
 
 type OrdersSearchParams = {
   page?: string;
@@ -120,6 +121,7 @@ export default async function OrdersPage({ searchParams }: PageProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          <OrdersRefreshButton />
           <Link
             href="/dashboard/orders?status=draft&physicalIntakeStatus=pending_dropoff"
             className="text-sm font-medium text-amber-800 hover:text-amber-900"

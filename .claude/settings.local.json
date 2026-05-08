@@ -58,7 +58,11 @@
       "Bash(npx tsc *)",
       "Read(//c/Users/JHNLP/AppData/Local/Temp/claude/f--jhapp-cleanmatex/e52b2c81-064e-4cda-858c-6b1f83dc0e8b/tasks/**)",
       "Bash(grep -nE \"[^a-zA-Z_]logo[^a-zA-Z_]|^logo[^a-zA-Z_]|[^a-zA-Z_]logo$\" \"F:/jhapp/cleanmatex/web-admin/app/api/v1/settings/general/route.ts\" \"F:/jhapp/cleanmatex/web-admin/lib/services/tenant-profile.service.ts\" \"F:/jhapp/cleanmatex/web-admin/lib/storage/upload-photo.ts\")",
-      "Bash(find \"F:\\\\jhapp\\\\cleanmatex\" -name \"*settings*service*\" -o -name \"*service*settings*\" 2>nul | head -20)"
+      "Bash(find \"F:\\\\jhapp\\\\cleanmatex\" -name \"*settings*service*\" -o -name \"*service*settings*\" 2>nul | head -20)",
+      "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\" -Directory)",
+      "Bash(sort -t_ -k1)"
     ],
     "deny": [
       "Read(node_modules)",

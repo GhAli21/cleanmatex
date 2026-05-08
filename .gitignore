@@ -1,5 +1,8 @@
 # .gitignore
 
+# Ignore worktrees created by Claude
+.claude/worktrees/
+
 # Ignore ghost Windows device file
 web-admin/nul
 web-admin/nul.*

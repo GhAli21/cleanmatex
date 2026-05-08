@@ -124,6 +124,31 @@ export function OrderDetailsFullClient({
       locale: moneyLocale,
     });
 
+  // Component-level financial derived values (shared between sidebar and financial section)
+  const _o = order as Record<string, unknown>;
+  const orderTotal = Number(_o.total ?? 0);
+  const orderPaidAmount = Number(_o.paid_amount ?? 0);
+  const orderBalanceDue = orderTotal - orderPaidAmount;
+  const orderBalanceDueAbs = Math.abs(orderBalanceDue);
+  const balanceColorClass =
+    orderBalanceDue < 0
+      ? 'text-blue-700'
+      : orderBalanceDue === 0
+        ? 'text-green-700'
+        : 'text-orange-600';
+  const balanceBadgeClass =
+    orderBalanceDue < 0
+      ? 'bg-blue-100 text-blue-700'
+      : orderBalanceDue === 0
+        ? 'bg-green-100 text-green-700'
+        : 'bg-orange-100 text-orange-700';
+  const balanceStatusLabel =
+    orderBalanceDue < 0
+      ? (t.overpaid ?? 'Overpaid')
+      : orderBalanceDue === 0
+        ? (t.fullyPaid ?? 'Fully Paid')
+        : (t.balanceOwing ?? 'Balance Owing');
+
   const tabFromUrl = searchParams.get('tab') ?? initialTab;
   const activeTab = TAB_IDS.includes(tabFromUrl as (typeof TAB_IDS)[number]) ? tabFromUrl : 'items';
   const invoiceIdFromUrl = searchParams.get('invoiceId') ?? initialInvoiceId;
@@ -477,17 +502,70 @@ export function OrderDetailsFullClient({
   const renderFinancialSection = () => {
     const o = order as Record<string, unknown>;
 
-    const subGroups: { key: string; titleKey: string; defaultTitle: string; fields: string[]; wide?: boolean }[] = [
-      { key: 'coreTotals', titleKey: 'masterSectionFinancialCoreTotals', defaultTitle: 'Core Totals', fields: ['subtotal', 'discount', 'tax', 'total'], wide: true },
-      { key: 'vat', titleKey: 'masterSectionFinancialVat', defaultTitle: 'VAT', fields: ['vat_rate', 'vat_amount'] },
-      { key: 'discounts', titleKey: 'masterSectionFinancialDiscounts', defaultTitle: 'Discounts & Promotions', fields: ['discount_rate', 'discount_type', 'promo_discount_amount'] },
-      { key: 'giftCard', titleKey: 'masterSectionFinancialGiftCard', defaultTitle: 'Gift Card', fields: ['gift_card_id', 'gift_card_discount_amount'] },
-      { key: 'serviceCharge', titleKey: 'masterSectionFinancialServiceCharge', defaultTitle: 'Service Charge', fields: ['service_charge', 'service_charge_type'] },
-      { key: 'currency', titleKey: 'masterSectionFinancialCurrency', defaultTitle: 'Currency', fields: ['currency_code', 'currency_ex_rate'] },
-    ];
+    const subtotal = Number(o.subtotal ?? 0);
+    const lineDiscount = Number(o.discount ?? 0);
+    const promoDiscount = Number(o.promo_discount_amount ?? 0);
+    const giftCardDiscount = Number(o.gift_card_discount_amount ?? 0);
+    const serviceCharge = Number(o.service_charge ?? 0);
+    const vatAmount = Number(o.vat_amount ?? 0);
+    const tax = Number(o.tax ?? 0);
+    const total = Number(o.total ?? 0);
+    const paidAmount = Number(o.paid_amount ?? 0);
+    const netAfterDiscounts = subtotal - lineDiscount - promoDiscount - giftCardDiscount;
 
-    const hasAny = subGroups.some((g) => g.fields.some((f) => f in o));
-    if (!hasAny) return null;
+    const vatRate = o.vat_rate != null ? Number(o.vat_rate) : null;
+    const discountRateVal = o.discount_rate != null ? Number(o.discount_rate) : null;
+    const discountTypeVal = o.discount_type != null ? String(o.discount_type) : null;
+    const serviceChargeTypeVal = o.service_charge_type != null ? String(o.service_charge_type) : null;
+    const currencyCode = typeof o.currency_code === 'string' ? o.currency_code : '';
+    const exchangeRate = o.currency_ex_rate != null ? Number(o.currency_ex_rate) : null;
+
+    const giftCardId = typeof o.gift_card_id === 'string' ? o.gift_card_id : null;
+    const giftCardMasked = giftCardId
+      ? `····${giftCardId.replace(/-/g, '').slice(-4)}`
+      : null;
+
+    const vatLabel =
+      vatRate != null
+        ? (t.vatWithRate ?? 'VAT ({rate}%)').replace('{rate}', String(vatRate))
+        : (t.vat ?? 'VAT');
+
+    const WRow = ({
+      label,
+      value,
+      isDeduction = false,
+      isBold = false,
+      valueColor,
+      chip,
+      meta,
+    }: {
+      label: string;
+      value: string;
+      isDeduction?: boolean;
+      isBold?: boolean;
+      valueColor?: string;
+      chip?: string;
+      meta?: string;
+    }) => (
+      <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} gap-2 py-1.5`}>
+        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''} min-w-0`}>
+          <span className={`shrink-0 text-sm ${isBold ? 'font-semibold text-gray-800' : 'text-gray-600'}`}>{label}</span>
+          {chip && (
+            <span className="shrink-0 inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
+              {chip}
+            </span>
+          )}
+          {meta && (
+            <span className="shrink-0 text-xs text-gray-400">({meta})</span>
+          )}
+        </div>
+        <span
+          className={`shrink-0 text-sm tabular-nums ${isBold ? 'font-semibold' : ''} ${valueColor ?? (isDeduction ? 'text-green-700' : 'text-gray-900')}`}
+        >
+          {value}
+        </span>
+      </div>
+    );
 
     return (
       <CmxCard>
@@ -497,33 +575,120 @@ export function OrderDetailsFullClient({
           </CmxCardTitle>
         </CmxCardHeader>
         <CmxCardContent className="pt-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {subGroups.map(({ key, titleKey, defaultTitle, fields, wide }) => {
-              const presentFields = fields.filter((f) => f in o);
-              if (presentFields.length === 0) return null;
-              return (
-                <div
-                  key={key}
-                  className={`${wide ? 'sm:col-span-2' : ''} rounded-lg border border-gray-100 bg-gray-50/60 p-3`}
-                >
-                  <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {(t as Record<string, string>)[titleKey] ?? defaultTitle}
-                  </p>
-                  <dl className={`grid grid-cols-1 ${wide ? 'sm:grid-cols-2' : ''} gap-x-4 gap-y-1`}>
-                    {presentFields.map((field) => {
-                      const val = o[field];
-                      const displayKey = (t as Record<string, string>)[`masterField_${field}`] ?? field.replace(/_/g, ' ');
-                      return (
-                        <div key={field} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-1 last:border-0`}>
-                          <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
-                          <dd className="text-sm text-gray-900 break-all">{formatMasterValue(field, val)}</dd>
-                        </div>
-                      );
-                    })}
-                  </dl>
+          <div className="space-y-3">
+
+            {/* Zone 1: Price Calculation Waterfall */}
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
+              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+                {t.priceBreakdown ?? 'Price Breakdown'}
+              </p>
+              <div>
+                {/* Starting amounts */}
+                <div className="pb-2 border-b border-gray-200 space-y-0">
+                  <WRow label={t.masterField_subtotal ?? 'Subtotal'} value={fmtOrderMoney(subtotal)} isBold />
+                  <WRow
+                    label={t.lineDiscount ?? 'Line Discount'}
+                    value={lineDiscount > 0 ? `− ${fmtOrderMoney(lineDiscount)}` : fmtOrderMoney(lineDiscount)}
+                    isDeduction={lineDiscount > 0}
+                    meta={discountTypeVal && discountTypeVal !== '—' ? discountTypeVal : undefined}
+                  />
+                  <WRow
+                    label={t.discountRate ?? 'Discount Rate'}
+                    value={discountRateVal != null ? `${discountRateVal}%` : '—'}
+                  />
+                  <WRow
+                    label={t.promoDiscount ?? 'Promo Discount'}
+                    value={promoDiscount > 0 ? `− ${fmtOrderMoney(promoDiscount)}` : fmtOrderMoney(promoDiscount)}
+                    isDeduction={promoDiscount > 0}
+                  />
+                  <WRow
+                    label={t.giftCardDiscount ?? 'Gift Card Discount'}
+                    value={giftCardDiscount > 0 ? `− ${fmtOrderMoney(giftCardDiscount)}` : fmtOrderMoney(giftCardDiscount)}
+                    isDeduction={giftCardDiscount > 0}
+                    chip={giftCardMasked ?? undefined}
+                  />
                 </div>
-              );
-            })}
+
+                {/* Net subtotal */}
+                <div className="py-2 border-b border-gray-200">
+                  <WRow
+                    label={t.netAfterDiscounts ?? 'Net after discounts'}
+                    value={fmtOrderMoney(netAfterDiscounts)}
+                    isBold
+                  />
+                </div>
+
+                {/* Charges and tax */}
+                <div className="py-2 border-b border-gray-200 space-y-0">
+                  <WRow
+                    label={t.masterField_service_charge ?? 'Service Charge'}
+                    value={fmtOrderMoney(serviceCharge)}
+                    meta={serviceChargeTypeVal && serviceChargeTypeVal !== '—' ? serviceChargeTypeVal : undefined}
+                  />
+                  <WRow label={t.masterField_service_charge_type ?? t.serviceChargeType ?? 'Service Charge Type'} value={serviceChargeTypeVal ?? '—'} />
+                  <WRow label={vatLabel} value={fmtOrderMoney(vatAmount)} />
+                  <WRow label={t.masterField_tax ?? 'Tax'} value={fmtOrderMoney(tax)} />
+                </div>
+
+                {/* Order total */}
+                <div className="py-2 border-b-2 border-gray-400">
+                  <WRow label={t.masterField_total ?? 'Total'} value={fmtOrderMoney(total)} isBold />
+                </div>
+
+                {/* Paid amount */}
+                <div className="py-2 border-b border-gray-200">
+                  <WRow
+                    label={t.paidAmount ?? 'Paid Amount'}
+                    value={paidAmount > 0 ? `− ${fmtOrderMoney(paidAmount)}` : fmtOrderMoney(paidAmount)}
+                    isDeduction={paidAmount > 0}
+                    valueColor={paidAmount > 0 ? 'text-green-700' : 'text-gray-500'}
+                  />
+                </div>
+
+                {/* Balance Due — highlighted row */}
+                <div className="pt-3">
+                  <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} gap-2`}>
+                    <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-sm font-bold text-gray-900">{t.balanceDue ?? 'Balance Due'}</span>
+                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${balanceBadgeClass}`}>
+                        {balanceStatusLabel}
+                      </span>
+                    </div>
+                    <span className={`text-sm font-bold tabular-nums ${balanceColorClass}`}>
+                      {fmtOrderMoney(orderBalanceDueAbs)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Zone 2: Applied Discounts detail */}
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
+              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+                {t.appliedDiscounts ?? 'Applied Discounts'}
+              </p>
+              <div className="space-y-0">
+                <WRow label={t.discountType ?? 'Discount Type'} value={discountTypeVal && discountTypeVal !== '—' ? discountTypeVal : '—'} />
+                <WRow label={t.discountRate ?? 'Discount Rate'} value={discountRateVal != null ? `${discountRateVal}%` : '—'} />
+                <WRow
+                  label={t.masterField_gift_card_id ?? 'Gift Card'}
+                  value={giftCardMasked ?? '—'}
+                  chip={giftCardMasked ? giftCardMasked : undefined}
+                />
+              </div>
+            </div>
+
+            {/* Zone 3: Currency */}
+            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
+              <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+                {t.currencyInfo ?? 'Currency'}
+              </p>
+              <div className="space-y-0">
+                <WRow label={t.masterField_currency_code ?? 'Currency'} value={currencyCode || '—'} />
+                <WRow label={t.masterField_currency_ex_rate ?? 'Exchange Rate'} value={exchangeRate != null ? String(exchangeRate) : '—'} />
+              </div>
+            </div>
+
           </div>
         </CmxCardContent>
       </CmxCard>
@@ -1200,93 +1365,143 @@ export function OrderDetailsFullClient({
           </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Order Summary - compact card with key dates and preparation status */}
+        <div className="space-y-4">
+          {/* Financial Summary card */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.orderSummary ?? 'Order Summary'}
+              {t.financialSummary ?? 'Financial Summary'}
             </h2>
-            <div className="space-y-3">
-              <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <Clock className="w-4 h-4 text-gray-500 shrink-0" />
-                <span className="text-gray-600">{t.received}:</span>
-                <span className="font-medium text-gray-900">
-                  {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
-                    locale === 'ar' ? 'ar-OM' : 'en-OM',
-                    { dateStyle: 'medium', timeStyle: 'short' }
-                  )}
+            <div className="space-y-2">
+              {/* Subtotal line */}
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                <span className="text-gray-600">{t.masterField_subtotal ?? 'Subtotal'}</span>
+                <span className="font-medium text-gray-900 tabular-nums">
+                  {fmtOrderMoney(Number(_o.subtotal ?? 0))}
                 </span>
               </div>
-              {order.ready_by && (
-                <div className={`flex items-center gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Package className="w-4 h-4 text-gray-500 shrink-0" />
-                  <span className="text-gray-600">{t.readyBy}:</span>
-                  <span className="font-medium text-gray-900">
-                    {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })}
+              {/* Total line */}
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+                <span className="text-sm text-gray-600">{t.masterField_total ?? 'Total'}</span>
+                <span className="text-xl font-bold text-gray-900 tabular-nums">
+                  {fmtOrderMoney(orderTotal)}
+                </span>
+              </div>
+              {/* Paid amount */}
+              <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
+                <span className="text-gray-600">{t.paidAmount ?? 'Paid Amount'}</span>
+                <span className={`font-semibold tabular-nums ${orderPaidAmount > 0 ? 'text-green-700' : 'text-gray-500'}`}>
+                  {fmtOrderMoney(orderPaidAmount)}
+                </span>
+              </div>
+              {/* Balance Due — highlighted */}
+              <div className="pt-2 border-t border-gray-200">
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+                  <span className="text-sm font-semibold text-gray-800">{t.balanceDue ?? 'Balance Due'}</span>
+                  <span className={`text-lg font-bold tabular-nums ${balanceColorClass}`}>
+                    {fmtOrderMoney(orderBalanceDueAbs)}
                   </span>
+                </div>
+                <div className={`mt-1 flex ${isRTL ? 'justify-start' : 'justify-end'}`}>
+                  <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${balanceBadgeClass}`}>
+                    {balanceStatusLabel}
+                  </span>
+                </div>
+              </div>
+              {/* Payment method */}
+              {_o.payment_method_code && (
+                <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm pt-1`}>
+                  <span className="text-gray-600">{t.paymentMethod ?? 'Payment Method'}</span>
+                  <span className="font-medium text-gray-900">{String(_o.payment_method_code)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Quick navigation links */}
+            <div className="mt-4 pt-4 border-t border-gray-200 space-y-2">
+              <div className={`flex flex-col gap-2 ${isRTL ? 'items-end' : 'items-start'}`}>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('payments')}
+                  className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  {t.paymentDetails}
+                  <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('history')}
+                  className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  {t.tabsHistory ?? 'Order History'}
+                  <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                </button>
+                {!isTerminalStatus && (
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('actions')}
+                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+                  >
+                    {t.quickActions}
+                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Dates & preparation compact card */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4">
+            <div className="space-y-2">
+              <div className={`flex items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <Clock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="text-gray-500">{t.received}: </span>
+                  <span className="font-medium text-gray-900">
+                    {new Date((order.received_at ?? order.created_at) as string).toLocaleString(
+                      locale === 'ar' ? 'ar-OM' : 'en-OM',
+                      { dateStyle: 'medium', timeStyle: 'short' }
+                    )}
+                  </span>
+                </div>
+              </div>
+              {order.ready_by && (
+                <div className={`flex items-start gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Package className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="text-gray-500">{t.readyBy}: </span>
+                    <span className="font-medium text-gray-900">
+                      {new Date(order.ready_by as string).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </span>
+                  </div>
                 </div>
               )}
               {order.preparation_status && (
-                <div className="pt-3 border-t border-gray-200">
-                  <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-                    <span className="text-sm text-gray-600">{t.preparationStatus}:</span>
-                    <span
-                      className={`px-2 py-1 text-xs font-medium rounded ${
-                        preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
-                      }`}
-                    >
-                      {t[`prepStatus_${String(order.preparation_status)}` as keyof typeof t] ?? String(order.preparation_status).replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  {isPreparationEnabled() &&
-                    (order.preparation_status === 'pending' || order.preparation_status === 'in_progress') && (
-                    <Link
-                      href={`/dashboard/preparation/${order.id}`}
-                      className={`inline-block mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-right' : 'text-left'}`}
-                    >
-                      {isRTL ? '← ' : ''}
-                      {order.preparation_status === 'pending' ? t.startPreparation : t.continuePreparation}
-                      {isRTL ? '' : ' →'}
-                    </Link>
-                  )}
+                <div className={`flex items-center justify-between pt-2 border-t border-gray-100 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-sm text-gray-500">{t.preparationStatus}:</span>
+                  <span
+                    className={`px-2 py-0.5 text-xs font-medium rounded ${
+                      preparationStatusColors[String(order.preparation_status)] ?? preparationStatusColors.pending
+                    }`}
+                  >
+                    {t[`prepStatus_${String(order.preparation_status)}` as keyof typeof t] ?? String(order.preparation_status).replace(/_/g, ' ')}
+                  </span>
                 </div>
               )}
-              <div className="pt-3 border-t border-gray-200 space-y-2">
-                <p className={`text-xs text-gray-500 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t.viewFullDetails}
-                </p>
-                <div className={`flex flex-col gap-2 ${isRTL ? 'items-end' : 'items-start'}`}>
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('payments')}
-                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
+              {isPreparationEnabled() &&
+                order.preparation_status &&
+                (order.preparation_status === 'pending' || order.preparation_status === 'in_progress') && (
+                  <Link
+                    href={`/dashboard/preparation/${order.id}`}
+                    className={`block text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-right' : ''}`}
                   >
-                    {t.paymentDetails}
-                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleTabChange('history')}
-                    className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
-                  >
-                    {t.tabsHistory ?? 'Order History'}
-                    <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-                  </button>
-                  {!isTerminalStatus && (
-                    <button
-                      type="button"
-                      onClick={() => handleTabChange('actions')}
-                      className={`inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'flex-row-reverse' : ''}`}
-                    >
-                      {t.quickActions}
-                      <ChevronLeft className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-                    </button>
-                  )}
-                </div>
-              </div>
+                    {isRTL ? '← ' : ''}
+                    {order.preparation_status === 'pending' ? t.startPreparation : t.continuePreparation}
+                    {isRTL ? '' : ' →'}
+                  </Link>
+                )}
             </div>
           </div>
         </div>
