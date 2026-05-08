@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AmountMismatchDifferences } from '@/lib/types/payment';
 import { useTranslations } from 'next-intl';
@@ -92,6 +92,8 @@ export function useOrderSubmission() {
     const { token: csrfToken } = useCSRFToken();
     const state = useNewOrderStateWithDispatch();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // One key per submit session — stable across retries, reset after success.
+    const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
     const [amountMismatch, setAmountMismatch] = useState<{
         open: boolean;
         message?: string;
@@ -286,6 +288,7 @@ export function useOrderSubmission() {
                     ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),
                     ...(paymentData.poNumber?.trim() && { poNumber: paymentData.poNumber.trim() }),
                     ...(payload.creditLimitOverride && { creditLimitOverride: true }),
+                    idempotencyKey: idempotencyKeyRef.current,
                 };
 
                 const headers: Record<string, string> = {
@@ -534,6 +537,7 @@ export function useOrderSubmission() {
                         t('success.orderCreated', { orderNo }) ||
                         `Order ${orderNo} created successfully`
                     );
+                    idempotencyKeyRef.current = crypto.randomUUID();
                     state.resetOrder();
                 }
             } catch (err: unknown) {

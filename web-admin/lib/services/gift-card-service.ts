@@ -254,6 +254,18 @@ export async function applyGiftCardTx(
 
   const row = locked[0];
 
+  // Idempotency guard: if this order already has a redemption for this card,
+  // return the current balance without debiting again (safe retry path).
+  if (orderId) {
+    const existing = await tx.org_gift_card_transactions.findFirst({
+      where: { gift_card_id: row.id, order_id: orderId, transaction_type: 'redemption' },
+      select: { balance_after: true },
+    });
+    if (existing) {
+      return { newBalance: Number(row.current_balance) };
+    }
+  }
+
   // Inline expiry check with mutation — primary enforcement point per plan §6.
   // This is the authoritative write path; validateGiftCard is read-only.
   if (row.expiry_date && new Date() > new Date(row.expiry_date)) {

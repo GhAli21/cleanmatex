@@ -272,8 +272,8 @@ export function PaymentModalEnhanced02({
           percentDiscount: percentDiscount ?? 0,
           amountDiscount: amountDiscount ?? 0,
           ...(!NEW_ORDER_PROMO_GIFT_DISABLED && {
-            promoCode: (appliedPromoCode?.code ?? promoCode) || undefined,
-            giftCardNumber: (appliedGiftCard?.number ?? giftCardNumber) || undefined,
+            promoCode: appliedPromoCode?.code || undefined,
+            giftCardNumber: appliedGiftCard?.number || undefined,
             giftCardAmount: appliedGiftCard?.amount || undefined,
           }),
         }),
@@ -314,7 +314,7 @@ export function PaymentModalEnhanced02({
     } finally {
       setTotalsLoading(false);
     }
-  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, promoCode, giftCardNumber, csrfToken]);
+  }, [open, items, tenantOrgId, branchId, customerId, isExpress, percentDiscount, amountDiscount, appliedPromoCode?.code, appliedGiftCard?.number, appliedGiftCard?.amount, csrfToken]);
 
   useEffect(() => {
     if (!open || items.length === 0) {
@@ -410,11 +410,17 @@ export function PaymentModalEnhanced02({
         orderTaxAmount > 0
           ? orderTaxAmount
           : parseFloat((afterDiscountsForTax * (orderTaxRate / 100)).toFixed(decimalPlaces));
-      const finalTotalWithExtra = serverTotals.finalTotal + additionalTaxAmount;
+      // Subtract any gift card the server hasn't reflected yet (race between
+      // setAppliedGiftCard and the debounced re-fetch of serverTotals).
+      const clientGiftCard = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
+      const serverGiftCard = serverTotals.giftCardApplied || 0;
+      const pendingGiftCard = Math.max(0, clientGiftCard - serverGiftCard);
+      const finalTotalWithExtra = Math.max(0, serverTotals.finalTotal + additionalTaxAmount - pendingGiftCard);
       return {
         ...serverTotals,
         taxRate: orderTaxRate,
         taxAmount: additionalTaxAmount,
+        giftCardApplied: serverGiftCard + pendingGiftCard,
         finalTotal: finalTotalWithExtra,
         totalSavings: serverTotals.subtotal + serverTotals.vatValue - finalTotalWithExtra,
       };

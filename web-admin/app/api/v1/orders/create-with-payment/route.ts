@@ -107,6 +107,24 @@ export async function POST(request: NextRequest) {
   const input = parsed.data as CreateWithPaymentRequest;
   const { clientTotals } = input;
 
+  // Idempotency: if the client sent a key we've already seen, return the
+  // existing order instead of creating a duplicate (handles network retries).
+  if (input.idempotencyKey) {
+    const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+      SELECT id, order_no, current_status
+      FROM org_orders_mst
+      WHERE tenant_org_id = ${tenantId}::uuid
+        AND idempotency_key = ${input.idempotencyKey}
+      LIMIT 1
+    `;
+    if (existing.length > 0) {
+      return NextResponse.json({
+        success: true,
+        data: { id: existing[0].id, orderId: existing[0].id, orderNo: existing[0].order_no, currentStatus: existing[0].current_status },
+      });
+    }
+  }
+
   const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
 
@@ -399,6 +417,15 @@ export async function POST(request: NextRequest) {
             orderTotalBefore: serverTotals.afterDiscounts + serverTotals.promoDiscount,
             appliedBy: userId,
           });
+        }
+
+        // Store idempotency key on the order row so retries are detected above.
+        if (input.idempotencyKey) {
+          await tx.$executeRaw`
+            UPDATE org_orders_mst
+            SET idempotency_key = ${input.idempotencyKey}
+            WHERE id = ${orderId}::uuid
+          `;
         }
 
         // Debit gift card atomically within this transaction.

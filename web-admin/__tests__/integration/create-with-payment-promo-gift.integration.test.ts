@@ -1,3 +1,4 @@
+/// <reference types="jest" />
 /**
  * Integration tests: create-with-payment promo + gift card flow
  *
@@ -13,7 +14,8 @@
  *     swallow the error — the transaction is signaled as failed.
  *   - TOCTOU: SELECT FOR UPDATE SQL is issued for both promo and gift card
  *     rows before mutating state.
- *   - Idempotent retry: documented as a follow-up TODO (see test below).
+ *   - Idempotent retry: second call with the same orderId returns current balance
+ *     without issuing a second debit (safe network-retry path).
  *
  * Plan: docs/dev/plans/promotions_and_gifts_30156abf.plan.md (§8)
  */
@@ -61,12 +63,22 @@ jest.mock('@/lib/utils/logger', () => ({
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyGiftCardTx } from '@/lib/services/gift-card-service';
 
+// Structural mock type — avoids referencing jest namespace in type position
+// while still exposing .mock.calls for assertion helpers below.
+interface MockFn {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (...args: any[]): Promise<any>;
+  mock: { calls: unknown[][] };
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyMock = (...args: any[]) => Promise<any>;
+
 interface CapturedTx {
-  $queryRaw: jest.Mock;
-  org_promo_usage_log: { create: jest.Mock };
-  org_promo_codes_mst: { update: jest.Mock };
-  org_gift_card_transactions: { create: jest.Mock };
-  org_gift_cards_mst: { update: jest.Mock };
+  $queryRaw: MockFn;
+  org_promo_usage_log: { create: AnyMock };
+  org_promo_codes_mst: { update: AnyMock };
+  org_gift_card_transactions: { create: AnyMock; findFirst: AnyMock };
+  org_gift_cards_mst: { update: AnyMock };
 }
 
 function buildFakeTx(opts: {
@@ -93,11 +105,13 @@ function buildFakeTx(opts: {
     }
     return Promise.resolve([]);
   });
+  const gcTxCreate = jest.fn().mockResolvedValue({});
+  const gcTxFindFirst = jest.fn().mockResolvedValue(null);
   return {
     $queryRaw,
     org_promo_usage_log: { create: jest.fn().mockResolvedValue({}) },
     org_promo_codes_mst: { update: jest.fn().mockResolvedValue({}) },
-    org_gift_card_transactions: { create: jest.fn().mockResolvedValue({}) },
+    org_gift_card_transactions: { create: gcTxCreate, findFirst: gcTxFindFirst },
     org_gift_cards_mst: { update: jest.fn().mockResolvedValue({}) },
   };
 }
@@ -272,15 +286,45 @@ describe('create-with-payment: promo + gift card integration', () => {
   });
 
   // -------------------------------------------------------------------------
-  // 4. Idempotent retry — follow-up TODO
+  // 4. Idempotent retry — second applyGiftCardTx call with same orderId must
+  //    not issue a second debit (safe network-retry path, plan §8 item 4).
   // -------------------------------------------------------------------------
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('rejects duplicate submission with the same idempotency key (follow-up)', () => {
-    // FOLLOW-UP: The current create-with-payment route does not implement
-    // idempotency keys. Today, a duplicate submission may be detected by a
-    // unique constraint on the order number / invoice number, but there is
-    // no explicit idempotency-key header pattern. Add this when an
-    // idempotency-keys table is introduced (see plan §8 item 4).
+  it('skips gift card debit on idempotent retry (same orderId already has redemption)', async () => {
+    const tx = buildFakeTx({
+      giftLocked: [
+        {
+          id: 'gc-1',
+          tenant_org_id: 'tenant-int',
+          // Balance reflects the first (already committed) debit: 50 - 20 = 30.
+          current_balance: 30,
+          status: 'active',
+          card_pin: null,
+          expiry_date: null,
+        },
+      ],
+    });
+
+    // Simulate a retry: a redemption row for this order already exists in the DB.
+    (tx.org_gift_card_transactions.findFirst as jest.Mock).mockResolvedValue({
+      balance_after: 30,
+    });
+
+    const result = await applyGiftCardTx(tx as never, {
+      cardNumber: 'GC-RETRY',
+      amount: 20,
+      orderId: 'order-retry',
+      invoiceId: 'inv-retry',
+      tenantOrgId: 'tenant-int',
+      currencyCode: 'OMR',
+      decimalPlaces: 3,
+    });
+
+    // No second debit — neither write operation must fire on the retry path.
+    expect(tx.org_gift_card_transactions.create).not.toHaveBeenCalled();
+    expect(tx.org_gift_cards_mst.update).not.toHaveBeenCalled();
+
+    // Returns current balance from the locked row so callers get consistent data.
+    expect(result.newBalance).toBe(30);
   });
 });

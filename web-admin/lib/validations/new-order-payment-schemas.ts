@@ -198,6 +198,8 @@ export const createWithPaymentRequestSchema = z.object({
   poNumber: z.string().max(100).optional(),
   /** B2B: When true, admin overrides credit limit (warn mode). Recorded on order for audit. */
   creditLimitOverride: z.boolean().optional(),
+  /** Client-generated UUID for idempotent retry — server returns existing order if key is seen again. */
+  idempotencyKey: z.string().max(100).optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),

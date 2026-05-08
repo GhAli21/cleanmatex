@@ -95,6 +95,13 @@ export function NewOrderModals() {
     ) as string[];
   }, [state.state.items]);
 
+  // Stable items array for the payment modal — avoids a new reference on every render
+  // which would otherwise re-trigger the preview-payment fetch on each keystroke/state change.
+  const paymentItems = useMemo(
+    () => state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity, servicePrefCharge: i.servicePrefCharge ?? 0 })),
+    [state.state.items]
+  );
+
   // Retail-only: all items are RETAIL_ITEMS (payment must be at POS, no PAY_ON_COLLECTION)
   const isRetailOnlyOrder = useMemo(() => {
     const items = state.state.items;
@@ -323,7 +330,7 @@ export function NewOrderModals() {
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}
           total={totals.subtotal}
-          items={state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity, servicePrefCharge: i.servicePrefCharge ?? 0 }))}
+          items={paymentItems}
           isExpress={state.state.express}
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
