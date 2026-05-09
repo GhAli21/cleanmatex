@@ -433,6 +433,7 @@ export interface GiftCard {
 
   // Customer association
   issued_to_customer_id?: string;
+  issued_to_customer_name?: string;
 
   // Status
   status: GiftCardStatus;

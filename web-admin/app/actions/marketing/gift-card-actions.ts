@@ -89,6 +89,13 @@ export async function listGiftCards(params: {
       const [rows, total] = await Promise.all([
         prisma.org_gift_cards_mst.findMany({
           where,
+          include: {
+            issued_to_customer: {
+              select: {
+                name: true,
+              },
+            },
+          },
           orderBy: { created_at: 'desc' },
           skip,
           take: limit,
@@ -108,8 +115,10 @@ export async function listGiftCards(params: {
         issued_date: row.issued_date.toISOString(),
         expiry_date: row.expiry_date?.toISOString(),
         issued_to_customer_id: row.issued_to_customer_id ?? undefined,
+        issued_to_customer_name: row.issued_to_customer?.name ?? undefined,
         status: row.status as GiftCardStatus,
         is_active: row.is_active,
+        metadata: row.metadata as Record<string, any> ?? undefined,
         rec_notes: row.rec_notes ?? undefined,
         created_at: row.created_at.toISOString(),
         created_by: row.created_by ?? undefined,

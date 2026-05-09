@@ -95,11 +95,38 @@ export function GiftCardListScreen() {
             header: t('fields.cardNumber'),
             render: (row: GiftCard) => <span className="font-mono">{row.card_number}</span>,
           },
+          {
+            key: 'card_pin',
+            header: t('fields.cardPin'),
+            render: (row: GiftCard) => row.card_pin ? <span className="font-mono">***{row.card_pin.slice(-4)}</span> : '—',
+          },
           { key: 'card_name', header: t('fields.cardName'), render: (row: GiftCard) => row.card_name },
+          { key: 'card_name2', header: t('fields.cardName2'), render: (row: GiftCard) => row.card_name2 || '—' },
+          {
+            key: 'original_amount',
+            header: t('fields.originalAmount'),
+            render: (row: GiftCard) => row.original_amount.toFixed(3),
+          },
           {
             key: 'current_balance',
             header: t('fields.balance'),
             render: (row: GiftCard) => row.current_balance.toFixed(3),
+          },
+          {
+            key: 'issued_date',
+            header: t('fields.issuedDate'),
+            render: (row: GiftCard) => new Date(row.issued_date).toLocaleDateString(),
+          },
+          {
+            key: 'expiry_date',
+            header: t('fields.expiryDate'),
+            render: (row: GiftCard) =>
+              row.expiry_date ? new Date(row.expiry_date).toLocaleDateString() : '—',
+          },
+          {
+            key: 'issued_to_customer',
+            header: t('fields.issuedToCustomer'),
+            render: (row: GiftCard) => row.issued_to_customer_name || '—',
           },
           {
             key: 'status',
@@ -111,10 +138,23 @@ export function GiftCardListScreen() {
             ),
           },
           {
-            key: 'expiry_date',
-            header: t('fields.expiryDate'),
-            render: (row: GiftCard) =>
-              row.expiry_date ? new Date(row.expiry_date).toLocaleDateString() : '—',
+            key: 'is_active',
+            header: t('fields.isActive'),
+            render: (row: GiftCard) => (
+              <Badge variant={row.is_active ? 'default' : 'secondary'}>
+                {row.is_active ? tCommon('active') : tCommon('inactive')}
+              </Badge>
+            ),
+          },
+          {
+            key: 'metadata',
+            header: t('fields.metadata'),
+            render: (row: GiftCard) => row.metadata ? JSON.stringify(row.metadata, null, 2) : '—',
+          },
+          {
+            key: 'rec_notes',
+            header: t('fields.notes'),
+            render: (row: GiftCard) => row.rec_notes || '—',
           },
           {
             key: 'actions',

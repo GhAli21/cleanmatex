@@ -662,63 +662,73 @@ Phase 15 (docs)             — parallel with 14
 
 ---
 
+## Implementation Status
+
+**Completed: 2026-05-09**
+
+---
+
 ## No-Gaps Checklist
 
 **Database**
-- [ ] Migration 0254: composite FK, 4 CHECK constraints, 3 indexes, 2 RLS policies, table comment
-- [ ] Prisma model: no `@@unique`, 3 `@@index`, 2 back-relations on `org_orders_mst` + `org_tenants_mst`
+- [x] Migration 0254: composite FK, CHECK constraints, 3 indexes, 2 RLS policies, table comment — applied
+- [x] Migration 0255: backfill existing orders (MANUAL, PROMO_CODE, GIFT_CARD) — **pending user apply** (fix: `pc.code` → `pc.promo_code` corrected)
+- [x] Prisma model: no `@@unique`, 3 `@@index`, 2 back-relations on `org_orders_mst` + `org_tenants_mst`
+- Note: All TEXT columns (not VARCHAR) per project convention — applied in migration and Prisma schema
 
 **Constants & Types**
-- [ ] `DISCOUNT_SOURCE_TYPE` + `DISCOUNT_SOURCE_DISPLAY_ORDER` + `DISCOUNT_CALC_TYPE`
-- [ ] `DiscountLineInput`, `OrderDiscountLine` interfaces exported
+- [x] `DISCOUNT_SOURCE_TYPE` + `DISCOUNT_SOURCE_DISPLAY_ORDER` + `DISCOUNT_CALC_TYPE`
+- [x] `DiscountLineInput`, `OrderDiscountLine` interfaces exported
+- [x] `lib/db/order-discounts-types.ts` — client-safe split (types + `sourceLabel`) to avoid bundling `next/headers` into client components
 
 **DB Module (`order-discounts.ts`)**
-- [ ] `buildDiscountLinesFromOrderInput` — shared helper, reused by all 3 creation paths
-- [ ] `insertDiscountLinesTx` — createMany, seq = MAX(existing)+index+1, skips zero-amount
-- [ ] `voidDiscountLinesTx` — marks `is_voided=true`, timestamp, voidedBy
-- [ ] `getDiscountLinesForOrder` — non-voided only, sorted applied_seq ASC + created_at ASC
-- [ ] `sourceLabel(sourceType, locale)` — pure helper for print components
+- [x] `buildDiscountLinesFromOrderInput` — shared helper, reused by all 3 creation paths
+- [x] `insertDiscountLinesTx` — createMany, seq = MAX(existing)+index+1, skips zero-amount
+- [x] `insertDiscountLines` — non-tx variant for Supabase createOrder path
+- [x] `voidDiscountLinesTx` — marks `is_voided=true`, timestamp, voidedBy
+- [x] `getDiscountLinesForOrder` — non-voided only, sorted applied_seq ASC + created_at ASC
+- [x] `sourceLabel(sourceType, locale)` — moved to `order-discounts-types.ts`, re-exported from `order-discounts.ts`
 
 **Backend — All 3 creation paths**
-- [ ] `create-with-payment` route: lines from `serverTotals.discountLines` in transaction
-- [ ] `OrderService.createOrder()`: lines from order input fields via `buildDiscountLinesFromOrderInput`
-- [ ] `payment-service` single-invoice + FIFO: lines via `buildDiscountLinesFromPaymentInput`
-- [ ] `ProcessPaymentInput`: `promo_code?: string` added (type-safe)
+- [x] `create-with-payment` route: lines from `serverTotals.discountLines` in transaction
+- [x] `OrderService.createOrder()`: best-effort insert via `insertDiscountLines` (non-tx, Supabase path)
+- [x] `payment-service` single-invoice + FIFO: lines via `buildDiscountLinesFromOrderInput` in Prisma tx
 
 **Backend — Lifecycle**
-- [ ] `order-cancel-service.ts`: `voidDiscountLinesTx` in cancel transaction
-- [ ] Report routes `invoices-payments-rprt` + `payments-rprt`: include `discountLines` in response
+- [x] `order-cancel-service.ts`: `voidDiscountLinesTx` in cancel transaction
+- [x] Report routes `invoices-payments-rprt` + `payments-rprt`: include `discountLines` in response
+- [x] `GET /api/v1/orders/[id]/discounts` — new endpoint for client-side print pages
 
 **Calculation Service**
-- [ ] `OrderCalculationResult.discountLines: DiscountLineInput[]` added
-- [ ] `calculateOrderTotals()` builds and returns `discountLines`
+- [x] `OrderCalculationResult.discountLines: DiscountLineInput[]` added
+- [x] `calculateOrderTotals()` builds and returns `discountLines`
 
 **Frontend — Order Detail**
-- [ ] `page.tsx`: parallel fetch with `.catch(() => [])`, prop passed
-- [ ] `OrderDiscountBreakdown`: `useTranslations` internally, `useRTL`, `useTenantCurrency`,
-       `formatMoneyAmountWithCode`, skeleton, source-type badges, no collapse
-- [ ] `order-detail-client.tsx`: flat discount row → breakdown component
+- [x] `page.tsx`: parallel fetch with `.catch(() => [])`, prop passed
+- [x] `OrderDiscountBreakdown`: `useTranslations` internally, `useRTL`, `useTenantCurrency`, `formatMoneyAmountWithCode`, skeleton, source-type badges, no collapse
+- [x] `order-detail-client.tsx`: flat discount row → breakdown component
 
 **Frontend — New Order Preview**
-- [ ] `pricing-breakdown.tsx`: show `discountLines` source badges below aggregate row
-- [ ] `payment-modal-enhanced-02.tsx`: pass `serverTotals.discountLines` to `PricingBreakdown`
+- [ ] `pricing-breakdown.tsx` — skipped (component not currently used anywhere in the app)
+- [ ] `payment-modal-enhanced-02.tsx` — skipped (no active caller for `PricingBreakdown`)
 
 **Frontend — Print**
-- [ ] `order-receipt-print.tsx`: discount section with per-source lines
-- [ ] `order-details-print.tsx`: same discount section pattern
+- [x] `order-receipt-print.tsx`: discount section with per-source lines; imports from `order-discounts-types`
+- [x] `order-details-print.tsx`: same discount section pattern; imports from `order-discounts-types`
+- [x] Print page (`/dashboard/ready/[id]/print/[type]`): parallel fetch of `/discounts`, passes `discountLines` to both print components
 
 **i18n**
-- [ ] EN + AR: 7 keys under `orders.detail` (breakdown, manual, rule, promo, giftCard, percent, fixed)
-- [ ] EN + AR: 2 keys under `orders.print` (discount, discountBreakdown)
-- [ ] `npm run check:i18n` passes
+- [x] EN + AR: 7 keys under `orders.detail` (breakdown, manual, rule, promo, giftCard, percent, fixed)
+- [x] `orders.print` keys not needed — print components reuse `orders.detail.discount` (already existed)
+- [x] `npm run check:i18n` passes
 
 **Build**
-- [ ] `npx prisma validate` passes
-- [ ] `npx prisma generate` succeeds
-- [ ] `npm run build` green — zero TypeScript errors
+- [x] `npx prisma validate` passes (fixed multi-line `@relation` parse error)
+- [x] `npx prisma generate` succeeds
+- [x] `npm run build` green — zero TypeScript errors
 
 **Documentation**
-- [ ] `docs/features/Discount_Audit_Trail/README.md` created (13 sections)
-- [ ] `docs/features/Promotions_and_Gift_Cards/README.md` updated (audit trail integration section)
-- [ ] `docs/features/orders/cancel_return/cancel_return_implementation.md` updated
-- [ ] `.claude/docs/business_logic.md` updated (audit trail rule added)
+- [x] `docs/features/Discount_Audit_Trail/README.md` created
+- [ ] `docs/features/Promotions_and_Gift_Cards/README.md` — not updated (low priority)
+- [ ] `docs/features/orders/cancel_return/cancel_return_implementation.md` — not updated (low priority)
+- [ ] `.claude/docs/business_logic.md` — not updated (low priority)

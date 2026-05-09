@@ -93,32 +93,39 @@ export function PromoListScreen() {
             <span className="font-mono font-medium">{row.promo_code}</span>
           )},
           { key: 'promo_name', header: t('fields.name'), render: (row: PromoCode) => row.promo_name },
-          { key: 'discount', header: t('fields.discountType'), render: (row: PromoCode) => (
-            <span>
-              {row.discount_type === 'percentage'
-                ? `${row.discount_value}%`
-                : `${row.discount_value}`}
-            </span>
-          )},
+          { key: 'promo_name2', header: t('fields.name2'), render: (row: PromoCode) => row.promo_name2 || '—' },
+          { key: 'description', header: t('fields.description'), render: (row: PromoCode) => row.description || '—' },
+          { key: 'description2', header: t('fields.description2'), render: (row: PromoCode) => row.description2 || '—' },
+          { key: 'discount_type', header: t('fields.discountType'), render: (row: PromoCode) => row.discount_type },
+          { key: 'discount_value', header: t('fields.discountValue'), render: (row: PromoCode) => row.discount_value.toFixed(3) },
+          { key: 'max_discount_amount', header: t('fields.maxDiscountAmount'), render: (row: PromoCode) => row.max_discount_amount?.toFixed(3) || '—' },
+          { key: 'min_order_amount', header: t('fields.minOrderAmount'), render: (row: PromoCode) => row.min_order_amount.toFixed(3) },
+          { key: 'max_order_amount', header: t('fields.maxOrderAmount'), render: (row: PromoCode) => row.max_order_amount?.toFixed(3) || '—' },
+          { key: 'applicable_categories', header: t('fields.applicableCategories'), render: (row: PromoCode) => row.applicable_categories ? row.applicable_categories.join(', ') : '—' },
           { key: 'max_uses', header: t('fields.maxUses'), render: (row: PromoCode) => (
             row.max_uses != null
               ? `${row.current_uses ?? 0} / ${row.max_uses}`
               : '—'
           )},
+          { key: 'max_uses_per_customer', header: t('fields.maxUsesPerCustomer'), render: (row: PromoCode) => row.max_uses_per_customer },
+          { key: 'current_uses', header: t('fields.currentUses'), render: (row: PromoCode) => row.current_uses },
+          { key: 'valid_from', header: t('fields.validFrom'), render: (row: PromoCode) => new Date(row.valid_from).toLocaleDateString() },
           { key: 'valid_to', header: t('fields.validTo'), render: (row: PromoCode) => (
             row.valid_to
               ? new Date(row.valid_to).toLocaleDateString()
               : '—'
           )},
-          { key: 'status', header: tCommon('status'), render: (row: PromoCode) => {
-            const now = new Date();
-            const isExpired = row.valid_to ? new Date(row.valid_to) < now : false;
-            const isMaxed = row.max_uses != null && (row.current_uses ?? 0) >= row.max_uses;
-            if (isExpired) return <Badge variant="secondary">{t('status.expired')}</Badge>;
-            if (isMaxed) return <Badge variant="secondary">{t('status.maxReached')}</Badge>;
-            if (row.is_enabled) return <Badge variant="default">{t('status.active')}</Badge>;
-            return <Badge variant="outline">{tCommon('inactive')}</Badge>;
-          }},
+          { key: 'is_active', header: t('fields.isActive'), render: (row: PromoCode) => (
+            <Badge variant={row.is_active ? 'default' : 'secondary'}>
+              {row.is_active ? tCommon('active') : tCommon('inactive')}
+            </Badge>
+          )},
+          { key: 'is_enabled', header: t('fields.isEnabled'), render: (row: PromoCode) => (
+            <Badge variant={row.is_enabled ? 'default' : 'secondary'}>
+              {row.is_enabled ? tCommon('enabled') : tCommon('disabled')}
+            </Badge>
+          )},
+          { key: 'metadata', header: t('fields.metadata'), render: (row: PromoCode) => row.metadata ? JSON.stringify(row.metadata, null, 2) : '—' },
           { key: 'actions', header: tCommon('actions'), render: (row: PromoCode) => (
             <div className="flex gap-1">
               <CmxButton

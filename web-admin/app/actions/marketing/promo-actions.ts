@@ -129,6 +129,7 @@ export async function listPromoCodes(params: {
         valid_to: row.valid_to?.toISOString(),
         is_active: row.is_active,
         is_enabled: row.is_enabled,
+        metadata: row.metadata as Record<string, any> ?? undefined,
         created_at: row.created_at.toISOString(),
         created_by: row.created_by ?? undefined,
         updated_at: row.updated_at?.toISOString(),
