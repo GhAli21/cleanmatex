@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getInvoicesForOrder } from '@/lib/services/invoice-service';
 import { getPaymentHistory } from '@/lib/services/payment-service';
+import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentTransaction } from '@/lib/types/payment';
 
@@ -28,6 +30,7 @@ export interface InvoicesPaymentsRprtResponse {
     id: string;
     order_no: string;
     customer: { name: string; phone: string };
+    discountLines: OrderDiscountLine[];
   };
   invoices: InvoiceWithPaymentsRprt[];
 }
@@ -73,7 +76,10 @@ export async function GET(
       },
     };
 
-    const invoices = await getInvoicesForOrder(id);
+    const [invoices, discountLines] = await Promise.all([
+      getInvoicesForOrder(id),
+      getDiscountLinesForOrder(tenantId, id).catch(() => [] as OrderDiscountLine[]),
+    ]);
     const invoicesWithPayments: InvoiceWithPaymentsRprt[] = await Promise.all(
       invoices.map(async (inv) => {
         const payments = await getPaymentHistory(inv.id);
@@ -82,7 +88,7 @@ export async function GET(
     );
 
     const body: InvoicesPaymentsRprtResponse = {
-      order: orderHeader,
+      order: { ...orderHeader, discountLines },
       invoices: invoicesWithPayments,
     };
     return NextResponse.json({ success: true, ...body });

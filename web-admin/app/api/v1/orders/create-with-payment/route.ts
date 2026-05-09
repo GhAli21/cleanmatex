@@ -13,6 +13,7 @@ import { createInvoice } from '@/lib/services/invoice-service';
 import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyGiftCardTx } from '@/lib/services/gift-card-service';
+import { insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {
@@ -442,6 +443,15 @@ export async function POST(request: NextRequest) {
             currencyCode: serverTotals.currencyCode,
             decimalPlaces: serverTotals.decimalPlaces,
             tenantOrgId: tenantId,
+          });
+        }
+
+        if (serverTotals.discountLines.length > 0) {
+          await insertDiscountLinesTx(tx, {
+            orderId,
+            tenantOrgId: tenantId,
+            lines: serverTotals.discountLines,
+            createdBy: userId,
           });
         }
 

@@ -62,7 +62,14 @@
       "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\" -Directory)",
       "Bash(Select-Object Name)",
       "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\" -Directory)",
-      "Bash(sort -t_ -k1)"
+      "Bash(sort -t_ -k1)",
+      "Bash(Select-Object -First 20)",
+      "Bash(xargs grep -l \"cancel\\\\|refund\\\\|void\")",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\src\\\\features\\\\orders\\\\ui\" -Filter \"*print*.tsx\")",
+      "Bash(xargs grep -l \"cancelOrder\\\\|cancel\")",
+      "Bash(xargs grep -l \"PDF\\\\|pdf\\\\|export.*pdf\\\\|generatePDF\")",
+      "PowerShell(Get-Content \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\orders\\\\[id]\\\\order-detail-client.tsx\" | Select-Object -First 25 | ForEach-Object { \"$\\($_.ReadCount\\): $_\" })",
+      "PowerShell($content = Get-Content \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\prisma\\\\schema.prisma\"; $idx = \\($content | Select-String \"^model org_promo_codes_mst\"\\).LineNumber - 1; $content[$idx..\\($idx+15\\)])"
     ],
     "deny": [
       "Read(node_modules)",

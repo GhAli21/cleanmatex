@@ -5,6 +5,8 @@ import { getOrder } from '@/app/actions/orders/get-order';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { getPaymentsForOrder } from '@/app/actions/payments/process-payment';
 import { getOrderInvoices } from '@/app/actions/payments/invoice-actions';
+import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts';
 import { OrderDetailClient } from './order-detail-client';
 import { OrderDetailError } from './order-detail-error';
 
@@ -54,11 +56,12 @@ async function OrderDetailContent({
     );
   }
 
-  // Fetch order, payments for order, and order invoices
-  const [orderResult, paymentsResult, invoicesResult] = await Promise.all([
+  // Fetch order, payments for order, order invoices, and discount audit lines
+  const [orderResult, paymentsResult, invoicesResult, discountLines] = await Promise.all([
     getOrder(tenantId, orderId),
     getPaymentsForOrder(orderId),
     getOrderInvoices(orderId),
+    getDiscountLinesForOrder(tenantId, orderId).catch(() => [] as OrderDiscountLine[]),
   ]);
 
   if (!orderResult.success || !orderResult.data) {
@@ -122,8 +125,9 @@ async function OrderDetailContent({
   const tInvoices = await getTranslations('invoices');
 
   return (
-    <OrderDetailClient 
+    <OrderDetailClient
       order={serializedOrder}
+      discountLines={discountLines}
       unappliedPayments={unappliedPayments}
       orderInvoices={orderInvoices}
       tenantOrgId={tenantId}

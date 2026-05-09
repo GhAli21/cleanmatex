@@ -24,6 +24,7 @@ import type { UpdateOrderInput } from '@/lib/validations/edit-order-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
+import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -937,6 +938,35 @@ export class OrderService {
             };
           }
         }
+      }
+
+      // Write discount audit lines (best-effort — does not roll back order on failure)
+      try {
+        const orderDiscountLines = buildDiscountLinesFromOrderInput({
+          discountType:           discountType,
+          discountRate:           discountRate,
+          discountAmount:         totals?.discount,
+          promoCodeId:            promoCodeId,
+          promoDiscountAmount:    promoDiscountAmount,
+          giftCardId:             giftCardId,
+          giftCardDiscountAmount: giftCardDiscountAmount,
+        });
+        if (orderDiscountLines.length > 0) {
+          await insertDiscountLines({
+            orderId:      order.id,
+            tenantOrgId:  tenantId,
+            lines:        orderDiscountLines,
+            createdBy:    userId,
+          });
+        }
+      } catch (discountLineErr) {
+        logger.warn('Failed to write discount audit lines — order was created', {
+          tenantId,
+          orderId: order.id,
+          feature: 'orders',
+          action: 'create_order_discount_lines',
+          error: discountLineErr instanceof Error ? discountLineErr.message : String(discountLineErr),
+        });
       }
 
       // Handle ready_by date: use provided value or calculate if null

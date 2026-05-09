@@ -43,6 +43,7 @@ import type {
 import { getTranslations } from 'next-intl/server';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { buildDiscountLinesFromOrderInput, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 
 // ============================================================================
 // Payment Method Management
@@ -406,6 +407,25 @@ export async function processPayment(
                 const orderStatus = newOrderPaid >= orderTotal ? 'paid' : 'partial';
                 await updateOrderPaymentStatus(input.order_id, orderStatus, newOrderPaid, input.processed_by, dbTx, input.notes);
               }
+
+              const discLines = buildDiscountLinesFromOrderInput({
+                discountRate:           input.discount_rate,
+                discountAmount:         input.manual_discount_amount,
+                promoCodeId:            input.promo_code_id,
+                promoCode:              input.promo_code,
+                promoDiscountAmount:    input.promo_discount_amount,
+                giftCardId:             input.gift_card_id,
+                giftCardNumber:         input.gift_card_number,
+                giftCardDiscountAmount: input.gift_card_applied_amount,
+              });
+              if (discLines.length > 0) {
+                await insertDiscountLinesTx(dbTx, {
+                  orderId:     input.order_id,
+                  tenantOrgId: tenantId,
+                  lines:       discLines,
+                  createdBy:   input.processed_by,
+                });
+              }
             }
           });
 
@@ -591,6 +611,27 @@ export async function processPayment(
           vatAmount: input.vat_amount,
           createdBy: input.processed_by,
         });
+
+        if (input.order_id) {
+          const discLines = buildDiscountLinesFromOrderInput({
+            discountRate:           input.discount_rate,
+            discountAmount:         input.manual_discount_amount,
+            promoCodeId:            input.promo_code_id,
+            promoCode:              input.promo_code,
+            promoDiscountAmount:    input.promo_discount_amount,
+            giftCardId:             input.gift_card_id,
+            giftCardNumber:         input.gift_card_number,
+            giftCardDiscountAmount: input.gift_card_applied_amount,
+          });
+          if (discLines.length > 0) {
+            await insertDiscountLinesTx(dbTx, {
+              orderId:     input.order_id,
+              tenantOrgId: tenantId,
+              lines:       discLines,
+              createdBy:   input.processed_by,
+            });
+          }
+        }
 
         return { txn, invoice, invoiceId: effectiveInvoiceId };
       });

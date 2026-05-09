@@ -17,6 +17,7 @@ import { logger } from '@/lib/utils/logger';
 import { getPaymentsForOrder, cancelPayment } from './payment-service';
 import { reversePromoUsageTx } from './discount-service';
 import { refundToGiftCardTx } from './gift-card-service';
+import { voidDiscountLinesTx } from '@/lib/db/order-discounts';
 
 export interface CancelOrderInput {
   orderId: string;
@@ -142,6 +143,14 @@ async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
         );
       }
     }
+
+    // 3. Void discount audit lines — marks all non-voided lines is_voided=true.
+    //    Rows remain in the table for accounting history.
+    await voidDiscountLinesTx(tx, {
+      orderId:     input.orderId,
+      tenantOrgId: input.tenantId,
+      voidedBy:    input.userId,
+    });
   });
 
   return { warnings };

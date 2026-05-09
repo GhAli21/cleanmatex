@@ -776,6 +776,43 @@ model org_order_preferences_dtl {
   @@schema("public")
 }
 
+/// Audit trail of every discount line applied to an order.
+/// Multiple rows of the same source_type are valid (stacking rules, sequential overrides).
+/// This model contains row level security and requires additional setup for migrations.
+model org_ord_discounts_dtl {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id   String    @db.Uuid
+  order_id        String    @db.Uuid
+  applied_seq     Int       @db.SmallInt
+  source_type     String
+  source_id       String?   @db.Uuid
+  source_name     String?
+  source_name2    String?
+  discount_type   String
+  discount_rate   Decimal?  @db.Decimal(5, 2)
+  discount_amount Decimal   @db.Decimal(19, 4)
+  is_voided       Boolean   @default(false)
+  voided_at       DateTime? @db.Timestamptz(6)
+  voided_by       String?
+  rec_status      Int?      @default(1) @db.SmallInt
+  rec_order       Int?
+  rec_notes       String?
+  created_at      DateTime? @default(now()) @db.Timestamptz(6)
+  created_by      String?
+  created_info    String?
+  updated_at      DateTime? @db.Timestamptz(6)
+  updated_by      String?
+  updated_info    String?
+
+  org_orders_mst  org_orders_mst  @relation(fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, map: "fk_ord_disc_order")
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, map: "fk_ord_disc_tenant")
+
+  @@index([tenant_org_id, order_id],              map: "idx_ord_disc_tenant_order")
+  @@index([tenant_org_id, source_type],           map: "idx_ord_disc_tenant_source")
+  @@index([tenant_org_id, order_id, source_type], map: "idx_ord_disc_order_source")
+  @@schema("public")
+}
+
 model org_order_status_history {
   id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   order_id        String          @db.Uuid
@@ -925,6 +962,7 @@ model org_orders_mst {
   org_order_item_pieces_dtl       org_order_item_pieces_dtl[]
   org_order_item_processing_steps org_order_item_processing_steps[]
   org_order_preferences_dtl       org_order_preferences_dtl[]
+  org_ord_discounts_dtl           org_ord_discounts_dtl[]
   org_order_items_dtl             org_order_items_dtl[]
   org_order_status_history        org_order_status_history[]
   org_orders_mst                  org_orders_mst?                   @relation("org_orders_mstToorg_orders_mst", fields: [parent_order_id], references: [id], onUpdate: NoAction, map: "fk_order_parent_order")
@@ -1355,6 +1393,7 @@ model org_tenants_mst {
   org_order_item_pieces_dtl        org_order_item_pieces_dtl[]
   org_order_item_processing_steps  org_order_item_processing_steps[]
   org_order_preferences_dtl         org_order_preferences_dtl[]
+  org_ord_discounts_dtl             org_ord_discounts_dtl[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
   org_payment_audit_log            org_payment_audit_log[]

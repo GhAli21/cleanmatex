@@ -17,6 +17,7 @@ import {
 } from '@features/orders/model/ready-order-types';
 import { OrderReceiptPrint } from '@features/orders/ui/order-receipt-print';
 import { OrderDetailsPrint } from '@features/orders/ui/order-details-print';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import { OrderInvoicesPaymentsPrintRprt, type OrderInvoicesPaymentsPrintRprtData } from '@features/orders/ui/order-invoices-payments-print-rprt';
 import { OrderPaymentsPrintRprt, type OrderPaymentsPrintRprtData } from '@features/orders/ui/order-payments-print-rprt';
 import { OrderHistoryPrintRprt, type OrderHistoryPrintRprtData } from '@features/orders/ui/order-history-print-rprt';
@@ -40,6 +41,7 @@ export default function ReadyPrintPage() {
   const sortParam = searchParams.get('sort') === 'asc' ? 'asc' : 'desc';
 
   const [order, setOrder] = useState<ReadyOrder | null>(null);
+  const [discountLines, setDiscountLines] = useState<OrderDiscountLine[]>([]);
   const [reportData, setReportData] = useState<OrderInvoicesPaymentsPrintRprtData | OrderPaymentsPrintRprtData | OrderHistoryPrintRprtData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,11 +55,18 @@ export default function ReadyPrintPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/v1/orders/${id}/state`, { signal: controller.signal, cache: 'no-store' });
-        const json: ReadyOrderStateResponse = await res.json();
+        const [stateRes, discountsRes] = await Promise.all([
+          fetch(`/api/v1/orders/${id}/state`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/v1/orders/${id}/discounts`, { signal: controller.signal, cache: 'no-store' }),
+        ]);
+        const json: ReadyOrderStateResponse = await stateRes.json();
         const mapped = mapReadyOrderFromStateResponse(json);
         if (mapped) setOrder(mapped);
-        else setError(json.error || tWorkflow('messages.loadFailed'));
+        else { setError(json.error || tWorkflow('messages.loadFailed')); return; }
+        if (discountsRes.ok) {
+          const discountsJson = await discountsRes.json();
+          setDiscountLines(discountsJson.discountLines ?? []);
+        }
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') return;
         setError(e instanceof Error ? e.message : tWorkflow('messages.loadFailed'));
@@ -289,10 +298,10 @@ export default function ReadyPrintPage() {
       {!loading && !error && (order || reportData) && (
         <div className="print-document px-4">
           {type === 'receipt' && order && (
-            <OrderReceiptPrint order={order} layout={layout} />
+            <OrderReceiptPrint order={order} layout={layout} discountLines={discountLines} />
           )}
           {type === 'order-details' && order && (
-            <OrderDetailsPrint order={order} layout={layout} />
+            <OrderDetailsPrint order={order} layout={layout} discountLines={discountLines} />
           )}
           {type === 'invoices-payments-rprt' && reportData && 'invoices' in reportData && (
             <OrderInvoicesPaymentsPrintRprt data={reportData} />

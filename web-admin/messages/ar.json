@@ -1163,7 +1163,14 @@
       "errorOrderNotFound": "الطلب غير موجود",
       "errorOrderNotFoundDesc": "الطلب الذي تبحث عنه غير موجود. ربما تم حذفه أو قد لا يكون لديك صلاحية الوصول إليه.",
       "errorInvalidOrderId": "معرف الطلب غير صالح",
-      "errorInvalidOrderIdDesc": "معرف الطلب مفقود أو غير صالح. يرجى التحقق من الرابط والمحاولة مرة أخرى."
+      "errorInvalidOrderIdDesc": "معرف الطلب مفقود أو غير صالح. يرجى التحقق من الرابط والمحاولة مرة أخرى.",
+      "discountBreakdown": "تفاصيل الخصم",
+      "discountManual": "يدوي",
+      "discountRule": "قاعدة",
+      "discountPromo": "ترويج",
+      "discountGiftCard": "بطاقة هدية",
+      "discountTypePercent": "نسبة مئوية",
+      "discountTypeFixed": "مبلغ ثابت"
     },
     "detailFull": {
       "viewFullDetails": "عرض التفاصيل الكاملة",

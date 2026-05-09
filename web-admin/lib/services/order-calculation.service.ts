@@ -16,6 +16,11 @@ import { validatePromoCode, getBestDiscount } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import {
+  DISCOUNT_SOURCE_TYPE,
+  DISCOUNT_CALC_TYPE,
+  type DiscountLineInput,
+} from '@/lib/constants/discount-source-type';
 
 export interface OrderCalculationParams {
   tenantId: string;
@@ -62,6 +67,8 @@ export interface OrderCalculationResult {
   finalTotal: number;
   currencyCode: string;
   decimalPlaces: number;
+  /** Structured discount lines for the audit trail — one entry per discount source. */
+  discountLines: DiscountLineInput[];
 }
 
 function round(value: number, decimals: number): number {
@@ -85,6 +92,7 @@ export async function calculateOrderTotals(
     percentDiscount = 0,
     amountDiscount = 0,
     promoCode,
+    promoCodeId,
     giftCardNumber,
     giftCardAmount,
     giftCardId,
@@ -121,6 +129,7 @@ export async function calculateOrderTotals(
       finalTotal: 0,
       currencyCode,
       decimalPlaces,
+      discountLines: [],
     };
   }
 
@@ -278,6 +287,51 @@ export async function calculateOrderTotals(
     decimalPlaces
   );
 
+  const discountLines: DiscountLineInput[] = [];
+
+  if (manualDiscount > 0) {
+    discountLines.push({
+      sourceType:    DISCOUNT_SOURCE_TYPE.MANUAL,
+      sourceName:    'Manual Discount',
+      sourceName2:   'خصم يدوي',
+      discountType:  percentDiscount > 0 ? DISCOUNT_CALC_TYPE.PERCENTAGE : DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
+      discountRate:  percentDiscount > 0 ? percentDiscount : undefined,
+      discountAmount: manualDiscount,
+    });
+  }
+
+  if (autoRuleDiscount > 0 && bestRule) {
+    discountLines.push({
+      sourceType:    DISCOUNT_SOURCE_TYPE.DISCOUNT_RULE,
+      sourceId:      bestRule.rule.id,
+      sourceName:    bestRule.rule.rule_name,
+      sourceName2:   bestRule.rule.rule_name2 ?? undefined,
+      discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
+      discountAmount: autoRuleDiscount,
+    });
+  }
+
+  if (promoDiscount > 0) {
+    discountLines.push({
+      sourceType:    DISCOUNT_SOURCE_TYPE.PROMO_CODE,
+      sourceId:      promoCodeId ?? undefined,
+      sourceName:    promoCode ? promoCode.toUpperCase() : 'Promo Code',
+      discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
+      discountAmount: promoDiscount,
+    });
+  }
+
+  if (giftCardApplied > 0) {
+    const last4 = resolvedGiftCardNumber ? resolvedGiftCardNumber.slice(-4) : '????';
+    discountLines.push({
+      sourceType:    DISCOUNT_SOURCE_TYPE.GIFT_CARD,
+      sourceId:      resolvedGiftCardId ?? undefined,
+      sourceName:    `Gift Card …${last4}`,
+      discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
+      discountAmount: giftCardApplied,
+    });
+  }
+
   return {
     subtotal: subtotalRounded,
     manualDiscount,
@@ -293,5 +347,6 @@ export async function calculateOrderTotals(
     finalTotal,
     currencyCode,
     decimalPlaces,
+    discountLines,
   };
 }

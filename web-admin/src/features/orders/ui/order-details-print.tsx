@@ -6,13 +6,16 @@ import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import type { ReadyOrder } from '@features/orders/model/ready-order-types';
 import type { PrintLayout } from './order-receipt-print';
- 
+import { sourceLabel } from '@/lib/db/order-discounts-types';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+
 interface OrderDetailsPrintProps {
   order: ReadyOrder;
   layout: PrintLayout;
+  discountLines?: OrderDiscountLine[];
 }
 
-export function OrderDetailsPrint({ order, layout }: OrderDetailsPrintProps) {
+export function OrderDetailsPrint({ order, layout, discountLines = [] }: OrderDetailsPrintProps) {
   const tOrders = useTranslations('orders.detail');
   const tOrdersMain = useTranslations('orders');
   const tWorkflowReady = useTranslations('workflow.ready');
@@ -85,6 +88,23 @@ export function OrderDetailsPrint({ order, layout }: OrderDetailsPrintProps) {
           </tbody>
         </table>
       </section>
+
+      {discountLines.length > 0 && (
+        <section className="print-section border-t border-gray-200 pt-2">
+          <div className="flex justify-between print-row">
+            <span className="font-semibold">{tOrders('discount')}</span>
+            <span className="text-red-600">
+              -{fmt(discountLines.reduce((s, l) => s + l.discount_amount, 0))}
+            </span>
+          </div>
+          {discountLines.map((line) => (
+            <div key={line.id} className="flex justify-between text-xs text-gray-500 ps-3">
+              <span>{sourceLabel(line.source_type, locale === 'ar' ? 'ar' : 'en')}</span>
+              <span>-{fmt(line.discount_amount)}</span>
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="print-section">
         <div className="flex justify-between print-row">

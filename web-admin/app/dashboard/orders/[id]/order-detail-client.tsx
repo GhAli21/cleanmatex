@@ -13,13 +13,16 @@ import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
+import { OrderDiscountBreakdown } from '@features/orders/ui/order-discount-breakdown';
 import { isPreparationEnabled } from '@/lib/config/features';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
 
 interface OrderDetailClientProps {
   order: any;
+  discountLines?: OrderDiscountLine[];
   unappliedPayments: PaymentTransaction[];
   orderInvoices: Invoice[];
   tenantOrgId: string;
@@ -114,6 +117,7 @@ interface OrderDetailClientProps {
 
 export function OrderDetailClient({
   order,
+  discountLines = [],
   unappliedPayments,
   orderInvoices,
   tenantOrgId,
@@ -595,11 +599,19 @@ export function OrderDetailClient({
                 </span>
               </div>
               {order.discount && parseFloat(order.discount.toString()) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.discount}</span>
-                  <span className="font-medium text-red-600">
-                    -{fmtOrderMoney(parseFloat(order.discount.toString()))}
-                  </span>
+                <div className="text-sm">
+                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+                    <span className="text-gray-600">{t.discount}</span>
+                    <span className="font-medium text-red-600">
+                      -{fmtOrderMoney(parseFloat(order.discount.toString()))}
+                    </span>
+                  </div>
+                  {discountLines.length > 0 && (
+                    <OrderDiscountBreakdown
+                      lines={discountLines}
+                      locale={locale}
+                    />
+                  )}
                 </div>
               )}
               {order.tax && parseFloat(order.tax.toString()) > 0 && (

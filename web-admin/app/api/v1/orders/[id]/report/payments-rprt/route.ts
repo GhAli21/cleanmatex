@@ -6,6 +6,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getPaymentsForOrder } from '@/lib/services/payment-service';
+import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts';
 import type { PaymentTransaction } from '@/lib/types/payment';
 
 async function getAuthContext() {
@@ -22,6 +24,7 @@ export interface PaymentsRprtResponse {
     id: string;
     order_no: string;
     customer: { name: string; phone: string };
+    discountLines: OrderDiscountLine[];
   };
   payments: PaymentTransaction[];
   sortOrder: 'asc' | 'desc';
@@ -70,10 +73,13 @@ export async function GET(
       },
     };
 
-    const payments = await getPaymentsForOrder(id, sortOrder);
+    const [payments, discountLines] = await Promise.all([
+      getPaymentsForOrder(id, sortOrder),
+      getDiscountLinesForOrder(tenantId, id).catch(() => [] as OrderDiscountLine[]),
+    ]);
 
     const body: PaymentsRprtResponse = {
-      order: orderHeader,
+      order: { ...orderHeader, discountLines },
       payments,
       sortOrder,
     };
