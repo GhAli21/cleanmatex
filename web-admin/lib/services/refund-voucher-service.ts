@@ -34,6 +34,11 @@ export async function generateRefundVoucherNo(
   const db = tx ?? prisma;
   return withTenantContext(tenantId, async () => {
     const year = new Date().getFullYear().toString();
+    await db.$executeRaw`
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(${`voucher_no:${tenantId}:${REFUND_PREFIX}:${year}`}, 0)
+      )
+    `;
     const existing = await db.org_fin_vouchers_mst.findMany({
       where: {
         tenant_org_id: tenantId,
@@ -65,6 +70,13 @@ export async function createRefundVoucherForPayment(
   input: CreateRefundVoucherForPaymentInput,
   tx?: PrismaTx
 ): Promise<{ voucher_id: string; voucher_no: string }> {
+  if (!tx) {
+    return prisma.$transaction((innerTx) => createRefundVoucherForPayment(input, innerTx));
+  }
+  if (!Number.isFinite(input.total_amount) || input.total_amount <= 0) {
+    throw new Error('Refund voucher amount must be greater than zero');
+  }
+
   const db = tx ?? prisma;
   const voucher_no = await generateRefundVoucherNo(input.tenant_org_id, db);
 

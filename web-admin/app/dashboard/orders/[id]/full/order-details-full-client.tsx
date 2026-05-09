@@ -13,6 +13,7 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
+import { OrderDiscountBreakdown } from '@features/orders/ui/order-discount-breakdown';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
@@ -32,6 +33,7 @@ import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 
 const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
@@ -53,6 +55,7 @@ interface OrderDetailsFullClientProps {
   }>;
   editHistory: OrderEditHistoryEntry[];
   orderPreferences: OrderPreferenceRow[];
+  discountLines?: OrderDiscountLine[];
   /** Localized headers for org_order_preferences_dtl columns (Preferences tab) */
   orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   tenantOrgId: string;
@@ -95,6 +98,7 @@ export function OrderDetailsFullClient({
   receipts,
   editHistory,
   orderPreferences,
+  discountLines = [],
   orderPreferenceDtlColumnLabels,
   tenantOrgId,
   userId,
@@ -506,6 +510,7 @@ export function OrderDetailsFullClient({
     const lineDiscount = Number(o.discount ?? 0);
     const promoDiscount = Number(o.promo_discount_amount ?? 0);
     const giftCardDiscount = Number(o.gift_card_discount_amount ?? 0);
+    const totalDiscounts = lineDiscount + promoDiscount + giftCardDiscount;
     const serviceCharge = Number(o.service_charge ?? 0);
     const vatAmount = Number(o.vat_amount ?? 0);
     const tax = Number(o.tax ?? 0);
@@ -523,6 +528,9 @@ export function OrderDetailsFullClient({
     const giftCardId = typeof o.gift_card_id === 'string' ? o.gift_card_id : null;
     const giftCardMasked = giftCardId
       ? `····${giftCardId.replace(/-/g, '').slice(-4)}`
+      : null;
+    const promoCodeId = typeof o.promo_code_id === 'string' && o.promo_code_id.trim().length > 0
+      ? o.promo_code_id
       : null;
 
     const vatLabel =
@@ -668,6 +676,23 @@ export function OrderDetailsFullClient({
                 {t.appliedDiscounts ?? 'Applied Discounts'}
               </p>
               <div className="space-y-0">
+                <WRow
+                  label={t.lineDiscount ?? 'Line Discount'}
+                  value={lineDiscount > 0 ? `− ${fmtOrderMoney(lineDiscount)}` : fmtOrderMoney(lineDiscount)}
+                  isDeduction={lineDiscount > 0}
+                />
+                <WRow
+                  label={t.promoDiscount ?? 'Promo Discount'}
+                  value={promoDiscount > 0 ? `− ${fmtOrderMoney(promoDiscount)}` : fmtOrderMoney(promoDiscount)}
+                  isDeduction={promoDiscount > 0}
+                  meta={promoCodeId ?? undefined}
+                />
+                <WRow
+                  label={t.giftCardDiscount ?? 'Gift Card Discount'}
+                  value={giftCardDiscount > 0 ? `− ${fmtOrderMoney(giftCardDiscount)}` : fmtOrderMoney(giftCardDiscount)}
+                  isDeduction={giftCardDiscount > 0}
+                  chip={giftCardMasked ?? undefined}
+                />
                 <WRow label={t.discountType ?? 'Discount Type'} value={discountTypeVal && discountTypeVal !== '—' ? discountTypeVal : '—'} />
                 <WRow label={t.discountRate ?? 'Discount Rate'} value={discountRateVal != null ? `${discountRateVal}%` : '—'} />
                 <WRow
@@ -675,6 +700,17 @@ export function OrderDetailsFullClient({
                   value={giftCardMasked ?? '—'}
                   chip={giftCardMasked ? giftCardMasked : undefined}
                 />
+                {discountLines.length > 0 && (
+                  <OrderDiscountBreakdown lines={discountLines} locale={locale} />
+                )}
+                <div className="pt-2 mt-2 border-t border-gray-200">
+                  <WRow
+                    label={t.totalDiscounts ?? 'Total Discounts'}
+                    value={totalDiscounts > 0 ? `− ${fmtOrderMoney(totalDiscounts)}` : fmtOrderMoney(totalDiscounts)}
+                    isDeduction={totalDiscounts > 0}
+                    isBold
+                  />
+                </div>
               </div>
             </div>
 

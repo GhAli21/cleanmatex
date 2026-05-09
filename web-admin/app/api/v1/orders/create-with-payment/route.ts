@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
     );
 
     const amountToCharge = input.amountToCharge ?? clientTotals.finalTotal;
-    if (amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE) {
+    if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE) {
       return NextResponse.json(
         {
           success: false,
@@ -251,6 +251,16 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: 'Amount to charge must be greater than 0 for immediate payment methods.',
+        },
+        { status: 400 }
+      );
+    }
+    if (input.paymentMethod === PAYMENT_METHODS.CHECK && !input.checkNumber?.trim()) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'CHECK_NUMBER_REQUIRED',
+          error: 'Check number is required for check payments.',
         },
         { status: 400 }
       );
@@ -381,7 +391,12 @@ export async function POST(request: NextRequest) {
           );
 
           await tx.org_invoice_mst.update({
-            where: { id: invoice.id },
+            where: {
+              id_tenant_org_id: {
+                id: invoice.id,
+                tenant_org_id: tenantId,
+              },
+            },
             data: {
               paid_amount: amountToCharge,
               status: isFullyPaid ? 'paid' : 'partial',
@@ -427,6 +442,7 @@ export async function POST(request: NextRequest) {
             UPDATE org_orders_mst
             SET idempotency_key = ${input.idempotencyKey}
             WHERE id = ${orderId}::uuid
+              AND tenant_org_id = ${tenantId}::uuid
           `;
         }
 
@@ -471,6 +487,27 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Create with payment failed';
     const isProductNotFound = message.startsWith('Product not found:');
+
+    if (input.idempotencyKey) {
+      const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+        SELECT id, order_no, current_status
+        FROM org_orders_mst
+        WHERE tenant_org_id = ${tenantId}::uuid
+          AND idempotency_key = ${input.idempotencyKey}
+        LIMIT 1
+      `;
+      if (existing.length > 0) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            id: existing[0].id,
+            orderId: existing[0].id,
+            orderNo: existing[0].order_no,
+            currentStatus: existing[0].current_status,
+          },
+        });
+      }
+    }
 
     if (isProductNotFound) {
       const productId = message.replace('Product not found: ', '').trim();

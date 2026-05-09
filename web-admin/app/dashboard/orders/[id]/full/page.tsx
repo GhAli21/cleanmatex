@@ -10,6 +10,8 @@ import { getStockTransactionsForOrder } from '@/lib/services/inventory-service';
 import { ReceiptService } from '@/lib/services/receipt-service';
 import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-history';
 import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
+import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
+import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
@@ -83,6 +85,7 @@ async function OrderDetailsFullContent({
     receiptsResult,
     editHistoryResult,
     preferencesResult,
+    discountLines,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
     getPaymentsForOrder(orderId),
@@ -92,6 +95,7 @@ async function OrderDetailsFullContent({
     ReceiptService.getReceipts({ orderId, tenantId }),
     getOrderEditHistoryAction(orderId),
     getOrderPreferencesAction(orderId),
+    getDiscountLinesForOrder(tenantId, orderId).catch(() => [] as OrderDiscountLine[]),
   ]);
 
   if (!orderResult.success || !orderResult.data) {
@@ -162,6 +166,7 @@ async function OrderDetailsFullContent({
       receipts={receipts}
       editHistory={editHistory}
       orderPreferences={orderPreferences}
+      discountLines={discountLines}
       orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}
       tenantOrgId={tenantId}
       userId={userId ?? ''}

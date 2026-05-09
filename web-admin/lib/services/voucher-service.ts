@@ -9,6 +9,7 @@
  */
 
 import { prisma } from '@/lib/db/prisma';
+import type { Prisma } from '@prisma/client';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import {
   VOUCHER_CATEGORY,
@@ -24,10 +25,31 @@ import type {
 
 /** Transaction client type for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type VoucherDbClient = Pick<typeof prisma, 'org_fin_vouchers_mst' | 'org_fin_voucher_audit_log'>;
 
 const RECEIPT_PREFIX = 'VCR-RCP'; // Voucher Category Receipt
+const REFUND_PREFIX = 'REF';
+const CREDIT_NOTE_PREFIX = 'CRN';
+const PAYMENT_PREFIX = 'VCR-PAY';
+const ADJUSTMENT_PREFIX = 'VCR-ADJ';
 const YEAR_LEN = 4;
 const SEQ_LEN = 5;
+
+function resolveVoucherPrefix(input: Pick<CreateVoucherInput, 'voucher_category' | 'voucher_type' | 'voucher_subtype'>): string {
+  if (input.voucher_subtype === VOUCHER_SUBTYPE.REFUND || input.voucher_category === VOUCHER_CATEGORY.CASH_OUT) {
+    return REFUND_PREFIX;
+  }
+  if (input.voucher_subtype === VOUCHER_SUBTYPE.CREDIT_NOTE || input.voucher_type === VOUCHER_TYPE.CREDIT) {
+    return CREDIT_NOTE_PREFIX;
+  }
+  if (input.voucher_type === VOUCHER_TYPE.PAYMENT) {
+    return PAYMENT_PREFIX;
+  }
+  if (input.voucher_type === VOUCHER_TYPE.ADJUSTMENT) {
+    return ADJUSTMENT_PREFIX;
+  }
+  return RECEIPT_PREFIX;
+}
 
 /**
  * Generate next voucher_no for a tenant (VCR-RCP-YYYY-NNNNN).
@@ -42,7 +64,11 @@ export async function generateVoucherNo(
   const db = tx ?? prisma;
   return withTenantContext(tenantId, async () => {
     const year = new Date().getFullYear().toString();
-    const pattern = `${prefix}-${year}-%`;
+    await db.$executeRaw`
+      SELECT pg_advisory_xact_lock(
+        hashtextextended(${`voucher_no:${tenantId}:${prefix}:${year}`}, 0)
+      )
+    `;
     const existing = await db.org_fin_vouchers_mst.findMany({
       where: {
         tenant_org_id: tenantId,
@@ -73,8 +99,15 @@ export async function createVoucher(
   input: CreateVoucherInput,
   tx?: PrismaTx
 ): Promise<{ id: string; voucher_no: string }> {
+  if (!tx) {
+    return prisma.$transaction((innerTx) => createVoucher(input, innerTx));
+  }
+  if (!Number.isFinite(input.total_amount) || input.total_amount <= 0) {
+    throw new Error('Voucher amount must be greater than zero');
+  }
+
   const db = tx ?? prisma;
-  const voucher_no = await generateVoucherNo(input.tenant_org_id, RECEIPT_PREFIX, db);
+  const voucher_no = await generateVoucherNo(input.tenant_org_id, resolveVoucherPrefix(input), db);
   const row = await db.org_fin_vouchers_mst.create({
     data: {
       tenant_org_id: input.tenant_org_id,
@@ -92,12 +125,81 @@ export async function createVoucher(
       reason_code: input.reason_code ?? null,
       content_html: input.content_html ?? null,
       content_text: input.content_text ?? null,
-      metadata: input.metadata ?? undefined,
+      metadata: input.metadata != null ? (input.metadata as Prisma.InputJsonValue) : undefined,
       created_by: input.created_by ?? null,
     },
     select: { id: true, voucher_no: true },
   });
   return { id: row.id, voucher_no: row.voucher_no };
+}
+
+/**
+ * Apply the accounting issue transition once, with the audit row in the same transaction scope.
+ */
+async function issueVoucherInternal(
+  db: VoucherDbClient,
+  params: {
+    voucherId: string;
+    tenantOrgId: string;
+    issuedAt?: Date;
+    changedBy?: string;
+  }
+): Promise<void> {
+  const voucher = await db.org_fin_vouchers_mst.findUnique({
+    where: {
+      id_tenant_org_id: {
+        id: params.voucherId,
+        tenant_org_id: params.tenantOrgId,
+      },
+    },
+    select: { status: true },
+  });
+
+  if (!voucher) throw new Error('Voucher not found');
+  if (voucher.status === VOUCHER_STATUS.VOIDED) {
+    throw new Error('Cannot issue a voided voucher');
+  }
+  if (voucher.status === VOUCHER_STATUS.ISSUED) return;
+
+  const issuedAt = params.issuedAt ?? new Date();
+  const issued = await db.org_fin_vouchers_mst.updateMany({
+    where: {
+      id: params.voucherId,
+      tenant_org_id: params.tenantOrgId,
+      status: { notIn: [VOUCHER_STATUS.ISSUED, VOUCHER_STATUS.VOIDED] },
+    },
+    data: {
+      status: VOUCHER_STATUS.ISSUED,
+      issued_at: issuedAt,
+      updated_at: issuedAt,
+      updated_by: params.changedBy ?? null,
+    },
+  });
+  if (issued.count === 0) {
+    const latest = await db.org_fin_vouchers_mst.findUnique({
+      where: {
+        id_tenant_org_id: {
+          id: params.voucherId,
+          tenant_org_id: params.tenantOrgId,
+        },
+      },
+      select: { status: true },
+    });
+    if (latest?.status === VOUCHER_STATUS.ISSUED) return;
+    if (latest?.status === VOUCHER_STATUS.VOIDED) {
+      throw new Error('Cannot issue a voided voucher');
+    }
+    throw new Error('Voucher issue transition failed');
+  }
+  await db.org_fin_voucher_audit_log.create({
+    data: {
+      voucher_id: params.voucherId,
+      tenant_org_id: params.tenantOrgId,
+      action: 'issued',
+      snapshot_or_reason: null,
+      changed_by: params.changedBy ?? null,
+    },
+  });
 }
 
 /**
@@ -111,34 +213,13 @@ export async function issueVoucher(
   if (!tenantId) throw new Error('Unauthorized: Tenant ID required');
 
   await withTenantContext(tenantId, async () => {
-    const voucher = await prisma.org_fin_vouchers_mst.findFirst({
-      where: { id: voucherId, tenant_org_id: tenantId },
-    });
-    if (!voucher) throw new Error('Voucher not found');
-    if (voucher.status === VOUCHER_STATUS.VOIDED) {
-      throw new Error('Cannot issue a voided voucher');
-    }
-
-    await prisma.$transaction([
-      prisma.org_fin_vouchers_mst.update({
-        where: { id: voucherId },
-        data: {
-          status: VOUCHER_STATUS.ISSUED,
-          issued_at: new Date(),
-          updated_at: new Date(),
-          updated_by: options?.changed_by ?? null,
-        },
-      }),
-      prisma.org_fin_voucher_audit_log.create({
-        data: {
-          voucher_id: voucherId,
-          tenant_org_id: tenantId,
-          action: 'issued',
-          snapshot_or_reason: null,
-          changed_by: options?.changed_by ?? null,
-        },
-      }),
-    ]);
+    await prisma.$transaction((tx) =>
+      issueVoucherInternal(tx as unknown as VoucherDbClient, {
+        voucherId,
+        tenantOrgId: tenantId,
+        changedBy: options?.changed_by,
+      })
+    );
   });
 }
 
@@ -152,6 +233,8 @@ export async function voidVoucher(
 ): Promise<void> {
   const tenantId = await getTenantIdFromSession();
   if (!tenantId) throw new Error('Unauthorized: Tenant ID required');
+  const voidReason = reason.trim();
+  if (!voidReason) throw new Error('Void reason is required');
 
   await withTenantContext(tenantId, async () => {
     const voucher = await prisma.org_fin_vouchers_mst.findFirst({
@@ -164,11 +247,16 @@ export async function voidVoucher(
 
     await prisma.$transaction([
       prisma.org_fin_vouchers_mst.update({
-        where: { id: voucherId },
+        where: {
+          id_tenant_org_id: {
+            id: voucherId,
+            tenant_org_id: tenantId,
+          },
+        },
         data: {
           status: VOUCHER_STATUS.VOIDED,
           voided_at: new Date(),
-          void_reason: reason,
+          void_reason: voidReason,
           updated_at: new Date(),
           updated_by: options?.changed_by ?? null,
         },
@@ -178,7 +266,7 @@ export async function voidVoucher(
           voucher_id: voucherId,
           tenant_org_id: tenantId,
           action: 'voided',
-          snapshot_or_reason: reason,
+          snapshot_or_reason: voidReason,
           changed_by: options?.changed_by ?? null,
         },
       }),
@@ -316,7 +404,15 @@ export async function createReceiptVoucherForPayment(
   input: CreateReceiptVoucherForPaymentInput,
   tx?: PrismaTx
 ): Promise<{ voucher_id: string; voucher_no: string }> {
+  if (!tx) {
+    return prisma.$transaction((innerTx) => createReceiptVoucherForPayment(input, innerTx));
+  }
+
   const db = tx ?? prisma;
+  if (!Number.isFinite(input.total_amount) || input.total_amount <= 0) {
+    throw new Error('Receipt voucher amount must be greater than zero');
+  }
+
   const { id: voucher_id, voucher_no } = await createVoucher(
     {
       tenant_org_id: input.tenant_org_id,
@@ -329,29 +425,18 @@ export async function createReceiptVoucherForPayment(
       customer_id: input.customer_id,
       total_amount: input.total_amount,
       currency_code: input.currency_code ?? undefined,
+      metadata: input.metadata,
       created_by: input.created_by,
     },
     db
   );
 
   if (input.auto_issue !== false) {
-    await db.org_fin_vouchers_mst.update({
-      where: { id: voucher_id },
-      data: {
-        status: VOUCHER_STATUS.ISSUED,
-        issued_at: input.issued_at ?? new Date(),
-        updated_at: new Date(),
-        updated_by: input.created_by ?? null,
-      },
-    });
-    await db.org_fin_voucher_audit_log.create({
-      data: {
-        voucher_id,
-        tenant_org_id: input.tenant_org_id,
-        action: 'issued',
-        snapshot_or_reason: null,
-        changed_by: input.created_by ?? null,
-      },
+    await issueVoucherInternal(db as unknown as VoucherDbClient, {
+      voucherId: voucher_id,
+      tenantOrgId: input.tenant_org_id,
+      issuedAt: input.issued_at,
+      changedBy: input.created_by,
     });
   }
 

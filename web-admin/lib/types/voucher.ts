@@ -9,6 +9,7 @@ import type {
   VoucherSubtype,
   VoucherStatus,
 } from '../constants/voucher';
+import type { Prisma } from '@prisma/client';
 
 export type { VoucherCategory, VoucherType, VoucherSubtype, VoucherStatus };
 
@@ -26,7 +27,7 @@ export interface CreateVoucherInput {
   reason_code?: string;
   content_html?: string;
   content_text?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
   created_by?: string;
 }
 
@@ -69,6 +70,7 @@ export interface CreateReceiptVoucherForPaymentInput {
   issued_at?: Date;
   created_by?: string;
   auto_issue?: boolean;
+  metadata?: Prisma.InputJsonValue;
 }
 
 export interface CreateRefundVoucherForPaymentInput {

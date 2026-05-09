@@ -111,7 +111,7 @@ export async function getAvailablePaymentTypes(): Promise<PaymentType[]> {
 export async function validatePaymentMethod(
   paymentMethod: PaymentMethodCode
 ): Promise<{ isValid: boolean; error?: string }> {
-  if (paymentMethod == null || paymentMethod === '') {
+  if (paymentMethod == null) {
     return {
       isValid: false,
       error: 'Payment method is required',
@@ -206,8 +206,7 @@ export async function processPayment(
           gift_card_applied_amount: input.gift_card_applied_amount,
           vat_rate: input.vat_rate,
           vat_amount: input.vat_amount,
-          tax_amount: input.tax_amount ?? input.tax,
-          payment_channel: input.payment_channel ?? 'web_admin',
+          tax_amount: input.tax_amount,
           currency_code: input.currency_code,
           currency_ex_rate: input.currency_ex_rate,
           check_number: input.check_number,
@@ -361,7 +360,12 @@ export async function processPayment(
               const newPaid = inv.paid_amount + apply;
               const newStatus = newPaid >= inv.total ? 'paid' : 'partial';
               await dbTx.org_invoice_mst.update({
-                where: { id: inv.id },
+                where: {
+                  id_tenant_org_id: {
+                    id: inv.id,
+                    tenant_org_id: tenantId,
+                  },
+                },
                 data: {
                   paid_amount: newPaid,
                   status: newStatus,
@@ -496,7 +500,12 @@ export async function processPayment(
         }
 
         const invoice = await dbTx.org_invoice_mst.findUnique({
-          where: { id: effectiveInvoiceId },
+          where: {
+            id_tenant_org_id: {
+              id: effectiveInvoiceId,
+              tenant_org_id: tenantId,
+            },
+          },
         });
         if (!invoice) {
           throw new Error('Invoice not found');
@@ -564,7 +573,12 @@ export async function processPayment(
         };
 
         await dbTx.org_invoice_mst.update({
-          where: { id: invoiceId },
+          where: {
+            id_tenant_org_id: {
+              id: invoiceId,
+              tenant_org_id: tenantId,
+            },
+          },
           data: {
             paid_amount: updatedPaidAmount,
             status: newStatus,
@@ -889,6 +903,12 @@ export async function recordPaymentTransaction(
   if (!input.invoice_id && !input.order_id && !input.customer_id) {
     throw new Error('At least one of invoice_id, order_id, or customer_id is required');
   }
+  if (!Number.isFinite(input.paid_amount) || input.paid_amount <= 0) {
+    throw new Error('Payment amount must be greater than zero');
+  }
+  if (!tx) {
+    return prisma.$transaction((innerTx) => recordPaymentTransaction(input, innerTx));
+  }
 
   const db = tx ?? prisma;
 
@@ -989,6 +1009,23 @@ export async function recordPaymentTransaction(
         issued_at: new Date(),
         created_by: input.paid_by ?? undefined,
         auto_issue: true,
+        metadata: {
+          source_flow: 'payment_capture',
+          source_table: 'org_payments_dtl_tr',
+          branch_id: input.branch_id ?? null,
+          order_id: input.order_id ?? null,
+          invoice_id: input.invoice_id ?? null,
+          customer_id: input.customer_id ?? null,
+          payment_method_code: input.payment_method_code,
+          payment_type_code: input.payment_type_code ?? null,
+          payment_channel: input.payment_channel ?? 'web_admin',
+          gateway: input.gateway ?? null,
+          transaction_id: input.transaction_id ?? null,
+          check_number: input.check_number ?? null,
+          check_bank: input.check_bank ?? null,
+          check_date: input.check_date instanceof Date ? input.check_date.toISOString().slice(0, 10) : null,
+          check_status: input.payment_method_code === 'CHECK' ? 'received' : null,
+        },
       },
       db
     );
@@ -1281,7 +1318,7 @@ export async function applyPaymentToInvoice(
     }
 
     const invoice = await prisma.org_invoice_mst.findFirst({
-      where: { id: invoiceId },
+      where: { id: invoiceId, tenant_org_id: tenantId },
     });
     if (!invoice) {
       return { success: false, error: 'Invoice not found' };
@@ -1299,7 +1336,12 @@ export async function applyPaymentToInvoice(
     const newPaidAmount = Number(invoice.paid_amount) + amount;
     const newStatus = newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
     await prisma.org_invoice_mst.update({
-      where: { id: invoiceId },
+      where: {
+        id_tenant_org_id: {
+          id: invoiceId,
+          tenant_org_id: tenantId,
+        },
+      },
       data: {
         paid_amount: newPaidAmount,
         status: newStatus,
@@ -1465,7 +1507,12 @@ export async function validatePaymentData(
       // When paying against a specific invoice, amount must not exceed remaining balance
       if (input.invoice_id && input.amount > 0) {
         const inv = await prisma.org_invoice_mst.findUnique({
-          where: { id: input.invoice_id },
+          where: {
+            id_tenant_org_id: {
+              id: input.invoice_id,
+              tenant_org_id: tenantId,
+            },
+          },
           select: { total: true, paid_amount: true },
         });
         if (inv) {
@@ -1702,7 +1749,12 @@ export async function refundPayment(
         
         if (transaction.invoice_id) {
           const invoice = await tx.org_invoice_mst.findUnique({
-            where: { id: transaction.invoice_id },
+            where: {
+              id_tenant_org_id: {
+                id: transaction.invoice_id,
+                tenant_org_id: tenantId,
+              },
+            },
           });
           if (invoice) {
             const newPaidAmount = Math.max(0, Number(invoice.paid_amount) - input.amount);
@@ -1710,7 +1762,12 @@ export async function refundPayment(
             const newStatus =
               newPaidAmount <= 0 ? 'pending' : newPaidAmount >= invoiceTotal ? 'paid' : 'partial';
             await tx.org_invoice_mst.update({
-              where: { id: invoice.id },
+              where: {
+                id_tenant_org_id: {
+                  id: invoice.id,
+                  tenant_org_id: tenantId,
+                },
+              },
               data: {
                 paid_amount: newPaidAmount,
                 status: newStatus,
@@ -2372,7 +2429,12 @@ export async function cancelPayment(
         // 2. Reverse invoice paid_amount if linked
         if (payment.invoice_id) {
           const invoice = await tx.org_invoice_mst.findUnique({
-            where: { id: payment.invoice_id },
+            where: {
+              id_tenant_org_id: {
+                id: payment.invoice_id,
+                tenant_org_id: tenantId,
+              },
+            },
           });
 
           if (invoice) {
@@ -2388,7 +2450,12 @@ export async function cancelPayment(
             }
 
             await tx.org_invoice_mst.update({
-              where: { id: payment.invoice_id },
+              where: {
+                id_tenant_org_id: {
+                  id: payment.invoice_id,
+                  tenant_org_id: tenantId,
+                },
+              },
               data: {
                 paid_amount: newPaidAmount,
                 status: newStatus,
