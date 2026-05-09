@@ -145,6 +145,9 @@ export interface CreateInvoiceInput {
   customer_id?: string;
   subtotal: number;
   discount?: number;
+  total?: number;
+  promo_discount_amount?: number;
+  gift_card_discount_amount?: number;
   /** VAT amount (separate from additional tax) */
   vatAmount?: number;
   /** Additional/order tax amount (separate from VAT) */

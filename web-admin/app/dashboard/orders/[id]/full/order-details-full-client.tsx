@@ -507,16 +507,32 @@ export function OrderDetailsFullClient({
     const o = order as Record<string, unknown>;
 
     const subtotal = Number(o.subtotal ?? 0);
-    const lineDiscount = Number(o.discount ?? 0);
-    const promoDiscount = Number(o.promo_discount_amount ?? 0);
-    const giftCardDiscount = Number(o.gift_card_discount_amount ?? 0);
-    const totalDiscounts = lineDiscount + promoDiscount + giftCardDiscount;
+    const activeDiscountLines = discountLines.filter((line) => !line.is_voided);
+    const hasDiscountLineBreakdown = activeDiscountLines.length > 0;
+    const discountLineTotalFor = (sourceTypes: string[]) =>
+      activeDiscountLines
+        .filter((line) => sourceTypes.includes(line.source_type))
+        .reduce((sum, line) => sum + Number(line.discount_amount ?? 0), 0);
+    const manualDiscount = hasDiscountLineBreakdown
+      ? discountLineTotalFor(['MANUAL'])
+      : Number(o.discount ?? 0);
+    const ruleDiscount = hasDiscountLineBreakdown
+      ? discountLineTotalFor(['DISCOUNT_RULE'])
+      : 0;
+    const promoDiscount = hasDiscountLineBreakdown
+      ? discountLineTotalFor(['PROMO_CODE'])
+      : Number(o.promo_discount_amount ?? 0);
+    const giftCardDiscount = hasDiscountLineBreakdown
+      ? discountLineTotalFor(['GIFT_CARD'])
+      : Number(o.gift_card_discount_amount ?? 0);
+    const preTaxDiscounts = manualDiscount + ruleDiscount + promoDiscount;
+    const totalDiscounts = preTaxDiscounts + giftCardDiscount;
     const serviceCharge = Number(o.service_charge ?? 0);
     const vatAmount = Number(o.vat_amount ?? 0);
     const tax = Number(o.tax ?? 0);
     const total = Number(o.total ?? 0);
     const paidAmount = Number(o.paid_amount ?? 0);
-    const netAfterDiscounts = subtotal - lineDiscount - promoDiscount - giftCardDiscount;
+    const netAfterDiscounts = Math.max(0, subtotal - preTaxDiscounts);
 
     const vatRate = o.vat_rate != null ? Number(o.vat_rate) : null;
     const discountRateVal = o.discount_rate != null ? Number(o.discount_rate) : null;
@@ -596,9 +612,14 @@ export function OrderDetailsFullClient({
                   <WRow label={t.masterField_subtotal ?? 'Subtotal'} value={fmtOrderMoney(subtotal)} isBold />
                   <WRow
                     label={t.lineDiscount ?? 'Line Discount'}
-                    value={lineDiscount > 0 ? `− ${fmtOrderMoney(lineDiscount)}` : fmtOrderMoney(lineDiscount)}
-                    isDeduction={lineDiscount > 0}
+                    value={manualDiscount > 0 ? `− ${fmtOrderMoney(manualDiscount)}` : fmtOrderMoney(manualDiscount)}
+                    isDeduction={manualDiscount > 0}
                     meta={discountTypeVal && discountTypeVal !== '—' ? discountTypeVal : undefined}
+                  />
+                  <WRow
+                    label={t.discountRule ?? 'Rule Discount'}
+                    value={ruleDiscount > 0 ? `− ${fmtOrderMoney(ruleDiscount)}` : fmtOrderMoney(ruleDiscount)}
+                    isDeduction={ruleDiscount > 0}
                   />
                   <WRow
                     label={t.discountRate ?? 'Discount Rate'}
@@ -678,8 +699,13 @@ export function OrderDetailsFullClient({
               <div className="space-y-0">
                 <WRow
                   label={t.lineDiscount ?? 'Line Discount'}
-                  value={lineDiscount > 0 ? `− ${fmtOrderMoney(lineDiscount)}` : fmtOrderMoney(lineDiscount)}
-                  isDeduction={lineDiscount > 0}
+                  value={manualDiscount > 0 ? `− ${fmtOrderMoney(manualDiscount)}` : fmtOrderMoney(manualDiscount)}
+                  isDeduction={manualDiscount > 0}
+                />
+                <WRow
+                  label={t.discountRule ?? 'Rule Discount'}
+                  value={ruleDiscount > 0 ? `− ${fmtOrderMoney(ruleDiscount)}` : fmtOrderMoney(ruleDiscount)}
+                  isDeduction={ruleDiscount > 0}
                 />
                 <WRow
                   label={t.promoDiscount ?? 'Promo Discount'}

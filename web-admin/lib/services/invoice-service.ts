@@ -65,7 +65,7 @@ export async function createInvoice(
 
       const vatAmount = input.vatAmount ?? Number(order.vat_amount ?? 0);
       const additionalTax = input.tax ?? 0;
-      const total = calculateInvoiceTotal({
+      const total = input.total ?? calculateInvoiceTotal({
         subtotal: input.subtotal,
         discount: input.discount || 0,
         vatAmount,
@@ -89,6 +89,7 @@ export async function createInvoice(
           invoice_date: now,
           subtotal: input.subtotal,
           discount: input.discount || 0,
+          promo_discount_amount: input.promo_discount_amount ?? undefined,
           tax: additionalTax,
           tax_rate: order.tax_rate ?? undefined,
           vat_amount: vatAmount,
@@ -103,7 +104,7 @@ export async function createInvoice(
           service_charge: order.service_charge ?? undefined,
           service_charge_type: order.service_charge_type ?? undefined,
           gift_card_id: order.gift_card_id ?? undefined,
-          gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
+          gift_card_discount_amount: input.gift_card_discount_amount ?? order.gift_card_discount_amount ?? undefined,
           vat_rate: order.vat_rate ?? undefined,
           metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
           rec_notes: input.rec_notes,

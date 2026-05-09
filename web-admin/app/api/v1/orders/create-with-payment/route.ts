@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
       paymentMethod: input.paymentMethod,
       totals: {
         subtotal: serverTotals.subtotal,
-        discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
+        discount: serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
         tax: serverTotals.additionalTaxAmount ?? 0,
         total: serverTotals.finalTotal,
         vatRate: serverTotals.vatTaxPercent,
@@ -341,7 +341,10 @@ export async function POST(request: NextRequest) {
           {
             order_id: orderId,
             subtotal: serverTotals.subtotal,
-            discount: serverTotals.manualDiscount + serverTotals.promoDiscount,
+            discount: serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
+            total: serverTotals.finalTotal,
+            promo_discount_amount: serverTotals.promoDiscount,
+            gift_card_discount_amount: serverTotals.giftCardApplied,
             vatAmount: serverTotals.vatValue,
             tax: serverTotals.additionalTaxAmount ?? 0,
             payment_method_code: input.paymentMethod,
