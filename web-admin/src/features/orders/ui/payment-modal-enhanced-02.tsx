@@ -126,7 +126,34 @@ export function PaymentModalEnhanced02({
 }: PaymentModalProps) {
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
+  /** Used for per-code gift card error messages (EXPIRED, SUSPENDED, etc.) */
+  const tGiftCardErrors = useTranslations('giftCards.errors');
   const isRTL = useRTL();
+
+  /**
+   * Resolves a ValidateGiftCardResult to a localised error message.
+   * Maps specific errorCodes to distinct keys in giftCards.errors so each
+   * error condition gets its own translated message (not a generic fallback).
+   */
+  const resolveGiftCardError = useCallback(
+    (result: ValidateGiftCardResult): string => {
+      if (!result.errorCode) {
+        return result.error ?? t('giftCard.errors.validationFailed');
+      }
+      switch (result.errorCode) {
+        case 'EXPIRED':             return tGiftCardErrors('EXPIRED');
+        case 'INSUFFICIENT_BALANCE':return tGiftCardErrors('INSUFFICIENT_BALANCE');
+        case 'INVALID_PIN':         return tGiftCardErrors('INVALID_PIN');
+        // Service returns CARD_SUSPENDED for both suspended and voided cards;
+        // VOIDED is kept here in case the service is updated to emit it directly.
+        case 'CARD_SUSPENDED':      return tGiftCardErrors('SUSPENDED');
+        case 'VOIDED':              return tGiftCardErrors('VOIDED');
+        case 'NOT_FOUND':           return tGiftCardErrors('INVALID_CODE');
+        default:                    return result.error ?? t('giftCard.errors.validationFailed');
+      }
+    },
+    [t, tGiftCardErrors]
+  );
   const { token: csrfToken } = useCSRFToken();
 
   const {
@@ -510,11 +537,11 @@ export function PaymentModalEnhanced02({
     setGiftCardResult(null);
     setGiftCardDetails(null);
     try {
-      const result = await validateGiftCardAction({ card_number: giftCardNumber });
+      const result = await validateGiftCardAction({ gift_card_code: giftCardNumber });
       setGiftCardResult(result);
       if (result.isValid && result.giftCard && result.availableBalance != null) {
         const details = {
-          number: result.giftCard.card_number,
+          number: result.giftCard.gift_card_code,
           balance: result.availableBalance,
           status: result.giftCard.status,
           expiryDate: result.giftCard.expiry_date,
@@ -1087,19 +1114,31 @@ export function PaymentModalEnhanced02({
             {!NEW_ORDER_PROMO_GIFT_DISABLED && (
             <div>
               {(appliedPromoCode || appliedGiftCard) && (
-                <div className={`flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg mb-2 gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <div className={`flex flex-wrap gap-2 text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
-                    {appliedPromoCode && (
-                      <span className="text-green-800">
-                        Promo: -{currencyCode} {formatAmount(appliedPromoCode.discount)}
+                <div className={`p-2 bg-green-50 border border-green-200 rounded-lg mb-2 space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {appliedPromoCode && (
+                    <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <span className="text-gray-600">{t('promoCode.label') || 'Promo Code'}</span>
+                      <span className="text-green-800 font-medium">
+                        {appliedPromoCode.code}: -{currencyCode} {formatAmount(appliedPromoCode.discount)}
                       </span>
-                    )}
-                    {appliedGiftCard && (
-                      <span className="text-green-800">
-                        Gift: -{currencyCode} {formatAmount(appliedGiftCard.amount)}
-                      </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
+                  {appliedGiftCard && (
+                    <>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                        {t('giftCard.settlements') || 'Settlements'}
+                      </p>
+                      <div className={`flex items-center justify-between text-sm ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <span className="text-gray-600">
+                          {/* Truncate code to first 12 chars for tight spaces */}
+                          {`${t('giftCard.label') || 'Gift Card'} (${appliedGiftCard.number.slice(0, 12)}${appliedGiftCard.number.length > 12 ? '…' : ''})`}
+                        </span>
+                        <span className="text-purple-800 font-medium">
+                          -{currencyCode} {formatAmount(appliedGiftCard.amount)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
               <button
@@ -1195,7 +1234,7 @@ export function PaymentModalEnhanced02({
                       {(giftCardResult && !giftCardResult.isValid) && (
                         <div className={`flex items-center gap-2 text-red-600 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
                           <AlertCircle className="w-3.5 h-3.5" />
-                          <span>{giftCardResult.error}</span>
+                          <span>{resolveGiftCardError(giftCardResult)}</span>
                         </div>
                       )}
                       {giftCardDetails && (
@@ -1242,6 +1281,21 @@ export function PaymentModalEnhanced02({
                               {t('giftCard.applyAmount')}
                             </button>
                           </div>
+                          {/* Live preview: balance after apply + remaining due */}
+                          {giftCardDetails && Number(giftCardAmount) > 0 && (
+                            <div className={`space-y-0.5 text-xs text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
+                              <p>
+                                {t('giftCard.balanceAfterApply', {
+                                  balance: `${currencyCode} ${formatAmount(Math.max(0, giftCardDetails.balance - Number(giftCardAmount)))}`
+                                })}
+                              </p>
+                              <p>
+                                {t('giftCard.remainingDue', {
+                                  amount: `${currencyCode} ${formatAmount(Math.max(0, totals.finalTotal - Number(giftCardAmount)))}`
+                                })}
+                              </p>
+                            </div>
+                          )}
                           <p className="text-xs text-gray-500">{t('giftCard.amountHint')}</p>
                         </div>
                       )}

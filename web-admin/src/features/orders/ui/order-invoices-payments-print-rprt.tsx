@@ -135,20 +135,25 @@ export function OrderInvoicesPaymentsPrintRprt({ data }: OrderInvoicesPaymentsPr
                 </div>
               )}
 
-              {/* Gift card line */}
-              {Number(inv.gift_card_discount_amount ?? 0) > 0 && (
-                <div className="flex justify-between print-row text-blue-700">
-                  <span>
-                    {`Gift Card${inv.gift_card_last4 ? ` (···${inv.gift_card_last4})` : ''}`}
-                  </span>
-                  <span>
-                    {`−${formatMoneyAmountWithCode(Number(inv.gift_card_discount_amount), {
-                      currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
-                      decimalPlaces,
-                      locale: moneyLocale,
-                    })}`}
-                  </span>
-                </div>
+              {/* Gift card settlement — shown after invoice total, not in discounts section */}
+              {Number(inv.gift_card_applied_amount ?? 0) > 0 && (
+                <>
+                  <div className="flex justify-between print-row text-xs font-semibold text-gray-500 uppercase tracking-wide border-t border-gray-100 pt-0.5 mt-0.5">
+                    <span>{'Settlements'}</span>
+                  </div>
+                  <div className="flex justify-between print-row text-purple-700">
+                    <span>
+                      {`Gift Card Settlement${inv.gift_card_last4 ? ` (···${inv.gift_card_last4})` : ''}`}
+                    </span>
+                    <span>
+                      {`−${formatMoneyAmountWithCode(Number(inv.gift_card_applied_amount), {
+                        currencyCode: (inv.currency_code?.trim() || tenantCurrency) as string,
+                        decimalPlaces,
+                        locale: moneyLocale,
+                      })}`}
+                    </span>
+                  </div>
+                </>
               )}
 
               {/* Total Charged — always shown */}

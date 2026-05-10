@@ -4,7 +4,10 @@
  * Gift Card Transaction Log Screen
  *
  * Tenant-wide view of all gift card transactions with pagination and filters.
- * Filters: card number search, transaction type, date range.
+ * Filters: gift_card_code search, transaction type (multi-select pills), date range.
+ * Columns: date, gift_card_code (monospace/LTR), card name, type badge, amount (signed),
+ *          balance before, balance after, order ref, idempotency key (truncated),
+ *          notes, processed_by.
  */
 
 import { useState, useCallback } from 'react';
@@ -16,22 +19,37 @@ import { Badge } from '@ui/primitives/badge';
 import { CmxDataTable } from '@ui/data-display';
 import { CmxSummaryMessage } from '@ui/feedback';
 import { useGiftCardTransactionLog } from '../hooks/use-gift-cards';
-import type { GiftCardTransactionLogRow, GiftCardTransactionType } from '@/lib/types/payment';
+import type { GiftCardTransactionLogRow } from '@/lib/types/payment';
+import type { GiftCardTxnType } from '@/lib/constants/gift-card';
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const TX_TYPES: GiftCardTransactionType[] = ['redemption', 'refund', 'adjustment', 'cancellation'];
+/** All selectable transaction types in the filter row */
+const TX_TYPES: GiftCardTxnType[] = [
+  'REDEEM',
+  'REFUND',
+  'VOID',
+  'ADJUSTMENT',
+  'SALE',
+  'ISSUE',
+];
 
 const TX_TYPE_BADGE: Record<
-  GiftCardTransactionType,
+  GiftCardTxnType,
   'default' | 'secondary' | 'destructive' | 'outline'
 > = {
-  redemption: 'default',
-  refund: 'secondary',
-  adjustment: 'outline',
-  cancellation: 'destructive',
+  REDEEM:       'default',
+  REFUND:       'secondary',
+  VOID:         'destructive',
+  ADJUSTMENT:   'outline',
+  SALE:         'default',
+  ISSUE:        'outline',
+  ACTIVATE:     'outline',
+  EXPIRE:       'destructive',
+  BONUS_ADD:    'secondary',
+  BONUS_REDEEM: 'secondary',
 };
 
 /** Returns a signed, coloured amount string for each transaction type. */
@@ -40,10 +58,21 @@ function formatSignedAmount(row: GiftCardTransactionLogRow): {
   className: string;
 } {
   const formatted = row.amount.toFixed(3);
-  if (row.transaction_type === 'redemption' || row.transaction_type === 'cancellation') {
+  const isDebit =
+    row.transaction_type === 'REDEEM' ||
+    row.transaction_type === 'VOID' ||
+    row.transaction_type === 'EXPIRE';
+  if (isDebit) {
     return { text: `−${formatted}`, className: 'text-destructive font-medium tabular-nums' };
   }
   return { text: `+${formatted}`, className: 'text-green-600 font-medium tabular-nums' };
+}
+
+/** Truncate a long string in the middle for display. */
+function truncateMid(value: string, maxLen = 20): string {
+  if (value.length <= maxLen) return value;
+  const half = Math.floor(maxLen / 2);
+  return `${value.slice(0, half)}…${value.slice(-half)}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,8 +85,8 @@ export function GiftCardTransactionLogScreen() {
   const tCommon = useTranslations('common');
 
   // --- filter state ---
-  const [cardNumber, setCardNumber] = useState('');
-  const [transactionType, setTransactionType] = useState<GiftCardTransactionType | undefined>(undefined);
+  const [cardCode, setCardCode] = useState('');
+  const [transactionType, setTransactionType] = useState<GiftCardTxnType | undefined>(undefined);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [page, setPage] = useState(1);
@@ -66,29 +95,26 @@ export function GiftCardTransactionLogScreen() {
   const { rows, total, isLoading, error } = useGiftCardTransactionLog({
     page,
     pageSize: PAGE_SIZE,
-    cardNumber: cardNumber || undefined,
+    cardNumber: cardCode || undefined,
     transactionType,
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
   });
 
-  const handleTypeToggle = useCallback(
-    (type: GiftCardTransactionType) => {
-      setTransactionType((prev) => (prev === type ? undefined : type));
-      setPage(1);
-    },
-    []
-  );
+  const handleTypeToggle = useCallback((type: GiftCardTxnType) => {
+    setTransactionType((prev) => (prev === type ? undefined : type));
+    setPage(1);
+  }, []);
 
   const handleClearFilters = useCallback(() => {
-    setCardNumber('');
+    setCardCode('');
     setTransactionType(undefined);
     setDateFrom('');
     setDateTo('');
     setPage(1);
   }, []);
 
-  const hasActiveFilters = Boolean(cardNumber || transactionType || dateFrom || dateTo);
+  const hasActiveFilters = Boolean(cardCode || transactionType || dateFrom || dateTo);
 
   const columns = [
     {
@@ -107,10 +133,12 @@ export function GiftCardTransactionLogScreen() {
       ),
     },
     {
-      key: 'card_number',
-      header: t('fields.cardNumber'),
+      key: 'gift_card_code',
+      header: t('fields.giftCardCode'),
       render: (row: GiftCardTransactionLogRow) => (
-        <span className="font-mono text-sm">{row.card_number}</span>
+        <span className="font-mono text-sm" dir="ltr">
+          {row.gift_card_code}
+        </span>
       ),
     },
     {
@@ -164,8 +192,23 @@ export function GiftCardTransactionLogScreen() {
         ),
     },
     {
+      key: 'idempotency_key',
+      header: tLog('fields.idempotencyKey'),
+      render: (row: GiftCardTransactionLogRow) =>
+        row.idempotency_key ? (
+          <span
+            className="font-mono text-xs text-muted-foreground"
+            title={row.idempotency_key}
+          >
+            {truncateMid(row.idempotency_key)}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        ),
+    },
+    {
       key: 'notes',
-      header: tCommon('notes'),
+      header: t('fields.notes'),
       render: (row: GiftCardTransactionLogRow) =>
         row.notes ? (
           <span className="max-w-[200px] truncate block text-sm">{row.notes}</span>
@@ -187,14 +230,17 @@ export function GiftCardTransactionLogScreen() {
       {/* ---- Filters ---- */}
       <div className="flex flex-col gap-3">
         <div className="flex gap-2 flex-wrap items-center">
-          {/* Card number search */}
+          {/* Gift card code search */}
           <div className="relative flex-1 min-w-[200px] max-w-xs">
             <Search className="absolute start-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <CmxInput
               className="ps-8"
               placeholder={tLog('filterByCard')}
-              value={cardNumber}
-              onChange={(e) => { setCardNumber(e.target.value); setPage(1); }}
+              value={cardCode}
+              onChange={(e) => {
+                setCardCode(e.target.value);
+                setPage(1);
+              }}
             />
           </div>
 
@@ -203,7 +249,10 @@ export function GiftCardTransactionLogScreen() {
             type="date"
             className="w-auto"
             value={dateFrom}
-            onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
             aria-label={tLog('fields.dateFrom')}
           />
 
@@ -212,7 +261,10 @@ export function GiftCardTransactionLogScreen() {
             type="date"
             className="w-auto"
             value={dateTo}
-            onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
             aria-label={tLog('fields.dateTo')}
           />
 
@@ -224,7 +276,7 @@ export function GiftCardTransactionLogScreen() {
           )}
         </div>
 
-        {/* Transaction type filter */}
+        {/* Transaction type filter pills */}
         <div className="flex gap-1.5 flex-wrap">
           {TX_TYPES.map((type) => (
             <CmxButton
@@ -240,9 +292,7 @@ export function GiftCardTransactionLogScreen() {
       </div>
 
       {/* ---- Error ---- */}
-      {error && (
-        <CmxSummaryMessage variant="error" title={tLog('errors.loadFailed')} />
-      )}
+      {error && <CmxSummaryMessage variant="error" title={tLog('errors.loadFailed')} />}
 
       {/* ---- Table ---- */}
       <CmxDataTable

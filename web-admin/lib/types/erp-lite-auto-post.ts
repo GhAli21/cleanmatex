@@ -106,6 +106,91 @@ export interface ErpLitePettyCashAutoPostInput {
   created_by?: string | null;
 }
 
+/** Gift Card sold (issue_type = SOLD | PROMOTIONAL | CORPORATE | GOODWILL) */
+export interface ErpLiteGiftCardSoldInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  gift_card_code: string;
+  /** issue_type drives which account receives the debit */
+  issue_type: 'SOLD' | 'PROMOTIONAL' | 'CORPORATE' | 'GOODWILL' | 'MIGRATION' | 'REPLACEMENT';
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  sold_date: string;
+  branch_id?: string | null;
+  customer_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Gift Card redeemed against an order/invoice */
+export interface ErpLiteGiftCardRedeemedInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  txn_id: string;
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  redeem_date: string;
+  order_id?: string | null;
+  invoice_id?: string | null;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Gift Card expired (breakage revenue recognition) */
+export interface ErpLiteGiftCardExpiredInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  txn_id: string;
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  expire_date: string;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Gift Card refunded (redemption reversed) */
+export interface ErpLiteGiftCardRefundedInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  txn_id: string;
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  refund_date: string;
+  order_id?: string | null;
+  invoice_id?: string | null;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Gift Card voided by admin */
+export interface ErpLiteGiftCardVoidedInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  txn_id: string;
+  amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  void_date: string;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
+/** Bonus amount granted on a gift card */
+export interface ErpLiteGiftCardBonusGrantedInput {
+  tenant_org_id?: string;
+  gift_card_id: string;
+  txn_id: string;
+  bonus_amount: number;
+  currency_code: string;
+  exchange_rate?: number;
+  grant_date: string;
+  branch_id?: string | null;
+  created_by?: string | null;
+}
+
 export interface ErpLiteAutoPostDispatchResult {
   status: 'executed' | 'skipped';
   txn_event_code: ErpLiteTxnEventCode;

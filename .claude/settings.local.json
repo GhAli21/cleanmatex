@@ -69,7 +69,13 @@
       "Bash(xargs grep -l \"cancelOrder\\\\|cancel\")",
       "Bash(xargs grep -l \"PDF\\\\|pdf\\\\|export.*pdf\\\\|generatePDF\")",
       "PowerShell(Get-Content \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\orders\\\\[id]\\\\order-detail-client.tsx\" | Select-Object -First 25 | ForEach-Object { \"$\\($_.ReadCount\\): $_\" })",
-      "PowerShell($content = Get-Content \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\prisma\\\\schema.prisma\"; $idx = \\($content | Select-String \"^model org_promo_codes_mst\"\\).LineNumber - 1; $content[$idx..\\($idx+15\\)])"
+      "PowerShell($content = Get-Content \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\prisma\\\\schema.prisma\"; $idx = \\($content | Select-String \"^model org_promo_codes_mst\"\\).LineNumber - 1; $content[$idx..\\($idx+15\\)])",
+      "Bash(xargs grep -l \"transaction_\")",
+      "Bash(xargs grep -l \"gift\\\\|GIFT\")",
+      "Bash(node -e \"const d=require\\('F:/jhapp/cleanmatex/web-admin/messages/en.json'\\);console.log\\(JSON.stringify\\(d.marketing?.giftCards,null,2\\)\\)\")",
+      "Bash(node -e \"const d=require\\('F:/jhapp/cleanmatex/web-admin/messages/ar.json'\\);console.log\\(JSON.stringify\\(d.marketing?.giftCards,null,2\\)\\)\")",
+      "Bash(node -e \"const d=require\\('F:/jhapp/cleanmatex/web-admin/messages/en.json'\\);console.log\\(JSON.stringify\\(d,null,2\\)\\)\")",
+      "Bash(python -c \"import json; data=json.load\\(open\\('messages/en.json'\\)\\); print\\(json.dumps\\(data.get\\('marketing', {}\\).get\\('giftCards', {}\\), indent=2\\)\\)\")"
     ],
     "deny": [
       "Read(node_modules)",

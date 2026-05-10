@@ -396,7 +396,7 @@ model org_branches_mst {
   org_dlv_slots_mst                 org_dlv_slots_mst[]
   org_dlv_stops_dtl                 org_dlv_stops_dtl[]
   org_fin_vouchers_mst              org_fin_vouchers_mst[]
-  org_gift_card_transactions        org_gift_card_transactions[]
+  org_gift_card_txn_dtl             org_gift_card_txn_dtl[]
   org_inv_stock_by_branch           org_inv_stock_by_branch[]
   org_inv_stock_tr                  org_inv_stock_tr[]
   org_invoice_mst                   org_invoice_mst[]
@@ -516,14 +516,16 @@ model org_customers_mst {
   updated_by             String?                  @db.Uuid
   updated_info           String?
   customer_category_id   String?                  @db.Uuid
-  org_customer_addresses org_customer_addresses[]
-  org_customer_category_cf org_customer_category_cf? @relation(fields: [customer_category_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cust_category")
-  sys_customers_mst      sys_customers_mst?       @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
-  org_tenants_mst        org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
-  org_fin_vouchers_mst   org_fin_vouchers_mst[]
-  org_invoice_mst        org_invoice_mst[]
-  org_orders_mst         org_orders_mst[]
-  org_payments_dtl_tr    org_payments_dtl_tr[]
+  org_customer_addresses       org_customer_addresses[]
+  org_customer_category_cf     org_customer_category_cf?  @relation(fields: [customer_category_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_cust_category")
+  sys_customers_mst            sys_customers_mst?         @relation(fields: [customer_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_sys")
+  org_tenants_mst              org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
+  org_fin_vouchers_mst         org_fin_vouchers_mst[]
+  org_invoice_mst              org_invoice_mst[]
+  org_orders_mst               org_orders_mst[]
+  org_payments_dtl_tr          org_payments_dtl_tr[]
+  gc_issued_to                 org_gift_cards_mst[]       @relation("gc_issued_to")
+  gc_purchased_by              org_gift_cards_mst[]       @relation("gc_purchased_by")
 
   @@unique([tenant_org_id, customer_id], map: "ak_global_customer_id_org_cust")
   @@index([tenant_org_id], map: "idx_org_customers_tenant")
@@ -628,7 +630,8 @@ model org_invoice_mst {
   service_charge            Decimal?               @default(0) @db.Decimal(19, 4)
   service_charge_type       String?                @db.VarChar(50)
   gift_card_id              String?                @db.Uuid
-  gift_card_discount_amount Decimal?               @default(0) @db.Decimal(19, 4)
+  /// Renamed from gift_card_discount_amount in migration 0257 — gift card is stored value, not a discount
+  gift_card_applied_amount  Decimal?               @default(0) @db.Decimal(19, 4)
   customer_reference        String?                @db.VarChar(120)
   trans_desc                String?                @db.VarChar(255)
   tax_rate                  Decimal?               @db.Decimal(5, 3)
@@ -912,7 +915,8 @@ model org_orders_mst {
   promo_code_id                   String?                           @db.Uuid
   gift_card_id                    String?                           @db.Uuid
   promo_discount_amount           Decimal?                          @default(0) @db.Decimal(19, 4)
-  gift_card_discount_amount       Decimal?                          @default(0) @db.Decimal(19, 4)
+  /// Renamed from gift_card_discount_amount in migration 0257 — gift card is stored value, not a discount
+  gift_card_applied_amount        Decimal?                          @default(0) @db.Decimal(19, 4)
   payment_type_code               String?                           @db.VarChar(30)
   service_charge                  Decimal?                          @default(0) @db.Decimal(19, 4)
   service_charge_type             String?                           @db.VarChar(50)
@@ -1381,7 +1385,7 @@ model org_tenants_mst {
   org_dlv_slots_mst                org_dlv_slots_mst[]
   org_ff_overrides_cf              org_ff_overrides_cf[]
   org_fin_vouchers_mst             org_fin_vouchers_mst[]
-  org_gift_card_transactions       org_gift_card_transactions[]
+  org_gift_card_txn_dtl            org_gift_card_txn_dtl[]
   org_gift_cards_mst               org_gift_cards_mst[]
   org_inv_stock_by_branch          org_inv_stock_by_branch[]
   org_inv_stock_tr                 org_inv_stock_tr[]
@@ -2186,7 +2190,7 @@ model org_discount_rules_cf {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model org_gift_card_transactions {
+model org_gift_card_txn_dtl {
   id                 String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id      String             @db.Uuid
   gift_card_id       String             @db.Uuid
@@ -2201,6 +2205,7 @@ model org_gift_card_transactions {
   processed_by       String?            @db.VarChar(120)
   metadata           Json?
   branch_id          String?            @db.Uuid
+  idempotency_key    String?
   created_at         DateTime?          @default(now()) @db.Timestamp(6)
   created_by         String?
   created_info       String?
@@ -2214,10 +2219,11 @@ model org_gift_card_transactions {
   org_gift_cards_mst org_gift_cards_mst @relation(fields: [gift_card_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_card_fk")
   org_tenants_mst    org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_tenant_fk")
 
-  @@index([tenant_org_id, gift_card_id], map: "idx_gift_card_trans_card")
-  @@index([tenant_org_id, transaction_date(sort: Desc)], map: "idx_gift_card_trans_date")
-  @@index([tenant_org_id, order_id], map: "idx_gift_card_trans_order")
-  @@index([tenant_org_id], map: "idx_gift_card_trans_tenant")
+  @@index([tenant_org_id, gift_card_id], map: "idx_gc_txn_card")
+  @@index([tenant_org_id, transaction_date(sort: Desc)], map: "idx_gc_txn_date")
+  @@index([tenant_org_id, order_id], map: "idx_gc_txn_order")
+  @@index([tenant_org_id], map: "idx_gc_txn_tenant")
+  @@map("org_gift_card_txn_dtl")
   @@schema("public")
 }
 
@@ -2225,36 +2231,71 @@ model org_gift_card_transactions {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model org_gift_cards_mst {
-  id                         String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id              String                       @db.Uuid
-  card_number                String                       @unique @db.VarChar(50)
-  card_pin                   String?                      @db.VarChar(20)
-  card_name                  String?                      @db.VarChar(250)
-  card_name2                 String?                      @db.VarChar(250)
-  original_amount            Decimal                      @db.Decimal(10, 3)
-  current_balance            Decimal                      @db.Decimal(10, 3)
-  issued_date                DateTime                     @default(now()) @db.Timestamptz(6)
-  expiry_date                DateTime?                    @db.Timestamptz(6)
-  issued_to_customer_id      String?                      @db.Uuid
-  status                     String                       @default("active") @db.VarChar(20)
-  is_active                  Boolean                      @default(true)
+  id                         String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id              String                    @db.Uuid
+  /// Renamed from card_number in migration 0257 — domain term for customer-facing redemption code
+  gift_card_code             String                    @unique
+  card_pin                   String?
+  /// bcrypt hash of the PIN; preferred over card_pin (legacy). Never expose to client.
+  pin_hash                   String?
+  card_name                  String?
+  card_name2                 String?
+  original_amount            Decimal                   @db.Decimal(19, 4)
+  current_balance            Decimal                   @db.Decimal(19, 4)
+  /// Stored-value available balance — mirrors current_balance for new cards; updated on redeem/refund
+  available_amount           Decimal                   @default(0) @db.Decimal(19, 4)
+  /// Cumulative redeemed amount
+  redeemed_amount            Decimal                   @default(0) @db.Decimal(19, 4)
+  /// Bonus amount granted on top of original_amount
+  bonus_amount               Decimal                   @default(0) @db.Decimal(19, 4)
+  /// Remaining bonus balance
+  bonus_remaining            Decimal                   @default(0) @db.Decimal(19, 4)
+  issued_date                DateTime                  @default(now()) @db.Timestamptz(6)
+  expiry_date                DateTime?                 @db.Timestamptz(6)
+  /// Date the card was activated (GENERATED → ACTIVE transition)
+  activation_date            DateTime?                 @db.Timestamptz(6)
+  issued_to_customer_id      String?                   @db.Uuid
+  /// FK to customer who purchased the card (may differ from issued_to_customer_id)
+  purchased_by_cust_id       String?                   @db.Uuid
+  /// Batch reference UUID for bulk-issued cards
+  batch_id                   String?                   @db.Uuid
+  status                     String                    @default("GENERATED")
+  is_active                  Boolean                   @default(true)
+  is_reloadable              Boolean                   @default(false)
+  is_transferable            Boolean                   @default(false)
+  max_redemptions            Int?
+  redemption_count           Int                       @default(0)
+  /// issue_type: SOLD | PROMOTIONAL | CORPORATE | GOODWILL | MIGRATION | REPLACEMENT
+  issue_type                 String                    @default("SOLD")
+  /// gift_card_type: FIXED_VALUE | PROMOTIONAL | CORPORATE
+  gift_card_type             String                    @default("FIXED_VALUE")
+  /// ISO currency code; no default — must be provided explicitly
+  currency_code              String
+  /// PIN verification failure counter — reset on successful auth; lock after 5 failures
+  pin_failed_attempts        Int                       @default(0)
   metadata                   Json?
-  rec_notes                  String?                      @db.VarChar(1000)
-  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
-  created_by                 String?                      @db.VarChar(120)
+  rec_notes                  String?
+  created_at                 DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by                 String?
   created_info               String?
-  updated_at                 DateTime?                    @db.Timestamptz(6)
-  updated_by                 String?                      @db.VarChar(120)
+  updated_at                 DateTime?                 @db.Timestamptz(6)
+  updated_by                 String?
   updated_info               String?
-  rec_status                 Int?                         @default(1) @db.SmallInt
+  rec_status                 Int?                      @default(1) @db.SmallInt
   rec_order                  Int?
-  org_gift_card_transactions org_gift_card_transactions[]
-  org_tenants_mst            org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_cards_tenant_fk")
+  org_gift_card_txn_dtl      org_gift_card_txn_dtl[]
+  org_tenants_mst            org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_cards_tenant_fk")
+  issued_to_customer         org_customers_mst?        @relation("gc_issued_to", fields: [issued_to_customer_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_gc_issued_to_customer")
+  purchased_by_customer      org_customers_mst?        @relation("gc_purchased_by", fields: [purchased_by_cust_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_gc_purchased_by")
   org_invoice_mst            org_invoice_mst[]
   org_orders_mst             org_orders_mst[]
   org_payments_dtl_tr        org_payments_dtl_tr[]
 
-  @@index([tenant_org_id, issued_to_customer_id], map: "idx_gift_cards_customer")
+  @@index([tenant_org_id, issued_to_customer_id], map: "idx_gc_tenant_cust")
+  @@index([tenant_org_id, purchased_by_cust_id], map: "idx_gc_tenant_buyer")
+  @@index([tenant_org_id, status], map: "idx_gc_tenant_status")
+  @@index([tenant_org_id, batch_id], map: "idx_gc_tenant_batch")
+  @@index([tenant_org_id, expiry_date], map: "idx_gc_tenant_expiry")
   @@index([tenant_org_id], map: "idx_gift_cards_tenant")
   @@schema("public")
 }

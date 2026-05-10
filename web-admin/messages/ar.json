@@ -138,7 +138,30 @@
         "balance": "الرصيد الحالي",
         "issuedTo": "صادرة إلى",
         "expiryDate": "تاريخ الانتهاء",
-        "pin": "الرقم السري (اختياري)"
+        "pin": "الرقم السري (اختياري)",
+        "giftCardCode": "رمز بطاقة الهدية",
+        "issueType": "نوع الإصدار",
+        "cardType": "نوع البطاقة",
+        "availableBalance": "الرصيد المتاح",
+        "originalAmount": "المبلغ الأصلي",
+        "redeemedAmount": "المبلغ المُسترد",
+        "activationDate": "تاريخ التفعيل",
+        "purchasedBy": "المشتري",
+        "recipient": "المستلم",
+        "currency": "العملة",
+        "adjustType": "نوع التعديل",
+        "adjustReason": "السبب",
+        "credit": "إضافة رصيد",
+        "debit": "خصم رصيد",
+        "pinOptional": "الرقم السري (اختياري)",
+        "sameAsBuyer": "نفس المشتري",
+        "generatedNotice": "ستُنشأ البطاقة بحالة مُولَّد. قم بتفعيلها يدوياً من القائمة.",
+        "newBalancePreview": "الرصيد الجديد بعد التعديل: {balance}",
+        "cardName2": "اسم البطاقة (عربي)",
+        "issuedToCustomer": "صادرة إلى",
+        "notes": "ملاحظات",
+        "isActive": "نشط",
+        "metadata": "بيانات إضافية"
       },
       "status": {
         "active": "نشطة",
@@ -149,7 +172,15 @@
       },
       "errors": {
         "insufficientBalance": "الرصيد غير كافٍ",
-        "cardCancelled": "البطاقة ملغاة"
+        "cardCancelled": "البطاقة ملغاة",
+        "EXPIRED": "انتهت صلاحية بطاقة الهدية هذه",
+        "SUSPENDED": "بطاقة الهدية هذه موقوفة مؤقتاً",
+        "VOIDED": "تم إلغاء بطاقة الهدية هذه",
+        "INSUFFICIENT_BALANCE": "الرصيد غير كافٍ في بطاقة الهدية",
+        "INVALID_CODE": "رمز بطاقة الهدية غير موجود",
+        "INVALID_PIN": "الرقم السري غير صحيح",
+        "MAX_REDEMPTIONS_REACHED": "وصلت بطاقة الهدية هذه إلى الحد الأقصى لعمليات الاسترداد",
+        "CURRENCY_MISMATCH": "عملة بطاقة الهدية لا تتطابق مع عملة الطلب"
       },
       "transactionLog": {
         "title": "سجل المعاملات",
@@ -160,7 +191,17 @@
           "redemption": "استرداد",
           "refund": "استرجاع",
           "adjustment": "تعديل",
-          "cancellation": "إلغاء"
+          "cancellation": "إلغاء",
+          "REDEEM": "استرداد",
+          "REFUND": "استرجاع",
+          "VOID": "إلغاء",
+          "ADJUSTMENT": "تعديل",
+          "SALE": "بيع",
+          "ISSUE": "إصدار",
+          "ACTIVATE": "تفعيل",
+          "EXPIRE": "انتهاء صلاحية",
+          "BONUS_ADD": "إضافة مكافأة",
+          "BONUS_REDEEM": "استرداد مكافأة"
         },
         "fields": {
           "type": "النوع",
@@ -170,11 +211,67 @@
           "transactionDate": "التاريخ والوقت",
           "dateFrom": "من",
           "dateTo": "إلى",
-          "orderNo": "الطلب"
+          "orderNo": "الطلب",
+          "idempotencyKey": "مرجع العملية"
         },
         "errors": {
           "loadFailed": "فشل تحميل سجل المعاملات"
         }
+      },
+      "reports": {
+        "liabilityTitle": "التزامات بطاقات الهدايا",
+        "liabilitySubtitle": "أرصدة بطاقات الهدايا المعلقة حسب الحالة",
+        "totalOutstanding": "إجمالي الالتزامات",
+        "activeCards": "البطاقات النشطة",
+        "redeemedMtd": "المُسترد هذا الشهر",
+        "issuedMtd": "المُصدر هذا الشهر",
+        "expiredBalance": "الرصيد المنتهي",
+        "transactionsTitle": "معاملات بطاقات الهدايا",
+        "exportComingSoon": "تصدير إلى PDF/Excel — قريباً في الإصدار الثاني",
+        "noCardsFound": "لا توجد بطاقات هدايا للفلاتر المحددة"
+      },
+      "statuses": {
+        "DRAFT": "مسودة",
+        "GENERATED": "مُولَّد",
+        "ACTIVE": "نشط",
+        "PARTIALLY_REDEEMED": "مُسترد جزئياً",
+        "FULLY_REDEEMED": "مُسترد بالكامل",
+        "EXPIRED": "منتهي الصلاحية",
+        "VOIDED": "ملغى",
+        "SUSPENDED": "موقوف"
+      },
+      "issueTypes": {
+        "SOLD": "مباع",
+        "PROMOTIONAL": "ترويجي",
+        "CORPORATE": "مؤسسي",
+        "GOODWILL": "نية حسنة",
+        "MIGRATION": "ترحيل",
+        "REPLACEMENT": "استبدال"
+      },
+      "cardTypes": {
+        "FIXED_VALUE": "قيمة ثابتة",
+        "PROMOTIONAL": "ترويجي",
+        "CORPORATE": "مؤسسي"
+      },
+      "actions": {
+        "sellCard": "بيع بطاقة هدية",
+        "issueCard": "إصدار بطاقة هدية",
+        "activate": "تفعيل",
+        "suspend": "إيقاف مؤقت",
+        "unsuspend": "رفع الإيقاف",
+        "voidCard": "إلغاء البطاقة",
+        "adjustBalance": "تعديل الرصيد",
+        "copyCode": "نسخ الرمز"
+      },
+      "confirmations": {
+        "voidTitle": "إلغاء بطاقة الهدية",
+        "voidMessage": "إلغاء البطاقة {code}؟ سيتم مصادرة الرصيد المتبقي البالغ {amount} {currency}. لا يمكن التراجع عن هذا الإجراء.",
+        "suspendTitle": "إيقاف بطاقة الهدية مؤقتاً",
+        "suspendMessage": "إيقاف البطاقة {code} مؤقتاً؟ الرصيد المتبقي: {amount} {currency}. سيتم منع استرداد البطاقة.",
+        "activateTitle": "تفعيل بطاقة الهدية",
+        "activateMessage": "تفعيل البطاقة {code} بقيمة اسمية {amount} {currency}؟",
+        "debitAdjustTitle": "تأكيد خصم الرصيد",
+        "debitAdjustMessage": "خصم {amount} من البطاقة {code}. الرصيد الجديد: {newBalance}. السبب: {reason}"
       }
     },
     "discountRules": {
@@ -1353,6 +1450,8 @@
       "lineDiscount": "خصم السطر",
       "promoDiscount": "خصم العرض",
       "giftCardDiscount": "خصم بطاقة الهدية",
+      "giftCardApplied": "بطاقة الهدية المطبقة",
+      "settlements": "المدفوعات",
       "vatWithRate": "ضريبة القيمة المضافة ({rate}%)",
       "vat": "ضريبة القيمة المضافة",
       "appliedDiscounts": "الخصومات المطبقة",
@@ -1401,7 +1500,7 @@
         "discount_rate": "نسبة الخصم",
         "discount_type": "نوع الخصم",
         "promo_discount_amount": "خصم العرض الترويجي",
-        "gift_card_discount_amount": "خصم بطاقة الهدية",
+        "gift_card_applied_amount": "مبلغ بطاقة الهدية المطبق",
         "gift_card_id": "بطاقة الهدية",
         "service_charge": "رسوم الخدمة",
         "service_charge_type": "نوع رسوم الخدمة",
@@ -3458,13 +3557,18 @@
         "amountHint": "أدخل المبلغ المراد تطبيقه",
         "amountPlaceholder": "0.00",
         "locked": "مؤمّن",
+        "balanceAfterApply": "رصيد البطاقة بعد التطبيق: {balance}",
+        "remainingDue": "المتبقي للسداد: {amount}",
+        "settlements": "المدفوعات",
         "errors": {
           "notFound": "بطاقة الهدية غير موجودة",
           "expired": "انتهت صلاحية بطاقة الهدية",
           "insufficientBalance": "الرصيد غير كافٍ",
           "invalidPin": "الرقم السري غير صحيح",
           "suspended": "بطاقة الهدية معلقة",
-          "validationFailed": "فشل التحقق من بطاقة الهدية"
+          "validationFailed": "فشل التحقق من بطاقة الهدية",
+          "amountRequired": "أدخل المبلغ المراد تطبيقه",
+          "maxAmountExceeded": "المبلغ يتجاوز الرصيد المتاح"
         },
         "success": "تم تطبيق بطاقة الهدية! الرصيد: {balance} ريال عماني"
       },

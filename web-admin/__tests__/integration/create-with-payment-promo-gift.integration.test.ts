@@ -77,8 +77,9 @@ interface CapturedTx {
   $queryRaw: MockFn;
   org_promo_usage_log: { create: AnyMock };
   org_promo_codes_mst: { update: AnyMock };
-  org_gift_card_transactions: { create: AnyMock; findFirst: AnyMock };
-  org_gift_cards_mst: { update: AnyMock };
+  /** Updated model name from migration 0257 */
+  org_gift_card_txn_dtl: { create: AnyMock; findFirst: AnyMock };
+  org_gift_cards_mst: { findFirst: AnyMock; update: AnyMock };
 }
 
 function buildFakeTx(opts: {
@@ -87,10 +88,15 @@ function buildFakeTx(opts: {
     id: string;
     tenant_org_id: string;
     current_balance: number;
+    available_amount: number;
+    original_amount: number;
     status: string;
-    card_pin: string | null;
     expiry_date: Date | null;
+    redemption_count: number;
+    max_redemptions: number | null;
   }[];
+  /** Card returned by org_gift_cards_mst.findFirst (for applyGiftCardTx shim). */
+  gcFindFirstResult?: { id: string } | null;
 }): CapturedTx {
   const queryRawCalls: unknown[][] = [];
   const $queryRaw = jest.fn((..._args: unknown[]) => {
@@ -107,12 +113,20 @@ function buildFakeTx(opts: {
   });
   const gcTxCreate = jest.fn().mockResolvedValue({});
   const gcTxFindFirst = jest.fn().mockResolvedValue(null);
+  // Default: return the first giftLocked card id (shim uses findFirst to resolve code → id)
+  const gcFindFirst = jest.fn().mockResolvedValue(
+    opts.gcFindFirstResult !== undefined
+      ? opts.gcFindFirstResult
+      : opts.giftLocked?.[0]
+        ? { id: opts.giftLocked[0].id }
+        : null
+  );
   return {
     $queryRaw,
     org_promo_usage_log: { create: jest.fn().mockResolvedValue({}) },
     org_promo_codes_mst: { update: jest.fn().mockResolvedValue({}) },
-    org_gift_card_transactions: { create: gcTxCreate, findFirst: gcTxFindFirst },
-    org_gift_cards_mst: { update: jest.fn().mockResolvedValue({}) },
+    org_gift_card_txn_dtl: { create: gcTxCreate, findFirst: gcTxFindFirst },
+    org_gift_cards_mst: { findFirst: gcFindFirst, update: jest.fn().mockResolvedValue({}) },
   };
 }
 
@@ -133,9 +147,12 @@ describe('create-with-payment: promo + gift card integration', () => {
           id: 'gc-1',
           tenant_org_id: 'tenant-int',
           current_balance: 50,
-          status: 'active',
-          card_pin: null,
+          available_amount: 50,
+          original_amount: 100,
+          status: 'ACTIVE',
           expiry_date: null,
+          redemption_count: 0,
+          max_redemptions: null,
         },
       ],
     });
@@ -171,7 +188,7 @@ describe('create-with-payment: promo + gift card integration', () => {
         data: expect.objectContaining({ current_uses: { increment: 1 } }),
       })
     );
-    expect(tx.org_gift_card_transactions.create).toHaveBeenCalledTimes(1);
+    expect(tx.org_gift_card_txn_dtl.create).toHaveBeenCalledTimes(1);
     expect(tx.org_gift_cards_mst.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ current_balance: 30 }),
@@ -215,7 +232,7 @@ describe('create-with-payment: promo + gift card integration', () => {
 
     // Prove that no gift card mutations were issued (the failure is detected
     // before any writes happen on the gift-card side).
-    expect(tx.org_gift_card_transactions.create).not.toHaveBeenCalled();
+    expect(tx.org_gift_card_txn_dtl.create).not.toHaveBeenCalled();
     expect(tx.org_gift_cards_mst.update).not.toHaveBeenCalled();
   });
 
@@ -231,9 +248,12 @@ describe('create-with-payment: promo + gift card integration', () => {
           id: 'gc-1',
           tenant_org_id: 'tenant-int',
           current_balance: 50,
-          status: 'active',
-          card_pin: null,
+          available_amount: 50,
+          original_amount: 100,
+          status: 'ACTIVE',
           expiry_date: null,
+          redemption_count: 0,
+          max_redemptions: null,
         },
       ],
     });
@@ -298,15 +318,18 @@ describe('create-with-payment: promo + gift card integration', () => {
           tenant_org_id: 'tenant-int',
           // Balance reflects the first (already committed) debit: 50 - 20 = 30.
           current_balance: 30,
-          status: 'active',
-          card_pin: null,
+          available_amount: 30,
+          original_amount: 100,
+          status: 'ACTIVE',
           expiry_date: null,
+          redemption_count: 1,
+          max_redemptions: null,
         },
       ],
     });
 
     // Simulate a retry: a redemption row for this order already exists in the DB.
-    (tx.org_gift_card_transactions.findFirst as jest.Mock).mockResolvedValue({
+    (tx.org_gift_card_txn_dtl.findFirst as jest.Mock).mockResolvedValue({
       balance_after: 30,
     });
 
@@ -321,7 +344,7 @@ describe('create-with-payment: promo + gift card integration', () => {
     });
 
     // No second debit — neither write operation must fire on the retry path.
-    expect(tx.org_gift_card_transactions.create).not.toHaveBeenCalled();
+    expect(tx.org_gift_card_txn_dtl.create).not.toHaveBeenCalled();
     expect(tx.org_gift_cards_mst.update).not.toHaveBeenCalled();
 
     // Returns current balance from the locked row so callers get consistent data.

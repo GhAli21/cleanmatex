@@ -16,7 +16,7 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { logger } from '@/lib/utils/logger';
 import { getPaymentsForOrder, cancelPayment } from './payment-service';
 import { reversePromoUsageTx } from './discount-service';
-import { refundToGiftCardTx } from './gift-card-service';
+import { refundGiftCardTx } from './gift-card-service';
 import { voidDiscountLinesTx } from '@/lib/db/order-discounts';
 
 export interface CancelOrderInput {
@@ -64,6 +64,7 @@ async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
       promo_code_id: true,
       promo_discount_amount: true,
       gift_card_id: true,
+      // Already correctly named in org_payments_dtl_tr (migration 0257 renamed orders/invoice columns)
       gift_card_applied_amount: true,
       invoice_id: true,
       metadata: true,
@@ -100,33 +101,21 @@ async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
     }
 
     // 2. Gift card refund — restore balance per gift payment, capped at
-    //    original_amount inside refundToGiftCardTx.
+    //    original_amount inside refundGiftCardTx.
     for (const payment of giftPayments) {
       if (!payment.gift_card_id) continue;
 
-      // Resolve card_number — payment row stores gift_card_id, not number.
-      const card = await tx.org_gift_cards_mst.findUnique({
-        where: { id: payment.gift_card_id },
-        select: { card_number: true },
-      });
-
-      if (!card?.card_number) {
-        warnings.push(
-          `Gift card ${payment.gift_card_id} not found for refund — skipping`
-        );
-        continue;
-      }
-
       const requested = Number(payment.gift_card_applied_amount ?? 0);
       try {
-        const { actualRefundAmount } = await refundToGiftCardTx(tx, {
-          cardNumber: card.card_number,
+        const { actualRefundAmount } = await refundGiftCardTx(tx, {
+          giftCardId: payment.gift_card_id,
           amount: requested,
           orderId: input.orderId,
           invoiceId: payment.invoice_id ?? '',
           reason: `Order cancelled: ${input.cancelled_note}`.slice(0, 500),
           processedBy: input.userId,
           tenantOrgId: input.tenantId,
+          idempotencyKey: `${input.orderId}:refund:${payment.id}`,
         });
 
         if (actualRefundAmount < requested) {
@@ -137,7 +126,7 @@ async function reversePromoAndGiftForOrder(input: CancelOrderInput): Promise<{
       } catch (err) {
         // Don't fail the entire reversal — surface as warning per plan.
         warnings.push(
-          `Gift card refund failed for card ${card.card_number}: ${
+          `Gift card refund failed for card id=${payment.gift_card_id}: ${
             err instanceof Error ? err.message : String(err)
           }`
         );

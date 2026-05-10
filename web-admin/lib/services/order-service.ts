@@ -593,7 +593,7 @@ export class OrderService {
       if (promoCodeId != null) insertPayload.promo_code_id = promoCodeId;
       if (giftCardId != null) insertPayload.gift_card_id = giftCardId;
       if (promoDiscountAmount != null) insertPayload.promo_discount_amount = promoDiscountAmount;
-      if (giftCardDiscountAmount != null) insertPayload.gift_card_discount_amount = giftCardDiscountAmount;
+      if (giftCardDiscountAmount != null) insertPayload.gift_card_applied_amount = giftCardDiscountAmount;
       if (paymentTypeCode != null) insertPayload.payment_type_code = paymentTypeCode;
       if (params.paymentNotes != null) insertPayload.payment_notes = params.paymentNotes;
       if (isDefaultCustomer != null) insertPayload.is_default_customer = isDefaultCustomer;
@@ -1197,7 +1197,7 @@ export class OrderService {
         ...(customerName != null && customerName !== '' && { customer_name: customerName }),
         ...(customerDetails != null && Object.keys(customerDetails).length > 0 && { customer_details: customerDetails }),
         ...(promoDiscountAmount != null && { promo_discount_amount: promoDiscountAmount }),
-        ...(giftCardDiscountAmount != null && { gift_card_discount_amount: giftCardDiscountAmount }),
+        ...(giftCardDiscountAmount != null && { gift_card_applied_amount: giftCardDiscountAmount }),
         ...(paymentTypeCode != null && { payment_type_code: paymentTypeCode }),
       } as any,
     });

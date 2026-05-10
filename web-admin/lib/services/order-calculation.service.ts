@@ -264,7 +264,7 @@ export async function calculateOrderTotals(
     // fetch step. Falling back to number-based lookup handles legacy/direct-number cases.
     const giftCardResult = resolvedGiftCardId
       ? await validateGiftCardByIdForCalculation(resolvedGiftCardId, tenantId)
-      : await validateGiftCard({ card_number: resolvedGiftCardNumber! });
+      : await validateGiftCard({ gift_card_code: resolvedGiftCardNumber! });
     if (
       giftCardResult.isValid &&
       giftCardResult.availableBalance != null &&

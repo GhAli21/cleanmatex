@@ -76,7 +76,14 @@ export function useGiftCardTransactionLog(params: UseGiftCardTransactionLogParam
     let cancelled = false;
     setIsLoading(true);
 
-    listGiftCardTransactionsAction(params).then((result) => {
+    listGiftCardTransactionsAction({
+      page: params.page,
+      pageSize: params.pageSize,
+      cardCode: params.cardNumber,
+      transactionType: params.transactionType,
+      dateFrom: params.dateFrom,
+      dateTo: params.dateTo,
+    }).then((result) => {
       if (cancelled) return;
       if (result.success) {
         setRows(result.data);

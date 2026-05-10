@@ -12,7 +12,7 @@ import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { createInvoice } from '@/lib/services/invoice-service';
 import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
-import { applyGiftCardTx } from '@/lib/services/gift-card-service';
+import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
 import { insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
@@ -344,7 +344,8 @@ export async function POST(request: NextRequest) {
             discount: serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
             total: serverTotals.finalTotal,
             promo_discount_amount: serverTotals.promoDiscount,
-            gift_card_discount_amount: serverTotals.giftCardApplied,
+            // Renamed from gift_card_discount_amount in migration 0257
+            gift_card_applied_amount: serverTotals.giftCardApplied,
             vatAmount: serverTotals.vatValue,
             tax: serverTotals.additionalTaxAmount ?? 0,
             payment_method_code: input.paymentMethod,
@@ -450,19 +451,37 @@ export async function POST(request: NextRequest) {
         }
 
         // Debit gift card atomically within this transaction.
-        // SELECT FOR UPDATE inside applyGiftCardTx prevents double-debit races.
-        if (input.giftCardNumber && serverTotals.giftCardApplied > 0) {
-          await applyGiftCardTx(tx, {
-            cardNumber: input.giftCardNumber,
+        // SELECT FOR UPDATE inside redeemGiftCardTx prevents double-debit races.
+        // Idempotency key ties the debit to this specific order so retries are safe.
+        if (input.giftCardId && serverTotals.giftCardApplied > 0) {
+          await redeemGiftCardTx(tx, {
+            giftCardId: input.giftCardId,
             amount: serverTotals.giftCardApplied,
             orderId,
             invoiceId: invoice.id,
             branchId,
             processedBy: userId,
-            currencyCode: serverTotals.currencyCode,
-            decimalPlaces: serverTotals.decimalPlaces,
             tenantOrgId: tenantId,
+            idempotencyKey: `${orderId}:redeem`,
           });
+        } else if (input.giftCardNumber && serverTotals.giftCardApplied > 0) {
+          // Legacy fallback — resolve card ID from code then delegate to redeemGiftCardTx
+          const legacyCard = await tx.org_gift_cards_mst.findFirst({
+            where: { tenant_org_id: tenantId, gift_card_code: input.giftCardNumber, is_active: true },
+            select: { id: true },
+          });
+          if (legacyCard) {
+            await redeemGiftCardTx(tx, {
+              giftCardId: legacyCard.id,
+              amount: serverTotals.giftCardApplied,
+              orderId,
+              invoiceId: invoice.id,
+              branchId,
+              processedBy: userId,
+              tenantOrgId: tenantId,
+              idempotencyKey: `${orderId}:redeem`,
+            });
+          }
         }
 
         if (serverTotals.discountLines.length > 0) {

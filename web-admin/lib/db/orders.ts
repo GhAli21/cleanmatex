@@ -839,7 +839,7 @@ export async function deleteOrderItem(
  *
  * Order master financial fields (org_orders_mst): subtotal, total, discount, tax, vat_rate,
  * vat_amount, discount_rate, discount_type, promo_code_id, promo_discount_amount, gift_card_id,
- * gift_card_discount_amount, service_charge, tax_rate (additional tax). This recalc only updates
+ * gift_card_applied_amount, service_charge, tax_rate (additional tax). This recalc only updates
  * item-derived fields (subtotal, total, tax, vat_amount, vat_rate); discount, promotion, gift,
  * additional tax and service_charge are left unchanged (set at order create/edit).
  *

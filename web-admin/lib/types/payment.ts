@@ -4,6 +4,7 @@
  * This file contains all TypeScript types and interfaces for the payment module,
  * including payment methods, invoices, discounts, promo codes, and gift cards.
  * Payment codes/statuses: single source of truth is lib/constants/payment.ts; types and key consts re-exported here for one-import convenience.
+ * Gift card status/type constants: single source of truth is lib/constants/gift-card.ts.
  */
 
 import {
@@ -21,6 +22,32 @@ import {
   PAYMENT_GATEWAYS,
   getPaymentTypeFromMethod,
 } from "../constants/payment";
+
+import {
+  type GiftCardStatus,
+  type GiftCardTxnType,
+  type GiftCardType,
+  type GiftCardIssueType,
+  GIFT_CARD_STATUS,
+  GIFT_CARD_TXN_TYPE,
+  GIFT_CARD_TYPE,
+  GIFT_CARD_ISSUE_TYPE,
+  REDEEMABLE_STATUSES,
+  REFUND_REVERTIBLE_STATUSES,
+  GIFT_CARD_PIN_MAX_ATTEMPTS,
+} from "../constants/gift-card";
+
+/** Re-export gift card constants for one-import convenience */
+export type { GiftCardStatus, GiftCardTxnType, GiftCardType, GiftCardIssueType };
+export {
+  GIFT_CARD_STATUS,
+  GIFT_CARD_TXN_TYPE,
+  GIFT_CARD_TYPE,
+  GIFT_CARD_ISSUE_TYPE,
+  REDEEMABLE_STATUSES,
+  REFUND_REVERTIBLE_STATUSES,
+  GIFT_CARD_PIN_MAX_ATTEMPTS,
+};
 
 export type { PaymentMethodCode, PaymentKind, PaymentTypeId, InvoiceStatus, PaymentStatus, PaymentGateway };
 
@@ -93,7 +120,8 @@ export interface Invoice {
   service_charge?: number;
   service_charge_type?: string;
   promo_discount_amount?: number;
-  gift_card_discount_amount?: number;
+  /** Renamed from gift_card_discount_amount in migration 0257 */
+  gift_card_applied_amount?: number;
 
   // Payment info
   status: InvoiceStatus;
@@ -147,7 +175,8 @@ export interface CreateInvoiceInput {
   discount?: number;
   total?: number;
   promo_discount_amount?: number;
-  gift_card_discount_amount?: number;
+  /** Renamed from gift_card_discount_amount in migration 0257 */
+  gift_card_applied_amount?: number;
   /** VAT amount (separate from additional tax) */
   vatAmount?: number;
   /** Additional/order tax amount (separate from VAT) */
@@ -407,43 +436,59 @@ export interface ValidatePromoCodeResult {
 // Gift Card Types
 // ============================================================================
 
-export type GiftCardStatus =
-  | 'active'
-  | 'used'
-  | 'expired'
-  | 'cancelled'
-  | 'suspended';
+// GiftCardStatus is imported from lib/constants/gift-card and re-exported above.
 
+/**
+ * Gift card entity returned by service functions.
+ *
+ * Security rules — NEVER include in this interface:
+ *   - card_pin (legacy plaintext PIN)
+ *   - pin_hash (bcrypt hash)
+ *   - pin_failed_attempts (lock counter)
+ */
 export interface GiftCard {
   id: string;
   tenant_org_id: string;
 
-  // Card identification
-  card_number: string;
-  card_pin?: string;
+  // Card identification (renamed from card_number in migration 0257)
+  gift_card_code: string;
 
   // Card details
   card_name: string;
-  card_name2?: string; // Arabic name
+  card_name2?: string;
 
-  // Balance
+  // Balance fields
   original_amount: number;
   current_balance: number;
+  available_amount: number;
+  redeemed_amount: number;
+  bonus_amount: number;
+  bonus_remaining: number;
 
   // Validity
   issued_date: string;
   expiry_date?: string;
+  activation_date?: string;
 
   // Customer association
   issued_to_customer_id?: string;
   issued_to_customer_name?: string;
+  purchased_by_cust_id?: string;
 
-  // Status
+  // Card classification
   status: GiftCardStatus;
   is_active: boolean;
+  is_reloadable: boolean;
+  is_transferable: boolean;
+  max_redemptions?: number;
+  redemption_count: number;
+  issue_type: GiftCardIssueType;
+  gift_card_type: GiftCardType;
+  currency_code: string;
+  batch_id?: string;
 
   // Metadata
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   rec_notes?: string;
 
   // Audit fields
@@ -453,11 +498,7 @@ export interface GiftCard {
   updated_by?: string;
 }
 
-export type GiftCardTransactionType =
-  | 'redemption'
-  | 'refund'
-  | 'adjustment'
-  | 'cancellation';
+/** GiftCardTxnType is imported from lib/constants/gift-card and re-exported above. */
 
 export interface GiftCardTransaction {
   id: string;
@@ -465,7 +506,7 @@ export interface GiftCardTransaction {
   gift_card_id: string;
 
   // Transaction details
-  transaction_type: GiftCardTransactionType;
+  transaction_type: GiftCardTxnType;
   amount: number;
   balance_before: number;
   balance_after: number;
@@ -478,17 +519,22 @@ export interface GiftCardTransaction {
   notes?: string;
   transaction_date: string;
   processed_by?: string;
-  metadata?: Record<string, any>;
+  idempotency_key?: string;
+  metadata?: Record<string, unknown>;
 }
 
-/** GiftCardTransaction enriched with parent card details — used by the tenant-wide transaction log. */
+/**
+ * GiftCardTransaction enriched with parent card details — used by the
+ * tenant-wide transaction log.
+ */
 export interface GiftCardTransactionLogRow extends GiftCardTransaction {
-  card_number: string;
+  gift_card_code: string;
   card_name: string;
 }
 
 export interface ValidateGiftCardInput {
-  card_number: string;
+  /** gift_card_code or legacy card number */
+  gift_card_code: string;
   card_pin?: string;
 }
 
@@ -497,16 +543,19 @@ export interface ValidateGiftCardResult {
   giftCard?: GiftCard;
   availableBalance?: number;
   error?: string;
-  errorCode?: 'NOT_FOUND' | 'EXPIRED' | 'INSUFFICIENT_BALANCE' | 'INVALID_PIN' | 'CARD_SUSPENDED';
+  errorCode?: 'NOT_FOUND' | 'EXPIRED' | 'INSUFFICIENT_BALANCE' | 'INVALID_PIN' | 'CARD_SUSPENDED' | 'UNAUTHORIZED';
 }
 
 export interface ApplyGiftCardInput {
-  card_number: string;
+  gift_card_code: string;
   amount: number;
   order_id: string;
   invoice_id: string;
   processed_by?: string;
 }
+
+/** @deprecated Use gift_card_code — kept for internal compatibility during migration */
+export type GiftCardTransactionType = GiftCardTxnType;
 
 // ============================================================================
 // Discount Rules Types

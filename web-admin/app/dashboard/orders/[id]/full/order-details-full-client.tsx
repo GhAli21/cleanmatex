@@ -362,7 +362,7 @@ export function OrderDetailsFullClient({
         'discount_rate',
         'discount_type',
         'promo_discount_amount',
-        'gift_card_discount_amount',
+        'gift_card_applied_amount',
         'service_charge',
         'service_charge_type',
         'currency_code',
@@ -465,7 +465,7 @@ export function OrderDetailsFullClient({
       'paid_amount',
       'vat_amount',
       'promo_discount_amount',
-      'gift_card_discount_amount',
+      'gift_card_applied_amount',
       'service_charge',
     ];
     if (amountKeys.includes(key) && (typeof value === 'number' || (typeof value === 'string' && /^-?\d*\.?\d+$/.test(value)))) {
@@ -522,11 +522,15 @@ export function OrderDetailsFullClient({
     const promoDiscount = hasDiscountLineBreakdown
       ? discountLineTotalFor(['PROMO_CODE'])
       : Number(o.promo_discount_amount ?? 0);
-    const giftCardDiscount = hasDiscountLineBreakdown
+    /**
+     * Gift card is a SETTLEMENT (not a commercial discount).
+     * Read from gift_card_applied_amount (canonical field name) or discount lines.
+     */
+    const giftCardApplied = hasDiscountLineBreakdown
       ? discountLineTotalFor(['GIFT_CARD'])
-      : Number(o.gift_card_discount_amount ?? 0);
+      : Number(o.gift_card_applied_amount ?? 0);
     const preTaxDiscounts = manualDiscount + ruleDiscount + promoDiscount;
-    const totalDiscounts = preTaxDiscounts + giftCardDiscount;
+    const totalDiscounts = preTaxDiscounts;
     const serviceCharge = Number(o.service_charge ?? 0);
     const vatAmount = Number(o.vat_amount ?? 0);
     const tax = Number(o.tax ?? 0);
@@ -542,9 +546,18 @@ export function OrderDetailsFullClient({
     const exchangeRate = o.currency_ex_rate != null ? Number(o.currency_ex_rate) : null;
 
     const giftCardId = typeof o.gift_card_id === 'string' ? o.gift_card_id : null;
-    const giftCardMasked = giftCardId
-      ? `····${giftCardId.replace(/-/g, '').slice(-4)}`
+    /**
+     * Prefer the human-readable gift_card_code (CMX-XXXX) for display.
+     * Fall back to masking the UUID when only the ID is available.
+     */
+    const giftCardCode = typeof o.gift_card_code === 'string' && o.gift_card_code.trim()
+      ? o.gift_card_code.trim()
       : null;
+    const giftCardMasked = giftCardCode
+      ? giftCardCode.slice(0, 12) + (giftCardCode.length > 12 ? '…' : '')
+      : giftCardId
+        ? `····${giftCardId.replace(/-/g, '').slice(-4)}`
+        : null;
     const promoCodeId = typeof o.promo_code_id === 'string' && o.promo_code_id.trim().length > 0
       ? o.promo_code_id
       : null;
@@ -630,12 +643,6 @@ export function OrderDetailsFullClient({
                     value={promoDiscount > 0 ? `− ${fmtOrderMoney(promoDiscount)}` : fmtOrderMoney(promoDiscount)}
                     isDeduction={promoDiscount > 0}
                   />
-                  <WRow
-                    label={t.giftCardDiscount ?? 'Gift Card Discount'}
-                    value={giftCardDiscount > 0 ? `− ${fmtOrderMoney(giftCardDiscount)}` : fmtOrderMoney(giftCardDiscount)}
-                    isDeduction={giftCardDiscount > 0}
-                    chip={giftCardMasked ?? undefined}
-                  />
                 </div>
 
                 {/* Net subtotal */}
@@ -663,6 +670,21 @@ export function OrderDetailsFullClient({
                 <div className="py-2 border-b-2 border-gray-400">
                   <WRow label={t.masterField_total ?? 'Total'} value={fmtOrderMoney(total)} isBold />
                 </div>
+
+                {/* Settlements — gift card is a settlement, not a commercial discount */}
+                {giftCardApplied > 0 && (
+                  <div className="py-2 border-b border-gray-200 space-y-0">
+                    <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1 ${isRTL ? 'text-right' : ''}`}>
+                      {t.settlements ?? 'Settlements'}
+                    </p>
+                    <WRow
+                      label={`${t.giftCardApplied ?? 'Gift Card Applied'}${giftCardMasked ? ` (${giftCardMasked})` : ''}`}
+                      value={`− ${fmtOrderMoney(giftCardApplied)}`}
+                      isDeduction
+                      chip={giftCardMasked ?? undefined}
+                    />
+                  </div>
+                )}
 
                 {/* Paid amount */}
                 <div className="py-2 border-b border-gray-200">
@@ -713,19 +735,8 @@ export function OrderDetailsFullClient({
                   isDeduction={promoDiscount > 0}
                   meta={promoCodeId ?? undefined}
                 />
-                <WRow
-                  label={t.giftCardDiscount ?? 'Gift Card Discount'}
-                  value={giftCardDiscount > 0 ? `− ${fmtOrderMoney(giftCardDiscount)}` : fmtOrderMoney(giftCardDiscount)}
-                  isDeduction={giftCardDiscount > 0}
-                  chip={giftCardMasked ?? undefined}
-                />
                 <WRow label={t.discountType ?? 'Discount Type'} value={discountTypeVal && discountTypeVal !== '—' ? discountTypeVal : '—'} />
                 <WRow label={t.discountRate ?? 'Discount Rate'} value={discountRateVal != null ? `${discountRateVal}%` : '—'} />
-                <WRow
-                  label={t.masterField_gift_card_id ?? 'Gift Card'}
-                  value={giftCardMasked ?? '—'}
-                  chip={giftCardMasked ? giftCardMasked : undefined}
-                />
                 {discountLines.length > 0 && (
                   <OrderDiscountBreakdown lines={discountLines} locale={locale} />
                 )}

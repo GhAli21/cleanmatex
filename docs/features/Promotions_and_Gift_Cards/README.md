@@ -2,147 +2,159 @@
 
 End-to-end production feature combining stored-value gift cards, promo discount codes, and automatic discount rules across all checkout paths in CleanMateX.
 
-- **Plan:** [`docs/dev/plans/promotions_and_gifts_30156abf.plan.md`](../../dev/plans/promotions_and_gifts_30156abf.plan.md)
-- **Schema base migration:** [`supabase/migrations/0029_payment_enhancement_tables.sql`](../../../supabase/migrations/0029_payment_enhancement_tables.sql)
-- **Cancellation reversal migration:** [`supabase/migrations/0250_promo_usage_log_voiding.sql`](../../../supabase/migrations/0250_promo_usage_log_voiding.sql)
+- **Original plan:** [`docs/dev/plans/promotions_and_gifts_30156abf.plan.md`](../../dev/plans/promotions_and_gifts_30156abf.plan.md)
+- **Gift Card V1 plan:** [`docs/dev/plans/gift_card_v1_35b71bc5.plan.md`](../../dev/plans/gift_card_v1_35b71bc5.plan.md) — **complete**
+- **Gift Card V2 roadmap:** [`Gift_Card_V2.md`](./Gift_Card_V2.md)
+- **Gift Card V1 implementation detail:** [`Gift_Card_V1_Implementation.md`](./Gift_Card_V1_Implementation.md)
 
 ---
 
 ## 1. Overview
 
-CleanMateX supports three coordinated discount mechanisms:
+CleanMateX supports three coordinated discount/payment mechanisms:
 
-| Mechanism | Description | Stored in |
+| Mechanism | Description | Tables |
 |---|---|---|
-| **Stored-value gift cards** | Card with `original_amount` + `current_balance`; debited on redemption, restorable on refund up to original. | `org_gift_cards_mst`, `org_gift_card_transactions` |
-| **Promo codes** | Operator/customer-entered codes with percentage or fixed discounts, usage caps, validity windows, category filters. | `org_promo_codes_mst`, `org_promo_usage_log` |
-| **Automatic discount rules** | Server-evaluated rules (e.g. weekday discount, loyalty tier discount); structured `conditions` JSONB. | `org_discount_rules_cf` |
+| **Stored-value gift cards** | Stored-value liability; debited on redemption, restored on refund; treated as a payment settlement (not a discount) | `org_gift_cards_mst`, `org_gift_card_txn_dtl` |
+| **Promo codes** | Operator/customer-entered codes with percentage or fixed discounts, usage caps, validity windows, category filters | `org_promo_codes_mst`, `org_promo_usage_log` |
+| **Automatic discount rules** | Server-evaluated rules (weekday discount, loyalty tier discount); structured `conditions` JSONB | `org_discount_rules_cf` |
 
-The schema for all three was already in place from `0029_payment_enhancement_tables.sql`. This feature implementation closed the production gaps:
-
-- **Atomicity:** promo + gift debits now happen inside the same Prisma transaction as the order/invoice/payment write.
-- **TOCTOU safety:** `SELECT FOR UPDATE` on promo and gift card rows.
-- **Side-effect cleanup:** `validateGiftCard` no longer mutates state; mutation only inside `applyGiftCardTx`.
-- **Refund integrity:** `refundToGiftCard` returns `actualRefundAmount` so partial refunds are observable.
-- **Cancellation reversal:** order cancellation reverses promo usage and refunds gift card debits.
-- **Stacking policy:** explicit `DISCOUNT_STACKING_ORDER` constant with `evaluateDiscountRules` integration.
-- **Admin CRUD:** Marketing section with promo / gift card / discount rule screens.
-- **RBAC:** seven new permission keys.
-- **Receipt rendering:** invoice/receipt prints show promo, auto-rule, and gift line items.
-- **Realtime expiry:** inline checks at every read/write site for gift cards.
+**Gift Card V1** (migration `0257`) elevated gift cards from a simple discount field to a full stored-value system with ledger, dual PIN, lifecycle states, ERP events, and proper liability accounting.
 
 ---
 
 ## 2. Permissions
 
-Defined in the auth permission registry; granted to roles by default as below.
-
-| Permission | tenant_admin | admin | operator | viewer | Gates |
+| Permission | super_admin | tenant_admin | operator | viewer | Gates |
 |---|:---:|:---:|:---:|:---:|---|
 | `promotions:read` | ✓ | ✓ | ✓ | ✓ | List + view promo codes, usage report |
-| `promotions:write` | ✓ | ✓ |  |  | Create / edit / archive promo codes |
+| `promotions:write` | ✓ | ✓ | | | Create / edit / archive promo codes |
 | `gift_cards:read` | ✓ | ✓ | ✓ | ✓ | List + view gift cards, transaction history |
-| `gift_cards:issue` | ✓ | ✓ | ✓ |  | Issue new gift card |
-| `gift_cards:adjust` | ✓ | ✓ |  |  | Cancel / suspend / adjust balance |
-| `discount_rules:read` | ✓ | ✓ |  | ✓ | List + view discount rules |
-| `discount_rules:write` | ✓ | ✓ |  |  | Create / edit / archive discount rules |
+| `gift_cards:sell` | ✓ | ✓ | ✓ | | Sell gift cards at POS |
+| `gift_cards:issue` | ✓ | ✓ | | | Issue promotional / corporate cards |
+| `gift_cards:activate` | ✓ | ✓ | | | Manually activate GENERATED cards |
+| `gift_cards:redeem` | ✓ | ✓ | ✓ | | Apply gift card at checkout |
+| `gift_cards:refund` | ✓ | ✓ | | | Reverse a gift card redemption |
+| `gift_cards:void` | ✓ | ✓ | | | Void / cancel gift cards |
+| `gift_cards:adjust` | ✓ | ✓ | | | Manual balance adjustment |
+| `gift_cards:expire` | ✓ | ✓ | | | Manually expire gift cards |
+| `discount_rules:read` | ✓ | ✓ | | ✓ | List + view discount rules |
+| `discount_rules:write` | ✓ | ✓ | | | Create / edit / archive discount rules |
 
-Access contracts: [`web-admin/src/features/marketing/access/marketing-access.ts`](../../../web-admin/src/features/marketing/access/marketing-access.ts) — registered in [`page-access-registry.ts`](../../../web-admin/src/features/access/page-access-registry.ts).
+Access contracts: [`web-admin/src/features/marketing/access/marketing-access.ts`](../../../web-admin/src/features/marketing/access/marketing-access.ts)
 
 ---
 
-## 3. Navigation tree 
-
-Added to [`web-admin/config/navigation.ts`](../../../web-admin/config/navigation.ts) under a new top-level Marketing section.
+## 3. Navigation tree
 
 | Key | Label (i18n) | Path | Permission |
 |---|---|---|---|
 | `marketing` | `navigation.marketing` | `/dashboard/marketing` | `promotions:read` |
 | `marketing_promos` | `navigation.marketingPromos` | `/dashboard/marketing/promos` | `promotions:read` |
 | `marketing_gift_cards` | `navigation.marketingGiftCards` | `/dashboard/marketing/gift-cards` | `gift_cards:read` |
+| `marketing_gift_cards_liability` | `navigation.marketingGiftCardsLiability` | `/dashboard/marketing/gift-cards/liability` | `gift_cards:read` |
 | `marketing_rules` | `navigation.marketingRules` | `/dashboard/marketing/discount-rules` | `discount_rules:read` |
 
 ---
 
-## 4. Stacking policy
+## 4. Gift card lifecycle
 
-Single source of truth: [`web-admin/lib/constants/discount-stacking.ts`](../../../web-admin/lib/constants/discount-stacking.ts).
-
-```ts
-export const DISCOUNT_STACKING_ORDER = [
-  'manual_discount', // 1. % or fixed amount, applies to subtotal
-  'auto_rules',      // 2. evaluateDiscountRules — best single rule
-  'promo_code',      // 3. explicit staff/customer code
-  // VAT and additional tax apply to the post-code amount
-  'gift_card',       // 4. stored-value debit, applied post-tax
-] as const;
+```
+DRAFT → GENERATED → ACTIVE ──────────────────────────────→ FULLY_REDEEMED
+                      │                                          ↑
+                      │          ┌── PARTIALLY_REDEEMED ────────┘
+                      │          │   (refund reverts to here)
+                      ↓          ↓
+                   SUSPENDED  EXPIRED
+                      │
+                      └──────→ VOIDED
 ```
 
-```mermaid
-flowchart LR
-  subtotal[Subtotal] --> m[1. manual_discount]
-  m --> a[2. auto_rules best single]
-  a --> p[3. promo_code]
-  p --> tax[VAT + additional tax]
-  tax --> gc[4. gift_card debit]
-  gc --> charged[Total Charged]
-```
+| Status | Redeemable | Who sets it |
+|---|:---:|---|
+| DRAFT | No | Admin (batch prep) |
+| GENERATED | No | System (code created) |
+| ACTIVE | Yes | Auto on paid sale; manual admin activate |
+| PARTIALLY_REDEEMED | Yes | System after partial redemption or refund |
+| FULLY_REDEEMED | No | System when available_amount = 0 |
+| EXPIRED | No | Admin manually; inline check at redemption |
+| VOIDED | No | Admin void action |
+| SUSPENDED | No | Admin suspend action |
 
-Plain-English rules (from `STACKING_RULES`):
+**Activation triggers** (from `docs/features/Promotions_and_Gift_Cards/9_Explain.md`):
 
-- **autoRules: best_single** — multiple auto rules never stack with each other; only the rule with the highest discount fires.
-- **autoRulesWithPromo: stackable_flag** — the auto rule and the promo stack only when `rule.can_stack_with_promo === true`. Otherwise the higher of the two wins (promo wins if its discount is greater than or equal to the auto-rule discount; the other side is zeroed).
-- **maxCombinedDiscountCap: subtotal** — the sum of `manual + auto + promo` discounts is capped at the subtotal.
-
-Gift card debit is *not* a discount — it is a post-tax payment instrument. It applies to the final post-tax amount.
+| Scenario | Trigger |
+|---|---|
+| Customer buys digital/physical card | Auto-ACTIVE after payment success |
+| Admin creates promotional card | Manual admin activation |
+| Corporate batch | Batch approval + optional payment confirmation |
+| Replacement card | Admin activation after voiding old card |
 
 ---
 
-## 5. Conditions schema (auto-rules)
+## 5. Stacking policy
 
-Defined in [`web-admin/lib/constants/discount-conditions-schema.ts`](../../../web-admin/lib/constants/discount-conditions-schema.ts).
+Single source of truth: [`web-admin/lib/constants/discount-stacking.ts`](../../../web-admin/lib/constants/discount-stacking.ts)
 
-```ts
-interface DiscountConditions {
-  schema_version: 1;
-  min_order_amount?: number;        // ≥ 0
-  min_items?: number;               // integer ≥ 1
-  service_categories?: string[];    // service category codes
-  customer_tiers?: ('bronze'|'silver'|'gold'|'platinum')[];
-  days_of_week?: number[];          // 0=Sun … 6=Sat
-  time_ranges?: { start: 'HH:MM'; end: 'HH:MM' }[];
-}
+```
+Subtotal
+  → 1. manual_discount   (% or fixed, applies to subtotal)
+  → 2. auto_rules        (best single rule)
+  → 3. promo_code        (explicit staff/customer code)
+  → VAT + additional tax
+  → 4. gift_card         (stored-value debit, applied post-tax to amountDue)
+  = Amount Due
 ```
 
-Each key is independently optional; a rule with no keys matches every order. The structured Zod schema (`discountConditionsSchema`) is enforced server-side; the admin form renders one labeled control per key (no raw JSON textarea).
+Gift card is **not** a discount — it is a post-tax payment settlement. It reduces `amount_due` only, never the taxable base.
 
-`schema_version` allows backwards-compatible upgrades — older rules continue to load read-only with an upgrade banner if the version diverges.
+Plain-English stacking rules:
+- **autoRules: best_single** — only the highest-discount auto rule fires.
+- **autoRulesWithPromo: stackable_flag** — auto rule + promo stack only when `rule.can_stack_with_promo = true`.
+- **maxCombinedDiscountCap: subtotal** — `manual + auto + promo` capped at subtotal.
 
 ---
 
 ## 6. API routes (server actions)
 
-Located under [`web-admin/app/actions/marketing/`](../../../web-admin/app/actions/marketing/).
+All actions: `requirePermission` → Zod parse → service call inside `withTenantContext` → typed result.
 
 ### Promo codes ([`promo-actions.ts`](../../../web-admin/app/actions/marketing/promo-actions.ts))
 
 | Action | Permission | Purpose |
 |---|---|---|
-| `listPromoCodes` | `promotions:read` | Paginated list of promo codes for the tenant |
-| `createPromoCode` | `promotions:write` | Create new promo (Zod-validated form payload) |
-| `updatePromoCode` | `promotions:write` | Edit existing promo |
-| `archivePromoCode` | `promotions:write` | Soft-delete (`is_active=false`) |
-| `getPromoCodeUsageAction` | `promotions:read` | Usage history per promo code |
+| `listPromoCodes` | `promotions:read` | Paginated list |
+| `createPromoCode` | `promotions:write` | Create new promo |
+| `updatePromoCode` | `promotions:write` | Edit promo |
+| `archivePromoCode` | `promotions:write` | Soft-delete |
+| `getPromoCodeUsageAction` | `promotions:read` | Usage history |
 
 ### Gift cards ([`gift-card-actions.ts`](../../../web-admin/app/actions/marketing/gift-card-actions.ts))
 
 | Action | Permission | Purpose |
 |---|---|---|
-| `listGiftCards` | `gift_cards:read` | Paginated list with status filter |
-| `issueGiftCard` | `gift_cards:issue` | Create + activate a new card; auto-generates card number |
-| `adjustGiftCard` | `gift_cards:adjust` | Manual balance adjustment with audit |
-| `cancelGiftCard` | `gift_cards:adjust` | Set status `cancelled`, freeze balance |
-| `getGiftCardTransactionsAction` | `gift_cards:read` | Full transaction history |
+| `listGiftCards` | `gift_cards:read` | Paginated list with status/type/issue_type filters |
+| `sellGiftCardAction` | `gift_cards:sell` | Sell + auto-activate card; returns generated `gift_card_code` |
+| `issueGiftCardAdmin` | `gift_cards:issue` | Create card in GENERATED status (manual activation required) |
+| `activateGiftCardAction` | `gift_cards:activate` | GENERATED → ACTIVE |
+| `suspendGiftCardAction` | — | Toggle SUSPENDED state |
+| `voidGiftCardAction` | `gift_cards:void` | Void card; forfeits remaining balance |
+| `adjustGiftCard` | `gift_cards:adjust` | Credit/debit balance with required reason |
+| `cancelGiftCard` | `gift_cards:void` | Alias for void (legacy) |
+| `listGiftCardTransactionsAction` | `gift_cards:read` | Tenant-wide transaction log |
+| `getGiftCardTransactionsAction` | `gift_cards:read` | Per-card transaction history |
+| `getGiftCardLiabilitySummaryAction` | `gift_cards:read` | KPI summary (outstanding, active count, MTD) |
+| `listGiftCardLiabilityAction` | `gift_cards:read` | Paginated liability report |
+| `listGiftCardRedemptionsAction` | `gift_cards:read` | Redemptions report |
+| `listGiftCardRefundsAction` | `gift_cards:read` | Refunds/reversals report |
+| `listGiftCardAdjustmentsAction` | `gift_cards:read` | Adjustments audit report |
+
+### Validate / apply (checkout) ([`validate-gift-card.ts`](../../../web-admin/app/actions/payments/validate-gift-card.ts))
+
+| Action | Purpose |
+|---|---|
+| `validateGiftCardAction` | Read-only balance check + dual PIN verification; returns error code |
+| `checkGiftCardBalance` | Balance lookup by code |
 
 ### Discount rules ([`discount-rule-actions.ts`](../../../web-admin/app/actions/marketing/discount-rule-actions.ts))
 
@@ -150,10 +162,8 @@ Located under [`web-admin/app/actions/marketing/`](../../../web-admin/app/action
 |---|---|---|
 | `listDiscountRules` | `discount_rules:read` | Paginated list ordered by priority |
 | `createDiscountRule` | `discount_rules:write` | Create rule with structured conditions |
-| `updateDiscountRule` | `discount_rules:write` | Edit rule + reorder priority |
+| `updateDiscountRule` | `discount_rules:write` | Edit + reorder priority |
 | `archiveDiscountRule` | `discount_rules:write` | Soft-delete |
-
-All actions follow the same pattern: `requirePermission` → Zod parse → service call inside `withTenantContext` → typed result.
 
 ---
 
@@ -161,29 +171,34 @@ All actions follow the same pattern: `requirePermission` → Zod parse → servi
 
 | Migration | Purpose |
 |---|---|
-| [`0029_payment_enhancement_tables.sql`](../../../supabase/migrations/0029_payment_enhancement_tables.sql) | Original tables for promo codes, usage log, gift cards, gift transactions, discount rules |
-| [`0081_comprehensive_rls_policies.sql`](../../../supabase/migrations/0081_comprehensive_rls_policies.sql) | RLS policies for all `org_*` tables in the feature |
+| [`0029_payment_enhancement_tables.sql`](../../../supabase/migrations/0029_payment_enhancement_tables.sql) | Original tables: promo codes, usage log, gift cards, gift transactions, discount rules |
+| [`0081_comprehensive_rls_policies.sql`](../../../supabase/migrations/0081_comprehensive_rls_policies.sql) | RLS policies for all `org_*` tables |
 | [`0106_add_branch_id_to_transaction_tables.sql`](../../../supabase/migrations/0106_add_branch_id_to_transaction_tables.sql) | Adds `branch_id` to gift card transactions |
-| [`0250_promo_usage_log_voiding.sql`](../../../supabase/migrations/0250_promo_usage_log_voiding.sql) | **NEW** — Adds `voided_at TIMESTAMPTZ` and `voided_by TEXT` to `org_promo_usage_log` for cancellation reversal |
-
-The `0250` migration enables soft-voiding usage rows on order cancellation (instead of deleting them) so the audit trail is preserved while `current_uses` can still be safely decremented.
+| [`0250_promo_usage_log_voiding.sql`](../../../supabase/migrations/0250_promo_usage_log_voiding.sql) | Adds `voided_at` / `voided_by` to `org_promo_usage_log` for cancellation reversal |
+| [`0251_marketing_gifts_promotions_navigation_and_permissions.sql`](../../../supabase/migrations/0251_marketing_gifts_promotions_navigation_and_permissions.sql) | Navigation seeds and `gift_cards:read` permission |
+| [`0257_gift_card_v1_schema.sql`](../../../supabase/migrations/0257_gift_card_v1_schema.sql) | **Gift Card V1** — table/column renames, status enum, dual PIN, stored-value fields, idempotency, currency, 8 new permissions |
 
 ---
 
 ## 8. Constants and types
 
-| Constant / type | File | Why |
+| Constant / type | File | Purpose |
 |---|---|---|
-| `DISCOUNT_STACKING_ORDER`, `DiscountStackingStep`, `STACKING_RULES` | [`lib/constants/discount-stacking.ts`](../../../web-admin/lib/constants/discount-stacking.ts) | Frozen evaluation order so frontend, backend, and receipts agree on stacking semantics |
-| `DiscountConditions`, `discountConditionsSchema`, `CONDITIONS_SCHEMA_VERSION` | [`lib/constants/discount-conditions-schema.ts`](../../../web-admin/lib/constants/discount-conditions-schema.ts) | Single typed shape for the `conditions` JSONB column on `org_discount_rules_cf`; powers Zod validation and the admin form renderer |
-
-Both are consumed by services (validation), actions (parsing), and UI (rendering).
+| `GIFT_CARD_STATUS`, `GiftCardStatus` | [`lib/constants/gift-card.ts`](../../../web-admin/lib/constants/gift-card.ts) | Canonical 8-value status enum |
+| `GIFT_CARD_TXN_TYPE`, `GiftCardTxnType` | [`lib/constants/gift-card.ts`](../../../web-admin/lib/constants/gift-card.ts) | 10-value transaction type enum |
+| `GIFT_CARD_ISSUE_TYPE`, `GiftCardIssueType` | [`lib/constants/gift-card.ts`](../../../web-admin/lib/constants/gift-card.ts) | SOLD / PROMOTIONAL / CORPORATE / GOODWILL / MIGRATION / REPLACEMENT |
+| `GIFT_CARD_TYPE`, `GiftCardType` | [`lib/constants/gift-card.ts`](../../../web-admin/lib/constants/gift-card.ts) | FIXED_VALUE / PROMOTIONAL / CORPORATE |
+| `REDEEMABLE_STATUSES`, `REFUND_REVERTIBLE_STATUSES` | [`lib/constants/gift-card.ts`](../../../web-admin/lib/constants/gift-card.ts) | Guard arrays used in service layer |
+| `GiftCard`, `GiftCardTransaction` | [`lib/types/payment.ts`](../../../web-admin/lib/types/payment.ts) | Full TypeScript types (pin fields excluded) |
+| `GiftCardMetadataSchema` | [`lib/schemas/gift-card-metadata.schema.ts`](../../../web-admin/lib/schemas/gift-card-metadata.schema.ts) | Zod schema for metadata JSON column |
+| `DISCOUNT_STACKING_ORDER`, `STACKING_RULES` | [`lib/constants/discount-stacking.ts`](../../../web-admin/lib/constants/discount-stacking.ts) | Frozen evaluation order |
+| `DiscountConditions`, `discountConditionsSchema` | [`lib/constants/discount-conditions-schema.ts`](../../../web-admin/lib/constants/discount-conditions-schema.ts) | Zod + TS shape for `conditions` JSONB |
 
 ---
 
 ## 9. i18n keys
 
-All UI strings live under `marketing.*` in [`web-admin/messages/en.json`](../../../web-admin/messages/en.json) and mirrored in [`messages/ar.json`](../../../web-admin/messages/ar.json).
+All UI strings: [`web-admin/messages/en.json`](../../../web-admin/messages/en.json) / [`messages/ar.json`](../../../web-admin/messages/ar.json).
 
 ```
 marketing
@@ -195,80 +210,85 @@ marketing
 │   └── errors.{ codeExists, maxUsesExceeded }
 ├── giftCards
 │   ├── title, issue, detail, adjust, cancel, transactions
-│   ├── fields.{ cardNumber, cardName, amount, balance, issuedTo, expiryDate, pin }
-│   ├── status.{ active, used, expired, cancelled, suspended }
-│   └── errors.{ insufficientBalance, cardCancelled }
+│   ├── statuses.{ DRAFT, GENERATED, ACTIVE, PARTIALLY_REDEEMED, FULLY_REDEEMED, EXPIRED, VOIDED, SUSPENDED }
+│   ├── issueTypes.{ SOLD, PROMOTIONAL, CORPORATE, GOODWILL, MIGRATION, REPLACEMENT }
+│   ├── cardTypes.{ FIXED_VALUE, PROMOTIONAL, CORPORATE }
+│   ├── actions.{ sellCard, issueCard, activate, suspend, unsuspend, voidCard, adjustBalance, copyCode }
+│   ├── confirmations.{ voidTitle, voidMessage, suspendTitle, suspendMessage, activateTitle, debitAdjustTitle, debitAdjustMessage }
+│   ├── fields.{ giftCardCode, issueType, cardType, availableBalance, originalAmount, redeemedAmount,
+│   │           activationDate, purchasedBy, recipient, currency, adjustType, adjustReason,
+│   │           credit, debit, pinOptional, sameAsBuyer, generatedNotice, newBalancePreview,
+│   │           balanceAfterApply, remainingDue }
+│   ├── errors.{ EXPIRED, SUSPENDED, VOIDED, INSUFFICIENT_BALANCE, INVALID_CODE, INVALID_PIN,
+│   │           MAX_REDEMPTIONS_REACHED, CURRENCY_MISMATCH }
+│   ├── pos.{ scanOrType, enterPin, checkBalance, applyCard, cardApplied, settlement }
+│   └── reports.{ liabilityTitle, liabilitySubtitle, totalOutstanding, activeCards,
+│               redeemedMtd, issuedMtd, expiredBalance, transactionsTitle, exportComingSoon, noCardsFound }
 └── discountRules
     ├── title, create, edit, archive
-    ├── fields.{ code, name, priority, discountType, discountValue, stackWithPromo, stackWithRules, validFrom, validTo }
+    ├── fields.{ code, name, priority, discountType, discountValue, stackWithPromo, validFrom, validTo }
     ├── conditions.{ title, minOrder, minItems, categories, customerTiers, daysOfWeek, timeRanges }
     └── errors.{ codeExists }
 ```
 
-Run `npm run check:i18n` after touching translations to verify EN and AR are in sync.
+Run `npm run check:i18n` after touching translations.
 
 ---
 
-## 10. Receipt rendering
+## 10. Receipt and order detail rendering
 
-Updated component: [`web-admin/src/features/orders/ui/order-invoices-payments-print-rprt.tsx`](../../../web-admin/src/features/orders/ui/order-invoices-payments-print-rprt.tsx).
+**Order detail page** (`order-details-full-client.tsx`):
 
-The payment summary section now emits these line items when the corresponding amount is non-zero:
+```
+Subtotal:               XXX
+Commercial Discounts:  −XXX   ← promo + auto rule + manual (only if > 0)
+─────────────────────────────
+Taxable Base:           XXX
+VAT (X%):               XXX
+─────────────────────────────
+Invoice Amount:         XXX
+── Settlements ──────────────
+Gift Card (CMX-...):   −XXX   ← gift_card_applied_amount (only if > 0)
+Cash:                   XXX
+Card:                   XXX
+─────────────────────────────
+Amount Due:             XXX
+```
 
-| Condition | Line item shown | Data source |
-|---|---|---|
-| `promoDiscount > 0` | "Promo Discount (CODE)" — `−{amount}` | `org_payment_transactions.promo_discount_amount` joined to `org_promo_codes_mst.promo_code` via `promo_code_id` |
-| `autoRuleDiscount > 0` | "Discount" — `−{amount}` | `org_payment_transactions.metadata.auto_rule_discount_amount` (or dedicated column when present) |
-| `giftCardApplied > 0` | "Gift Card (•••• last4)" — `−{amount}` | `org_payment_transactions.gift_card_applied_amount` joined to `org_gift_cards_mst.card_number` via `gift_card_id` |
-| Always | "Total Charged" | Final post-tax amount minus gift debit |
+**Print report** (`order-invoices-payments-print-rprt.tsx`): gift card appears in a distinct "Settlements" subsection with purple styling — separate from promo/auto-rule discount lines.
 
 ---
 
-## 11. Realtime expiry (gift cards)
+## 11. PIN security
 
-No scheduler — expiry is enforced inline at every point a gift card is touched. This guarantees consistency regardless of how long any cron lag would have been.
-
-| Call site | Behaviour |
-|---|---|
-| [`validateGiftCard`](../../../web-admin/lib/services/gift-card-service.ts) | If `expiry_date < now()` → return `{ isValid: false, errorCode: 'EXPIRED' }`. **Read-only** (no DB write). |
-| [`applyGiftCardTx`](../../../web-admin/lib/services/gift-card-service.ts) | After acquiring `SELECT FOR UPDATE` lock, if `expiry_date < now()` → write `status='expired'` + throw `GIFT_CARD_EXPIRED`. The status mutation is safe because we hold the row lock inside an active transaction. |
-| `getGiftCardBalance` | If expired → return `{ balance: 0, status: 'expired' }`. Read-only. |
-| Admin list | Renders `Expired` badge based on `expiry_date < now()` — no separate sweep needed for display correctness. |
-| `expireGiftCards` | Manual admin reconciliation (still exported), JSDoc-marked as supplemental. Not called automatically. |
-
-`pg_cron` is an optional belt-and-suspenders sweep — kept out of this implementation. The realtime check inside the row lock is authoritative.
+- **New cards:** `pin_hash` stored via bcrypt (12 rounds); `card_pin = NULL`.
+- **Legacy cards:** `card_pin` plaintext retained; on first successful validation, migrated to `pin_hash` and `card_pin` cleared asynchronously.
+- `card_pin` and `pin_hash` are **never returned** to any client response. `mapGiftCardToType` explicitly omits both fields.
+- Failed PIN attempts tracked via `pin_failed_attempts` counter. After `GIFT_CARD_PIN_MAX_ATTEMPTS` (5) consecutive failures, card enters lockout.
 
 ---
 
 ## 12. SELECT FOR UPDATE locking strategy
 
-Both promo `current_uses` increments and gift card balance debits are TOCTOU-prone (check-then-modify). We use `SELECT … FOR UPDATE` instead of conditional raw `UPDATE … WHERE … RETURNING` because:
+All balance mutations use `SELECT … FOR UPDATE` so concurrent transactions block on the lock and re-read the committed value:
 
-- Business logic (`max_uses`, expiry, status checks) stays in TypeScript — readable, type-safe, unit-testable.
-- Concurrent transactions block on the lock and re-read the committed value after release, so the second tx sees the freshly-incremented `current_uses` or freshly-debited balance and rejects correctly.
-- Row-level lock is released automatically on commit/rollback.
+```sql
+-- redeemGiftCardTx
+SELECT id, available_amount, status, expiry_date, currency_code,
+       max_redemptions, redemption_count, tenant_org_id
+FROM org_gift_cards_mst
+WHERE id = ${cardId} AND tenant_org_id = ${tenantOrgId}
+FOR UPDATE;
 
-```ts
-// applyPromoCodeTx
+-- refundGiftCardTx
+SELECT id, available_amount, original_amount, status, tenant_org_id
+FROM org_gift_cards_mst
+WHERE id = ${cardId} AND tenant_org_id = ${tenantOrgId}
+FOR UPDATE;
+
+-- applyPromoCodeTx
 SELECT id, current_uses, max_uses
 FROM org_promo_codes_mst
-WHERE id = ${promoCodeId} AND tenant_org_id = ${tenantOrgId}
-FOR UPDATE;
-
-// applyGiftCardTx
-SELECT id, current_balance, status, card_pin, expiry_date, tenant_org_id
-FROM org_gift_cards_mst
-WHERE card_number = ${cardNumber} AND tenant_org_id = ${tenantOrgId} AND is_active = true
-FOR UPDATE;
-
-// refundToGiftCardTx
-SELECT id, tenant_org_id, current_balance, original_amount
-FROM org_gift_cards_mst
-WHERE card_number = ${cardNumber} AND tenant_org_id = ${tenantOrgId} AND is_active = true
-FOR UPDATE;
-
-// reversePromoUsageTx — locks every affected promo row before decrementing
-SELECT id FROM org_promo_codes_mst
 WHERE id = ${promoCodeId} AND tenant_org_id = ${tenantOrgId}
 FOR UPDATE;
 ```
@@ -279,29 +299,29 @@ FOR UPDATE;
 
 ### Gift card refund
 
-- Call site: [`refundToGiftCard`](../../../web-admin/lib/services/gift-card-service.ts) (own tx) or [`refundToGiftCardTx`](../../../web-admin/lib/services/gift-card-service.ts) (composes into outer tx, e.g. cancellation).
-- Refund is **capped at `original_amount`** — a card can never be restored above what it was originally issued for.
-- Caller receives `actualRefundAmount`. When `actualRefundAmount < requested`, the cancellation flow surfaces a warning to the operator (it is not a hard error — the order can still be cancelled).
+- Implemented in `refundGiftCardTx` (composes into outer transaction).
+- Requires `idempotency_key` — prevents double-refund on POS retry.
+- Capped at `original_amount` — can never restore above face value.
+- **Status revert after refund:**
+  - `newAvailable >= originalAmount` → ACTIVE
+  - `newAvailable > 0` → PARTIALLY_REDEEMED
+  - `newAvailable = 0` → FULLY_REDEEMED
+  - VOIDED / EXPIRED / SUSPENDED → unchanged
 
 ### Promo reversal on cancellation
 
-- Call site: [`reversePromoUsageTx`](../../../web-admin/lib/services/discount-service.ts).
-- Sets `voided_at = now()` and `voided_by = userId` on every non-voided usage log row for the cancelled order.
-- Aggregates voided rows per `promo_code_id` and decrements `current_uses` once per promo (avoids double-decrement when an order has multiple usage rows for the same promo).
-- Does **not** restore per-customer usage capacity for the *same* customer — `max_uses_per_customer` is computed from non-voided rows on next validation, so reversal naturally re-enables reuse if applicable.
+- `reversePromoUsageTx` soft-voids usage log rows (`voided_at`, `voided_by`).
+- Decrements `current_uses` once per promo per cancellation.
+- Does not restore per-customer cap — recomputed from non-voided rows on next validation.
 
-### Cancellation orchestration
+### Cancellation sequence (`order-cancel-service.ts`)
 
-[`cancelOrder`](../../../web-admin/lib/services/order-cancel-service.ts) sequence:
-
-1. Call Supabase RPC `cmx_ord_canceling_transition` (status flip).
-2. Cancel each completed payment via `cancelPayment`.
-3. Inside `withTenantContext` + `prisma.$transaction`:
-   - If any payment had `promo_code_id` + `promo_discount_amount > 0` → `reversePromoUsageTx`.
-   - For each payment with `gift_card_id` + `gift_card_applied_amount > 0` → resolve `card_number` then `refundToGiftCardTx`.
-4. Collect non-fatal warnings (partial refund, missing card lookup) into `CancelOrderResult.warnings`.
-
-Partial cancellation (line-item subset) is not yet wired through this service — covered in plan §5.4 as a follow-up.
+1. RPC `cmx_ord_canceling_transition` (status flip)
+2. Cancel each completed payment
+3. Inside `prisma.$transaction`:
+   - `reversePromoUsageTx` if promo applied
+   - `refundGiftCardTx` with `idempotencyKey = orderId + ':refund'` if gift card applied
+4. Non-fatal warnings collected in `CancelOrderResult.warnings`
 
 ---
 
@@ -309,17 +329,17 @@ Partial cancellation (line-item subset) is not yet wired through this service �
 
 ### Unit tests (`web-admin/__tests__/services/`)
 
-| Test file | What it proves |
+| Test file | Coverage |
 |---|---|
-| [`discount-service.test.ts`](../../../web-admin/__tests__/services/discount-service.test.ts) | `applyPromoCodeTx` row-lock + TOCTOU guard; `getBestDiscount` selects highest discount; min-order filter |
-| [`gift-card-service.test.ts`](../../../web-admin/__tests__/services/gift-card-service.test.ts) | `applyGiftCardTx` debit/expire/used transitions; `validateGiftCard` PIN guard + no-mutation; `refundToGiftCard` `actualRefundAmount` surface + cap at original |
-| [`order-cancel-service.test.ts`](../../../web-admin/__tests__/services/order-cancel-service.test.ts) | Cancellation reverses promo usage, refunds gift card; both together; partial-refund warning; missing-card warning; no-op when no promo/gift |
+| `gift-card-service.test.ts` | 40 tests — sell/activate, redeem (partial/full), refund idempotency, status revert (5 cases), PIN hash + legacy migration, currency mismatch, max_redemptions, credit cap, void, suspend, expire |
+| `discount-service.test.ts` | `applyPromoCodeTx` TOCTOU guard, `getBestDiscount`, min-order filter |
+| `order-cancel-service.test.ts` | Cancellation reverses promo + refunds gift card; partial-refund warning; no-op paths |
 
-### Integration test (`web-admin/__tests__/integration/`)
+### Integration tests (`web-admin/__tests__/integration/`)
 
-| Test file | What it proves |
+| Test file | Coverage |
 |---|---|
-| [`create-with-payment-promo-gift.integration.test.ts`](../../../web-admin/__tests__/integration/create-with-payment-promo-gift.integration.test.ts) | Promo + gift commit inside one tx (happy path); rollback when gift throws mid-tx; `SELECT FOR UPDATE` issued for both rows; second concurrent promo apply rejected when max_uses reached; idempotency-key follow-up documented |
+| `create-with-payment-promo-gift.integration.test.ts` | Promo + gift card in one TX; rollback on mid-TX failure; `SELECT FOR UPDATE` issued; concurrent max_uses rejection |
 
 Run targeted suite:
 
@@ -328,4 +348,13 @@ cd web-admin
 npx jest --testPathPattern "order-cancel-service|discount-service|gift-card-service|create-with-payment-promo-gift"
 ```
 
-All 38 tests pass (1 skipped — idempotency follow-up).
+**40 tests pass** (gift-card-service) + existing promo/cancel tests.
+
+---
+
+## 15. Dependencies added (Gift Card V1)
+
+| Package | Purpose |
+|---|---|
+| `bcryptjs` | PIN hashing for new cards |
+| `@types/bcryptjs` | TypeScript types |

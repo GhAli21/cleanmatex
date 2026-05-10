@@ -6,17 +6,14 @@
     "dev": "next dev --webpack",
     "build": "prisma generate && next build --webpack",
     "build:safe": "npm run build",
-    
     "typecheck": "tsc --noEmit",
     "typecheck:clean": "rm -rf .next && tsc --noEmit",
     "validate": "rm -rf .next && next typegen && tsc --noEmit",
-
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "check": "npm run typecheck && npm run lint",
     "verify": "npm run prisma:generate && npm run typecheck && npm run lint && npm run build",
-    
     "test": "jest",
     "test:erp-lite": "jest __tests__/services/erp-lite-posting-engine.service.test.ts __tests__/services/erp-lite-auto-post.service.test.ts __tests__/services/erp-lite-reporting.service.test.ts __tests__/services/erp-lite-expenses.service.test.ts __tests__/services/erp-lite-phase10.service.test.ts __tests__/services/erp-lite-v2.service.test.ts __tests__/services/erp-lite-coa.service.test.ts __tests__/actions/erp-lite-expenses-actions.test.ts __tests__/actions/erp-lite-branch-pl-actions.test.ts __tests__/services/invoice-service.test.ts __tests__/services/payment-service.test.ts --runInBand",
     "test:watch": "jest --watch",
@@ -24,18 +21,14 @@
     "test:prisma": "jest __tests__/db",
     "test:prisma:watch": "jest --watch __tests__/db",
     "test:tenant-isolation": "jest __tests__/services/workflow-service-enhanced-tenant-isolation __tests__/services/order-cancel-service __tests__/services/order-return-service",
-    
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",
     "prisma:studio": "prisma studio",
     "prisma:generate:safe": "./scripts/generate-prisma.sh",
-    
     "check:i18n": "node scripts/check-i18n-parity.js",
-    
     "docs:extract-permissions": "tsx ../scripts/docs/extract-permissions.ts",
     "docs:extract-settings": "tsx ../scripts/docs/extract-settings-usage.ts",
     "docs:extract-feature-flags": "tsx ../scripts/docs/extract-feature-flags.ts",
@@ -44,7 +37,6 @@
     "docs:typedoc": "typedoc",
     "docs:storybook": "storybook build -o docs/storybook --quiet",
     "docs:generate": "npm run docs:typedoc && npm run docs:storybook",
-    
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -63,8 +55,10 @@
     "@supabase/supabase-js": "^2.75.0",
     "@tanstack/react-query": "^5.90.12",
     "@tanstack/react-table": "^8.21.3",
+    "@types/bcryptjs": "^2.4.6",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.1",
+    "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "date-fns": "^4.1.0",
     "ioredis": "^5.8.2",

@@ -2574,7 +2574,7 @@ async function createInvoiceForOrder(
         service_charge: order.service_charge ?? undefined,
         service_charge_type: order.service_charge_type ?? undefined,
         gift_card_id: order.gift_card_id ?? undefined,
-        gift_card_discount_amount: order.gift_card_discount_amount ?? undefined,
+        gift_card_applied_amount: order.gift_card_applied_amount ?? undefined,
         tax_rate: order.tax_rate ?? undefined,
         vat_rate: breakdown?.vat_rate ?? order.vat_rate ?? undefined,
         vat_amount: breakdown?.vat_amount ?? order.vat_amount ?? undefined,

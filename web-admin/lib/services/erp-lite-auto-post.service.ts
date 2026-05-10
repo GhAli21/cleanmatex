@@ -15,6 +15,12 @@ import type {
   ErpLiteAutoPostDispatchResult,
   ErpLiteAutoPostPolicy,
   ErpLiteExpenseAutoPostInput,
+  ErpLiteGiftCardBonusGrantedInput,
+  ErpLiteGiftCardExpiredInput,
+  ErpLiteGiftCardRedeemedInput,
+  ErpLiteGiftCardRefundedInput,
+  ErpLiteGiftCardSoldInput,
+  ErpLiteGiftCardVoidedInput,
   ErpLiteInvoiceAutoPostInput,
   ErpLitePaymentAutoPostInput,
   ErpLitePettyCashAutoPostInput,
@@ -522,6 +528,295 @@ export class ErpLiteAutoPostService {
       policy,
       request,
       execute_result: executeResult,
+    };
+  }
+
+  // ============================================================================
+  // Gift Card dispatch methods
+  // ============================================================================
+
+  /**
+   * Dispatch GIFT_CARD_SOLD event.
+   * Non-blocking: errors are logged and the caller's flow is never interrupted.
+   */
+  static async dispatchGiftCardSold(
+    input: ErpLiteGiftCardSoldInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardSoldPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchGiftCardRedeemed(
+    input: ErpLiteGiftCardRedeemedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardRedeemedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchGiftCardExpired(
+    input: ErpLiteGiftCardExpiredInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardExpiredPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchGiftCardRefunded(
+    input: ErpLiteGiftCardRefundedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardRefundedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchGiftCardVoided(
+    input: ErpLiteGiftCardVoidedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardVoidedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  static async dispatchGiftCardBonusGranted(
+    input: ErpLiteGiftCardBonusGrantedInput
+  ): Promise<ErpLiteAutoPostDispatchResult> {
+    const tenantId = await this.resolveTenantId(input.tenant_org_id);
+    const request = this.buildGiftCardBonusGrantedPostingRequest(input, tenantId);
+    return withTenantContext(tenantId, async () => this.dispatchRequest(request));
+  }
+
+  // ============================================================================
+  // Gift Card posting request builders
+  // ============================================================================
+
+  /**
+   * GIFT_CARD_SOLD accounting:
+   *   issue_type = SOLD      → DR Cash/Card Received,    CR Gift Card Liability
+   *   issue_type = PROMO/GW  → DR Marketing Expense,     CR Gift Card Liability
+   *   issue_type = CORPORATE → DR Corporate Receivable,  CR Gift Card Liability
+   */
+  static buildGiftCardSoldPostingRequest(
+    input: ErpLiteGiftCardSoldInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_SOLD,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD',
+      source_doc_id: input.gift_card_id,
+      source_doc_no: input.gift_card_code,
+      journal_date: input.sold_date,
+      posting_date: input.sold_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        issue_type: input.issue_type,
+        source_context: `gift_card_sold:${input.issue_type.toLowerCase()}`,
+        payload_version: 'gc-v1',
+      },
+    };
+  }
+
+  /**
+   * GIFT_CARD_REDEEMED accounting:
+   *   DR Gift Card Liability → CR AR/Invoice Settlement
+   */
+  static buildGiftCardRedeemedPostingRequest(
+    input: ErpLiteGiftCardRedeemedInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_REDEEMED,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD_TXN',
+      source_doc_id: input.txn_id,
+      source_doc_no: null,
+      journal_date: input.redeem_date,
+      posting_date: input.redeem_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        order_id: input.order_id,
+        invoice_id: input.invoice_id,
+        source_context: 'gift_card_redeemed',
+        payload_version: 'gc-v1',
+      },
+    };
+  }
+
+  /**
+   * GIFT_CARD_EXPIRED accounting (breakage revenue):
+   *   DR Gift Card Liability → CR Breakage Revenue
+   */
+  static buildGiftCardExpiredPostingRequest(
+    input: ErpLiteGiftCardExpiredInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_EXPIRED,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD_TXN',
+      source_doc_id: input.txn_id,
+      source_doc_no: null,
+      journal_date: input.expire_date,
+      posting_date: input.expire_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        source_context: 'gift_card_expired:breakage',
+        payload_version: 'gc-v1',
+      },
+    };
+  }
+
+  /**
+   * GIFT_CARD_REFUNDED accounting (redemption reversed):
+   *   DR AR/Invoice Settlement → CR Gift Card Liability
+   */
+  static buildGiftCardRefundedPostingRequest(
+    input: ErpLiteGiftCardRefundedInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_REFUNDED,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD_TXN',
+      source_doc_id: input.txn_id,
+      source_doc_no: null,
+      journal_date: input.refund_date,
+      posting_date: input.refund_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        order_id: input.order_id,
+        invoice_id: input.invoice_id,
+        source_context: 'gift_card_refunded',
+        payload_version: 'gc-v1',
+      },
+    };
+  }
+
+  /**
+   * GIFT_CARD_VOIDED accounting (balance recovery):
+   *   DR Gift Card Liability → CR Void Recovery
+   */
+  static buildGiftCardVoidedPostingRequest(
+    input: ErpLiteGiftCardVoidedInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_VOIDED,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD_TXN',
+      source_doc_id: input.txn_id,
+      source_doc_no: null,
+      journal_date: input.void_date,
+      posting_date: input.void_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        source_context: 'gift_card_voided',
+        payload_version: 'gc-v1',
+      },
+    };
+  }
+
+  /**
+   * GIFT_CARD_BONUS_GRANTED accounting:
+   *   DR Marketing Expense → CR Gift Card Liability (Bonus)
+   */
+  static buildGiftCardBonusGrantedPostingRequest(
+    input: ErpLiteGiftCardBonusGrantedInput,
+    tenantOrgId: string
+  ): ErpLitePostingRequest {
+    return {
+      tenant_org_id: tenantOrgId,
+      branch_id: input.branch_id ?? null,
+      txn_event_code: ERP_LITE_TXN_EVENT_CODES.GIFT_CARD_BONUS_GRANTED,
+      source_module_code: 'GIFT_CARDS',
+      source_doc_type_code: 'GIFT_CARD_TXN',
+      source_doc_id: input.txn_id,
+      source_doc_no: null,
+      journal_date: input.grant_date,
+      posting_date: input.grant_date,
+      currency_code: input.currency_code,
+      exchange_rate: Number(input.exchange_rate ?? 1),
+      amounts: {
+        net_amount: this.roundAmount(input.bonus_amount),
+        tax_amount: 0,
+        gross_amount: this.roundAmount(input.bonus_amount),
+        discount_amount: 0,
+        delivery_fee_amount: 0,
+        rounding_amount: 0,
+      },
+      dimensions: { branch_id: input.branch_id ?? null },
+      meta: {
+        created_by: input.created_by ?? null,
+        source_context: 'gift_card_bonus_granted',
+        payload_version: 'gc-v1',
+      },
     };
   }
 

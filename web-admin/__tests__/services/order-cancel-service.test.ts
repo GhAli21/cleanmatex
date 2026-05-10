@@ -42,14 +42,14 @@ jest.mock('@/lib/services/discount-service', () => ({
 }));
 
 jest.mock('@/lib/services/gift-card-service', () => ({
-  refundToGiftCardTx: jest.fn(),
+  refundGiftCardTx: jest.fn(),
 }));
 
 const { getPaymentsForOrder, cancelPayment } = jest.requireMock(
   '@/lib/services/payment-service'
 );
 const { reversePromoUsageTx } = jest.requireMock('@/lib/services/discount-service');
-const { refundToGiftCardTx } = jest.requireMock('@/lib/services/gift-card-service');
+const { refundGiftCardTx } = jest.requireMock('@/lib/services/gift-card-service');
 
 describe('Order Cancel Service', () => {
   beforeEach(() => {
@@ -278,22 +278,20 @@ describe('Order Cancel Service', () => {
           },
         ]);
         const fakeTx = {
-          org_gift_cards_mst: {
-            findUnique: jest.fn().mockResolvedValue({ card_number: 'GC123' }),
-          },
+          org_ord_discounts_dtl: { updateMany: jest.fn().mockResolvedValue({}) },
         };
         mockPrismaTransaction.mockImplementation(
           async (fn: (tx: object) => Promise<unknown>) => fn(fakeTx)
         );
-        refundToGiftCardTx.mockResolvedValue({ newBalance: 50, actualRefundAmount: 20 });
+        refundGiftCardTx.mockResolvedValue({ newBalance: 50, actualRefundAmount: 20 });
 
         const result = await cancelOrder(validInput);
 
         expect(result.success).toBe(true);
-        expect(refundToGiftCardTx).toHaveBeenCalledWith(
+        expect(refundGiftCardTx).toHaveBeenCalledWith(
           fakeTx,
           expect.objectContaining({
-            cardNumber: 'GC123',
+            giftCardId: 'gc-1',
             amount: 20,
             orderId: validInput.orderId,
             tenantOrgId: validInput.tenantId,
@@ -318,21 +316,19 @@ describe('Order Cancel Service', () => {
           },
         ]);
         const fakeTx = {
-          org_gift_cards_mst: {
-            findUnique: jest.fn().mockResolvedValue({ card_number: 'GC123' }),
-          },
+          org_ord_discounts_dtl: { updateMany: jest.fn().mockResolvedValue({}) },
         };
         mockPrismaTransaction.mockImplementation(
           async (fn: (tx: object) => Promise<unknown>) => fn(fakeTx)
         );
         reversePromoUsageTx.mockResolvedValue({ reversedCount: 1 });
-        refundToGiftCardTx.mockResolvedValue({ newBalance: 30, actualRefundAmount: 15 });
+        refundGiftCardTx.mockResolvedValue({ newBalance: 30, actualRefundAmount: 15 });
 
         const result = await cancelOrder(validInput);
 
         expect(result.success).toBe(true);
         expect(reversePromoUsageTx).toHaveBeenCalled();
-        expect(refundToGiftCardTx).toHaveBeenCalled();
+        expect(refundGiftCardTx).toHaveBeenCalled();
       });
 
       it('should surface a warning when gift card refund is partial', async () => {
@@ -351,15 +347,13 @@ describe('Order Cancel Service', () => {
           },
         ]);
         const fakeTx = {
-          org_gift_cards_mst: {
-            findUnique: jest.fn().mockResolvedValue({ card_number: 'GC123' }),
-          },
+          org_ord_discounts_dtl: { updateMany: jest.fn().mockResolvedValue({}) },
         };
         mockPrismaTransaction.mockImplementation(
           async (fn: (tx: object) => Promise<unknown>) => fn(fakeTx)
         );
         // Refund returned LESS than requested → partial refund warning expected
-        refundToGiftCardTx.mockResolvedValue({ newBalance: 50, actualRefundAmount: 10 });
+        refundGiftCardTx.mockResolvedValue({ newBalance: 50, actualRefundAmount: 10 });
 
         const result = await cancelOrder(validInput);
 
@@ -368,7 +362,7 @@ describe('Order Cancel Service', () => {
         expect(result.warnings?.[0]).toContain('Partial gift card refund');
       });
 
-      it('should surface a warning when gift card lookup fails', async () => {
+      it('should surface a warning when gift card refund throws (e.g. card not found)', async () => {
         mockRpc.mockResolvedValue({ data: { ok: true }, error: null });
         getPaymentsForOrder.mockResolvedValue([]);
         mockPaymentsFindMany.mockResolvedValue([
@@ -384,19 +378,17 @@ describe('Order Cancel Service', () => {
           },
         ]);
         const fakeTx = {
-          org_gift_cards_mst: {
-            findUnique: jest.fn().mockResolvedValue(null),
-          },
+          org_ord_discounts_dtl: { updateMany: jest.fn().mockResolvedValue({}) },
         };
         mockPrismaTransaction.mockImplementation(
           async (fn: (tx: object) => Promise<unknown>) => fn(fakeTx)
         );
+        refundGiftCardTx.mockRejectedValue(new Error('GIFT_CARD_NOT_FOUND'));
 
         const result = await cancelOrder(validInput);
 
         expect(result.success).toBe(true);
-        expect(result.warnings?.[0]).toContain('not found for refund');
-        expect(refundToGiftCardTx).not.toHaveBeenCalled();
+        expect(result.warnings?.[0]).toContain('Gift card refund failed');
       });
 
       it('should not reverse anything when no promo or gift card was used', async () => {
@@ -419,7 +411,7 @@ describe('Order Cancel Service', () => {
 
         expect(result.success).toBe(true);
         expect(reversePromoUsageTx).not.toHaveBeenCalled();
-        expect(refundToGiftCardTx).not.toHaveBeenCalled();
+        expect(refundGiftCardTx).not.toHaveBeenCalled();
         expect(mockPrismaTransaction).not.toHaveBeenCalled();
       });
     });
