@@ -8,8 +8,8 @@
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { useQuery } from '@tanstack/react-query'
-import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Bell, ChevronDown, Search, User, LogOut, Settings, ShieldCheck, Check, X, RefreshCw } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import {
   evaluateAccessRequirement,
@@ -152,14 +152,29 @@ export default function CmxTopBar() {
     switchTenant,
     permissions,
     workflowRoles,
+    refreshPermissions,
   } = useAuth()
   const isRTL = useRTL()
   const t = useTranslations('layout.topBar')
+  const queryClient = useQueryClient()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showTenantMenu, setShowTenantMenu] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [showPermsDialog, setShowPermsDialog] = useState(false)
   const [activeInspectorTab, setActiveInspectorTab] = useState<'ui' | 'api' | 'flags'>('ui')
+  const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true)
+    try {
+      await Promise.all([
+        refreshPermissions(),
+        queryClient.invalidateQueries({ queryKey: ['feature-flags', currentTenant?.tenant_id] }),
+      ])
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
 
   const { data: featureFlags = {} } = useQuery({
     queryKey: ['feature-flags', currentTenant?.tenant_id],
@@ -369,9 +384,21 @@ export default function CmxTopBar() {
                 <ShieldCheck className="h-5 w-5 text-blue-600" />
                 <h2 className="text-base font-semibold text-gray-900">{t('permissionsDialog.title')}</h2>
               </div>
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
-                {t('permissionsDialog.total', { count: permissions?.length ?? 0 })}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRefreshAll}
+                  disabled={isRefreshing}
+                  title="Refresh permissions & feature flags"
+                  className="flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1 text-xs font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  {isRefreshing ? 'Refreshing…' : 'Refresh'}
+                </button>
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-mono">
+                  {t('permissionsDialog.total', { count: permissions?.length ?? 0 })}
+                </span>
+              </div>
             </div>
 
             <div className="overflow-y-auto px-5 py-4 flex flex-col gap-4">

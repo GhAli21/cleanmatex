@@ -105,13 +105,25 @@
       "fields": {
         "code": "Code",
         "name": "Name",
+        "name2": "Name (Arabic)",
+        "description": "Description",
+        "description2": "Description (Arabic)",
         "discountType": "Discount Type",
         "discountValue": "Discount Value",
+        "maxDiscountAmount": "Max Discount Amount",
         "maxUses": "Max Uses",
+        "maxUsesPerCustomer": "Max Uses Per Customer",
+        "currentUses": "Current Uses",
         "validFrom": "Valid From",
         "validTo": "Valid To",
         "minOrder": "Min Order Amount",
-        "categories": "Applicable Categories"
+        "minOrderAmount": "Min Order Amount",
+        "maxOrderAmount": "Max Order Amount",
+        "categories": "Applicable Categories",
+        "applicableCategories": "Applicable Categories",
+        "isActive": "Active",
+        "isEnabled": "Enabled",
+        "metadata": "Metadata"
       },
       "status": {
         "active": "Active",
@@ -283,14 +295,23 @@
       "fields": {
         "code": "Rule Code",
         "name": "Rule Name",
+        "name2": "Rule Name (Arabic)",
+        "description": "Description",
+        "description2": "Description (Arabic)",
         "ruleType": "Rule Type",
         "priority": "Priority",
         "discountType": "Discount Type",
         "discountValue": "Value",
         "stackWithPromo": "Stack with Promo Code",
         "stackWithRules": "Stack with Other Rules",
+        "canStackWithPromo": "Stack with Promo Code",
+        "canStackWithOtherRules": "Stack with Other Rules",
         "validFrom": "Valid From",
-        "validTo": "Valid To"
+        "validTo": "Valid To",
+        "conditions": "Conditions",
+        "isActive": "Active",
+        "isEnabled": "Enabled",
+        "metadata": "Metadata"
       },
       "ruleTypes": {
         "bulk_discount": "Bulk Discount",

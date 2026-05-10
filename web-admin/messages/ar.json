@@ -105,13 +105,25 @@
       "fields": {
         "code": "الرمز",
         "name": "الاسم",
+        "name2": "الاسم (عربي)",
+        "description": "الوصف",
+        "description2": "الوصف (عربي)",
         "discountType": "نوع الخصم",
         "discountValue": "قيمة الخصم",
+        "maxDiscountAmount": "الحد الأقصى لمبلغ الخصم",
         "maxUses": "الحد الأقصى للاستخدام",
+        "maxUsesPerCustomer": "الحد الأقصى للاستخدام لكل عميل",
+        "currentUses": "الاستخدامات الحالية",
         "validFrom": "صالح من",
         "validTo": "صالح حتى",
         "minOrder": "الحد الأدنى للطلب",
-        "categories": "الفئات المنطبقة"
+        "minOrderAmount": "الحد الأدنى لمبلغ الطلب",
+        "maxOrderAmount": "الحد الأقصى لمبلغ الطلب",
+        "categories": "الفئات المنطبقة",
+        "applicableCategories": "الفئات المنطبقة",
+        "isActive": "نشط",
+        "isEnabled": "مفعل",
+        "metadata": "البيانات الوصفية"
       },
       "status": {
         "active": "نشط",
@@ -283,14 +295,23 @@
       "fields": {
         "code": "رمز القاعدة",
         "name": "اسم القاعدة",
+        "name2": "اسم القاعدة (عربي)",
+        "description": "الوصف",
+        "description2": "الوصف (عربي)",
         "ruleType": "نوع القاعدة",
         "priority": "الأولوية",
         "discountType": "نوع الخصم",
         "discountValue": "القيمة",
         "stackWithPromo": "التجميع مع رمز الترويج",
         "stackWithRules": "التجميع مع قواعد أخرى",
+        "canStackWithPromo": "التجميع مع رمز الترويج",
+        "canStackWithOtherRules": "التجميع مع قواعد أخرى",
         "validFrom": "صالح من",
-        "validTo": "صالح حتى"
+        "validTo": "صالح حتى",
+        "conditions": "الشروط",
+        "isActive": "نشط",
+        "isEnabled": "مفعل",
+        "metadata": "البيانات الوصفية"
       },
       "ruleTypes": {
         "bulk_discount": "خصم بالجملة",
