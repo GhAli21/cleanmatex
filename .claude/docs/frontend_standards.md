@@ -1,4 +1,4 @@
-# CleanMateX Frontend Standards (Legacy Doc Pointer)
+﻿# CleanMateX Frontend Standards (Legacy Doc Pointer)
 
 This document is a legacy pointer, not the preferred active frontend standards source.
 
@@ -71,7 +71,7 @@ Guiding principles:
 
 ## 2. Folder Responsibilities
 
-### 2.1 `app/` – Routing Layer
+### 2.1 `app/` â€“ Routing Layer
 
 - Contains:
   - `page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`, route groups.
@@ -96,7 +96,7 @@ export default async function OrdersPage() {
 
 ---
 
-### 2.2 `src/ui/` – Global Cmx Design System
+### 2.2 `src/ui/` â€“ Global Cmx Design System
 
 - Location of all **reusable, app-wide UI components**.
 - All components here MUST:
@@ -134,36 +134,33 @@ export function CmxButton(/* props */) {
 }
 ```
 
-#### Cmx Design System Sync (Cross-Project)
+#### Cmx UI Cross-Project Independence
 
-**Important**: The Cmx Design System is shared between cleanmatex (THIS PROJECT) and cleanmatexsaas projects.
+**Important**: cleanmatex and cleanmatexsaas do not need to share a design language. Each project may have its own design system, Cmx UI components, tokens, layout patterns, and interaction behavior. Never copy UI implementation files between repositories.
 
-**Sync Strategy**:
-- Core Cmx components should be kept in sync across both projects
-- Use "Copy with Source Tracking" approach
-- Add source comment: `// Synced from: cleanmatex/web-admin/src/ui/...` or `// Synced from: cleanmatexsaas/platform-web/src/ui/...`
-- Update sync log in both projects when changes are made
+**Coordination Rule**:
+- Do not coordinate UI by default.
+- If UI coordination or a shared UI package is proposed, stop at an ADR proposal for user review.
+- The ADR is approved only when the ADR file contains the exact marker `Approved_By_Jh`. The user must write this marker inside the ADR file. Until then, treat it as not approved and do not implement.
+- Do not automatically create packages, copy components, or sync UI code.
+- Implement Cmx/UI components locally in each project according to that project's frontend standards.
 
-**When to Sync**:
-- New Cmx component created (copy to both projects)
-- Existing Cmx component modified (update in both projects)
-- Breaking changes to Cmx API (coordinate across projects)
+**Only Discuss Coordination When Explicitly Requested**:
+- A user asks for a cross-project UI contract
+- A user asks for a shared UI package ADR
+- A user asks to compare design-system behavior across projects
 
-**Components That Should Be Synced**:
-- `CmxButton`, `CmxInput`, `CmxForm`, `CmxDataTable`, `CmxEditableDataTable`
-- All primitives, forms, data-display, navigation components
-- Theme foundations and tokens
-
-**Components That Should NOT Be Synced**:
+**Keep Local**:
 - Feature-specific components (stay in `src/features/`)
 - Project-specific UI (tenant vs admin views)
 - Project-specific layouts or patterns
+- Project-specific Cmx components, tokens, themes, and design-system rules
 
-**See**: [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) for complete sync strategy
+**See**: `F:/jhapp/cleanmatexsaas/.claude/docs/Dev/CODE_SHARING_GUIDE.md` for complete coordination strategy
 
 ---
 
-### 2.3 `src/features/` – Feature Modules
+### 2.3 `src/features/` â€“ Feature Modules
 
 Each feature/module lives under `src/features/<featureName>/`:
 
@@ -183,7 +180,7 @@ src/features/orders/
 Rules:
 
 - Feature UI must compose from `src/ui` (Cmx components) and `lib`.
-- Feature UI MUST NOT import from other features’ folders directly.
+- Feature UI MUST NOT import from other featuresâ€™ folders directly.
 - Feature UI MUST NOT import from `app/`.
 
 Example:
@@ -207,15 +204,15 @@ export function OrderListScreen() {
 
 ---
 
-### 2.4 `lib/` – Shared Infrastructure (Root-Level)
+### 2.4 `lib/` â€“ Shared Infrastructure (Root-Level)
 
 - Lives at project root: `lib/`
 - Contains:
-  - `lib/api/` – base API client(s)
-  - `lib/hooks/` – generic cross-feature hooks
-  - `lib/utils/` – generic utilities
-  - `lib/config/` – configuration helpers
-  - `lib/supabase/` – Supabase client, if used
+  - `lib/api/` â€“ base API client(s)
+  - `lib/hooks/` â€“ generic cross-feature hooks
+  - `lib/utils/` â€“ generic utilities
+  - `lib/config/` â€“ configuration helpers
+  - `lib/supabase/` â€“ Supabase client, if used
 
 Rules:
 
@@ -451,9 +448,11 @@ Patterns:
 - **Feature UI and logic:** In `src/features/<feature>/...`.
 - **Infra & utilities:** In `lib/`.
 - **Imports:**
-  - `@ui/*` → `src/ui/*`
-  - `@features/*` → `src/features/*`
-  - `@lib/*` → `lib/*`
+  - `@ui/*` â†’ `src/ui/*`
+  - `@features/*` â†’ `src/features/*`
+  - `@lib/*` â†’ `lib/*`
 - **Do not use:** `components/ui`, `shared/`, `common/` as roots.
 
 This document is retained as supporting legacy guidance only and should not be treated as the single source of truth.
+
+

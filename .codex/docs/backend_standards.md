@@ -1,4 +1,4 @@
-# Project Backend — AI System Prompt (NestJS + Supabase, No Prisma)
+﻿# Project Backend â€” AI System Prompt (NestJS + Supabase, No Prisma)
 
 ## 0. Purpose
 
@@ -23,7 +23,7 @@ If user instructions conflict, prefer these rules unless the user explicitly ove
    - No inline supabase-js calls in controllers.
 4. **OpenAPI (Swagger) DTOs are the public contract**, not the Supabase schema.
 5. Business logic lives in **services**, not controllers.
-6. Use **strict TypeScript** — no `any` in public-facing or core logic.
+6. Use **strict TypeScript** â€” no `any` in public-facing or core logic.
 7. All mutation endpoints must be **retry-aware** and, where practical, **idempotent**.
 
 ---
@@ -51,7 +51,7 @@ Responsibilities:
 
 - **Controller**: HTTP concerns, DTO binding, response formatting.
 - **Service**: business logic, workflow orchestration, authorization, validation.
-- **Repository**: Supabase queries, mapping Supabase rows ↔ domain models.
+- **Repository**: Supabase queries, mapping Supabase rows â†” domain models.
 - **DTO**: input/output shapes for HTTP layer, with validation + OpenAPI decorators.
 - **Domain model**: internal representation of core entities (optional but encouraged).
 
@@ -195,7 +195,7 @@ export interface HqUser {
 }
 ```
 
-### 5.2 Mapping Supabase Rows → Domain
+### 5.2 Mapping Supabase Rows â†’ Domain
 
 ```ts
 // src/modules/hq-users/hq-users.mapper.ts
@@ -346,10 +346,10 @@ Tenant handling is module-specific and must match the actual runtime surface.
 
 **Code Review Checklist:**
 
-- ✅ No duplicate tenant-context helper implementations
-- ✅ Tenant-scoped reads and writes are explicit and verifiable
-- ✅ `web-admin` uses its current centralized tenant utilities where applicable
-- ✅ `cmx-api` receives tenant context through request-boundary patterns
+- âœ… No duplicate tenant-context helper implementations
+- âœ… Tenant-scoped reads and writes are explicit and verifiable
+- âœ… `web-admin` uses its current centralized tenant utilities where applicable
+- âœ… `cmx-api` receives tenant context through request-boundary patterns
 
 ---
 
@@ -450,7 +450,7 @@ async createOrder(dto: CreateOrderDto, idempotencyKey: string) {
 
 ## 12. DO / DO NOT Summary for AI Assistants
 
-### ✅ DO
+### âœ… DO
 
 - Use NestJS modules/controllers/services/repositories for all features.
 - Use Supabase `Database` types only in:
@@ -458,11 +458,11 @@ async createOrder(dto: CreateOrderDto, idempotencyKey: string) {
   - Repositories,
   - Mapping layers.
 - Map:
-  - `Row` → domain model → DTO.
+  - `Row` â†’ domain model â†’ DTO.
 - Keep DTOs and OpenAPI as the public contract.
 - Make mutation endpoints retry-safe where practical.
 
-### ❌ DO NOT
+### âŒ DO NOT
 
 - Do not:
   - Call `supabaseAdmin` directly from controllers.
@@ -489,7 +489,7 @@ async createOrder(dto: CreateOrderDto, idempotencyKey: string) {
 
 **Example - Tenant Orders Query**:
 ```ts
-// ✅ Correct: Tenant-scoped query with RLS enforcement
+// âœ… Correct: Tenant-scoped query with RLS enforcement
 @Get('orders')
 async listOrders(@TenantId() tenantId: string, @Query() filters: OrderFiltersDto) {
   // MUST filter by tenant_org_id - RLS enforced
@@ -511,7 +511,7 @@ async listOrders(@TenantId() tenantId: string, @Query() filters: OrderFiltersDto
 
 **Pattern**:
 ```ts
-// ✅ Correct: Always filter by tenant_org_id
+// âœ… Correct: Always filter by tenant_org_id
 async findOrder(tenantId: string, orderId: string) {
   return this.prisma.org_orders_mst.findUnique({
     where: {
@@ -521,7 +521,7 @@ async findOrder(tenantId: string, orderId: string) {
   });
 }
 
-// ❌ Wrong: Missing tenant filter
+// âŒ Wrong: Missing tenant filter
 async findOrder(orderId: string) {
   return this.prisma.org_orders_mst.findUnique({
     where: { id: orderId }, // VIOLATION: No tenant_org_id filter
@@ -544,32 +544,18 @@ async findOrder(orderId: string) {
 
 **See**: [Feature Placement Guide](./Dev/FEATURE_PLACEMENT_GUIDE.md) for database decision framework
 
-### 13.4 Code Sharing Strategy
+### 13.4 Cross-Project Backend Contract Strategy
 
-**When code needs to be shared** between cleanmatex and cleanmatexsaas backends:
+**Do not copy backend implementation code** between cleanmatex and cleanmatexsaas. When backend behavior spans both projects, document the boundary and let each project implement locally using its own security model.
 
-**Share (Copy with Source Tracking)**:
-- DTOs for shared domain models (Order, Customer, Invoice)
-- Validation schemas (Zod, class-validator)
-- Constants (payment methods, order statuses, enums)
-- Utility functions (pure functions, formatters, validators)
+**Document contracts instead of copying files**:
+- HTTP routes, methods, request DTO shape, response DTO shape, and error shape
+- Auth requirements and tenant/platform access expectations
+- Event names, producers, consumers, payloads, and idempotency expectations
+- Database ownership and type-regeneration steps
+- ADR proposals for user decision if a generated artifact or true shared package is being considered; approved only when the ADR file contains `Approved_By_Jh`; do not implement automatically
 
-**Example**:
-```ts
-// ✅ Shared DTO (copy to both projects)
-// cmx-api/src/shared/dto/order-status.dto.ts
-// Synced from: cleanmatexsaas/platform-api/src/shared/dto/order-status.dto.ts
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-}
-```
-
-**Duplicate (Different Implementations)**:
+**Keep local implementations separate**:
 - Auth guards (TenantAuthGuard vs PlatformAuthGuard)
 - Business logic (different rules for tenant vs platform)
 - API clients (different endpoints, different auth)
@@ -577,7 +563,7 @@ export enum OrderStatus {
 
 **Example**:
 ```ts
-// ❌ Do NOT share: Different auth logic per project
+// âŒ Do NOT share: Different auth logic per project
 
 // cleanmatex/cmx-api/src/auth/tenant-auth.guard.ts
 // Validates tenant_org_id from JWT, enforces single-tenant scope
@@ -614,12 +600,12 @@ export class PlatformAuthGuard implements CanActivate {
 }
 ```
 
-**API-Based Sharing** (Settings/Feature Flags):
-- Settings: cleanmatexsaas manages (sys_stng_*), cleanmatex consumes via HQ API
-- Feature Flags: cleanmatexsaas manages (sys_feature_flags_*), cleanmatex consumes via HQ API
-- ❌ **NEVER** query sys_stng_* or sys_feature_flags_* directly from cleanmatex backend
+**API-Based Consumption** (Settings/Feature Flags):
+- Settings: cleanmatexsaas manages (sys_stng_*), cleanmatex consumes via documented HQ API
+- Feature Flags: cleanmatexsaas manages (sys_feature_flags_*), cleanmatex consumes via documented HQ API
+- âŒ **NEVER** query sys_stng_* or sys_feature_flags_* directly from cleanmatex backend
 
-**See**: [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) for complete strategy
+**See**: `F:/jhapp/cleanmatexsaas/.claude/docs/Dev/CODE_SHARING_GUIDE.md` for the cross-project integration contract strategy
 
 ### 13.5 Catalog Pattern Backend Implementation (cleanmatex - THIS PROJECT)
 
@@ -693,7 +679,9 @@ When generating backend code for this Project:
    - Extending existing repositories/services over creating ad-hoc data access.
    - Reusing common utilities for pagination, filtering, and logging.
    - Pagination Always should be Server-Side Pagination (API-Driven).
-   - Referring to [Code Sharing Guide](./Dev/CODE_SHARING_GUIDE.md) when code needs to be shared.
+   - Referring to the cross-project integration contract guide when a sibling project needs to call, expose, consume, or document a boundary.
 3. ONLY DEVIATE if:
    - The user explicitly asks for a simplified example or POC-style snippet,
    - You clearly localize the deviation and do not treat it as a new standard.
+
+

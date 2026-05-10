@@ -1,6 +1,6 @@
-# CLAUDE.md — CleanMateX AI Assistant
+﻿# CLAUDE.md â€” CleanMateX AI Assistant
 
-**Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
+**Project:** CleanMateX â€” Multi-Tenant Laundry SaaS Platform (World Wide starting in GCC region, EN/AR bilingual)
 **Last Update** 22-03-2026
 **Last Update Description** Added /storybook skill + storybook-generator agent to mandatory loading table
 
@@ -34,9 +34,9 @@ These are **separate projects** with **different rules**, even though they share
 3. Q3: What is the access pattern? (RLS enforced / Service role key / Both)
 
 **Decision Matrix Quick Reference**:
-- **Tenant Operations** (Orders, Customers, Inventory, Lite ERP) → **cleanmatex** (this project)
-- **Platform Admin** (Tenant Management, Billing, Analytics) → **cleanmatexsaas**
-- **Dual-Purpose** (Settings, Feature Flags, Audit Logs) → **Both projects**
+- **Tenant Operations** (Orders, Customers, Inventory, Lite ERP) â†’ **cleanmatex** (this project)
+- **Platform Admin** (Tenant Management, Billing, Analytics) â†’ **cleanmatexsaas**
+- **Dual-Purpose** (Settings, Feature Flags, Audit Logs) â†’ **Both projects**
 
 **For complex decisions**: Create an ADR using [ADR Template](.claude/docs/Dev/ADR_TEMPLATE.md) and follow [ADR Process](.claude/docs/Dev/ADR_PROCESS.md)
 
@@ -84,7 +84,7 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 
 ```markdown
 ---
-🔄 **CONTEXT SWITCH: cleanmatex → cleanmatexsaas**
+ðŸ”„ **CONTEXT SWITCH: cleanmatex â†’ cleanmatexsaas**
 ---
 
 **New Active Project**: cleanmatexsaas (Platform HQ Console)
@@ -94,19 +94,19 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 **Active Standards**: F:/jhapp/cleanmatexsaas/.claude/docs/
 
 **Rules Now in Effect**:
-- ✅ Use service role key Supabase client
-- ✅ Cross-tenant queries allowed (for admin features)
-- ✅ Regenerate types after cleanmatex migrations
-- ✅ Implement platform admin features
-- ❌ NEVER create migrations here
-- ❌ NEVER use RLS-only patterns (we bypass RLS)
+- âœ… Use service role key Supabase client
+- âœ… Cross-tenant queries allowed (for admin features)
+- âœ… Regenerate types after cleanmatex migrations
+- âœ… Implement platform admin features
+- âŒ NEVER create migrations here
+- âŒ NEVER use RLS-only patterns (we bypass RLS)
 ```
 
 **When switching back to cleanmatex context:**
 
 ```markdown
 ---
-🔄 **CONTEXT SWITCH: cleanmatexsaas → cleanmatex**
+ðŸ”„ **CONTEXT SWITCH: cleanmatexsaas â†’ cleanmatex**
 ---
 
 **New Active Project**: cleanmatex (Tenant-Facing Application)
@@ -116,13 +116,13 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 **Active Standards**: F:/jhapp/cleanmatex/.claude/docs/
 
 **Rules Now in Effect**:
-- ✅ Use RLS policies for ALL org_* tables
-- ✅ Use anon key Supabase client
-- ✅ Filter ALL queries by tenant_org_id
-- ✅ Create migrations HERE (source of truth)
-- ✅ Implement tenant-scoped features only
-- ❌ NO cross-tenant queries
-- ❌ NO service role key usage
+- âœ… Use RLS policies for ALL org_* tables
+- âœ… Use anon key Supabase client
+- âœ… Filter ALL queries by tenant_org_id
+- âœ… Create migrations HERE (source of truth)
+- âœ… Implement tenant-scoped features only
+- âŒ NO cross-tenant queries
+- âŒ NO service role key usage
 ```
 
 #### MANDATORY STEP 3: Database Migrations Protocol
@@ -131,11 +131,11 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 
 | Rule | cleanmatex | cleanmatexsaas |
 |------|-----------|----------------|
-| **Create migrations** | ✅ ALWAYS HERE (source of truth) | ❌ NEVER HERE |
+| **Create migrations** | âœ… ALWAYS HERE (source of truth) | âŒ NEVER HERE |
 | **Migration location** | `F:/jhapp/cleanmatex/supabase/migrations/` | N/A |
-| **Apply migrations** | ✅ User applies here | ❌ Never |
-| **RLS policies** | ✅ MUST implement for org_* tables | ❌ Not applicable (service role bypasses) |
-| **Type generation** | ✅ After migration | ✅ After migration (run update-types.ps1) |
+| **Apply migrations** | âœ… User applies here | âŒ Never |
+| **RLS policies** | âœ… MUST implement for org_* tables | âŒ Not applicable (service role bypasses) |
+| **Type generation** | âœ… After migration | âœ… After migration (run update-types.ps1) |
 
 **Workflow for database changes**:
 
@@ -163,7 +163,7 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 - **Cross-Tenant Queries**: [FORBIDDEN | ALLOWED for admin]
 
 **Action**: [What I'm about to do]
-**Correct Context**: [✅ Yes | ❌ No - MUST SWITCH]
+**Correct Context**: [âœ… Yes | âŒ No - MUST SWITCH]
 ```
 
 #### MANDATORY STEP 5: Skills and Standards Selection
@@ -180,27 +180,20 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 
 **NEVER mix skills/standards across projects.**
 
-#### MANDATORY STEP 6: Code Sharing Strategy
+#### MANDATORY STEP 6: Cross-Project Integration Contract Strategy
 
-**When code needs to be shared** between projects, follow [Code Sharing Guide](.claude/docs/Dev/CODE_SHARING_GUIDE.md):
+**Do not copy implementation code** between `cleanmatex` and `cleanmatexsaas`. Cross-project guidance must explain what the sibling project needs to build, expose, call, or consume; it must not instruct agents to copy DTOs, enums, utilities, UI components, or source files between repositories.
 
-**Share (Copy with Source Tracking)**:
-- Constants (payment methods, order statuses)
-- Types/Interfaces (domain models that match exactly)
-- Validation schemas (Zod schemas)
-- Utility functions (pure functions, no side effects)
-- Cmx Design System components
+**Use contracts and ownership instead**:
+- **Placement decision first**: Confirm which project owns the behavior using [Feature Placement Guide](.claude/docs/Dev/FEATURE_PLACEMENT_GUIDE.md).
+- **Integration contract**: Document API endpoints, request/response shapes, error shapes, auth expectations, event payloads, generated DB types, or schema ownership.
+- **Local implementation**: Each project implements its own code using its own rules (`cleanmatex` = RLS + `tenant_org_id`; `cleanmatexsaas` = service role + platform admin boundaries).
+- **Shared implementation exception**: If strict identical implementation or UI coordination is proposed, stop at an ADR proposal for user review. The ADR is approved only when the ADR file contains the exact marker `Approved_By_Jh`. The user must write this marker inside the ADR file. Until then, treat it as not approved and do not implement. Do not automatically create packages, copy files, or sync code.
 
-**Duplicate (Different Implementations)**:
-- Business logic (different rules for tenant vs platform)
-- API clients (different endpoints, different auth)
-- Auth logic (TenantAuthGuard vs PlatformAuthGuard)
-- Data access (Prisma + RLS vs Supabase-js + service role)
-
-**API-Based Sharing (MANDATORY for Settings/Feature Flags)**:
-- Settings: cleanmatexsaas manages (`sys_stng_*`) → cleanmatex consumes via HQ API
-- Feature Flags: cleanmatexsaas manages (`sys_feature_flags_*`) → cleanmatex consumes via HQ API
-- ❌ **NEVER** query `sys_stng_*` or `sys_feature_flags_*` directly from cleanmatex
+**API-Based Consumption (MANDATORY for Settings/Feature Flags)**:
+- Settings: cleanmatexsaas manages (`sys_stng_*`) â†’ cleanmatex consumes via documented HQ API
+- Feature Flags: cleanmatexsaas manages (`sys_feature_flags_*`) â†’ cleanmatex consumes via documented HQ API
+- âŒ **NEVER** query `sys_stng_*` or `sys_feature_flags_*` directly from cleanmatex
 
 ### Error Recovery Protocol
 
@@ -226,7 +219,7 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 - [ ] RLS policies added in cleanmatex (if new org_* tables)
 - [ ] User applied migrations
 - [ ] Types regenerated in both projects (if migrations applied)
-- [ ] Code sharing strategy followed ([Code Sharing Guide](.claude/docs/Dev/CODE_SHARING_GUIDE.md))
+- [ ] Integration contract strategy followed
 - [ ] cleanmatex implementation follows cleanmatex rules
 - [ ] cleanmatexsaas implementation follows cleanmatexsaas rules
 - [ ] Both projects build successfully
@@ -240,8 +233,8 @@ If a feature requires implementation in BOTH cleanmatex and cleanmatexsaas:
 | **Users** | Tenant users (managers, operators, staff) | Platform administrators |
 | **Database Access** | Anon key + RLS | Service role key (bypasses RLS) |
 | **Tenant Scope** | Single tenant only (ALWAYS filter) | All tenants (cross-tenant admin) |
-| **Migrations** | ✅ Create here (source of truth) | ❌ Never create, only consume |
-| **RLS Policies** | ✅ REQUIRED for org_* tables | ❌ Not applicable |
+| **Migrations** | âœ… Create here (source of truth) | âŒ Never create, only consume |
+| **RLS Policies** | âœ… REQUIRED for org_* tables | âŒ Not applicable |
 | **Query Filtering** | ALWAYS by tenant_org_id | Only when tenant-specific |
 | **Port** | 3000 | 3001 (web), 3002 (api) |
 | **CLAUDE.md** | F:/jhapp/cleanmatex/CLAUDE.md | F:/jhapp/cleanmatexsaas/CLAUDE.md |
@@ -264,16 +257,16 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 **How to enforce:**
 - In plan mode: load skills during Phase 1 exploration, before Phase 2 design
 - In execution mode: load skills before writing the first line of code for that domain
-- If a skill was not loaded and you wrote code — stop, load the skill, verify compliance, fix if needed
+- If a skill was not loaded and you wrote code â€” stop, load the skill, verify compliance, fix if needed
 
 ## Agent-First Workflow
 
 **ALWAYS use agents for:**
 
-- Exploratory questions: "How does X work?" → Use Explore agent
-- Finding code: "Where is Y?" → Use Explore agent
-- Research: "What's the structure of Z?" → Use Explore agent
-- Multi-file tasks: Implementation, debugging, testing → Use specialized agents
+- Exploratory questions: "How does X work?" â†’ Use Explore agent
+- Finding code: "Where is Y?" â†’ Use Explore agent
+- Research: "What's the structure of Z?" â†’ Use Explore agent
+- Multi-file tasks: Implementation, debugging, testing â†’ Use specialized agents
 
 **Direct actions only for:**
 
@@ -295,9 +288,9 @@ npm run build                     # Build (run after changes)
 
 - Tables: `sys_*` (global), `org_*` (tenant with RLS)
 - Max 30 chars for all DB objects
-- **NEVER modify existing migration files** — always create a NEW migration for fixes or changes. See `/database` skill.
-- **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
-- **DROP ... CASCADE** — Before adding DROP CASCADE, fetch
+- **NEVER modify existing migration files** â€” always create a NEW migration for fixes or changes. See `/database` skill.
+- **Migrations: always use last seq** â€” list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name file `{version}_{descriptive_snake_case}.sql`
+- **DROP ... CASCADE** â€” Before adding DROP CASCADE, fetch
   affected objects, prepare recreate statements, and include them
   in the same migration. See `docs/dev/
 drop-cascade-migration-workflow.md`
@@ -313,24 +306,24 @@ drop-cascade-migration-workflow.md`
 
 ## Hard Truth (Critical Mistakes to Avoid)
 
-❌ Mistake 1:
+âŒ Mistake 1:
 
 Putting logic in controllers
-→ You kill scalability
+â†’ You kill scalability
 
-❌ Mistake 2:
+âŒ Mistake 2:
 Mixing orders + workflow
-→ You lose flexibility forever
+â†’ You lose flexibility forever
 
-❌ Mistake 3:
+âŒ Mistake 3:
 
 No use-cases layer
-→ Business logic becomes unmaintainable
+â†’ Business logic becomes unmaintainable
 
-❌ Mistake 4:
+âŒ Mistake 4:
 
 Ignoring events
-→ Tight coupling everywhere
+â†’ Tight coupling everywhere
 
 ## Code Quick Rules
 
@@ -342,20 +335,20 @@ Ignoring events
 **See:** `/implementation` skill for coding standards
 **See:** `/code-documentation` skill for JSDoc patterns, SQL migration comments, Tailwind annotations, and config file documentation rules.
 
-**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md` → Feature Implementation Requirements.
+**Feature docs:** When implementing any feature, document platform-level requirements: new permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md` â†’ Feature Implementation Requirements.
 
 ## Constants & Types (single source of truth)
 
-- **Constants live in `lib/constants/`** — one file per domain (e.g. `payment.ts`, `order-types.ts`). Define const objects (`as const`) and derive types from them: `type X = (typeof CONST)[keyof typeof CONST]`.
-- **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and optionally key consts so app code can use one import (e.g. `@/lib/types/payment` for both types and `PAYMENT_METHODS`, `INVOICE_STATUSES`, etc.).
-- **Do not duplicate** — same concept (e.g. payment method codes) in one place only; other files re-export or import. Validation (Zod) should align with the same constants where possible.
-- **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` and `lib/types/payment.ts`.
+- **Constants live in `lib/constants/`** â€” one file per domain (e.g. `payment.ts`, `order-types.ts`). Define const objects (`as const`) and derive types from them: `type X = (typeof CONST)[keyof typeof CONST]`.
+- **Types/interfaces live in `lib/types/`** â€” import const-derived types from constants; re-export types and optionally key consts so app code can use one import (e.g. `@/lib/types/payment` for both types and `PAYMENT_METHODS`, `INVOICE_STATUSES`, etc.).
+- **Do not duplicate** â€” same concept (e.g. payment method codes) in one place only; other files re-export or import. Validation (Zod) should align with the same constants where possible.
+- **Order status:** workflow order status â†’ `lib/types/workflow.ts`; payment-related â†’ `lib/constants/payment.ts` and `lib/types/payment.ts`.
 
 **See:** `docs/dev/unification_types_order_payment_audit.md` for the payment/order unification audit.
 
 ## UI Quick Rules
 
-- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** → `ui_components` when generating buttons, inputs, cards, dialogs, alerts, selects, etc.
+- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** â†’ `ui_components` when generating buttons, inputs, cards, dialogs, alerts, selects, etc.
 - Search existing message keys before adding new
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable
@@ -393,7 +386,7 @@ Ignoring events
 
 - `/explain-code` - Code explanations with diagrams
 - `/codebase-visualizer` - Interactive codebase tree
-- `/storybook` - Story generation for Cmx components (RTL, a11y, variants) — also triggers `storybook-generator` agent
+- `/storybook` - Story generation for Cmx components (RTL, a11y, variants) â€” also triggers `storybook-generator` agent
 
 ### Database Migrations (DROP CASCADE)
 
@@ -419,15 +412,15 @@ docs/         # All documentation
 
 ## Key Documentation
 
-- **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` ⭐ READ THIS
-- **UI Migration Guide:** `docs/dev/ui-migration-guide.md` — `@/components/ui` → `@ui` gradual migration
+- **Efficiency Guide:** `docs/dev/claude-code-efficiency-guide.md` â­ READ THIS
+- **UI Migration Guide:** `docs/dev/ui-migration-guide.md` â€” `@/components/ui` â†’ `@ui` gradual migration
 - **Master Plan:** `docs/plan/master_plan_cc_01.md`
 - **Planning Backlog Note:** `docs/plan/` is the approved planning authority; reconcile useful material from `docs/plan_cr/` into `docs/plan/`
 - **Constants & types (unification):** `docs/dev/unification_types_order_payment_audit.md`
-- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` — per-item implementation details
+- **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` â€” per-item implementation details
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
-- **Settings Reference:** `.claude/docs/settings-reference.md` — when to use `sys_tenant_settings_cd` vs Allsettings files
-- **Preferences (unified):** `docs/features/Customer_Order_Item_Pieces_Preferences/README.md` — org_order_preferences_dtl, conditions/colors; migrations 0165–0169 in `docs/dev/preferences-unified-migrations-0165-0169.md`
+- **Settings Reference:** `.claude/docs/settings-reference.md` â€” when to use `sys_tenant_settings_cd` vs Allsettings files
+- **Preferences (unified):** `docs/features/Customer_Order_Item_Pieces_Preferences/README.md` â€” org_order_preferences_dtl, conditions/colors; migrations 0165â€“0169 in `docs/dev/preferences-unified-migrations-0165-0169.md`
 
 ## Key Guardrails
 
@@ -440,9 +433,9 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` (e.g. `uiuxrules.mdc`, `report-implement-or-build.mdc`, `web-admin-ui-imports.mdc`) are loaded into Cursor context automatically. Keep critical, short rules there.
-   **→ Claude equivalent:** The same rules are embedded in `.claude/skills/frontend/SKILL.md`, `.claude/skills/frontend/uiux-rules.md`, and `.claude/docs/web-admin-ui-imports.md` — Claude reads these when `/frontend` skill is active.
+   **â†’ Claude equivalent:** The same rules are embedded in `.claude/skills/frontend/SKILL.md`, `.claude/skills/frontend/uiux-rules.md`, and `.claude/docs/web-admin-ui-imports.md` â€” Claude reads these when `/frontend` skill is active.
 
-2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
+2. **CLAUDE.md (Claude):** Always in context â€” primary source for CRITICAL RULES. Any rule that must always be followed must be stated here or referenced here.
 
 3. **Skills (Claude):** Use `/frontend`, `/i18n`, `/database`, etc. so the detailed skill loads. CLAUDE.md points to the right skill per topic.
 
@@ -454,8 +447,9 @@ docs/         # All documentation
 
 ## Supabase MCPs
 
-- **NEVER apply migrations via MCP** — create the `.sql` migration file, then STOP and ask me to review and apply it
+- **NEVER apply migrations via MCP** â€” create the `.sql` migration file, then STOP and ask me to review and apply it
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`
-- MCP may be used for **read-only discovery queries** (e.g. finding affected objects before DROP CASCADE) — never for writes or migration execution
+- MCP may be used for **read-only discovery queries** (e.g. finding affected objects before DROP CASCADE) â€” never for writes or migration execution
 - **DROP ... CASCADE:** Use MCP read queries to discover affected objects, then include recreate statements in the migration file. See `docs/dev/drop-cascade-migration-workflow.md`.
+
