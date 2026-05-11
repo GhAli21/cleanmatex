@@ -96,9 +96,8 @@ export interface PackingPreference {
   maps_to_packaging_type?: string | null;
   sustainability_score?: number | null;
   display_order?: number | null;
-  is_active: boolean;
-  /** Tenant row id — `org_packing_preference_cf.id`. */
-  packing_cf_id?: string | null;
+  /** Tenant surcharge for this packing option — `org_packing_preference_cf.extra_price` (DECIMAL); added to cart line totals. */
+  default_extra_price?: number;
 }
 
 // ============================================================================

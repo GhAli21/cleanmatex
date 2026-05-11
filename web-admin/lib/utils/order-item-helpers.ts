@@ -92,9 +92,8 @@ export function updateItemQuantity(
 
 /**
  * Calculates total price for a single item.
- * `totalPrice` already includes `servicePrefCharge` when service prefs are applied,
- * so we must not add the charge again. Fall back to base × qty + charge only when
- * totalPrice is absent (item built without the combined field).
+ * `totalPrice` is the stored line total (`qty × unit + service pref surcharge + packing surcharge` from the new-order reducer).
+ * When present, we use it as-is. Fall back to base × qty + `servicePrefCharge` only when `totalPrice` is absent.
  * @param item - Order item
  * @returns Total price
  */

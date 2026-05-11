@@ -4,8 +4,9 @@
 
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import type { OrderItem, OrderItemServicePref, PreSubmissionPiece } from '../model/new-order-types';
+import type { PackingPreference } from '@/lib/types/service-preferences';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
 import {
   applySelectedPreferencesToPiece,
@@ -13,6 +14,7 @@ import {
   renumberPreferencesForPiece,
   type SelectedPreference,
 } from '../lib/selected-piece-preference';
+import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 
 function findItemByPieceId(items: OrderItem[], pieceId: string): OrderItem | null {
   for (const item of items) {
@@ -45,8 +47,10 @@ export interface AddPreferenceInput {
   extra_price?: number;
 }
 
-export function useNewOrderPiecePreferences() {
-  const { state, updateItemPieces, updateItemServicePrefs } = useNewOrderStateWithDispatch();
+export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
+  const { state, updateItemPieces, updateItemServicePrefs, adjustItemPackingCharge } = useNewOrderStateWithDispatch();
+
+  const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
 
   const syncChargeForItem = useCallback(
     (productId: string, pieces: PreSubmissionPiece[], itemServicePrefs: OrderItemServicePref[] | undefined) => {
@@ -62,8 +66,10 @@ export function useNewOrderPiecePreferences() {
       if (!item) return;
       updateItemPieces(productId, nextPieces);
       syncChargeForItem(productId, nextPieces, item.servicePrefs);
+      const merged: Pick<OrderItem, 'packingPrefCode' | 'pieces'> = { ...item, pieces: nextPieces };
+      adjustItemPackingCharge(productId, orderItemLinePackingCharge(merged, packingPriceByCode));
     },
-    [state.items, updateItemPieces, syncChargeForItem]
+    [state.items, updateItemPieces, syncChargeForItem, adjustItemPackingCharge, packingPriceByCode]
   );
 
   /** Flattened prefs for all pieces (derived; for bulk copy helpers) */

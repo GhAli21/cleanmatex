@@ -7,6 +7,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OrderItemServicePref, PreferenceSource } from '@/lib/types/service-preferences';
 import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
 import { logger } from '@/lib/utils/logger';
+import { fetchOrgPackingExtraPriceByCodesSupabase } from '@/lib/utils/org-packing-extra-price';
 
 export interface AddServicePrefInput {
   preference_code: string;
@@ -196,6 +197,11 @@ export class OrderItemPreferenceService {
         return { success: false, error: error.message };
       }
 
+      const packingPriceMap = await fetchOrgPackingExtraPriceByCodesSupabase(supabase, tenantId, [
+        packingPrefCode,
+      ]);
+      const packExtra = packingPriceMap.get(packingPrefCode) ?? 0;
+
       // Sync packing pref into org_order_preferences_dtl (ITEM level)
       const { data: existing } = await supabase
         .from('org_order_preferences_dtl')
@@ -213,6 +219,7 @@ export class OrderItemPreferenceService {
             preference_code: packingPrefCode,
             prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
             prefs_source: packingPrefSource ?? 'ORDER_UPDATE',
+            extra_price: packExtra,
             updated_at: new Date().toISOString(),
           })
           .eq('tenant_org_id', tenantId)
@@ -236,11 +243,13 @@ export class OrderItemPreferenceService {
             preference_sys_kind: 'packing_prefs',
             prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
             prefs_source: packingPrefSource ?? 'ORDER_UPDATE',
-            extra_price: 0,
+            extra_price: packExtra,
             branch_id: itemRow.branch_id ?? null,
           });
         }
       }
+
+      await this.recalcItemServicePrefCharge(supabase, tenantId, orderItemId);
 
       return { success: true };
     } catch (err) {
@@ -254,7 +263,8 @@ export class OrderItemPreferenceService {
   }
 
   /**
-   * Recalculate service_pref_charge for order item (sum of extra_price from item prefs + piece prefs)
+   * Recalculate `service_pref_charge` on the item row: sum of ITEM-level `extra_price` for
+   * `service_prefs` and `packing_prefs` (piece-level rows use `prefs_level=PIECE` and are excluded).
    */
   static async recalcItemServicePrefCharge(
     supabase: SupabaseClient,
@@ -267,7 +277,8 @@ export class OrderItemPreferenceService {
         .select('extra_price, preference_sys_kind')
         .eq('tenant_org_id', tenantId)
         .eq('order_item_id', orderItemId)
-        .eq('preference_sys_kind', 'service_prefs');
+        .eq('prefs_level', 'ITEM')
+        .in('preference_sys_kind', ['service_prefs', 'packing_prefs']);
 
       const total = (prefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
 

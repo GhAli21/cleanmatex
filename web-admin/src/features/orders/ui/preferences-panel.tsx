@@ -22,6 +22,7 @@ import { ShoppingCart } from 'lucide-react';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import type { PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
+import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 
 /**
  * Inactive preference-kind tabs: show catalog color as a small dot only, or as the full tab background.
@@ -50,7 +51,14 @@ export function PreferencesPanel({
 
   const [activeKindCode, setActiveKindCode] = useState<string | null>(null);
 
-  const { state, updateItemPieces, updateItemServicePrefs, updateItemNotes, updateItemPackingPref } = useNewOrderStateWithDispatch();
+  const {
+    state,
+    updateItemPieces,
+    updateItemServicePrefs,
+    updateItemNotes,
+    updateItemPackingPref,
+    adjustItemPackingCharge,
+  } = useNewOrderStateWithDispatch();
   const {
     servicePrefs,
     packingPrefs,
@@ -59,6 +67,8 @@ export function PreferencesPanel({
     kindsLoading,
     prefsByKind,
   } = usePreferenceCatalog(state.branchId);
+
+  const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
 
   // Set default tab to first kind once loaded
   useEffect(() => {
@@ -127,19 +137,39 @@ export function PreferencesPanel({
                   value={item.packingPrefCode}
                   availablePrefs={packingPrefs}
                   onChange={(code, packingCfId) =>
-                    updateItemPackingPref(item.productId, code ?? '', undefined, undefined, packingCfId)
+                    updateItemPackingPref(
+                      item.productId,
+                      code ?? '',
+                      undefined,
+                      undefined,
+                      packingCfId,
+                      code ? packingPriceByCode.get(code) ?? 0 : 0
+                    )
                   }
                 />
               ) : piece && item ? (
                 <PackingPreferenceSelector
                   value={piece.packingPrefCode}
                   availablePrefs={packingPrefs}
-                  onChange={(code, packingCfId) =>
+                  onChange={(code, packingCfId) => {
                     handlePieceUpdate(item.productId, piece.id, {
                       packingPrefCode: code || undefined,
                       ...(code ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
-                    })
-                  }
+                    });
+                    const updatedPieces = (item.pieces ?? []).map((p) =>
+                      p.id === piece.id
+                        ? {
+                            ...p,
+                            packingPrefCode: code || undefined,
+                            ...(code ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
+                          }
+                        : p
+                    );
+                    adjustItemPackingCharge(
+                      item.productId,
+                      orderItemLinePackingCharge({ ...item, pieces: updatedPieces }, packingPriceByCode)
+                    );
+                  }}
                 />
               ) : null}
             </>

@@ -28,8 +28,10 @@ export interface OrderCalculationParams {
   items: {
     productId: string;
     quantity: number;
-    /** Service preference charge per item (from service prefs). Included in subtotal. */
+    /** Service preference surcharge for the line (`org_order_preferences_dtl.service_prefs`). */
     servicePrefCharge?: number;
+    /** Packing surcharge for the line (`org_packing_preference_cf.extra_price` roll-up). Same subtotal role as service prefs. */
+    packingPrefCharge?: number;
   }[];
   customerId?: string;
   isExpress?: boolean;
@@ -149,7 +151,8 @@ export async function calculateOrderTotals(
     (sum, result, i) =>
       sum +
       result.basePrice * items[i].quantity +
-      (items[i].servicePrefCharge ?? 0),
+      (items[i].servicePrefCharge ?? 0) +
+      (items[i].packingPrefCharge ?? 0),
     0
   );
   const subtotalRounded = round(subtotal, decimalPlaces);

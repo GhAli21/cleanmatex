@@ -17,6 +17,7 @@ import { PackingPreferenceSelector } from './preferences/PackingPreferenceSelect
 import { PreferencesTabsSection } from './preferences/PreferencesTabsSection';
 import type { PreSubmissionPiece } from '../model/new-order-types';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
+import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
@@ -63,10 +64,12 @@ export function OrderDetailsSection({
     updateItemNotes,
     updateItemPieces,
     updateItemPackingPref,
+    adjustItemPackingCharge,
     removeItem,
   } = useNewOrderStateWithDispatch();
   const { packingPrefs, hasServicePrefs, hasPackingPrefs } =
     usePreferenceCatalog(state.branchId);
+  const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
   const totals = useOrderTotals();
   const isRTL = useRTL();
   const tNewOrder = useTranslations('newOrder');
@@ -410,7 +413,14 @@ export function OrderDetailsSection({
                               value={item.packingPrefCode}
                               availablePrefs={packingPrefs}
                               onChange={(code, packingCfId) =>
-                                updateItemPackingPref(item.productId, code ?? '', undefined, undefined, packingCfId)
+                                updateItemPackingPref(
+                                  item.productId,
+                                  code ?? '',
+                                  undefined,
+                                  undefined,
+                                  packingCfId,
+                                  code ? packingPriceByCode.get(code) ?? 0 : 0
+                                )
                               }
                             />
                             {packingPerPieceEnabled && trackByPiece && (item.pieces?.length ?? 0) > 0 && item.packingPrefCode && (
@@ -425,6 +435,10 @@ export function OrderDetailsSection({
                                     packingCfId: cf ?? undefined,
                                   }));
                                   updateItemPieces(item.productId, updatedPieces);
+                                  adjustItemPackingCharge(
+                                    item.productId,
+                                    orderItemLinePackingCharge({ ...item, pieces: updatedPieces }, packingPriceByCode)
+                                  );
                                 }}
                                 className="text-[10px] text-blue-600 hover:underline"
                               >

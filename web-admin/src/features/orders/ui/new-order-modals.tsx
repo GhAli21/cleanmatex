@@ -98,7 +98,13 @@ export function NewOrderModals() {
   // Stable items array for the payment modal — avoids a new reference on every render
   // which would otherwise re-trigger the preview-payment fetch on each keystroke/state change.
   const paymentItems = useMemo(
-    () => state.state.items.map((i) => ({ productId: i.productId, quantity: i.quantity, servicePrefCharge: i.servicePrefCharge ?? 0 })),
+    () =>
+      state.state.items.map((i) => ({
+        productId: i.productId,
+        quantity: i.quantity,
+        servicePrefCharge: i.servicePrefCharge ?? 0,
+        packingPrefCharge: i.packingPrefCharge ?? 0,
+      })),
     [state.state.items]
   );
 

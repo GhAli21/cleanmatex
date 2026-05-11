@@ -240,7 +240,7 @@ export class OrderPiecePreferenceService {
   }
 
   /**
-   * Recalculate service_pref_charge for order piece (sum of extra_price from piece prefs)
+   * Recalculate service_pref_charge for order piece (sum of extra_price from piece service + packing prefs)
    */
   static async recalcPieceServicePrefCharge(
     supabase: SupabaseClient,
@@ -254,7 +254,7 @@ export class OrderPiecePreferenceService {
         .eq('tenant_org_id', tenantId)
         .eq('order_item_piece_id', pieceId)
         .eq('prefs_level', 'PIECE')
-        .eq('preference_sys_kind', 'service_prefs');
+        .in('preference_sys_kind', ['service_prefs', 'packing_prefs']);
 
       const total = (prefs || []).reduce((acc, p) => acc + Number(p.extra_price), 0);
 

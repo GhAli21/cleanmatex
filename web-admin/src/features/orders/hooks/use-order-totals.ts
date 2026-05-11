@@ -34,12 +34,17 @@ export function useOrderTotals() {
       (sum, item) => sum + (item.servicePrefCharge ?? 0),
       0
     );
+    const packingPrefCharge = state.items.reduce(
+      (sum, item) => sum + (item.packingPrefCharge ?? 0),
+      0
+    );
 
     return {
       subtotal,
       itemCount,
       itemsCount: state.items.length,
       servicePrefCharge,
+      packingPrefCharge,
     };
   }, [state.items]);
 

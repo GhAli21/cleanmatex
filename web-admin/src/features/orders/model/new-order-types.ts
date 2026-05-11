@@ -142,6 +142,8 @@ export interface OrderItem {
   packingPrefSource?: string;
   /** FK — `org_packing_preference_cf.id` for item-level packing pref */
   packingCfId?: string | null;
+  /** Line-level packing surcharge from catalog (`org_packing_preference_cf.extra_price`). Not multiplied by quantity. */
+  packingPrefCharge?: number;
   /** Aggregated charge from service prefs. Included in order total. */
   servicePrefCharge?: number;
 }
@@ -275,7 +277,22 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
   | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
-  | { type: 'UPDATE_ITEM_PACKING_PREF'; payload: { productId: string; packingPrefCode: string; packingPrefIsOverride?: boolean; packingPrefSource?: string; packingCfId?: string | null } }
+  | {
+      type: 'UPDATE_ITEM_PACKING_PREF';
+      payload: {
+        productId: string;
+        packingPrefCode: string;
+        packingPrefIsOverride?: boolean;
+        packingPrefSource?: string;
+        packingCfId?: string | null;
+        /** Catalog surcharge for the selected code when set; 0 when clearing */
+        packingPrefCharge?: number;
+      };
+    }
+  | {
+      type: 'ADJUST_ITEM_PACKING_PREF_CHARGE';
+      payload: { productId: string; packingPrefCharge: number };
+    }
   | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }

@@ -5,6 +5,20 @@
 
 import type { NewOrderState, NewOrderAction, PreSubmissionPiece } from '../../model/new-order-types';
 
+/** Base line (qty × unit) plus service prefs charge and packing surcharge (catalog extra_price; per line, not × qty). */
+function itemLineBasePlusPrefCharges(item: {
+  quantity: number;
+  pricePerUnit: number;
+  servicePrefCharge?: number;
+  packingPrefCharge?: number;
+}): number {
+  return (
+    item.quantity * item.pricePerUnit +
+    (item.servicePrefCharge ?? 0) +
+    (item.packingPrefCharge ?? 0)
+  );
+}
+
 /**
  * Initial state
  */
@@ -137,8 +151,12 @@ export function newOrderReducer(
             ? {
                 ...item,
                 quantity: item.quantity + 1,
-                totalPrice:
-                  (item.quantity + 1) * item.pricePerUnit + (item.servicePrefCharge ?? 0),
+                totalPrice: itemLineBasePlusPrefCharges({
+                  quantity: item.quantity + 1,
+                  pricePerUnit: item.pricePerUnit,
+                  servicePrefCharge: item.servicePrefCharge,
+                  packingPrefCharge: item.packingPrefCharge,
+                }),
                 pieces: action.payload.pieces || item.pieces,
               }
             : item
@@ -212,7 +230,12 @@ export function newOrderReducer(
           return {
             ...item,
             quantity,
-            totalPrice: quantity * item.pricePerUnit + (item.servicePrefCharge ?? 0),
+            totalPrice: itemLineBasePlusPrefCharges({
+              quantity,
+              pricePerUnit: item.pricePerUnit,
+              servicePrefCharge: item.servicePrefCharge,
+              packingPrefCharge: item.packingPrefCharge,
+            }),
             pieces,
           };
         }),
@@ -235,7 +258,12 @@ export function newOrderReducer(
             ...item,
             pieces,
             quantity,
-            totalPrice: quantity * item.pricePerUnit + (item.servicePrefCharge ?? 0),
+            totalPrice: itemLineBasePlusPrefCharges({
+              quantity,
+              pricePerUnit: item.pricePerUnit,
+              servicePrefCharge: item.servicePrefCharge,
+              packingPrefCharge: item.packingPrefCharge,
+            }),
           };
         }),
       };
@@ -250,7 +278,12 @@ export function newOrderReducer(
                 ...item,
                 servicePrefs,
                 servicePrefCharge,
-                totalPrice: item.quantity * item.pricePerUnit + servicePrefCharge,
+                totalPrice: itemLineBasePlusPrefCharges({
+                  quantity: item.quantity,
+                  pricePerUnit: item.pricePerUnit,
+                  servicePrefCharge,
+                  packingPrefCharge: item.packingPrefCharge,
+                }),
               }
             : item
         ),
@@ -258,23 +291,65 @@ export function newOrderReducer(
     }
 
     case 'UPDATE_ITEM_PACKING_PREF': {
-      const { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource, packingCfId } = action.payload;
+      const {
+        productId,
+        packingPrefCode,
+        packingPrefIsOverride,
+        packingPrefSource,
+        packingCfId,
+        packingPrefCharge: packingChargePayload,
+      } = action.payload;
       const normalizedCode =
         packingPrefCode != null && String(packingPrefCode).trim() !== ''
           ? String(packingPrefCode).trim()
           : undefined;
       return {
         ...state,
+        items: state.items.map((item) => {
+          if (item.productId !== productId) return item;
+          const nextPk =
+            normalizedCode === undefined
+              ? undefined
+              : Math.max(0, Number(packingChargePayload ?? 0));
+          return {
+            ...item,
+            packingPrefCode: normalizedCode,
+            packingPrefIsOverride: packingPrefIsOverride ?? false,
+            packingPrefSource: packingPrefSource ?? 'manual',
+            ...(normalizedCode
+              ? { packingCfId: packingCfId ?? null, packingPrefCharge: nextPk }
+              : {
+                  packingCfId: undefined,
+                  packingPrefCharge: undefined,
+                }),
+            totalPrice: itemLineBasePlusPrefCharges({
+              quantity: item.quantity,
+              pricePerUnit: item.pricePerUnit,
+              servicePrefCharge: item.servicePrefCharge,
+              packingPrefCharge:
+                normalizedCode === undefined ? 0 : (nextPk ?? 0),
+            }),
+          };
+        }),
+      };
+    }
+
+    case 'ADJUST_ITEM_PACKING_PREF_CHARGE': {
+      const { productId, packingPrefCharge } = action.payload;
+      const pk = Math.max(0, Number(packingPrefCharge ?? 0));
+      return {
+        ...state,
         items: state.items.map((item) =>
           item.productId === productId
             ? {
                 ...item,
-                packingPrefCode: normalizedCode,
-                packingPrefIsOverride: packingPrefIsOverride ?? false,
-                packingPrefSource: packingPrefSource ?? 'manual',
-                ...(normalizedCode
-                  ? { packingCfId: packingCfId ?? null }
-                  : { packingCfId: undefined }),
+                packingPrefCharge: pk,
+                totalPrice: itemLineBasePlusPrefCharges({
+                  quantity: item.quantity,
+                  pricePerUnit: item.pricePerUnit,
+                  servicePrefCharge: item.servicePrefCharge,
+                  packingPrefCharge: pk,
+                }),
               }
             : item
         ),
@@ -306,7 +381,12 @@ export function newOrderReducer(
             overrideReason,
             overrideBy,
             pricePerUnit: effectivePrice,
-            totalPrice: item.quantity * effectivePrice + (item.servicePrefCharge ?? 0),
+            totalPrice: itemLineBasePlusPrefCharges({
+              quantity: item.quantity,
+              pricePerUnit: effectivePrice,
+              servicePrefCharge: item.servicePrefCharge,
+              packingPrefCharge: item.packingPrefCharge,
+            }),
           };
         }),
       };
@@ -338,7 +418,12 @@ export function newOrderReducer(
           return {
             ...item,
             pricePerUnit: newPricePerUnit,
-            totalPrice: item.quantity * newPricePerUnit + (item.servicePrefCharge ?? 0),
+            totalPrice: itemLineBasePlusPrefCharges({
+              quantity: item.quantity,
+              pricePerUnit: newPricePerUnit,
+              servicePrefCharge: item.servicePrefCharge,
+              packingPrefCharge: item.packingPrefCharge,
+            }),
           };
         }),
       };

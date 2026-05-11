@@ -203,6 +203,7 @@ export class PreferenceCatalogService {
             display_order: cf.display_order ?? s.display_order,
             is_active: true,
             packing_cf_id: typeof cf.id === 'string' ? cf.id : null,
+            default_extra_price: cf.extra_price != null ? Number(cf.extra_price) : 0,
           } as PackingPreference;
         })
         .filter((row): row is PackingPreference => row !== null);

@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
         productId: i.productId,
         quantity: i.quantity,
         servicePrefCharge: i.servicePrefCharge ?? 0,
+        packingPrefCharge: i.packingPrefCharge ?? 0,
       })),
       customerId: parsed.data.customerId,
       isExpress: parsed.data.isExpress ?? false,

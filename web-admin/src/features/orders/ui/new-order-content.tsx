@@ -47,6 +47,7 @@ import { EditOrderBar } from './edit-order-bar';
 import type { Product, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
 import { generatePiecesForItem } from '@/lib/utils/piece-helpers';
 import { calculateItemTotal } from '@/lib/utils/order-item-helpers';
+import { orderItemLinePackingCharge, packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 import { useBilingual } from '@/lib/utils/bilingual';
 
 /**
@@ -78,6 +79,7 @@ export function NewOrderContent() {
         conditionCatalog,
         packingPrefs,
     } = orderCatalog;
+    const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
     const {
         preferenceKinds,
         kindsLoading,
@@ -286,12 +288,18 @@ export function NewOrderContent() {
             const item = state.state.items.find((i) => i.productId === itemId);
             const prevPieces = item?.pieces ?? [];
             state.updateItemPieces(itemId, pieces);
+            if (item) {
+                state.adjustItemPackingCharge(
+                    itemId,
+                    orderItemLinePackingCharge({ ...item, pieces }, packingPriceByCode)
+                );
+            }
             if (pieces.length > prevPieces.length) {
                 const newPiece = pieces.find((p) => !prevPieces.some((prev) => prev.id === p.id));
                 if (newPiece) state.setSelectedPiece(newPiece.id);
             }
         },
-        [state]
+        [state, packingPriceByCode]
     );
 
     // Copy piece conditions/notes to all siblings
@@ -312,9 +320,13 @@ export function NewOrderContent() {
                 packingCfId: sourcePiece.packingCfId,
             }));
             state.updateItemPieces(itemId, updated);
+            state.adjustItemPackingCharge(
+                itemId,
+                orderItemLinePackingCharge({ ...item, pieces: updated }, packingPriceByCode)
+            );
             cmxMessage.success(t('pieces.copyToAllPieces') || 'Copied to all pieces');
         },
-        [state, t]
+        [state, t, packingPriceByCode]
     );
 
     const selectedConditions = useMemo(() => {

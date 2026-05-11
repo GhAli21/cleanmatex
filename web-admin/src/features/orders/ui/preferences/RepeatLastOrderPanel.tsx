@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { usePreferenceCatalog } from '../../hooks/use-preference-catalog';
@@ -16,6 +16,7 @@ import { cmxMessage } from '@ui/feedback';
 import { RotateCcw } from 'lucide-react';
 import type { ServicePreference, PackingPreference } from '@/lib/types/service-preferences';
 import type { LastOrderPrefItem } from '@/lib/services/preference-resolution.service';
+import { packingPreferencePriceMap } from '@/lib/utils/order-packing-charges';
 
 interface RepeatLastOrderPanelProps {
   /** Gate: show only when repeat last order enabled (Starter+) */
@@ -32,6 +33,8 @@ export function RepeatLastOrderPanel({
   const [loading, setLoading] = useState(false);
   const { servicePrefs, packingPrefs } = usePreferenceCatalog(branchId);
   const { state, updateItemServicePrefs, updateItemPackingPref } = useNewOrderStateWithDispatch();
+
+  const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
 
   const customerId = state.customer?.id;
   const hasItems = state.items.length > 0;
@@ -89,7 +92,14 @@ export function RepeatLastOrderPanel({
         if (match.packing_pref_code) {
           const packingCfId =
             match.packing_pref_cf_id ?? packingCfByCode.get(match.packing_pref_code) ?? null;
-          updateItemPackingPref(item.productId, match.packing_pref_code, true, 'repeat_last', packingCfId);
+          updateItemPackingPref(
+            item.productId,
+            match.packing_pref_code,
+            true,
+            'repeat_last',
+            packingCfId,
+            packingPriceByCode.get(match.packing_pref_code) ?? 0
+          );
         }
 
         if (match.service_pref_codes?.length) {

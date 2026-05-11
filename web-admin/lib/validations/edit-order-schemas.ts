@@ -52,6 +52,15 @@ export const updateOrderItemSchema = z.object({
   stainNotes: z.string().max(500).optional(),
   damageNotes: z.string().max(500).optional(),
   pieces: z.array(updateOrderPieceSchema).optional(),
+  /** Item-level service prefs (optional on update; used with charges for server recalc). */
+  servicePrefs: z.array(updateOrderPieceServicePrefSchema).optional(),
+  /** Surcharges mirroring new-order / create-with-payment (for `calculateOrderTotals` on recalc). */
+  servicePrefCharge: z.number().min(0).optional(),
+  packingPrefCharge: z.number().min(0).optional(),
+  packingPrefCode: z.string().max(100).optional(),
+  packingPrefIsOverride: z.boolean().optional(),
+  packingPrefSource: z.string().max(100).optional(),
+  packingCfId: z.string().uuid().optional().nullable(),
   priceOverride: z.number().nullable().optional(),
   overrideReason: z.string().max(500).nullable().optional(),
   overrideBy: z.string().uuid().nullable().optional(),

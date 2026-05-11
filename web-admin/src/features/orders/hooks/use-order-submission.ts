@@ -231,6 +231,7 @@ export function useOrderSubmission() {
                             servicePrefs: item.servicePrefs,
                         }),
                         servicePrefCharge: item.servicePrefCharge ?? 0,
+                        ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
                         ...(item.packingPrefCode && {
                             packingPrefCode: item.packingPrefCode,
                             packingPrefIsOverride: item.packingPrefIsOverride,
@@ -341,8 +342,9 @@ export function useOrderSubmission() {
                             overrideBy: item.overrideBy,
                             ...(item.servicePrefs && item.servicePrefs.length > 0 && {
                                 servicePrefs: item.servicePrefs,
-                                servicePrefCharge: item.servicePrefCharge ?? 0,
                             }),
+                            servicePrefCharge: item.servicePrefCharge ?? 0,
+                            ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
                             ...(item.packingPrefCode && {
                                 packingPrefCode: item.packingPrefCode,
                                 packingPrefIsOverride: item.packingPrefIsOverride,
@@ -661,6 +663,17 @@ export function useOrderSubmission() {
                     priceOverride: item.priceOverride,
                     overrideReason: item.overrideReason,
                     overrideBy: item.overrideBy,
+                    ...(item.servicePrefs && item.servicePrefs.length > 0 && {
+                        servicePrefs: item.servicePrefs,
+                    }),
+                    servicePrefCharge: item.servicePrefCharge ?? 0,
+                    ...(item.packingPrefCharge != null && { packingPrefCharge: item.packingPrefCharge }),
+                    ...(item.packingPrefCode && {
+                        packingPrefCode: item.packingPrefCode,
+                        packingPrefIsOverride: item.packingPrefIsOverride,
+                        packingPrefSource: item.packingPrefSource,
+                        ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
+                    }),
                 })),
                 express: state.state.express || false,
                 notes: sanitizedNotes,

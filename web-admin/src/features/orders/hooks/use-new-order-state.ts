@@ -30,7 +30,15 @@ export interface UseNewOrderStateWithDispatchReturn {
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
-  updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string, packingCfId?: string | null) => void;
+  updateItemPackingPref: (
+    productId: string,
+    packingPrefCode: string,
+    packingPrefIsOverride?: boolean,
+    packingPrefSource?: string,
+    packingCfId?: string | null,
+    packingPrefCharge?: number
+  ) => void;
+  adjustItemPackingCharge: (productId: string, packingPrefCharge: number) => void;
   updateItemNotes: (productId: string, notes: string) => void;
   updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
@@ -119,10 +127,31 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       });
     },
 
-    updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string, packingCfId?: string | null) => {
+    updateItemPackingPref: (
+      productId: string,
+      packingPrefCode: string,
+      packingPrefIsOverride?: boolean,
+      packingPrefSource?: string,
+      packingCfId?: string | null,
+      packingPrefCharge?: number
+    ) => {
       dispatch({
         type: 'UPDATE_ITEM_PACKING_PREF',
-        payload: { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource, packingCfId },
+        payload: {
+          productId,
+          packingPrefCode,
+          packingPrefIsOverride,
+          packingPrefSource,
+          packingCfId,
+          packingPrefCharge,
+        },
+      });
+    },
+
+    adjustItemPackingCharge: (productId: string, packingPrefCharge: number) => {
+      dispatch({
+        type: 'ADJUST_ITEM_PACKING_PREF_CHARGE',
+        payload: { productId, packingPrefCharge },
       });
     },
 

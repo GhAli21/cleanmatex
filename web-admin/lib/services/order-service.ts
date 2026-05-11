@@ -26,6 +26,51 @@ import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
+import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
+
+/** Packing codes from order item payload (ITEM + piece rows). */
+function collectPackingPrefCodesFromOrderPayload(
+  orderItems: ReadonlyArray<{
+    packingPrefCode?: string;
+    pieces?: ReadonlyArray<{ packingPrefCode?: string }>;
+  }>
+): string[] {
+  const c: string[] = [];
+  for (const it of orderItems) {
+    if (it.packingPrefCode) c.push(it.packingPrefCode);
+    for (const p of it.pieces ?? []) {
+      if (p.packingPrefCode) c.push(p.packingPrefCode);
+    }
+  }
+  return c;
+}
+
+function inferredPackingLineChargeOnCreateItem(
+  item: CreateOrderParams['items'][number],
+  map: Map<string, number>
+): number {
+  const pcs = item.pieces ?? [];
+  if (pcs.length === 0) {
+    return item.packingPrefCode ? map.get(item.packingPrefCode) ?? 0 : 0;
+  }
+  let sum = 0;
+  for (const p of pcs) {
+    const code = p.packingPrefCode ?? item.packingPrefCode;
+    if (code) sum += map.get(code) ?? 0;
+  }
+  return sum;
+}
+
+function persistedServicePrefChargeColumn(
+  item: CreateOrderParams['items'][number],
+  packingMap: Map<string, number>
+): number {
+  const packingLine =
+    item.packingPrefCharge !== undefined && item.packingPrefCharge !== null
+      ? Number(item.packingPrefCharge)
+      : inferredPackingLineChargeOnCreateItem(item, packingMap);
+  return (item.servicePrefCharge ?? 0) + packingLine;
+}
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -84,6 +129,8 @@ export interface CreateOrderParams {
     packingPrefIsOverride?: boolean;
     packingPrefSource?: string;
     packingCfId?: string | null;
+    /** Line packing surcharge from catalog (`org_packing_preference_cf.extra_price`); included in persisted `service_pref_charge` plus preference row `extra_price`. */
+    packingPrefCharge?: number;
     /** Aggregated charge from service prefs. Included in order total. */
     servicePrefCharge?: number;
   }>;
@@ -633,6 +680,12 @@ export class OrderService {
 
       // Create order items (only if not Quick Drop or if items were provided)
       if (items.length > 0) {
+        const packingPriceMapSb = await fetchOrgPackingExtraPriceByCodesSupabase(
+          supabase,
+          tenantId,
+          collectPackingPrefCodesFromOrderPayload(items)
+        );
+
         const itemsToInsert = items.map((item, index) => ({
           order_id: order.id,
           tenant_org_id: tenantId,
@@ -654,7 +707,7 @@ export class OrderService {
           packing_pref_code: item.packingPrefCode ?? null,
           packing_pref_is_override: item.packingPrefIsOverride ?? false,
           packing_pref_source: item.packingPrefSource ?? null,
-          service_pref_charge: item.servicePrefCharge ?? 0,
+          service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapSb),
         }));
 
         const { error: itemsError, data: createdItems } = await supabase
@@ -755,7 +808,7 @@ export class OrderService {
                 preference_sys_kind: 'packing_prefs',
                 prefs_owner_type: itemData.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
                 prefs_source: itemData.packingPrefSource ?? 'ORDER_CREATE',
-                extra_price: 0,
+                extra_price: packingPriceMapSb.get(itemData.packingPrefCode) ?? 0,
                 branch_id: branchId ?? null,
                 created_by: userId,
                 ...(itemData.packingCfId ? { preference_id: itemData.packingCfId } : {}),
@@ -833,7 +886,8 @@ export class OrderService {
                   },
                   piecesData, // Pass piece-level data array
                   branchId ?? undefined,
-                  supabase
+                  supabase,
+                  packingPriceMapSb
                 );
 
                 // If pieces creation failed, collect the error
@@ -1216,6 +1270,12 @@ export class OrderService {
     });
 
     if (items.length > 0) {
+      const packingPriceMapPrisma = await fetchOrgPackingExtraPriceByCodesPrismaTx(
+        tx,
+        tenantId,
+        collectPackingPrefCodesFromOrderPayload(items)
+      );
+
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         const createdItem = await tx.org_order_items_dtl.create({
@@ -1242,7 +1302,7 @@ export class OrderService {
             packing_pref_code: item.packingPrefCode ?? null,
             packing_pref_is_override: item.packingPrefIsOverride ?? false,
             packing_pref_source: item.packingPrefSource ?? null,
-            service_pref_charge: item.servicePrefCharge ?? 0,
+            service_pref_charge: persistedServicePrefChargeColumn(item, packingPriceMapPrisma),
           },
         });
 
@@ -1280,7 +1340,7 @@ export class OrderService {
               preference_sys_kind: 'packing_prefs',
               prefs_owner_type: item.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
               prefs_source: item.packingPrefSource ?? 'ORDER_CREATE',
-              extra_price: 0,
+              extra_price: packingPriceMapPrisma.get(item.packingPrefCode) ?? 0,
               branch_id: branchId ?? null,
               created_by: userId,
               ...(item.packingCfId ? { preference_id: item.packingCfId } : {}),
@@ -1295,6 +1355,15 @@ export class OrderService {
           for (let i = 0; i < item.quantity; i++) {
             const pieceInput = item.pieces?.[i];
             const pieceColors = effectivePieceColorsForPersist(pieceInput);
+            const piecePrefs = pieceInput?.servicePrefs ?? [];
+            const servicePrefChargePiece = piecePrefs.reduce(
+              (s, p) => s + Number(p.extra_price ?? 0),
+              0
+            );
+            const piecePackingCode = pieceInput?.packingPrefCode;
+            const packingChargePiece = piecePackingCode
+              ? packingPriceMapPrisma.get(piecePackingCode) ?? 0
+              : 0;
 
             const createdPiece = await tx.org_order_item_pieces_dtl.create({
               data: {
@@ -1320,6 +1389,7 @@ export class OrderService {
                 has_stain: pieceInput?.hasStain ?? false,
                 has_damage: pieceInput?.hasDamage ?? false,
                 packing_pref_code: pieceInput?.packingPrefCode ?? null,
+                service_pref_charge: servicePrefChargePiece + packingChargePiece,
               },
             });
 
@@ -1348,7 +1418,6 @@ export class OrderService {
             }
 
             // Save piece-level service prefs to org_order_preferences_dtl
-            const piecePrefs = pieceInput?.servicePrefs ?? [];
             if (piecePrefs.length > 0) {
               await tx.org_order_preferences_dtl.createMany({
                 data: piecePrefs.map((pref, pidx) => ({
@@ -1383,7 +1452,7 @@ export class OrderService {
                   preference_sys_kind: 'packing_prefs',
                   prefs_owner_type: 'SYSTEM',
                   prefs_source: prefsSourceOnCreate,
-                  extra_price: 0,
+                  extra_price: packingChargePiece,
                   branch_id: branchId ?? null,
                   created_by: userId,
                   ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
@@ -2224,9 +2293,11 @@ export class OrderService {
             const calculationResult = await calculateOrderTotals({
               tenantId,
               branchId: branchId ?? existingOrder.branch_id,
-              items: items.map(item => ({
+              items: items.map((item) => ({
                 productId: item.productId,
                 quantity: item.quantity,
+                servicePrefCharge: item.servicePrefCharge ?? 0,
+                packingPrefCharge: item.packingPrefCharge ?? 0,
               })),
               customerId: customerId ?? existingOrder.customer_id,
               isExpress: express ?? existingOrder.priority_multiplier === 0.5,
@@ -2247,6 +2318,12 @@ export class OrderService {
           const orderNo = existingOrder.order_no;
           const v_initialStatus = existingOrder.current_status || 'processing';
           const v_transitionFrom = existingOrder.current_stage || 'intake';
+
+          const packingPriceMapOrderEdit = await fetchOrgPackingExtraPriceByCodesPrismaTx(
+            tx,
+            tenantId,
+            collectPackingPrefCodesFromOrderPayload(items)
+          );
 
           for (let index = 0; index < items.length; index++) {
             const item = items[index];
@@ -2316,6 +2393,7 @@ export class OrderService {
               },
               piecesData,
               branchId ?? existingOrder.branch_id ?? undefined,
+              packingPriceMapOrderEdit,
               'ORDER_EDIT'
             );
           }

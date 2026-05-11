@@ -50,7 +50,7 @@ export function OrderPiecePreferencesSection({
     copySinglePreference,
     copyAllPreferences,
     updatePieceFields,
-  } = useNewOrderPiecePreferences();
+  } = useNewOrderPiecePreferences(packingPrefs);
   const getBilingual = useBilingual();
 
   useEffect(() => {

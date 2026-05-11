@@ -81,8 +81,10 @@ export const previewPaymentRequestSchema = z.object({
     z.object({
       productId: z.string().uuid(),
       quantity: z.number().positive(),
-      /** Service preference charge per item (e.g. starch, perfume). Included in subtotal. */
+      /** Service preference surcharge for the line. Included in subtotal. */
       servicePrefCharge: z.number().min(0).optional(),
+      /** Packing surcharge for the line (`org_packing_preference_cf.extra_price` roll-up). Included in subtotal. */
+      packingPrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
   branchId: z.preprocess(
@@ -169,6 +171,7 @@ export const createWithPaymentRequestSchema = z.object({
       packingPrefSource: z.string().optional(),
       packingCfId: z.string().uuid().optional().nullable(),
       servicePrefCharge: z.number().min(0).optional(),
+      packingPrefCharge: z.number().min(0).optional(),
     })
   ).min(1),
   isQuickDrop: z.boolean().optional(),

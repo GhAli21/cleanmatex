@@ -119,6 +119,7 @@ export class OrderPieceService {
     }>,
     branchId?: string,
     supabaseClient?: SupabaseClient,
+    packingExtraByCode?: Map<string, number>,
     preferencesSourceDefault: OrderPreferencesSourceDefault = 'ORDER_CREATE'
   ): Promise<{ success: boolean; pieces?: OrderItemPiece[]; error?: string }> {
     try {
@@ -149,6 +150,10 @@ export class OrderPieceService {
           (sum, p) => sum + Number(p.extra_price ?? 0),
           0
         );
+        const packingExtra =
+          pieceData?.packingPrefCode != null && pieceData.packingPrefCode !== ''
+            ? packingExtraByCode?.get(pieceData.packingPrefCode) ?? 0
+            : 0;
 
         const pieceColors = pieceData ? effectivePieceColorsForPersist(pieceData) : effectivePieceColorsForPersist(
           baseData.color ? { color: baseData.color } : undefined
@@ -186,7 +191,7 @@ export class OrderPieceService {
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
           metadata: pieceData?.metadata || baseData.metadata || {},
           packing_pref_code: pieceData?.packingPrefCode || null,
-          service_pref_charge: servicePrefCharge,
+          service_pref_charge: servicePrefCharge + packingExtra,
           created_by: null,
           created_info: null,
           rec_status: 1,
@@ -276,6 +281,7 @@ export class OrderPieceService {
         }
 
         if (pieceData.packingPrefCode) {
+          const packExtra = packingExtraByCode?.get(pieceData.packingPrefCode) ?? 0;
           const { error: packError } = await supabase.from('org_order_preferences_dtl').insert({
             tenant_org_id: tenantId,
             order_id: orderId,
@@ -287,7 +293,7 @@ export class OrderPieceService {
             preference_sys_kind: 'packing_prefs',
             prefs_owner_type: 'SYSTEM',
             prefs_source: preferencesSourceDefault,
-            extra_price: 0,
+            extra_price: packExtra,
             branch_id: branchId ?? null,
             ...(pieceData.packingCfId ? { preference_id: pieceData.packingCfId } : {}),
           });
@@ -423,6 +429,7 @@ export class OrderPieceService {
       conditions?: string[];
     }>,
     branchId?: string,
+    packingExtraByCode?: Map<string, number>,
     preferencesSourceDefault: OrderPreferencesSourceDefault = 'ORDER_CREATE'
   ): Promise<{ success: boolean; error?: string }> {
     try {
@@ -436,6 +443,10 @@ export class OrderPieceService {
           (sum, p) => sum + Number(p.extra_price ?? 0),
           0
         );
+        const packingExtra =
+          pieceData?.packingPrefCode != null && pieceData.packingPrefCode !== ''
+            ? packingExtraByCode?.get(pieceData.packingPrefCode) ?? 0
+            : 0;
 
         const pieceColors = pieceData ? effectivePieceColorsForPersist(pieceData) : effectivePieceColorsForPersist(
           baseData.color ? { color: baseData.color } : undefined
@@ -473,7 +484,7 @@ export class OrderPieceService {
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
           metadata: (pieceData?.metadata ?? baseData.metadata ?? {}) as object,
           packing_pref_code: pieceData?.packingPrefCode ?? null,
-          service_pref_charge: servicePrefCharge,
+          service_pref_charge: servicePrefCharge + packingExtra,
           created_by: null,
           created_info: null,
           rec_status: 1,
@@ -497,6 +508,11 @@ export class OrderPieceService {
         for (const pieceData of piecesData) {
           const createdPiece = createdPieces.find((p) => p.piece_seq === pieceData.pieceSeq);
           if (!createdPiece) continue;
+
+          const packExtraRow =
+            pieceData.packingPrefCode != null && pieceData.packingPrefCode !== ''
+              ? packingExtraByCode?.get(pieceData.packingPrefCode) ?? 0
+              : 0;
 
           const conditions = pieceData.conditions ?? [];
           const pieceSvcPrefs = pieceData.servicePrefs ?? [];
@@ -554,7 +570,7 @@ export class OrderPieceService {
                 preference_sys_kind: 'packing_prefs',
                 prefs_owner_type: 'SYSTEM',
                 prefs_source: preferencesSourceDefault,
-                extra_price: 0,
+                extra_price: packExtraRow,
                 branch_id: branchId ?? null,
                 ...(pieceData.packingCfId ? { preference_id: pieceData.packingCfId } : {}),
               },
