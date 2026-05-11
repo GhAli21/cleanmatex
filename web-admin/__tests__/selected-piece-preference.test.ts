@@ -37,6 +37,7 @@ describe('pieceToSelectedPreferences / applySelectedPreferencesToPiece', () => {
     expect(merged.conditions?.sort()).toEqual(['coffee', 'hole'].sort());
     expect(merged.servicePrefs?.[0]?.preference_code).toBe('STARCH');
     expect(merged.packingPrefCode).toBe('HANGER');
+    expect(merged.colorCodes).toEqual(['WHITE']);
     expect(merged.color).toBe('WHITE');
   });
 
@@ -71,5 +72,44 @@ describe('pieceToSelectedPreferences / applySelectedPreferencesToPiece', () => {
     });
     const renumbered = renumberPreferencesForPiece(a, piece.id);
     expect(renumbered.map((x) => x.prefs_no)).toEqual([1, 2]);
+  });
+
+  it('round-trips multiple colors in chip order', () => {
+    const piece: PreSubmissionPiece = {
+      ...basePiece(),
+      colorCodes: ['BLUE', 'WHITE'],
+    };
+    const chips = pieceToSelectedPreferences(piece);
+    expect(chips.filter((c) => c.preference_sys_kind === 'color').map((c) => c.preference_code)).toEqual([
+      'BLUE',
+      'WHITE',
+    ]);
+    const merged = applySelectedPreferencesToPiece(basePiece(), chips);
+    expect(merged.colorCodes).toEqual(['BLUE', 'WHITE']);
+    expect(merged.color).toBe('BLUE');
+  });
+
+  it('round-trips packing and service preference catalog ids when present', () => {
+    const cid = '00000000-0000-4000-a000-000000000011';
+    const pid = '00000000-0000-4000-a000-000000000022';
+    const piece: PreSubmissionPiece = {
+      ...basePiece(),
+      servicePrefs: [
+        {
+          preference_code: 'STARCH',
+          source: 'manual',
+          extra_price: 0,
+          preferenceCfId: cid,
+        },
+      ],
+      packingPrefCode: 'HANGER',
+      packingCfId: pid,
+    };
+    const chips = pieceToSelectedPreferences(piece);
+    expect(chips.find((c) => c.preference_sys_kind === 'service_prefs')?.preference_id).toBe(cid);
+    expect(chips.find((c) => c.preference_sys_kind === 'packing_prefs')?.preference_id).toBe(pid);
+    const merged = applySelectedPreferencesToPiece(basePiece(), chips);
+    expect(merged.servicePrefs?.[0]?.preferenceCfId).toBe(cid);
+    expect(merged.packingCfId).toBe(pid);
   });
 });

@@ -170,13 +170,15 @@ giftCards
 ├── statuses.{ DRAFT, GENERATED, ACTIVE, PARTIALLY_REDEEMED, FULLY_REDEEMED, EXPIRED, VOIDED, SUSPENDED }
 ├── issueTypes.{ SOLD, PROMOTIONAL, CORPORATE, GOODWILL, MIGRATION, REPLACEMENT }
 ├── cardTypes.{ FIXED_VALUE, PROMOTIONAL, CORPORATE }
-├── actions.{ sellCard, issueCard, activate, suspend, unsuspend, voidCard, adjustBalance, copyCode }
+├── actions.{ sellCard, issueCard, activate, suspend, unsuspend, voidCard, adjustBalance,
+│           copyCode, selectCustomer, suggestPin }
 ├── confirmations.{ voidTitle, voidMessage, suspendTitle, suspendMessage, activateTitle,
 │                  debitAdjustTitle, debitAdjustMessage }
 ├── fields.{ giftCardCode, issueType, cardType, availableBalance, originalAmount,
 │           redeemedAmount, activationDate, purchasedBy, recipient, currency,
 │           adjustType, adjustReason, credit, debit, pinOptional, sameAsBuyer,
-│           generatedNotice, newBalancePreview, balanceAfterApply, remainingDue }
+│           generatedNotice, newBalancePreview, balanceAfterApply, remainingDue,
+│           activateReminder }
 ├── errors.{ EXPIRED, SUSPENDED, VOIDED, INSUFFICIENT_BALANCE, INVALID_CODE, INVALID_PIN,
 │           MAX_REDEMPTIONS_REACHED, CURRENCY_MISMATCH }
 ├── pos.{ scanOrType, enterPin, checkBalance, applyCard, cardApplied, settlement }
@@ -254,8 +256,8 @@ Gift card **never** appears in the Discounts section.
 | File | Purpose |
 |---|---|
 | `src/features/marketing/ui/gift-card-list-screen.tsx` | Admin list with status/issue_type badges and lifecycle actions |
-| `src/features/marketing/ui/gift-card-sell-dialog.tsx` | Sell flow: auto-activates; shows generated code on success |
-| `src/features/marketing/ui/gift-card-issue-dialog.tsx` | Admin issue: GENERATED status + manual activation notice |
+| `src/features/marketing/ui/gift-card-sell-dialog.tsx` | Sell flow: auto-activates; tenant currency default; expiry defaults to Dec 31 current year; `CustomerPickerModal` for buyer/recipient; PIN show/hide + suggest; shows generated code on success |
+| `src/features/marketing/ui/gift-card-issue-dialog.tsx` | Admin issue: GENERATED status; same currency/expiry/customer/PIN UX as sell dialog; shows generated code + activation reminder on success |
 | `src/features/marketing/ui/gift-card-detail-dialog.tsx` | Full detail: new fields, destructive confirms, adjust dialog |
 | `src/features/marketing/ui/gift-card-transaction-log-screen.tsx` | All 6 TX types + idempotency_key |
 | `src/features/marketing/ui/gift-cards-liability-rprt.tsx` | Liability report: KPI cards + paginated table |
@@ -285,6 +287,13 @@ See [`Gift_Card_V2.md`](./Gift_Card_V2.md) for deferred items:
 - Customer notifications (email/SMS)
 - Customer app (claim, wallet, balance)
 - HQ cross-tenant features (cleanmatexsaas)
+
+**Completed from V2 backlog (2026-05-11):**
+- Customer search UI for Purchased By / Recipient fields — uses `CustomerPickerModal` (UUID text input removed)
+- Tenant currency auto-default in both sell and issue dialogs — uses `useTenantCurrency()`
+- Expiry date defaults to Dec 31 of current year
+- PIN suggestion button + show/hide toggle
+- Issue dialog now shows generated card code on success (same pattern as sell dialog)
 
 ---
 

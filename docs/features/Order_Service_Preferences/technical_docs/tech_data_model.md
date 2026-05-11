@@ -1,10 +1,12 @@
 ---
-version: v1.1.0
-last_updated: 2026-03-16
+version: v1.2.0
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
 # Service Preferences — Data Model
+
+**Canonical runtime architecture:** [preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md). This page is a **compact table glossary** (catalogs + key columns); it does not describe `prefs_level` / owner / source semantics or UI wiring in full.
 
 ## System Catalogs
 
@@ -22,11 +24,9 @@ author: CleanMateX Team
 
 ## Order Tables
 
-- **org_order_items_dtl** — packing_pref_code, packing_pref_is_override, packing_pref_source, service_pref_charge
-- **org_order_item_pieces_dtl** — packing_pref_code, service_pref_charge; **color** (JSONB, Migration 0167)
-- **org_order_preferences_dtl** — **Unified** ORDER/ITEM/PIECE preferences (Migration 0166)
-  - Replaces `org_order_item_service_prefs` and `org_order_item_pc_prefs`
-  - Columns: prefs_level, order_item_id, order_item_piece_id, preference_id, preference_code, preference_sys_kind, prefs_owner_type, prefs_source, extra_price, processing_confirmed, etc.
+- **org_order_preferences_dtl** — **Authoritative** ORDER/ITEM/PIECE preference rows (Migration **0166**; replaces `org_order_item_service_prefs` and `org_order_item_pc_prefs`). See canonical reference for `prefs_level`, `prefs_owner_type`, `prefs_source`, and **`packing_prefs`**. Rows may set **`preference_id`** to **`org_service_preference_cf.id`** (service + color) or **`org_packing_preference_cf.id`** (packing) when the write path knows the tenant catalog row (**multi-color** ⇒ multiple **`preference_sys_kind = 'color'`** rows).
+- **org_order_items_dtl** — Line-level **operational** fields (e.g. `packing_pref_code`, `service_pref_charge`); may **denormalize** packing/charges for workflow — not a second preference model.
+- **org_order_item_pieces_dtl** — Piece **operational** fields; **color** JSONB (Migration 0167) may exist for legacy/quick display — **catalog color choices** are still stored on **`org_order_preferences_dtl`** (`preference_sys_kind = 'color'`).
 
 ## Customer
 

@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { Pencil, Trash2 } from 'lucide-react';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
+import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
 
 function humanizePreferenceCode(code: string): string {
   if (!code) return '';
@@ -120,11 +121,11 @@ function SummaryCartItemComponent({
       const colorOpts = colorCatalog && colorCatalog.length > 0 ? colorCatalog : [];
       return pieces.map((piece) => {
         const labels: string[] = [];
-        if (piece.color) {
-          const colorEntry = colorOpts.find((c) => c.code === piece.color);
+        for (const code of pieceColorCodesForDisplay(piece)) {
+          const colorEntry = colorOpts.find((c) => c.code === code);
           labels.push(
-            labelForCode(piece.color, () =>
-              colorEntry ? (getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name) : humanizePreferenceCode(piece.color!)
+            labelForCode(code, () =>
+              colorEntry ? (getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name) : humanizePreferenceCode(code)
             )
           );
         }

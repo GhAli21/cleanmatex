@@ -46,8 +46,8 @@ export function PaymentMixWidget() {
         setData({
           cashPct: kpiData.payments.cashPct,
           onlinePct: kpiData.payments.onlinePct,
-          cardPct: 0, // TODO: Add card payments
-          otherPct: 0, // TODO: Add other payment methods
+          cardPct: kpiData.payments.cardPct,
+          otherPct: kpiData.payments.otherPct,
         })
       } catch (error) {
         console.error('Error fetching payment mix data:', error)

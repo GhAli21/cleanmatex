@@ -173,7 +173,8 @@
         "issuedToCustomer": "صادرة إلى",
         "notes": "ملاحظات",
         "isActive": "نشط",
-        "metadata": "بيانات إضافية"
+        "metadata": "بيانات إضافية",
+        "activateReminder": "البطاقة في حالة «مُولَّدة» — تذكّر تفعيلها من القائمة."
       },
       "status": {
         "active": "نشطة",
@@ -273,7 +274,9 @@
         "unsuspend": "رفع الإيقاف",
         "voidCard": "إلغاء البطاقة",
         "adjustBalance": "تعديل الرصيد",
-        "copyCode": "نسخ الرمز"
+        "copyCode": "نسخ الرمز",
+        "selectCustomer": "اختر عميلاً",
+        "suggestPin": "اقتراح"
       },
       "confirmations": {
         "voidTitle": "إلغاء بطاقة الهدية",
@@ -503,7 +506,13 @@
     "criticalCount": "{count} حرج",
     "viewAllIssues": "عرض جميع المشاكل",
     "noPaymentData": "لا توجد بيانات دفع متاحة",
-    "manageDrivers": "إدارة السائقين"
+    "manageDrivers": "إدارة السائقين",
+    "alertOverdueTitle": "طلبات تجاوزت موعد الجاهزية",
+    "alertOverdueMessage": "{count, plural, one {طلب واحد متجاوز لموعد الجاهزية.} other {# طلبات متجاوزة لموعد الجاهزية.}}",
+    "alertCriticalIssuesTitle": "مشكلات ذات أولوية مفتوحة",
+    "alertCriticalIssuesMessage": "{count, plural, one {مشكلة واحدة عالية أو عاجلة مفتوحة.} other {# مشكلات عالية أو عاجلة مفتوحة.}}",
+    "alertFailedStopsTitle": "فشل التوصيل",
+    "alertFailedStopsMessage": "{count, plural, one {توقف توصيل واحد فشل خلال آخر 30 يومًا.} other {# توقفات توصيل فشلت خلال آخر 30 يومًا.}}"
   },
   "invoices": {
     "title": "الفواتير",
@@ -1673,6 +1682,7 @@
       "apply": "تطبيق",
       "exportSelected": "تصدير المحدد",
       "noHistory": "لا يوجد سجل متاح",
+      "historyTitle": "سجل تغييرات القطعة",
       "previous": "السابق",
       "next": "التالي"
     },
@@ -2097,6 +2107,17 @@
     "userDeactivated": "تم تعطيل المستخدم بنجاح",
     "userActivated": "تم تفعيل المستخدم بنجاح",
     "cannotDeactivateSelf": "لا يمكنك تعطيل حسابك الخاص",
+    "teamLoadError": "تعذر تحميل أعضاء الفريق. يرجى التحديث والمحاولة مرة أخرى.",
+    "inviteInvalidEmail": "أدخل بريدًا إلكترونيًا صالحًا.",
+    "inviteSuccess": "تم إنشاء المستخدم. اطلب منه استخدام \"نسيت كلمة المرور\" في صفحة تسجيل الدخول لتحديد كلمة المرور، ما لم يرسل النظام بريد دعوة.",
+    "inviteError": "تعذر إنشاء المستخدم. تحقق من الصلاحيات وحاول مرة أخرى.",
+    "invitePasswordHint": "يضبط النظام كلمة مرور مؤقتة آمنة. يجب على المستخدم استخدام \"نسيت كلمة المرور\" في صفحة تسجيل الدخول لاختيار كلمة المرور الخاصة به ما لم يكن بريد الدعوة مفعّلًا على المنصة.",
+    "passwordResetUnavailable": "إعادة تعيين كلمة المرور من هذه الشاشة غير متاحة بعد. استخدم أدوات مسؤول المنصة، أو اطلب من المستخدم استخدام \"نسيت كلمة المرور\" في صفحة تسجيل الدخول.",
+    "teamActionError": "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    "userUpdateSuccess": "تم تحديث المستخدم بنجاح",
+    "emailReadOnlyHint": "لا يمكن تغيير البريد الإلكتروني من هنا.",
+    "confirmDeactivateMember": "تعطيل {email}؟ لن يتمكن من تسجيل الدخول بعد ذلك.",
+    "confirmActivateMember": "تفعيل {email}؟ سيتمكن من تسجيل الدخول مرة أخرى.",
     "billingCycle": "دورة الفوترة",
     "nextBilling": "تاريخ الفوترة التالي",
     "upgradePlan": "ترقية الخطة",

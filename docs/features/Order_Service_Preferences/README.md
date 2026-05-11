@@ -1,6 +1,6 @@
 ---
 version: v1.1.0
-last_updated: 2026-03-16
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
@@ -27,6 +27,7 @@ Service Preferences allow customers and operators to specify processing and pack
 
 ## Key Documentation
 
+- **[Preferences architecture — canonical reference](../../dev/preferences-architecture-reference.md)** (start here for full-stack semantics)
 - [Customer/Order/Item/Pieces Preferences — Unified Feature](../Customer_Order_Item_Pieces_Preferences/README.md)
 - [Implementation Plan Complete](IMPLEMENTATION_PLAN_COMPLETE.md)
 - [Technical Data Model](technical_docs/tech_data_model.md)

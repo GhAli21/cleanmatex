@@ -12,6 +12,7 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useBilingual } from '@/lib/utils/bilingual';
 import { Trash2, Plus, Copy } from 'lucide-react';
+import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
 import { STAIN_CONDITIONS } from '@/lib/types/order-creation';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
@@ -119,9 +120,9 @@ function ItemCartItemComponent({
   const pieceConditionLines: string[] = showPieces
     ? pieces.map((piece) => {
         const parts: string[] = [];
-        if (piece.color) {
-          const colorEntry = colorOptions.find((c) => c.code === piece.color);
-          parts.push(colorEntry ? getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name : piece.color);
+        for (const code of pieceColorCodesForDisplay(piece)) {
+          const colorEntry = colorOptions.find((c) => c.code === code);
+          parts.push(colorEntry ? getBilingual(colorEntry.name, colorEntry.name2 ?? undefined) || colorEntry.name : code);
         }
         (piece.conditions ?? []).forEach((code) => {
           const cond = STAIN_CONDITIONS.find((s) => s.code === code);

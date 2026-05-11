@@ -8,6 +8,10 @@
 import { useMemo } from 'react';
 import { useNewOrderState } from '../ui/context/new-order-context';
 import type { OrderItem, PreSubmissionPiece } from '../model/new-order-types';
+import {
+  extractColorCodesFromApiPiece,
+  pieceColorCodesForDisplay,
+} from '@/src/features/orders/lib/piece-color-utils';
 
 function normalizeReadyByAt(value: string | Date | null | undefined): string {
   if (!value) return '';
@@ -23,12 +27,14 @@ function piecesEqual(
   if (!a || !b || a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     const pa = a[i];
-    const pb = b[i] as { piece_seq?: number; color?: string; brand?: string; has_stain?: boolean; has_damage?: boolean; notes?: string; rack_location?: string };
+    const pb = b[i] as { piece_seq?: number; color?: unknown; brand?: string; has_stain?: boolean; has_damage?: boolean; notes?: string; rack_location?: string };
     const paSeq = pa.pieceSeq ?? i + 1;
     const pbSeq = pb.piece_seq ?? i + 1;
+    const colorA = JSON.stringify([...pieceColorCodesForDisplay(pa)].sort());
+    const colorB = JSON.stringify([...extractColorCodesFromApiPiece(pb)].sort());
     if (
       paSeq !== pbSeq ||
-      (pa.color ?? '') !== (pb.color ?? '') ||
+      colorA !== colorB ||
       (pa.brand ?? '') !== (pb.brand ?? '') ||
       (pa.hasStain ?? false) !== (pb.has_stain ?? false) ||
       (pa.hasDamage ?? false) !== (pb.has_damage ?? false) ||

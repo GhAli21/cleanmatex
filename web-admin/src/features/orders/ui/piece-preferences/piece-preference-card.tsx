@@ -16,6 +16,7 @@ import { PREFERENCE_MAIN_TYPES } from '@/lib/types/service-preferences';
 import type { PackingPreference, PreferenceKind, ServicePreference } from '@/lib/types/service-preferences';
 import type { PreSubmissionPiece } from '@/src/features/orders/model/new-order-types';
 import type { SelectedPreference } from '@/src/features/orders/lib/selected-piece-preference';
+import { pieceColorCodesForDisplay } from '@/src/features/orders/lib/piece-color-utils';
 import { PreferenceChip } from './preference-chip';
 import { PieceKindPickerDialog } from './piece-kind-picker-dialog';
 import {
@@ -401,10 +402,14 @@ export function PiecePreferenceCard({
         packingPrefCode={piece.packingPrefCode}
         pieceServicePrefs={piece.servicePrefs ?? []}
         selectedConditionCodes={piece.conditions ?? []}
-        selectedColorCode={piece.color}
-        onColorSelect={(code) => {
-          updatePieceFields(piece.id, { color: code });
-        }}
+        selectedColorCodes={pieceColorCodesForDisplay(piece)}
+        onColorsChange={(codes, cfIds) =>
+          updatePieceFields(piece.id, {
+            colorCodes: codes.length > 0 ? codes : undefined,
+            colorCfIds: codes.length > 0 ? cfIds : undefined,
+            color: codes[0],
+          })
+        }
         conditionCatalog={{
           stains: conditionCatalog.stains,
           damages: conditionCatalog.damages,
@@ -413,7 +418,12 @@ export function PiecePreferenceCard({
         prefsForKind={prefsForPicker}
         servicePrefsFallback={servicePrefsFallback}
         enforcePrefCompatibility={enforcePrefCompatibility}
-        onPackingChange={(code) => updatePieceFields(piece.id, { packingPrefCode: code })}
+        onPackingChange={(code, packingCfId) =>
+          updatePieceFields(piece.id, {
+            packingPrefCode: code,
+            ...(code ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
+          })
+        }
         onServicePrefsChange={(prefs) => updatePieceFields(piece.id, { servicePrefs: prefs })}
         onConditionToggle={(code) => {
           const cur = piece.conditions ?? [];

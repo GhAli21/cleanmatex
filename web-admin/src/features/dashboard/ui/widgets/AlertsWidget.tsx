@@ -18,6 +18,7 @@ import {
   XCircle,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { dashboardService } from '@/lib/services/dashboard.service'
 
 type AlertType = 'critical' | 'warning' | 'info'
 type AlertCategory = 'order' | 'payment' | 'system' | 'delivery'
@@ -45,14 +46,22 @@ export function AlertsWidget() {
 
       try {
         setIsLoading(true)
-
-        // TODO: Implement actual alerts query
-        // For now, using mock data to demonstrate the UI
-        const mockAlerts: Alert[] = []
-
-        setAlerts(mockAlerts)
+        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id)
+        const mapped: Alert[] = (kpi.alerts || []).map((a) => ({
+          id: a.id,
+          type: a.type,
+          category: a.category,
+          title: t(a.titleKey),
+          message: t(a.messageKey, {
+            ...(a.messageValues as Record<string, number>),
+          }),
+          timestamp: new Date(a.messageAt),
+          actionUrl: a.actionUrl,
+        }))
+        setAlerts(mapped)
       } catch (error) {
         console.error('Error fetching alerts:', error)
+        setAlerts([])
       } finally {
         setIsLoading(false)
       }
@@ -112,10 +121,12 @@ export function AlertsWidget() {
 
   return (
     <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div
+        className={`flex items-center justify-between mb-4 ${isRTL ? 'flex-row-reverse' : ''}`}
+      >
         <h3 className="text-lg font-semibold text-gray-900">{t('alerts')}</h3>
         <div
-          className={`p-2 rounded-lg ${
+          className={`relative inline-flex p-2 rounded-lg ${
             criticalCount > 0
               ? 'bg-red-50 text-red-600'
               : warningCount > 0
@@ -125,7 +136,11 @@ export function AlertsWidget() {
         >
           <Bell className="h-5 w-5" />
           {hasAlerts && (
-            <span className="absolute -mt-2 -mr-2 px-2 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full">
+            <span
+              className={`absolute -top-1 min-w-[1.25rem] px-1 py-0.5 text-xs font-semibold bg-red-500 text-white rounded-full text-center ${
+                isRTL ? '-left-1' : '-right-1'
+              }`}
+            >
               {alerts.length}
             </span>
           )}

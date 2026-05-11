@@ -1,12 +1,16 @@
 ---
 version: v1.0.0
-last_updated: 2026-03-16
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
 # Unified Preferences Migrations 0165–0169
 
+**Scope:** **Migration rollout, post-steps, and rollback** for versions **0165–0169** only. It does **not** replace the full prefs architecture (**preference kinds 0171+**, `prefs_owner_type` / `prefs_source`, New Order APIs, etc.). For that use **[preferences-architecture-reference.md](./preferences-architecture-reference.md)** (`§12` links back here).
+
 Part of the **Customer/Order/Item/Pieces Preferences** feature. Migrations must be applied in order. **Do not run `supabase db reset`** — apply via `supabase db push` or your normal migration workflow.
+
+For current end-to-end architecture (preference kinds table, catalogs, packing, New Order APIs), see **[preferences-architecture-reference.md](./preferences-architecture-reference.md)**.
 
 ## Migration Order
 
@@ -54,3 +58,11 @@ supabase db push
 5. Reverse 0165: Remove new columns from sys_service_preference_cd and org_service_preference_cf
 
 Document rollback steps in migration comments if needed for your environment.
+
+## Related (post-0169 preferences RPC)
+
+| Version | File | Purpose |
+|---------|------|---------|
+| 0260 | `0260_get_last_order_preferences_catalog_ids.sql` | Extends **`get_last_order_preferences`** with **`packing_pref_cf_id`** and **`service_prefs_catalog`** for Repeat Last Order + **`org_order_preferences_dtl.preference_id`** alignment in the client. Apply after **0169**. |
+
+Details: **`docs/dev/preferences-architecture-reference.md`** §8.2, §12.

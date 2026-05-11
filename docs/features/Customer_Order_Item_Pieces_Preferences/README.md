@@ -1,6 +1,6 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-16
+version: v1.2.0
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
@@ -12,10 +12,12 @@ The **Customer/Order/Item/Pieces Preferences** feature extends the Order Service
 
 - **Service preferences** (starch, perfume, delicate, etc.) at ORDER, ITEM, or PIECE level
 - **Conditions** (stains, damage, special care) at piece level
-- **Colors** at piece level (with JSONB storage)
-- **Notes** at piece level
+- **Colors** — catalog-backed **multi-select** on **`org_order_preferences_dtl`** (`preference_sys_kind = 'color'`; one row per chosen color with optional **`preference_id`** → **`org_service_preference_cf`**); piece-row JSON **`color`** supports **`codes` / `primary`** denormalization
+- **Notes** — free-text **`note`** rows on **`org_order_preferences_dtl`**; piece `notes` column may duplicate for UX/legacy paths
 
 This replaces the legacy tables `org_order_item_service_prefs` and `org_order_item_pc_prefs`.
+
+**Canonical architecture (layers, preference kinds, catalogs, APIs, authoritative `org_order_preferences_dtl`):** [preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md).
 
 ## Architecture
 
@@ -60,7 +62,7 @@ flowchart TB
 
 ### New Order — Preferences Section
 
-- **Quick Apply** tab: Care Packages, Repeat Last Order, Smart Suggestions
+- **Quick Apply** tab: Care Packages, Repeat Last Order (**`0260`** enriches last-order RPC with packing/service catalog ids — see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.2), Smart Suggestions
 - **Service Preferences** tab: Per-item or per-piece service prefs (starch, perfume, delicate, etc.)
 - **Item details table**: Packing preferences only (service prefs moved to the tab)
 
@@ -75,6 +77,7 @@ flowchart TB
 
 ## Related Documentation
 
+- [Preferences architecture — canonical reference](../../dev/preferences-architecture-reference.md) (**start here** for full-stack prefs)
 - [Order Service Preferences — Technical Data Model](../Order_Service_Preferences/technical_docs/tech_data_model.md)
 - [Order Service Preferences — Developer Guide](../Order_Service_Preferences/developer_guide.md)
 - [Unified Migrations 0165–0169](../../dev/preferences-unified-migrations-0165-0169.md)

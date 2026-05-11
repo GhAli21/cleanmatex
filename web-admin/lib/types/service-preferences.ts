@@ -83,6 +83,8 @@ export interface ServicePreference {
   is_show_in_quick_bar?: boolean | null;
   is_used_by_system?: boolean | null;
   is_allow_to_show_for_user?: boolean | null;
+  /** Tenant row id — `org_service_preference_cf.id` (persist to `org_order_preferences_dtl.preference_id`). */
+  preference_cf_id?: string | null;
 }
 
 export interface PackingPreference {
@@ -95,6 +97,8 @@ export interface PackingPreference {
   sustainability_score?: number | null;
   display_order?: number | null;
   is_active: boolean;
+  /** Tenant row id — `org_packing_preference_cf.id`. */
+  packing_cf_id?: string | null;
 }
 
 // ============================================================================

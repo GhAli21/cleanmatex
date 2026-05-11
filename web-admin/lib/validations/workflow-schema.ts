@@ -154,6 +154,8 @@ export const OrderHistoryEntrySchema = z.object({
 export const CreateOrderPieceDataSchema = z.object({
   pieceSeq: z.number().positive(),
   color: z.string().optional(),
+  colorCodes: z.array(z.string()).optional(),
+  colorCfIds: z.array(z.union([z.string().uuid(), z.null()])).optional(),
   brand: z.string().optional(),
   hasStain: z.boolean().optional(),
   hasDamage: z.boolean().optional(),
@@ -161,6 +163,14 @@ export const CreateOrderPieceDataSchema = z.object({
   rackLocation: z.string().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
   conditions: z.array(z.string()).optional(),
+  packingPrefCode: z.string().optional(),
+  packingCfId: z.string().uuid().optional().nullable(),
+  servicePrefs: z.array(z.object({
+    preference_code: z.string(),
+    source: z.string().optional(),
+    extra_price: z.number().optional(),
+    preferenceCfId: z.string().uuid().optional().nullable(),
+  })).optional(),
 });
 
 const CreateOrderTotalsSchema = z.object({
@@ -187,6 +197,14 @@ export const CreateOrderRequestSchema = z.object({
     hasDamage: z.boolean().optional(),
     stainNotes: z.string().optional(),
     damageNotes: z.string().optional(),
+    packingPrefCode: z.string().optional(),
+    packingCfId: z.string().uuid().optional().nullable(),
+    servicePrefs: z.array(z.object({
+      preference_code: z.string(),
+      source: z.string().optional(),
+      extra_price: z.number().optional(),
+      preferenceCfId: z.string().uuid().optional().nullable(),
+    })).optional(),
     pieces: z.array(CreateOrderPieceDataSchema).optional(), // Optional piece-level data for order items
   })),
   isQuickDrop: z.boolean().optional(),

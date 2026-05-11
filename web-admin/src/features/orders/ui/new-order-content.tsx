@@ -303,9 +303,13 @@ export function NewOrderContent() {
             const updated = item.pieces.map((p) => ({
                 ...p,
                 color: sourcePiece.color,
+                colorCodes: sourcePiece.colorCodes,
+                colorCfIds: sourcePiece.colorCfIds,
                 conditions: sourcePiece.conditions,
                 notes: sourcePiece.notes,
                 servicePrefs: sourcePiece.servicePrefs,
+                packingPrefCode: sourcePiece.packingPrefCode,
+                packingCfId: sourcePiece.packingCfId,
             }));
             state.updateItemPieces(itemId, updated);
             cmxMessage.success(t('pieces.copyToAllPieces') || 'Copied to all pieces');

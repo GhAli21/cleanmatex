@@ -25,6 +25,7 @@ import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { DEFAULT_ORDER_SOURCE_CODE } from '@/lib/constants/order-sources';
 import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/lib/services/order-source-policy';
 import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
+import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 
 /** Prisma transaction client for use inside $transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -32,6 +33,9 @@ type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 export interface CreateOrderPieceData {
   pieceSeq: number;
   color?: string;
+  colorCodes?: string[];
+  /** Tenant CF ids for `color` rows — `org_service_preference_cf.id` */
+  colorCfIds?: (string | null | undefined)[];
   brand?: string;
   hasStain?: boolean;
   hasDamage?: boolean;
@@ -39,8 +43,9 @@ export interface CreateOrderPieceData {
   rackLocation?: string;
   metadata?: Record<string, any>;
   packingPrefCode?: string;
+  packingCfId?: string | null;
   /** Piece-level service prefs (Enterprise-gated) */
-  servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number }>;
+  servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number; preferenceCfId?: string | null }>;
   /** Piece-level conditions (stains, damage, special) */
   conditions?: string[];
 }
@@ -50,6 +55,7 @@ export interface CreateOrderServicePref {
   preference_code: string;
   source: string;
   extra_price: number;
+  preferenceCfId?: string | null;
 }
 
 export interface CreateOrderParams {
@@ -77,6 +83,7 @@ export interface CreateOrderParams {
     packingPrefCode?: string;
     packingPrefIsOverride?: boolean;
     packingPrefSource?: string;
+    packingCfId?: string | null;
     /** Aggregated charge from service prefs. Included in order total. */
     servicePrefCharge?: number;
   }>;
@@ -685,6 +692,7 @@ export class OrderService {
             extra_price: number;
             branch_id: string | null;
             created_by: string;
+            preference_id?: string;
           }> = [];
           for (let i = 0; i < createdItems.length; i++) {
             const createdItem = createdItems[i];
@@ -704,6 +712,7 @@ export class OrderService {
                   extra_price: pref.extra_price,
                   branch_id: branchId ?? null,
                   created_by: userId,
+                  ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
                 });
               });
             }
@@ -749,6 +758,7 @@ export class OrderService {
                 extra_price: 0,
                 branch_id: branchId ?? null,
                 created_by: userId,
+                ...(itemData.packingCfId ? { preference_id: itemData.packingCfId } : {}),
               };
             })
             .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -789,6 +799,8 @@ export class OrderService {
                   ? itemData.pieces.map((piece, index) => ({
                     pieceSeq: piece.pieceSeq || index + 1,
                     color: piece.color,
+                    colorCodes: piece.colorCodes,
+                    colorCfIds: piece.colorCfIds,
                     brand: piece.brand,
                     hasStain: piece.hasStain ?? itemData.hasStain,
                     hasDamage: piece.hasDamage ?? itemData.hasDamage,
@@ -796,6 +808,7 @@ export class OrderService {
                     rackLocation: piece.rackLocation,
                     metadata: piece.metadata || {},
                     packingPrefCode: piece.packingPrefCode,
+                    packingCfId: piece.packingCfId,
                     servicePrefs: piece.servicePrefs,
                     conditions: piece.conditions,
                   }))
@@ -1249,6 +1262,7 @@ export class OrderService {
               extra_price: pref.extra_price,
               branch_id: branchId ?? null,
               created_by: userId,
+              ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
             })),
           });
         }
@@ -1269,6 +1283,7 @@ export class OrderService {
               extra_price: 0,
               branch_id: branchId ?? null,
               created_by: userId,
+              ...(item.packingCfId ? { preference_id: item.packingCfId } : {}),
             },
           });
         }
@@ -1279,6 +1294,7 @@ export class OrderService {
 
           for (let i = 0; i < item.quantity; i++) {
             const pieceInput = item.pieces?.[i];
+            const pieceColors = effectivePieceColorsForPersist(pieceInput);
 
             const createdPiece = await tx.org_order_item_pieces_dtl.create({
               data: {
@@ -1296,7 +1312,10 @@ export class OrderService {
                 piece_status: v_initialStatus,
                 is_rejected: false,
                 is_ready: false,
-                color: pieceInput?.color ? { codes: [pieceInput.color], primary: pieceInput.color } : undefined,
+                color:
+                  pieceColors.codes.length > 0
+                    ? { codes: pieceColors.codes, primary: pieceColors.codes[0] }
+                    : undefined,
                 notes: pieceInput?.notes ?? null,
                 has_stain: pieceInput?.hasStain ?? false,
                 has_damage: pieceInput?.hasDamage ?? false,
@@ -1345,6 +1364,7 @@ export class OrderService {
                   extra_price: pref.extra_price,
                   branch_id: branchId ?? null,
                   created_by: userId,
+                  ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
                 })),
               });
             }
@@ -1366,33 +1386,37 @@ export class OrderService {
                   extra_price: 0,
                   branch_id: branchId ?? null,
                   created_by: userId,
+                  ...(pieceInput.packingCfId ? { preference_id: pieceInput.packingCfId } : {}),
                 },
               });
             }
 
             const packingOffset = pieceInput?.packingPrefCode ? 1 : 0;
 
-            // Save piece color to org_order_preferences_dtl (PIECE level)
-            if (pieceInput?.color) {
-              await tx.org_order_preferences_dtl.create({
-                data: {
+            // Save piece color(s) to org_order_preferences_dtl (PIECE level)
+            if (pieceColors.codes.length > 0) {
+              await tx.org_order_preferences_dtl.createMany({
+                data: pieceColors.codes.map((code, ci) => ({
                   tenant_org_id: tenantId,
                   order_id: order.id,
-                  prefs_no: conditions.length + piecePrefs.length + packingOffset + 1,
+                  prefs_no: conditions.length + piecePrefs.length + packingOffset + ci + 1,
                   prefs_level: 'PIECE',
                   order_item_id: createdItem.id,
                   order_item_piece_id: createdPiece.id,
-                  preference_code: pieceInput.color,
+                  preference_code: code,
                   preference_sys_kind: 'color',
                   prefs_source: prefsSourceOnCreate,
                   extra_price: 0,
                   branch_id: branchId ?? null,
                   created_by: userId,
-                },
+                  ...(pieceColors.cfIds[ci]
+                    ? { preference_id: pieceColors.cfIds[ci] as string }
+                    : {}),
+                })),
               });
             }
 
-            const colorOffset = pieceInput?.color ? 1 : 0;
+            const colorOffset = pieceColors.codes.length;
 
             // Save piece notes to org_order_preferences_dtl (PIECE level)
             if (pieceInput?.notes) {
@@ -2257,15 +2281,18 @@ export class OrderService {
               ? item.pieces.map((piece, idx) => ({
                 pieceSeq: piece.pieceSeq || idx + 1,
                 color: piece.color,
+                colorCodes: piece.colorCodes,
+                colorCfIds: piece.colorCfIds,
                 brand: piece.brand,
                 hasStain: piece.hasStain ?? item.hasStain,
                 hasDamage: piece.hasDamage ?? item.hasDamage,
                 notes: piece.notes || item.notes,
                 rackLocation: piece.rackLocation,
                 metadata: piece.metadata || {},
-                packingPrefCode: (piece as any).packingPrefCode,
-                servicePrefs: (piece as any).servicePrefs,
-                conditions: (piece as any).conditions,
+                packingPrefCode: piece.packingPrefCode,
+                packingCfId: piece.packingCfId,
+                servicePrefs: piece.servicePrefs,
+                conditions: piece.conditions,
               }))
               : undefined;
 

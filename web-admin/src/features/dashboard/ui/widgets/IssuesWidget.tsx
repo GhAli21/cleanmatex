@@ -45,8 +45,8 @@ export function IssuesWidget() {
         setData({
           open: kpiData.issues.open,
           last7d: kpiData.issues.last7d,
-          critical: 0, // TODO: Add critical issues count
-          resolved: 0, // TODO: Add resolved issues count
+          critical: kpiData.issues.critical,
+          resolved: kpiData.issues.resolved,
         })
       } catch (error) {
         console.error('Error fetching issues data:', error)

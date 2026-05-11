@@ -14,7 +14,8 @@ import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { CmxButton } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { RotateCcw } from 'lucide-react';
-import type { ServicePreference } from '@/lib/types/service-preferences';
+import type { ServicePreference, PackingPreference } from '@/lib/types/service-preferences';
+import type { LastOrderPrefItem } from '@/lib/services/preference-resolution.service';
 
 interface RepeatLastOrderPanelProps {
   /** Gate: show only when repeat last order enabled (Starter+) */
@@ -29,7 +30,7 @@ export function RepeatLastOrderPanel({
   const t = useTranslations('newOrder.preferences');
   const isRTL = useRTL();
   const [loading, setLoading] = useState(false);
-  const { servicePrefs } = usePreferenceCatalog(branchId);
+  const { servicePrefs, packingPrefs } = usePreferenceCatalog(branchId);
   const { state, updateItemServicePrefs, updateItemPackingPref } = useNewOrderStateWithDispatch();
 
   const customerId = state.customer?.id;
@@ -61,14 +62,14 @@ export function RepeatLastOrderPanel({
       const priceMap = new Map<string, number>(
         servicePrefs.map((s: ServicePreference) => [s.code, s.default_extra_price])
       );
+      const packingCfByCode = new Map<string, string | null>(
+        packingPrefs.map((p: PackingPreference) => [p.code, p.packing_cf_id ?? null])
+      );
+      const serviceCfByCode = new Map<string, string | null>(
+        servicePrefs.map((s: ServicePreference) => [s.code, s.preference_cf_id ?? null])
+      );
 
-      // Map last order items by product_id and service_category_code
-      const lastItems = json.data as Array<{
-        product_id: string;
-        service_category_code: string | null;
-        packing_pref_code: string | null;
-        service_pref_codes: string[];
-      }>;
+      const lastItems = json.data as LastOrderPrefItem[];
 
       // Apply to current items: match by product_id or service_category_code
       state.items.forEach((item) => {
@@ -78,8 +79,17 @@ export function RepeatLastOrderPanel({
 
         if (!match) return;
 
+        const orderServiceCfByCode = new Map<string, string | null>(
+          (match.service_prefs_catalog ?? []).map((row) => [
+            row.preference_code,
+            row.preference_id,
+          ])
+        );
+
         if (match.packing_pref_code) {
-          updateItemPackingPref(item.productId, match.packing_pref_code, true, 'repeat_last');
+          const packingCfId =
+            match.packing_pref_cf_id ?? packingCfByCode.get(match.packing_pref_code) ?? null;
+          updateItemPackingPref(item.productId, match.packing_pref_code, true, 'repeat_last', packingCfId);
         }
 
         if (match.service_pref_codes?.length) {
@@ -91,11 +101,16 @@ export function RepeatLastOrderPanel({
 
           const newPrefs = [
             ...existing,
-            ...toAdd.map((code) => ({
-              preference_code: code,
-              source: 'repeat_last' as const,
-              extra_price: priceMap.get(code) ?? 0,
-            })),
+            ...toAdd.map((code) => {
+              const fromLastOrder = orderServiceCfByCode.get(code) ?? null;
+              const fromCatalog = serviceCfByCode.get(code) ?? null;
+              return {
+                preference_code: code,
+                source: 'repeat_last' as const,
+                extra_price: priceMap.get(code) ?? 0,
+                preferenceCfId: fromLastOrder ?? fromCatalog ?? undefined,
+              };
+            }),
           ];
           const charge = newPrefs.reduce((sum, p) => sum + p.extra_price, 0);
           updateItemServicePrefs(item.productId, newPrefs, charge);

@@ -420,7 +420,7 @@ docs/         # All documentation
 - **TODO completion docs:** `docs/dev/CompletePendingAndTODOCodes_13022026/` â€” per-item implementation details
 - **Common Issues:** `.claude/skills/debugging/common-issues.md`
 - **Settings Reference:** `.claude/docs/settings-reference.md` â€” when to use `sys_tenant_settings_cd` vs Allsettings files
-- **Preferences (unified):** `docs/features/Customer_Order_Item_Pieces_Preferences/README.md` â€” org_order_preferences_dtl, conditions/colors; migrations 0165â€“0169 in `docs/dev/preferences-unified-migrations-0165-0169.md`
+- **Preferences (unified):** **`docs/dev/preferences-architecture-reference.md`** (canonical); `docs/features/Customer_Order_Item_Pieces_Preferences/README.md`; migrations 0165â€“0169 in `docs/dev/preferences-unified-migrations-0165-0169.md`
 
 ## Key Guardrails
 

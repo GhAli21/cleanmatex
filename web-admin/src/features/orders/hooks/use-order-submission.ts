@@ -209,6 +209,8 @@ export function useOrderSubmission() {
                             pieces: item.pieces.map((piece) => ({
                                 pieceSeq: piece.pieceSeq,
                                 color: piece.color,
+                                ...(piece.colorCodes?.length ? { colorCodes: piece.colorCodes } : {}),
+                                ...(piece.colorCfIds?.length ? { colorCfIds: piece.colorCfIds } : {}),
                                 brand: piece.brand,
                                 hasStain: piece.hasStain,
                                 hasDamage: piece.hasDamage,
@@ -218,6 +220,7 @@ export function useOrderSubmission() {
                                 conditions: piece.conditions,
                                 ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                     packingPrefCode: piece.packingPrefCode,
+                                    packingCfId: piece.packingCfId ?? null,
                                 }),
                                 ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                     servicePrefs: piece.servicePrefs,
@@ -232,6 +235,7 @@ export function useOrderSubmission() {
                             packingPrefCode: item.packingPrefCode,
                             packingPrefIsOverride: item.packingPrefIsOverride,
                             packingPrefSource: item.packingPrefSource,
+                            ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
                         }),
                     })),
                     isQuickDrop: state.state.isQuickDrop || false,
@@ -314,6 +318,8 @@ export function useOrderSubmission() {
                                 pieces: item.pieces.map((piece) => ({
                                     pieceSeq: piece.pieceSeq,
                                     color: piece.color,
+                                    ...(piece.colorCodes?.length ? { colorCodes: piece.colorCodes } : {}),
+                                    ...(piece.colorCfIds?.length ? { colorCfIds: piece.colorCfIds } : {}),
                                     brand: piece.brand,
                                     hasStain: piece.hasStain,
                                     hasDamage: piece.hasDamage,
@@ -323,6 +329,7 @@ export function useOrderSubmission() {
                                     conditions: piece.conditions,
                                     ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                         packingPrefCode: piece.packingPrefCode,
+                                        packingCfId: piece.packingCfId ?? null,
                                     }),
                                     ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                         servicePrefs: piece.servicePrefs,
@@ -340,6 +347,7 @@ export function useOrderSubmission() {
                                 packingPrefCode: item.packingPrefCode,
                                 packingPrefIsOverride: item.packingPrefIsOverride,
                                 packingPrefSource: item.packingPrefSource,
+                                ...(item.packingCfId ? { packingCfId: item.packingCfId } : {}),
                             }),
                         })),
                         express: state.state.express || false,
@@ -632,6 +640,8 @@ export function useOrderSubmission() {
                         pieces: item.pieces.map((piece) => ({
                             pieceSeq: piece.pieceSeq,
                             color: piece.color,
+                            ...(piece.colorCodes?.length ? { colorCodes: piece.colorCodes } : {}),
+                            ...(piece.colorCfIds?.length ? { colorCfIds: piece.colorCfIds } : {}),
                             brand: piece.brand,
                             hasStain: piece.hasStain,
                             hasDamage: piece.hasDamage,
@@ -641,6 +651,7 @@ export function useOrderSubmission() {
                             conditions: piece.conditions,
                             ...(packingPerPieceEnabled && piece.packingPrefCode && {
                                 packingPrefCode: piece.packingPrefCode,
+                                packingCfId: piece.packingCfId ?? null,
                             }),
                             ...(piece.servicePrefs && piece.servicePrefs.length > 0 && {
                                 servicePrefs: piece.servicePrefs,

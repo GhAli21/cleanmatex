@@ -20,6 +20,8 @@ export const preSubmissionPieceSchema = z.object({
   itemId: z.string().uuid(),
   pieceSeq: z.number().int().positive(),
   color: z.string().optional(),
+  colorCodes: z.array(z.string()).optional(),
+  colorCfIds: z.array(z.union([z.string().uuid(), z.null()])).optional(),
   brand: z.string().optional(),
   hasStain: z.boolean().optional(),
   hasDamage: z.boolean().optional(),

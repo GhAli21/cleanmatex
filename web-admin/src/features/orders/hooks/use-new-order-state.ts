@@ -30,7 +30,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   updateItemQuantity: (productId: string, quantity: number) => void;
   updateItemPieces: (productId: string, pieces: PreSubmissionPiece[] | undefined) => void;
   updateItemServicePrefs: (productId: string, servicePrefs: OrderItemServicePref[], servicePrefCharge: number) => void;
-  updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string) => void;
+  updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string, packingCfId?: string | null) => void;
   updateItemNotes: (productId: string, notes: string) => void;
   updateItemPriceOverride: (productId: string, priceOverride: number | null, overrideReason: string, overrideBy: string) => void;
   setQuickDrop: (value: boolean) => void;
@@ -55,7 +55,7 @@ export interface UseNewOrderStateWithDispatchReturn {
   resetOrder: () => void;
   setSelectedPiece: (pieceId: string | null) => void;
   updatePieceConditions: (pieceId: string, conditions: string[]) => void;
-  updatePieceColor: (pieceId: string, color: string | undefined) => void;
+  updatePieceColor: (pieceId: string, color: string | undefined, colorCodes?: string[], colorCfIds?: (string | null)[]) => void;
 }
 
 /**
@@ -119,10 +119,10 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       });
     },
 
-    updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string) => {
+    updateItemPackingPref: (productId: string, packingPrefCode: string, packingPrefIsOverride?: boolean, packingPrefSource?: string, packingCfId?: string | null) => {
       dispatch({
         type: 'UPDATE_ITEM_PACKING_PREF',
-        payload: { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource },
+        payload: { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource, packingCfId },
       });
     },
 
@@ -231,8 +231,8 @@ export function useNewOrderStateWithDispatch(): UseNewOrderStateWithDispatchRetu
       dispatch({ type: 'UPDATE_PIECE_CONDITIONS', payload: { pieceId, conditions } });
     },
 
-    updatePieceColor: (pieceId: string, color: string | undefined) => {
-      dispatch({ type: 'UPDATE_PIECE_COLOR', payload: { pieceId, color } });
+    updatePieceColor: (pieceId: string, color: string | undefined, colorCodes?: string[], colorCfIds?: (string | null)[]) => {
+      dispatch({ type: 'UPDATE_PIECE_COLOR', payload: { pieceId, color, colorCodes, colorCfIds } });
     },
   };
 

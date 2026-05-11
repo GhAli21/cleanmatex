@@ -15,6 +15,7 @@ import {
   type OrderPieceDbModel,
 } from '@/lib/mappers/order-piece.mapper';
 import { getConditionPrefKind, toUICode } from '@/lib/utils/condition-codes';
+import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 
 /** Default for piece/item preference rows created in create vs edit-order flows */
 export type OrderPreferencesSourceDefault = 'ORDER_CREATE' | 'ORDER_EDIT';
@@ -103,6 +104,8 @@ export class OrderPieceService {
     piecesData?: Array<{
       pieceSeq: number;
       color?: string;
+      colorCodes?: string[];
+      colorCfIds?: (string | null | undefined)[];
       brand?: string;
       hasStain?: boolean;
       hasDamage?: boolean;
@@ -110,7 +113,8 @@ export class OrderPieceService {
       rackLocation?: string;
       metadata?: Record<string, any>;
       packingPrefCode?: string;
-      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+      packingCfId?: string | null;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number; preferenceCfId?: string | null }>;
       conditions?: string[];
     }>,
     branchId?: string,
@@ -146,6 +150,14 @@ export class OrderPieceService {
           0
         );
 
+        const pieceColors = pieceData ? effectivePieceColorsForPersist(pieceData) : effectivePieceColorsForPersist(
+          baseData.color ? { color: baseData.color } : undefined
+        );
+        const colorJson =
+          pieceColors.codes.length > 0
+            ? { codes: pieceColors.codes, primary: pieceColors.codes[0] }
+            : null;
+
         return {
           tenant_org_id: tenantId,
           order_id: orderId,
@@ -168,7 +180,7 @@ export class OrderPieceService {
           last_step_by: null,
           last_step: null,
           notes: pieceData?.notes || baseData.notes || null,
-          color: pieceData?.color || baseData.color || null,
+          color: colorJson,
           brand: pieceData?.brand || baseData.brand || null,
           has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
@@ -250,6 +262,7 @@ export class OrderPieceService {
             prefs_source: p.source ?? preferencesSourceDefault,
             extra_price: Number(p.extra_price ?? 0),
             branch_id: branchId ?? null,
+            ...(p.preferenceCfId ? { preference_id: p.preferenceCfId } : {}),
           }));
           const { error: prefsError } = await supabase.from('org_order_preferences_dtl').insert(rows);
           if (prefsError) {
@@ -276,6 +289,7 @@ export class OrderPieceService {
             prefs_source: preferencesSourceDefault,
             extra_price: 0,
             branch_id: branchId ?? null,
+            ...(pieceData.packingCfId ? { preference_id: pieceData.packingCfId } : {}),
           });
           if (packError) {
             log.warn('[OrderPieceService] Failed to insert piece packing pref', {
@@ -289,20 +303,23 @@ export class OrderPieceService {
 
         const packingOffset = pieceData.packingPrefCode ? 1 : 0;
 
-        if (pieceData.color) {
-          const { error: colorError } = await supabase.from('org_order_preferences_dtl').insert({
+        const pieceColors = effectivePieceColorsForPersist(pieceData);
+        if (pieceColors.codes.length > 0) {
+          const colorRows = pieceColors.codes.map((code, ci) => ({
             tenant_org_id: tenantId,
             order_id: orderId,
-            prefs_no: condCount + svcCount + packingOffset + 1,
+            prefs_no: condCount + svcCount + packingOffset + ci + 1,
             prefs_level: 'PIECE',
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
-            preference_code: pieceData.color,
+            preference_code: code,
             preference_sys_kind: 'color',
             prefs_source: preferencesSourceDefault,
             extra_price: 0,
             branch_id: branchId ?? null,
-          });
+            ...(pieceColors.cfIds[ci] ? { preference_id: pieceColors.cfIds[ci] as string } : {}),
+          }));
+          const { error: colorError } = await supabase.from('org_order_preferences_dtl').insert(colorRows);
           if (colorError) {
             log.warn('[OrderPieceService] Failed to insert piece color pref', {
               feature: 'order_pieces',
@@ -313,7 +330,7 @@ export class OrderPieceService {
           }
         }
 
-        const colorOffset = pieceData.color ? 1 : 0;
+        const colorOffset = pieceColors.codes.length;
 
         if (pieceData.notes) {
           const { error: noteError } = await supabase.from('org_order_preferences_dtl').insert({
@@ -392,6 +409,8 @@ export class OrderPieceService {
     piecesData?: Array<{
       pieceSeq: number;
       color?: string;
+      colorCodes?: string[];
+      colorCfIds?: (string | null | undefined)[];
       brand?: string;
       hasStain?: boolean;
       hasDamage?: boolean;
@@ -399,7 +418,8 @@ export class OrderPieceService {
       rackLocation?: string;
       metadata?: Record<string, any>;
       packingPrefCode?: string;
-      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number }>;
+      packingCfId?: string | null;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number; preferenceCfId?: string | null }>;
       conditions?: string[];
     }>,
     branchId?: string,
@@ -416,6 +436,14 @@ export class OrderPieceService {
           (sum, p) => sum + Number(p.extra_price ?? 0),
           0
         );
+
+        const pieceColors = pieceData ? effectivePieceColorsForPersist(pieceData) : effectivePieceColorsForPersist(
+          baseData.color ? { color: baseData.color } : undefined
+        );
+        const colorJson =
+          pieceColors.codes.length > 0
+            ? { codes: pieceColors.codes, primary: pieceColors.codes[0] }
+            : undefined;
 
         return {
           tenant_org_id: tenantId,
@@ -439,7 +467,7 @@ export class OrderPieceService {
           last_step_by: null,
           last_step: null,
           notes: pieceData?.notes ?? baseData.notes ?? null,
-          color: pieceData?.color ?? baseData.color ?? null,
+          color: colorJson,
           brand: pieceData?.brand ?? baseData.brand ?? null,
           has_stain: pieceData?.hasStain ?? baseData.hasStain ?? false,
           has_damage: pieceData?.hasDamage ?? baseData.hasDamage ?? false,
@@ -508,6 +536,7 @@ export class OrderPieceService {
                 prefs_source: p.source ?? preferencesSourceDefault,
                 extra_price: p.extra_price ?? 0,
                 branch_id: branchId ?? null,
+                ...(p.preferenceCfId ? { preference_id: p.preferenceCfId } : {}),
               })),
             });
           }
@@ -527,31 +556,36 @@ export class OrderPieceService {
                 prefs_source: preferencesSourceDefault,
                 extra_price: 0,
                 branch_id: branchId ?? null,
+                ...(pieceData.packingCfId ? { preference_id: pieceData.packingCfId } : {}),
               },
             });
           }
 
           const packingOffset = pieceData.packingPrefCode ? 1 : 0;
 
-          if (pieceData.color) {
-            await tx.org_order_preferences_dtl.create({
-              data: {
+          const pieceColorsPersist = effectivePieceColorsForPersist(pieceData);
+          if (pieceColorsPersist.codes.length > 0) {
+            await tx.org_order_preferences_dtl.createMany({
+              data: pieceColorsPersist.codes.map((code, ci) => ({
                 tenant_org_id: tenantId,
                 order_id: orderId,
-                prefs_no: condCount + svcCount + packingOffset + 1,
+                prefs_no: condCount + svcCount + packingOffset + ci + 1,
                 prefs_level: 'PIECE',
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
-                preference_code: pieceData.color,
+                preference_code: code,
                 preference_sys_kind: 'color',
                 prefs_source: preferencesSourceDefault,
                 extra_price: 0,
                 branch_id: branchId ?? null,
-              },
+                ...(pieceColorsPersist.cfIds[ci]
+                  ? { preference_id: pieceColorsPersist.cfIds[ci] as string }
+                  : {}),
+              })),
             });
           }
 
-          const colorOffset = pieceData.color ? 1 : 0;
+          const colorOffset = pieceColorsPersist.codes.length;
 
           if (pieceData.notes) {
             await tx.org_order_preferences_dtl.create({
@@ -760,6 +794,49 @@ export class OrderPieceService {
   }
 
   /**
+   * Writes org_order_piece_hist_tr rows for tracked field transitions (migration 0259).
+   */
+  private static async recordPieceFieldChanges(
+    supabase: SupabaseClient,
+    tenantId: string,
+    pieceId: string,
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+    doneBy: string | null
+  ): Promise<void> {
+    const keys = [
+      'piece_status',
+      'is_ready',
+      'is_rejected',
+      'scan_state',
+      'rack_location',
+      'piece_stage',
+      'barcode',
+      'notes',
+    ] as const;
+    for (const key of keys) {
+      const prev = before[key];
+      const next = after[key];
+      if (prev === next) continue;
+      const { error } = await supabase.from('org_order_piece_hist_tr').insert({
+        tenant_org_id: tenantId,
+        order_piece_id: pieceId,
+        action_code: key,
+        from_value: prev == null ? null : String(prev),
+        to_value: next == null ? null : String(next),
+        done_by: doneBy,
+      });
+      if (error) {
+        log.error(
+          '[OrderPieceService] org_order_piece_hist_tr insert failed',
+          new Error(error.message),
+          { tenantId, pieceId, key }
+        );
+      }
+    }
+  }
+
+  /**
    * Update a single piece
    */
   static async updatePiece(
@@ -767,6 +844,15 @@ export class OrderPieceService {
   ): Promise<{ success: boolean; piece?: OrderItemPiece; error?: string }> {
     try {
       const supabase = await createClient();
+
+      const { data: beforeRow } = await supabase
+        .from('org_order_item_pieces_dtl')
+        .select(
+          'piece_status,is_ready,is_rejected,scan_state,rack_location,piece_stage,barcode,notes'
+        )
+        .eq('id', params.pieceId)
+        .eq('tenant_org_id', params.tenantId)
+        .maybeSingle();
 
       const updateData: any = {
         ...params.updates,
@@ -812,6 +898,19 @@ export class OrderPieceService {
           pieceId: params.pieceId,
         });
         return { success: false, error: error.message };
+      }
+
+      if (beforeRow && piece) {
+        const doneBy =
+          typeof params.updates.updated_by === 'string' ? params.updates.updated_by : null;
+        await OrderPieceService.recordPieceFieldChanges(
+          supabase,
+          params.tenantId,
+          params.pieceId,
+          beforeRow as Record<string, unknown>,
+          piece as unknown as Record<string, unknown>,
+          doneBy
+        );
       }
 
       // Sync quantity_ready on parent item if status changed

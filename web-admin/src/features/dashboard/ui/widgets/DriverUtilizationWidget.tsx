@@ -44,9 +44,9 @@ export function DriverUtilizationWidget() {
 
         setData({
           activePct: kpiData.drivers.activePct,
-          totalDrivers: 0, // TODO: Add total drivers count
-          activeDrivers: 0, // TODO: Add active drivers count
-          avgDeliveriesPerDriver: 0, // TODO: Add avg deliveries
+          totalDrivers: kpiData.drivers.totalDrivers,
+          activeDrivers: kpiData.drivers.activeDrivers,
+          avgDeliveriesPerDriver: kpiData.drivers.avgDeliveriesPerDriver,
         })
       } catch (error) {
         console.error('Error fetching driver utilization data:', error)

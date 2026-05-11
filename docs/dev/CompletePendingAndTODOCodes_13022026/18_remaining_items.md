@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implementation of selected remaining TODOs across the codebase. Not all items were implemented (e.g. PieceHistory requires new table, payment-modal is legacy).
+Implementation of selected remaining TODOs across the codebase. Several deferred items from Phase 8 are now done (piece history, dashboard KPI widgets, settings users); see [Plans_For_Remaining/](Plans_For_Remaining/README.md).
 
 ## Implemented
 
@@ -30,21 +30,29 @@ Implementation of selected remaining TODOs across the codebase. Not all items we
 
 **Solution:** Client-side CSV export from loaded `history` data. Builds CSV with headers (Date, Entity Type, Price List/Product, Old/New Price, Old/New Discount %, Reason, Changed By), triggers download as `price-history-YYYY-MM-DD.csv`.
 
+### 4. Piece history, dashboard KPIs, settings users (2026-05-11)
+
+**Piece history:** Table `org_order_piece_hist_tr` (migration `0259_org_order_piece_hist_tr.sql`), writes from `OrderPieceService`, UI `PieceHistory.tsx`, API `GET /api/v1/orders/pieces/[pieceId]/history` (`orders:read`).
+
+**Dashboard widgets:** `dashboard.service.ts` `getKPIOverview` — PaymentMix, Turnaround, Issues, DriverUtilization, DeliveryRate, Alerts, Top Services. Definitions: [dashboard-kpi-definitions.md](../dashboard-kpi-definitions.md).
+
+**Settings / Users:** `app/dashboard/settings/users/page.tsx` — `fetchUsers`, invite via `createUser`, activate/deactivate; password reset remains platform-dependent (`resetUserPassword` stub).
+
+### 5. General & branding settings (2026-05-07)
+
+Per [Plans_For_Remaining/08_settings_pages.md](Plans_For_Remaining/08_settings_pages.md): General and Branding pages wired to APIs.
+
 ## Not Implemented (Requires More Work)
 
 **Implementation plans:** See [Plans_For_Remaining/](Plans_For_Remaining/README.md) for detailed plans per item.
 
 | Item | File | Reason |
 |------|------|--------|
-| Piece history | PieceHistory.tsx | Needs `org_order_piece_history_tr` table |
 | Payment modal promo/gift | ~~payment-modal-enhanced.tsx~~ | ✅ Done: legacy removed; PaymentModalEnhanced02 only |
 | Assembly task modal | assembly-task-modal.tsx | Needs task details API |
 | Workflow averageTimePerStage | workflow-service.ts | Needs status history aggregation |
 | Logger remote logging | logger.ts | Requires external service (e.g. Sentry) |
 | Usage tracking | usage-tracking.service.ts | Requires storage/metrics backend |
-| Various dashboard widgets | PaymentMix, Turnaround, Issues, DriverUtilization, DeliveryRate, Alerts | Need real queries per widget |
-| Settings pages | general, branding | Need API wiring |
-| Users page | users/page.tsx | TODO: API call |
 
 ## Production Checklist
 

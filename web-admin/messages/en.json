@@ -173,7 +173,8 @@
         "issuedToCustomer": "Issued To",
         "notes": "Notes",
         "isActive": "Active",
-        "metadata": "Metadata"
+        "metadata": "Metadata",
+        "activateReminder": "Card is in Generated status — remember to activate it from the list."
       },
       "status": {
         "active": "Active",
@@ -273,7 +274,9 @@
         "unsuspend": "Unsuspend",
         "voidCard": "Void Card",
         "adjustBalance": "Adjust Balance",
-        "copyCode": "Copy Code"
+        "copyCode": "Copy Code",
+        "selectCustomer": "Select Customer",
+        "suggestPin": "Suggest"
       },
       "confirmations": {
         "voidTitle": "Void Gift Card",
@@ -503,7 +506,13 @@
     "criticalCount": "{count} critical",
     "viewAllIssues": "View all issues",
     "noPaymentData": "No payment data available",
-    "manageDrivers": "Manage drivers"
+    "manageDrivers": "Manage drivers",
+    "alertOverdueTitle": "Orders past ready-by",
+    "alertOverdueMessage": "{count, plural, one {# order is past its ready-by time.} other {# orders are past their ready-by time.}}",
+    "alertCriticalIssuesTitle": "Priority issues open",
+    "alertCriticalIssuesMessage": "{count, plural, one {# high or urgent issue is open.} other {# high or urgent issues are open.}}",
+    "alertFailedStopsTitle": "Delivery failures",
+    "alertFailedStopsMessage": "{count, plural, one {# delivery stop failed in the last 30 days.} other {# delivery stops failed in the last 30 days.}}"
   },
   "invoices": {
     "title": "Invoices",
@@ -1673,6 +1682,7 @@
       "apply": "Apply",
       "exportSelected": "Export Selected",
       "noHistory": "No history available",
+      "historyTitle": "Piece change history",
       "previous": "Previous",
       "next": "Next"
     },
@@ -2097,6 +2107,17 @@
     "userDeactivated": "User deactivated successfully",
     "userActivated": "User activated successfully",
     "cannotDeactivateSelf": "You cannot deactivate your own account",
+    "teamLoadError": "Could not load team members. Please refresh and try again.",
+    "inviteInvalidEmail": "Enter a valid email address.",
+    "inviteSuccess": "User was created. Ask them to use Forgot password on the sign-in page to set their password, unless your platform sends an invite email.",
+    "inviteError": "Could not create user. Check permissions and try again.",
+    "invitePasswordHint": "A secure temporary password is set by the system. The user should use Forgot password on the sign-in page to choose their own password unless invite email is enabled on the platform.",
+    "passwordResetUnavailable": "Password reset from this screen is not available yet. Use your platform admin tools, or ask the user to use Forgot password on the sign-in page.",
+    "teamActionError": "Something went wrong. Please try again.",
+    "userUpdateSuccess": "User updated successfully",
+    "emailReadOnlyHint": "Email cannot be changed from here.",
+    "confirmDeactivateMember": "Deactivate {email}? They will no longer be able to sign in.",
+    "confirmActivateMember": "Activate {email}? They will be able to sign in again.",
     "billingCycle": "Billing Cycle",
     "nextBilling": "Next Billing Date",
     "upgradePlan": "Upgrade Plan",

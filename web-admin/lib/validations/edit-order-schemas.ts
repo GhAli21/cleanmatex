@@ -11,6 +11,7 @@ const updateOrderPieceServicePrefSchema = z.object({
   preference_code: z.string(),
   source: z.string().optional(),
   extra_price: z.number().nonnegative(),
+  preferenceCfId: z.string().uuid().optional().nullable(),
 });
 
 /**
@@ -19,6 +20,8 @@ const updateOrderPieceServicePrefSchema = z.object({
 export const updateOrderPieceSchema = z.object({
   pieceSeq: z.number().int().min(1),
   color: z.string().max(50).optional(),
+  colorCodes: z.array(z.string().max(80)).optional(),
+  colorCfIds: z.array(z.union([z.string().uuid(), z.null()])).optional(),
   brand: z.string().max(100).optional(),
   hasStain: z.boolean().optional(),
   hasDamage: z.boolean().optional(),
@@ -28,6 +31,7 @@ export const updateOrderPieceSchema = z.object({
   conditions: z.array(z.string()).optional(),
   servicePrefs: z.array(updateOrderPieceServicePrefSchema).optional(),
   packingPrefCode: z.string().max(100).optional(),
+  packingCfId: z.string().uuid().optional().nullable(),
 });
 
 /**

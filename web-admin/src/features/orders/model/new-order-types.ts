@@ -78,6 +78,8 @@ export interface OrderItemServicePref {
   preference_code: string;
   source: string;
   extra_price: number;
+  /** FK to tenant catalog — `org_service_preference_cf.id` → `org_order_preferences_dtl.preference_id` */
+  preferenceCfId?: string | null;
 }
 
 /**
@@ -87,7 +89,12 @@ export interface PreSubmissionPiece {
   id: string; // Temporary ID: `temp-${itemId}-${pieceSeq}`
   itemId: string;
   pieceSeq: number;
+  /** Primary / first color code (mirror of `colorCodes[0]` for legacy single-select consumers) */
   color?: string;
+  /** Multi-select color catalog codes */
+  colorCodes?: string[];
+  /** Aligned tenant CF ids for `colorCodes` (`org_service_preference_cf.id` per row) */
+  colorCfIds?: (string | null)[];
   brand?: string;
   hasStain?: boolean;
   hasDamage?: boolean;
@@ -100,6 +107,8 @@ export interface PreSubmissionPiece {
   servicePrefs?: OrderItemServicePref[];
   /** Piece-level packing preference (Enterprise-gated, packingPerPieceEnabled) */
   packingPrefCode?: string;
+  /** FK to tenant catalog — `org_packing_preference_cf.id` for piece packing pref row */
+  packingCfId?: string | null;
 }
 
 // ==================================================================
@@ -131,6 +140,8 @@ export interface OrderItem {
   packingPrefCode?: string;
   packingPrefIsOverride?: boolean;
   packingPrefSource?: string;
+  /** FK — `org_packing_preference_cf.id` for item-level packing pref */
+  packingCfId?: string | null;
   /** Aggregated charge from service prefs. Included in order total. */
   servicePrefCharge?: number;
 }
@@ -264,7 +275,7 @@ export type NewOrderAction =
   | { type: 'UPDATE_ITEM_NOTES'; payload: { productId: string; notes: string } }
   | { type: 'UPDATE_ITEM_PIECES'; payload: { productId: string; pieces: PreSubmissionPiece[] } }
   | { type: 'UPDATE_ITEM_SERVICE_PREFS'; payload: { productId: string; servicePrefs: OrderItemServicePref[]; servicePrefCharge: number } }
-  | { type: 'UPDATE_ITEM_PACKING_PREF'; payload: { productId: string; packingPrefCode: string; packingPrefIsOverride?: boolean; packingPrefSource?: string } }
+  | { type: 'UPDATE_ITEM_PACKING_PREF'; payload: { productId: string; packingPrefCode: string; packingPrefIsOverride?: boolean; packingPrefSource?: string; packingCfId?: string | null } }
   | { type: 'UPDATE_ITEM_PRICE_OVERRIDE'; payload: { productId: string; priceOverride: number | null; overrideReason: string; overrideBy: string } }
   | { type: 'SET_QUICK_DROP'; payload: boolean }
   | { type: 'SET_QUICK_DROP_QUANTITY'; payload: number }
@@ -313,5 +324,5 @@ export type NewOrderAction =
   | { type: 'SET_EXPECTED_UPDATED_AT'; payload: Date }
   | { type: 'SET_SELECTED_PIECE'; payload: string | null }
   | { type: 'UPDATE_PIECE_CONDITIONS'; payload: { pieceId: string; conditions: string[] } }
-  | { type: 'UPDATE_PIECE_COLOR'; payload: { pieceId: string; color: string | undefined } };
+  | { type: 'UPDATE_PIECE_COLOR'; payload: { pieceId: string; color?: string | undefined; colorCodes?: string[]; colorCfIds?: (string | null)[] } };
 

@@ -26,20 +26,20 @@ interface PieceKindPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   kind: PreferenceKind | null;
-  /** Current piece single-select packing */
+  /** Piece-level packing (single-select) */
   packingPrefCode?: string;
-  /** Current piece service prefs (for selector) */
+  /** Piece-level service prefs (for selector) */
   pieceServicePrefs: OrderItemServicePref[];
   /** Selected condition codes for toggles */
   selectedConditionCodes: string[];
-  selectedColorCode?: string;
-  onColorSelect?: (code: string | undefined) => void;
+  selectedColorCodes: string[];
+  onColorsChange: (codes: string[], cfIds: (string | null)[]) => void;
   conditionCatalog: ConditionCatalog;
   packingPrefs: PackingPreference[];
   prefsForKind: ServicePreference[];
   servicePrefsFallback: ServicePreference[];
   enforcePrefCompatibility?: boolean;
-  onPackingChange: (code: string | undefined) => void;
+  onPackingChange: (code: string | undefined, packingCfId?: string | null) => void;
   onServicePrefsChange: (prefs: OrderItemServicePref[]) => void;
   onConditionToggle: (code: string) => void;
 }
@@ -51,8 +51,8 @@ export function PieceKindPickerDialog({
   packingPrefCode,
   pieceServicePrefs,
   selectedConditionCodes,
-  selectedColorCode,
-  onColorSelect,
+  selectedColorCodes,
+  onColorsChange,
   conditionCatalog,
   packingPrefs,
   prefsForKind,
@@ -78,7 +78,7 @@ export function PieceKindPickerDialog({
           <PackingPreferenceSelector
             value={packingPrefCode}
             availablePrefs={packingPrefs}
-            onChange={(code) => onPackingChange(code || undefined)}
+            onChange={(code, packingCfId) => onPackingChange(code ?? undefined, packingCfId)}
           />
         );
         break;
@@ -168,16 +168,23 @@ export function PieceKindPickerDialog({
       body = (
         <div className="flex flex-wrap gap-3">
           {colors.map((color) => {
-            const isSelected = selectedColorCode === color.code;
+            const isSelected = selectedColorCodes.includes(color.code);
             const label = getBilingual(color.name, color.name2 ?? null) || color.name;
             return (
               <div key={color.code} className="flex max-w-[5.5rem] flex-col items-center gap-1">
                 <button
                   type="button"
                   title={label}
-                  onClick={() =>
-                    onColorSelect?.(isSelected ? undefined : color.code)
-                  }
+                  onClick={() => {
+                    const nextCodes = selectedColorCodes.includes(color.code)
+                      ? selectedColorCodes.filter((c) => c !== color.code)
+                      : [...selectedColorCodes, color.code];
+                    const nextCfIds = nextCodes.map(
+                      (c) =>
+                        prefsForKind.find((p) => p.code === c)?.preference_cf_id ?? null
+                    );
+                    onColorsChange(nextCodes, nextCfIds);
+                  }}
                   className={cn(
                     'h-11 w-11 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1',
                     isSelected ? 'scale-110 border-blue-600 ring-2 ring-blue-300' : 'border-gray-300 hover:border-gray-500'

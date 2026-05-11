@@ -258,16 +258,23 @@ export function newOrderReducer(
     }
 
     case 'UPDATE_ITEM_PACKING_PREF': {
-      const { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource } = action.payload;
+      const { productId, packingPrefCode, packingPrefIsOverride, packingPrefSource, packingCfId } = action.payload;
+      const normalizedCode =
+        packingPrefCode != null && String(packingPrefCode).trim() !== ''
+          ? String(packingPrefCode).trim()
+          : undefined;
       return {
         ...state,
         items: state.items.map((item) =>
           item.productId === productId
             ? {
                 ...item,
-                packingPrefCode,
+                packingPrefCode: normalizedCode,
                 packingPrefIsOverride: packingPrefIsOverride ?? false,
                 packingPrefSource: packingPrefSource ?? 'manual',
+                ...(normalizedCode
+                  ? { packingCfId: packingCfId ?? null }
+                  : { packingCfId: undefined }),
               }
             : item
         ),
@@ -571,7 +578,16 @@ export function newOrderReducer(
     }
 
     case 'UPDATE_PIECE_COLOR': {
-      const { pieceId, color } = action.payload;
+      const { pieceId, color, colorCodes, colorCfIds } = action.payload;
+      const resolved =
+        colorCodes != null && colorCodes.length > 0
+          ? {
+              codes: colorCodes,
+              cf: colorCodes.map((_, i) => (colorCfIds?.[i] != null ? colorCfIds[i]! : null)),
+            }
+          : color != null && color !== ''
+            ? { codes: [color], cf: [colorCfIds?.[0] != null ? colorCfIds[0]! : null] }
+            : { codes: [] as string[], cf: [] as (string | null)[] };
       return {
         ...state,
         items: state.items.map((item) => {
@@ -579,7 +595,15 @@ export function newOrderReducer(
           return {
             ...item,
             pieces: item.pieces.map((p) =>
-              p.id === pieceId ? { ...p, color } : p
+              p.id === pieceId
+                ? {
+                    ...p,
+                    color: resolved.codes[0],
+                    ...(resolved.codes.length > 0
+                      ? { colorCodes: resolved.codes, colorCfIds: resolved.cf }
+                      : { colorCodes: undefined, colorCfIds: undefined, color: undefined }),
+                  }
+                : p
             ),
           };
         }),

@@ -14,6 +14,7 @@ import { NewOrderContent } from './new-order-content';
 import { NewOrderModals } from './new-order-modals';
 import { NewOrderLoadingSkeleton } from './new-order-loading-skeleton';
 import type { MinimalCustomer, OrderItem, PreSubmissionPiece } from '../model/new-order-types';
+import { normalizePieceColorsFromDb } from '@/src/features/orders/lib/piece-color-utils';
 
 interface EditOrderScreenProps {
   orderId: string;
@@ -49,7 +50,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         id: `temp-${item.product_id}-${index + 1}`,
         itemId: item.product_id,
         pieceSeq: piece.piece_seq ?? index + 1,
-        color: piece.color || undefined,
+        ...normalizePieceColorsFromDb(piece.color),
         brand: piece.brand || undefined,
         hasStain: piece.has_stain || false,
         hasDamage: piece.has_damage || false,
@@ -57,18 +58,21 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         rackLocation: piece.rack_location || undefined,
         metadata: piece.metadata || undefined,
         packingPrefCode: piece.packing_pref_code || undefined,
-        servicePrefs: piece.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number }) => ({
+        packingCfId: piece.packing_cf_id ?? piece.packingCfId ?? undefined,
+        servicePrefs: piece.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
           preference_code: p.preference_code,
           source: p.source ?? 'manual',
           extra_price: Number(p.extra_price ?? 0),
+          preferenceCfId: p.preference_cf_id ?? p.preferenceCfId ?? undefined,
         })),
         conditions: piece.conditions,
       }));
 
-      const servicePrefs = item.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number }) => ({
+      const servicePrefs = item.service_prefs?.map((p: { preference_code: string; source?: string; extra_price: number; preference_cf_id?: string; preferenceCfId?: string }) => ({
         preference_code: p.preference_code,
         source: p.source ?? 'manual',
         extra_price: Number(p.extra_price ?? 0),
+        preferenceCfId: p.preference_cf_id ?? p.preferenceCfId ?? undefined,
       }));
 
       return {
@@ -88,6 +92,7 @@ export function EditOrderScreen({ orderId, initialOrderData }: EditOrderScreenPr
         overrideBy: item.override_by || null,
         servicePrefs,
         packingPrefCode: item.packing_pref_code || undefined,
+        packingCfId: item.packing_cf_id ?? item.packingCfId ?? undefined,
         packingPrefIsOverride: item.packing_pref_is_override || false,
         packingPrefSource: item.packing_pref_source || undefined,
         servicePrefCharge: item.service_pref_charge != null ? Number(item.service_pref_charge) : 0,

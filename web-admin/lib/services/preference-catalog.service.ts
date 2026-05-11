@@ -29,7 +29,7 @@ export class PreferenceCatalogService {
       const { data: tenantCf, error: cfError } = await supabase
         .from('org_service_preference_cf')
         .select(
-          'preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, is_show_in_quick_bar'
+          'id, preference_code, name, name2, extra_price, is_included_in_base, is_active, display_order, preference_category, is_show_in_quick_bar'
         )
         .eq('tenant_org_id', tenantId);
 
@@ -109,6 +109,7 @@ export class PreferenceCatalogService {
               (cf.is_show_in_quick_bar ?? s.is_show_in_quick_bar) !== false,
             is_used_by_system: s.is_used_by_system ?? null,
             is_allow_to_show_for_user: s.is_allow_to_show_for_user ?? null,
+            preference_cf_id: typeof cf.id === 'string' ? cf.id : null,
           } as ServicePreference;
         })
         .filter((row): row is ServicePreference => row !== null);
@@ -137,7 +138,7 @@ export class PreferenceCatalogService {
     try {
       const { data: tenantCf, error: cfError } = await supabase
         .from('org_packing_preference_cf')
-        .select('packing_pref_code, name, name2, extra_price, is_active, display_order')
+        .select('id, packing_pref_code, name, name2, extra_price, is_active, display_order')
         .eq('tenant_org_id', tenantId);
 
       if (cfError) {
@@ -201,6 +202,7 @@ export class PreferenceCatalogService {
             sustainability_score: s.sustainability_score,
             display_order: cf.display_order ?? s.display_order,
             is_active: true,
+            packing_cf_id: typeof cf.id === 'string' ? cf.id : null,
           } as PackingPreference;
         })
         .filter((row): row is PackingPreference => row !== null);

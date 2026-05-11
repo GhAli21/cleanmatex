@@ -43,7 +43,7 @@ export function TurnaroundTimeWidget() {
         setData({
           avgTATHours: kpiData.sla.avgTATHours,
           onTimePct: kpiData.sla.onTimePct,
-          trend: 0, // TODO: Calculate trend from historical data
+          trend: kpiData.sla.trendPct,
         })
       } catch (error) {
         console.error('Error fetching TAT data:', error)

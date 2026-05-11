@@ -1,12 +1,12 @@
 ---
-version: v1.0.0
-last_updated: 2026-03-16
+version: v1.2.0
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
 # Customer/Order/Item/Pieces Preferences — Implementation Requirements
 
-Feature implementation checklist per PRD rules.
+Feature implementation checklist per PRD rules. **Runtime architecture** (tables, owner/source fields, APIs): [preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md).
 
 ## Permissions
 
@@ -44,6 +44,7 @@ Feature implementation checklist per PRD rules.
 ## API Routes
 
 - No new routes; existing order item/piece service-prefs and preference resolution endpoints use `org_order_preferences_dtl`
+- **`GET /api/v1/preferences/last-order`** response shape includes optional catalog FK fields after RPC migration **0260** (`packing_pref_cf_id`, `service_prefs_catalog`).
 
 ## Migrations
 
@@ -52,6 +53,7 @@ Feature implementation checklist per PRD rules.
 - **0167** — org_order_item_pieces_dtl.color to JSONB
 - **0168** — Feature flag item_conditions_colors_enabled
 - **0169** — Update get_last_order_preferences, suggest_preferences_from_history
+- **0260** — `get_last_order_preferences` adds `packing_pref_cf_id` + `service_prefs_catalog` (Repeat Last Order → `preference_id` alignment). See `docs/dev/preferences-architecture-reference.md` §8.2.
 
 ## Constants & Types
 

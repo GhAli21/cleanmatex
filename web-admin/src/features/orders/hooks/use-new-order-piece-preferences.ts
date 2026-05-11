@@ -90,7 +90,9 @@ export function useNewOrderPiecePreferences() {
         baseList = current.filter((c) => c.preference_sys_kind !== 'packing_prefs');
       }
       if (data.preference_sys_kind === 'color') {
-        baseList = baseList.filter((c) => c.preference_sys_kind !== 'color');
+        baseList = current.filter(
+          (c) => c.preference_sys_kind !== 'color' || c.preference_code !== data.preference_code
+        );
       }
       const chip: SelectedPreference = {
         id: newChipId(),

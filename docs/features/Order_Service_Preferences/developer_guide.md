@@ -1,10 +1,12 @@
 ---
-version: v1.1.0
-last_updated: 2026-03-16
+version: v1.2.0
+last_updated: 2026-05-11
 author: CleanMateX Team
 ---
 
 # Order Service Preferences — Developer Guide
+
+**Canonical prefs architecture:** [preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md) — kinds (`org_preference_kind_cf`), catalogs, packing split, New Order APIs; **`org_order_preferences_dtl`** is the source of truth (piece/item pref columns are denormalization where still written).
 
 ## Unified Table: org_order_preferences_dtl (Migration 0166+)
 
@@ -100,7 +102,7 @@ web-admin/
 ### PreferenceResolutionService
 
 - **resolveItemPreferences(supabase, tenantId, customerId, productCode?, serviceCategoryCode?):** Calls DB `resolve_item_preferences`.
-- **getLastOrderPreferences(supabase, tenantId, customerId):** For Repeat Last Order.
+- **getLastOrderPreferences(supabase, tenantId, customerId):** For Repeat Last Order; calls **`get_last_order_preferences`**. Returns **`service_pref_codes`**, optional **`packing_pref_cf_id`** / **`service_prefs_catalog`** (**migration `0260`**) mapped in **`RepeatLastOrderPanel`** with fallback to **`GET /api/v1/catalog/service-preferences`** and **`packing-preferences`** (see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.2).
 - **suggestPreferencesFromHistory(...):** Calls DB `suggest_preferences_from_history`.
 
 ## API Flow
@@ -113,7 +115,7 @@ web-admin/
 
 ## Migration Notes (0165–0169)
 
-- See [preferences-unified-migrations-0165-0169.md](../../dev/preferences-unified-migrations-0165-0169.md) for migration order and rollback.
+- See [preferences-unified-migrations-0165-0169.md](../../dev/preferences-unified-migrations-0165-0169.md) for migration order and rollback **plus Related (post-0169) migration `0260`** (repeat-last RPC catalog IDs).
 - After applying migrations, run `npx prisma generate` in web-admin.
 
 ## Key Functions

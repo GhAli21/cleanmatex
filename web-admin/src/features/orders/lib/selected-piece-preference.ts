@@ -5,6 +5,7 @@
 
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { toUICode } from '@/lib/utils/condition-codes';
+import { pieceColorCodesForDisplay } from './piece-color-utils';
 import type { OrderItemServicePref, PreSubmissionPiece } from '../model/new-order-types';
 
 /** Default source for new-order UI before server assigns ORDER_CREATE / ORDER_EDIT */
@@ -66,7 +67,7 @@ export function pieceToSelectedPreferences(
     out.push({
       id: newPrefId(piece.id, n, 'service_prefs', sp.preference_code),
       pieceId: piece.id,
-      preference_id: null,
+      preference_id: sp.preferenceCfId ?? null,
       preference_code: sp.preference_code,
       preference_sys_kind: 'service_prefs',
       prefs_owner_type: 'USER',
@@ -82,7 +83,7 @@ export function pieceToSelectedPreferences(
     out.push({
       id: newPrefId(piece.id, n, 'packing_prefs', piece.packingPrefCode),
       pieceId: piece.id,
-      preference_id: null,
+      preference_id: piece.packingCfId ?? null,
       preference_code: piece.packingPrefCode,
       preference_sys_kind: 'packing_prefs',
       prefs_owner_type: 'SYSTEM',
@@ -93,13 +94,17 @@ export function pieceToSelectedPreferences(
     });
   }
 
-  if (piece.color) {
+  const colorCodes = pieceColorCodesForDisplay(piece);
+  const cfIds = piece.colorCfIds ?? [];
+  for (let i = 0; i < colorCodes.length; i++) {
+    const code = colorCodes[i]!;
     n += 1;
+    const cf = cfIds[i] ?? null;
     out.push({
-      id: newPrefId(piece.id, n, 'color', piece.color),
+      id: newPrefId(piece.id, n, 'color', code),
       pieceId: piece.id,
-      preference_id: null,
-      preference_code: piece.color,
+      preference_id: cf,
+      preference_code: code,
       preference_sys_kind: 'color',
       prefs_owner_type: 'USER',
       prefs_source: prefsSource,
@@ -124,7 +129,8 @@ export function applySelectedPreferencesToPiece(
   const conditions: string[] = [];
   const servicePrefs: OrderItemServicePref[] = [];
   let packingPrefCode: string | undefined;
-  let color: string | undefined;
+  let packingCfId: string | null | undefined;
+  const colorsOrdered: Array<{ code: string; prefId: string | null }> = [];
 
   for (const p of forPiece) {
     const kind = p.preference_sys_kind;
@@ -139,20 +145,28 @@ export function applySelectedPreferencesToPiece(
         preference_code: p.preference_code,
         source: p.prefs_source || DEFAULT_PREFS_SOURCE_UI,
         extra_price: Number(p.extra_price ?? 0),
+        preferenceCfId: p.preference_id,
       });
     } else if (kind === 'packing_prefs') {
       packingPrefCode = p.preference_code;
+      packingCfId = p.preference_id;
     } else if (kind === 'color') {
-      color = p.preference_code;
+      colorsOrdered.push({ code: p.preference_code, prefId: p.preference_id });
     }
   }
+
+  const colorCodesOut = colorsOrdered.length > 0 ? colorsOrdered.map((c) => c.code) : undefined;
+  const colorCfIdsOut = colorsOrdered.length > 0 ? colorsOrdered.map((c) => c.prefId) : undefined;
 
   return {
     ...base,
     conditions: conditions.length > 0 ? conditions : undefined,
     servicePrefs: servicePrefs.length > 0 ? servicePrefs : undefined,
     packingPrefCode: packingPrefCode || undefined,
-    color: color || undefined,
+    ...(packingPrefCode ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
+    color: colorCodesOut?.[0],
+    colorCodes: colorCodesOut,
+    colorCfIds: colorCfIdsOut,
   };
 }
 

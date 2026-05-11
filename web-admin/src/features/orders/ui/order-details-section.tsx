@@ -409,8 +409,8 @@ export function OrderDetailsSection({
                             <PackingPreferenceSelector
                               value={item.packingPrefCode}
                               availablePrefs={packingPrefs}
-                              onChange={(code) =>
-                                updateItemPackingPref(item.productId, code)
+                              onChange={(code, packingCfId) =>
+                                updateItemPackingPref(item.productId, code ?? '', undefined, undefined, packingCfId)
                               }
                             />
                             {packingPerPieceEnabled && trackByPiece && (item.pieces?.length ?? 0) > 0 && item.packingPrefCode && (
@@ -418,7 +418,12 @@ export function OrderDetailsSection({
                                 type="button"
                                 onClick={() => {
                                   const code = item.packingPrefCode!;
-                                  const updatedPieces = (item.pieces ?? []).map((p) => ({ ...p, packingPrefCode: code }));
+                                  const cf = item.packingCfId ?? null;
+                                  const updatedPieces = (item.pieces ?? []).map((p) => ({
+                                    ...p,
+                                    packingPrefCode: code,
+                                    packingCfId: cf ?? undefined,
+                                  }));
                                   updateItemPieces(item.productId, updatedPieces);
                                 }}
                                 className="text-[10px] text-blue-600 hover:underline"

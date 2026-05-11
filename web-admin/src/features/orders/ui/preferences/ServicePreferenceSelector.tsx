@@ -189,6 +189,7 @@ export function ServicePreferenceSelector({
           preference_code: pref.code,
           source: 'manual',
           extra_price: extraPrice,
+          preferenceCfId: pref.preference_cf_id ?? null,
         },
       ];
     } else {

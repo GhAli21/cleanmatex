@@ -17,6 +17,8 @@ export interface PreSubmissionPiece {
   itemId: string;
   pieceSeq: number;
   color?: string;
+  colorCodes?: string[];
+  colorCfIds?: (string | null)[];
   brand?: string;
   hasStain?: boolean;
   hasDamage?: boolean;

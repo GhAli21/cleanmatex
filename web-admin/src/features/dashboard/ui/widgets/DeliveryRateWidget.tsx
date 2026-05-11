@@ -11,7 +11,7 @@ import { useTranslations } from 'next-intl'
 import { useRTL } from '@/lib/hooks/useRTL'
 import { Truck, CheckCircle, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { StatCard } from '../Widget'
+import { dashboardService } from '@/lib/services/dashboard.service'
 
 interface DeliveryData {
   successRate: number
@@ -39,13 +39,13 @@ export function DeliveryRateWidget() {
       try {
         setIsLoading(true)
 
-        // TODO: Implement actual delivery metrics query
-        // For now using mock data
+        const kpi = await dashboardService.getKPIOverview(currentTenant.tenant_id)
+        const d = kpi.delivery
         setData({
-          successRate: 0,
-          totalDeliveries: 0,
-          pendingDeliveries: 0,
-          failedDeliveries: 0,
+          successRate: d.successRate,
+          totalDeliveries: d.totalDeliveries,
+          pendingDeliveries: d.pendingDeliveries,
+          failedDeliveries: d.failedDeliveries,
         })
       } catch (error) {
         console.error('Error fetching delivery data:', error)

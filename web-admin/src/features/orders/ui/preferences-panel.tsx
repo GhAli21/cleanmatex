@@ -126,16 +126,19 @@ export function PreferencesPanel({
                 <PackingPreferenceSelector
                   value={item.packingPrefCode}
                   availablePrefs={packingPrefs}
-                  onChange={(code) =>
-                    updateItemPackingPref(item.productId, code)
+                  onChange={(code, packingCfId) =>
+                    updateItemPackingPref(item.productId, code ?? '', undefined, undefined, packingCfId)
                   }
                 />
               ) : piece && item ? (
                 <PackingPreferenceSelector
                   value={piece.packingPrefCode}
                   availablePrefs={packingPrefs}
-                  onChange={(code) =>
-                    handlePieceUpdate(item.productId, piece.id, { packingPrefCode: code || undefined })
+                  onChange={(code, packingCfId) =>
+                    handlePieceUpdate(item.productId, piece.id, {
+                      packingPrefCode: code || undefined,
+                      ...(code ? { packingCfId: packingCfId ?? null } : { packingCfId: undefined }),
+                    })
                   }
                 />
               ) : null}

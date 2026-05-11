@@ -13,7 +13,7 @@ import type { PackingPreference } from '@/lib/types/service-preferences';
 interface PackingPreferenceSelectorProps {
   value: string | undefined;
   availablePrefs: PackingPreference[];
-  onChange: (code: string) => void;
+  onChange: (code: string | undefined, packingCfId?: string | null) => void;
   disabled?: boolean;
 }
 
@@ -43,7 +43,15 @@ export function PackingPreferenceSelector({
       </label>
       <select
         value={value ?? ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (!raw) {
+            onChange(undefined, undefined);
+            return;
+          }
+          const pref = availablePrefs.find((p) => p.code === raw);
+          onChange(raw, pref?.packing_cf_id ?? null);
+        }}
         disabled={disabled}
         className="w-full min-w-[160px] rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
       >
