@@ -3787,7 +3787,8 @@
     "warnings": {
       "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
       "discardAndNewOrder": "You have unsaved changes. Discard and start a new order?",
-      "discardAndNewOrderTitle": "Discard changes?"
+      "discardAndNewOrderTitle": "Discard changes?",
+      "changeBranchConfirm": "Changing the branch will clear your current order data. Continue?"
     },
     "customItem": {
       "title": "Add Custom Item",

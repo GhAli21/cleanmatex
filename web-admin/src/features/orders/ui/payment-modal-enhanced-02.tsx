@@ -128,7 +128,7 @@ export function PaymentModalEnhanced02({
   const t = useTranslations('newOrder.payment');
   const tCommon = useTranslations('common');
   /** Used for per-code gift card error messages (EXPIRED, SUSPENDED, etc.) */
-  const tGiftCardErrors = useTranslations('giftCards.errors');
+  const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
 
   /**
@@ -576,7 +576,7 @@ export function PaymentModalEnhanced02({
           searchStr: giftCardNumber,
         };
         setGiftCardDetails(details);
-        const defaultAmount = Math.min(result.availableBalance, totals.afterDiscounts);
+        const defaultAmount = Math.min(result.availableBalance, totals.finalTotal);
         setValue('giftCardAmount', defaultAmount);
         setValue('giftCardId', result.giftCard.id ?? '');
       }
@@ -593,7 +593,7 @@ export function PaymentModalEnhanced02({
   const handleApplyGiftCard = () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED || !giftCardDetails) return;
     const amountToUse = Number(giftCardAmount) || 0;
-    const maxAmount = Math.min(giftCardDetails.balance, totals.afterDiscounts);
+    const maxAmount = Math.min(giftCardDetails.balance, totals.finalTotal);
     if (amountToUse <= 0) {
       cmxMessage.error(t('giftCard.errors.amountRequired'));
       return;
@@ -1365,7 +1365,7 @@ export function PaymentModalEnhanced02({
                                     {...field}
                                     type="number"
                                     min={0}
-                                    max={Math.min(giftCardDetails.balance, totals.afterDiscounts)}
+                                    max={Math.min(giftCardDetails.balance, totals.finalTotal)}
                                     step={Math.pow(10, -decimalPlaces)}
                                     dir="ltr"
                                     disabled={!!appliedGiftCard}

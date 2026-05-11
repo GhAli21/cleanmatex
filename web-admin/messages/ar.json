@@ -3787,7 +3787,8 @@
     "warnings": {
       "unsavedChanges": "لديك تغييرات غير محفوظة. هل أنت متأكد أنك تريد المغادرة؟",
       "discardAndNewOrder": "لديك تغييرات غير محفوظة. هل تريد التخلص منها والبدء بطلب جديد؟",
-      "discardAndNewOrderTitle": "التخلص من التغييرات؟"
+      "discardAndNewOrderTitle": "التخلص من التغييرات؟",
+      "changeBranchConfirm": "تغيير الفرع سيؤدي إلى مسح بيانات طلبك الحالي. هل تريد المتابعة؟"
     },
     "customItem": {
       "title": "إضافة عنصر مخصص",
