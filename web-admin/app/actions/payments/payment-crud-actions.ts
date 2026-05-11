@@ -66,7 +66,7 @@ export async function updatePaymentNotesAction(
 
     const parsed = updatePaymentNotesSchema.safeParse({ notes });
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || 'Invalid input' };
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
     }
 
     await updatePaymentNotesService(paymentId, parsed.data.notes, auth.userId);
@@ -106,7 +106,7 @@ export async function cancelPaymentAction(
 
     const parsed = cancelPaymentSchema.safeParse({ reason });
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || 'Invalid input' };
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
     }
 
     const result = await cancelPaymentService(paymentId, parsed.data.reason, auth.userId);
@@ -153,7 +153,7 @@ export async function refundPaymentAction(
       reason,
     });
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || 'Invalid input' };
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
     }
 
     const result = await refundPaymentService({
@@ -198,7 +198,7 @@ export async function createStandalonePaymentAction(
 
     const parsed = createStandalonePaymentSchema.safeParse(input);
     if (!parsed.success) {
-      return { success: false, error: parsed.error.errors[0]?.message || 'Invalid input' };
+      return { success: false, error: parsed.error.issues[0]?.message || 'Invalid input' };
     }
 
     const data = parsed.data;

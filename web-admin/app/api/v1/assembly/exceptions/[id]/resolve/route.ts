@@ -13,7 +13,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const authContext = await getAuthContext(request);
+    const authContext = await getAuthContext();
     if (!authContext) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

@@ -37,9 +37,14 @@ function newPrefId(pieceId: string, prefsNo: number, kind: string, code: string)
  */
 export function pieceToSelectedPreferences(
   piece: PreSubmissionPiece,
-  options?: { prefsSource?: string }
+  options?: {
+    prefsSource?: string;
+    /** Catalog packing surcharges keyed by packing code (`org_packing_preference_cf.default_extra_price`). */
+    packingExtraByCode?: Map<string, number>;
+  }
 ): SelectedPreference[] {
   const prefsSource = options?.prefsSource ?? DEFAULT_PREFS_SOURCE_UI;
+  const packingExtraByCode = options?.packingExtraByCode;
   const out: SelectedPreference[] = [];
   let n = 0;
 
@@ -80,6 +85,8 @@ export function pieceToSelectedPreferences(
 
   if (piece.packingPrefCode) {
     n += 1;
+    const packExtra =
+      packingExtraByCode != null ? Number(packingExtraByCode.get(piece.packingPrefCode) ?? 0) : 0;
     out.push({
       id: newPrefId(piece.id, n, 'packing_prefs', piece.packingPrefCode),
       pieceId: piece.id,
@@ -88,7 +95,7 @@ export function pieceToSelectedPreferences(
       preference_sys_kind: 'packing_prefs',
       prefs_owner_type: 'SYSTEM',
       prefs_source: prefsSource,
-      extra_price: 0,
+      extra_price: packExtra,
       prefs_no: n,
       prefs_level: 'PIECE',
     });

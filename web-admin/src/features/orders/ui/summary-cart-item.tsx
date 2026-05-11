@@ -42,6 +42,17 @@ function resolveCatalogLabel(lookup: Record<string, string>, code: string): stri
   return undefined;
 }
 
+function resolveExtraByCode(lookup: Record<string, number>, code: string): number {
+  if (!code || !lookup || Object.keys(lookup).length === 0) return 0;
+  const direct = lookup[code];
+  if (direct != null && Number.isFinite(Number(direct))) return Number(direct);
+  const needle = code.toLowerCase();
+  for (const [key, val] of Object.entries(lookup)) {
+    if (key.toLowerCase() === needle && val != null && Number.isFinite(Number(val))) return Number(val);
+  }
+  return 0;
+}
+
 /** When catalog has no row: optional match to legacy `STAIN_CONDITIONS` (POS seed list — not authoritative vs DB). */
 function legacyStaticConditionLabel(
   code: string,
@@ -76,6 +87,8 @@ interface SummaryCartItemProps {
   colorCatalog?: ColorCatalogEntry[];
   /** Bilingual labels for preference / packing codes (piece-level summary chips) */
   preferenceLabelByCode?: Record<string, string>;
+  /** Packing catalog surcharges by code (aligns with `org_packing_preference_cf.default_extra_price`) */
+  packingExtraPriceByCode?: Record<string, number>;
   onEditPrice?: () => void;
   onEditNotes?: () => void;
   onDelete: () => void;
@@ -95,6 +108,7 @@ function SummaryCartItemComponent({
   trackByPiece = false,
   colorCatalog,
   preferenceLabelByCode = {},
+  packingExtraPriceByCode = {},
   onEditPrice,
   onEditNotes,
   onDelete,
@@ -115,6 +129,16 @@ function SummaryCartItemComponent({
       const mapped = resolveCatalogLabel(lookup, code);
       if (mapped) return mapped;
       return fallback();
+    };
+
+    const appendExtra = (base: string, amount: number): string => {
+      const n = Number(amount ?? 0);
+      if (!Number.isFinite(n) || n <= 0.0001) return base;
+      return `${base} +${formatMoneyAmountWithCode(n, {
+        currencyCode: currencyCode as string,
+        decimalPlaces,
+        locale: moneyLocale,
+      })}`;
     };
 
     if (trackByPiece && pieces.length > 0) {
@@ -138,14 +162,14 @@ function SummaryCartItemComponent({
           );
         });
         (piece.servicePrefs ?? []).forEach((sp) => {
-          labels.push(
-            labelForCode(sp.preference_code, () => humanizePreferenceCode(sp.preference_code))
-          );
+          const base = labelForCode(sp.preference_code, () => humanizePreferenceCode(sp.preference_code));
+          labels.push(appendExtra(base, Number(sp.extra_price ?? 0)));
         });
         if (piece.packingPrefCode) {
-          labels.push(
-            labelForCode(piece.packingPrefCode, () => humanizePreferenceCode(piece.packingPrefCode!))
-          );
+          const code = piece.packingPrefCode;
+          const base = labelForCode(code, () => humanizePreferenceCode(code));
+          const extra = resolveExtraByCode(packingExtraPriceByCode, code);
+          labels.push(appendExtra(base, extra));
         }
         if (piece.notes?.trim()) labels.push(piece.notes.trim());
         return { labels };
@@ -160,7 +184,19 @@ function SummaryCartItemComponent({
     );
     if (notes?.trim()) parts.push(notes.trim());
     return parts.length > 0 ? [{ labels: parts }] : [];
-  }, [trackByPiece, pieces, conditions, notes, colorCatalog, getBilingual, preferenceLabelByCode]);
+  }, [
+    trackByPiece,
+    pieces,
+    conditions,
+    notes,
+    colorCatalog,
+    getBilingual,
+    preferenceLabelByCode,
+    packingExtraPriceByCode,
+    currencyCode,
+    decimalPlaces,
+    moneyLocale,
+  ]);
 
   const displayPrice = formatMoneyAmountWithCode(totalPrice, {
     currencyCode: currencyCode as string,

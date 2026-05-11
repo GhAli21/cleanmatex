@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
-import { getAuthContext, requirePermission } from '@/lib/middleware/require-permission';
+import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
 
 /**
@@ -160,9 +160,6 @@ export async function POST(
       feature: 'order_pieces',
       action: 'create_pieces',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces',
-      tenantId,
-      orderId,
-      itemId,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
@@ -255,10 +252,6 @@ export async function PATCH(
       feature: 'order_pieces',
       action: 'batch_update_pieces',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces',
-      tenantId,
-      orderId,
-      itemId,
-      updateCount: updates?.length || 0,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

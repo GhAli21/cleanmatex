@@ -10,7 +10,7 @@ import { getAuthContext } from '@/lib/middleware/require-permission';
 
 export async function GET(request: NextRequest) {
   try {
-    const authContext = await getAuthContext(request);
+    const authContext = await getAuthContext();
     if (!authContext) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

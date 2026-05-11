@@ -274,6 +274,8 @@ export interface TransitionCheckParams {
   tenantId: string;
   fromStatus: OrderStatus;
   toStatus: OrderStatus;
+  /** When set, validation uses DB RPC `cmx_validate_transition`. */
+  orderId?: string;
   serviceCategoryCode?: string;
   userRole?: string;
 }

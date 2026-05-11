@@ -98,6 +98,8 @@ export interface PackingPreference {
   display_order?: number | null;
   /** Tenant surcharge for this packing option — `org_packing_preference_cf.extra_price` (DECIMAL); added to cart line totals. */
   default_extra_price?: number;
+  /** FK to `org_packing_preference_cf.id` when populated from tenant catalog layer. */
+  packing_cf_id?: string | null;
 }
 
 // ============================================================================

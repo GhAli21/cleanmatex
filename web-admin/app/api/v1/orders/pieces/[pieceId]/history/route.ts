@@ -8,6 +8,17 @@ import { createClient } from '@/lib/supabase/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
 
+/** Row shape for org_order_piece_hist_tr (add to generated DB types after migration apply). */
+type PieceHistRow = {
+  id: string;
+  action_code: string | null;
+  from_value: string | null;
+  to_value: string | null;
+  done_by: string | null;
+  done_at: string | null;
+  notes: string | null;
+};
+
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +48,8 @@ export async function GET(
       );
     }
 
-    const { data: hist, error: histErr } = await supabase
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table pending in generated Database types
+    const { data: hist, error: histErr } = await (supabase as any)
       .from('org_order_piece_hist_tr')
       .select('id, action_code, from_value, to_value, done_by, done_at, notes')
       .eq('order_piece_id', pieceId)
@@ -56,9 +68,10 @@ export async function GET(
       );
     }
 
+    const rows = (hist || []) as PieceHistRow[];
     const doneByIds = [
       ...new Set(
-        (hist || [])
+        rows
           .map((r) => r.done_by)
           .filter((x): x is string => typeof x === 'string' && x.length > 0)
       ),
@@ -95,7 +108,7 @@ export async function GET(
       }
     }
 
-    const history = (hist || []).map((row) => ({
+    const history = rows.map((row) => ({
       id: row.id,
       action: row.action_code,
       fromValue: row.from_value,

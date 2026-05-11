@@ -21,6 +21,44 @@ import type {
   WorkflowStats,
 } from '@/lib/types/workflow';
 
+/** RPC `cmx_order_transition` JSON payload (not in generated types). */
+type CmxOrderTransitionResult = {
+  success?: boolean;
+  error?: string;
+  gate?: string;
+  order_id?: string;
+  to_status?: string;
+  transitioned_at?: string;
+};
+
+/** RPC `cmx_validate_transition` JSON payload. */
+type CmxValidateTransitionResult = {
+  allowed?: boolean;
+  error?: string;
+};
+
+/** RPC `cmx_get_allowed_transitions` JSON payload. */
+type CmxAllowedTransitionsResult = {
+  transitions?: unknown[];
+};
+
+const DEFAULT_TENANT_WORKFLOW_STEPS: OrderStatus[] = [
+  'draft',
+  'intake',
+  'preparation',
+  'sorting',
+  'washing',
+  'drying',
+  'finishing',
+  'assembly',
+  'qa',
+  'packing',
+  'ready',
+  'out_for_delivery',
+  'delivered',
+  'closed',
+];
+
 export class WorkflowService {
   /**
    * Change order status with full validation and audit trail
@@ -77,11 +115,15 @@ export class WorkflowService {
       }
 
       // Parse DB function result
-      if (data.success === false) {
+      const transition = data as CmxOrderTransitionResult;
+      if (transition.success === false) {
         return {
           success: false,
-          error: data.error || 'Transition not allowed',
-          blockers: data.gate === 'rack_location_required' ? ['Rack location required'] : undefined,
+          error: transition.error || 'Transition not allowed',
+          blockers:
+            transition.gate === 'rack_location_required'
+              ? ['Rack location required']
+              : undefined,
         };
       }
 
@@ -107,9 +149,9 @@ export class WorkflowService {
       return {
         success: true,
         order: {
-          id: data.order_id,
-          status: data.to_status,
-          updated_at: data.transitioned_at,
+          id: transition.order_id ?? orderId,
+          status: (transition.to_status ?? toStatus) as OrderStatus,
+          updated_at: transition.transitioned_at ?? new Date().toISOString(),
         },
       };
     } catch (error) {
@@ -149,9 +191,10 @@ export class WorkflowService {
         );
 
         if (!error && data) {
+          const vd = data as CmxValidateTransitionResult;
           return {
-            isAllowed: data.allowed,
-            reason: data.error || undefined,
+            isAllowed: Boolean(vd.allowed),
+            reason: vd.error || undefined,
           };
         }
       }
@@ -216,22 +259,7 @@ export class WorkflowService {
       }
 
       // Default workflow
-      return [
-        'DRAFT',
-        'INTAKE',
-        'PREPARATION',
-        'SORTING',
-        'WASHING',
-        'DRYING',
-        'FINISHING',
-        'ASSEMBLY',
-        'QA',
-        'PACKING',
-        'READY',
-        'OUT_FOR_DELIVERY',
-        'DELIVERED',
-        'CLOSED',
-      ];
+      return [...DEFAULT_TENANT_WORKFLOW_STEPS];
     } catch (error) {
       logger.error(
         'WorkflowService.getWorkflowForTenant error',
@@ -239,22 +267,7 @@ export class WorkflowService {
         { feature: 'workflow', action: 'get_workflow_for_tenant', tenantId }
       );
       // Return default workflow on error
-      return [
-        'DRAFT',
-        'INTAKE',
-        'PREPARATION',
-        'SORTING',
-        'WASHING',
-        'DRYING',
-        'FINISHING',
-        'ASSEMBLY',
-        'QA',
-        'PACKING',
-        'READY',
-        'OUT_FOR_DELIVERY',
-        'DELIVERED',
-        'CLOSED',
-      ];
+      return [...DEFAULT_TENANT_WORKFLOW_STEPS];
     }
   }
 
@@ -733,7 +746,8 @@ export class WorkflowService {
         return [];
       }
 
-      return data.transitions || [];
+      const payload = data as CmxAllowedTransitionsResult;
+      return payload.transitions || [];
     } catch (error) {
       console.error('WorkflowService.getAllowedTransitions error:', error);
       return [];
@@ -758,7 +772,11 @@ export class WorkflowService {
         return null;
       }
 
-      const allowedTransitions = await this.getAllowedTransitions(orderId, tenantId, order.current_status);
+      const allowedTransitions = await this.getAllowedTransitions(
+        orderId,
+        tenantId,
+        order.current_status as OrderStatus
+      );
 
       return {
         order,
@@ -789,8 +807,8 @@ export class WorkflowService {
   }): Promise<void> {
     const { orderId, tenantId, toStatus } = args;
 
-    // Auto-create assembly task when order enters ASSEMBLY status
-    if (toStatus === 'ASSEMBLY') {
+    // Auto-create assembly task when order enters assembly status
+    if (toStatus === 'assembly') {
       try {
         const { AssemblyService } = await import('./assembly-service');
         // Get user from context (best effort)

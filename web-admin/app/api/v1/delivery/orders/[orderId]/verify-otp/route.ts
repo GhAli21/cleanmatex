@@ -13,7 +13,7 @@ export async function POST(
   { params }: { params: { orderId: string } }
 ) {
   try {
-    const authContext = await getAuthContext(request);
+    const authContext = await getAuthContext();
     if (!authContext) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

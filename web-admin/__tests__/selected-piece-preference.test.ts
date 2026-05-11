@@ -25,11 +25,14 @@ describe('pieceToSelectedPreferences / applySelectedPreferencesToPiece', () => {
       packingPrefCode: 'HANGER',
       color: 'WHITE',
     };
-    const chips = pieceToSelectedPreferences(piece);
+    const chips = pieceToSelectedPreferences(piece, {
+      packingExtraByCode: new Map([['HANGER', 0.4]]),
+    });
     expect(chips.length).toBe(5);
     expect(chips[0].preference_sys_kind).toMatch(/condition_/);
     expect(chips[2].preference_sys_kind).toBe('service_prefs');
     expect(chips[3].preference_sys_kind).toBe('packing_prefs');
+    expect(chips[3].extra_price).toBeCloseTo(0.4);
     expect(chips[4].preference_sys_kind).toBe('color');
 
     const merged = applySelectedPreferencesToPiece(basePiece(), chips);

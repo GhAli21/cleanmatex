@@ -3614,6 +3614,7 @@
         "pinLabel": "Card PIN",
         "pinPlaceholder": "Enter PIN",
         "pinPrompt": "This card is PIN-protected. Enter the PIN to continue.",
+        "pinPendingError": "Enter the gift card PIN to continue, or remove the card.",
         "apply": "Apply",
         "applied": "Gift card applied",
         "remove": "Remove",

@@ -221,9 +221,10 @@ export function PaymentModalEnhanced02({
     id: string;
   } | null>(null);
   // PIN state — local only, not in form schema (PIN is verified at Fetch, not at Submit)
-  const [giftCardPin, setGiftCardPin]   = useState('');
-  const [pinRequired, setPinRequired]   = useState(false);
-  const [pinVisible, setPinVisible]     = useState(false);
+  const [giftCardPin, setGiftCardPin]     = useState('');
+  const [pinRequired, setPinRequired]     = useState(false);
+  const [pinVisible, setPinVisible]       = useState(false);
+  const [pinFieldError, setPinFieldError] = useState<string | null>(null);
 
   const [couponOpen, setCouponOpen] = useState(false);
   const [taxRate, setTaxRate] = useState<number>(0.06);
@@ -255,7 +256,8 @@ export function PaymentModalEnhanced02({
     };
   } | null>(null);
   const [totalsLoading, setTotalsLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
   const [currencyConfig, setCurrencyConfig] = useState<{
@@ -556,6 +558,12 @@ export function PaymentModalEnhanced02({
         return;
       }
 
+      // Wrong PIN was entered → show error inline above the PIN field, not in general banner
+      if (!result.isValid && result.errorCode === 'INVALID_PIN' && giftCardPin.trim()) {
+        setPinFieldError(resolveGiftCardError(result));
+        return;
+      }
+
       setGiftCardResult(result);
       if (result.isValid && result.giftCard && result.availableBalance != null) {
         setPinRequired(false);
@@ -617,9 +625,18 @@ export function PaymentModalEnhanced02({
     setGiftCardPin('');
     setPinRequired(false);
     setPinVisible(false);
+    setPinFieldError(null);
   };
 
   const onSubmitForm = (data: PaymentFormData) => {
+    // Block submission while PIN verification is pending
+    if (pinRequired) {
+      setPinFieldError(t('giftCard.pinPendingError'));
+      pinInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      pinInputRef.current?.focus();
+      return;
+    }
+
     const submissionData: PaymentFormData = {
       ...data,
       giftCardNumber: appliedGiftCard ? appliedGiftCard.number : undefined,
@@ -1243,6 +1260,7 @@ export function PaymentModalEnhanced02({
                                   setPinRequired(false);
                                   setGiftCardPin('');
                                   setPinVisible(false);
+                                  setPinFieldError(null);
                                   setGiftCardResult(null);
                                 }
                               }}
@@ -1275,11 +1293,18 @@ export function PaymentModalEnhanced02({
                             <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
                             <span>{t('giftCard.pinPrompt')}</span>
                           </div>
+                          {pinFieldError && (
+                            <div className={`flex items-center gap-1.5 text-xs text-red-600 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                              <span>{pinFieldError}</span>
+                            </div>
+                          )}
                           <div className="relative">
                             <input
+                              ref={pinInputRef}
                               type={pinVisible ? 'text' : 'password'}
                               value={giftCardPin}
-                              onChange={(e) => setGiftCardPin(e.target.value)}
+                              onChange={(e) => { setGiftCardPin(e.target.value); setPinFieldError(null); }}
                               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleFetchGiftCardDetails())}
                               inputMode="numeric"
                               maxLength={20}

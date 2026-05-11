@@ -93,12 +93,12 @@ export default function CreatePaymentForm({
     const parsed = createStandalonePaymentSchema.safeParse(payload);
     if (!parsed.success) {
       const errors: Record<string, string> = {};
-      for (const err of parsed.error.errors) {
+      for (const err of parsed.error.issues) {
         const field = err.path?.[0] as string | undefined;
         if (field) errors[field] = err.message ?? t('invalidField');
       }
       setFieldErrors(errors);
-      setError(parsed.error.errors[0]?.message ?? t('invalidInput'));
+      setError(parsed.error.issues[0]?.message ?? t('invalidInput'));
       return;
     }
 

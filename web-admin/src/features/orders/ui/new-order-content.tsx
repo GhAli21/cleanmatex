@@ -80,6 +80,13 @@ export function NewOrderContent() {
         packingPrefs,
     } = orderCatalog;
     const packingPriceByCode = useMemo(() => packingPreferencePriceMap(packingPrefs), [packingPrefs]);
+    const packingExtraPriceByCode = useMemo(() => {
+      const o: Record<string, number> = {};
+      for (const [code, amount] of packingPriceByCode.entries()) {
+        o[code] = amount;
+      }
+      return o;
+    }, [packingPriceByCode]);
     const {
         preferenceKinds,
         kindsLoading,
@@ -536,6 +543,7 @@ export function NewOrderContent() {
         onOpenPaymentModal: () => state.openModal('payment'),
         colorCatalog: conditionCatalog.colors,
         preferenceLabelByCode,
+        packingExtraPriceByCode,
         // Customer header
         customerName: state.state.customerName,
         onSelectCustomer: () => state.openModal('customerPicker'),

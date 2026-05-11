@@ -77,11 +77,11 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
     const out: SelectedPreference[] = [];
     for (const item of state.items) {
       for (const p of item.pieces ?? []) {
-        out.push(...pieceToSelectedPreferences(p));
+        out.push(...pieceToSelectedPreferences(p, { packingExtraByCode: packingPriceByCode }));
       }
     }
     return out;
-  }, [state.items]);
+  }, [state.items, packingPriceByCode]);
 
   const addPreference = useCallback(
     (pieceId: string, data: AddPreferenceInput) => {
@@ -90,7 +90,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const piece = item.pieces.find((x) => x.id === pieceId);
       if (!piece) return;
 
-      const current = pieceToSelectedPreferences(piece);
+      const current = pieceToSelectedPreferences(piece, { packingExtraByCode: packingPriceByCode });
       let baseList = current;
       if (data.preference_sys_kind === 'packing_prefs') {
         baseList = current.filter((c) => c.preference_sys_kind !== 'packing_prefs');
@@ -119,7 +119,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       const nextPieces = item.pieces.map((x) => (x.id === pieceId ? updatedPiece : x));
       setPiecePreferences(item.productId, nextPieces);
     },
-    [state.items, setPiecePreferences]
+    [state.items, setPiecePreferences, packingPriceByCode]
   );
 
   const removePreference = useCallback(
@@ -148,7 +148,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
       if (!sourceItem?.pieces) return;
       const source = sourceItem.pieces.find((p) => p.id === sourcePieceId);
       if (!source) return;
-      const template = pieceToSelectedPreferences(source);
+      const template = pieceToSelectedPreferences(source, { packingExtraByCode: packingPriceByCode });
 
       const productToPieces = new Map<string, PreSubmissionPiece[]>();
       for (const item of state.items) {
@@ -179,7 +179,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         setPiecePreferences(productId, pieces);
       }
     },
-    [state.items, setPiecePreferences]
+    [state.items, setPiecePreferences, packingPriceByCode]
   );
 
   const copySinglePreference = useCallback(
@@ -203,7 +203,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         const idx = arr.findIndex((p) => p.id === tid);
         if (idx < 0) continue;
         const tp = arr[idx];
-        const current = pieceToSelectedPreferences(tp);
+        const current = pieceToSelectedPreferences(tp, { packingExtraByCode: packingPriceByCode });
         const chip: SelectedPreference = {
           id: newChipId(),
           pieceId: tid,
@@ -226,7 +226,7 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
         setPiecePreferences(productId, pieces);
       }
     },
-    [state.items, getAllPreferencesFlat, setPiecePreferences]
+    [state.items, getAllPreferencesFlat, setPiecePreferences, packingPriceByCode]
   );
 
   const updatePieceFields = useCallback(
@@ -239,12 +239,18 @@ export function useNewOrderPiecePreferences(packingPrefs: PackingPreference[]) {
     [state.items, setPiecePreferences]
   );
 
+  const pieceToSelectedPreferencesForPiece = useCallback(
+    (piece: PreSubmissionPiece) =>
+      pieceToSelectedPreferences(piece, { packingExtraByCode: packingPriceByCode }),
+    [packingPriceByCode]
+  );
+
   return {
     addPreference,
     removePreference,
     copyAllPreferences,
     copySinglePreference,
-    pieceToSelectedPreferences,
+    pieceToSelectedPreferences: pieceToSelectedPreferencesForPiece,
     updatePieceFields,
   };
 }

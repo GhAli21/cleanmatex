@@ -5,13 +5,16 @@
 'use client';
 
 import type { CSSProperties } from 'react';
+import { useLocale } from 'next-intl';
 import { Copy, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { catalogColorChipStyle, parseKindBgHex } from './piece-pref-kind-styles';
 
 export interface PreferenceChipProps {
   label: string;
   extraPrice: number;
+  /** @deprecated Use tenant currency from context for formatting (kept for call-site compatibility). */
   currencyCode: string;
   kindClassName?: string;
   /** Kind color accent (hex from DB) layered under optional Tailwind kindClassName */
@@ -27,7 +30,7 @@ export interface PreferenceChipProps {
 export function PreferenceChip({
   label,
   extraPrice,
-  currencyCode,
+  currencyCode: _currencyCode,
   kindClassName,
   accentStyle,
   catalogColorHex,
@@ -36,7 +39,10 @@ export function PreferenceChip({
   removeLabel,
   copyLabel,
 }: PreferenceChipProps) {
+  const locale = useLocale();
+  const { formatMoneyWithCode } = useTenantCurrency();
   const showPrice = extraPrice > 0.0001;
+  const priceText = showPrice ? `+${formatMoneyWithCode(extraPrice)}` : '';
   const swatchHex = catalogColorHex ? parseKindBgHex(catalogColorHex) : null;
   const swatchStyle = swatchHex ? catalogColorChipStyle(swatchHex) : undefined;
 
@@ -56,8 +62,9 @@ export function PreferenceChip({
             'shrink-0 text-xs font-bold tabular-nums',
             swatchStyle ? 'text-emerald-200' : 'text-emerald-700'
           )}
+          lang={locale === 'ar' ? 'ar' : 'en'}
         >
-          +{extraPrice.toFixed(3)} {currencyCode}
+          {priceText}
         </span>
       )}
       <span className="inline-flex shrink-0 items-center gap-0.5 ps-1">

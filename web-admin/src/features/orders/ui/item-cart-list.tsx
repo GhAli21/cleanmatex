@@ -56,6 +56,8 @@ interface ItemCartListProps {
   onSelectPiece?: (pieceId: string | null) => void;
   colorCatalog?: ColorCatalogEntry[];
   preferenceLabelByCode?: Record<string, string>;
+  /** Packing surcharge by code — same catalog as packing chips (`default_extra_price`) */
+  packingExtraPriceByCode?: Record<string, number>;
 }
 
 function ItemCartListComponent({
@@ -67,6 +69,7 @@ function ItemCartListComponent({
   currencyCode = ORDER_DEFAULTS.CURRENCY,
   colorCatalog,
   preferenceLabelByCode,
+  packingExtraPriceByCode,
 }: ItemCartListProps) {
   const t = useTranslations('newOrder.itemsGrid');
   const tPieces = useTranslations('newOrder.pieces');
@@ -129,6 +132,7 @@ function ItemCartListComponent({
             currencyCode={currencyCode}
             colorCatalog={colorCatalog}
             preferenceLabelByCode={preferenceLabelByCode}
+            packingExtraPriceByCode={packingExtraPriceByCode}
             onEditPrice={onEditItem ? () => onEditItem(item.id) : undefined}
             onEditNotes={onEditItemNotes ? () => onEditItemNotes(item.id) : undefined}
             onDelete={() => onDeleteItem(item.id)}

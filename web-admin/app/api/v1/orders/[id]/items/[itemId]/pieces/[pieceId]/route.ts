@@ -73,8 +73,6 @@ export async function GET(
       feature: 'order_pieces',
       action: 'get_piece',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]',
-      tenantId,
-      pieceId,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
@@ -163,9 +161,6 @@ export async function PATCH(
       feature: 'order_pieces',
       action: 'update_piece',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]',
-      tenantId,
-      pieceId,
-      userId,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
@@ -245,8 +240,6 @@ export async function DELETE(
       feature: 'order_pieces',
       action: 'delete_piece',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]',
-      tenantId,
-      pieceId,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

@@ -67,8 +67,6 @@ export async function POST(
       feature: 'order_pieces',
       action: 'sync_quantity_ready',
       endpoint: '/api/v1/orders/[id]/items/[itemId]/pieces/sync',
-      tenantId,
-      itemId,
     });
     const message = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(

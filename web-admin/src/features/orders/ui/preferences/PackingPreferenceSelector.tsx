@@ -7,6 +7,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useBilingual } from '@/lib/utils/bilingual';
 import type { PackingPreference } from '@/lib/types/service-preferences';
 
@@ -25,15 +26,19 @@ export function PackingPreferenceSelector({
 }: PackingPreferenceSelectorProps) {
   const t = useTranslations('newOrder.preferences');
   const getBilingual = useBilingual();
+  const { formatMoneyWithCode } = useTenantCurrency();
 
   if (availablePrefs.length === 0) return null;
 
   const options = [
     { value: '', label: t('none') || 'None' },
-    ...availablePrefs.map((pref) => ({
-      value: pref.code,
-      label: getBilingual(pref.name, pref.name2) || pref.code,
-    })),
+    ...availablePrefs.map((pref) => {
+      const name = getBilingual(pref.name, pref.name2 ?? null) || pref.code;
+      const extra = Number(pref.default_extra_price ?? 0);
+      const label =
+        extra > 0 && Number.isFinite(extra) ? `${name} +${formatMoneyWithCode(extra)}` : name;
+      return { value: pref.code, label };
+    }),
   ];
 
   return (
