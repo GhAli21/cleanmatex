@@ -44,7 +44,7 @@ export default function UserPreferencesPage() {
     }
   };
 
-  const handleSave = async (settingCode: string, value: any) => {
+  const handleSave = async (settingCode: string, value: unknown) => {
     setIsSaving(true);
     try {
       await settingsClient.upsertOverride({
@@ -284,8 +284,9 @@ interface UserPreferenceProps {
   label: string;
   description: string;
   effectiveSettings: ResolvedSetting[];
-  onSave: (settingCode: string, value: any) => void;
-  children: React.ReactElement;
+  onSave: (settingCode: string, value: unknown) => void;
+  /** Native `<select>` or `<input type="checkbox" />` — receives controlled props via cloneElement. */
+  children: React.ReactElement<Record<string, unknown>>;
   isBoolean?: boolean;
 }
 
@@ -298,13 +299,28 @@ function UserPreference({
   children,
   isBoolean = false,
 }: UserPreferenceProps) {
-  const resolved = effectiveSettings.find(s => s.stngCode === settingCode);
+  const resolved = effectiveSettings.find((s) => s.stngCode === settingCode);
   const [value, setValue] = useState(resolved?.stngValue);
 
-  const handleChange = (newValue: any) => {
+  const handleChange = (newValue: unknown) => {
     setValue(newValue);
     onSave(settingCode, newValue);
   };
+
+  const handleNativeChange = (e: React.ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
+    const el = e.currentTarget;
+    const newValue = isBoolean && 'checked' in el ? el.checked : el.value;
+    handleChange(newValue);
+  };
+
+  const injectedProps: Record<string, unknown> = {
+    onChange: handleNativeChange,
+  };
+  if (isBoolean) {
+    injectedProps.checked = Boolean(value);
+  } else {
+    injectedProps.value = value ?? '';
+  }
 
   return (
     <EnhancedSettingField
@@ -319,14 +335,7 @@ function UserPreference({
       userId="me"
       onReset={() => onSave(settingCode, null)}
     >
-      {React.cloneElement(children, {
-        value: isBoolean ? undefined : value,
-        checked: isBoolean ? !!value : undefined,
-        onChange: (e: any) => {
-          const newValue = isBoolean ? e.target.checked : e.target.value;
-          handleChange(newValue);
-        },
-      })}
+      {React.cloneElement(children, injectedProps)}
     </EnhancedSettingField>
   );
 }

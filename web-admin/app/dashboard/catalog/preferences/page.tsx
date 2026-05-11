@@ -203,7 +203,6 @@ function ServicePrefsTable({
   onRemove,
   offerFilter,
   removePendingCode,
-  t,
   isRtl,
 }: {
   servicePrefsAdmin: ServicePrefAdmin[];
@@ -214,9 +213,9 @@ function ServicePrefsTable({
   onRemove?: (p: ServicePrefAdmin) => void;
   offerFilter: CatalogOfferFilter;
   removePendingCode: string | null;
-  t: (key: string, fallback?: string) => string;
   isRtl: boolean;
 }) {
+  const t = useTranslations('catalog.preferences');
   const intlLocale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
@@ -433,15 +432,18 @@ function ServicePrefsTable({
                             <div className="flex justify-end gap-1">
                               {!inCatalog && sysActive ? (
                                 <CmxButton
-                                  variant="ghost"
+                                  variant="outline"
                                   size="sm"
-                                  className="h-8 px-2 text-emerald-700 hover:text-emerald-800"
+                                  className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
                                   onClick={() => onEdit(adminRow)}
                                   aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
                                   title={t('enablePreference', { defaultValue: 'Add to catalog' })}
                                   data-testid={`add-service-pref-${p.code}`}
                                 >
-                                  <Plus className="h-3.5 w-3.5" />
+                                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                  <span className="hidden min-[480px]:inline">
+                                    {t('enablePreference', { defaultValue: 'Add to catalog' })}
+                                  </span>
                                 </CmxButton>
                               ) : null}
                               <CmxButton
@@ -493,7 +495,6 @@ function PackingPrefsTable({
   onRemove,
   offerFilter,
   removePendingCode,
-  t,
   isRtl,
 }: {
   packingPrefsAdmin: PackingPrefAdmin[];
@@ -503,9 +504,9 @@ function PackingPrefsTable({
   onRemove?: (p: PackingPrefAdmin) => void;
   offerFilter: CatalogOfferFilter;
   removePendingCode: string | null;
-  t: (key: string, fallback?: string) => string;
   isRtl: boolean;
 }) {
+  const t = useTranslations('catalog.preferences');
   const rowsRaw = packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs;
   const isAdmin = packingPrefsAdmin.length > 0;
   const rows = useMemo(() => {
@@ -615,15 +616,18 @@ function PackingPrefsTable({
                       <div className="flex justify-end gap-1">
                         {!inCatalog && sysActive ? (
                           <CmxButton
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
-                            className="h-8 px-2 text-emerald-700 hover:text-emerald-800"
+                            className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
                             onClick={() => onEdit(adminRow)}
                             aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
                             title={t('enablePreference', { defaultValue: 'Add to catalog' })}
                             data-testid={`add-packing-pref-${p.code}`}
                           >
-                            <Plus className="h-3.5 w-3.5" />
+                            <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                            <span className="hidden min-[480px]:inline">
+                              {t('enablePreference', { defaultValue: 'Add to catalog' })}
+                            </span>
                           </CmxButton>
                         ) : null}
                         <CmxButton
@@ -668,16 +672,15 @@ function BundlesTable({
   loading,
   onEdit,
   onDelete,
-  t,
   deletePending,
 }: {
   bundles: PreferenceBundle[];
   loading: boolean;
   onEdit: (b: PreferenceBundle) => void;
   onDelete: (b: PreferenceBundle) => void;
-  t: (key: string, fallback?: string) => string;
   deletePending: boolean;
 }) {
+  const t = useTranslations('catalog.preferences');
   const intlLocale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
@@ -801,15 +804,14 @@ function PreferenceKindsTable({
   kinds,
   loading,
   onEdit,
-  t,
   isRtl,
 }: {
   kinds: PreferenceKindAdmin[];
   loading: boolean;
   onEdit: (k: PreferenceKindAdmin) => void;
-  t: (key: string, fallback?: string) => string;
   isRtl: boolean;
 }) {
+  const t = useTranslations('catalog.preferences');
   if (loading) {
     return <TableSkeleton rows={6} />;
   }
@@ -1207,6 +1209,14 @@ export default function PreferencesCatalogPage() {
               {t('servicePrefsDesc', { defaultValue: 'Processing options: starch, perfume, delicate, etc.' })}
             </p>
             {servicePrefsAdmin.length > 0 ? (
+              <p className="text-xs text-gray-500">
+                {t('catalogAddRowHint', {
+                  defaultValue:
+                    'To offer a platform option on new orders, find a “Not in catalog” row and use Add to catalog, or switch the filter above to Not in catalog.',
+                })}
+              </p>
+            ) : null}
+            {servicePrefsAdmin.length > 0 ? (
               <CatalogOfferFilterBar value={serviceOfferFilter} onChange={setServiceOfferFilter} />
             ) : null}
             <ServicePrefsTable
@@ -1218,7 +1228,6 @@ export default function PreferencesCatalogPage() {
               onRemove={servicePrefsAdmin.length > 0 ? removeServicePrefRow : undefined}
               offerFilter={serviceOfferFilter}
               removePendingCode={removingServiceCode}
-              t={(k, f) => t(k as 'code', { defaultValue: f })}
               isRtl={isRtl}
             />
           </div>
@@ -1234,6 +1243,14 @@ export default function PreferencesCatalogPage() {
               {t('packingPrefsDesc', { defaultValue: 'Assembly options: hang, fold, box, etc.' })}
             </p>
             {packingPrefsAdmin.length > 0 ? (
+              <p className="text-xs text-gray-500">
+                {t('catalogAddRowHint', {
+                  defaultValue:
+                    'To offer a platform option on new orders, find a “Not in catalog” row and use Add to catalog, or switch the filter above to Not in catalog.',
+                })}
+              </p>
+            ) : null}
+            {packingPrefsAdmin.length > 0 ? (
               <CatalogOfferFilterBar value={packingOfferFilter} onChange={setPackingOfferFilter} />
             ) : null}
             <PackingPrefsTable
@@ -1244,7 +1261,6 @@ export default function PreferencesCatalogPage() {
               onRemove={packingPrefsAdmin.length > 0 ? removePackingPrefRow : undefined}
               offerFilter={packingOfferFilter}
               removePendingCode={removingPackingCode}
-              t={(k, f) => t(k as 'code', { defaultValue: f })}
               isRtl={isRtl}
             />
           </div>
@@ -1295,7 +1311,6 @@ export default function PreferencesCatalogPage() {
                 if (!ok) return;
                 deleteBundleMutation.mutate(b.id);
               }}
-              t={(k, f) => t(k as 'bundleCode', { defaultValue: f })}
               deletePending={deleteBundleMutation.isPending}
             />
           </div>
@@ -1317,7 +1332,6 @@ export default function PreferencesCatalogPage() {
               kinds={preferenceKindsAdmin}
               loading={loading}
               onEdit={setEditingPreferenceKind}
-              t={(k, f) => t(k as 'kindCode', { defaultValue: f })}
               isRtl={isRtl}
             />
           </div>
@@ -1596,7 +1610,9 @@ function ServicePrefEditDialog({
       .sort()
       .map((v) => ({
         value: v,
-        label: t(`prefCategory.${v}`, v.replace(/_/g, ' ')),
+        label: t(`prefCategory.${v}` as 'prefCategory.processing', {
+          defaultValue: v.replace(/_/g, ' '),
+        }),
       }));
   }, [pref.preference_category, t]);
 
@@ -1689,10 +1705,10 @@ function ServicePrefEditDialog({
           </div>
           {!pref.cf_id ? (
             <p className="text-sm rounded-md bg-sky-50 text-sky-900 px-3 py-2 border border-sky-100">
-              {t(
-                'enablePreferenceHint',
-                'Saving adds this platform option to your tenant catalog so it appears on new orders.'
-              )}
+              {t('enablePreferenceHint', {
+                defaultValue:
+                  'Saving adds this platform option to your tenant catalog so it appears on new orders.',
+              })}
             </p>
           ) : null}
           <div>
@@ -1724,10 +1740,9 @@ function ServicePrefEditDialog({
           {editsColorSwatch ? (
             <CmxHexColorField
               label={t('preferenceColor', { defaultValue: 'Garment swatch color' })}
-              helperText={t(
-                'preferenceColorHint',
-                '#RRGGBB or blank to use catalog default'
-              )}
+              helperText={t('preferenceColorHint', {
+                defaultValue: '#RRGGBB or blank to use catalog default',
+              })}
               hexPlaceholder={t('preferenceColorPlaceholder', { defaultValue: '#1976D2' })}
               pickerAriaLabel={t('colorPickLabel', { defaultValue: 'Open color picker' })}
               clearLabel={t('clearPreferenceColor', { defaultValue: 'Use catalog default' })}
@@ -1886,10 +1901,10 @@ function PackingPrefEditDialog({
           </div>
           {!pref.cf_id ? (
             <p className="text-sm rounded-md bg-sky-50 text-sky-900 px-3 py-2 border border-sky-100">
-              {t(
-                'enablePreferenceHint',
-                'Saving adds this platform option to your tenant catalog so it appears on new orders.'
-              )}
+              {t('enablePreferenceHint', {
+                defaultValue:
+                  'Saving adds this platform option to your tenant catalog so it appears on new orders.',
+              })}
             </p>
           ) : null}
           <div>
