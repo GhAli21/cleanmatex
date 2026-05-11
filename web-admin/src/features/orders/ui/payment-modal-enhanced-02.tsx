@@ -14,7 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
-  Tag, Gift, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp
+  Tag, Gift, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp,
+  Eye, EyeOff, KeyRound,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -219,6 +220,10 @@ export function PaymentModalEnhanced02({
     balance: number;
     id: string;
   } | null>(null);
+  // PIN state — local only, not in form schema (PIN is verified at Fetch, not at Submit)
+  const [giftCardPin, setGiftCardPin]   = useState('');
+  const [pinRequired, setPinRequired]   = useState(false);
+  const [pinVisible, setPinVisible]     = useState(false);
 
   const [couponOpen, setCouponOpen] = useState(false);
   const [taxRate, setTaxRate] = useState<number>(0.06);
@@ -533,13 +538,27 @@ export function PaymentModalEnhanced02({
   const handleFetchGiftCardDetails = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
     if (!giftCardNumber?.trim()) return;
+    // When PIN field is shown, require a PIN before re-fetching
+    if (pinRequired && !giftCardPin.trim()) return;
+
     setGiftCardValidating(true);
     setGiftCardResult(null);
     setGiftCardDetails(null);
     try {
-      const result = await validateGiftCardAction({ gift_card_code: giftCardNumber });
+      const result = await validateGiftCardAction({
+        gift_card_code: giftCardNumber,
+        ...(giftCardPin.trim() ? { card_pin: giftCardPin.trim() } : {}),
+      });
+
+      // Card has a PIN but none was supplied yet → reveal PIN field, no error banner
+      if (!result.isValid && result.errorCode === 'INVALID_PIN' && !giftCardPin.trim()) {
+        setPinRequired(true);
+        return;
+      }
+
       setGiftCardResult(result);
       if (result.isValid && result.giftCard && result.availableBalance != null) {
+        setPinRequired(false);
         const details = {
           number: result.giftCard.gift_card_code,
           balance: result.availableBalance,
@@ -595,6 +614,9 @@ export function PaymentModalEnhanced02({
     setGiftCardResult(null);
     setGiftCardDetails(null);
     setAppliedGiftCard(null);
+    setGiftCardPin('');
+    setPinRequired(false);
+    setPinVisible(false);
   };
 
   const onSubmitForm = (data: PaymentFormData) => {
@@ -1204,6 +1226,7 @@ export function PaymentModalEnhanced02({
 
                   {!appliedGiftCard ? (
                     <div className="space-y-3">
+                      {/* Card code row */}
                       <div className={`flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <Controller
                           name="giftCardNumber"
@@ -1213,7 +1236,16 @@ export function PaymentModalEnhanced02({
                               {...field}
                               type="text"
                               value={field.value || ''}
-                              onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                              onChange={(e) => {
+                                field.onChange(e.target.value.toUpperCase());
+                                // Reset PIN state whenever the code changes
+                                if (pinRequired) {
+                                  setPinRequired(false);
+                                  setGiftCardPin('');
+                                  setPinVisible(false);
+                                  setGiftCardResult(null);
+                                }
+                              }}
                               onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleFetchGiftCardDetails())}
                               dir="ltr"
                               className={`flex-1 min-w-0 px-3 py-2 text-sm border ${errors.giftCardNumber ? 'border-red-500' : 'border-gray-300'} rounded-lg ${isRTL ? 'text-right' : 'text-left'}`}
@@ -1225,15 +1257,61 @@ export function PaymentModalEnhanced02({
                         <button
                           type="button"
                           onClick={handleFetchGiftCardDetails}
-                          disabled={!giftCardNumber?.trim() || giftCardValidating}
-                          className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white rounded-lg text-sm font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
+                          disabled={
+                            !giftCardNumber?.trim() ||
+                            giftCardValidating ||
+                            (pinRequired && !giftCardPin.trim())
+                          }
+                          className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}
                         >
                           {giftCardValidating ? <Loader2 className="w-4 h-4 animate-spin" /> : t('giftCard.fetch')}
                         </button>
                       </div>
+
+                      {/* PIN field — revealed when backend signals PIN is required */}
+                      {pinRequired && (
+                        <div className={`rounded-lg border border-purple-300 bg-purple-50 p-3 space-y-2 ${isRTL ? 'text-right' : ''}`}>
+                          <div className={`flex items-center gap-1.5 text-xs text-purple-700 font-medium ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <KeyRound className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span>{t('giftCard.pinPrompt')}</span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type={pinVisible ? 'text' : 'password'}
+                              value={giftCardPin}
+                              onChange={(e) => setGiftCardPin(e.target.value)}
+                              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleFetchGiftCardDetails())}
+                              inputMode="numeric"
+                              maxLength={20}
+                              dir="ltr"
+                              // eslint-disable-next-line jsx-a11y/no-autofocus
+                              autoFocus
+                              autoComplete="one-time-code"
+                              placeholder={t('giftCard.pinPlaceholder')}
+                              className={`w-full px-3 py-2 text-sm border border-purple-400 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${isRTL ? 'pr-3 pl-10 text-right' : 'pr-10'}`}
+                            />
+                            <button
+                              type="button"
+                              tabIndex={-1}
+                              onClick={() => setPinVisible((v) => !v)}
+                              className={`absolute top-1/2 -translate-y-1/2 ${isRTL ? 'left-2' : 'right-2'} text-gray-400 hover:text-gray-600 focus:outline-none`}
+                            >
+                              {pinVisible
+                                ? <EyeOff className="w-4 h-4" />
+                                : <Eye className="w-4 h-4" />
+                              }
+                            </button>
+                          </div>
+                          <p className={`text-xs text-purple-600 font-medium ${isRTL ? 'text-right' : ''}`}>
+                            {t('giftCard.pinLabel')}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Error banner (shown for wrong PIN or other errors — NOT for "PIN required" trigger) */}
                       {(giftCardResult && !giftCardResult.isValid) && (
                         <div className={`flex items-center gap-2 text-red-600 text-xs ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          <AlertCircle className="w-3.5 h-3.5" />
+                          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
                           <span>{resolveGiftCardError(giftCardResult)}</span>
                         </div>
                       )}

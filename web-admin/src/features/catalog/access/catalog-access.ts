@@ -237,7 +237,7 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
       {
         label: 'Update service preference',
-        method: 'PATCH',
+        method: 'PUT',
         path: '/api/v1/catalog/service-preferences/[code]',
         requirement: {
           permissions: ['config:preferences_manage'],
@@ -264,7 +264,7 @@ export const CATALOG_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
       {
         label: 'Update packing preference',
-        method: 'PATCH',
+        method: 'PUT',
         path: '/api/v1/catalog/packing-preferences/[code]',
         requirement: {
           permissions: ['config:preferences_manage'],

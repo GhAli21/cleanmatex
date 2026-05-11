@@ -45,7 +45,7 @@ export function useCSRFToken() {
 /**
  * Get CSRF token header for fetch requests
  */
-export function getCSRFHeader(token: string | null): Record<string, string> {
+export function getCSRFHeader(token: string | null = null): Record<string, string> {
   if (!token) {
     return {};
   }

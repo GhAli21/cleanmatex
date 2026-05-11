@@ -55,10 +55,10 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | PATCH | `/api/v1/catalog/preference-bundles/[id]` | `config:preferences_manage` | Bundle admin update |
 | API | DELETE | `/api/v1/catalog/preference-bundles/[id]` | `config:preferences_manage` | Bundle admin delete |
 | API | POST | `/api/v1/catalog/service-preferences/admin` | `config:preferences_manage` | Service preference admin create/update |
-| API | PATCH | `/api/v1/catalog/service-preferences/[code]` | `config:preferences_manage` | Service preference admin update |
+| API | PUT | `/api/v1/catalog/service-preferences/[code]` | `config:preferences_manage` | Service preference admin upsert |
 | API | DELETE | `/api/v1/catalog/service-preferences/[code]` | `config:preferences_manage` | Service preference admin delete |
 | API | POST | `/api/v1/catalog/packing-preferences/admin` | `config:preferences_manage` | Packing preference admin create/update |
-| API | PATCH | `/api/v1/catalog/packing-preferences/[code]` | `config:preferences_manage` | Packing preference admin update |
+| API | PUT | `/api/v1/catalog/packing-preferences/[code]` | `config:preferences_manage` | Packing preference admin upsert |
 | API | DELETE | `/api/v1/catalog/packing-preferences/[code]` | `config:preferences_manage` | Packing preference admin delete |
 | API | POST | `/api/v1/catalog/preference-kinds/admin` | `config:preferences_manage` | Preference kind admin create/update |
 | API | DELETE | `/api/v1/catalog/preference-kinds/admin` | `config:preferences_manage` | Preference kind admin delete |
