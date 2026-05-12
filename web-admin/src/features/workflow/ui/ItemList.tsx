@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
@@ -15,20 +15,37 @@ interface ItemListProps {
   orderId: string;
   branchId?: string | null;
   items: OrderItem[];
+  /** When true (e.g. preparation), expand all item rows that contain pieces so prefs are visible without extra clicks. */
+  defaultExpandAllPieces?: boolean;
   onItemsChange: (items: OrderItem[]) => void;
   /** After piece edits or preference saves — refresh price preview */
   onPiecesOrPrefsChange?: () => void;
   disabled?: boolean;
 }
 
-export function ItemList({ orderId, branchId = null, items, onItemsChange, onPiecesOrPrefsChange, disabled }: ItemListProps) {
+export function ItemList({
+  orderId,
+  branchId = null,
+  items,
+  defaultExpandAllPieces = false,
+  onItemsChange,
+  onPiecesOrPrefsChange,
+  disabled,
+}: ItemListProps) {
   const tPieces = useTranslations('newOrder.pieces');
+  const tOrdPieces = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const [busyId, setBusyId] = useState<string | null>(null);
+  const itemIdsKey = items.map((i) => i.id).join('|');
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!defaultExpandAllPieces || !trackByPiece || items.length === 0) return;
+    setExpandedItemIds(new Set(items.map((i) => i.id)));
+  }, [defaultExpandAllPieces, trackByPiece, itemIdsKey]);
 
   const toggleItemExpansion = (itemId: string) => {
     setExpandedItemIds(prev => {
@@ -54,6 +71,14 @@ export function ItemList({ orderId, branchId = null, items, onItemsChange, onPie
 
   return (
     <div className="space-y-3">
+      {!trackByPiece && items.length > 0 && (
+        <p
+          className="text-sm text-amber-900 bg-amber-50 border border-amber-200 rounded-md px-3 py-2"
+          role="status"
+        >
+          {tOrdPieces('pieceTrackingDisabled')}
+        </p>
+      )}
       {items.map((item) => (
         <div key={item.id} className="border border-gray-200 rounded p-3">
           <div className="flex items-center justify-between mb-2">

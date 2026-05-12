@@ -61,6 +61,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
           orderId={order.id}
           branchId={order.branch_id}
           items={items}
+          defaultExpandAllPieces
           onItemsChange={(next) => {
             setItems(next);
             bumpPricePreview();

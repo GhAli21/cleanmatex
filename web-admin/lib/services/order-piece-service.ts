@@ -96,6 +96,8 @@ export class OrderPieceService {
     const pieceIds = pieces.map((p) => p.id);
     const piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
     const pieceConditionsMap: Record<string, string[]> = {};
+    /** Prefer DTL `packing_prefs` when present (authoritative vs denormalized piece row). */
+    const piecePackingFromDtl: Record<string, string> = {};
 
     const { data: prefs } = await supabase
       .from('org_order_preferences_dtl')
@@ -114,6 +116,8 @@ export class OrderPieceService {
           source: row.prefs_source ?? 'manual',
           extra_price: Number(row.extra_price ?? 0),
         });
+      } else if (sysKind === 'packing_prefs') {
+        piecePackingFromDtl[pieceId] = row.preference_code;
       } else if (
         sysKind === 'condition_stain' ||
         sysKind === 'condition_damag' ||
@@ -128,6 +132,7 @@ export class OrderPieceService {
       ...p,
       service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
       conditions: pieceConditionsMap[p.id]?.length ? pieceConditionsMap[p.id] : undefined,
+      packing_pref_code: piecePackingFromDtl[p.id] ?? p.packing_pref_code ?? null,
     }));
   }
 

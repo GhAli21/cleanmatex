@@ -178,6 +178,10 @@ const PieceCardComponent = function PieceCard({
             </span>
           ))}
         </div>
+      ) : !readOnly && orderId && orderItemId && onPreferencesSaved ? (
+        <p className={`text-xs text-gray-500 mb-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {t('prefSummaryNone')}
+        </p>
       ) : null}
 
       {/* Content Grid */}
