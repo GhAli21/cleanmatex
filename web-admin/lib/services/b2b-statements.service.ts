@@ -10,6 +10,14 @@ import type {
   B2BStatement,
   GenerateStatementRequest,
 } from '@/lib/types/b2b';
+import { STATEMENT_STATUSES, type StatementStatusCd } from '@/lib/constants/b2b';
+
+function toStatementStatusCd(value: unknown): StatementStatusCd {
+  const raw = String(value ?? STATEMENT_STATUSES.DRAFT);
+  return (Object.values(STATEMENT_STATUSES) as string[]).includes(raw)
+    ? (raw as StatementStatusCd)
+    : STATEMENT_STATUSES.DRAFT;
+}
 
 function mapRowToStatement(row: Record<string, unknown>): B2BStatement {
   return {
@@ -25,7 +33,7 @@ function mapRowToStatement(row: Record<string, unknown>): B2BStatement {
     paidAmount: Number(row.paid_amount) ?? 0,
     balanceAmount: Number(row.balance_amount) ?? 0,
     currencyCd: (row.currency_cd as string) ?? null,
-    statusCd: (row.status_cd as string) ?? 'DRAFT',
+    statusCd: toStatementStatusCd(row.status_cd),
     recStatus: Number(row.rec_status) ?? 1,
     isActive: Boolean(row.is_active),
     createdAt: (row.created_at as string) ?? new Date().toISOString(),

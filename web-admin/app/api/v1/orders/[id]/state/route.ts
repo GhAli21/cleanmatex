@@ -84,7 +84,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     );
 
     // Payment summary from order (total, paid_amount, payment_status)
-    const total = Number(order.total ?? order.total_amount ?? 0);
+    const total = Number(order.total ?? 0);
     const paid = Number(order.paid_amount ?? 0);
     const remaining = Math.max(0, total - paid);
     const paymentSummary = {

@@ -110,7 +110,7 @@ export interface CreateErpLiteCashTxnInput {
 export interface ErpLiteExpenseMutationResult {
   posting_status: 'executed' | 'skipped';
   posting_success?: boolean;
-  skip_reason?: 'POLICY_NOT_FOUND' | 'POLICY_DISABLED';
+  skip_reason?: 'POLICY_NOT_FOUND' | 'POLICY_DISABLED' | 'FEATURE_NOT_ENABLED';
 }
 
 export interface CreateErpLiteApprovalRequestInput {

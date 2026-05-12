@@ -13,6 +13,7 @@ import {
   capCreditLimitToPlan,
 } from '@/lib/services/credit-limit-plan-cap.service';
 import { logger } from '@/lib/utils/logger';
+import type { Database, Json } from '@/types/database';
 import type {
   Customer,
   CustomerWithTenantData,
@@ -25,7 +26,10 @@ import type {
   CustomerStatistics,
   CustomerType,
   CustomerPreferences,
+  ProfileStatus,
 } from '@/lib/types/customer';
+
+type OrgCustomerInsert = Database['public']['Tables']['org_customers_mst']['Insert'];
 
 /** When true, service uses sys_customers_mst + org_customers_mst; when false, only org_customers_mst. */
 function useSysCustomers(): boolean {
@@ -59,7 +63,10 @@ function mapFromOrgRow(row: Record<string, unknown>, tenantId: string): Customer
     email: (row.email as string) ?? null,
     emailVerified: false,
     type: (row.type as CustomerType) ?? 'walk_in',
-    profileStatus: (row.profile_status as number) ?? 1,
+    profileStatus: Math.min(
+      3,
+      Math.max(0, Number(row.profile_status ?? 1))
+    ) as ProfileStatus,
     avatarUrl: null,
     preferences: (row.preferences as CustomerPreferences) ?? {},
     address: (row.address as string) ?? null,
@@ -308,7 +315,7 @@ export async function createCustomer(
     }
     const { data: orgRow, error: orgError } = await supabase
       .from('org_customers_mst')
-      .insert(insertPayload)
+      .insert(insertPayload as OrgCustomerInsert)
       .select()
       .single();
     if (orgError) {
@@ -1427,7 +1434,7 @@ export async function upgradeCustomerProfile(
       .update({
         type: 'full',
         email: email ?? undefined,
-        preferences: (preferences ?? {}) as Record<string, unknown>,
+        preferences: (preferences ?? {}) as Json,
         updated_at: new Date().toISOString(),
       })
       .eq('id', customerId)
@@ -1460,7 +1467,9 @@ export async function upgradeCustomerProfile(
       profile_status: 'full',
       type: 'full',
       email: email ?? customer.email,
-      preferences: preferences ?? customer.preferences ?? {},
+      preferences: (preferences ??
+        customer.preferences ??
+        {}) as Json,
       updated_at: new Date().toISOString(),
     })
     .eq('id', customerId)

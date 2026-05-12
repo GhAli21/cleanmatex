@@ -130,7 +130,17 @@ export default async function ErpLitePoPage({
                 <CmxInput name="currency_code" label={t('forms.po.fields.currencyCode')} placeholder={displayConfig.currencyCode} required />
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.subtotal')} required />
                 <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.po.fields.tax')} />
-                <CmxTextarea name="description" label={t('forms.po.fields.description')} required />
+                <div className="space-y-1">
+                  <label htmlFor="erp-po-description" className="block text-sm font-medium text-gray-700">
+                    {t('forms.po.fields.description')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-po-description"
+                    name="description"
+                    required
+                    aria-label={t('forms.po.fields.description')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">{t('forms.po.submit')}</CmxButton>
               </form>
             </CmxCardContent>

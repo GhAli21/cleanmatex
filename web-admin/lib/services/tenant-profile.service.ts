@@ -16,6 +16,9 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
+import type { Database, Json } from '@/types/database';
+
+type OrgTenantUpdate = Database['public']['Tables']['org_tenants_mst']['Update'];
 import type {
   BrandingSettingsDto,
   BrandingSettingsInput,
@@ -103,8 +106,9 @@ export function fromDbHours(hours: DbBusinessHours | null | undefined): UiBusine
 // Profile read
 // =============================================================================
 
+/** Columns on `org_tenants_mst` present in generated `Database` types (accent may exist in DB after migration 0252). */
 const PROFILE_COLUMNS =
-  'id, name, name2, email, phone, address, city, country, currency, timezone, language, business_hours, logo_url, brand_color_primary, brand_color_secondary, brand_color_accent';
+  'id, name, name2, email, phone, address, city, country, currency, timezone, language, business_hours, logo_url, brand_color_primary, brand_color_secondary';
 
 /**
  * Load the General + Branding view of a tenant in one round-trip, plus the
@@ -125,7 +129,11 @@ export async function getTenantProfile(
     .single();
 
   if (error) {
-    logger.error('tenant-profile: getTenantProfile failed', { tenantOrgId, error });
+    logger.error(
+      'tenant-profile: getTenantProfile failed',
+      new Error(error.message),
+      { tenantId: tenantOrgId }
+    );
     throw new Error('Failed to load tenant profile');
   }
 
@@ -151,7 +159,7 @@ export async function getTenantProfile(
     logo: data.logo_url ?? '',
     primaryColor: data.brand_color_primary ?? '#3B82F6',
     secondaryColor: data.brand_color_secondary ?? '#10B981',
-    accentColor: data.brand_color_accent ?? '#F59E0B',
+    accentColor: '#F59E0B',
   };
 
   return { general, branding };
@@ -167,7 +175,11 @@ async function tenantHasOrders(tenantOrgId: string): Promise<boolean> {
   if (error) {
     // Fail closed: if we cannot determine, treat as locked to avoid a
     // currency mismatch on top of broken data. Surface a log line.
-    logger.error('tenant-profile: tenantHasOrders count failed', { tenantOrgId, error });
+    logger.error(
+      'tenant-profile: tenantHasOrders count failed',
+      new Error(error.message),
+      { tenantId: tenantOrgId }
+    );
     return true;
   }
   return (count ?? 0) > 0;
@@ -250,7 +262,7 @@ export async function updateTenantGeneral(
     timezone: input.timezone,
     currency: input.currency,
     language: input.defaultLanguage,
-    business_hours: toDbHours(input.businessHours),
+    business_hours: toDbHours(input.businessHours) as Json,
     updated_at: new Date().toISOString(),
     updated_by: audit.userId,
     updated_info: audit.userInfo ?? null,
@@ -258,7 +270,7 @@ export async function updateTenantGeneral(
 
   const { error } = await supabase
     .from('org_tenants_mst')
-    .update(update)
+    .update(update as OrgTenantUpdate)
     .eq('id', tenantOrgId);
 
   if (error) {
@@ -267,7 +279,11 @@ export async function updateTenantGeneral(
     if ((error as { code?: string }).code === '23505') {
       throw new TenantProfileError('EMAIL_TAKEN', 'Email is already in use');
     }
-    logger.error('tenant-profile: updateTenantGeneral failed', { tenantOrgId, error });
+    logger.error(
+      'tenant-profile: updateTenantGeneral failed',
+      new Error(error.message),
+      { tenantId: tenantOrgId }
+    );
     throw new TenantProfileError('INTERNAL', 'Failed to update general settings');
   }
 
@@ -312,7 +328,7 @@ export async function updateTenantBranding(
     updated_at: new Date().toISOString(),
     updated_by: audit.userId,
     updated_info: audit.userInfo ?? null,
-  };
+  } as OrgTenantUpdate;
 
   const { error } = await supabase
     .from('org_tenants_mst')
@@ -320,7 +336,11 @@ export async function updateTenantBranding(
     .eq('id', tenantOrgId);
 
   if (error) {
-    logger.error('tenant-profile: updateTenantBranding failed', { tenantOrgId, error });
+    logger.error(
+      'tenant-profile: updateTenantBranding failed',
+      new Error(error.message),
+      { tenantId: tenantOrgId }
+    );
     throw new TenantProfileError('INTERNAL', 'Failed to update branding settings');
   }
 

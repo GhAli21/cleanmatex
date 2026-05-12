@@ -52,13 +52,24 @@ export async function getReadyOrderPaymentContext(
         }
       : null;
 
-    const mappedPayments = payments.map((p) => ({
-      id: p.id,
-      paid_amount: Number(p.paid_amount),
-      payment_method_code: p.payment_method_code ?? '',
-      paid_at: p.paid_at?.toISOString?.() ?? String(p.paid_at ?? ''),
-      status: p.status ?? 'completed',
-    }));
+    const mappedPayments = payments.map((p) => {
+      const rawPaidAt = p.paid_at as string | Date | null | undefined;
+      let paidAtIso: string;
+      if (rawPaidAt instanceof Date) {
+        paidAtIso = rawPaidAt.toISOString();
+      } else if (typeof rawPaidAt === 'string') {
+        paidAtIso = rawPaidAt;
+      } else {
+        paidAtIso = '';
+      }
+      return {
+        id: p.id,
+        paid_amount: Number(p.paid_amount),
+        payment_method_code: p.payment_method_code ?? '',
+        paid_at: paidAtIso,
+        status: p.status ?? 'completed',
+      };
+    });
 
     return {
       success: true,

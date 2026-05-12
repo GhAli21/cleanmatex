@@ -41,11 +41,17 @@ export async function logIsolationViolation(
       status: 'error',
     });
 
-    logger.error('Tenant isolation violation detected', {
-      feature: 'tenant-isolation-monitor',
-      action: 'logIsolationViolation',
-      ...violation,
-    });
+    logger.error(
+      'Tenant isolation violation detected',
+      new Error(String(violation.violationType ?? 'violation')),
+      {
+        feature: 'tenant-isolation-monitor',
+        action: 'logIsolationViolation',
+        table: violation.table,
+        violationType: violation.violationType,
+        details: violation.details,
+      }
+    );
   } catch (error) {
     logger.error('Failed to log isolation violation', error as Error, {
       feature: 'tenant-isolation-monitor',

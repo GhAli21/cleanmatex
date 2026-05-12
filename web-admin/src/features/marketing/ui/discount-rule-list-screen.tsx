@@ -45,11 +45,12 @@ export function DiscountRuleListScreen() {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-xl font-semibold">{t('title')}</h2>
         <CmxButton
-          variant="default"
+          variant="primary"
           size="sm"
           onClick={() => setShowCreateDialog(true)}
-          icon={<PlusCircle className="h-4 w-4" />}
+          className="inline-flex items-center gap-2"
         >
+          <PlusCircle className="h-4 w-4" />
           {t('create')}
         </CmxButton>
       </div>
@@ -115,7 +116,7 @@ export function DiscountRuleListScreen() {
               <div className="flex gap-1">
                 <CmxButton
                   variant="ghost"
-                  size="icon"
+                  size="xs"
                   title={tCommon('edit')}
                   onClick={() => setEditingRule(row)}
                 >
@@ -130,7 +131,7 @@ export function DiscountRuleListScreen() {
                   trigger={
                     <CmxButton
                       variant="ghost"
-                      size="icon"
+                      size="xs"
                       title={t('archive')}
                     >
                       <Archive className="h-4 w-4" />

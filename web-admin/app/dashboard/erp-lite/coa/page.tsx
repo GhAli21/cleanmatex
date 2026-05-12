@@ -159,7 +159,16 @@ export default async function ErpLiteCoaPage({
                     { value: 'false', label: t('forms.account.postableOptions.headerOnly') },
                   ]}
                 />
-                <CmxTextarea name="description" label={t('forms.account.fields.description')} />
+                <div className="space-y-1">
+                  <label htmlFor="erp-coa-account-description" className="block text-sm font-medium text-gray-700">
+                    {t('forms.account.fields.description')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-coa-account-description"
+                    name="description"
+                    aria-label={t('forms.account.fields.description')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">{t('forms.account.submit')}</CmxButton>
               </form>
             </CmxCardContent>

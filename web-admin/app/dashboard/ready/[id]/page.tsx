@@ -398,6 +398,8 @@ export default function ReadyDetailPage() {
                               recordPayment: tInvoices('recordPayment.title'),
                               amount: tInvoices('recordPayment.amount'),
                               paymentMethod: tInvoices('recordPayment.paymentMethod'),
+                              notes: tInvoices('recordPayment.notes'),
+                              remaining: tInvoices('recordPayment.remaining'),
                               cash: tInvoices('recordPayment.cash'),
                               card: tInvoices('recordPayment.card'),
                               submit: tInvoices('recordPayment.submit'),

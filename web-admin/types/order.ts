@@ -181,6 +181,10 @@ export interface OrderItem {
   quantity_ready: number; // Number of pieces marked as ready (0 to quantity)
   price_per_unit: number;
   total_price: number;
+  /** Catalog / override pricing (joined or API-serialized fields) */
+  price_override?: number | null;
+  default_sell_price?: number | null;
+  default_express_sell_price?: number | null;
 
   // Status
   status: ItemStatus;
@@ -372,6 +376,8 @@ export interface CreateOrderInput {
   customerNotes?: string;
   internalNotes?: string;
   photoUrls?: string[];
+  /** Auth user id for `created_by` audit when available */
+  createdBy?: string | null;
 }
 
 /**

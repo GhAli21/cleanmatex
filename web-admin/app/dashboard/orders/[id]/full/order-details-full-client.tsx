@@ -34,6 +34,9 @@ import type { PaymentMethodCode } from '@/lib/types/payment';
 import type { VoucherData } from '@/lib/types/voucher';
 import type { StockTransactionWithProduct } from '@/lib/services/inventory-service';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+import type { OrderItem } from '@/types/order';
+import type { OrderStatus } from '@/lib/types/workflow';
+import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
 
 const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
 
@@ -267,7 +270,7 @@ export function OrderDetailsFullClient({
   };
 
   const customer = (order.org_customers_mst as { sys_customers_mst?: { first_name?: string; last_name?: string; phone?: string; email?: string; address?: string }; loyalty_points?: number })?.sys_customers_mst ?? order.org_customers_mst ?? {};
-  const items = (order.items ?? order.org_order_items_dtl ?? []) as Array<Record<string, unknown>>;
+  const items = (order.items ?? order.org_order_items_dtl ?? []) as OrderItem[];
 
   const editHistoryTranslations = {
     emptyEditHistory: t.emptyEditHistory ?? 'No edit history',
@@ -921,7 +924,7 @@ export function OrderDetailsFullClient({
       label: t.tabsHistory ?? 'Order History',
       content: (
         <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <OrderTimeline orderId={order.id as string} currentStatus={order.status as string} />
+          <OrderTimeline orderId={order.id as string} currentStatus={order.status as OrderStatus} />
         </div>
       ),
     },
@@ -1238,7 +1241,7 @@ export function OrderDetailsFullClient({
           </Link>
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <PrintLabelButton order={order} />
+          <PrintLabelButton order={order as unknown as PrintLabelOrderInput} />
           {!isTerminalStatus && (
             <Link
               href={`/dashboard/orders/${order.id}/edit`}

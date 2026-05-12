@@ -21,6 +21,10 @@ import type {
   StockTransactionSearchResponse,
   InventoryStatistics,
 } from '@/lib/types/inventory';
+import type { Database } from '@/types/database';
+
+type OrgProductDataInsert = Database['public']['Tables']['org_product_data_mst']['Insert'];
+type OrgInvStockTrInsert = Database['public']['Tables']['org_inv_stock_tr']['Insert'];
 
 // ==================================================================
 // BRANCHES (for branch-level stock)
@@ -154,7 +158,7 @@ export async function createInventoryItem(
 
   const { data, error } = await supabase
     .from('org_product_data_mst')
-    .insert(insertData)
+    .insert(insertData as OrgProductDataInsert)
     .select()
     .single();
 
@@ -684,7 +688,7 @@ export async function adjustStock(
 
   const { data: transaction, error: txError } = await supabase
     .from('org_inv_stock_tr')
-    .insert(insertPayload)
+    .insert(insertPayload as OrgInvStockTrInsert)
     .select()
     .single();
 

@@ -38,12 +38,12 @@ export interface OrderNumberResult {
 export async function generateOrderNumber(tenantOrgId: string): Promise<string> {
   try {
     // Use PostgreSQL function for atomic generation
-    const result = await prisma.$queryRawUnsafe<[{ generate_order_number: string }]>(
+    const result = await prisma.$queryRawUnsafe<Array<{ generate_order_number: string }>>(
       `SELECT generate_order_number($1::uuid) as generate_order_number`,
       tenantOrgId
     );
 
-    if (!result || result.length === 0) {
+    if (!result?.length) {
       throw new Error('Failed to generate order number: No result from database');
     }
 
@@ -68,12 +68,12 @@ export async function generateOrderNumberWithTx(
   tx: PrismaTx,
   tenantOrgId: string
 ): Promise<string> {
-  const result = await tx.$queryRawUnsafe<[{ generate_order_number: string }]>(
+  const result = await tx.$queryRawUnsafe<Array<{ generate_order_number: string }>>(
     `SELECT generate_order_number($1::uuid) as generate_order_number`,
     tenantOrgId
   );
 
-  if (!result || result.length === 0) {
+  if (!result?.length) {
     throw new Error('Failed to generate order number: No result from database');
   }
 

@@ -46,10 +46,10 @@ export default function CashUpHistory({
     setLoading(true);
     setError(null);
     const result = await getCashUpHistory({ limit: 30 });
-    if (result.success) {
-      setItems(result.data);
-    } else {
+    if (result.success === false) {
       setError(result.error);
+    } else {
+      setItems(result.data);
     }
     setLoading(false);
   }, []);

@@ -294,6 +294,8 @@ export function SomeForm() {
 }
 ```
 
+- **web-admin — avoid recurring `tsc` / Cmx mistakes:** When editing `web-admin/`, follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (discriminated unions for `{ success, error }`, `CmxButton` variants/sizes/no-`icon` prop, `Badge` vs `CmxButton` variants, `CmxSummaryMessage` `type` + `items`, `CmxDialog` vs Radix-only props, RHF `Resolver` casts, Recharts `Legend`, `useState` widening for currency, API string → domain casts, boolean ARIA).
+
 - Zod schemas should live near where they are used:
   - For feature forms: under `src/features/<feature>/ui` or `model` if shared.
   - For shared schemas: `lib/types` or `lib/validation`.

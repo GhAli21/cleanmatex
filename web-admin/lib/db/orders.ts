@@ -123,7 +123,7 @@ export async function addOrderItems(
 
   // Current user (override audit) + tenant money decimals for tax rounding
   let currentUserId: string | undefined;
-  let tenantMoneyDecimals = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+  let tenantMoneyDecimals: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
   try {
     const { createClient } = await import('@/lib/supabase/server');
     const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');
@@ -851,7 +851,7 @@ async function recalculateOrderTotals(
   orderId: string,
   userId?: string
 ): Promise<void> {
-  let decimalPlaces = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
+  let decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES;
   try {
     const { createClient } = await import('@/lib/supabase/server');
     const { createTenantSettingsService } = await import('@/lib/services/tenant-settings.service');

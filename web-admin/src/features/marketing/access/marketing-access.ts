@@ -9,10 +9,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/marketing',
     label: 'Marketing',
     page: {
-      requirement: {
-        permissions: ['promotions:read'],
-        requireAllPermissions: true,
-      },
+      permissions: ['promotions:read'],
+      requireAllPermissions: true,
     },
     notes: MARKETING_NOTES,
   },
@@ -20,10 +18,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/marketing/promos',
     label: 'Promo Codes',
     page: {
-      requirement: {
-        permissions: ['promotions:read'],
-        requireAllPermissions: true,
-      },
+      permissions: ['promotions:read'],
+      requireAllPermissions: true,
     },
     actions: {
       create: {
@@ -54,10 +50,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/marketing/gift-cards',
     label: 'Gift Cards',
     page: {
-      requirement: {
-        permissions: ['gift_cards:read'],
-        requireAllPermissions: true,
-      },
+      permissions: ['gift_cards:read'],
+      requireAllPermissions: true,
     },
     actions: {
       issue: {
@@ -88,10 +82,8 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/marketing/discount-rules',
     label: 'Discount Rules',
     page: {
-      requirement: {
-        permissions: ['discount_rules:read'],
-        requireAllPermissions: true,
-      },
+      permissions: ['discount_rules:read'],
+      requireAllPermissions: true,
     },
     actions: {
       create: {

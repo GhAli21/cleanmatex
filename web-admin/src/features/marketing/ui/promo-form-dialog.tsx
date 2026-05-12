@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
@@ -46,7 +46,7 @@ const schema = z.object({
     .regex(/^[A-Z0-9_-]+$/, 'Uppercase letters, digits, hyphens, underscores only'),
   promo_name: z.string().min(1, 'Required').max(200),
   promo_name2: z.string().max(200).optional(),
-  discount_type: z.enum(['percentage', 'fixed']),
+  discount_type: z.enum(['percentage', 'fixed_amount']),
   discount_value: z.coerce.number().positive('Must be positive'),
   max_discount_amount: z.coerce.number().positive().optional(),
   min_order_amount: z.coerce.number().nonnegative().default(0),
@@ -74,7 +74,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
   const isEdit = !!promo;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       promo_code: '',
       promo_name: '',
@@ -137,10 +137,10 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
       result = await createPromoCode(payload);
     }
 
-    if (result.success) {
-      onSuccess();
-    } else {
+    if (result.success === false) {
       setServerError(result.error);
+    } else {
+      onSuccess();
     }
   };
 
@@ -196,7 +196,7 @@ export function PromoFormDialog({ open, promo, onClose, onSuccess }: PromoFormDi
                     </CmxSelectDropdownTrigger>
                     <CmxSelectDropdownContent>
                       <CmxSelectDropdownItem value="percentage">%</CmxSelectDropdownItem>
-                      <CmxSelectDropdownItem value="fixed">Fixed</CmxSelectDropdownItem>
+                      <CmxSelectDropdownItem value="fixed_amount">Fixed amount</CmxSelectDropdownItem>
                     </CmxSelectDropdownContent>
                   </CmxSelectDropdown>
                 )}

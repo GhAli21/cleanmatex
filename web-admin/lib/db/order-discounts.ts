@@ -4,6 +4,7 @@ import {
   DISCOUNT_CALC_TYPE,
   type DiscountSourceType,
 } from '@/lib/constants/discount-source-type';
+import type { OrderDiscountLine } from './order-discounts-types';
 
 export type { OrderDiscountLine } from './order-discounts-types';
 export { sourceLabel } from './order-discounts-types';

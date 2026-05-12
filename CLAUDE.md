@@ -349,6 +349,7 @@ Ignoring events
 ## UI Quick Rules
 
 - **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** â†’ `ui_components` when generating buttons, inputs, cards, dialogs, alerts, selects, etc.
+- **web-admin TS/UI (tsc):** Follow `.cursor/rules/web-admin-typecheck-patterns.mdc` when editing `web-admin/` (discriminated unions for action results, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod `Resolver`, Recharts `Legend` wrapper, `useState` widening, ARIA booleans).
 - Search existing message keys before adding new
 - Reuse `common.*` keys for shared UI
 - Use `cmxMessages` when applicable

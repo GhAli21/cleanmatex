@@ -376,7 +376,8 @@ export async function processPayment(
                 },
               });
 
-              await runBlockingPaymentAutoPost(dbTx, {
+              await runBlockingPaymentAutoPost({
+                tx: dbTx,
                 paymentId: txn.id,
                 invoiceId: inv.id,
                 orderId: input.order_id ?? null,
@@ -1108,7 +1109,7 @@ function mapTransactionToType(transaction: {
   transaction_id: string | null;
   metadata: unknown;
   rec_notes: string | null;
-  trans_desc: string | null;
+  trans_desc?: string | null;
   created_at: Date;
   created_by: string | null;
   updated_at: Date | null;
@@ -1177,6 +1178,7 @@ export async function getPaymentHistory(
     transaction_id: true,
     metadata: true,
     rec_notes: true,
+    trans_desc: true,
     created_at: true,
     created_by: true,
     updated_at: true,
@@ -1227,6 +1229,7 @@ export async function getPaymentsForOrder(
     transaction_id: true,
     metadata: true,
     rec_notes: true,
+    trans_desc: true,
     created_at: true,
     created_by: true,
     updated_at: true,
@@ -1273,6 +1276,7 @@ export async function getPaymentsForCustomer(
     transaction_id: true,
     metadata: true,
     rec_notes: true,
+    trans_desc: true,
     created_at: true,
     created_by: true,
     updated_at: true,
@@ -1590,9 +1594,6 @@ export async function getPaymentStatus(orderId: string): Promise<{
   return withTenantContext(tenantId, async () => {
     const order = await prisma.org_orders_mst.findUnique({
       where: { id: orderId },
-      include: {
-        invoices: true,
-      },
     });
 
     if (!order) {
@@ -1820,7 +1821,7 @@ export async function refundPayment(
             changedBy: input.processed_by ?? '',
             metadata: { reason: input.reason },
           },
-          tx as Parameters<typeof recordPaymentAudit>[1]
+          tx as unknown as Parameters<typeof recordPaymentAudit>[1]
         );
 
         await runBlockingRefundAutoPost({
@@ -2421,7 +2422,7 @@ export async function cancelPayment(
             changedBy: cancelledBy,
             metadata: { reason },
           },
-          tx as Parameters<typeof recordPaymentAudit>[1]
+          tx as unknown as Parameters<typeof recordPaymentAudit>[1]
         );
 
         const paidAmount = Number(payment.paid_amount);

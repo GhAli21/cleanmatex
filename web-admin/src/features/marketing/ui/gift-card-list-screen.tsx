@@ -149,16 +149,18 @@ export function GiftCardListScreen() {
             variant="outline"
             size="sm"
             onClick={() => setShowIssueDialog(true)}
-            icon={<PlusCircle className="h-4 w-4" />}
+            className="inline-flex items-center gap-2"
           >
+            <PlusCircle className="h-4 w-4" />
             {t('actions.issueCard')}
           </CmxButton>
           <CmxButton
-            variant="default"
+            variant="primary"
             size="sm"
             onClick={() => setShowSellDialog(true)}
-            icon={<ShoppingCart className="h-4 w-4" />}
+            className="inline-flex items-center gap-2"
           >
+            <ShoppingCart className="h-4 w-4" />
             {t('actions.sellCard')}
           </CmxButton>
         </div>
@@ -178,7 +180,7 @@ export function GiftCardListScreen() {
         {FILTERABLE_STATUSES.map((s) => (
           <CmxButton
             key={s}
-            variant={status === s ? 'default' : 'outline'}
+            variant={status === s ? 'primary' : 'outline'}
             size="sm"
             onClick={() => { setStatus((prev) => prev === s ? undefined : s); setPage(1); }}
           >
@@ -193,7 +195,7 @@ export function GiftCardListScreen() {
         {FILTERABLE_ISSUE_TYPES.map((it) => (
           <CmxButton
             key={it}
-            variant={issueTypeFilter === it ? 'default' : 'outline'}
+            variant={issueTypeFilter === it ? 'primary' : 'outline'}
             size="sm"
             onClick={() => setIssueTypeFilter((prev) => prev === it ? undefined : it)}
           >
@@ -271,7 +273,7 @@ export function GiftCardListScreen() {
                 {/* Detail */}
                 <CmxButton
                   variant="ghost"
-                  size="icon"
+                  size="xs"
                   title={t('detail')}
                   onClick={() => setSelectedCard(row)}
                 >

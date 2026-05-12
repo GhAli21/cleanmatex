@@ -154,11 +154,11 @@ export function GiftCardsLiabilityRprt() {
   useEffect(() => {
     setSummaryLoading(true);
     getGiftCardLiabilitySummaryAction().then((result) => {
-      if (result.success) {
+      if (result.success === false) {
+        setSummaryError(result.error);
+      } else {
         setSummary(result.data);
         setSummaryError(null);
-      } else {
-        setSummaryError(result.error);
       }
       setSummaryLoading(false);
     });
@@ -180,12 +180,12 @@ export function GiftCardsLiabilityRprt() {
       dateTo: dateTo || undefined,
     }).then((result) => {
       if (cancelled) return;
-      if (result.success) {
+      if (result.success === false) {
+        setTableError(result.error);
+      } else {
         setCards(result.data);
         setTotal(result.total);
         setTableError(null);
-      } else {
-        setTableError(result.error);
       }
       setTableLoading(false);
     });
@@ -347,7 +347,7 @@ export function GiftCardsLiabilityRprt() {
 
       {/* ---- Summary KPI cards ---- */}
       {summaryError ? (
-        <CmxSummaryMessage variant="error" title={summaryError} />
+        <CmxSummaryMessage type="error" title={summaryError} items={[]} />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
           <KpiCard
@@ -415,7 +415,7 @@ export function GiftCardsLiabilityRprt() {
           {FILTERABLE_STATUSES.map((status) => (
             <CmxButton
               key={status}
-              variant={selectedStatus === status ? 'default' : 'outline'}
+              variant={selectedStatus === status ? 'primary' : 'outline'}
               size="sm"
               onClick={() => handleStatusToggle(status)}
             >
@@ -429,7 +429,7 @@ export function GiftCardsLiabilityRprt() {
           {ISSUE_TYPES.map((issueType) => (
             <CmxButton
               key={issueType}
-              variant={selectedIssueType === issueType ? 'default' : 'outline'}
+              variant={selectedIssueType === issueType ? 'primary' : 'outline'}
               size="sm"
               onClick={() => handleIssueTypeToggle(issueType)}
             >
@@ -440,7 +440,7 @@ export function GiftCardsLiabilityRprt() {
       </div>
 
       {/* ---- Table error ---- */}
-      {tableError && <CmxSummaryMessage variant="error" title={tableError} />}
+      {tableError && <CmxSummaryMessage type="error" title={tableError} items={[]} />}
 
       {/* ---- Export note ---- */}
       <p className="text-xs text-muted-foreground">{tRpt('exportComingSoon')}</p>

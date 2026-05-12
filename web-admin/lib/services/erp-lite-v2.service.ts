@@ -482,7 +482,7 @@ export class ErpLiteV2Service {
         const totalAmount = this.roundAmount(subtotalAmount + taxAmount);
         const dueDate =
           input.due_date ??
-          this.addDays(input.invoice_date, supplier.payment_terms_days);
+          this.addDays(input.invoice_date, 30);
 
         const inserted = await tx.$queryRaw<ApInvoiceInsertRow[]>(Prisma.sql`
           INSERT INTO public.org_fin_ap_inv_mst (

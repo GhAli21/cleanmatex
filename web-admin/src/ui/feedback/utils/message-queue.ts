@@ -45,8 +45,8 @@ class MessageQueueManager {
   async enqueue(
     type: MessageType,
     message: string,
-    options?: MessageOptions,
-    showFn: (type: MessageType, message: string, options?: MessageOptions) => MessageResult | Promise<MessageResult>
+    showFn: (type: MessageType, message: string, options?: MessageOptions) => MessageResult | Promise<MessageResult>,
+    options?: MessageOptions
   ): Promise<MessageResult> {
     return new Promise<MessageResult>((resolve) => {
       // Check if queue is full

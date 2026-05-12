@@ -146,7 +146,7 @@ export function UpgradePrompt({
   feature: FeatureFlagKey
   message?: string
 }) {
-  const featureNames: Record<FeatureFlagKey, string> = {
+  const featureNames: Partial<Record<FeatureFlagKey, string>> = {
     pdf_invoices: 'PDF Invoices',
     whatsapp_receipts: 'WhatsApp Receipts',
     in_app_receipts: 'In-App Receipts',
@@ -193,7 +193,7 @@ export function UpgradePrompt({
           <div className="mt-2 text-sm text-yellow-700">
             <p>
               {message ||
-                `The "${featureNames[feature]}" feature is not available on your current plan. Upgrade to access this feature.`}
+                `The "${featureNames[feature] ?? feature.replace(/_/g, ' ')}" feature is not available on your current plan. Upgrade to access this feature.`}
             </p>
           </div>
           <div className="mt-4">

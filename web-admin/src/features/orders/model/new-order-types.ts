@@ -129,6 +129,11 @@ export interface OrderItem {
   defaultExpressSellPrice: number | null;
   serviceCategoryCode?: string;
   notes?: string;
+  /** Line-level condition flags (optional; often mirrored on pieces) */
+  hasStain?: boolean;
+  hasDamage?: boolean;
+  stainNotes?: string;
+  damageNotes?: string;
   pieces?: PreSubmissionPiece[];
   // Price override fields
   priceOverride?: number | null;

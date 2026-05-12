@@ -1,5 +1,5 @@
 ---
-version: v1.2.0
+version: v1.2.1
 last_updated: 2026-05-11
 author: CleanMateX Team
 ---
@@ -13,7 +13,7 @@ author: CleanMateX Team
 Item-level and piece-level service prefs, conditions, and colors are stored in **org_order_preferences_dtl** with `prefs_level` IN ('ORDER','ITEM','PIECE'). The legacy tables `org_order_item_service_prefs` and `org_order_item_pc_prefs` are dropped.
 
 - **OrderItemPreferenceService** and **OrderPiecePreferenceService** use `org_order_preferences_dtl`.
-- **preference_sys_kind**: `service_prefs` | `condition_stain` | `condition_damag` | `color` | `note`
+- **preference_sys_kind**: `service_prefs` | `condition_stain` | `condition_damag` | `color` | `note` | **`packing_prefs`**
 - **extra_turnaround_minutes** for ready-by calculation: stored in `org_service_preference_cf`, not in order prefs.
 
 ## Code Structure
@@ -72,6 +72,12 @@ web-admin/
             └── processing-item-row.tsx
 ```
 
+### New Order — packing & service surcharge display (wizard + summary)
+
+Packing **`extra_price`** from **`org_packing_preference_cf`** is shown **like service** surcharges (modal option text, **`PreferenceChip`**, order summary teal chips). Full wiring and file paths: **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.3.
+
+**Additional paths (beyond the tree above):** `piece-preferences/piece-preference-card.tsx`, `piece-preferences/preference-chip.tsx`, `piece-preferences/order-piece-preferences-section.tsx`, `piece-preferences/piece-kind-picker-dialog.tsx`, `summary-cart-item.tsx`, `lib/selected-piece-preference.ts`, `hooks/use-new-order-piece-preferences.ts`, `hooks/use-preference-catalog.ts`, `lib/utils/order-packing-charges.ts` (**`packingPreferencePriceMap`**).
+
 ## Services
 
 ### PreferenceCatalogService
@@ -102,7 +108,7 @@ web-admin/
 ### PreferenceResolutionService
 
 - **resolveItemPreferences(supabase, tenantId, customerId, productCode?, serviceCategoryCode?):** Calls DB `resolve_item_preferences`.
-- **getLastOrderPreferences(supabase, tenantId, customerId):** For Repeat Last Order; calls **`get_last_order_preferences`**. Returns **`service_pref_codes`**, optional **`packing_pref_cf_id`** / **`service_prefs_catalog`** (**migration `0260`**) mapped in **`RepeatLastOrderPanel`** with fallback to **`GET /api/v1/catalog/service-preferences`** and **`packing-preferences`** (see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.2).
+- **getLastOrderPreferences(supabase, tenantId, customerId):** For Repeat Last Order; calls **`get_last_order_preferences`**. Returns **`service_pref_codes`**, optional **`packing_pref_cf_id`** / **`service_prefs_catalog`** (**migration `0260`**) mapped in **`RepeatLastOrderPanel`** with fallback to **`GET /api/v1/catalog/service-preferences`** and **`packing-preferences`** (see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.4).
 - **suggestPreferencesFromHistory(...):** Calls DB `suggest_preferences_from_history`.
 
 ## API Flow

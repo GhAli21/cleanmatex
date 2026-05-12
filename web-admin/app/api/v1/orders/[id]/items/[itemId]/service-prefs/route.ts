@@ -7,7 +7,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { OrderItemPreferenceService } from '@/lib/services/order-item-preference.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import { addServicePrefSchema } from '@/lib/validations/service-preferences-schemas';
+import {
+  addServicePrefSchema,
+  type AddServicePrefInput,
+} from '@/lib/validations/service-preferences-schemas';
 import { log } from '@/lib/utils/logger';
 
 export const runtime = 'nodejs';
@@ -85,7 +88,7 @@ export async function POST(
       tenantId,
       orderId,
       itemId,
-      parsed.data,
+      parsed.data as AddServicePrefInput,
       userId,
       userName
     );

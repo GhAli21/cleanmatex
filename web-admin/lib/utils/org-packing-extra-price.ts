@@ -3,6 +3,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 
 /** Prisma transaction client (matches order-service transaction typing). */
@@ -39,10 +40,13 @@ export async function fetchOrgPackingExtraPriceByCodesPrismaTx(
   const unique = [...new Set(codes.filter(Boolean))];
   if (unique.length === 0) return new Map();
 
-  const rows = await tx.org_packing_preference_cf.findMany({
-    where: { tenant_org_id: tenantOrgId, packing_pref_code: { in: unique } },
-    select: { packing_pref_code: true, extra_price: true },
-  });
+  // `org_packing_preference_cf` is not on the Prisma client; raw SQL keeps the txn atomic.
+  const rows = await tx.$queryRaw<{ packing_pref_code: string; extra_price: unknown }[]>(Prisma.sql`
+    SELECT packing_pref_code, extra_price
+    FROM org_packing_preference_cf
+    WHERE tenant_org_id = ${tenantOrgId}::uuid
+      AND packing_pref_code IN (${Prisma.join(unique)})
+  `);
 
   const m = new Map<string, number>();
   for (const row of rows) {

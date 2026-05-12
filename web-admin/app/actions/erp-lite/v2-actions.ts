@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ErpLiteV2Service } from '@/lib/services/erp-lite-v2.service';
+import type { ImportErpLiteBankStatementLineInput } from '@/lib/types/erp-lite-v2';
 
 function getRequiredString(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -35,7 +36,11 @@ function parseOptionalNumber(raw: string | null): number | null {
   return value;
 }
 
-function parseBankStatementImportRows(raw: string) {
+function parseBankStatementImportRows(
+  raw: string,
+  bankStmtId: string,
+  bankAccountId: string
+): ImportErpLiteBankStatementLineInput[] {
   const lines = raw
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -54,6 +59,8 @@ function parseBankStatementImportRows(raw: string) {
     }
 
     return {
+      bank_stmt_id: bankStmtId,
+      bank_account_id: bankAccountId,
       txn_date: parts[0],
       ext_ref_no: parts[1] || null,
       description: parts[2] || null,
@@ -256,9 +263,16 @@ export async function createErpLiteBankStatementLineAction(formData: FormData) {
 
 export async function importErpLiteBankStatementLinesAction(formData: FormData) {
   try {
+    const bank_stmt_id = getRequiredString(formData, 'bank_stmt_id');
+    /** When omitted, service resolves account from the bank statement header. */
+    const bank_account_id = getOptionalString(formData, 'bank_account_id')?.trim() ?? '';
     await ErpLiteV2Service.importBankStatementLines({
-      bank_stmt_id: getRequiredString(formData, 'bank_stmt_id'),
-      rows: parseBankStatementImportRows(getRequiredString(formData, 'import_rows')),
+      bank_stmt_id,
+      rows: parseBankStatementImportRows(
+        getRequiredString(formData, 'import_rows'),
+        bank_stmt_id,
+        bank_account_id
+      ),
     });
   } catch (error) {
     if (isFrameworkRedirect(error)) throw error;

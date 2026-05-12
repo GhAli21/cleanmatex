@@ -339,7 +339,7 @@ export default function CustomerCategoriesPage() {
                     className="font-mono flex-1"
                   />
                   {!editingCode && isCodeDirty && (
-                    <CmxButton type="button" variant="outline" size="icon" onClick={handleResetCode}>
+                    <CmxButton type="button" variant="outline" size="xs" onClick={handleResetCode}>
                       <RotateCcw className="h-4 w-4" />
                     </CmxButton>
                   )}

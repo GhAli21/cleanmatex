@@ -11,6 +11,7 @@ import type {
   CreateB2BContractRequest,
   UpdateB2BContractRequest,
 } from '@/lib/types/b2b';
+import type { Json } from '@/types/database';
 
 function mapRowToContract(row: Record<string, unknown>): B2BContract {
   return {
@@ -120,7 +121,7 @@ export async function createContract(
       contract_no: contractNo,
       effective_from: request.effectiveFrom ?? null,
       effective_to: request.effectiveTo ?? null,
-      pricing_terms: request.pricingTerms ?? {},
+      pricing_terms: (request.pricingTerms ?? {}) as Json,
       rec_status: 1,
       is_active: true,
     })

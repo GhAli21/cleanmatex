@@ -1,5 +1,5 @@
 ---
-version: 1.5.1
+version: 1.5.2
 last_updated: 2026-05-11
 authority: Canonical — use this doc when working on order/piece/catalog preferences (web-admin, APIs, migrations)
 remote_db_checked: Production Supabase MCP (information_schema + sys_preference_kind_cd + distinct preference_sys_kind + org_order_preferences_dtl shape sampling)
@@ -243,11 +243,32 @@ Step **Edit Items Preferences** uses **`OrderPiecePreferencesSection`** → **`P
 
 Chosen values are held in **`PreSubmissionPiece`** (`service_prefs` with optional **`preferenceCfId`**, **`packingPrefCode`** + **`packingCfId`**, `conditions`, **`color` / `colorCodes` / `colorCfIds`**, `notes`) until order submit; create path writes **authoritative** rows into **`org_order_preferences_dtl`** (**§7** persistence reference).
 
-### 8.2 Repeat Last Order (item-level packing + service codes)
+### 8.3 New Order — surcharge display (service + packing parity)
+
+Operators should see **packing surcharges** the same way as **service** surcharges wherever the New Order UI shows a **name + optional extra** (wizard and cart summary).
+
+| Surface | Behavior |
+|---------|----------|
+| **Packing modal** (`PackingPreferenceSelector`) | Native `<option>` labels append tenant-formatted surcharge when catalog **`default_extra_price` &gt; 0`, e.g. `Hang on Hanger +0.400 OMR` (uses tenant **`formatMoneyWithCode`**). |
+| **Piece preference chips** (`PiecePreferenceCard` → `PreferenceChip`) | **`extra_price`** on each chip; packing rows get amounts from **`pieceToSelectedPreferences(piece, { packingExtraByCode })`** where **`packingExtraByCode`** is **`packingPreferencePriceMap(packingPrefs)`** — see **`useNewOrderPiecePreferences`**. Service rows use **`piece.servicePrefs[].extra_price`**. **`PreferenceChip`** formats money via tenant **`formatMoneyWithCode`** (not a hard-coded decimal count). |
+| **Order summary** (right panel teal chips, `SummaryCartItem`) | Appends surcharge text for each **`piece.servicePrefs`** entry and for **`piece.packingPrefCode`** using **`packingExtraPriceByCode`** (same packing catalog amounts, passed from **`NewOrderContent`**). |
+
+**Key implementation files**
+
+- `web-admin/src/features/orders/ui/preferences/PackingPreferenceSelector.tsx`
+- `web-admin/src/features/orders/ui/piece-preferences/preference-chip.tsx`
+- `web-admin/src/features/orders/lib/selected-piece-preference.ts` — `pieceToSelectedPreferences(..., { packingExtraByCode })`
+- `web-admin/src/features/orders/hooks/use-new-order-piece-preferences.ts` — binds packing price map into chip derivation and **`pieceToSelectedPreferences`** facade
+- `web-admin/src/features/orders/ui/summary-cart-item.tsx` — teal chips + **`packingExtraPriceByCode`**
+- `web-admin/src/features/orders/ui/new-order-content.tsx` — builds **`packingExtraPriceByCode`** from **`packingPreferencePriceMap`**
+
+**Type note:** **`PackingPreference`** includes optional **`packing_cf_id`** when rows are populated from **`PreferenceCatalogService`** (aligns with Repeat Last Order / submit paths expecting catalog FK hints).
+
+### 8.4 Repeat Last Order (item-level packing + service codes)
 
 - **UI:** **`RepeatLastOrderPanel`** (`web-admin/src/features/orders/ui/preferences/RepeatLastOrderPanel.tsx`).
 - **API:** **`GET /api/v1/preferences/last-order`** (plan flag **`repeat_last_order`**).
-- **RPC:** **`get_last_order_preferences`** — per **`org_order_items_dtl`** line on the customer’s most recent order, returns **`packing_pref_code`**, **`service_pref_codes`**, and (after **`0260_get_last_order_preferences_catalog_ids`**) **`packing_pref_cf_id`** from the item’s **`packing_prefs`** row in **`org_order_preferences_dtl`**, plus **`service_prefs_catalog`** as a JSON array of **`{ preference_code, preference_id }`** for **`service_prefs`** rows. The client merges with **`GET /api/v1/catalog/service-preferences`** and **`packing-preferences`** so **`preferenceCfId` / packing catalog id** are still set when historical rows had null **`preference_id`**.
+- **RPC:** **`get_last_order_preferences`** — per **`org_order_items_dtl`** line on the customer’s most recent order, returns **`packing_pref_code`**, **`service_pref_codes`**, and (after **`0260_get_last_order_preferences_catalog_ids`**) **`packing_pref_cf_id`** from the item’s **`packing_prefs`** row in **`org_order_preferences_dtl`**, plus **`service_prefs_catalog`** as a JSON array of **`{ preference_code, preference_id }`** for **`service_prefs`** rows. The client merges with **`GET /api/v1/catalog/service-preferences`** and **`packing-preferences`** so **`preferenceCfId` / packing catalog id** are still set when historical rows had null **`preference_id`**. (**§8.3** describes how catalog packing **`extra_price`** is shown beside names in the New Order UI.)
 
 ---
 
@@ -285,7 +306,8 @@ See **`docs/platform/permissions/PERMISSIONS_BY_API.md`** — catalog GETs commo
 2. **New Order** **`preferences-panel`** and piece wizard **`PieceKindPickerDialog`** **`switch (main_type_code)`** handle new **`main_type_code`** / **`kind_code`** values if introducing a novel UX class.
 3. **Order write path** inserts **`org_order_preferences_dtl`** with correct **`preference_sys_kind`** and preserves **`prefs_no`** ordering if extending create logic.
 4. **Downstream surfaces** (Processing, receipts, HQ) **resolve preference display from `org_order_preferences_dtl`**; ignore piece/item duplicated pref fields unless a legacy screen still depends on them.
-6. **Repeat Last Order** RPC / API changes: update **`PreferenceResolutionService.getLastOrderPreferences`** and **`RepeatLastOrderPanel`** together; document in **`preferences-architecture-reference.md`** §8.2.
+5. **Repeat Last Order** RPC / API changes: update **`PreferenceResolutionService.getLastOrderPreferences`** and **`RepeatLastOrderPanel`** together; document in **`preferences-architecture-reference.md`** §8.4.
+6. **Surcharge display (wizard + summary):** if New Order UX for labels or totals changes for **service** prefs, mirror for **packing** (§8.3): dropdown options, **`PreferenceChip`**, **`SummaryCartItem`** teal chips — keep **`pieceToSelectedPreferences`** and catalog maps aligned.
 
 ---
 

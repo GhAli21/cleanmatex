@@ -1094,8 +1094,8 @@ export class ErpLiteExpensesService {
   private static async generateSequentialNo(
     tenantId: string,
     prefix: string,
-    columnName: 'expense_no' | 'cashbox_code' | 'txn_no',
-    tableName: 'org_fin_exp_mst' | 'org_fin_cashbox_mst' | 'org_fin_cash_txn_tr',
+    columnName: 'expense_no' | 'cashbox_code' | 'txn_no' | 'recon_no',
+    tableName: 'org_fin_exp_mst' | 'org_fin_cashbox_mst' | 'org_fin_cash_txn_tr' | 'org_fin_cash_rec_mst',
     db: PrismaSqlExecutor = prisma
   ): Promise<string> {
     const now = new Date();
@@ -1107,13 +1107,17 @@ export class ErpLiteExpensesService {
         ? Prisma.sql`expense_no`
         : columnName === 'cashbox_code'
           ? Prisma.sql`cashbox_code`
-          : Prisma.sql`txn_no`;
+          : columnName === 'txn_no'
+            ? Prisma.sql`txn_no`
+            : Prisma.sql`recon_no`;
     const tableSql =
       tableName === 'org_fin_exp_mst'
         ? Prisma.sql`public.org_fin_exp_mst`
         : tableName === 'org_fin_cashbox_mst'
           ? Prisma.sql`public.org_fin_cashbox_mst`
-          : Prisma.sql`public.org_fin_cash_txn_tr`;
+          : tableName === 'org_fin_cash_txn_tr'
+            ? Prisma.sql`public.org_fin_cash_txn_tr`
+            : Prisma.sql`public.org_fin_cash_rec_mst`;
 
     const rows = await db.$queryRaw<{ count: number }[]>(Prisma.sql`
       SELECT COUNT(*)::int AS count

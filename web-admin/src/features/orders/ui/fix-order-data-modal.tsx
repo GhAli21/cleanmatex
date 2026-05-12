@@ -395,10 +395,15 @@ export function FixOrderDataModal({
   };
 
   return (
-    <CmxDialog open={open} onOpenChange={onOpenChange}>
+    <CmxDialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && anyBusy) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <CmxDialogContent
         className={`max-w-lg ${isRTL ? 'text-right' : 'text-left'}`}
-        onPointerDownOutside={(e) => anyBusy && e.preventDefault()}
       >
         <CmxDialogHeader className={isRTL ? 'text-right' : 'text-left'}>
           <CmxDialogTitle className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

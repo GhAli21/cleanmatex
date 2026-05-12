@@ -30,6 +30,9 @@ export interface WorkflowRole {
 export interface PermissionCheckOptions {
   resourceType?: string;
   resourceId?: string;
+  /** Server-side cache key / audit context (optional) */
+  userId?: string;
+  tenantId?: string;
 }
 
 // ========================

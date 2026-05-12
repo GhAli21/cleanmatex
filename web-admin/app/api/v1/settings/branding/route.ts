@@ -45,7 +45,11 @@ export async function GET(request: NextRequest) {
     const { branding } = await getTenantProfile(tenantId);
     return NextResponse.json({ success: true, data: branding });
   } catch (err) {
-    logger.error('GET /settings/branding failed', { err });
+    logger.error(
+      'GET /settings/branding failed',
+      err instanceof Error ? err : new Error(String(err)),
+      {}
+    );
     return NextResponse.json(
       { error: 'Failed to load branding settings' },
       { status: 500 }
@@ -101,11 +105,11 @@ export async function PUT(request: NextRequest) {
         try {
           await deleteTenantLogo(previousLogoUrl);
         } catch (cleanupErr) {
-          logger.error('settings/branding: previous logo cleanup failed', {
-            tenantId,
-            previousLogoUrl,
-            cleanupErr,
-          });
+          logger.error(
+            'settings/branding: previous logo cleanup failed',
+            cleanupErr instanceof Error ? cleanupErr : new Error(String(cleanupErr)),
+            { tenantId, previousLogoUrl }
+          );
         }
       }
 
@@ -119,7 +123,11 @@ export async function PUT(request: NextRequest) {
       throw err;
     }
   } catch (err) {
-    logger.error('PUT /settings/branding failed', { err });
+    logger.error(
+      'PUT /settings/branding failed',
+      err instanceof Error ? err : new Error(String(err)),
+      {}
+    );
     return NextResponse.json(
       { error: 'Failed to update branding settings' },
       { status: 500 }

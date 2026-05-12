@@ -163,6 +163,9 @@ export interface MessageResult {
   confirmed?: boolean;
 }
 
+/** Some paths (queue, alert) resolve asynchronously. */
+export type MessageResultOrAsync = MessageResult | Promise<MessageResult>;
+
 /**
  * Inline message object for component rendering
  */

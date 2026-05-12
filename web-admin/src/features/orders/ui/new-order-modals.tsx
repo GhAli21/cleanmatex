@@ -18,6 +18,7 @@ import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import type { MinimalCustomer } from '../model/new-order-types';
+import type { ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { Customer } from '@/lib/types/customer';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback';
@@ -213,9 +214,9 @@ export function NewOrderModals() {
             const priceMap = new Map(servicePrefs.map((s) => [s.code, s.default_extra_price ?? 0]));
             const resolvedPrefs = json.data.map(
               (p: { preference_code: string; source: string }) => ({
-                preference_code: p.preference_code,
+                preference_code: p.preference_code as ServicePreferenceCode,
                 source: p.source || 'customer_pref',
-                extra_price: priceMap.get(p.preference_code) ?? 0,
+                extra_price: priceMap.get(p.preference_code as ServicePreferenceCode) ?? 0,
               })
             );
             const charge = resolvedPrefs.reduce((sum, p) => sum + p.extra_price, 0);

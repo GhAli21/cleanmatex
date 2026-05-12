@@ -31,6 +31,10 @@ export interface ErpLitePostingMeta {
   payment_method_code?: PaymentMethodCode | 'WALLET' | null;
   source_context?: string | null;
   payload_version?: string | null;
+  /** Optional diagnostics / linkage (auto-post, order workflows) */
+  issue_type?: string | null;
+  order_id?: string | null;
+  invoice_id?: string | null;
 }
 
 export interface ErpLitePostingRequest {

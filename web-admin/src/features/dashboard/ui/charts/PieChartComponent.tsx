@@ -11,9 +11,9 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
   Tooltip,
 } from 'recharts'
+import { ChartLegend } from '@/lib/charts/recharts-legend'
 
 interface PieChartData {
   name: string
@@ -73,7 +73,7 @@ export function PieChartComponent({
             borderRadius: '6px',
           }}
         />
-        {showLegend && <Legend />}
+        {showLegend && <ChartLegend />}
       </RechartsPieChart>
     </ResponsiveContainer>
   )

@@ -8,6 +8,7 @@
 'use server';
 
 import { logger } from '@/lib/utils/logger';
+import { getAuthContext } from '@/lib/auth/server-auth';
 import {
   validateGiftCard,
   getGiftCardByCode,
@@ -49,7 +50,11 @@ export async function validateGiftCardAction(
  */
 export async function checkGiftCardBalance(giftCardCode: string) {
   try {
-    const card = await getGiftCardByCode(giftCardCode);
+    const auth = await getAuthContext();
+    if (!auth.tenantId) {
+      return { success: false, error: 'Not authenticated or no tenant context' };
+    }
+    const card = await getGiftCardByCode(giftCardCode, auth.tenantId);
 
     if (!card) {
       return {

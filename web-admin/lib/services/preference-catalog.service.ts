@@ -426,7 +426,7 @@ export class PreferenceCatalogService {
         (tenantCf || []).map((c) => [c.preference_code, c])
       );
 
-      return (sysPrefs || []).map((s) => {
+      const sysMerged = (sysPrefs || []).map((s) => {
         const cf = cfMap.get(s.code);
         return {
           code: s.code,
@@ -449,6 +449,31 @@ export class PreferenceCatalogService {
           cf_color_hex: (cf?.color_hex as string | null | undefined) ?? null,
         };
       });
+
+      // Append custom (tenant-created) preferences that have no sys catalog entry
+      const customRows = (tenantCf || []).filter((c) => !(c as { is_system_code?: boolean }).is_system_code);
+      const customMerged = customRows.map((c) => ({
+        code: c.preference_code,
+        name: c.name ?? c.preference_code,
+        name2: c.name2 ?? null,
+        preference_category: (c.preference_category as string | null | undefined) ?? null,
+        preference_sys_kind: null,
+        default_extra_price: Number(c.extra_price ?? 0),
+        extra_turnaround_minutes: null,
+        display_order: c.display_order ?? 0,
+        sys_is_active: true,
+        color_hex: null,
+        cf_id: c.id,
+        cf_name: c.name ?? null,
+        cf_name2: c.name2 ?? null,
+        cf_extra_price: Number(c.extra_price ?? 0),
+        cf_is_included_in_base: c.is_included_in_base ?? null,
+        cf_is_active: c.is_active ?? null,
+        cf_display_order: c.display_order ?? null,
+        cf_color_hex: null,
+      }));
+
+      return [...sysMerged, ...customMerged];
     } catch (err) {
       logger.error('PreferenceCatalogService.getServicePreferenceCfForAdmin failed', err instanceof Error ? err : new Error(String(err)), {
         tenantId,
@@ -504,7 +529,7 @@ export class PreferenceCatalogService {
         (tenantCf || []).map((c) => [c.packing_pref_code, c])
       );
 
-      return (sysPrefs || []).map((s) => {
+      const sysMerged = (sysPrefs || []).map((s) => {
         const cf = cfMap.get(s.code);
         return {
           code: s.code,
@@ -521,6 +546,25 @@ export class PreferenceCatalogService {
           cf_display_order: cf?.display_order ?? null,
         };
       });
+
+      // Append custom (tenant-created) packing preferences with no sys entry
+      const customRows = (tenantCf || []).filter((c) => !(c as { is_system_code?: boolean }).is_system_code);
+      const customMerged = customRows.map((c) => ({
+        code: c.packing_pref_code,
+        name: c.name ?? c.packing_pref_code,
+        name2: c.name2 ?? null,
+        maps_to_packaging_type: null,
+        display_order: c.display_order ?? 0,
+        sys_is_active: true,
+        cf_id: c.id,
+        cf_name: c.name ?? null,
+        cf_name2: c.name2 ?? null,
+        cf_extra_price: Number(c.extra_price ?? 0),
+        cf_is_active: c.is_active ?? null,
+        cf_display_order: c.display_order ?? null,
+      }));
+
+      return [...sysMerged, ...customMerged];
     } catch (err) {
       logger.error('PreferenceCatalogService.getPackingPreferenceCfForAdmin failed', err instanceof Error ? err : new Error(String(err)), {
         tenantId,
@@ -813,6 +857,153 @@ export class PreferenceCatalogService {
         feature: 'preference_catalog',
       });
       return { success: false, error: 'Failed to reset packing preference' };
+    }
+  }
+
+  /**
+   * Create a brand-new tenant-custom service preference (is_system_code = false).
+   * The code must be UPPER_SNAKE_CASE, unique for the tenant, and must not shadow
+   * an existing sys_service_preference_cd code.
+   */
+  static async createCustomServicePreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    input: {
+      code: string;
+      name: string;
+      name2?: string | null;
+      preference_category?: string | null;
+      extra_price?: number;
+      is_active?: boolean;
+    },
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const [{ count: sysCount }, { count: cfCount }] = await Promise.all([
+        supabase
+          .from('sys_service_preference_cd')
+          .select('*', { count: 'exact', head: true })
+          .eq('code', input.code),
+        supabase
+          .from('org_service_preference_cf')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_org_id', tenantId)
+          .eq('preference_code', input.code),
+      ]);
+
+      if ((sysCount ?? 0) > 0) {
+        return { success: false, error: 'Code already exists as a platform preference. Edit it via the catalog row instead.' };
+      }
+      if ((cfCount ?? 0) > 0) {
+        return { success: false, error: 'A preference with this code already exists for your tenant.' };
+      }
+
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('org_service_preference_cf').insert({
+        tenant_org_id: tenantId,
+        preference_code: input.code,
+        is_system_code: false,
+        name: input.name,
+        name2: input.name2 ?? null,
+        preference_category: input.preference_category ?? null,
+        extra_price: input.extra_price ?? 0,
+        is_included_in_base: false,
+        is_active: input.is_active ?? true,
+        display_order: 0,
+        created_by: userId,
+        created_info: userName,
+        updated_at: now,
+        updated_by: userId,
+        updated_info: userName,
+      });
+
+      if (error) {
+        logger.error('Failed to create custom org_service_preference_cf', new Error(error.message), {
+          tenantId,
+          code: input.code,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.createCustomServicePreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to create custom service preference' };
+    }
+  }
+
+  /**
+   * Create a brand-new tenant-custom packing preference (is_system_code = false).
+   */
+  static async createCustomPackingPreferenceCf(
+    supabase: SupabaseClient,
+    tenantId: string,
+    input: {
+      code: string;
+      name: string;
+      name2?: string | null;
+      extra_price?: number;
+      is_active?: boolean;
+    },
+    userId: string,
+    userName: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const [{ count: sysCount }, { count: cfCount }] = await Promise.all([
+        supabase
+          .from('sys_packing_preference_cd')
+          .select('*', { count: 'exact', head: true })
+          .eq('code', input.code),
+        supabase
+          .from('org_packing_preference_cf')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_org_id', tenantId)
+          .eq('packing_pref_code', input.code),
+      ]);
+
+      if ((sysCount ?? 0) > 0) {
+        return { success: false, error: 'Code already exists as a platform preference. Edit it via the catalog row instead.' };
+      }
+      if ((cfCount ?? 0) > 0) {
+        return { success: false, error: 'A packing preference with this code already exists for your tenant.' };
+      }
+
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('org_packing_preference_cf').insert({
+        tenant_org_id: tenantId,
+        packing_pref_code: input.code,
+        is_system_code: false,
+        name: input.name,
+        name2: input.name2 ?? null,
+        extra_price: input.extra_price ?? 0,
+        is_active: input.is_active ?? true,
+        display_order: 0,
+        created_by: userId,
+        created_info: userName,
+        updated_at: now,
+        updated_by: userId,
+        updated_info: userName,
+      });
+
+      if (error) {
+        logger.error('Failed to create custom org_packing_preference_cf', new Error(error.message), {
+          tenantId,
+          code: input.code,
+          feature: 'preference_catalog',
+        });
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (err) {
+      logger.error('PreferenceCatalogService.createCustomPackingPreferenceCf failed', err instanceof Error ? err : new Error(String(err)), {
+        tenantId,
+        feature: 'preference_catalog',
+      });
+      return { success: false, error: 'Failed to create custom packing preference' };
     }
   }
 

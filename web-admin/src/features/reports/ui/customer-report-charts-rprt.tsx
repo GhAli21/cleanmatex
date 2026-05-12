@@ -11,8 +11,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
+import { ChartLegend } from '@/lib/charts/recharts-legend';
 import type { TopCustomer } from '@/lib/types/report-types';
 
 interface CustomerReportChartsProps {
@@ -69,7 +69,7 @@ export default function CustomerReportCharts({
             <XAxis dataKey="date" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Legend />
+            <ChartLegend />
             <Line
               type="monotone"
               dataKey="newCustomers"

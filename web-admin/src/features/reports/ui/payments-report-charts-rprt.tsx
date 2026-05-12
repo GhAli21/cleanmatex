@@ -14,8 +14,8 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
+import { ChartLegend } from '@/lib/charts/recharts-legend';
 import type { DailyDataPoint, PaymentMethodBreakdown, PaymentStatusBreakdown } from '@/lib/types/report-types';
 
 interface PaymentsReportChartsProps {
@@ -74,7 +74,7 @@ export default function PaymentsReportCharts({
         <ResponsiveContainer width="100%" height={280}>
           <PieChart>
             <Pie
-              data={paymentsByMethod}
+              data={paymentsByMethod as unknown as { methodName: string; amount: number }[]}
               cx="50%"
               cy="50%"
               innerRadius={60}
@@ -103,7 +103,7 @@ export default function PaymentsReportCharts({
             <XAxis dataKey="status" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Legend />
+            <ChartLegend />
             <Bar dataKey="count" name={t('charts.count')} fill="#3B82F6" />
             <Bar dataKey="amount" name={t('charts.amount')} fill="#10B981" />
           </BarChart>

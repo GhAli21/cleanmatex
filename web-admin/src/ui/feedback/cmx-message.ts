@@ -4,7 +4,16 @@
  * @module ui/feedback
  */
 
-import { MessageType, DisplayMethod, type MessageOptions, type MessageResult, type PromiseMessageConfig, type ConfirmDialogOptions, type ErrorExtractionOptions } from './types';
+import {
+  MessageType,
+  DisplayMethod,
+  type MessageOptions,
+  type MessageResult,
+  type MessageResultOrAsync,
+  type PromiseMessageConfig,
+  type ConfirmDialogOptions,
+  type ErrorExtractionOptions,
+} from './types';
 import { getMessageConfig, setMessageConfig } from './message-config';
 import { showToastMessage, showToastPromise } from './methods/toast-method';
 import { showAlertMessage, showAlertPromise } from './methods/alert-method';
@@ -54,14 +63,14 @@ class CmxMessage {
   /**
    * Display a success message
    */
-  success(message: string, options?: MessageOptions): MessageResult {
+  success(message: string, options?: MessageOptions): MessageResultOrAsync {
     return this.show(MessageType.SUCCESS, message, options);
   }
 
   /**
    * Display an error message
    */
-  error(message: string, options?: MessageOptions): MessageResult {
+  error(message: string, options?: MessageOptions): MessageResultOrAsync {
     return this.show(MessageType.ERROR, message, options);
   }
 
@@ -69,7 +78,7 @@ class CmxMessage {
    * Display an error message extracted from an error object
    * Automatically extracts messages from Error, AxiosError, Supabase errors, fetch responses, etc.
    */
-  errorFrom(error: unknown, options?: ErrorExtractionOptions): MessageResult {
+  errorFrom(error: unknown, options?: ErrorExtractionOptions): MessageResultOrAsync {
     try {
       const extractedMessage = extractErrorMessage(error, {
         fallback: options?.fallback,
@@ -89,21 +98,21 @@ class CmxMessage {
   /**
    * Display a warning message
    */
-  warning(message: string, options?: MessageOptions): MessageResult {
+  warning(message: string, options?: MessageOptions): MessageResultOrAsync {
     return this.show(MessageType.WARNING, message, options);
   }
 
   /**
    * Display an info message
    */
-  info(message: string, options?: MessageOptions): MessageResult {
+  info(message: string, options?: MessageOptions): MessageResultOrAsync {
     return this.show(MessageType.INFO, message, options);
   }
 
   /**
    * Display a loading message
    */
-  loading(message: string, options?: MessageOptions): MessageResult {
+  loading(message: string, options?: MessageOptions): MessageResultOrAsync {
     return this.show(MessageType.LOADING, message, options);
   }
 
@@ -135,7 +144,9 @@ class CmxMessage {
     const results: MessageResult[] = [];
 
     for (const msg of messages) {
-      const result = await Promise.resolve(this.show(msg.type, msg.message, msg.options));
+      const result = (await Promise.resolve(
+        this.show(msg.type, msg.message, msg.options)
+      )) as MessageResult;
       results.push(result);
       // Small delay between batch messages
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -187,15 +198,15 @@ class CmxMessage {
 
     switch (method) {
       case DisplayMethod.TOAST:
-        return showToastPromise(promiseWithRetry(), messages, options);
+        return showToastPromise(promiseWithRetry(), messages, options) as Promise<T>;
       case DisplayMethod.ALERT:
-        return showAlertPromise(promiseWithRetry(), messages, options);
+        return showAlertPromise(promiseWithRetry(), messages, options) as Promise<T>;
       case DisplayMethod.CONSOLE:
-        return showConsolePromise(promiseWithRetry(), messages, options);
+        return showConsolePromise(promiseWithRetry(), messages, options) as Promise<T>;
       case DisplayMethod.INLINE:
-        return showInlinePromise(promiseWithRetry(), messages, options);
+        return showInlinePromise(promiseWithRetry(), messages, options) as Promise<T>;
       default:
-        return showToastPromise(promiseWithRetry(), messages, options);
+        return showToastPromise(promiseWithRetry(), messages, options) as Promise<T>;
     }
   }
 
@@ -279,7 +290,7 @@ class CmxMessage {
     type: MessageType,
     message: string,
     options?: MessageOptions
-  ): MessageResult | Promise<MessageResult> {
+  ): MessageResultOrAsync {
     try {
       // Validate message
       const validatedMessage = this.validateMessage(message);
@@ -290,9 +301,9 @@ class CmxMessage {
       if (this.shouldThrottle(options) && method !== DisplayMethod.CONSOLE) {
         // If queuing is enabled, queue the message
         if (config.queueMessages) {
-          return messageQueue.enqueue(type, validatedMessage, options, (t, m, o) => {
+          return messageQueue.enqueue(type, validatedMessage, (t, m, o) => {
             return this.showDirect(t, m, o);
-          });
+          }, options);
         }
         // Otherwise, skip the message silently (rate limited)
         return { id: '', dismiss: () => {} };
@@ -300,9 +311,9 @@ class CmxMessage {
 
       // If queuing is enabled, use queue
       if (config.queueMessages && method !== DisplayMethod.CONSOLE) {
-        return messageQueue.enqueue(type, validatedMessage, options, (t, m, o) => {
+        return messageQueue.enqueue(type, validatedMessage, (t, m, o) => {
           return this.showDirect(t, m, o);
-        });
+        }, options);
       }
 
       // Otherwise show directly
@@ -333,7 +344,7 @@ class CmxMessage {
     type: MessageType,
     message: string,
     options?: MessageOptions
-  ): MessageResult {
+  ): MessageResultOrAsync {
     try {
       const method = options?.method ?? getMessageConfig().defaultMethod;
 

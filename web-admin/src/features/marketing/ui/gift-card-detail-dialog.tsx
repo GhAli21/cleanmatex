@@ -13,7 +13,7 @@
 
 import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { AlertTriangle } from 'lucide-react';
@@ -106,7 +106,7 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
   // ---------------------------------------------------------------------------
 
   const form = useForm<AdjustValues>({
-    resolver: zodResolver(adjustSchema),
+    resolver: zodResolver(adjustSchema) as Resolver<AdjustValues>,
     defaultValues: { adjustment_type: 'credit', amount: 0, notes: '' },
   });
 
@@ -262,7 +262,7 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
             {/* Activate */}
             {card.status === GIFT_CARD_STATUS.GENERATED && (
               <CmxButton
-                variant="default"
+                variant="primary"
                 size="sm"
                 disabled={isPending}
                 onClick={() => setShowActivateConfirm(true)}
@@ -332,7 +332,7 @@ export function GiftCardDetailDialog({ card, onClose, onSuccess }: GiftCardDetai
                   <CmxButton
                     key={type}
                     type="button"
-                    variant={watchType === type ? 'default' : 'outline'}
+                    variant={watchType === type ? 'primary' : 'outline'}
                     size="sm"
                     onClick={() => form.setValue('adjustment_type', type)}
                   >

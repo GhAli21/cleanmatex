@@ -27,7 +27,7 @@ export const preSubmissionPieceSchema = z.object({
   hasDamage: z.boolean().optional(),
   notes: z.string().optional(),
   rackLocation: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**

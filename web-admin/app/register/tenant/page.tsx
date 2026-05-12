@@ -9,6 +9,13 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CmxButton, CmxInput, CmxSelect, Alert } from '@ui/primitives';
+import {
+  CmxCard,
+  CmxCardHeader,
+  CmxCardTitle,
+  CmxCardDescription,
+  CmxCardContent,
+} from '@ui/primitives/cmx-card';
 import type { TenantRegistrationRequest } from '@/lib/types/tenant';
 
 type Step = 1 | 2 | 3;

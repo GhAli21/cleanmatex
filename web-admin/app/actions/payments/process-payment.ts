@@ -13,11 +13,8 @@ import {
   validatePaymentData,
 } from '@/lib/services/payment-service';
 import { logger } from '@/lib/utils/logger';
-// applyPromoCode / applyGiftCard imports kept for future standalone payment use-cases.
-// The create-with-payment route uses applyPromoCodeTx / applyGiftCardTx instead
-// (inside its own transaction) to ensure atomic commit.
-import { applyPromoCode } from '@/lib/services/discount-service';
-import { applyGiftCard } from '@/lib/services/gift-card-service';
+// Promo/gift-card debits for standalone flows belong in transactional helpers
+// (applyPromoCodeTx / applyGiftCardTx) inside the caller's unit of work.
 import type {
   ProcessPaymentInput,
   ProcessPaymentResult,

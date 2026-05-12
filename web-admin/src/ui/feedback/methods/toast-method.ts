@@ -117,7 +117,7 @@ export function showToastPromise<T>(
           : messages.error;
       return message;
     },
-  });
+  }) as unknown as Promise<T>;
 }
 
 /**

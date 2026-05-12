@@ -45,7 +45,7 @@ export function useCreateRoute() {
     },
     onError: (error: Error) => {
       logger.error('Failed to create route', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
       });
     },
   });
@@ -78,7 +78,7 @@ export function useGenerateOTP() {
     },
     onError: (error: Error, orderId: string) => {
       logger.error('Failed to generate OTP', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         orderId,
       });
     },
@@ -120,7 +120,7 @@ export function useVerifyOTP() {
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to verify OTP', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         orderId: variables.orderId,
       });
     },
@@ -166,7 +166,7 @@ export function useCapturePOD() {
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to capture POD', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         stopId: variables.stopId,
       });
     },

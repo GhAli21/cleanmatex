@@ -25,6 +25,10 @@ import type {
   PaymentSummary,
 } from '../types/payment';
 
+function tenantInvoiceWhere(tenant_org_id: string, id: string) {
+  return { id_tenant_org_id: { tenant_org_id, id } };
+}
+
 // ============================================================================
 // Invoice Creation
 // ============================================================================
@@ -187,7 +191,7 @@ export async function getInvoice(invoiceId: string): Promise<Invoice | null> {
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
       include: {
         org_orders_mst: { select: { order_no: true } },
         org_customers_mst: { select: { name: true, name2: true } },
@@ -426,7 +430,7 @@ export async function updateInvoice(
     }
 
     const invoice = await prisma.org_invoice_mst.update({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
       data: updateData,
     });
 
@@ -451,7 +455,7 @@ export async function updateInvoiceStatus(
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.update({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
       data: {
         status,
         updated_at: new Date(),
@@ -480,7 +484,7 @@ export async function markInvoiceAsPaid(
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
     });
 
     if (!invoice) {
@@ -559,7 +563,7 @@ export async function applyDiscountToInvoice(
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
     });
 
     if (!invoice) {
@@ -581,7 +585,7 @@ export async function applyDiscountToInvoice(
     }
 
     const updated = await prisma.org_invoice_mst.update({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
       data: {
         discount: Number(invoice.discount) + discountAmount,
         total: newTotal,
@@ -637,7 +641,7 @@ export async function isInvoicePaid(invoiceId: string): Promise<boolean> {
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
     });
 
     if (!invoice) {
@@ -661,7 +665,7 @@ export async function isInvoiceOverdue(invoiceId: string): Promise<boolean> {
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
     });
 
     if (!invoice || !invoice.due_date) {
@@ -692,7 +696,7 @@ export async function getInvoiceBalance(invoiceId: string): Promise<number> {
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
     const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id: invoiceId },
+      where: tenantInvoiceWhere(tenantId, invoiceId),
     });
 
     if (!invoice) {

@@ -9,6 +9,7 @@ import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { getOrderById } from '@/lib/db/orders';
 import { prisma } from '@/lib/db/prisma';
 import { OrderPieceService } from '@/lib/services/order-piece-service';
+import type { OrderItem } from '@/types/order';
 
 function toNumber(value: unknown): number | null {
   if (value === undefined || value === null) return null;
@@ -82,12 +83,12 @@ export async function GET(
 
     // Option B: Fallback — resolve product names from catalog for items with null product_name
     const itemsMissingName = (order.items ?? []).filter(
-      (item: Record<string, unknown>) => !item.product_name && item.product_id
+      (item: OrderItem) => !item.product_name && item.product_id
     );
     const productNameMap: Record<string, { product_name: string | null; product_name2: string | null }> = {};
     if (itemsMissingName.length > 0) {
       const missingProductIds = [
-        ...new Set(itemsMissingName.map((i: Record<string, unknown>) => i.product_id as string)),
+        ...new Set(itemsMissingName.map((i: OrderItem) => i.product_id as string)),
       ];
       const catalogProducts = await prisma.org_product_data_mst.findMany({
         where: { tenant_org_id: tenantId, id: { in: missingProductIds } },
@@ -102,7 +103,8 @@ export async function GET(
     const customerName = customer?.name ?? null;
     const customerMobile = customer?.phone ?? null;
     const customerEmail = customer?.email ?? null;
-    const customerType = (order.org_customers_mst as { type?: string } | null)?.type ?? customer?.type ?? null;
+    const customerType =
+      (order.customer as { type?: string } | undefined)?.type ?? (customer as { type?: string } | undefined)?.type ?? null;
 
     const serializedOrder = {
       ...order,
@@ -123,10 +125,10 @@ export async function GET(
       paid_amount: toNumber(order.paid_amount) ?? null,
       bag_count: toNumber(order.bag_count) ?? null,
       priority_multiplier: toNumber(order.priority_multiplier) ?? null,
-      items: (order.items ?? []).map((item: Record<string, unknown>) => {
-        const itemPieces = (item.id && piecesByItemId[item.id as string]) || [];
+      items: (order.items ?? []).map((item: OrderItem) => {
+        const itemPieces = (item.id && piecesByItemId[item.id]) || [];
         const catalog = (!item.product_name && item.product_id)
-          ? productNameMap[item.product_id as string]
+          ? productNameMap[item.product_id]
           : undefined;
         return {
           ...item,

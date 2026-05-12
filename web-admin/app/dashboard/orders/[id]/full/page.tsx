@@ -139,8 +139,8 @@ async function OrderDetailsFullContent({
       order.priority_multiplier !== undefined && order.priority_multiplier !== null
         ? Number(order.priority_multiplier)
         : null,
-    items: order.items?.map((item: Record<string, unknown>) => {
-      const serializedItem = { ...item };
+    items: order.items?.map((item) => {
+      const serializedItem = { ...item } as Record<string, unknown>;
       if (item.price_per_unit != null) serializedItem.price_per_unit = Number(item.price_per_unit);
       if (item.total_price != null) serializedItem.total_price = Number(item.total_price);
       if (item.quantity != null) serializedItem.quantity = Number(item.quantity);

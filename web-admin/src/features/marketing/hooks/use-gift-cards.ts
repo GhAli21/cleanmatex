@@ -36,13 +36,14 @@ export function useGiftCards(params: UseGiftCardsParams = {}) {
       customerId: params.customerId,
     }).then((result) => {
       if (cancelled) return;
-      if (result.success) {
-        setGiftCards(result.data);
-        setTotal(result.total);
-        setError(null);
-      } else {
+      if (result.success === false) {
         setError(result.error);
+        setIsLoading(false);
+        return;
       }
+      setGiftCards(result.data);
+      setTotal(result.total);
+      setError(null);
       setIsLoading(false);
     });
 
@@ -85,13 +86,14 @@ export function useGiftCardTransactionLog(params: UseGiftCardTransactionLogParam
       dateTo: params.dateTo,
     }).then((result) => {
       if (cancelled) return;
-      if (result.success) {
-        setRows(result.data);
-        setTotal(result.total);
-        setError(null);
-      } else {
+      if (result.success === false) {
         setError(result.error);
+        setIsLoading(false);
+        return;
       }
+      setRows(result.data);
+      setTotal(result.total);
+      setError(null);
       setIsLoading(false);
     });
 

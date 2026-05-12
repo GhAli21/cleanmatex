@@ -20,7 +20,14 @@ import { validateCSRF } from '@/lib/middleware/csrf';
 import type {
   CustomerCreateRequest,
   CustomerSearchParams,
+  CustomerType,
 } from '@/lib/types/customer';
+
+const CUSTOMER_LIST_TYPE_PARAMS = ['guest', 'stub', 'walk_in', 'full', 'b2b'] as const satisfies readonly CustomerType[];
+
+const CUSTOMER_LIST_SORT_KEYS = ['name', 'createdAt', 'lastOrderAt', 'totalOrders'] as const satisfies readonly NonNullable<
+  CustomerSearchParams['sortBy']
+>[];
 
 // ==================================================================
 // POST /api/v1/customers - Create Customer
@@ -222,12 +229,18 @@ export async function GET(request: NextRequest) {
     const searchName = searchParams.get('searchName') || '';
     const searchEmail = searchParams.get('searchEmail') || '';
     const typeParam = searchParams.get('type');
-    const type = typeParam && ['guest', 'stub', 'walk_in', 'full'].includes(typeParam) ? typeParam : undefined;
+    const type: CustomerType | undefined =
+      typeParam && (CUSTOMER_LIST_TYPE_PARAMS as readonly string[]).includes(typeParam)
+        ? (typeParam as CustomerType)
+        : undefined;
     const excludeB2b = searchParams.get('excludeB2b') === 'true';
     const statusParam = searchParams.get('status');
     const status = statusParam && (statusParam === 'active' || statusParam === 'inactive') ? statusParam : 'active';
     const sortByParam = searchParams.get('sortBy');
-    const sortBy = sortByParam && ['name', 'createdAt', 'lastOrderAt', 'totalOrders'].includes(sortByParam) ? sortByParam : 'createdAt';
+    const sortBy: (typeof CUSTOMER_LIST_SORT_KEYS)[number] =
+      sortByParam && (CUSTOMER_LIST_SORT_KEYS as readonly string[]).includes(sortByParam)
+        ? (sortByParam as (typeof CUSTOMER_LIST_SORT_KEYS)[number])
+        : 'createdAt';
     const sortOrderParam = searchParams.get('sortOrder');
     const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc';
 

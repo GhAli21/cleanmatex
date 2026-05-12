@@ -37,27 +37,26 @@ export default async function ErpLiteReportsPage() {
   let trialBalanceRows: ErpLiteTrialBalanceRow[] = []
   let profitAndLossRows: ErpLiteStatementRow[] = []
   let balanceSheetRows: ErpLiteStatementRow[] = []
-  let currencyCode = ORDER_DEFAULTS.CURRENCY
-  let decimalPlaces = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
+  let currencyCode: string = ORDER_DEFAULTS.CURRENCY
+  let decimalPlaces: number = ORDER_DEFAULTS.PRICE.DECIMAL_PLACES
 
   try {
     const authContext = await getAuthContext()
     const supabase = await createClient()
     const tenantSettings = createTenantSettingsService(supabase)
-    ;[
-      trialBalanceRows,
-      profitAndLossRows,
-      balanceSheetRows,
-      { currencyCode, decimalPlaces },
-    ] = await Promise.all([
+    ;[trialBalanceRows, profitAndLossRows, balanceSheetRows] = await Promise.all([
       ErpLiteReportingService.getTrialBalance(locale),
       ErpLiteReportingService.getProfitAndLoss(locale),
       ErpLiteReportingService.getBalanceSheet(locale),
-      tenantSettings.getCurrencyConfig(authContext.tenantId, undefined, authContext.userId).catch(() => ({
+    ])
+    const currencyConfig = await tenantSettings
+      .getCurrencyConfig(authContext.tenantId, undefined, authContext.userId)
+      .catch(() => ({
         currencyCode: ORDER_DEFAULTS.CURRENCY,
         decimalPlaces: ORDER_DEFAULTS.PRICE.DECIMAL_PLACES,
-      })),
-    ])
+      }))
+    currencyCode = currencyConfig.currencyCode
+    decimalPlaces = currencyConfig.decimalPlaces
   } catch (error) {
     loadError = error instanceof Error ? error.message : tCommon('loadError')
   }

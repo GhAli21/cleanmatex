@@ -91,7 +91,7 @@ export function ProfileInfoCard({ tenantId, onRecompute }: ProfileInfoCardProps)
                     v{profileInfo.stng_profile_version_applied || 1}
                   </Badge>
                   {profileInfo.stng_profile_locked && (
-                    <Badge variant="primary" className="text-xs">
+                    <Badge variant="secondary" className="text-xs">
                       Locked
                     </Badge>
                   )}

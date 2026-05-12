@@ -62,7 +62,7 @@ export default async function CashUpPage({ searchParams }: PageProps) {
       ? String(currencyResult.currencyCode)
       : ORDER_DEFAULTS.CURRENCY;
 
-  if (!cashUpResult.success) {
+  if (cashUpResult.success === false) {
     return (
       <div className="space-y-6 p-6">
         <h1 className="text-3xl font-bold">{t('title')}</h1>

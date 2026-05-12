@@ -196,26 +196,26 @@ export default async function ErpLiteBranchPlPage({
                   name="alloc_run_id"
                   label={t('forms.allocationLine.fields.run')}
                   defaultValue=""
-                  options={snapshot.allocation_run_options}
+                  options={snapshot.allocation_run_options.map((o) => ({ value: o.id, label: o.label }))}
                   required
                 />
                 <CmxSelect
                   name="alloc_rule_id"
                   label={t('forms.allocationLine.fields.rule')}
                   defaultValue=""
-                  options={snapshot.allocation_rule_options}
+                  options={snapshot.allocation_rule_options.map((o) => ({ value: o.id, label: o.label }))}
                 />
                 <CmxSelect
                   name="source_branch_id"
                   label={t('forms.allocationLine.fields.sourceBranch')}
                   defaultValue=""
-                  options={snapshot.branch_options}
+                  options={snapshot.branch_options.map((o) => ({ value: o.id, label: o.label }))}
                 />
                 <CmxSelect
                   name="target_branch_id"
                   label={t('forms.allocationLine.fields.targetBranch')}
                   defaultValue=""
-                  options={snapshot.branch_options}
+                  options={snapshot.branch_options.map((o) => ({ value: o.id, label: o.label }))}
                   required
                 />
                 <CmxInput name="source_amount" type="number" step="0.0001" label={t('forms.allocationLine.fields.sourceAmount')} required />
@@ -335,9 +335,9 @@ export default async function ErpLiteBranchPlPage({
             </CmxCardHeader>
             <CmxCardContent>
               <form action={addErpLiteCostRunDetailAction} className="space-y-3">
-                <CmxSelect name="cost_run_id" label={t('forms.costRunDetail.fields.run')} defaultValue="" options={snapshot.cost_run_options} required />
-                <CmxSelect name="cost_comp_id" label={t('forms.costRunDetail.fields.component')} defaultValue="" options={snapshot.cost_component_options} required />
-                <CmxSelect name="branch_id" label={t('forms.costRunDetail.fields.branch')} defaultValue="" options={snapshot.branch_options} />
+                <CmxSelect name="cost_run_id" label={t('forms.costRunDetail.fields.run')} defaultValue="" options={snapshot.cost_run_options.map((o) => ({ value: o.id, label: o.label }))} required />
+                <CmxSelect name="cost_comp_id" label={t('forms.costRunDetail.fields.component')} defaultValue="" options={snapshot.cost_component_options.map((o) => ({ value: o.id, label: o.label }))} required />
+                <CmxSelect name="branch_id" label={t('forms.costRunDetail.fields.branch')} defaultValue="" options={snapshot.branch_options.map((o) => ({ value: o.id, label: o.label }))} />
                 <CmxInput name="basis_value" type="number" step="0.0001" label={t('forms.costRunDetail.fields.basisValue')} />
                 <CmxInput name="alloc_amount" type="number" step="0.0001" label={t('forms.costRunDetail.fields.allocAmount')} required />
                 <CmxInput name="unit_cost" type="number" step="0.0001" label={t('forms.costRunDetail.fields.unitCost')} />

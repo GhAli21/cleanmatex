@@ -83,7 +83,11 @@ export async function GET(request: NextRequest) {
     const { general } = await getTenantProfile(tenantId);
     return NextResponse.json({ success: true, data: general });
   } catch (err) {
-    logger.error('GET /settings/general failed', { err });
+    logger.error(
+      'GET /settings/general failed',
+      err instanceof Error ? err : new Error(String(err)),
+      {}
+    );
     return NextResponse.json(
       { error: 'Failed to load general settings' },
       { status: 500 }
@@ -135,7 +139,11 @@ export async function PUT(request: NextRequest) {
       throw err;
     }
   } catch (err) {
-    logger.error('PUT /settings/general failed', { err });
+    logger.error(
+      'PUT /settings/general failed',
+      err instanceof Error ? err : new Error(String(err)),
+      {}
+    );
     return NextResponse.json(
       { error: 'Failed to update general settings' },
       { status: 500 }

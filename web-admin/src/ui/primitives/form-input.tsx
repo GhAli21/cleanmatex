@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export interface InputProps
+export interface FormInputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: string
@@ -10,7 +10,7 @@ export interface InputProps
   rightIcon?: React.ReactNode
 }
 
-const FormInput = React.forwardRef<HTMLInputElement, InputProps>(
+const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
   ({ className, type, label, error, helperText, leftIcon, rightIcon, ...props }, ref) => {
     const [showPassword, setShowPassword] = React.useState(false)
     const isPassword = type === "password"

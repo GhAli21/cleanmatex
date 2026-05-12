@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { newOrderFormSchema, type NewOrderFormData } from '../model/new-order-form-schema';
 import { useNewOrderState } from '../ui/context/new-order-context';
@@ -17,7 +17,7 @@ export function useOrderForm() {
   const state = useNewOrderState();
 
   const form = useForm<NewOrderFormData>({
-    resolver: zodResolver(newOrderFormSchema),
+    resolver: zodResolver(newOrderFormSchema) as Resolver<NewOrderFormData>,
     defaultValues: {
       customerId: state.customer?.id || '',
       orderTypeId: 'POS',

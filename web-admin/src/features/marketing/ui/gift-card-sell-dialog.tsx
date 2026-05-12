@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Copy, CheckCircle2, Eye, EyeOff, X } from 'lucide-react';
@@ -97,7 +97,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
   const defaultExpiry = `${new Date().getFullYear()}-12-31`;
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<FormValues>,
     defaultValues: {
       card_name:             '',
       card_name2:            '',
@@ -168,11 +168,11 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
       currency_code:            values.currency_code,
     });
 
-    if (result.success) {
+    if (result.success === false) {
+      setServerError(result.error);
+    } else {
       setGeneratedCode(result.data.gift_card_code);
       onSuccess?.();
-    } else {
-      setServerError(result.error);
     }
   };
 
@@ -234,8 +234,9 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                   variant="outline"
                   size="sm"
                   onClick={handleCopy}
-                  icon={<Copy className="h-4 w-4" />}
+                  className="inline-flex items-center gap-2"
                 >
+                  <Copy className="h-4 w-4" />
                   {copied ? tCommon('copied') : t('actions.copyCode')}
                 </CmxButton>
               </div>
@@ -336,7 +337,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                     <CmxButton
                       type="button"
                       variant="ghost"
-                      size="icon"
+                      size="xs"
                       onClick={() => {
                         form.setValue('purchased_by_cust_id', '');
                         setBuyerDisplay('');
@@ -384,7 +385,7 @@ export function GiftCardSellDialog({ open, onOpenChange, onSuccess }: GiftCardSe
                       <CmxButton
                         type="button"
                         variant="ghost"
-                        size="icon"
+                        size="xs"
                         onClick={() => {
                           form.setValue('issued_to_customer_id', '');
                           setRecipientDisplay('');

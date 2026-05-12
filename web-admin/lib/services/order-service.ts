@@ -90,7 +90,12 @@ export interface CreateOrderPieceData {
   packingPrefCode?: string;
   packingCfId?: string | null;
   /** Piece-level service prefs (Enterprise-gated) */
-  servicePrefs?: Array<{ preference_code: string; source: string; extra_price: number; preferenceCfId?: string | null }>;
+  servicePrefs?: Array<{
+    preference_code: string;
+    source?: string;
+    extra_price?: number;
+    preferenceCfId?: string | null;
+  }>;
   /** Piece-level conditions (stains, damage, special) */
   conditions?: string[];
 }
@@ -98,8 +103,8 @@ export interface CreateOrderPieceData {
 /** Service preference for order item (processing prefs: starch, perfume, etc.) */
 export interface CreateOrderServicePref {
   preference_code: string;
-  source: string;
-  extra_price: number;
+  source?: string;
+  extra_price?: number;
   preferenceCfId?: string | null;
 }
 
@@ -761,8 +766,8 @@ export class OrderService {
                   order_item_id: createdItem.id,
                   preference_code: pref.preference_code,
                   preference_sys_kind: 'service_prefs',
-                  prefs_source: pref.source,
-                  extra_price: pref.extra_price,
+                  prefs_source: pref.source ?? 'manual',
+                  extra_price: pref.extra_price ?? 0,
                   branch_id: branchId ?? null,
                   created_by: userId,
                   ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
@@ -1318,8 +1323,8 @@ export class OrderService {
               order_item_id: createdItem.id,
               preference_code: pref.preference_code,
               preference_sys_kind: 'service_prefs',
-              prefs_source: pref.source,
-              extra_price: pref.extra_price,
+              prefs_source: pref.source ?? 'manual',
+              extra_price: pref.extra_price ?? 0,
               branch_id: branchId ?? null,
               created_by: userId,
               ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),
@@ -1429,8 +1434,8 @@ export class OrderService {
                   order_item_piece_id: createdPiece.id,
                   preference_code: pref.preference_code,
                   preference_sys_kind: 'service_prefs',
-                  prefs_source: pref.source,
-                  extra_price: pref.extra_price,
+                  prefs_source: pref.source ?? 'manual',
+                  extra_price: pref.extra_price ?? 0,
                   branch_id: branchId ?? null,
                   created_by: userId,
                   ...(pref.preferenceCfId ? { preference_id: pref.preferenceCfId } : {}),

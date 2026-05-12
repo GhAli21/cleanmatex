@@ -163,10 +163,11 @@ export async function cancelOrder(input: CancelOrderInput): Promise<CancelOrderR
     },
   });
 
-  if (error || !result?.ok) {
+  const rpc = result as { ok?: boolean; message?: string } | null | undefined;
+  if (error || !rpc?.ok) {
     return {
       success: false,
-      error: result?.message || error?.message || 'Cancel failed',
+      error: rpc?.message || error?.message || 'Cancel failed',
     };
   }
 

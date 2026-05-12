@@ -490,11 +490,11 @@ function ItemsTab({
       </div>
 
       {/* Import All Products Confirmation Dialog */}
-      <Dialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Import All Products with Default Prices</DialogTitle>
-          </DialogHeader>
+      <CmxDialog open={showImportConfirm} onOpenChange={setShowImportConfirm}>
+        <CmxDialogContent className="max-w-md">
+          <CmxDialogHeader>
+            <CmxDialogTitle>Import All Products with Default Prices</CmxDialogTitle>
+          </CmxDialogHeader>
 
           <div className="space-y-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -528,16 +528,16 @@ function ItemsTab({
             </div>
           </div>
 
-          <DialogFooter>
+          <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={() => setShowImportConfirm(false)}>
               Cancel
             </CmxButton>
             <CmxButton onClick={handleImportAllProducts} disabled={importingAll}>
               {importingAll ? 'Importing...' : 'Import All Products'}
             </CmxButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
 
       {/* Items Table */}
       {items.length === 0 ? (

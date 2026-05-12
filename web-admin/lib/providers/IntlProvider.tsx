@@ -19,7 +19,6 @@ interface IntlProviderProps {
 export function IntlProvider({ locale, messages, children }: IntlProviderProps) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="Asia/Muscat">
-      {/* @ts-expect-error - React version mismatch between React 18/19 types */}
       {children}
     </NextIntlClientProvider>
   )

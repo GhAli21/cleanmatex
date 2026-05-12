@@ -102,7 +102,7 @@ export async function executeDunningActions(
   const results: DunningActionResult[] = [];
 
   for (const stmt of statements) {
-    const level = await evaluateDunningLevels(stmt, dunningLevels);
+    const level = evaluateDunningLevels(stmt, dunningLevels);
     if (!level) continue;
 
     if (level.action === 'email') {
@@ -229,10 +229,10 @@ export async function getOverdueStatements(
   });
 }
 
-export async function evaluateDunningLevels(
+export function evaluateDunningLevels(
   statement: OverdueStatement,
   levels: DunningLevel[]
-): Promise<DunningLevel | null> {
+): DunningLevel | null {
   const sorted = [...levels].sort((a, b) => b.days - a.days);
   for (const level of sorted) {
     if (statement.daysOverdue >= level.days) {

@@ -33,7 +33,7 @@ export function useAssemblyDashboard() {
   const { currentTenant } = useAuth();
 
   return useQuery<AssemblyDashboard>({
-    queryKey: ['assembly', 'dashboard', currentTenant?.id],
+    queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
     queryFn: async () => {
       if (!currentTenant) throw new Error('No tenant');
 
@@ -75,12 +75,12 @@ export function useCreateAssemblyTask() {
     onSuccess: () => {
       // Invalidate dashboard query
       queryClient.invalidateQueries({
-        queryKey: ['assembly', 'dashboard', currentTenant?.id],
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, orderId: string) => {
       logger.error('Failed to create assembly task', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         orderId,
       });
     },
@@ -117,12 +117,12 @@ export function useStartAssemblyTask() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['assembly', 'dashboard', currentTenant?.id],
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to start assembly task', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         taskId: variables.taskId,
       });
     },
@@ -163,12 +163,12 @@ export function useScanItem() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['assembly', 'dashboard', currentTenant?.id],
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to scan item', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         taskId: variables.taskId,
       });
     },
@@ -213,12 +213,12 @@ export function usePerformQA() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['assembly', 'dashboard', currentTenant?.id],
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to perform QA', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         taskId: variables.taskId,
       });
     },
@@ -263,12 +263,12 @@ export function usePackOrder() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ['assembly', 'dashboard', currentTenant?.id],
+        queryKey: ['assembly', 'dashboard', currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to pack order', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         taskId: variables.taskId,
       });
     },

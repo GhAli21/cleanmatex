@@ -166,7 +166,7 @@ export function SettingsTable({
                   </tr>
                 ) : (
                   filteredRows.map((row) => {
-                    const { definition, resolved, isOverridden, canEdit } = row;
+                    const { definition, resolved, isOverridden, canEdit, isLockedByEditPolicy } = row;
                     const isEditing = editMode === 'inline' && editingKey === definition.setting_code;
                     const isSaving = savingKey === definition.setting_code;
 

@@ -230,7 +230,6 @@ export default function SubscriptionPage() {
                 tenant.status === 'trial' ? 'info' :
                 tenant.status === 'suspended' ? 'warning' : 'default'
               }
-              size="lg"
             >
               {tenant.status.toUpperCase()}
             </Badge>
@@ -496,12 +495,12 @@ export default function SubscriptionPage() {
                             {plan.plan_name}
                           </span>
                           {plan.isCurrentPlan && (
-                            <Badge variant="success" size="sm">
+                            <Badge variant="success">
                               Current
                             </Badge>
                           )}
                           {plan.plan_code === 'growth' && !plan.isCurrentPlan && (
-                            <Badge variant="info" size="sm">
+                            <Badge variant="info">
                               Recommended
                             </Badge>
                           )}
@@ -525,19 +524,19 @@ export default function SubscriptionPage() {
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-1">
                           {plan.feature_flags.pdf_invoices && (
-                            <Badge variant="default" size="sm">PDF</Badge>
+                            <Badge variant="default">PDF</Badge>
                           )}
                           {plan.feature_flags.whatsapp_receipts && (
-                            <Badge variant="default" size="sm">WhatsApp</Badge>
+                            <Badge variant="default">WhatsApp</Badge>
                           )}
                           {plan.feature_flags.driver_app && (
-                            <Badge variant="default" size="sm">Driver App</Badge>
+                            <Badge variant="default">Driver App</Badge>
                           )}
                           {plan.feature_flags.multi_branch && (
-                            <Badge variant="default" size="sm">Multi-Branch</Badge>
+                            <Badge variant="default">Multi-Branch</Badge>
                           )}
                           {plan.feature_flags.api_access && (
-                            <Badge variant="default" size="sm">API</Badge>
+                            <Badge variant="default">API</Badge>
                           )}
                         </div>
                       </td>
@@ -575,7 +574,7 @@ export default function SubscriptionPage() {
       {isPaidPlan && tenant?.status !== 'canceled' && (
         <div className="flex justify-end">
           <CmxButton
-            variant="danger"
+            variant="destructive"
             size="md"
             onClick={handleCancelClick}
           >
@@ -785,7 +784,7 @@ export default function SubscriptionPage() {
                   Keep Subscription
                 </CmxButton>
                 <CmxButton
-                  variant="danger"
+                  variant="destructive"
                   size="md"
                   onClick={handleCancel}
                   disabled={isProcessing || !cancelReason}

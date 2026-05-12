@@ -73,7 +73,7 @@ export async function POST(
         tenantId,
         updates: {
           scan_state: 'scanned',
-          last_step_at: new Date().toISOString(),
+          last_step_at: new Date(),
           last_step_by: userId,
           updated_by: userId,
         },

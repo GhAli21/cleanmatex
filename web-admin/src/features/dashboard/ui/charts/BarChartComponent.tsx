@@ -14,8 +14,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts'
+import { ChartLegend } from '@/lib/charts/recharts-legend'
 
 interface BarChartData {
   [key: string]: string | number
@@ -82,7 +82,7 @@ export function BarChartComponent({
             borderRadius: '6px',
           }}
         />
-        {showLegend && <Legend />}
+        {showLegend && <ChartLegend />}
         {bars.map((bar) => (
           <Bar
             key={bar.dataKey}

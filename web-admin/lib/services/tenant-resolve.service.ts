@@ -47,7 +47,11 @@ export async function resolveTenantBySlug(
       primaryColor: (data.brand_color_primary as string | null) ?? null,
     };
   } catch (err) {
-    logger.error('resolveTenantBySlug failed', { slug, err });
+    logger.error(
+      'resolveTenantBySlug failed',
+      err instanceof Error ? err : new Error(String(err)),
+      { slug }
+    );
     return null;
   }
 }

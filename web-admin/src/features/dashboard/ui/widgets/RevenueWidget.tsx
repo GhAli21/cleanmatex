@@ -21,7 +21,13 @@ export function RevenueWidget() {
   const t = useTranslations('dashboard')
   const isRTL = useRTL()
   const { decimalPlaces, currencyCode } = useTenantCurrency()
-  const [data, setData] = useState({
+  const [data, setData] = useState<{
+    today: number
+    mtd: number
+    last30d: number
+    currency: string
+    trend: number
+  }>({
     today: 0,
     mtd: 0,
     last30d: 0,

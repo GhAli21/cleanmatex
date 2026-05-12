@@ -1,5 +1,5 @@
 ---
-version: v1.2.0
+version: v1.2.1
 last_updated: 2026-05-11
 author: CleanMateX Team
 ---
@@ -11,6 +11,7 @@ author: CleanMateX Team
 The **Customer/Order/Item/Pieces Preferences** feature extends the Order Service Preferences system with a unified data model. A single catalog (`sys_service_preference_cd`) and one order preferences table (`org_order_preferences_dtl`) support:
 
 - **Service preferences** (starch, perfume, delicate, etc.) at ORDER, ITEM, or PIECE level
+- **Packing** (**`packing_prefs`**) — hang / fold / box, etc. at ITEM and/or PIECE scope (**`sys_packing_preference_cd` / `org_packing_preference_cf`**, persisted on **`org_order_preferences_dtl`**)
 - **Conditions** (stains, damage, special care) at piece level
 - **Colors** — catalog-backed **multi-select** on **`org_order_preferences_dtl`** (`preference_sys_kind = 'color'`; one row per chosen color with optional **`preference_id`** → **`org_service_preference_cf`**); piece-row JSON **`color`** supports **`codes` / `primary`** denormalization
 - **Notes** — free-text **`note`** rows on **`org_order_preferences_dtl`**; piece `notes` column may duplicate for UX/legacy paths
@@ -56,13 +57,18 @@ flowchart TB
 | `condition_stain`| Stain conditions (coffee, wine, oil, etc.)   | PIECE   |
 | `condition_damag`| Damage indicators (hole, tear, zipper, etc.) | PIECE   |
 | `color`          | Color codes (solid, pattern)                  | PIECE   |
+| `packing_prefs` | Packing method (hang, fold, etc.) | ITEM, PIECE |
 | `note`           | Free-form notes                              | PIECE   |
 
 ## UI Structure
 
+### Edit Items Preferences (piece wizard)
+
+- **Service + packing surcharges:** Catalog **extra** amounts are shown beside names in the packing modal (`PackingPreferenceSelector`), on piece **`PreferenceChip`** rows, and on the **order summary** teal chips — see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.3.
+
 ### New Order — Preferences Section
 
-- **Quick Apply** tab: Care Packages, Repeat Last Order (**`0260`** enriches last-order RPC with packing/service catalog ids — see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.2), Smart Suggestions
+- **Quick Apply** tab: Care Packages, Repeat Last Order (**`0260`** enriches last-order RPC with packing/service catalog ids — see **[preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md)** §8.4), Smart Suggestions
 - **Service Preferences** tab: Per-item or per-piece service prefs (starch, perfume, delicate, etc.)
 - **Item details table**: Packing preferences only (service prefs moved to the tab)
 

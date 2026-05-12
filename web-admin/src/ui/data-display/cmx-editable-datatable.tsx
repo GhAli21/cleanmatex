@@ -96,6 +96,8 @@ export function CmxEditableDataTable<
     asyncRowValidator
   )
 
+  const { showSuccess, showError } = useMessage()
+
   // Get current data (merged with row states)
   const currentData = useMemo(() => {
     return data.map((row) => {
@@ -297,7 +299,7 @@ export function CmxEditableDataTable<
         showError(tableError.message)
       }
     },
-    [rowsState, onSave, validate, onError]
+    [rowsState, onSave, validate, onError, showSuccess, showError]
   )
 
   // Delete a row
@@ -327,7 +329,7 @@ export function CmxEditableDataTable<
         showError(tableError.message)
       }
     },
-    [onDelete, onError]
+    [onDelete, onError, showSuccess, showError]
   )
 
   // Soft remove a row
@@ -363,7 +365,7 @@ export function CmxEditableDataTable<
         showError(tableError.message)
       }
     },
-    [onSoftRemove, onError]
+    [onSoftRemove, onError, showSuccess, showError]
   )
 
   // Add new row
@@ -444,7 +446,7 @@ export function CmxEditableDataTable<
       })
       showError(tableError.message)
     }
-  }, [rowsState, onBulkSave, getRowId, onError, showError])
+  }, [rowsState, onBulkSave, getRowId, onError, showSuccess, showError])
 
   // Build columns with editable cells and actions
   const tableColumns = useMemo(() => {

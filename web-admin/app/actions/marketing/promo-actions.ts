@@ -14,7 +14,13 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { getPromoCodeUsage } from '@/lib/services/discount-service';
 import { logger } from '@/lib/utils/logger';
-import type { PromoCode, PromoCodeUsage } from '@/lib/types/payment';
+import type { PromoCode, PromoCodeUsage, PromoDiscountType } from '@/lib/types/payment';
+
+function rowDiscountTypeToPromo(raw: string | null | undefined): PromoDiscountType {
+  const v = (raw ?? '').toLowerCase();
+  if (v === 'fixed' || v === 'fixed_amount') return 'fixed_amount';
+  return 'percentage';
+}
 
 // ---------------------------------------------------------------------------
 // Validation schema
@@ -30,7 +36,9 @@ const promoFormSchema = z.object({
   promo_name2: z.string().max(200).optional(),
   description: z.string().max(500).optional(),
   description2: z.string().max(500).optional(),
-  discount_type: z.enum(['percentage', 'fixed']),
+  discount_type: z.enum(['percentage', 'fixed', 'fixed_amount']).transform(
+    (v): PromoDiscountType => (v === 'fixed' || v === 'fixed_amount' ? 'fixed_amount' : 'percentage')
+  ),
   discount_value: z.number().positive(),
   max_discount_amount: z.number().positive().optional(),
   min_order_amount: z.number().nonnegative().default(0),
@@ -116,7 +124,7 @@ export async function listPromoCodes(params: {
         promo_name2: row.promo_name2 ?? undefined,
         description: row.description ?? undefined,
         description2: row.description2 ?? undefined,
-        discount_type: row.discount_type as 'percentage' | 'fixed',
+        discount_type: rowDiscountTypeToPromo(row.discount_type),
         discount_value: Number(row.discount_value),
         max_discount_amount: row.max_discount_amount ? Number(row.max_discount_amount) : undefined,
         min_order_amount: Number(row.min_order_amount),
@@ -218,7 +226,7 @@ export async function createPromoCode(
           promo_name2: row.promo_name2 ?? undefined,
           description: row.description ?? undefined,
           description2: row.description2 ?? undefined,
-          discount_type: row.discount_type as 'percentage' | 'fixed',
+          discount_type: rowDiscountTypeToPromo(row.discount_type),
           discount_value: Number(row.discount_value),
           max_discount_amount: row.max_discount_amount ? Number(row.max_discount_amount) : undefined,
           min_order_amount: Number(row.min_order_amount),
@@ -305,7 +313,7 @@ export async function updatePromoCode(
           promo_name2: row.promo_name2 ?? undefined,
           description: row.description ?? undefined,
           description2: row.description2 ?? undefined,
-          discount_type: row.discount_type as 'percentage' | 'fixed',
+          discount_type: rowDiscountTypeToPromo(row.discount_type),
           discount_value: Number(row.discount_value),
           max_discount_amount: row.max_discount_amount ? Number(row.max_discount_amount) : undefined,
           min_order_amount: Number(row.min_order_amount),

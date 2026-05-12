@@ -24,7 +24,7 @@ export function useReceipts(orderId: string) {
   const { currentTenant } = useAuth();
 
   return useQuery<ReceiptRecord[]>({
-    queryKey: ['receipts', orderId, currentTenant?.id],
+    queryKey: ['receipts', orderId, currentTenant?.tenant_id],
     queryFn: async () => {
       if (!currentTenant || !orderId) throw new Error('No tenant or order ID');
 
@@ -82,12 +82,12 @@ export function useSendReceipt() {
     onSuccess: (_, variables) => {
       // Invalidate receipts query
       queryClient.invalidateQueries({
-        queryKey: ['receipts', variables.orderId, currentTenant?.id],
+        queryKey: ['receipts', variables.orderId, currentTenant?.tenant_id],
       });
     },
     onError: (error: Error, variables) => {
       logger.error('Failed to send receipt', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         orderId: variables.orderId,
       });
     },
@@ -122,7 +122,7 @@ export function useResendReceipt() {
     },
     onError: (error: Error, receiptId: string) => {
       logger.error('Failed to resend receipt', error, {
-        tenantId: currentTenant?.id,
+        tenantId: currentTenant?.tenant_id,
         receiptId,
       });
     },

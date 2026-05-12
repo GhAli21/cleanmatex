@@ -22,7 +22,7 @@ export default function CreateVoucherForm() {
   const [orderId, setOrderId] = useState('');
   const [customerId, setCustomerId] = useState('');
   const [amount, setAmount] = useState('');
-  const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
+  const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY);
   const [reasonCode, setReasonCode] = useState('');
 
   useEffect(() => {

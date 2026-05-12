@@ -150,8 +150,13 @@ export async function POST(
         );
       }
 
-      if (fixResult && Array.isArray(fixResult.steps)) {
-        allStepResults.push(...fixResult.steps);
+      const fixPayload =
+        fixResult && typeof fixResult === 'object' && fixResult !== null && !Array.isArray(fixResult)
+          ? (fixResult as Record<string, unknown>)
+          : null;
+      const rpcStepsRaw = fixPayload?.steps;
+      if (Array.isArray(rpcStepsRaw)) {
+        allStepResults.push(...(rpcStepsRaw as StepResult[]));
       }
     }
 

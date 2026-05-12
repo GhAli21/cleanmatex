@@ -12,8 +12,8 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from 'recharts';
+import { ChartLegend } from '@/lib/charts/recharts-legend';
 import type { RevenueCategoryBreakdown } from '@/lib/types/report-types';
 
 interface RevenueBreakdownChartsProps {
@@ -55,7 +55,7 @@ export default function RevenueBreakdownCharts({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={byServiceCategory}
+                  data={byServiceCategory as unknown as { name: string; revenue: number; percentage?: number }[]}
                   cx="50%"
                   cy="50%"
                   innerRadius={60}
@@ -104,7 +104,7 @@ export default function RevenueBreakdownCharts({
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(value: number) => `${currencyCode} ${value.toLocaleString()}`} />
-                <Legend />
+                <ChartLegend />
                 <Bar dataKey="revenue" name={t('charts.revenue')} fill="#3B82F6" />
                 <Bar dataKey="orderCount" name={t('charts.orders')} fill="#10B981" />
               </BarChart>

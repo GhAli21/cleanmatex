@@ -281,7 +281,7 @@ export function GiftCardTransactionLogScreen() {
           {TX_TYPES.map((type) => (
             <CmxButton
               key={type}
-              variant={transactionType === type ? 'default' : 'outline'}
+              variant={transactionType === type ? 'primary' : 'outline'}
               size="sm"
               onClick={() => handleTypeToggle(type)}
             >
@@ -292,7 +292,7 @@ export function GiftCardTransactionLogScreen() {
       </div>
 
       {/* ---- Error ---- */}
-      {error && <CmxSummaryMessage variant="error" title={tLog('errors.loadFailed')} />}
+      {error && <CmxSummaryMessage type="error" title={tLog('errors.loadFailed')} items={[]} />}
 
       {/* ---- Table ---- */}
       <CmxDataTable

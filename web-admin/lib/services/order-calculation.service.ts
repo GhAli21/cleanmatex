@@ -16,11 +16,8 @@ import { validatePromoCode, getBestDiscount } from './discount-service';
 import { validateGiftCard, validateGiftCardByIdForCalculation } from './gift-card-service';
 import type { PriceResult } from '@/lib/types/pricing';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import {
-  DISCOUNT_SOURCE_TYPE,
-  DISCOUNT_CALC_TYPE,
-  type DiscountLineInput,
-} from '@/lib/constants/discount-source-type';
+import { DISCOUNT_SOURCE_TYPE, DISCOUNT_CALC_TYPE } from '@/lib/constants/discount-source-type';
+import type { DiscountLineInput } from '@/lib/db/order-discounts';
 
 export interface OrderCalculationParams {
   tenantId: string;

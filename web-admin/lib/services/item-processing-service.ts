@@ -55,7 +55,7 @@ export class ItemProcessingService {
     params: RecordProcessingStepParams
   ): Promise<RecordProcessingStepResult> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
       const { orderId, orderItemId, tenantId, stepCode, stepSeq, notes, userId, userName } = params;
 
       // Get order item to find service category and branch
@@ -184,7 +184,7 @@ export class ItemProcessingService {
     params: MarkItemCompleteParams
   ): Promise<MarkItemCompleteResult> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
       const { orderId, orderItemId, tenantId, userId, userName } = params;
 
       // Update item status
@@ -265,7 +265,7 @@ export class ItemProcessingService {
    */
   static async checkAllItemsReady(orderId: string, tenantId: string): Promise<boolean> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       const { data: items, error } = await supabase
         .from('org_order_items_dtl')
@@ -293,7 +293,7 @@ export class ItemProcessingService {
     tenantId: string
   ): Promise<GetItemStepsResult> {
     try {
-      const supabase = createClient();
+      const supabase = await createClient();
 
       const { data, error } = await supabase
         .from('org_order_item_processing_steps')

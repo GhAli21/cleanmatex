@@ -59,9 +59,9 @@ export function AssemblyScanner({ taskId, onScanSuccess }: AssemblyScannerProps)
             setLastScanResult({
               success: false,
               isMatch: result.isMatch || false,
-              message: result.error || 'Barcode not found in expected items',
+              message: 'Barcode not found in expected items',
             });
-            showError(result.error || 'Barcode not found');
+            showError('Barcode not found in expected items');
           }
         },
         onError: (error) => {

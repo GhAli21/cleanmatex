@@ -6,20 +6,23 @@ import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useLocale } from '@/lib/hooks/useLocale';
 
-interface PrintLabelButtonProps {
-  order: {
-    id: string;
-    order_no: string;
-    qr_code?: string | null;
-    barcode?: string | null;
-    ready_by?: Date | null;
-    org_customers_mst: {
-      sys_customers_mst: {
-        first_name: string;
-        last_name?: string | null;
-      };
+/** Minimal order shape for label printing (server may send partial joins). */
+export type PrintLabelOrderInput = {
+  id: string;
+  order_no: string;
+  qr_code?: string | null;
+  barcode?: string | null;
+  ready_by?: Date | string | null;
+  org_customers_mst?: {
+    sys_customers_mst?: {
+      first_name?: string;
+      last_name?: string | null;
     };
-  };
+  } | null;
+};
+
+interface PrintLabelButtonProps {
+  order: PrintLabelOrderInput;
 }
 
 export function PrintLabelButton({ order }: PrintLabelButtonProps) {
@@ -40,9 +43,9 @@ export function PrintLabelButton({ order }: PrintLabelButtonProps) {
       return;
     }
 
-    const customerName = `${order.org_customers_mst.sys_customers_mst.first_name} ${
-      order.org_customers_mst.sys_customers_mst.last_name || ''
-    }`.trim();
+    const firstName = order.org_customers_mst?.sys_customers_mst?.first_name ?? '';
+    const lastName = order.org_customers_mst?.sys_customers_mst?.last_name ?? '';
+    const customerName = `${firstName} ${lastName}`.trim();
 
     const readyByFormatted = order.ready_by
       ? new Date(order.ready_by).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM', {

@@ -75,7 +75,13 @@ export function useReadyByEstimation() {
             if (readyBy) {
                 console.log('Calculated ready-by:', readyBy);
                 // Ensure the date is in ISO format
-                const dateValue = readyBy instanceof Date ? readyBy.toISOString() : readyBy;
+                const rb: unknown = readyBy;
+                const dateValue =
+                  typeof rb === 'string'
+                    ? rb
+                    : rb instanceof Date
+                      ? rb.toISOString()
+                      : String(rb);
                 setReadyByAtRef.current(dateValue);
                 console.log('Set readyByAt to:', dateValue);
                 return dateValue;

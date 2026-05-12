@@ -1,5 +1,5 @@
 ---
-version: v1.0.0
+version: v1.0.1
 last_updated: 2026-05-11
 author: CleanMateX Team
 ---
@@ -65,4 +65,6 @@ Document rollback steps in migration comments if needed for your environment.
 |---------|------|---------|
 | 0260 | `0260_get_last_order_preferences_catalog_ids.sql` | Extends **`get_last_order_preferences`** with **`packing_pref_cf_id`** and **`service_prefs_catalog`** for Repeat Last Order + **`org_order_preferences_dtl.preference_id`** alignment in the client. Apply after **0169**. |
 
-Details: **`docs/dev/preferences-architecture-reference.md`** §8.2, §12.
+Details: **`docs/dev/preferences-architecture-reference.md`** §8.4 (Repeat Last Order), §8.3 (New Order surcharge display UI), §12.
+
+**Note:** Packing/service **money display** beside names in the New Order wizard (not a migration) is documented under **§8.3**.

@@ -177,10 +177,16 @@ export default async function ErpLiteExpensesPage({
                   name="payee_name"
                   label={t('forms.expense.fields.payee')}
                 />
-                <CmxTextarea
-                  name="description"
-                  label={t('forms.expense.fields.description')}
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-expense-description" className="block text-sm font-medium text-gray-700">
+                    {t('forms.expense.fields.description')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-expense-description"
+                    name="description"
+                    aria-label={t('forms.expense.fields.description')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">
                   {t('forms.expense.submit')}
                 </CmxButton>
@@ -297,10 +303,16 @@ export default async function ErpLiteExpensesPage({
                   label={t('forms.cashTxn.fields.amount')}
                   required
                 />
-                <CmxTextarea
-                  name="description"
-                  label={t('forms.cashTxn.fields.description')}
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-cash-txn-description" className="block text-sm font-medium text-gray-700">
+                    {t('forms.cashTxn.fields.description')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-cash-txn-description"
+                    name="description"
+                    aria-label={t('forms.cashTxn.fields.description')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">
                   {t('forms.cashTxn.submit')}
                 </CmxButton>
@@ -336,10 +348,16 @@ export default async function ErpLiteExpensesPage({
                   ]}
                   required
                 />
-                <CmxTextarea
-                  name="action_note"
-                  label={t('forms.approval.fields.note')}
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-approval-action-note" className="block text-sm font-medium text-gray-700">
+                    {t('forms.approval.fields.note')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-approval-action-note"
+                    name="action_note"
+                    aria-label={t('forms.approval.fields.note')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">
                   {t('forms.approval.submit')}
                 </CmxButton>
@@ -377,10 +395,16 @@ export default async function ErpLiteExpensesPage({
                   label={t('forms.cashRecon.fields.countedBalance')}
                   required
                 />
-                <CmxTextarea
-                  name="note"
-                  label={t('forms.cashRecon.fields.note')}
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-cash-recon-note" className="block text-sm font-medium text-gray-700">
+                    {t('forms.cashRecon.fields.note')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-cash-recon-note"
+                    name="note"
+                    aria-label={t('forms.cashRecon.fields.note')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">
                   {t('forms.cashRecon.submit')}
                 </CmxButton>
@@ -418,10 +442,16 @@ export default async function ErpLiteExpensesPage({
                   label={t('forms.cashReconException.fields.amount')}
                   required
                 />
-                <CmxTextarea
-                  name="note"
-                  label={t('forms.cashReconException.fields.note')}
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-cash-recon-ex-note" className="block text-sm font-medium text-gray-700">
+                    {t('forms.cashReconException.fields.note')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-cash-recon-ex-note"
+                    name="note"
+                    aria-label={t('forms.cashReconException.fields.note')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">
                   {t('forms.cashReconException.submit')}
                 </CmxButton>

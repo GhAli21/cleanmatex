@@ -149,7 +149,7 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
         <CmxButton
           type="button"
           size="sm"
-          variant={mode === 'all' ? 'default' : 'outline'}
+          variant={mode === 'all' ? 'primary' : 'outline'}
           onClick={() => setMode('all')}
         >
           {t('filters.showAll')}
@@ -157,7 +157,7 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
         <CmxButton
           type="button"
           size="sm"
-          variant={mode === 'unresolved' ? 'default' : 'outline'}
+          variant={mode === 'unresolved' ? 'primary' : 'outline'}
           onClick={() => setMode('unresolved')}
         >
           {t('filters.unresolvedOnly')}
@@ -165,7 +165,7 @@ export function ErpLiteUsageMapsScreen({ rows }: ErpLiteUsageMapsScreenProps) {
         <CmxButton
           type="button"
           size="sm"
-          variant={mode === 'requiredIssues' ? 'default' : 'outline'}
+          variant={mode === 'requiredIssues' ? 'primary' : 'outline'}
           onClick={() => setMode('requiredIssues')}
         >
           {t('filters.requiredIssues')}

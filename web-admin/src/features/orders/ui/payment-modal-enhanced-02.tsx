@@ -9,7 +9,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -165,7 +165,9 @@ export function PaymentModalEnhanced02({
     reset,
     formState: { errors, isValid },
   } = useForm<PaymentFormData>({
-    resolver: zodResolver(getPaymentFormSchema(total, t('validation.discountExceedsTotal'))),
+    resolver: zodResolver(
+      getPaymentFormSchema(total, t('validation.discountExceedsTotal'))
+    ) as Resolver<PaymentFormData>,
     defaultValues: {
       paymentMethod: isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION,
       checkNumber: '',
@@ -702,7 +704,7 @@ export function PaymentModalEnhanced02({
 
   const showCouponContent = NEW_ORDER_PROMO_GIFT_DISABLED
     ? false
-    : (couponOpen || appliedPromoCode || appliedGiftCard);
+    : couponOpen || !!appliedPromoCode || !!appliedGiftCard;
 
   if (!open) return null;
 

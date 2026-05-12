@@ -22,6 +22,8 @@ interface Permission {
 interface PermissionCheckOptions {
   resourceType?: string;
   resourceId?: string;
+  userId?: string;
+  tenantId?: string;
 }
 
 /**

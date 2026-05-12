@@ -1,0 +1,350 @@
+﻿node.exe : npm warn config ignoring workspace config at F:\jhapp\cleanmatex\web-admin/.npmrc
+At line:1 char:1
++ & "C:\nodejs/node.exe" "C:\nodejs/node_modules/npm/bin/npx-cli.js" ts ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn config...eb-admin/.npmrc:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+app/dashboard/billing/payments/[id]/print/receipt-voucher/page.tsx(56,13): error TS2322: Type 'string' is not assignable to type 'Date'.
+app/dashboard/billing/vouchers/new/create-voucher-form.tsx(29,41): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"USD">'.
+app/dashboard/billing/vouchers/new/create-voucher-form.tsx(172,48): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"USD">'.
+app/dashboard/catalog/customer-categories/page.tsx(342,64): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+app/dashboard/erp-lite/reports/page.tsx(51,9): error TS2322: Type 'string' is not assignable to type '"USD"'.
+app/dashboard/erp-lite/reports/page.tsx(51,23): error TS2322: Type 'number' is not assignable to type '3'.
+app/dashboard/orders/[id]/full/order-details-full-client.tsx(847,13): error TS2322: Type 'Record<string, unknown>[]' is not assignable to type 'OrderItem[]'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'OrderItem': id, price_per_unit, total_price
+app/dashboard/orders/[id]/full/order-details-full-client.tsx(924,55): error TS2322: Type 'string' is not assignable to type 'OrderStatus'.
+app/dashboard/orders/[id]/full/order-details-full-client.tsx(1241,29): error TS2739: Type 'Record<string, unknown>' is missing the following properties from type '{ id: string; order_no: string; qr_code?: string; barcode?: string; ready_by?: Date; org_customers_mst: { sys_customers_mst: { first_name: string; last_name?: string; }; }; }': id, order_no, org_customers_mst
+app/dashboard/orders/[id]/full/page.tsx(142,29): error TS2345: Argument of type '(item: Record<string, unknown>) => { [x: string]: unknown; }' is not assignable to parameter of type '(value: OrderItem, index: number, array: OrderItem[]) => { [x: string]: unknown; }'.
+  Types of parameters 'item' and 'value' are incompatible.
+    Type 'OrderItem' is not assignable to type 'Record<string, unknown>'.
+      Index signature for type 'string' is missing in type 'OrderItem'.
+lib/services/customer-password.service.ts(42,51): error TS2345: Argument of type '{ N: number; r: number; p: number; keylen: number; }' is not assignable to parameter of type 'number'.
+lib/services/customer-password.service.ts(57,51): error TS2345: Argument of type '{ N: number; r: number; p: number; keylen: number; }' is not assignable to parameter of type 'number'.
+lib/services/erp-lite-auto-post.service.ts(666,9): error TS2353: Object literal may only specify known properties, and 'invoice_id' does not exist in type 'ErpLitePostingMeta'.
+lib/services/erp-lite-auto-post.service.ts(742,9): error TS2353: Object literal may only specify known properties, and 'invoice_id' does not exist in type 'ErpLitePostingMeta'.
+lib/services/payment-audit.service.ts(57,7): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly InputJsonValue[]': length, concat, join, slice, and 26 more.
+lib/services/payment-audit.service.ts(58,7): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly InputJsonValue[]': length, concat, join, slice, and 26 more.
+lib/services/payment-audit.service.ts(60,7): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'InputJsonValue'.
+  Type 'Record<string, unknown>' is missing the following properties from type 'readonly InputJsonValue[]': length, concat, join, slice, and 26 more.
+lib/services/payment-service.ts(379,54): error TS2554: Expected 1 arguments, but got 2.
+lib/services/payment-service.ts(1192,57): error TS2345: Argument of type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 11 more ...; tax_amount: Decimal; }' is not assignable to parameter of type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+  Property 'trans_desc' is missing in type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 11 more ...; tax_amount: Decimal; }' but required in type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+lib/services/payment-service.ts(1242,57): error TS2345: Argument of type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 12 more ...; voucher_id: string; }' is not assignable to parameter of type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+  Property 'trans_desc' is missing in type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 12 more ...; voucher_id: string; }' but required in type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+lib/services/payment-service.ts(1288,57): error TS2345: Argument of type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 11 more ...; tax_amount: Decimal; }' is not assignable to parameter of type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+  Property 'trans_desc' is missing in type '{ id: string; created_at: Date; updated_at: Date; status: string; tenant_org_id: string; order_id: string; created_by: string; updated_by: string; rec_notes: string; metadata: JsonValue; ... 11 more ...; tax_amount: Decimal; }' but required in type '{ id: string; invoice_id: string; voucher_id?: string; tenant_org_id: string; branch_id?: string; order_id: string; customer_id: string; currency_code: string; paid_amount: unknown; status: string; payment_method_code: string; ... 13 more ...; updated_by: string; }'.
+lib/services/payment-service.ts(1594,9): error TS2353: Object literal may only specify known properties, and 'invoices' does not exist in type 'org_orders_mstInclude<DefaultArgs>'.
+lib/services/payment-service.ts(1823,11): error TS2352: Conversion of type 'Omit<PrismaClient<PrismaClientOptions, LogLevel, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">' to type 'PrismaDelegate' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'org_payment_audit_log.create' are incompatible between these types.
+    Type '<T extends org_payment_audit_logCreateArgs>(args: SelectSubset<T, org_payment_audit_logCreateArgs<DefaultArgs>>) => Prisma__org_payment_audit_logClient<...>' is not comparable to type '(args: { data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }) => Promise<...>'.
+      Types of parameters 'args' and 'args' are incompatible.
+        Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type 'SelectSubset<any, org_payment_audit_logCreateArgs<DefaultArgs>>'.
+          Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type '{ [x: string]: never; } & "Please either choose `select` or `omit`."'.
+            Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type '{ [x: string]: never; }'.
+              Property 'data' is incompatible with index signature.
+                Type '{ tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }' is not comparable to type 'never'.
+lib/services/payment-service.ts(2424,11): error TS2352: Conversion of type 'Omit<PrismaClient<PrismaClientOptions, LogLevel, DefaultArgs>, "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends">' to type 'PrismaDelegate' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  The types of 'org_payment_audit_log.create' are incompatible between these types.
+    Type '<T extends org_payment_audit_logCreateArgs>(args: SelectSubset<T, org_payment_audit_logCreateArgs<DefaultArgs>>) => Prisma__org_payment_audit_logClient<...>' is not comparable to type '(args: { data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }) => Promise<...>'.
+      Types of parameters 'args' and 'args' are incompatible.
+        Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type 'SelectSubset<any, org_payment_audit_logCreateArgs<DefaultArgs>>'.
+          Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type '{ [x: string]: never; } & "Please either choose `select` or `omit`."'.
+            Type '{ data: { tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }; }' is not comparable to type '{ [x: string]: never; }'.
+              Property 'data' is incompatible with index signature.
+                Type '{ tenant_org_id: string; payment_id: string; action_type: string; before_value?: InputJsonValue; after_value?: InputJsonValue; changed_by?: string; metadata?: InputJsonValue; }' is not comparable to type 'never'.
+lib/services/subscriptions.service.ts(42,18): error TS2352: Conversion of type '{ branches_limit: number; created_at: string; created_by: string; created_info: string; display_order: number; feature_flags: Json; is_active: boolean; is_public: boolean; orders_limit: number; ... 14 more ...; users_limit: number; }[]' to type 'PlanLimits[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ branches_limit: number; created_at: string; created_by: string; created_info: string; display_order: number; feature_flags: Json; is_active: boolean; is_public: boolean; orders_limit: number; ... 14 more ...; users_limit: number; }' is not comparable to type 'PlanLimits'.
+    Types of property 'feature_flags' are incompatible.
+      Type 'Json' is not comparable to type 'FeatureFlags'.
+        Type 'Json[]' is missing the following properties from type 'FeatureFlags': tenant_new_dashboard_ui, tenant_beta_ai_classification, tenant_beta_voice_orders, hq_maintenance_mode, and 285 more.
+lib/services/subscriptions.service.ts(72,10): error TS2352: Conversion of type '{ branches_limit: number; created_at: string; created_by: string; created_info: string; display_order: number; feature_flags: Json; is_active: boolean; is_public: boolean; orders_limit: number; ... 14 more ...; users_limit: number; }' to type 'PlanLimits' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'feature_flags' are incompatible.
+    Type 'Json' is not comparable to type 'FeatureFlags'.
+      Type 'Json[]' is missing the following properties from type 'FeatureFlags': tenant_new_dashboard_ui, tenant_beta_ai_classification, tenant_beta_voice_orders, hq_maintenance_mode, and 285 more.
+lib/services/subscriptions.service.ts(114,10): error TS2352: Conversion of type '{ activated_at: string; base_price: number; billing_cycle: string; cancellation_reason: string; cancelled_at: string; created_at: string; created_by: string; created_info: string; currency: string; ... 28 more ...; updated_info: string; }' to type 'Subscription' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ activated_at: string; base_price: number; billing_cycle: string; cancellation_reason: string; cancelled_at: string; created_at: string; created_by: string; created_info: string; currency: string; ... 28 more ...; updated_info: string; }' is missing the following properties from type 'Subscription': plan, orders_limit, orders_used, branch_limit, and 4 more.
+lib/services/subscriptions.service.ts(415,11): error TS2322: Type 'FeatureFlags' is not assignable to type 'Json'.
+  Type 'FeatureFlags' is not assignable to type '{ [key: string]: Json; }'.
+    Index signature for type 'string' is missing in type 'FeatureFlags'.
+lib/services/tenant-resolve.service.ts(50,50): error TS2353: Object literal may only specify known properties, and 'slug' does not exist in type 'Error'.
+lib/services/tenants.service.ts(173,23): error TS2339: Property 'isAvailable' does not exist on type 'SlugValidationResult'.
+lib/services/tenants.service.ts(281,15): error TS2352: Conversion of type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' to type 'Tenant' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 's_cureent_plan' is missing in type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' but required in type 'Tenant'.
+lib/services/tenants.service.ts(282,7): error TS2322: Type '{ auto_renew: boolean; branch_limit: number; cancellation_date: string; cancellation_reason: string; created_at: string; created_by: string; created_info: string; end_date: string; id: string; ... 21 more ...; user_limit: number; }' is not assignable to type 'Subscription'.
+  Types of property 'status' are incompatible.
+    Type 'string' is not assignable to type '"active" | "trial" | "canceled" | "canceling" | "past_due"'.
+lib/services/tenants.service.ts(318,10): error TS2352: Conversion of type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' to type 'Tenant' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 's_cureent_plan' is missing in type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' but required in type 'Tenant'.
+lib/services/tenants.service.ts(359,13): error TS2345: Argument of type '{ updated_at: string; name?: string; name2?: string; phone?: string; address?: string; city?: string; brand_color_primary?: string; brand_color_secondary?: string; business_hours?: BusinessHours; }' is not assignable to parameter of type '{ address?: string; brand_color_primary?: string; brand_color_secondary?: string; business_hours?: Json; business_type?: string; business_type_code?: string; city?: string; country?: string; ... 31 more ...; updated_info?: string; }'.
+  Types of property 'business_hours' are incompatible.
+    Type 'BusinessHours' is not assignable to type 'Json'.
+      Type 'BusinessHours' is not assignable to type '{ [key: string]: Json; }'.
+        Index signature for type 'string' is missing in type 'BusinessHours'.
+lib/services/tenants.service.ts(372,10): error TS2352: Conversion of type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' to type 'Tenant' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 's_cureent_plan' is missing in type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' but required in type 'Tenant'.
+lib/services/tenants.service.ts(484,13): error TS2589: Type instantiation is excessively deep and possibly infinite.
+lib/services/tenants.service.ts(508,15): error TS2352: Conversion of type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }[]' to type 'Tenant[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 's_cureent_plan' is missing in type '{ address: string; brand_color_primary: string; brand_color_secondary: string; business_hours: Json; business_type: string; business_type_code: string; city: string; country: string; ... 31 more ...; updated_info: string; }' but required in type 'Tenant'.
+lib/services/usage-tracking.service.ts(358,7): error TS2322: Type 'PostgrestFilterBuilder<{ PostgrestVersion: "13.0.5"; }, { Tables: { cmx_effective_permissions: { Row: { allow: boolean; created_at: string; permission_code: string; resource_id: string; resource_type: string; tenant_org_id: string; user_id: string; }; Insert: { ...; }; Update: { ...; }; Relationships: [...]; }; ... ...' is not assignable to type 'number'.
+lib/services/usage-tracking.service.ts(358,33): error TS2345: Argument of type '"increment"' is not assignable to parameter of type '"apply_fin_tpl_for_tnt" | "auto_unlock_expired_accounts" | "calculate_ready_by_with_preferences" | "check_code_table_references" | "check_jwt_claims_jh" | "check_rbac_migration_status" | ... 129 more ... | "validate_fin_tpl_for_tnt"'.
+lib/storage/minio-client.ts(133,21): error TS2345: Argument of type 'Promise<string>' is not assignable to parameter of type 'string'.
+lib/supabase/server.ts(135,29): error TS2345: Argument of type '[string | ResponseCookie]' is not assignable to parameter of type '[key: string, value: string, cookie?: Partial<ResponseCookie>] | [options: ResponseCookie]'.
+  Type '[string | ResponseCookie]' is not assignable to type '[options: ResponseCookie]'.
+    Type 'string | ResponseCookie' is not assignable to type 'ResponseCookie'.
+      Type 'string' is not assignable to type 'ResponseCookie'.
+        Type 'string' is not assignable to type 'CookieListItem'.
+lib/supabase/server.ts(142,29): error TS2345: Argument of type '[string | ResponseCookie]' is not assignable to parameter of type '[key: string, value: string, cookie?: Partial<ResponseCookie>] | [options: ResponseCookie]'.
+  Type '[string | ResponseCookie]' is not assignable to type '[options: ResponseCookie]'.
+    Type 'string | ResponseCookie' is not assignable to type 'ResponseCookie'.
+      Type 'string' is not assignable to type 'ResponseCookie'.
+        Type 'string' is not assignable to type 'CookieListItem'.
+lib/utils/order-number-generator.ts(46,20): error TS2367: This comparison appears to be unintentional because the types '1' and '0' have no overlap.
+lib/utils/order-number-generator.ts(76,18): error TS2367: This comparison appears to be unintentional because the types '1' and '0' have no overlap.
+lib/validation/tenant-isolation-validator.ts(35,35): error TS2589: Type instantiation is excessively deep and possibly infinite.
+lib/validation/tenant-isolation-validator.ts(36,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "org_tenants_mst" | "hq_users" | "hq_crm_marketing_leads" | "sys_pln_subscription_plans_mst" | "hq_crm_marketing_visitor_sessions" | "hq_roles" | "org_branches_mst" | ... 236 more ... | "sys_workflow_template_transitions"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"org_tenants_mst" | "hq_users" | "hq_crm_marketing_leads" | "sys_pln_subscription_plans_mst" | "hq_crm_marketing_visitor_sessions" | "hq_roles" | "org_branches_mst" | "org_asm_tasks_mst" | ... 235 more ... | "sys_workflow_template_transitions"'.
+  Overload 2 of 2, '(relation: "vw_fin_missing_required_usage" | "vw_fin_tenant_readiness" | "admin_locked_accounts" | "vw_fin_coa_explorer" | "vw_fin_open_exceptions" | "v_effective_tenant_settings" | "org_order_status_history_legacy" | "vw_fin_effective_gov_for_tenant"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"vw_fin_missing_required_usage" | "vw_fin_tenant_readiness" | "admin_locked_accounts" | "vw_fin_coa_explorer" | "vw_fin_open_exceptions" | "v_effective_tenant_settings" | "org_order_status_history_legacy" | "vw_fin_effective_gov_for_tenant"'.
+lib/validation/tenant-isolation-validator.ts(133,35): error TS2589: Type instantiation is excessively deep and possibly infinite.
+lib/validation/tenant-isolation-validator.ts(134,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(relation: "org_tenants_mst" | "hq_users" | "hq_crm_marketing_leads" | "sys_pln_subscription_plans_mst" | "hq_crm_marketing_visitor_sessions" | "hq_roles" | "org_branches_mst" | ... 236 more ... | "sys_workflow_template_transitions"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"org_tenants_mst" | "hq_users" | "hq_crm_marketing_leads" | "sys_pln_subscription_plans_mst" | "hq_crm_marketing_visitor_sessions" | "hq_roles" | "org_branches_mst" | "org_asm_tasks_mst" | ... 235 more ... | "sys_workflow_template_transitions"'.
+  Overload 2 of 2, '(relation: "vw_fin_missing_required_usage" | "vw_fin_tenant_readiness" | "admin_locked_accounts" | "vw_fin_coa_explorer" | "vw_fin_open_exceptions" | "v_effective_tenant_settings" | "org_order_status_history_legacy" | "vw_fin_effective_gov_for_tenant"): PostgrestQueryBuilder<...>', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type '"vw_fin_missing_required_usage" | "vw_fin_tenant_readiness" | "admin_locked_accounts" | "vw_fin_coa_explorer" | "vw_fin_open_exceptions" | "v_effective_tenant_settings" | "org_order_status_history_legacy" | "vw_fin_effective_gov_for_tenant"'.
+lib/validation/tenant-isolation-validator.ts(142,9): error TS2353: Object literal may only specify known properties, and 'feature' does not exist in type 'Error'.
+src/features/assembly/ui/assembly-scanner.tsx(62,31): error TS2339: Property 'error' does not exist on type '{ success: boolean; itemId: any; isMatch: any; }'.
+src/features/assembly/ui/assembly-scanner.tsx(64,30): error TS2339: Property 'error' does not exist on type '{ success: boolean; itemId: any; isMatch: any; }'.
+src/features/auth/ui/RequireFeature.tsx(149,9): error TS2740: Type '{ pdf_invoices: string; whatsapp_receipts: string; in_app_receipts: string; printing: string; b2b_contracts: string; white_label: string; marketplace_listings: string; loyalty_programs: string; ... 12 more ...; erp_lite_branch_pl_enabled: string; }' is missing the following properties from type 'Record<keyof FeatureFlags, string>': customer_notes, service_categories, ai_damage_detection, barcode_scanning, and 264 more.
+src/features/billing/ui/cashup-form.tsx(94,50): error TS2339: Property 'error' does not exist on type '{ success: true; data: { message: string; }; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: { message: string; }; }'.
+src/features/billing/ui/cashup-history.tsx(52,23): error TS2339: Property 'error' does not exist on type '{ success: true; data: ReconciliationHistoryItem[]; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: ReconciliationHistoryItem[]; }'.
+src/features/customers/ui/customer-preferences-tab.tsx(162,17): error TS2322: Type '{ children: string; key: string; value: string; disabled: boolean; }' is not assignable to type 'IntrinsicAttributes & CmxSelectDropdownItemProps'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & CmxSelectDropdownItemProps'.
+src/features/dashboard/ui/charts/BarChartComponent.tsx(85,25): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/dashboard/ui/charts/LineChart.tsx(68,25): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/dashboard/ui/charts/PieChartComponent.tsx(76,25): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/dashboard/ui/widgets/RevenueWidget.tsx(46,11): error TS2322: Type 'string' is not assignable to type '"USD"'.
+src/features/erp-lite/ui/erp-lite-usage-maps-screen.tsx(152,11): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/erp-lite/ui/erp-lite-usage-maps-screen.tsx(160,11): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/erp-lite/ui/erp-lite-usage-maps-screen.tsx(168,11): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/access/marketing-access.ts(12,7): error TS2353: Object literal may only specify known properties, and 'requirement' does not exist in type 'AccessRequirement'.
+src/features/marketing/access/marketing-access.ts(23,7): error TS2353: Object literal may only specify known properties, and 'requirement' does not exist in type 'AccessRequirement'.
+src/features/marketing/access/marketing-access.ts(57,7): error TS2353: Object literal may only specify known properties, and 'requirement' does not exist in type 'AccessRequirement'.
+src/features/marketing/access/marketing-access.ts(91,7): error TS2353: Object literal may only specify known properties, and 'requirement' does not exist in type 'AccessRequirement'.
+src/features/marketing/hooks/use-discount-rules.ts(37,25): error TS2339: Property 'error' does not exist on type '{ success: true; data: DiscountRule[]; total: number; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: DiscountRule[]; total: number; }'.
+src/features/marketing/hooks/use-gift-cards.ts(44,25): error TS2339: Property 'error' does not exist on type '{ success: true; data: GiftCard[]; total: number; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: GiftCard[]; total: number; }'.
+src/features/marketing/hooks/use-gift-cards.ts(93,25): error TS2339: Property 'error' does not exist on type '{ success: true; data: GiftCardTransactionLogRow[]; total: number; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: GiftCardTransactionLogRow[]; total: number; }'.
+src/features/marketing/hooks/use-promos.ts(44,25): error TS2339: Property 'error' does not exist on type '{ success: true; data: PromoCode[]; total: number; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: PromoCode[]; total: number; }'.
+src/features/marketing/ui/discount-rule-list-screen.tsx(48,11): error TS2322: Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/discount-rule-list-screen.tsx(118,19): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/marketing/ui/discount-rule-list-screen.tsx(133,23): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/marketing/ui/gift-card-detail-dialog.tsx(109,5): error TS2322: Type 'Resolver<{ adjustment_type: "debit" | "credit"; amount: unknown; notes: string; }, any, { adjustment_type: "debit" | "credit"; amount: number; notes: string; }>' is not assignable to type 'Resolver<{ adjustment_type: "debit" | "credit"; amount: number; notes: string; }, any, { adjustment_type: "debit" | "credit"; amount: number; notes: string; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ adjustment_type: "debit" | "credit"; amount: number; notes: string; }>' is not assignable to type 'ResolverOptions<{ adjustment_type: "debit" | "credit"; amount: unknown; notes: string; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/features/marketing/ui/gift-card-detail-dialog.tsx(265,17): error TS2322: Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-detail-dialog.tsx(328,47): error TS2345: Argument of type '(values: AdjustValues) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'values' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ adjustment_type: "debit" | "credit"; amount: number; notes: string; }'.
+      Type 'FieldValues' is missing the following properties from type '{ adjustment_type: "debit" | "credit"; amount: number; notes: string; }': adjustment_type, amount, notes
+src/features/marketing/ui/gift-card-detail-dialog.tsx(335,21): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-issue-dialog.tsx(112,5): error TS2322: Type 'Resolver<{ card_name: string; amount: unknown; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }, any, { ...; }>' is not assignable to type 'Resolver<{ card_name: string; amount: number; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }, any, { ...; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ card_name: string; amount: number; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }>' is not assignable to type 'ResolverOptions<{ card_name: string; amount: unknown; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/features/marketing/ui/gift-card-issue-dialog.tsx(181,29): error TS2339: Property 'error' does not exist on type '{ success: true; data: GiftCard; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: GiftCard; }'.
+src/features/marketing/ui/gift-card-issue-dialog.tsx(244,19): error TS2322: Type '{ children: string; variant: "outline"; size: "sm"; onClick: () => Promise<void>; icon: Element; }' is not assignable to type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/marketing/ui/gift-card-issue-dialog.tsx(267,49): error TS2345: Argument of type '(values: FormValues) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'values' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ card_name: string; amount: number; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }'.
+      Type 'FieldValues' is missing the following properties from type '{ card_name: string; amount: number; issue_type: "PROMOTIONAL" | "CORPORATE" | "GOODWILL" | "MIGRATION" | "REPLACEMENT"; gift_card_type: "PROMOTIONAL" | "CORPORATE" | "FIXED_VALUE"; ... 5 more ...; card_pin?: string; }': card_name, amount, issue_type, gift_card_type, currency_code
+src/features/marketing/ui/gift-card-issue-dialog.tsx(392,25): error TS2322: Type '"icon"' is not assignable to type '"xs" | "sm" | "md" | "lg"'.
+src/features/marketing/ui/gift-card-issue-dialog.tsx(427,25): error TS2322: Type '"icon"' is not assignable to type '"xs" | "sm" | "md" | "lg"'.
+src/features/marketing/ui/gift-card-list-screen.tsx(152,13): error TS2322: Type '{ children: string; variant: "outline"; size: "sm"; onClick: () => void; icon: Element; }' is not assignable to type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/marketing/ui/gift-card-list-screen.tsx(157,13): error TS2322: Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-list-screen.tsx(181,13): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-list-screen.tsx(196,13): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-list-screen.tsx(274,19): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/marketing/ui/gift-card-sell-dialog.tsx(100,5): error TS2322: Type 'Resolver<{ card_name: string; amount: unknown; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }, any, { ...; }>' is not assignable to type 'Resolver<{ card_name: string; amount: number; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }, any, { ...; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ card_name: string; amount: number; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }>' is not assignable to type 'ResolverOptions<{ card_name: string; amount: unknown; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/features/marketing/ui/gift-card-sell-dialog.tsx(175,29): error TS2339: Property 'error' does not exist on type '{ success: true; data: GiftCard; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: GiftCard; }'.
+src/features/marketing/ui/gift-card-sell-dialog.tsx(237,19): error TS2322: Type '{ children: string; variant: "outline"; size: "sm"; onClick: () => Promise<void>; icon: Element; }' is not assignable to type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+  Property 'icon' does not exist on type 'IntrinsicAttributes & CmxButtonProps & RefAttributes<HTMLButtonElement>'.
+src/features/marketing/ui/gift-card-sell-dialog.tsx(248,47): error TS2345: Argument of type '(values: FormValues) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'values' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ card_name: string; amount: number; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }'.
+      Type 'FieldValues' is missing the following properties from type '{ card_name: string; amount: number; currency_code: string; card_name2?: string; expiry_date?: string; purchased_by_cust_id?: string; issued_to_customer_id?: string; card_pin?: string; rec_notes?: string; same_as_buyer?: boolean; }': card_name, amount, currency_code
+src/features/marketing/ui/gift-card-sell-dialog.tsx(339,23): error TS2322: Type '"icon"' is not assignable to type '"xs" | "sm" | "md" | "lg"'.
+src/features/marketing/ui/gift-card-sell-dialog.tsx(387,25): error TS2322: Type '"icon"' is not assignable to type '"xs" | "sm" | "md" | "lg"'.
+src/features/marketing/ui/gift-card-transaction-log-screen.tsx(284,15): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-card-transaction-log-screen.tsx(295,36): error TS2322: Type '{ variant: string; title: string; }' is not assignable to type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(161,32): error TS2339: Property 'error' does not exist on type '{ success: true; data: { totalOutstanding: number; totalActiveCards: number; totalRedeemedMtd: number; totalIssuedMtd: number; totalExpiredBalance: number; }; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: { totalOutstanding: number; totalActiveCards: number; totalRedeemedMtd: number; totalIssuedMtd: number; totalExpiredBalance: number; }; }'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(188,30): error TS2339: Property 'error' does not exist on type '{ success: true; data: GiftCard[]; total: number; } | { success: false; error: string; }'.
+  Property 'error' does not exist on type '{ success: true; data: GiftCard[]; total: number; }'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(350,28): error TS2322: Type '{ variant: string; title: string; }' is not assignable to type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(418,15): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(432,15): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/gift-cards-liability-rprt.tsx(443,41): error TS2322: Type '{ variant: string; title: string; }' is not assignable to type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+  Property 'variant' does not exist on type 'IntrinsicAttributes & CmxSummaryMessageProps'.
+src/features/marketing/ui/promo-form-dialog.tsx(77,5): error TS2322: Type 'Resolver<{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: unknown; valid_from: string; promo_name2?: string; max_discount_amount?: unknown; min_order_amount?: unknown; max_uses?: unknown; max_uses_per_customer?: unknown; valid_to?: string; is_enabled?: boolean; }, any,...' is not assignable to type 'Resolver<{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; valid_to?: string; }, any, { ...;...'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; valid_to?: string; }>' is not assignable to type 'ResolverOptions<{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: unknown; valid_from: string; promo_name2?: string; max_discount_amount?: unknown; min_order_amount?: unknown; max_uses?: unknown; max_uses_per_customer?: unknown; valid_to?: string; is_enabled?: boolean; }>'.
+      Type 'unknown' is not assignable to type 'number'.
+src/features/marketing/ui/promo-form-dialog.tsx(98,9): error TS2322: Type 'PromoDiscountType' is not assignable to type '"fixed" | "percentage"'.
+  Type '"fixed_amount"' is not assignable to type '"fixed" | "percentage"'.
+src/features/marketing/ui/promo-form-dialog.tsx(135,48): error TS2345: Argument of type '{ valid_from: string; valid_to: string; promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; }' is not assignable to parameter of type 'Partial<{ promo_code: string; promo_name: string; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; description?: string; description2?: string; ... 6 more ...; valid_to?: string; }>'.
+  Types of property 'discount_type' are incompatible.
+    Type '"fixed" | "percentage"' is not assignable to type '"percentage" | "fixed_amount"'.
+      Type '"fixed"' is not assignable to type '"percentage" | "fixed_amount"'.
+src/features/marketing/ui/promo-form-dialog.tsx(137,38): error TS2345: Argument of type '{ valid_from: string; valid_to: string; promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; }' is not assignable to parameter of type '{ promo_code: string; promo_name: string; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; description?: string; description2?: string; ... 6 more ...; valid_to?: string; }'.
+  Types of property 'discount_type' are incompatible.
+    Type '"fixed" | "percentage"' is not assignable to type '"percentage" | "fixed_amount"'.
+      Type '"fixed"' is not assignable to type '"percentage" | "fixed_amount"'.
+src/features/marketing/ui/promo-form-dialog.tsx(158,43): error TS2345: Argument of type '(values: FormValues) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'values' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; valid_to?: string; }'.
+      Type 'FieldValues' is missing the following properties from type '{ promo_code: string; promo_name: string; discount_type: "fixed" | "percentage"; discount_value: number; min_order_amount: number; valid_from: string; is_enabled: boolean; promo_name2?: string; max_discount_amount?: number; max_uses?: number; max_uses_per_customer?: number; valid_to?: string; }': promo_code, promo_name, discount_type, discount_value, and 3 more.
+src/features/marketing/ui/promo-list-screen.tsx(54,11): error TS2322: Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/promo-list-screen.tsx(78,15): error TS2322: Type '"default" | "outline"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+  Type '"default"' is not assignable to type '"primary" | "secondary" | "ghost" | "outline" | "destructive"'.
+src/features/marketing/ui/promo-list-screen.tsx(133,17): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/marketing/ui/promo-list-screen.tsx(141,17): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/marketing/ui/promo-list-screen.tsx(156,21): error TS2322: Type '"icon"' is not assignable to type '"sm" | "md" | "lg" | "xs"'.
+src/features/orders/hooks/use-order-form.ts(20,5): error TS2322: Type 'Resolver<{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; useOldWfCodeOrNew?: boolean; }, any, { ...; }>' is not assignable to type 'Resolver<{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; customerNotes?: string; }, any, { ...; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; customerNotes?: string; }>' is not assignable to type 'ResolverOptions<{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; useOldWfCodeOrNew?: boolean; }>'.
+      Type '{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; useOldWfCodeOrNew?: boolean; }' is not assignable to type '{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; customerNotes?: string; }'.
+        Property 'isQuickDrop' is optional in type '{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; useOldWfCodeOrNew?: boolean; }' but required in type '{ customerId: string; orderTypeId: "POS" | "ONLINE" | "PHONE"; items: { productId: string; quantity: number; pricePerUnit: number; totalPrice: number; productName?: string; productName2?: string; ... 4 more ...; pieces?: { ...; }[]; }[]; ... 5 more ...; customerNotes?: string; }'.
+src/features/orders/hooks/use-ready-by-estimation.ts(78,35): error TS2358: The left-hand side of an 'instanceof' expression must be of type 'any', an object type or a type parameter.
+src/features/orders/ui/fix-order-data-modal.tsx(401,9): error TS2322: Type '{ children: Element[]; className: string; onPointerDownOutside: (e: any) => any; }' is not assignable to type 'IntrinsicAttributes & CmxDialogContentProps'.
+  Property 'onPointerDownOutside' does not exist on type 'IntrinsicAttributes & CmxDialogContentProps'.
+src/features/orders/ui/item-cart-item.tsx(127,16): error TS2339: Property 'conditions' does not exist on type 'PreSubmissionPiece'.
+src/features/orders/ui/item-cart-item.tsx(261,48): error TS2339: Property 'conditions' does not exist on type 'PreSubmissionPiece'.
+src/features/orders/ui/item-cart-item.tsx(264,47): error TS2339: Property 'conditions' does not exist on type 'PreSubmissionPiece'.
+src/features/orders/ui/item-cart-item.tsx(294,52): error TS2339: Property 'conditions' does not exist on type 'PreSubmissionPiece'.
+src/features/orders/ui/item-cart-item.tsx(296,55): error TS2353: Object literal may only specify known properties, and 'conditions' does not exist in type 'Partial<PreSubmissionPiece>'.
+src/features/orders/ui/item-cart-item.tsx(313,52): error TS2339: Property 'conditions' does not exist on type 'PreSubmissionPiece'.
+src/features/orders/ui/item-cart-item.tsx(315,55): error TS2353: Object literal may only specify known properties, and 'conditions' does not exist in type 'Partial<PreSubmissionPiece>'.
+src/features/orders/ui/new-order-content.tsx(181,33): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"USD">'.
+src/features/orders/ui/new-order-content.tsx(240,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ServicePreferenceCode'.
+src/features/orders/ui/new-order-modals.tsx(218,43): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ServicePreferenceCode'.
+src/features/orders/ui/payment-modal-enhanced-02.tsx(151,14): error TS2678: Type '"VOIDED"' is not comparable to type '"UNAUTHORIZED" | "EXPIRED" | "NOT_FOUND" | "INSUFFICIENT_BALANCE" | "INVALID_PIN" | "CARD_SUSPENDED"'.
+src/features/orders/ui/payment-modal-enhanced-02.tsx(168,5): error TS2719: Type 'import("F:/jhapp/cleanmatex/node_modules/react-hook-form/dist/types/resolvers").Resolver<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, any, { .....' is not assignable to type 'import("F:/jhapp/cleanmatex/node_modules/react-hook-form/dist/types/resolvers").Resolver<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, any, { .....'. Two different types with this name exist, but they are unrelated.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'import("F:/jhapp/cleanmatex/node_modules/react-hook-form/dist/types/resolvers").ResolverOptions<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }>' is not assignable to type 'import("F:/jhapp/cleanmatex/node_modules/react-hook-form/dist/types/resolvers").ResolverOptions<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }>'. Two different types with this name exist, but they are unrelated.
+      Type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }' is not assignable to type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }'. Two different types with this name exist, but they are unrelated.
+        Property 'percentDiscount' is optional in type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }' but required in type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }'.
+src/features/orders/ui/payment-modal-enhanced-02.tsx(727,38): error TS2345: Argument of type '(data: PaymentFormData) => void' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }'.
+      Type 'FieldValues' is missing the following properties from type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }': paymentMethod, percentDiscount, amountDiscount, payAllOrders
+src/features/orders/ui/payment-modal-enhanced-02.tsx(862,19): error TS2322: Type 'Control<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, any, TFieldValues>' is not assignable to type 'Control<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }>'.
+  The types returned by '_options.resolver(...)' are incompatible between these types.
+    Type 'ResolverResult<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, TFieldValues> | Promise<...>' is not assignable to type 'ResolverResult<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, { ...; }> | Promise<...>'.
+      Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverResult<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }, { ...; }> | Promise<...>'.
+        Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverSuccess<{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }>'.
+          Type 'TFieldValues' is not assignable to type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }'.
+            Type 'FieldValues' is missing the following properties from type '{ paymentMethod: "CASH" | "CARD" | "CHECK" | "INVOICE" | "PAY_ON_COLLECTION" | "BANK_TRANSFER" | "MOBILE_PAYMENT" | "GIFT_CARD" | "PROMO_CODE" | "HYPERPAY" | "PAYTABS" | "STRIPE"; ... 15 more ...; poNumber?: string; }': paymentMethod, percentDiscount, amountDiscount, payAllOrders
+src/features/orders/ui/payment-modal-enhanced-02.tsx(1183,16): error TS2322: Type '{ children: (string | Element)[]; type: "button"; onClick: () => void; "aria-expanded": boolean | { code: string; id: string; discount: number; } | { number: string; amount: number; balance: number; id: string; }; "aria-controls": string; className: string; }' is not assignable to type 'DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement>'.
+  Type '{ children: (string | Element)[]; type: "button"; onClick: () => void; "aria-expanded": boolean | { code: string; id: string; discount: number; } | { number: string; amount: number; balance: number; id: string; }; "aria-controls": string; className: string; }' is not assignable to type 'ButtonHTMLAttributes<HTMLButtonElement>'.
+    Types of property '"aria-expanded"' are incompatible.
+      Type 'boolean | { code: string; id: string; discount: number; } | { number: string; amount: number; balance: number; id: string; }' is not assignable to type 'Booleanish'.
+        Type '{ code: string; id: string; discount: number; }' is not assignable to type 'Booleanish'.
+src/features/orders/ui/preferences/SmartSuggestionsPanel.tsx(135,30): error TS2345: Argument of type 'string' is not assignable to parameter of type 'ServicePreferenceCode'.
+src/features/reports/ui/customer-report-charts-rprt.tsx(72,14): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/reports/ui/invoices-report-charts-rprt.tsx(62,14): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/reports/ui/orders-report-charts-rprt.tsx(110,16): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/reports/ui/payments-report-charts-rprt.tsx(77,15): error TS2322: Type 'PaymentMethodBreakdown[]' is not assignable to type 'ChartDataInput[]'.
+  Type 'PaymentMethodBreakdown' is not assignable to type 'ChartDataInput'.
+    Index signature for type 'string' is missing in type 'PaymentMethodBreakdown'.
+src/features/reports/ui/payments-report-charts-rprt.tsx(106,14): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/reports/ui/revenue-breakdown-charts-rprt.tsx(58,19): error TS2322: Type 'RevenueCategoryBreakdown[]' is not assignable to type 'ChartDataInput[]'.
+  Type 'RevenueCategoryBreakdown' is not assignable to type 'ChartDataInput'.
+    Index signature for type 'string' is missing in type 'RevenueCategoryBreakdown'.
+src/features/reports/ui/revenue-breakdown-charts-rprt.tsx(107,18): error TS2786: 'Legend' cannot be used as a JSX component.
+  Its type 'typeof Legend' is not a valid JSX element type.
+    Type 'typeof Legend' is not assignable to type 'new (props: any, context: any) => Component<any, any, any>'.
+      Type 'Legend' is missing the following properties from type 'Component<any, any, any>': context, setState, forceUpdate, props, state
+src/features/settings/ui/profile-info-card.tsx(94,28): error TS2322: Type '"primary"' is not assignable to type '"default" | "success" | "info" | "warning" | "secondary" | "destructive" | "outline"'.
+src/features/users/ui/user-filters-bar.tsx(232,47): error TS2559: Type '{ workflowRole: string; }' has no properties in common with type 'Partial<UserFilters>'.
+src/ui/data-display/cmx-data-grid.tsx(328,3): error TS2322: Type '((ColumnDefBase<T, unknown> & StringHeaderIdentifier) | (ColumnDefBase<T, unknown> & IdIdentifier<T, unknown>) | ... 10 more ... | { ...; })[]' is not assignable to type 'ColumnDef<T, unknown>[]'.
+  Type '(ColumnDefBase<T, unknown> & StringHeaderIdentifier) | (ColumnDefBase<T, unknown> & IdIdentifier<T, unknown>) | ... 10 more ... | { ...; }' is not assignable to type 'ColumnDef<T, unknown>'.
+    Type '{ enableColumnFilter: boolean; filterFn: FilterFnOption<T> | "cmxIncludesString"; enableSorting: boolean; columns?: ColumnDef<T, any>[]; getUniqueValues?: AccessorFn<...>; ... 21 more ...; accessorKey: string; }' is not assignable to type 'ColumnDef<T, unknown>'.
+      Type '{ enableColumnFilter: boolean; filterFn: FilterFnOption<T> | "cmxIncludesString"; enableSorting: boolean; columns?: ColumnDef<T, any>[]; getUniqueValues?: AccessorFn<...>; ... 21 more ...; accessorKey: string; }' is not assignable to type 'AccessorKeyColumnDefBase<T, unknown> & Partial<IdIdentifier<T, unknown>>'.
+        Type '{ enableColumnFilter: boolean; filterFn: FilterFnOption<T> | "cmxIncludesString"; enableSorting: boolean; columns?: ColumnDef<T, any>[]; getUniqueValues?: AccessorFn<...>; ... 21 more ...; accessorKey: string; }' is not assignable to type 'AccessorKeyColumnDefBase<T, unknown>'.
+          Types of property 'filterFn' are incompatible.
+            Type 'FilterFnOption<T> | "cmxIncludesString"' is not assignable to type 'FilterFnOption<T>'.
+              Type '"cmxIncludesString"' is not assignable to type 'FilterFnOption<T>'. Did you mean '"includesString"'?
+src/ui/feedback/cmx-message.ts(201,9): error TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<T>'.
+  Type 'unknown' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/ui/feedback/cmx-message.ts(203,9): error TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<T>'.
+  Type 'unknown' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/ui/feedback/cmx-message.ts(205,9): error TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<T>'.
+  Type 'unknown' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/ui/feedback/cmx-message.ts(207,9): error TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<T>'.
+  Type 'unknown' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/ui/feedback/cmx-message.ts(209,9): error TS2322: Type 'Promise<unknown>' is not assignable to type 'Promise<T>'.
+  Type 'unknown' is not assignable to type 'T'.
+    'T' could be instantiated with an arbitrary type which could be unrelated to 'unknown'.
+src/ui/feedback/methods/inline-method.ts(129,21): error TS2345: Argument of type '"loading"' is not assignable to parameter of type 'MessageType'.
+src/ui/feedback/methods/inline-method.ts(137,23): error TS2345: Argument of type '"success"' is not assignable to parameter of type 'MessageType'.
+src/ui/feedback/methods/inline-method.ts(144,23): error TS2345: Argument of type '"error"' is not assignable to parameter of type 'MessageType'.
+src/ui/feedback/methods/toast-method.ts(104,10): error TS2352: Conversion of type '(string & { unwrap: () => Promise<T>; }) | (number & { unwrap: () => Promise<T>; }) | { unwrap: () => Promise<T>; }' to type 'Promise<T>' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ unwrap: () => Promise<T>; }' is missing the following properties from type 'Promise<T>': then, catch, finally, [Symbol.toStringTag]
+src/ui/navigation/cmx-pagination.tsx(76,13): error TS2322: Type '{ children: Element[]; value: string; onValueChange: (value: any) => void; className: string; }' is not assignable to type 'IntrinsicAttributes & CmxSelectProps & RefAttributes<HTMLSelectElement>'.
+  Property 'onValueChange' does not exist on type 'IntrinsicAttributes & CmxSelectProps & RefAttributes<HTMLSelectElement>'. Did you mean 'onVolumeChange'?
+src/ui/primitives/data-table.tsx(614,42): error TS2339: Property 'getContext' does not exist on type 'Row<TData>'.
+src/ui/primitives/index.ts(29,1): error TS2308: Module './form-input' has already exported a member named 'InputProps'. Consider explicitly re-exporting to resolve the ambiguity.
+src/ui/primitives/tooltip.tsx(25,28): error TS2554: Expected 1 arguments, but got 0.

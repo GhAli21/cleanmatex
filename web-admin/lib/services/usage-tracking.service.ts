@@ -351,14 +351,23 @@ export async function canAddBranch(tenantId: string): Promise<LimitCheckResult> 
 export async function incrementOrderCount(tenantId: string): Promise<void> {
   const supabase = await createClient();
 
-  // Update subscription orders_used
+  const { data: row, error: fetchError } = await supabase
+    .from('org_subscriptions_mst')
+    .select('id, orders_used')
+    .eq('tenant_org_id', tenantId)
+    .maybeSingle();
+
+  if (fetchError || !row?.id) {
+    return;
+  }
+
   await supabase
     .from('org_subscriptions_mst')
     .update({
-      orders_used: supabase.rpc('increment', { x: 1 }),
+      orders_used: (row.orders_used ?? 0) + 1,
       updated_at: new Date().toISOString(),
     })
-    .eq('tenant_org_id', tenantId);
+    .eq('id', row.id);
 
   // Recalculate usage
   await calculateUsage(tenantId);

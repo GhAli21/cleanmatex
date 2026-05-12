@@ -8,7 +8,14 @@
 
 import { useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import { MessageOptions, MessageResult, PromiseMessageConfig, PromiseMessages, ErrorExtractionOptions } from './types';
+import {
+  MessageOptions,
+  MessageResult,
+  MessageResultOrAsync,
+  PromiseMessageConfig,
+  PromiseMessages,
+  ErrorExtractionOptions,
+} from './types';
 import { cmxMessage } from './cmx-message';
 
 /**
@@ -18,32 +25,32 @@ export interface UseMessageReturn {
   /**
    * Show success message
    */
-  showSuccess: (message: string, options?: MessageOptions) => MessageResult;
+  showSuccess: (message: string, options?: MessageOptions) => MessageResultOrAsync;
 
   /**
    * Show error message
    */
-  showError: (message: string, options?: MessageOptions) => MessageResult;
+  showError: (message: string, options?: MessageOptions) => MessageResultOrAsync;
 
   /**
    * Show error message extracted from error object
    */
-  showErrorFrom: (error: unknown, options?: ErrorExtractionOptions) => MessageResult;
+  showErrorFrom: (error: unknown, options?: ErrorExtractionOptions) => MessageResultOrAsync;
 
   /**
    * Show warning message
    */
-  showWarning: (message: string, options?: MessageOptions) => MessageResult;
+  showWarning: (message: string, options?: MessageOptions) => MessageResultOrAsync;
 
   /**
    * Show info message
    */
-  showInfo: (message: string, options?: MessageOptions) => MessageResult;
+  showInfo: (message: string, options?: MessageOptions) => MessageResultOrAsync;
 
   /**
    * Show loading message
    */
-  showLoading: (message: string, options?: MessageOptions) => MessageResult;
+  showLoading: (message: string, options?: MessageOptions) => MessageResultOrAsync;
 
   /**
    * Handle promise with loading/success/error messages

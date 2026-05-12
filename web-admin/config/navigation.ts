@@ -33,7 +33,8 @@ import {
   Megaphone,
 } from 'lucide-react'
 
-export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer'
+/** `none` = placeholder sections with no role gate (permissions-only). */
+export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer' | 'none'
 
 export interface NavigationSection {
   key: string

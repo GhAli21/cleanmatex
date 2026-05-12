@@ -373,7 +373,7 @@ export class DeliveryService {
       // Generate 4-digit OTP
       const { generateOTPCode, encryptOTP } = await import('@/lib/utils/otp-encryption');
       const otpCode = generateOTPCode();
-      const encryptedOTP = encryptOTP(otpCode, tenantId);
+      const encryptedOTP = await encryptOTP(otpCode, tenantId);
 
       // Find stop for this order
       const { data: stop, error: stopError } = await supabase
@@ -502,7 +502,7 @@ export class DeliveryService {
 
       // Decrypt and verify OTP
       const { decryptOTP } = await import('@/lib/utils/otp-encryption');
-      const decryptedOTP = decryptOTP(pod.otp_code || '', tenantId);
+      const decryptedOTP = await decryptOTP(pod.otp_code || '', tenantId);
       const isValid = decryptedOTP === otpCode;
 
       if (isValid) {
@@ -646,8 +646,8 @@ export class DeliveryService {
       await WorkflowService.changeStatus({
         orderId,
         tenantId,
-        fromStatus: 'OUT_FOR_DELIVERY',
-        toStatus: 'DELIVERED',
+        fromStatus: 'out_for_delivery',
+        toStatus: 'delivered',
         userId,
         userName: 'Delivery Service',
       });

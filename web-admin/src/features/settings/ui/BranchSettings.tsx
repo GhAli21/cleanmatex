@@ -27,6 +27,7 @@ interface BranchOption {
 }
 
 export function BranchSettings() {
+  const t = useTranslations('settings');
   const [branches, setBranches] = React.useState<BranchOption[]>([]);
   const [selectedBranchId, setSelectedBranchId] = React.useState<string>('');
   const [rows, setRows] = React.useState<SettingsTableRow[]>([]);

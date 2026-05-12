@@ -17,7 +17,7 @@ const CreateContractSchema = z.object({
   contractNo: z.string().optional(),
   effectiveFrom: z.string().optional(),
   effectiveTo: z.string().optional(),
-  pricingTerms: z.record(z.unknown()).optional(),
+  pricingTerms: z.record(z.string(), z.unknown()).optional(),
 });
 
 export async function GET(request: NextRequest) {

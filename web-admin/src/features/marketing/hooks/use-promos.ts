@@ -36,13 +36,14 @@ export function usePromoCodes(params: UsePromoCodesParams = {}) {
       status: params.status,
     }).then((result) => {
       if (cancelled) return;
-      if (result.success) {
-        setPromoCodes(result.data);
-        setTotal(result.total);
-        setError(null);
-      } else {
+      if (result.success === false) {
         setError(result.error);
+        setIsLoading(false);
+        return;
       }
+      setPromoCodes(result.data);
+      setTotal(result.total);
+      setError(null);
       setIsLoading(false);
     });
 

@@ -132,14 +132,14 @@ export async function createServerSupabaseClientForLogin(rememberMe: boolean) {
             const cookieOptions = rememberMe
               ? { ...options, maxAge: REMEMBER_ME_COOKIE_MAX_AGE, expires: undefined }
               : { ...options, maxAge: undefined, expires: undefined }
-            cookieStore.set({ name, value, ...cookieOptions } as Parameters<typeof cookieStore.set>[0])
+            cookieStore.set(name, value, cookieOptions as Parameters<typeof cookieStore.set>[2])
           } catch (error) {
             // Handle cases where cookies can't be set (e.g., middleware)
           }
         },
         remove(name: string, options: Record<string, unknown>) {
           try {
-            cookieStore.set({ name, value: '', ...options } as Parameters<typeof cookieStore.set>[0])
+            cookieStore.set(name, '', { ...options, maxAge: 0 } as Parameters<typeof cookieStore.set>[2])
           } catch (error) {
             // Handle cases where cookies can't be removed
           }

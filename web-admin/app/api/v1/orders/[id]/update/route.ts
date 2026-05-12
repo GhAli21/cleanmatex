@@ -93,8 +93,8 @@ export async function PATCH(
       tenantId,
       userId,
       userName: userName || 'Unknown',
-      ipAddress: requestAudit.ip_address || undefined,
-      userAgent: requestAudit.user_agent || undefined,
+      ipAddress: requestAudit.userIp || undefined,
+      userAgent: requestAudit.userAgent || undefined,
     });
 
     if (!result.success) {

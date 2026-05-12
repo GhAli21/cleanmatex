@@ -263,6 +263,8 @@ export interface CustomerUpdateRequest {
   displayName?: string;
   name?: string;
   name2?: string; // Arabic name
+  /** E.164 or national digits; persisted when API supports it */
+  phone?: string;
   email?: string;
   address?: string;
   area?: string;
@@ -305,6 +307,10 @@ export interface CustomerSearchParams {
   sortOrder?: 'asc' | 'desc';
   /** When true, exclude B2B customers (for /dashboard/customers - guest/stub/walk_in only) */
   excludeB2b?: boolean;
+  /** ISO date or datetime — filter `created_at` lower bound (inclusive). */
+  startDate?: string;
+  /** ISO date or datetime — filter `created_at` upper bound (inclusive end-of-day if date-only). */
+  endDate?: string;
 }
 
 /**

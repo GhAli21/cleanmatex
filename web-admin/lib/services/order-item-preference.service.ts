@@ -8,13 +8,9 @@ import type { OrderItemServicePref, PreferenceSource } from '@/lib/types/service
 import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
 import { logger } from '@/lib/utils/logger';
 import { fetchOrgPackingExtraPriceByCodesSupabase } from '@/lib/utils/org-packing-extra-price';
+import type { AddServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
-export interface AddServicePrefInput {
-  preference_code: string;
-  source?: PreferenceSource;
-  extra_price: number;
-  branch_id?: string | null;
-}
+export type { AddServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
 export class OrderItemPreferenceService {
   /**

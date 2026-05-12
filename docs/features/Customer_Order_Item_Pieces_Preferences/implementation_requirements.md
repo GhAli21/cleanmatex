@@ -53,7 +53,7 @@ Feature implementation checklist per PRD rules. **Runtime architecture** (tables
 - **0167** — org_order_item_pieces_dtl.color to JSONB
 - **0168** — Feature flag item_conditions_colors_enabled
 - **0169** — Update get_last_order_preferences, suggest_preferences_from_history
-- **0260** — `get_last_order_preferences` adds `packing_pref_cf_id` + `service_prefs_catalog` (Repeat Last Order → `preference_id` alignment). See `docs/dev/preferences-architecture-reference.md` §8.2.
+- **0260** — `get_last_order_preferences` adds `packing_pref_cf_id` + `service_prefs_catalog` (Repeat Last Order → `preference_id` alignment). See `docs/dev/preferences-architecture-reference.md` §8.4 (UI surcharge parity for packing/service: §8.3).
 
 ## Constants & Types
 

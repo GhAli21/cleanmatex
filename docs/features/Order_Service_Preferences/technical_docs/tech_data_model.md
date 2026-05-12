@@ -1,5 +1,5 @@
 ---
-version: v1.2.0
+version: v1.2.1
 last_updated: 2026-05-11
 author: CleanMateX Team
 ---
@@ -19,7 +19,9 @@ author: CleanMateX Team
 
 - **org_service_preference_cf** — Enable/disable, custom prices, `extra_turnaround_minutes` per tenant
   - Extended (0165): `preference_sys_kind`, `is_show_in_quick_bar`, `is_show_in_all_stages`
-- **org_packing_preference_cf** — Enable/disable packing prefs per tenant
+  - **`extra_price`**: surfaced in UI as surcharge next to preference names (**New Order §8.3** in architecture reference).
+
+- **org_packing_preference_cf** — Enable/disable packing prefs per tenant; **`extra_price`** packing surcharge (merged as **`default_extra_price`** on **`PackingPreference`** in catalog API). Same **§8.3** UI parity as service prefs (dropdown, chips, cart summary).
 - **org_preference_bundles_cf** — Care packages (Growth+)
 
 ## Order Tables

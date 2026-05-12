@@ -79,8 +79,8 @@ export async function GET() {
     }
 
     // Create email lookup map
-    const emailMap = new Map(
-      authUsers?.users.map(u => [u.id, u.email || '']) || []
+    const emailMap = new Map<string, string>(
+      (authUsers?.users ?? []).map((u) => [u.id, String(u.email ?? '')] as [string, string])
     );
 
     // Map to User objects with emails

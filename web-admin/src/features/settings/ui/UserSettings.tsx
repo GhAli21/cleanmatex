@@ -16,6 +16,7 @@ import { fetchUsers, type TenantUser } from '@/lib/api/users';
 import { SettingsTable, type SettingsTableRow } from './SettingsTable';
 import {
   settingsClient,
+  SettingsApiError,
   type SettingDefinition,
   type ResolvedSetting,
 } from '@/lib/api/settings-client';

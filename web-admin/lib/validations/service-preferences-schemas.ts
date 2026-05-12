@@ -99,6 +99,35 @@ export const upsertPackingPreferenceCfSchema = z.object({
   display_order: z.number().int().min(0).optional(),
 });
 
+/** Create a brand-new custom service preference (tenant-defined code, is_system_code=false) */
+export const createCustomServicePreferenceCfSchema = z.object({
+  code: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[A-Z][A-Z0-9_]*$/, 'Code must be UPPER_SNAKE_CASE (letters, digits, underscores)'),
+  name: z.string().min(1).max(250),
+  name2: z.string().max(250).optional().nullable(),
+  preference_category: z
+    .union([z.string().min(1).max(50).regex(/^[a-z][a-z0-9_]*$/i), z.null()])
+    .optional(),
+  extra_price: z.number().min(0).optional(),
+  is_active: z.boolean().optional(),
+});
+
+/** Create a brand-new custom packing preference (tenant-defined code, is_system_code=false) */
+export const createCustomPackingPreferenceCfSchema = z.object({
+  code: z
+    .string()
+    .min(2)
+    .max(50)
+    .regex(/^[A-Z][A-Z0-9_]*$/, 'Code must be UPPER_SNAKE_CASE (letters, digits, underscores)'),
+  name: z.string().min(1).max(250),
+  name2: z.string().max(250).optional().nullable(),
+  extra_price: z.number().min(0).optional(),
+  is_active: z.boolean().optional(),
+});
+
 /** Resolve preferences query params */
 export const resolvePreferencesQuerySchema = z.object({
   tenant_org_id: uuidSchema,
@@ -114,6 +143,6 @@ export type AddCustomerServicePrefInput = z.infer<
   typeof addCustomerServicePrefSchema
 >;
 export type ApplyBundleInput = z.infer<typeof applyBundleSchema>;
-export type ResolvePreferencesQuery = z.infer<
-  typeof resolvePreferencesQuerySchema
->;
+export type ResolvePreferencesQuery = z.infer<typeof resolvePreferencesQuerySchema>;
+export type CreateCustomServicePreferenceCfInput = z.infer<typeof createCustomServicePreferenceCfSchema>;
+export type CreateCustomPackingPreferenceCfInput = z.infer<typeof createCustomPackingPreferenceCfSchema>;

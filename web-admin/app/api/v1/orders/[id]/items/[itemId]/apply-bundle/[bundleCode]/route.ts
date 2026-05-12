@@ -10,6 +10,8 @@ import { PreferenceCatalogService } from '@/lib/services/preference-catalog.serv
 import { checkPlanFlag } from '@/lib/services/plan-flags.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { log } from '@/lib/utils/logger';
+import type { ServicePreferenceCode } from '@/lib/constants/service-preferences';
+import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -73,7 +75,9 @@ export async function POST(
       tenantId,
       null
     );
-    const priceMap = new Map(servicePrefs.map((s) => [s.code, s.default_extra_price]));
+    const priceMap = new Map(
+      servicePrefs.map((s) => [s.code as ServicePreferenceCode, s.default_extra_price])
+    );
 
     // Add each preference from bundle (skip if already on item)
     const existingPrefs = await OrderItemPreferenceService.getItemServicePrefs(
@@ -84,15 +88,16 @@ export async function POST(
     const existingCodes = new Set(existingPrefs.map((p) => p.preference_code));
 
     for (const code of bundle.preference_codes as string[]) {
-      if (existingCodes.has(code)) continue;
+      const prefCode = code as ServicePreferenceCode;
+      if (existingCodes.has(prefCode)) continue;
 
-      const extraPrice = priceMap.get(code) ?? 0;
+      const extraPrice = priceMap.get(prefCode) ?? 0;
       const result = await OrderItemPreferenceService.addItemServicePref(
         supabase,
         tenantId,
         orderId,
         itemId,
-        { preference_code: code, source: 'bundle', extra_price: extraPrice },
+        { preference_code: prefCode, source: PREFERENCE_SOURCES.BUNDLE, extra_price: extraPrice },
         userId,
         userName
       );
@@ -103,7 +108,7 @@ export async function POST(
           { status: 400 }
         );
       }
-      existingCodes.add(code);
+      existingCodes.add(prefCode);
     }
 
     return NextResponse.json({ success: true });

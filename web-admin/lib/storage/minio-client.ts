@@ -125,16 +125,23 @@ export async function listOrderPhotos(
   try {
     const prefix = `orders/${tenantId}/${orderId}/`;
     const stream = minioClient.listObjects(BUCKET_NAME, prefix, true);
-    const urls: string[] = [];
+    const names: string[] = [];
 
     return new Promise((resolve, reject) => {
       stream.on('data', (obj) => {
         if (obj.name) {
-          urls.push(getFileUrl(obj.name));
+          names.push(obj.name);
         }
       });
       stream.on('error', reject);
-      stream.on('end', () => resolve(Promise.all(urls)));
+      stream.on('end', async () => {
+        try {
+          const urls = await Promise.all(names.map((name) => getFileUrl(name)));
+          resolve(urls);
+        } catch (e) {
+          reject(e);
+        }
+      });
     });
   } catch (error) {
     console.error('Error listing order photos:', error);

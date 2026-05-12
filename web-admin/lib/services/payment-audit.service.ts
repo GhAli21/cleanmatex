@@ -54,10 +54,10 @@ export async function recordPaymentAudit(
       tenant_org_id: params.tenantId,
       payment_id: params.paymentId,
       action_type: params.actionType,
-      before_value: params.beforeValue ?? undefined,
-      after_value: params.afterValue ?? undefined,
+      before_value: (params.beforeValue ?? undefined) as Prisma.InputJsonValue | undefined,
+      after_value: (params.afterValue ?? undefined) as Prisma.InputJsonValue | undefined,
       changed_by: params.changedBy,
-      metadata: params.metadata ?? undefined,
+      metadata: (params.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
     },
   });
 }

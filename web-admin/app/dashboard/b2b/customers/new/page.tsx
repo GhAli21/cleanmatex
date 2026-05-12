@@ -60,23 +60,23 @@ export default function B2BCustomerCreatePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (currentTenant?.id) {
+    if (currentTenant?.tenant_id) {
       fetchCustomerCategories({ is_b2b: true, active_only: true })
         .then((data) => setCategories(data.filter((c) => c.is_b2b).map((c) => ({ id: c.id, name: c.name }))))
         .catch(() => { /* keep empty */ });
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.tenant_id]);
 
   useEffect(() => {
-    if (currentTenant?.id) {
-      getPhoneCountryCodeAction(currentTenant.id)
+    if (currentTenant?.tenant_id) {
+      getPhoneCountryCodeAction(currentTenant.tenant_id)
         .then((code) => {
           const found = COUNTRY_CODES.find((c) => c.code === code);
           setCountryCode(found ? code : '+968');
         })
         .catch(() => { /* keep default */ });
     }
-  }, [currentTenant?.id]);
+  }, [currentTenant?.tenant_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -14,7 +14,7 @@ describe('Message Queue', () => {
   describe('enqueue', () => {
     it('should enqueue a message', async () => {
       const showFn = jest.fn().mockReturnValue({ id: '1', dismiss: () => {} });
-      const result = await messageQueue.enqueue(MessageType.SUCCESS, 'Test message', {}, showFn);
+      const result = await messageQueue.enqueue(MessageType.SUCCESS, 'Test message', showFn, {});
       expect(result).toBeDefined();
       expect(showFn).toHaveBeenCalled();
     });
@@ -23,9 +23,9 @@ describe('Message Queue', () => {
       messageQueue.setMaxSize(2);
       const showFn = jest.fn().mockReturnValue({ id: '1', dismiss: () => {} });
       
-      const promise1 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 1', {}, showFn);
-      const promise2 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 2', {}, showFn);
-      const promise3 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 3', {}, showFn);
+      const promise1 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 1', showFn, {});
+      const promise2 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 2', showFn, {});
+      const promise3 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 3', showFn, {});
       
       await Promise.all([promise1, promise2, promise3]);
       
@@ -40,9 +40,9 @@ describe('Message Queue', () => {
         return { id: message, dismiss: () => {} };
       });
 
-      const p1 = messageQueue.enqueue(MessageType.SUCCESS, '1', {}, showFn);
-      const p2 = messageQueue.enqueue(MessageType.SUCCESS, '2', {}, showFn);
-      const p3 = messageQueue.enqueue(MessageType.SUCCESS, '3', {}, showFn);
+      const p1 = messageQueue.enqueue(MessageType.SUCCESS, '1', showFn, {});
+      const p2 = messageQueue.enqueue(MessageType.SUCCESS, '2', showFn, {});
+      const p3 = messageQueue.enqueue(MessageType.SUCCESS, '3', showFn, {});
 
       await Promise.all([p1, p2, p3]);
 
@@ -54,8 +54,8 @@ describe('Message Queue', () => {
   describe('clear', () => {
     it('should clear all queued messages', async () => {
       const showFn = jest.fn().mockReturnValue({ id: '1', dismiss: () => {} });
-      const p1 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 1', {}, showFn);
-      const p2 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 2', {}, showFn);
+      const p1 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 1', showFn, {});
+      const p2 = messageQueue.enqueue(MessageType.SUCCESS, 'Message 2', showFn, {});
       
       messageQueue.clear();
       
@@ -72,7 +72,7 @@ describe('Message Queue', () => {
       
       const promises = [];
       for (let i = 0; i < 10; i++) {
-        promises.push(messageQueue.enqueue(MessageType.SUCCESS, `Message ${i}`, {}, showFn));
+        promises.push(messageQueue.enqueue(MessageType.SUCCESS, `Message ${i}`, showFn, {}));
       }
       
       await Promise.all(promises);
@@ -83,7 +83,7 @@ describe('Message Queue', () => {
   describe('size', () => {
     it('should return current queue size', async () => {
       const showFn = jest.fn().mockReturnValue({ id: '1', dismiss: () => {} });
-      messageQueue.enqueue(MessageType.SUCCESS, 'Message', {}, showFn);
+      messageQueue.enqueue(MessageType.SUCCESS, 'Message', showFn, {});
       // Size might be 0 or 1 depending on processing speed
       expect(messageQueue.size()).toBeGreaterThanOrEqual(0);
     });

@@ -29,13 +29,14 @@ export function useDiscountRules(params: UseDiscountRulesParams = {}) {
 
     listDiscountRules({ page: params.page, search: params.search }).then((result) => {
       if (cancelled) return;
-      if (result.success) {
-        setRules(result.data);
-        setTotal(result.total);
-        setError(null);
-      } else {
+      if (result.success === false) {
         setError(result.error);
+        setIsLoading(false);
+        return;
       }
+      setRules(result.data);
+      setTotal(result.total);
+      setError(null);
       setIsLoading(false);
     });
 

@@ -7,16 +7,17 @@
 
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ReceiptPreview } from '@/src/features/receipts/ui/receipt-preview';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { ArrowLeft, Receipt } from 'lucide-react';
 
 export default function ReceiptPage() {
-  const params = use(useParams());
+  const params = useParams();
   const router = useRouter();
-  const orderId = params.orderId as string;
+  const raw = params?.orderId;
+  const orderId = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw[0] ?? '' : '';
   const [customerType, setCustomerType] = useState<string | undefined>();
 
   useEffect(() => {

@@ -30,12 +30,14 @@ export async function validateTenantIsolation(
 ): Promise<TenantIsolationCheck> {
   try {
     const supabase = await createClient();
-    
-    // Try to query without tenant filter (should fail or return empty)
-    const { data, error } = await supabase
-      .from(table)
-      .select('tenant_org_id')
-      .limit(1);
+
+    // Dynamic table name for diagnostic tooling — not representable in generated relation types.
+    const sb = supabase as unknown as {
+      from: (name: string) => {
+        select: (cols: string) => { limit: (n: number) => Promise<{ data: unknown[] | null; error: unknown }> };
+      };
+    };
+    const { data, error } = await sb.from(table).select('tenant_org_id').limit(1);
 
     if (error) {
       // RLS is working - query was blocked
@@ -129,23 +131,29 @@ export async function validateCrossTenantIsolation(
   try {
     const supabase = await createClient();
     
-    // Try to query for other tenant's data (should fail)
-    const { data, error } = await supabase
-      .from(table)
-      .select('*')
-      .eq('tenant_org_id', otherTenantId)
-      .limit(1);
+    const sb = supabase as unknown as {
+      from: (name: string) => {
+        select: (cols: string) => {
+          eq: (col: string, val: string) => { limit: (n: number) => Promise<{ data: unknown[] | null; error: unknown }> };
+        };
+      };
+    };
+    const { data, error } = await sb.from(table).select('*').eq('tenant_org_id', otherTenantId).limit(1);
 
     // If query succeeded and returned data, isolation is broken
     if (!error && data && data.length > 0) {
-      logger.error('Cross-tenant data leak detected', {
-        feature: 'tenant-isolation-validator',
-        action: 'validateCrossTenantIsolation',
-        table,
-        tenantId,
-        otherTenantId,
-        userId,
-      });
+      logger.error(
+        'Cross-tenant data leak detected',
+        new Error('Cross-tenant data leak detected'),
+        {
+          feature: 'tenant-isolation-validator',
+          action: 'validateCrossTenantIsolation',
+          table,
+          tenantId,
+          otherTenantId,
+          userId,
+        }
+      );
       return false;
     }
 

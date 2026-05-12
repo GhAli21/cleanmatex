@@ -14,3 +14,5 @@ When writing or suggesting **UI code in web-admin**:
 Restricted (will fail build/lint): `@ui/compat`, `@/components/ui`, `@/components/ui/*`.
 
 Full conventions: `.cursor/rules/frontendstandards.mdc` (section "web-admin/.clauderc (AI Hints)"), `docs/dev/ui-migration-guide.md`.
+
+**TypeScript / Cmx pitfalls (tsc):** When editing `web-admin/`, also follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (action-result narrowing, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod, etc.).

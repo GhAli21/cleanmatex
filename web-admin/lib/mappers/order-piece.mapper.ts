@@ -83,7 +83,9 @@ export function mapOrderPiecesFromDb(dbPieces: OrderPieceDbModel[]): OrderItemPi
 export function mapOrderPieceToDbUpdate(
   piece: Partial<OrderItemPiece>
 ): Partial<OrderPieceDbModel> {
-  const update: Partial<OrderPieceDbModel> = { ...piece };
+  const update: Partial<OrderPieceDbModel> = {
+    ...(piece as unknown as Partial<OrderPieceDbModel>),
+  };
 
   // Convert Date objects to ISO strings
   if (piece.last_step_at instanceof Date) {

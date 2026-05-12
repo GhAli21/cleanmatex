@@ -281,6 +281,7 @@ describe('ErpLiteV2Service', () => {
       bank_stmt_id: 'stmt-1',
       rows: [
         {
+          bank_stmt_id: 'stmt-1',
           bank_account_id: 'bank-1',
           txn_date: '2026-04-01',
           description: 'Deposit',
@@ -288,6 +289,7 @@ describe('ErpLiteV2Service', () => {
           credit_amount: 0,
         },
         {
+          bank_stmt_id: 'stmt-1',
           bank_account_id: 'bank-1',
           txn_date: '2026-04-02',
           description: 'Fee',

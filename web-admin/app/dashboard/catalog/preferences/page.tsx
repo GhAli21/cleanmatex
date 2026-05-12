@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Preferences Catalog Page
  * Service and packing preferences catalog; Care Package bundles CRUD
  * Route: /dashboard/catalog/preferences
@@ -367,7 +367,7 @@ function ServicePrefsTable({
                       : adminRow
                         ? adminRow.cf_is_active !== false
                         : true;
-                  const category = p.preference_category ?? '—';
+                  const category = p.preference_category ?? 'â€”';
                   const swatchHex = adminRow
                     ? adminRow.cf_color_hex ?? adminRow.color_hex
                     : (p as ServicePref).color_hex ?? null;
@@ -390,12 +390,12 @@ function ServicePrefsTable({
                               </span>
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400">—</span>
+                            <span className="text-xs text-gray-400">â€”</span>
                           )}
                         </td>
                       ) : null}
-                      <td className="px-4 py-3">{primaryName || '—'}</td>
-                      <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
+                      <td className="px-4 py-3">{primaryName || 'â€”'}</td>
+                      <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
                       <td className="px-4 py-3 text-gray-600">{category}</td>
                       <td className="px-4 py-3">
                         +
@@ -407,7 +407,7 @@ function ServicePrefsTable({
                       </td>
                       <td className="px-4 py-3">
                         {rowEnabled === null ? (
-                          <span className="text-xs text-gray-400">—</span>
+                          <span className="text-xs text-gray-400">â€”</span>
                         ) : (
                           <Badge variant={rowEnabled ? 'success' : 'default'}>
                             {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
@@ -581,17 +581,17 @@ function PackingPrefsTable({
                 : adminRow
                   ? adminRow.cf_is_active !== false
                   : true;
-            const packagingType = adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type ?? '—';
+            const packagingType = adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type ?? 'â€”';
 
             return (
               <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                <td className="px-4 py-3">{primaryName || '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
+                <td className="px-4 py-3">{primaryName || 'â€”'}</td>
+                <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
                 <td className="px-4 py-3 text-gray-600">{packagingType}</td>
                 <td className="px-4 py-3">
                   {rowEnabled === null ? (
-                    <span className="text-xs text-gray-400">—</span>
+                    <span className="text-xs text-gray-400">â€”</span>
                   ) : (
                     <Badge variant={rowEnabled ? 'success' : 'default'}>
                       {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
@@ -727,7 +727,7 @@ function BundlesTable({
               <td className="px-4 py-3 font-mono text-xs">{b.bundle_code}</td>
               <td className="px-4 py-3">{b.name}</td>
               <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate" title={(b.preference_codes || []).join(', ')}>
-                {(b.preference_codes || []).join(', ') || '—'}
+                {(b.preference_codes || []).join(', ') || 'â€”'}
               </td>
               <td className="px-4 py-3">
                 {(b.discount_percent ?? 0) > 0
@@ -738,7 +738,7 @@ function BundlesTable({
                         decimalPlaces,
                         locale: moneyLocale,
                       })
-                    : '—'}
+                    : 'â€”'}
               </td>
               <td className="px-4 py-3">
                 <Badge variant={b.is_active ? 'success' : 'default'}>
@@ -860,9 +860,9 @@ function PreferenceKindsTable({
             return (
               <tr key={k.kind_code} className="border-t border-gray-100 hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-mono text-xs">{k.kind_code}</td>
-                <td className="px-4 py-3">{primaryName || '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{displayName2 || '—'}</td>
-                <td className="px-4 py-3 text-gray-600">{k.main_type_code || '—'}</td>
+                <td className="px-4 py-3">{primaryName || 'â€”'}</td>
+                <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
+                <td className="px-4 py-3 text-gray-600">{k.main_type_code || 'â€”'}</td>
                 <td className="px-4 py-3">
                   {bgColor ? (
                     <span className="flex items-center gap-1.5">
@@ -874,7 +874,7 @@ function PreferenceKindsTable({
                       <span className="font-mono text-xs text-gray-600">{bgColor}</span>
                     </span>
                   ) : (
-                    <span className="text-gray-400">—</span>
+                    <span className="text-gray-400">â€”</span>
                   )}
                 </td>
                 <td className="px-4 py-3">
@@ -1070,6 +1070,8 @@ export default function PreferencesCatalogPage() {
   const [editingBundle, setEditingBundle] = useState<PreferenceBundle | null>(null);
   const [editingServicePref, setEditingServicePref] = useState<ServicePrefAdmin | null>(null);
   const [editingPackingPref, setEditingPackingPref] = useState<PackingPrefAdmin | null>(null);
+  const [createServicePrefOpen, setCreateServicePrefOpen] = useState(false);
+  const [createPackingPrefOpen, setCreatePackingPrefOpen] = useState(false);
   const [preferenceKindsAdmin, setPreferenceKindsAdmin] = useState<PreferenceKindAdmin[]>([]);
   const [editingPreferenceKind, setEditingPreferenceKind] = useState<PreferenceKindAdmin | null>(null);
   const { showConfirm } = useAlertDialog();
@@ -1205,14 +1207,29 @@ export default function PreferencesCatalogPage() {
         icon: <Shirt className="h-4 w-4" aria-hidden />,
         content: (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              {t('servicePrefsDesc', { defaultValue: 'Processing options: starch, perfume, delicate, etc.' })}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                {t('servicePrefsDesc', { defaultValue: 'Processing options: starch, perfume, delicate, etc.' })}
+              </p>
+              <RequireAnyPermission
+                permissions={CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences?.requirement?.permissions ?? []}
+                fallback={null}
+              >
+                <CmxButton
+                  size="sm"
+                  onClick={() => setCreateServicePrefOpen(true)}
+                  data-testid="add-service-pref-btn"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('addServicePref', { defaultValue: 'Add Service Preference' })}
+                </CmxButton>
+              </RequireAnyPermission>
+            </div>
             {servicePrefsAdmin.length > 0 ? (
               <p className="text-xs text-gray-500">
                 {t('catalogAddRowHint', {
                   defaultValue:
-                    'To offer a platform option on new orders, find a “Not in catalog” row and use Add to catalog, or switch the filter above to Not in catalog.',
+                    'To offer a platform option on new orders, find a â€œNot in catalogâ€ row and use Add to catalog, or switch the filter above to Not in catalog.',
                 })}
               </p>
             ) : null}
@@ -1239,14 +1256,29 @@ export default function PreferencesCatalogPage() {
         icon: <Package className="h-4 w-4" aria-hidden />,
         content: (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              {t('packingPrefsDesc', { defaultValue: 'Assembly options: hang, fold, box, etc.' })}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-gray-600">
+                {t('packingPrefsDesc', { defaultValue: 'Assembly options: hang, fold, box, etc.' })}
+              </p>
+              <RequireAnyPermission
+                permissions={CATALOG_PREFERENCES_ACCESS.actions?.editPackingPreferences?.requirement?.permissions ?? []}
+                fallback={null}
+              >
+                <CmxButton
+                  size="sm"
+                  onClick={() => setCreatePackingPrefOpen(true)}
+                  data-testid="add-packing-pref-btn"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t('addPackingPref', { defaultValue: 'Add Packing Preference' })}
+                </CmxButton>
+              </RequireAnyPermission>
+            </div>
             {packingPrefsAdmin.length > 0 ? (
               <p className="text-xs text-gray-500">
                 {t('catalogAddRowHint', {
                   defaultValue:
-                    'To offer a platform option on new orders, find a “Not in catalog” row and use Add to catalog, or switch the filter above to Not in catalog.',
+                    'To offer a platform option on new orders, find a â€œNot in catalogâ€ row and use Add to catalog, or switch the filter above to Not in catalog.',
                 })}
               </p>
             ) : null}
@@ -1443,6 +1475,20 @@ export default function PreferencesCatalogPage() {
           />
         )}
 
+        {createServicePrefOpen && (
+          <CustomServicePrefCreateDialog
+            onClose={() => setCreateServicePrefOpen(false)}
+            onSuccess={() => { loadCatalog(); setCreateServicePrefOpen(false); }}
+          />
+        )}
+
+        {createPackingPrefOpen && (
+          <CustomPackingPrefCreateDialog
+            onClose={() => setCreatePackingPrefOpen(false)}
+            onSuccess={() => { loadCatalog(); setCreatePackingPrefOpen(false); }}
+          />
+        )}
+
         {editingPreferenceKind && (
           <PreferenceKindEditDialog
             kind={editingPreferenceKind}
@@ -1569,6 +1615,273 @@ function BundleFormDialog({
             </CmxDialogClose>
             <CmxButton type="submit" disabled={saving}>
               {saving ? t('saving', { defaultValue: 'Saving...' }) : t('save', { defaultValue: 'Save' })}
+            </CmxButton>
+          </CmxDialogFooter>
+        </form>
+      </CmxDialogContent>
+    </CmxDialog>
+  );
+}
+
+function CustomServicePrefCreateDialog({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const tv = useTranslations('validation');
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [name2, setName2] = useState('');
+  const [prefCategory, setPrefCategory] = useState<string>(PREFERENCE_CATEGORIES.PROCESSING);
+  const [extraPrice, setExtraPrice] = useState('0');
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const categorySelectOptions = useMemo(() => {
+    return [...ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS].sort().map((v) => ({
+      value: v,
+      label: t(`prefCategory.${v}` as 'prefCategory.processing', {
+        defaultValue: v.replace(/_/g, ' '),
+      }),
+    }));
+  }, [t]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const trimmed = code.trim().toUpperCase();
+    if (!/^[A-Z][A-Z0-9_]*$/.test(trimmed)) {
+      setError(tv('invalidFormat', { defaultValue: 'Invalid format' }));
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/v1/catalog/service-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
+        body: JSON.stringify({
+          code: trimmed,
+          name: name.trim(),
+          name2: name2.trim() || null,
+          preference_category: prefCategory || null,
+          extra_price: Number(extraPrice) || 0,
+          is_active: isActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        const msg =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error
+              ? JSON.stringify(data.error)
+              : 'Failed to create';
+        throw new Error(msg);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <CmxDialog open onOpenChange={(open) => !open && onClose()}>
+      <CmxDialogContent>
+        <CmxDialogHeader>
+          <CmxDialogTitle>
+            {t('createCustomServicePref', { defaultValue: 'Create custom service preference' })}
+          </CmxDialogTitle>
+        </CmxDialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('code', { defaultValue: 'Code' })} <span className="text-red-500">*</span>
+            </label>
+            <CmxInput
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="CUSTOM_PREF"
+              className="w-full font-mono"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-red-500">*</span>
+            </label>
+            <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('customNameAr', { defaultValue: 'Name (AR)' })}
+            </label>
+            <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
+          </div>
+          <div>
+            <CmxSelect
+              label={t('category', { defaultValue: 'Category' })}
+              options={categorySelectOptions}
+              value={prefCategory}
+              onChange={(e) => setPrefCategory(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('extraPrice', { defaultValue: 'Extra Price' })}
+            </label>
+            <CmxInput
+              type="number"
+              step="0.0001"
+              value={extraPrice}
+              onChange={(e) => setExtraPrice(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="svc-create-active" />
+            <label htmlFor="svc-create-active" className="text-sm text-gray-700">
+              {t('active', { defaultValue: 'Active' })}
+            </label>
+          </div>
+          <CmxDialogFooter>
+            <CmxDialogClose asChild>
+              <CmxButton type="button" variant="outline">
+                {t('cancel', { defaultValue: 'Cancel' })}
+              </CmxButton>
+            </CmxDialogClose>
+            <CmxButton type="submit" disabled={saving}>
+              {saving ? t('saving', { defaultValue: 'Saving...' }) : t('create', { defaultValue: 'Create' })}
+            </CmxButton>
+          </CmxDialogFooter>
+        </form>
+      </CmxDialogContent>
+    </CmxDialog>
+  );
+}
+
+function CustomPackingPrefCreateDialog({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const tv = useTranslations('validation');
+  const [code, setCode] = useState('');
+  const [name, setName] = useState('');
+  const [name2, setName2] = useState('');
+  const [extraPrice, setExtraPrice] = useState('0');
+  const [isActive, setIsActive] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    const trimmed = code.trim().toUpperCase();
+    if (!/^[A-Z][A-Z0-9_]*$/.test(trimmed)) {
+      setError(tv('invalidFormat', { defaultValue: 'Invalid format' }));
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch('/api/v1/catalog/packing-preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getCSRFHeader() },
+        body: JSON.stringify({
+          code: trimmed,
+          name: name.trim(),
+          name2: name2.trim() || null,
+          extra_price: Number(extraPrice) || 0,
+          is_active: isActive,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) {
+        const msg =
+          typeof data?.error === 'string'
+            ? data.error
+            : data?.error
+              ? JSON.stringify(data.error)
+              : 'Failed to create';
+        throw new Error(msg);
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <CmxDialog open onOpenChange={(open) => !open && onClose()}>
+      <CmxDialogContent>
+        <CmxDialogHeader>
+          <CmxDialogTitle>
+            {t('createCustomPackingPref', { defaultValue: 'Create custom packing preference' })}
+          </CmxDialogTitle>
+        </CmxDialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <div className="p-3 rounded-md bg-red-50 text-red-800 text-sm">{error}</div>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('code', { defaultValue: 'Code' })} <span className="text-red-500">*</span>
+            </label>
+            <CmxInput
+              value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())}
+              placeholder="CUSTOM_PACK"
+              className="w-full font-mono"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('customName', { defaultValue: 'Name (EN)' })} <span className="text-red-500">*</span>
+            </label>
+            <CmxInput value={name} onChange={(e) => setName(e.target.value)} className="w-full" required />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('customNameAr', { defaultValue: 'Name (AR)' })}
+            </label>
+            <CmxInput value={name2} onChange={(e) => setName2(e.target.value)} className="w-full" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {t('extraPrice', { defaultValue: 'Extra Price' })}
+            </label>
+            <CmxInput
+              type="number"
+              step="0.0001"
+              value={extraPrice}
+              onChange={(e) => setExtraPrice(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <CmxSwitch checked={isActive} onCheckedChange={setIsActive} id="pack-create-active" />
+            <label htmlFor="pack-create-active" className="text-sm text-gray-700">
+              {t('active', { defaultValue: 'Active' })}
+            </label>
+          </div>
+          <CmxDialogFooter>
+            <CmxDialogClose asChild>
+              <CmxButton type="button" variant="outline">
+                {t('cancel', { defaultValue: 'Cancel' })}
+              </CmxButton>
+            </CmxDialogClose>
+            <CmxButton type="submit" disabled={saving}>
+              {saving ? t('saving', { defaultValue: 'Saving...' }) : t('create', { defaultValue: 'Create' })}
             </CmxButton>
           </CmxDialogFooter>
         </form>

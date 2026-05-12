@@ -86,12 +86,12 @@ export default function CashUpForm({
       });
 
       const result = await submitCashUp({ date: selectedDate, entries });
-      if (result.success) {
+      if (result.success === false) {
+        setMessage({ type: 'error', text: result.error });
+      } else {
         setMessage({ type: 'success', text: t('successMessage') });
         router.refresh();
         onSuccess?.();
-      } else {
-        setMessage({ type: 'error', text: result.error });
       }
     } catch (err) {
       setMessage({

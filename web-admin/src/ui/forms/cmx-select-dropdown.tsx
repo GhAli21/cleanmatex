@@ -259,12 +259,15 @@ export interface CmxSelectDropdownItemProps {
   value: string;
   children: React.ReactNode;
   className?: string;
+  /** When true, item is non-interactive and visually muted */
+  disabled?: boolean;
 }
 
 export function CmxSelectDropdownItem({
   value,
   children,
   className,
+  disabled = false,
 }: CmxSelectDropdownItemProps) {
   const context = React.useContext(SelectContext);
   if (!context) throw new Error('CmxSelectDropdownItem must be used within CmxSelectDropdown');
@@ -274,9 +277,11 @@ export function CmxSelectDropdownItem({
 
   return (
     <div
+      data-disabled={disabled ? '' : undefined}
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
+        if (disabled) return;
         onValueChange(value);
       }}
       onMouseDown={(e) => e.stopPropagation()}

@@ -318,7 +318,7 @@ export class DashboardService {
         recentOrderIdsPromise,
       ])
 
-      const deliveredLast30List = (deliveredLast30 || []) as Array<{
+      const deliveredLast30List = (deliveredLast30 || []) as unknown as Array<{
         created_at: string
         delivered_at: string
         ready_by: string | null
@@ -350,8 +350,12 @@ export class DashboardService {
       }
 
       const avgTatLast30 = avgTat(deliveredLast30List)
-      const avgTatPrev = avgTat((deliveredWeekPrev || []) as Array<{ created_at: string; delivered_at: string }>)
-      const avgTatCurr = avgTat((deliveredWeekCurr || []) as Array<{ created_at: string; delivered_at: string }>)
+      const avgTatPrev = avgTat(
+        (deliveredWeekPrev || []) as unknown as Array<{ created_at: string; delivered_at: string }>
+      )
+      const avgTatCurr = avgTat(
+        (deliveredWeekCurr || []) as unknown as Array<{ created_at: string; delivered_at: string }>
+      )
       let trendPct = 0
       if (avgTatPrev > 0) {
         trendPct = Math.round(((avgTatCurr - avgTatPrev) / avgTatPrev) * 100)

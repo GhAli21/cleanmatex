@@ -228,8 +228,12 @@ export default function UserFiltersBar({
             </label>
             <select
               id="workflow-role-filter"
-              value={(filters as UserFilters & { workflowRole?: string }).workflowRole || 'all'}
-              onChange={(e) => onFilterChange({ ...(e.target.value !== 'all' ? { workflowRole: e.target.value } : { workflowRole: undefined }) })}
+              value={filters.workflowRole || 'all'}
+              onChange={(e) =>
+                onFilterChange({
+                  workflowRole: e.target.value === 'all' ? undefined : e.target.value,
+                })
+              }
               className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
             >
               <option value="all">{t('allWorkflowRoles')}</option>

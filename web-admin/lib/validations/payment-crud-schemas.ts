@@ -25,9 +25,7 @@ export const cancelPaymentSchema = z.object({
  * Schema for creating a standalone payment
  */
 export const createStandalonePaymentSchema = z.object({
-  payment_kind: z.enum(['invoice', 'deposit', 'advance', 'pos'], {
-    required_error: 'Payment kind is required',
-  }),
+  payment_kind: z.enum(['invoice', 'deposit', 'advance', 'pos']),
   payment_method_code: z.string().min(1, 'Payment method is required'),
   amount: z.number().positive('Amount must be greater than zero'),
   customer_id: z.string().uuid('Invalid customer ID').optional().or(z.literal('')),

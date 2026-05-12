@@ -45,6 +45,8 @@ export interface UserFilters {
   status?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
+  /** Workflow role code (e.g. ROLE_RECEPTION) when filtering user list */
+  workflowRole?: string
 }
 
 export interface CreateUserData {

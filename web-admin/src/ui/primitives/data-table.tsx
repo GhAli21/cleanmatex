@@ -603,6 +603,9 @@ export function DataTable<TData, TValue>({
                             (typeof column.header === "string"
                               ? column.header
                               : columnId)
+                          const cell = row
+                            .getAllCells()
+                            .find((c) => c.column.id === columnId)
 
                           return (
                             <div key={columnId} className="mb-3 last:mb-0">
@@ -610,10 +613,9 @@ export function DataTable<TData, TValue>({
                                 {label}
                               </div>
                               <div className="text-sm">
-                                {flexRender(column.cell, {
-                                  ...row.getContext(),
-                                  getValue: () => value,
-                                })}
+                                {cell
+                                  ? flexRender(column.cell, cell.getContext())
+                                  : String(value ?? "")}
                               </div>
                             </div>
                           )

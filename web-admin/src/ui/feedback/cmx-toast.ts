@@ -7,6 +7,7 @@
  */
 
 import { cmxMessage } from './cmx-message';
+import { DisplayMethod } from './types';
 import type { MessageOptions } from './types';
 
 /**
@@ -19,7 +20,7 @@ export const cmxToast = {
     );
     return cmxMessage.success(message, {
       ...options,
-      method: 'toast' as const,
+      method: DisplayMethod.TOAST,
     });
   },
   error: (message: string, options?: { description?: string }) => {
@@ -28,7 +29,7 @@ export const cmxToast = {
     );
     return cmxMessage.error(message, {
       ...options,
-      method: 'toast' as const,
+      method: DisplayMethod.TOAST,
     });
   },
   info: (message: string, options?: { description?: string }) => {
@@ -37,7 +38,7 @@ export const cmxToast = {
     );
     return cmxMessage.info(message, {
       ...options,
-      method: 'toast' as const,
+      method: DisplayMethod.TOAST,
     });
   },
 };

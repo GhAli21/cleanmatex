@@ -10,13 +10,9 @@ import type { OrderPieceServicePref, PreferenceSource } from '@/lib/types/servic
 import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
 import { logger } from '@/lib/utils/logger';
 import { OrderItemPreferenceService } from './order-item-preference.service';
+import type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
-export interface AddPieceServicePrefInput {
-  preference_code: string;
-  source?: PreferenceSource;
-  extra_price: number;
-  branch_id?: string | null;
-}
+export type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
 export class OrderPiecePreferenceService {
   /**

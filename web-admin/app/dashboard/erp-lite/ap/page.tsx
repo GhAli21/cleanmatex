@@ -169,7 +169,17 @@ export default async function ErpLiteApPage({
                 <CmxInput name="subtotal_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.subtotal')} required />
                 <CmxInput name="tax_amount" type="number" step="0.0001" min="0" label={t('forms.invoice.fields.tax')} />
                 <CmxInput name="supplier_inv_no" label={t('forms.invoice.fields.supplierInvoiceNo')} />
-                <CmxTextarea name="description" label={t('forms.invoice.fields.description')} required />
+                <div className="space-y-1">
+                  <label htmlFor="erp-ap-invoice-description" className="block text-sm font-medium text-gray-700">
+                    {t('forms.invoice.fields.description')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-ap-invoice-description"
+                    name="description"
+                    required
+                    aria-label={t('forms.invoice.fields.description')}
+                  />
+                </div>
                 <CmxButton type="submit" className="w-full">{t('forms.invoice.submit')}</CmxButton>
               </form>
             </CmxCardContent>

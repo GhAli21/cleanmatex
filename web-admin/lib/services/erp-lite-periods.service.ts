@@ -173,7 +173,7 @@ export class ErpLitePeriodsService {
           AND j.posting_date >= ${p.start_date}::date
           AND j.posting_date <= ${p.end_date}::date
       `);
-      const draftCount = Number(draftRow[0]?.c ?? 0n);
+      const draftCount = Number(draftRow[0]?.c ?? BigInt(0));
       if (draftCount > 0) {
         blockers.push({
           severity: 'error',
@@ -197,7 +197,7 @@ export class ErpLitePeriodsService {
               AND j.posting_date <= ${p.end_date}::date
           )
       `);
-      const excCount = Number(excRow[0]?.c ?? 0n);
+      const excCount = Number(excRow[0]?.c ?? BigInt(0));
       if (excCount > 0) {
         blockers.push({
           severity: 'error',
@@ -213,7 +213,7 @@ export class ErpLitePeriodsService {
         WHERE e.tenant_org_id = ${tenantId}::uuid
           AND e.journal_id IS NULL
       `);
-      const orphanCount = Number(orphanExc[0]?.c ?? 0n);
+      const orphanCount = Number(orphanExc[0]?.c ?? BigInt(0));
       if (orphanCount > 0) {
         blockers.push({
           severity: 'warning',

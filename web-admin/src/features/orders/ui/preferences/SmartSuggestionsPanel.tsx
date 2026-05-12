@@ -14,7 +14,7 @@ import { useNewOrderStateWithDispatch } from '../../hooks/use-new-order-state';
 import { CmxButton } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { Sparkles } from 'lucide-react';
-import type { ServicePreference } from '@/lib/types/service-preferences';
+import type { ServicePreference, ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { UseNewOrderStateWithDispatchReturn } from '../../hooks/use-new-order-state';
 import type { NewOrderState } from '../../model/new-order-types';
 
@@ -69,7 +69,7 @@ function SmartSuggestionsForCustomer({
 
   const loading = suggestions === null;
 
-  const handleApplySuggestion = (code: string) => {
+  const handleApplySuggestion = (code: ServicePreferenceCode) => {
     if (state.items.length === 0) {
       cmxMessage.info(t('addItemsFirst') || 'Add items first');
       return;
@@ -128,11 +128,11 @@ function SmartSuggestionsForCustomer({
               key={s.preference_code}
               variant="outline"
               size="sm"
-              onClick={() => handleApplySuggestion(s.preference_code)}
+              onClick={() => handleApplySuggestion(s.preference_code as ServicePreferenceCode)}
               disabled={state.items.length === 0}
             >
               <span className="flex items-center gap-1.5">
-                {nameMap.get(s.preference_code) || s.preference_code}
+                {nameMap.get(s.preference_code as ServicePreferenceCode) || s.preference_code}
                 {s.usage_count > 1 && (
                   <span className="text-xs opacity-75">({s.usage_count}x)</span>
                 )}

@@ -11,8 +11,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
+import { ChartLegend } from '@/lib/charts/recharts-legend';
 import type { DailyDataPoint, StatusBreakdown, TypeBreakdown } from '@/lib/types/report-types';
 
 interface OrdersReportChartsProps {
@@ -107,7 +107,7 @@ export default function OrdersReportCharts({
               <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
               <Tooltip />
-              <Legend />
+              <ChartLegend />
               <Bar yAxisId="left" dataKey="count" name={t('charts.count')} fill="#3B82F6" />
               <Bar yAxisId="right" dataKey="revenue" name={t('charts.revenue')} fill="#10B981" />
             </BarChart>

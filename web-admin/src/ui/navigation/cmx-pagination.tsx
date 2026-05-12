@@ -72,16 +72,16 @@ export function CmxPagination({
             Rows per page:
           </span>
           <CmxSelect
-            value={pageSize.toString()}
-            onValueChange={(value) => onPageSizeChange(Number(value))}
+            fullWidth={false}
+            size="sm"
             className="w-16"
-          >
-            {pageSizeOptions.map((size) => (
-              <option key={size} value={size.toString()}>
-                {size}
-              </option>
-            ))}
-          </CmxSelect>
+            options={pageSizeOptions.map((size) => ({
+              value: String(size),
+              label: String(size),
+            }))}
+            value={String(pageSize)}
+            onChange={(e) => onPageSizeChange(Number(e.target.value))}
+          />
         </div>
       )}
 

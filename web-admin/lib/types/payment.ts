@@ -429,7 +429,14 @@ export interface ValidatePromoCodeResult {
   promoCode?: PromoCode;
   discountAmount?: number;
   error?: string;
-  errorCode?: 'NOT_FOUND' | 'EXPIRED' | 'MAX_USES_EXCEEDED' | 'MIN_ORDER_NOT_MET' | 'CATEGORY_NOT_APPLICABLE' | 'CUSTOMER_LIMIT_EXCEEDED';
+  errorCode?:
+    | 'NOT_FOUND'
+    | 'EXPIRED'
+    | 'MAX_USES_EXCEEDED'
+    | 'MIN_ORDER_NOT_MET'
+    | 'CATEGORY_NOT_APPLICABLE'
+    | 'CUSTOMER_LIMIT_EXCEEDED'
+    | 'UNAUTHORIZED';
 }
 
 // ============================================================================
@@ -543,7 +550,7 @@ export interface ValidateGiftCardResult {
   giftCard?: GiftCard;
   availableBalance?: number;
   error?: string;
-  errorCode?: 'NOT_FOUND' | 'EXPIRED' | 'INSUFFICIENT_BALANCE' | 'INVALID_PIN' | 'CARD_SUSPENDED' | 'UNAUTHORIZED';
+  errorCode?: 'NOT_FOUND' | 'EXPIRED' | 'INSUFFICIENT_BALANCE' | 'INVALID_PIN' | 'CARD_SUSPENDED' | 'VOIDED' | 'UNAUTHORIZED';
 }
 
 export interface ApplyGiftCardInput {

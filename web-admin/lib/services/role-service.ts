@@ -6,6 +6,10 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { supabase } from '@/lib/supabase/client';
+import type { Database } from '@/types/database';
+
+type SysAuthRoleRow = Database['public']['Tables']['sys_auth_roles']['Row'];
+type OrgAuthUserRoleRow = Database['public']['Tables']['org_auth_user_roles']['Row'];
 
 // ========================
 // Types
@@ -65,6 +69,30 @@ export interface AssignWorkflowRoleRequest {
   workflow_role: string;
 }
 
+/** `sys_auth_roles` is keyed by `code`; `role_id` in API types is that code. */
+function mapRoleRow(row: SysAuthRoleRow): Role {
+  return {
+    role_id: row.code,
+    code: row.code,
+    name: row.name,
+    name2: row.name2 ?? undefined,
+    description: row.description ?? undefined,
+    is_system: row.is_system,
+    created_at: row.created_at ?? '',
+  };
+}
+
+function mapUserRoleRow(row: OrgAuthUserRoleRow): UserRoleAssignment {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    tenant_org_id: row.tenant_org_id,
+    role_id: row.role_code,
+    is_active: row.is_active,
+    created_at: row.created_at ?? '',
+  };
+}
+
 // ========================
 // System Roles
 // ========================
@@ -88,7 +116,7 @@ export async function getSystemRoles(): Promise<Role[]> {
       return [];
     }
 
-    return (data || []) as Role[];
+    return (data || []).map(mapRoleRow);
   } catch (error) {
     console.error('Error in getSystemRoles:', error);
     return [];
@@ -119,7 +147,7 @@ export async function getAllRoles(tenantId?: string): Promise<Role[]> {
       return [];
     }
 
-    return (data || []) as Role[];
+    return (data || []).map(mapRoleRow);
   } catch (error) {
     console.error('Error in getAllRoles:', error);
     return [];
@@ -149,7 +177,7 @@ export async function getRoleByCode(roleCode: string): Promise<Role | null> {
       return null;
     }
 
-    return data as Role;
+    return mapRoleRow(data);
   } catch (error) {
     console.error('Error in getRoleByCode:', error);
     return null;
@@ -168,7 +196,7 @@ export async function getRoleById(roleId: string): Promise<Role | null> {
     const { data, error } = await client
       .from('sys_auth_roles')
       .select('*')
-      .eq('role_id', roleId)
+      .eq('code', roleId)
       .single();
 
     if (error) {
@@ -179,7 +207,7 @@ export async function getRoleById(roleId: string): Promise<Role | null> {
       return null;
     }
 
-    return data as Role;
+    return mapRoleRow(data);
   } catch (error) {
     console.error('Error in getRoleById:', error);
     return null;
@@ -230,9 +258,9 @@ export async function createCustomRole(request: CreateRoleRequest): Promise<Role
 
     // Assign permissions if provided
     if (request.permission_ids && request.permission_ids.length > 0) {
-      const rolePermissions = request.permission_ids.map((permId) => ({
-        role_id: role.role_id,
-        permission_id: permId,
+      const rolePermissions = request.permission_ids.map((permCode) => ({
+        role_code: role.code,
+        permission_code: permCode,
       }));
 
       const { error: permError } = await client
@@ -245,7 +273,7 @@ export async function createCustomRole(request: CreateRoleRequest): Promise<Role
       }
     }
 
-    return role as Role;
+    return mapRoleRow(role);
   } catch (error) {
     console.error('Error in createCustomRole:', error);
     throw error;
@@ -282,7 +310,7 @@ export async function updateCustomRole(
     const { data, error } = await client
       .from('sys_auth_roles')
       .update(updates)
-      .eq('role_id', roleId)
+      .eq('code', roleId)
       .select()
       .single();
 
@@ -291,7 +319,7 @@ export async function updateCustomRole(
       throw new Error('Failed to update role');
     }
 
-    return data as Role;
+    return mapRoleRow(data);
   } catch (error) {
     console.error('Error in updateCustomRole:', error);
     throw error;
@@ -319,7 +347,7 @@ export async function deleteCustomRole(roleId: string): Promise<void> {
     const { data: assignments, error: checkError } = await client
       .from('org_auth_user_roles')
       .select('id')
-      .eq('role_id', roleId)
+      .eq('role_code', roleId)
       .limit(1);
 
     if (checkError) {
@@ -335,7 +363,7 @@ export async function deleteCustomRole(roleId: string): Promise<void> {
     const { error } = await client
       .from('sys_auth_roles')
       .delete()
-      .eq('role_id', roleId);
+      .eq('code', roleId);
 
     if (error) {
       console.error('Error deleting role:', error);
@@ -365,7 +393,7 @@ export async function assignRoleToUser(request: AssignRoleRequest): Promise<User
       .insert({
         user_id: request.user_id,
         tenant_org_id: request.tenant_org_id,
-        role_id: request.role_id,
+        role_code: request.role_id,
         is_active: true,
       })
       .select()
@@ -392,7 +420,7 @@ export async function assignRoleToUser(request: AssignRoleRequest): Promise<User
       console.warn('Cache invalidation failed:', cacheError);
     }
 
-    return data as UserRoleAssignment;
+    return mapUserRoleRow(data);
   } catch (error) {
     console.error('Error in assignRoleToUser:', error);
     throw error;
@@ -475,7 +503,7 @@ export async function getUserRoleAssignments(
       return [];
     }
 
-    return (data || []) as UserRoleAssignment[];
+    return (data || []).map(mapUserRoleRow);
   } catch (error) {
     console.error('Error in getUserRoleAssignments:', error);
     return [];
@@ -557,8 +585,12 @@ export async function removeWorkflowRoleFromUser(assignmentId: string): Promise<
       throw new Error('Failed to remove workflow role');
     }
 
-    // Invalidate Redis cache
-    await invalidatePermissionCache(assignment.user_id, assignment.tenant_org_id);
+    try {
+      const { invalidatePermissionCache } = await import('./permission-service-server');
+      await invalidatePermissionCache(assignment.user_id, assignment.tenant_org_id);
+    } catch (cacheError) {
+      console.warn('Cache invalidation failed:', cacheError);
+    }
   } catch (error) {
     console.error('Error in removeWorkflowRoleFromUser:', error);
     throw error;
@@ -612,17 +644,15 @@ export async function getRolePermissions(roleId: string): Promise<string[]> {
   try {
     const { data, error } = await client
       .from('sys_auth_role_default_permissions')
-      .select('permission_id, sys_auth_permissions(code)')
-      .eq('role_id', roleId);
+      .select('permission_code')
+      .eq('role_code', roleId);
 
     if (error) {
       console.error('Error fetching role permissions:', error);
       return [];
     }
 
-    return (data || [])
-      .map((item: any) => item.sys_auth_permissions?.code)
-      .filter((code: string) => code);
+    return (data || []).map((row) => row.permission_code).filter(Boolean);
   } catch (error) {
     console.error('Error in getRolePermissions:', error);
     return [];
@@ -641,15 +671,15 @@ export async function assignPermissionsToRole(
   const client = await createClient();
 
   try {
-    const rolePermissions = permissionIds.map((permId) => ({
-      role_id: roleId,
-      permission_id: permId,
+    const rolePermissions = permissionIds.map((permCode) => ({
+      role_code: roleId,
+      permission_code: permCode,
     }));
 
     const { error } = await client
       .from('sys_auth_role_default_permissions')
       .upsert(rolePermissions, {
-        onConflict: 'role_id,permission_id',
+        onConflict: 'role_code,permission_code',
       });
 
     if (error) {
@@ -680,8 +710,8 @@ export async function removePermissionsFromRole(
     const { error } = await client
       .from('sys_auth_role_default_permissions')
       .delete()
-      .eq('role_id', roleId)
-      .in('permission_id', permissionIds);
+      .eq('role_code', roleId)
+      .in('permission_code', permissionIds);
 
     if (error) {
       console.error('Error removing permissions:', error);
@@ -693,7 +723,7 @@ export async function removePermissionsFromRole(
       const { data: tenants } = await client
         .from('org_auth_user_roles')
         .select('tenant_org_id')
-        .eq('role_id', roleId)
+        .eq('role_code', roleId)
         .eq('is_active', true);
 
       if (tenants) { 

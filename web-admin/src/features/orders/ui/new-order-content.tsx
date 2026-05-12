@@ -33,6 +33,7 @@ import { cmxMessage, CmxAlertDialog } from '@ui/feedback';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import type { ServicePreferenceCode } from '@/lib/types/service-preferences';
 import type { BranchOption } from '@/lib/services/inventory-service';
 import { NewOrderTopBar } from './new-order-top-bar';
 import { ProductGrid } from './product-grid';
@@ -117,7 +118,7 @@ export function NewOrderContent() {
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const [branches, setBranches] = useState<BranchOption[]>([]);
     const [branchesLoading, setBranchesLoading] = useState(true);
-    const [currencyCode, setCurrencyCode] = useState(ORDER_DEFAULTS.CURRENCY);
+    const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY);
     const { submitOrder: _submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);
@@ -235,9 +236,9 @@ export function NewOrderContent() {
                         const priceMap = new Map(servicePrefs.map((s) => [s.code, s.default_extra_price ?? 0]));
                         resolvedServicePrefs = json.data.map(
                             (p: { preference_code: string; source: string }) => ({
-                                preference_code: p.preference_code,
+                                preference_code: p.preference_code as ServicePreferenceCode,
                                 source: p.source || 'customer_pref',
-                                extra_price: priceMap.get(p.preference_code) ?? 0,
+                                extra_price: priceMap.get(p.preference_code as ServicePreferenceCode) ?? 0,
                             })
                         );
                     }

@@ -25,6 +25,8 @@ export interface PreSubmissionPiece {
   notes?: string;
   rackLocation?: string;
   metadata?: Record<string, any>;
+  /** Piece-level condition codes (preferences) */
+  conditions?: string[];
 }
 
 interface PreSubmissionPiecesManagerProps {

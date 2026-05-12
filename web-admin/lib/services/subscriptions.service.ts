@@ -4,6 +4,7 @@
  */
 
 import { createClient, createAdminSupabaseClient } from '@/lib/supabase/server';
+import type { Json } from '@/types/database';
 import type {
   Subscription,
   PlanLimits,
@@ -39,7 +40,7 @@ export async function getAvailablePlans(
     throw new Error('Failed to fetch subscription plans');
   }
 
-  const plans = (data as PlanLimits[]) || [];
+  const plans = ((data ?? []) as unknown as PlanLimits[]) || [];
 
   // Add comparison metadata
   return plans.map((plan) => ({
@@ -69,7 +70,7 @@ export async function getPlan(planCode: string): Promise<PlanLimits> {
     throw new Error(`Plan "${planCode}" not found`);
   }
 
-  return data as PlanLimits;
+  return data as unknown as PlanLimits;
 }
 
 // ========================
@@ -111,7 +112,7 @@ export async function getSubscription(tenantId: string): Promise<Subscription> {
     throw new Error('Subscription not found: No data returned');
   }
 
-  return data as Subscription;
+  return data as unknown as Subscription;
 }
 
 /**
@@ -148,7 +149,7 @@ export async function getSubscriptionOld(tenantId: string): Promise<Subscription
     throw new Error('Subscription not found: No data returned');
   }
 
-  return data as Subscription;
+  return data as unknown as Subscription;
 }
 
 /**
@@ -244,7 +245,7 @@ export async function upgradeSubscription(
   const newPlan = await getPlan(request.planCode);
 
   // Step 2: Validate upgrade (can't downgrade via upgrade endpoint)
-  const planOrder = ['free', 'starter', 'growth', 'pro', 'enterprise'];
+  const planOrder = ['FREE_TRIAL', 'STARTER', 'GROWTH', 'PRO', 'ENTERPRISE'];
   const currentIndex = planOrder.indexOf(currentPlan.plan_code);
   const newIndex = planOrder.indexOf(newPlan.plan_code);
 
@@ -316,7 +317,7 @@ export async function upgradeSubscription(
   // Step 8: Send confirmation email (TODO: Implement email service)
   // await sendUpgradeConfirmationEmail(tenant, newPlan);
 
-  return updatedSubscription as Subscription;
+  return updatedSubscription as unknown as Subscription;
 }
 
 // ========================
@@ -359,7 +360,7 @@ export async function cancelSubscription(
   // Send cancellation confirmation (TODO: Implement email service)
   // await sendCancellationEmail(tenant, currentSubscription.end_date);
 
-  return data as Subscription;
+  return data as unknown as Subscription;
 }
 
 /**
@@ -397,7 +398,7 @@ export async function processTrialExpirations(): Promise<void> {
       await supabase
         .from('org_subscriptions_mst')
         .update({
-          plan: 'free',
+          plan: 'FREE_TRIAL',
           status: 'active',
           orders_limit: freePlan.orders_limit,
           branch_limit: freePlan.branches_limit,
@@ -411,8 +412,8 @@ export async function processTrialExpirations(): Promise<void> {
       await supabase
         .from('org_tenants_mst')
         .update({
-          s_cureent_plan: 'free',
-          feature_flags: freePlan.feature_flags,
+          s_cureent_plan: 'FREE_TRIAL',
+          feature_flags: freePlan.feature_flags as unknown as Json,
           status: 'active',
         })
         .eq('id', subscription.tenant_org_id);

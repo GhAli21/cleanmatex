@@ -1,0 +1,146 @@
+---
+description: Web-admin TypeScript, Cmx, RHF, and server-action patterns that prevent recurring tsc/build failures
+globs: web-admin/**/*.ts,web-admin/**/*.tsx
+alwaysApply: false
+---
+
+# web-admin — Typecheck & UI Pitfalls (Mandatory When Editing Matched Files)
+
+Use these patterns so **`npx tsc --noEmit`** and Cmx usage stay green. Run **`cd web-admin && npx tsc --noEmit`** after non-trivial changes.
+
+---
+
+## 1. Discriminated unions (`success` / `error`)
+
+Server actions and APIs often return:
+
+`{ success: true; data: T } | { success: false; error: string }`
+
+- **Do not** rely on `if (!result.success) { result.error }` — TypeScript may not narrow and **`error` is not a valid property** on the success branch.
+- **Do** narrow explicitly, for example:
+
+```ts
+if (result.success === false) {
+  setError(result.error);
+} else {
+  setData(result.data);
+}
+```
+
+Same idea for any union keyed by booleans or literals (`status === 'failed'`, etc.).
+
+---
+
+## 2. `CmxButton` (primitives)
+
+- **Variants:** use `primary`, `secondary`, `outline`, `destructive`, `ghost` — **never** `variant="default"` (not in `CmxButtonProps`).
+- **Sizes:** `xs`, `sm`, `md`, `lg` — **never** `size="icon"`. For icon-only actions use `size="xs"` or `sm` and child icon.
+- **No `icon` prop** — `CmxButton` does not support it. Put the icon **inside** the button, often with `className="inline-flex items-center gap-2"` on the button.
+
+---
+
+## 3. `Badge` (`@ui/primitives/badge`)
+
+- Allowed variants include **`default`**, `secondary`, `destructive`, `outline`, `success`, `warning`, `info`.
+- **Do not** use `variant="primary"` on `Badge` — use `default` or another valid variant.
+
+---
+
+## 4. `CmxSummaryMessage` (`@ui/feedback`)
+
+- Uses **`type`**: `'success' | 'warning' | 'info' | 'error'` — **not** `variant`.
+- Requires **`items: string[]`** (use `items={[]}` when you only show `title`).
+
+---
+
+## 5. `CmxDialog` / `CmxDialogContent` (`@ui/overlays`)
+
+- Implementation is **custom (div-based)**, not Radix `Dialog.Content`.
+- **Do not** pass Radix-only props (e.g. `onPointerDownOutside`) to `CmxDialogContent` — they are **not** on `CmxDialogContentProps` and will fail `tsc`.
+- To block dismiss while work is in progress, guard **`onOpenChange`** on **`CmxDialog`**, e.g. ignore `open === false` when `busy`.
+
+---
+
+## 6. React Hook Form + Zod
+
+- If `zodResolver(schema)` disagrees with `useForm<FormValues>` (often due to **`.default()`** on Zod fields widening input vs output), fix at the boundary with an explicit cast:
+
+```ts
+import type { Resolver } from 'react-hook-form';
+
+useForm<FormValues>({
+  resolver: zodResolver(schema) as Resolver<FormValues>,
+  // ...
+});
+```
+
+- Keep **Zod enums aligned with domain types** (e.g. promo `discount_type`: **`fixed_amount`** vs **`percentage`**, not a stale `fixed` literal if `PromoDiscountType` uses `fixed_amount`).
+
+---
+
+## 7. Recharts `Legend` + React 19
+
+- Typed JSX may reject **`Legend`** from `recharts` as a constructor.
+- Use the project wrapper **`ChartLegend`** from `@/lib/charts/recharts-legend` (or the same path alias your file uses) instead of raw `<Legend />` where `tsc` complains.
+
+---
+
+## 8. `useState` and `as const` defaults (e.g. `ORDER_DEFAULTS`)
+
+- `ORDER_DEFAULTS.CURRENCY` is typed as a **string literal** (e.g. `"USD"`). If you assign **any tenant/API string**, widen state:
+
+```ts
+const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY);
+```
+
+Same idea for **`decimalPlaces`** when mixing literals with `number`.
+
+---
+
+## 9. API / JSON → domain narrow types
+
+- For maps and forms expecting **`ServicePreferenceCode`** (and similar), cast at the **boundary** when reading `fetch` / action JSON, e.g. `p.preference_code as ServicePreferenceCode`, so `Map.get` and handlers stay typed.
+
+---
+
+## 10. `instanceof` and narrowed types
+
+- If TypeScript narrows a value to `string` and **`instanceof Date` becomes invalid** (or `never` appears), assign through **`unknown`** first, then narrow with `typeof` / `instanceof`.
+
+---
+
+## 11. ARIA boolean attributes
+
+- **`aria-expanded`**, **`aria-selected`**, etc. must be **boolean** (`true` / `false`), not `object | boolean` from expressions like `open || selectedRow` when operands include objects.
+- Prefer **`!!`** or explicit **`Boolean(...)`** on a clearly boolean condition.
+
+---
+
+## 12. `CmxSelectDropdownItem`
+
+- Supports optional **`disabled`**. Use it (or omit) consistently with the component’s props; do not pass unsupported props without extending the component.
+
+---
+
+## 13. Shared UI types (`PreSubmissionPiece`, filters, etc.)
+
+- Prefer **one canonical type** (e.g. `model/new-order-types.ts`) or keep duplicate interfaces **in sync** (e.g. optional `conditions?: string[]` on pieces) so feature UI and cart code agree.
+
+---
+
+## 14. Gift card / payment domain unions
+
+- When switching on **`errorCode`** (or similar) from the backend, keep **string unions in `lib/types`** in sync with real API values (e.g. include **`VOIDED`** if the client handles it), so `switch` exhaustiveness and i18n keys stay correct.
+
+---
+
+## 15. Verification
+
+After substantive web-admin edits:
+
+1. **`cd web-admin && npx tsc --noEmit`**
+2. **`npm run build`** (per project policy; note Next may skip typecheck if configured — `tsc` is the gate).
+
+---
+
+**Related:** `.cursor/rules/web-admin-ui-imports.mdc`, `.cursor/rules/frontendstandards.mdc` (Forms & Cmx), `web-admin/.clauderc` (`ui_components`).

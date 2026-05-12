@@ -936,9 +936,9 @@ export class ErpLitePostingEngineService {
     );
 
     const actorType =
-      context.envelope.mode === 'RETRY'
+      context.envelope.mode === 'retry'
         ? 'RETRY'
-        : context.envelope.mode === 'REPOST'
+        : context.envelope.mode === 'repost'
           ? 'REPOST'
           : 'AUTO';
 

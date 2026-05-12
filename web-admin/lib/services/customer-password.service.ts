@@ -1,4 +1,3 @@
-import { promisify } from 'util';
 import { randomBytes, scrypt, timingSafeEqual } from 'crypto';
 
 import { createAdminSupabaseClient } from '@/lib/supabase/server';
@@ -6,7 +5,19 @@ import { logger } from '@/lib/utils/logger';
 import { normalizePhone } from './customers.service';
 import { verifyVerificationToken } from './otp.service';
 
-const scryptAsync = promisify(scrypt);
+function scryptAsync(
+  password: Parameters<typeof scrypt>[0],
+  salt: Parameters<typeof scrypt>[1],
+  keylen: number,
+  options: { N: number; r: number; p: number }
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, keylen, options, (err, derivedKey) => {
+      if (err) reject(err);
+      else resolve(derivedKey);
+    });
+  });
+}
 
 const SCRYPT_PARAMS = {
   keylen: 64,
@@ -39,11 +50,11 @@ function buildPhoneLookupCandidates(inputPhone: string) {
 
 async function hashPassword(plain: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
-  const derived = (await scryptAsync(plain, salt, SCRYPT_PARAMS.keylen, {
+  const derived = await scryptAsync(plain, salt, SCRYPT_PARAMS.keylen, {
     N: SCRYPT_PARAMS.N,
     r: SCRYPT_PARAMS.r,
     p: SCRYPT_PARAMS.p,
-  })) as Buffer;
+  });
   return `scrypt:${salt}:${derived.toString('hex')}`;
 }
 
@@ -53,11 +64,11 @@ async function verifyPassword(plain: string, stored: string): Promise<boolean> {
     return false;
   }
   const [, salt, hash] = parts;
-  const derived = (await scryptAsync(plain, salt, SCRYPT_PARAMS.keylen, {
+  const derived = await scryptAsync(plain, salt, SCRYPT_PARAMS.keylen, {
     N: SCRYPT_PARAMS.N,
     r: SCRYPT_PARAMS.r,
     p: SCRYPT_PARAMS.p,
-  })) as Buffer;
+  });
   const storedBuf = Buffer.from(hash, 'hex');
   if (derived.length !== storedBuf.length) {
     return false;

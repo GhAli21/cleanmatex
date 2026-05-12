@@ -74,27 +74,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Process webhook events
-    const entries = body.entry || [];
+    type WaChange = { field?: string; value?: Record<string, unknown> };
+    type WaEntry = { changes?: WaChange[] };
+    const entries: WaEntry[] = Array.isArray(body.entry) ? (body.entry as WaEntry[]) : [];
     const supabase = await createClient();
 
     for (const entry of entries) {
-      const changes = entry.changes || [];
+      const changes = entry.changes ?? [];
 
       for (const change of changes) {
         if (change.field === 'messages') {
-          const value = change.value;
+          const value = change.value ?? {};
 
           // Handle message status updates
-          if (value.statuses) {
-            for (const status of value.statuses) {
-              const messageId = status.id;
-              const statusType = status.status; // sent, delivered, read, failed
-              const recipientId = status.recipient_id;
+          const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+          if (statuses.length > 0) {
+            for (const status of statuses as Array<Record<string, unknown>>) {
+              const messageId = String(status.id ?? '');
+              const statusType = String(status.status ?? ''); // sent, delivered, read, failed
+              const recipientId = String(status.recipient_id ?? '');
 
               logger.info('WhatsApp message status update', {
                 messageId,
                 statusType,
-                recipientId: recipientId?.substring(0, 4) + '****',
+                recipientId: recipientId.substring(0, 4) + '****',
                 feature: 'whatsapp',
                 action: 'status_update',
               });
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
               // Find receipt by message ID in metadata
               const { data: receipts } = await supabase
                 .from('org_rcpt_receipts_mst')
-                .select('id, tenant_org_id')
+                .select('id, tenant_org_id, metadata')
                 .eq('delivery_channel_code', 'whatsapp')
                 .contains('metadata', { messageId });
 
@@ -120,15 +123,15 @@ export async function POST(request: NextRequest) {
                     delivery_status_code: deliveryStatus,
                     sent_at:
                       statusType === 'sent'
-                        ? new Date(status.timestamp * 1000).toISOString()
+                        ? new Date(Number(status.timestamp) * 1000).toISOString()
                         : undefined,
                     delivered_at:
                       statusType === 'delivered'
-                        ? new Date(status.timestamp * 1000).toISOString()
+                        ? new Date(Number(status.timestamp) * 1000).toISOString()
                         : undefined,
                     updated_at: new Date().toISOString(),
                     metadata: {
-                      ...(receipt.metadata || {}),
+                      ...((receipt.metadata as Record<string, unknown> | null) ?? {}),
                       lastStatus: statusType,
                       lastStatusUpdate: new Date().toISOString(),
                     },
@@ -139,7 +142,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Handle incoming messages (if needed)
-          if (value.messages) {
+          if (Array.isArray(value.messages) && value.messages.length > 0) {
             // Process incoming messages if needed
             logger.info('Incoming WhatsApp message received', {
               messageCount: value.messages.length,

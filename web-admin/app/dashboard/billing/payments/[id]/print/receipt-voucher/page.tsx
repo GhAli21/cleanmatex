@@ -53,7 +53,7 @@ export default function ReceiptVoucherPrintPage() {
           payment: {
             id: payment.id,
             payment_method_code: payment.payment_method_code,
-            paid_at: payment.paid_at,
+            paid_at: payment.paid_at ? new Date(payment.paid_at as string) : null,
             transaction_id: payment.transaction_id,
           },
           invoice: voucher.invoice_id && payment.invoiceNumber

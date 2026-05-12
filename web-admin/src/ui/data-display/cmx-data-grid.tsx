@@ -334,7 +334,7 @@ function withDefaultFilterAndSort<T>(columns: ColumnDef<T, unknown>[]): ColumnDe
       return {
         ...col,
         enableColumnFilter: col.enableColumnFilter !== false,
-        filterFn: col.filterFn ?? 'cmxIncludesString',
+        filterFn: col.filterFn ?? cmxIncludesStringFilter,
         enableSorting: col.enableSorting !== false,
       };
     }
@@ -342,7 +342,7 @@ function withDefaultFilterAndSort<T>(columns: ColumnDef<T, unknown>[]): ColumnDe
       return {
         ...col,
         enableColumnFilter: true,
-        filterFn: col.filterFn ?? 'cmxIncludesString',
+        filterFn: col.filterFn ?? cmxIncludesStringFilter,
         enableSorting: col.enableSorting !== false,
       };
     }

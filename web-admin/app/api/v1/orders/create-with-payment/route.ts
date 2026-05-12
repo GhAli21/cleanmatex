@@ -20,7 +20,7 @@ import {
   createWithPaymentRequestSchema,
   type CreateWithPaymentRequest,
 } from '@/lib/validations/new-order-payment-schemas';
-import type { AmountMismatchDifferences } from '@/lib/types/payment';
+import type { AmountMismatchDifferences, PaymentMethodCode } from '@/lib/types/payment';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
@@ -349,7 +349,7 @@ export async function POST(request: NextRequest) {
             gift_card_applied_amount: serverTotals.giftCardApplied,
             vatAmount: serverTotals.vatValue,
             tax: serverTotals.additionalTaxAmount ?? 0,
-            payment_method_code: input.paymentMethod,
+            payment_method_code: input.paymentMethod as PaymentMethodCode,
           },
           tx
         );

@@ -43,10 +43,11 @@ export async function processCustomerReturn(
     },
   });
 
-  if (error || !result?.ok) {
+  const rpc = result as { ok?: boolean; message?: string } | null | undefined;
+  if (error || !rpc?.ok) {
     return {
       success: false,
-      error: result?.message || error?.message || 'Customer return failed',
+      error: rpc?.message || error?.message || 'Customer return failed',
     };
   }
 

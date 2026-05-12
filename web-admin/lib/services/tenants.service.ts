@@ -4,6 +4,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import type { Json } from '@/types/database';
 import type {
   Tenant,
   TenantRegistrationRequest,
@@ -170,7 +171,7 @@ export async function registerTenant(
 
   // Step 1: Validate slug availability
   const slugValidation = await validateSlug(request.slug);
-  if (!slugValidation.isAvailable) {
+  if (!slugValidation.isValid) {
     throw new Error(
       `Slug "${request.slug}" is already taken. Try "${slugValidation.suggestedSlug}"`
     );
@@ -278,8 +279,8 @@ export async function registerTenant(
 
     // Step 8: Return registration response
     return {
-      tenant: tenant as Tenant,
-      subscription,
+      tenant: tenant as unknown as Tenant,
+      subscription: subscription as unknown as TenantRegistrationResponse['subscription'],
       user: {
         id: authData.user.id,
         email: authData.user.email || request.adminUser.email,
@@ -315,7 +316,7 @@ export async function getTenant(tenantId: string): Promise<Tenant> {
     throw new Error('Tenant not found' + error?.message);
   }
   //console.log('Herrrrrrrr Jh data', data);
-  return data as Tenant;
+  return data as unknown as Tenant;
 }
 /**
  * Get current tenant from session context
@@ -354,12 +355,18 @@ export async function updateTenant(
 ): Promise<Tenant> {
   const supabase = await createClient();
 
+  const { business_hours: businessHours, ...rest } = updates;
+  const payload: Record<string, unknown> = {
+    ...rest,
+    updated_at: new Date().toISOString(),
+  };
+  if (businessHours !== undefined) {
+    payload.business_hours = businessHours as unknown as Json;
+  }
+
   const { data, error } = await supabase
     .from('org_tenants_mst')
-    .update({
-      ...updates,
-      updated_at: new Date().toISOString(),
-    })
+    .update(payload)
     .eq('id', tenantId)
     .select()
     .single();
@@ -369,7 +376,7 @@ export async function updateTenant(
     throw new Error('Failed to update tenant');
   }
 
-  return data as Tenant;
+  return data as unknown as Tenant;
 }
 
 /**
@@ -474,7 +481,11 @@ export async function listTenants(filters?: {
 }): Promise<{ tenants: Tenant[]; total: number }> {
   const supabase = await createClient();
 
-  let query = supabase.from('org_tenants_mst').select('*', { count: 'exact' });
+  // Widen query builder: chained filters can hit TS2589 (excessively deep instantiation).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let query: any = supabase
+    .from('org_tenants_mst')
+    .select('*', { count: 'exact' });
 
   // Apply filters
   if (filters?.status) {
@@ -505,7 +516,7 @@ export async function listTenants(filters?: {
   }
 
   return {
-    tenants: (data as Tenant[]) || [],
+    tenants: ((data ?? []) as unknown as Tenant[]) || [],
     total: count || 0,
   };
 }

@@ -64,7 +64,7 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | DELETE | `/api/v1/catalog/preference-kinds/admin` | `config:preferences_manage` | Preference kind admin delete |
 | API | GET | `/api/v1/preferences/suggest` | `orders:read` | 403 when smart suggestions disabled |
 | API | POST | `/api/v1/preferences/resolve` | `orders:read` | Preference resolution |
-| API | GET | `/api/v1/preferences/last-order` | `orders:read` | 403 when repeat-last-order disabled; DB fn returns `packing_pref_cf_id` + `service_prefs_catalog` after migration **0260** (`preferences-architecture-reference.md` §8.2) |
+| API | GET | `/api/v1/preferences/last-order` | `orders:read` | 403 when repeat-last-order disabled; DB fn returns `packing_pref_cf_id` + `service_prefs_catalog` after migration **0260** (`preferences-architecture-reference.md` §8.4) |
 | API | GET | `/api/v1/customer-categories` | `customers:read` | Customer categories read path |
 | API | POST | `/api/v1/customer-categories` | `config:preferences_manage` | Customer category create |
 | API | GET | `/api/v1/customer-categories/[code]` | `customers:read` | Customer category detail |

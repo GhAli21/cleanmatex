@@ -51,11 +51,12 @@ export function PromoListScreen() {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <h2 className="text-xl font-semibold">{t('title')}</h2>
         <CmxButton
-          variant="default"
+          variant="primary"
           size="sm"
           onClick={() => setShowCreateDialog(true)}
-          icon={<PlusCircle className="h-4 w-4" />}
+          className="inline-flex items-center gap-2"
         >
+          <PlusCircle className="h-4 w-4" />
           {t('create')}
         </CmxButton>
       </div>
@@ -75,7 +76,7 @@ export function PromoListScreen() {
           {(['all', 'active', 'expired'] as const).map((s) => (
             <CmxButton
               key={s}
-              variant={status === s ? 'default' : 'outline'}
+              variant={status === s ? 'primary' : 'outline'}
               size="sm"
               onClick={() => { setStatus(s); setPage(1); }}
             >
@@ -130,7 +131,7 @@ export function PromoListScreen() {
             <div className="flex gap-1">
               <CmxButton
                 variant="ghost"
-                size="icon"
+                size="xs"
                 title={tCommon('edit')}
                 onClick={() => setEditingPromo(row)}
               >
@@ -138,7 +139,7 @@ export function PromoListScreen() {
               </CmxButton>
               <CmxButton
                 variant="ghost"
-                size="icon"
+                size="xs"
                 title={t('usageReport')}
                 onClick={() => setViewingUsagePromoId(row.id)}
               >
@@ -153,7 +154,7 @@ export function PromoListScreen() {
                 trigger={
                   <CmxButton
                     variant="ghost"
-                    size="icon"
+                    size="xs"
                     title={t('archive')}
                   >
                     <Archive className="h-4 w-4" />

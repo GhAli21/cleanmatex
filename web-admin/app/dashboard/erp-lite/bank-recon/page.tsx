@@ -264,13 +264,19 @@ export default async function ErpLiteBankReconPage({
                   options={snapshot.bank_stmt_options.map((item) => ({ value: item.id, label: item.label }))}
                   required
                 />
-                <CmxTextarea
-                  name="import_rows"
-                  rows={8}
-                  label={t('forms.statementImport.fields.rows')}
-                  placeholder={t('forms.statementImport.placeholder')}
-                  required
-                />
+                <div className="space-y-1">
+                  <label htmlFor="erp-bank-recon-import-rows" className="block text-sm font-medium text-gray-700">
+                    {t('forms.statementImport.fields.rows')}
+                  </label>
+                  <CmxTextarea
+                    id="erp-bank-recon-import-rows"
+                    name="import_rows"
+                    rows={8}
+                    placeholder={t('forms.statementImport.placeholder')}
+                    required
+                    aria-label={t('forms.statementImport.fields.rows')}
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">{t('forms.statementImport.hint')}</p>
                 <CmxButton type="submit" className="w-full">{t('forms.statementImport.submit')}</CmxButton>
               </form>

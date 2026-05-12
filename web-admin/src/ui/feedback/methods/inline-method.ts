@@ -3,7 +3,8 @@
  * @module ui/feedback/methods
  */
 
-import type { MessageType, MessageOptions, MessageResult, InlineMessage } from '../types';
+import { MessageType } from '../types';
+import type { MessageOptions, MessageResult, InlineMessage } from '../types';
 
 // Store for inline messages (for components to subscribe)
 let inlineMessageStore: InlineMessage | null = null;
@@ -14,12 +15,12 @@ const inlineMessageListeners: Set<(message: InlineMessage | null) => void> = new
  */
 function getAriaRole(type: MessageType): 'alert' | 'status' {
   switch (type) {
-    case 'error':
-    case 'warning':
+    case MessageType.ERROR:
+    case MessageType.WARNING:
       return 'alert';
-    case 'success':
-    case 'info':
-    case 'loading':
+    case MessageType.SUCCESS:
+    case MessageType.INFO:
+    case MessageType.LOADING:
     default:
       return 'status';
   }
@@ -30,12 +31,12 @@ function getAriaRole(type: MessageType): 'alert' | 'status' {
  */
 function getAriaLive(type: MessageType): 'polite' | 'assertive' {
   switch (type) {
-    case 'error':
-    case 'warning':
+    case MessageType.ERROR:
+    case MessageType.WARNING:
       return 'assertive';
-    case 'success':
-    case 'info':
-    case 'loading':
+    case MessageType.SUCCESS:
+    case MessageType.INFO:
+    case MessageType.LOADING:
     default:
       return 'polite';
   }
@@ -126,7 +127,7 @@ export async function showInlinePromise<T>(
   options?: MessageOptions
 ): Promise<T> {
   // Show loading message
-  showInlineMessage('loading', messages.loading, options);
+  showInlineMessage(MessageType.LOADING, messages.loading, options);
 
   try {
     const result = await promise;
@@ -134,14 +135,14 @@ export async function showInlinePromise<T>(
       typeof messages.success === 'function'
         ? messages.success(result)
         : messages.success;
-    showInlineMessage('success', successMessage, options);
+    showInlineMessage(MessageType.SUCCESS, successMessage, options);
     return result;
   } catch (error) {
     const errorMessage =
       typeof messages.error === 'function'
         ? messages.error(error as Error)
         : messages.error;
-    showInlineMessage('error', errorMessage, options);
+    showInlineMessage(MessageType.ERROR, errorMessage, options);
     throw error;
   }
 }

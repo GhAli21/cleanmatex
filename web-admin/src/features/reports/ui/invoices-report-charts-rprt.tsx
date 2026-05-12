@@ -11,8 +11,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts';
+import { ChartLegend } from '@/lib/charts/recharts-legend';
 import type { InvoiceStatusBreakdown, AgingBucket, DailyDataPoint } from '@/lib/types/report-types';
 
 interface InvoicesReportChartsProps {
@@ -59,7 +59,7 @@ export default function InvoicesReportCharts({
             <XAxis dataKey="status" tick={{ fontSize: 11 }} />
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
-            <Legend />
+            <ChartLegend />
             <Bar dataKey="count" name={t('charts.count')} fill="#3B82F6" />
             <Bar dataKey="amount" name={`${t('charts.amount')} (${currencyCode})`} fill="#10B981" />
           </BarChart>

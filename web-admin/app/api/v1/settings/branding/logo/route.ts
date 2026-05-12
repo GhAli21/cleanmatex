@@ -52,7 +52,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, url: result.url });
   } catch (err) {
-    logger.error('POST /settings/branding/logo failed', { err });
+    logger.error(
+      'POST /settings/branding/logo failed',
+      err instanceof Error ? err : new Error(String(err)),
+      {}
+    );
     return NextResponse.json({ error: 'Failed to upload logo' }, { status: 500 });
   }
 }

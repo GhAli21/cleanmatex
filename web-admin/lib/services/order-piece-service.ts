@@ -52,7 +52,8 @@ export interface UpdatePieceParams {
     is_rejected?: boolean;
     issue_id?: string;
     rack_location?: string;
-    last_step_at?: Date;
+    /** ISO string or Date; persisted as timestamptz */
+    last_step_at?: Date | string;
     last_step_by?: string;
     last_step?: string;
     notes?: string;
@@ -114,7 +115,7 @@ export class OrderPieceService {
       metadata?: Record<string, any>;
       packingPrefCode?: string;
       packingCfId?: string | null;
-      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number; preferenceCfId?: string | null }>;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price?: number; preferenceCfId?: string | null }>;
       conditions?: string[];
     }>,
     branchId?: string,
@@ -425,7 +426,7 @@ export class OrderPieceService {
       metadata?: Record<string, any>;
       packingPrefCode?: string;
       packingCfId?: string | null;
-      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price: number; preferenceCfId?: string | null }>;
+      servicePrefs?: Array<{ preference_code: string; source?: string; extra_price?: number; preferenceCfId?: string | null }>;
       conditions?: string[];
     }>,
     branchId?: string,

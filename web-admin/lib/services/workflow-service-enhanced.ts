@@ -16,6 +16,7 @@ import {
   refundPayment,
 } from './payment-service';
 import type { Order } from '@/types/order';
+import type { OrderStatus } from '@/lib/types/workflow';
 
 // ==================================================================
 // Type Definitions
@@ -66,11 +67,24 @@ export class FeatureFlagError extends Error {
 }
 
 export class LimitExceededError extends Error {
-  constructor(message: string, public details: any) {
+  constructor(message: string, public details: unknown) {
     super(message);
     this.name = 'LimitExceededError';
   }
 }
+
+/** RPC payloads for order transition helpers (Postgrest `Json`). */
+type RpcTransitionPayload = {
+  ok?: boolean;
+  message?: string;
+  errors?: Array<{ code: string; message: string }>;
+};
+
+type WorkflowFlagsPayload = {
+  assembly_enabled?: boolean;
+  qa_enabled?: boolean;
+  packing_enabled?: boolean;
+};
 
 export class SettingsError extends Error {
   constructor(message: string, public settingKey: string) {
@@ -138,11 +152,12 @@ export class WorkflowServiceEnhanced {
 
     if (!USE_OLD_WF_CODE_OR_NEW) {
       // Use existing old code path
-      const nextStatus = input.to_status || this.resolveNextStatus(screen, order);
+      const nextStatus = (input.to_status ||
+        this.resolveNextStatus(screen, order)) as OrderStatus;
       const result = await WorkflowService.changeStatus({
         orderId,
         tenantId,
-        fromStatus: order.current_status || 'draft',
+        fromStatus: (order.current_status || 'draft') as OrderStatus,
         toStatus: nextStatus,
         userId,
         userName: input.user_name,
@@ -177,8 +192,9 @@ export class WorkflowServiceEnhanced {
     }
 
     // 2. Validate pre-conditions
-    const currentStatus = order.current_status || 'draft';
-    if (!contract.statuses.includes(currentStatus)) {
+    const screenContract = contract as unknown as ScreenContract;
+    const currentStatus = (order.current_status || 'draft') as OrderStatus;
+    if (!screenContract.statuses.includes(currentStatus)) {
       throw new ValidationError(
         `Order status ${currentStatus} does not match screen requirements`,
         'STATUS_MISMATCH'
@@ -186,7 +202,7 @@ export class WorkflowServiceEnhanced {
     }
 
     // 3. Permission check (application layer)
-    const requiredPermissions = contract.required_permissions || [];
+    const requiredPermissions = screenContract.required_permissions || [];
     if (requiredPermissions.length > 0) {
       const userPermissions = await this.getUserPermissions(userId, tenantId);
       const missingPermissions = requiredPermissions.filter(
@@ -244,7 +260,7 @@ export class WorkflowServiceEnhanced {
     }
 
     // 7. Complex business rules (application layer)
-    await this.validateBusinessRules(order as Order, screen, input);
+    await this.validateBusinessRules(order as unknown as Order, screen, input);
 
     // 7b. Cancel/return require reason
     if (screen === 'canceling') {
@@ -267,7 +283,8 @@ export class WorkflowServiceEnhanced {
     }
 
     // 8. Quality gates (application layer)
-    const nextStatus = input.to_status || this.resolveNextStatus(screen, order as Order);
+    const nextStatus = (input.to_status ||
+      this.resolveNextStatus(screen, order as unknown as Order)) as OrderStatus;
     if (nextStatus === 'ready') {
       const qualityCheck = await this.checkQualityGates(orderId, tenantId);
       if (!qualityCheck.passed) {
@@ -294,10 +311,11 @@ export class WorkflowServiceEnhanced {
         p_expected_updated_at: order.updated_at,
       });
 
-      if (error || !result?.ok) {
+      const cancelPayload = (result ?? null) as RpcTransitionPayload | null;
+      if (error || !cancelPayload?.ok) {
         throw new TransitionError(
-          result?.message || error?.message || 'Cancel failed',
-          result?.errors || []
+          cancelPayload?.message || error?.message || 'Cancel failed',
+          cancelPayload?.errors || []
         );
       }
       // Payment handling: cancel completed payments linked to order
@@ -319,7 +337,7 @@ export class WorkflowServiceEnhanced {
       } catch (paymentError) {
         console.warn('Payment cancel handling failed:', paymentError);
       }
-      return result;
+      return cancelPayload as TransitionResult;
     }
 
     if (screen === 'returning') {
@@ -336,10 +354,11 @@ export class WorkflowServiceEnhanced {
         p_expected_updated_at: order.updated_at,
       });
 
-      if (error || !result?.ok) {
+      const returnPayload = (result ?? null) as RpcTransitionPayload | null;
+      if (error || !returnPayload?.ok) {
         throw new TransitionError(
-          result?.message || error?.message || 'Customer return failed',
-          result?.errors || []
+          returnPayload?.message || error?.message || 'Customer return failed',
+          returnPayload?.errors || []
         );
       }
       // Refund handling: refund each completed payment (full amount)
@@ -363,7 +382,7 @@ export class WorkflowServiceEnhanced {
       } catch (paymentError) {
         console.warn('Refund handling failed:', paymentError);
       }
-      return result;
+      return returnPayload as TransitionResult;
     }
 
     const { data: result, error } = await supabase.rpc('cmx_ord_execute_transition', {
@@ -378,14 +397,15 @@ export class WorkflowServiceEnhanced {
       p_expected_updated_at: order.updated_at,
     });
 
-    if (error || !result?.ok) {
+    const execPayload = (result ?? null) as RpcTransitionPayload | null;
+    if (error || !execPayload?.ok) {
       throw new TransitionError(
-        result?.message || error?.message || 'Transition failed',
-        result?.errors || []
+        execPayload?.message || error?.message || 'Transition failed',
+        execPayload?.errors || []
       );
     }
 
-    return result;
+    return execPayload as TransitionResult;
   }
 
   /**
@@ -399,7 +419,9 @@ export class WorkflowServiceEnhanced {
     try {
       // Use existing feature flags service
       const flags = await getFeatureFlags(tenantId);
-      return flags[flagKey as keyof typeof flags] || false;
+      const raw = flags[flagKey as keyof typeof flags];
+      if (typeof raw === 'boolean') return raw;
+      return Boolean(raw);
     } catch (error) {
       console.error('Error getting feature flag:', error);
       return false; // Fail safe: default to false
@@ -429,27 +451,23 @@ export class WorkflowServiceEnhanced {
   ): Promise<string[]> {
     const supabase = await createClient();
 
-    // Get user roles and permissions
-    const { data: userRoles } = await supabase
-      .from('org_users_mst')
-      .select('roles')
+    const { data: assignments } = await supabase
+      .from('org_auth_user_roles')
+      .select('role_code')
       .eq('user_id', userId)
       .eq('tenant_org_id', tenantId)
-      .eq('is_active', true)
-      .single();
+      .eq('is_active', true);
 
-    if (!userRoles?.roles) {
-      return [];
-    }
+    const roleCodes = [...new Set((assignments ?? []).map((a) => a.role_code))];
+    if (roleCodes.length === 0) return [];
 
-    // Get permissions for roles
-    const roles = Array.isArray(userRoles.roles) ? userRoles.roles : [userRoles.roles];
-    const { data: permissions } = await supabase
-      .from('sys_rbac_permissions_cd')
-      .select('permission_key')
-      .in('role_code', roles);
+    const { data: permRows } = await supabase
+      .from('sys_auth_role_default_permissions')
+      .select('permission_code')
+      .in('role_code', roleCodes);
 
-    return permissions?.map((p) => p.permission_key) || [];
+    const codes = [...new Set((permRows ?? []).map((p) => p.permission_code))];
+    return codes;
   }
 
   /**
@@ -471,13 +489,14 @@ export class WorkflowServiceEnhanced {
         .eq('tenant_org_id', order.tenant_org_id);
 
       for (const item of items || []) {
-        const expectedPieces = item.qty || 0;
+        const expectedPieces = item.quantity ?? 0;
         const scannedPieces =
-          item.pieces?.filter((p: any) => p.scan_state === 'scanned').length || 0;
+          item.pieces?.filter((p: { scan_state?: string }) => p.scan_state === 'scanned')
+            .length || 0;
 
         if (scannedPieces < expectedPieces) {
           throw new ValidationError(
-            `Item ${item.item_name || item.id} missing ${expectedPieces - scannedPieces} pieces`,
+            `Item ${item.product_name || item.id} missing ${expectedPieces - scannedPieces} pieces`,
             'PIECES_MISSING'
           );
         }
@@ -534,10 +553,11 @@ export class WorkflowServiceEnhanced {
     const blockers: string[] = [];
 
     // Get workflow flags
-    const { data: flags } = await supabase.rpc('cmx_ord_order_workflow_flags', {
+    const { data: flagsRpc } = await supabase.rpc('cmx_ord_order_workflow_flags', {
       p_tenant_org_id: tenantId,
       p_order_id: orderId,
     });
+    const flags = flagsRpc as WorkflowFlagsPayload | null;
 
     // Check 1: All items assembled (if assembly enabled)
     if (flags?.assembly_enabled) {
@@ -573,8 +593,8 @@ export class WorkflowServiceEnhanced {
   /**
    * Resolve next status based on screen and order state
    */
-  private static resolveNextStatus(screen: string, order: Order | any): string {
-    const flags = order.workflow_flags || {};
+  private static resolveNextStatus(screen: string, order: Order | Record<string, unknown>): OrderStatus {
+    const flags = (order as { workflow_flags?: WorkflowFlagsPayload }).workflow_flags || {};
 
     switch (screen) {
       case 'preparation':
@@ -612,4 +632,3 @@ export class WorkflowServiceEnhanced {
     }
   }
 }
-

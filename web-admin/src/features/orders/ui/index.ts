@@ -24,5 +24,3 @@ export * from './PieceHistory';
 export type { PieceCardProps } from './PieceCard';
 export type { PieceListProps } from './PieceList';
 export type { OrderPiecesManagerProps } from './OrderPiecesManager';
-export { PiecesErrorBoundary } from './PiecesErrorBoundary';
-

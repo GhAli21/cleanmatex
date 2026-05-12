@@ -14,8 +14,8 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from 'recharts'
+import { ChartLegend } from '@/lib/charts/recharts-legend'
 
 interface LineChartData {
   [key: string]: string | number
@@ -65,7 +65,7 @@ export function LineChart({
             borderRadius: '6px',
           }}
         />
-        {showLegend && <Legend />}
+        {showLegend && <ChartLegend />}
         {lines.map((line) => (
           <Line
             key={line.dataKey}
