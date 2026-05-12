@@ -136,6 +136,16 @@ export class OrderPieceService {
     }));
   }
 
+  /** Attach DTL rows to one piece after a DB read/update so PATCH/GET responses match list payloads. */
+  private static async enrichSinglePieceFromDtl(
+    supabase: SupabaseClient,
+    tenantId: string,
+    piece: OrderItemPiece
+  ): Promise<OrderItemPiece> {
+    const [enriched] = await this.attachPieceLevelPreferencesFromDtl(supabase, tenantId, [piece]);
+    return enriched;
+  }
+
   /**
    * Create pieces for an order item
    * Auto-creates pieces 1..quantity for order items (pieces are always used)
@@ -823,7 +833,9 @@ export class OrderPieceService {
         return { success: false, error: 'Piece not found' };
       }
 
-      return { success: true, piece: mapOrderPieceFromDb(piece as OrderPieceDbModel) };
+      const mapped = mapOrderPieceFromDb(piece as OrderPieceDbModel);
+      const enriched = await this.enrichSinglePieceFromDtl(supabase, tenantId, mapped);
+      return { success: true, piece: enriched };
     } catch (error) {
       log.error('[OrderPieceService] Exception fetching piece', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',
@@ -1008,11 +1020,22 @@ export class OrderPieceService {
           .eq('tenant_org_id', params.tenantId)
           .single();
         if (freshPiece) {
-          return { success: true, piece: mapOrderPieceFromDb(freshPiece as OrderPieceDbModel) };
+          const mappedFresh = mapOrderPieceFromDb(freshPiece as OrderPieceDbModel);
+          const enrichedFresh = await this.enrichSinglePieceFromDtl(
+            supabase,
+            params.tenantId,
+            mappedFresh
+          );
+          return { success: true, piece: enrichedFresh };
         }
       }
 
-      return { success: true, piece: mappedPiece };
+      const enrichedPiece = await this.enrichSinglePieceFromDtl(
+        supabase,
+        params.tenantId,
+        mappedPiece
+      );
+      return { success: true, piece: enrichedPiece };
     } catch (error) {
       log.error('[OrderPieceService] Exception updating piece', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',

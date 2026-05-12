@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
@@ -13,6 +12,8 @@ import type { OrderItem } from '@/types/order';
 
 interface ItemListProps {
   orderId: string;
+  /** Server-known tenant (e.g. order.tenant_org_id). Ensures piece prefs load without waiting on client auth. */
+  tenantOrgId: string;
   branchId?: string | null;
   items: OrderItem[];
   /** When true (e.g. preparation), expand all item rows that contain pieces so prefs are visible without extra clicks. */
@@ -25,6 +26,7 @@ interface ItemListProps {
 
 export function ItemList({
   orderId,
+  tenantOrgId,
   branchId = null,
   items,
   defaultExpandAllPieces = false,
@@ -35,9 +37,8 @@ export function ItemList({
   const tPieces = useTranslations('newOrder.pieces');
   const tOrdPieces = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
-  const { currentTenant } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
-  const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
+  const { trackByPiece } = useTenantSettingsWithDefaults(tenantOrgId);
   const [busyId, setBusyId] = useState<string | null>(null);
   const itemIdsKey = items.map((i) => i.id).join('|');
   const [expandedItemIds, setExpandedItemIds] = useState<Set<string>>(new Set());
@@ -104,7 +105,7 @@ export function ItemList({
           </div>
 
           {/* Pieces Section - Expandable */}
-          {trackByPiece && currentTenant?.tenant_id && (
+          {trackByPiece && (
             <div className="mt-3 pt-3 border-t border-gray-200">
               <button
                 onClick={() => toggleItemExpansion(item.id)}
@@ -126,7 +127,7 @@ export function ItemList({
                     <OrderPiecesManager
                       orderId={orderId}
                       itemId={item.id}
-                      tenantId={currentTenant.tenant_id}
+                      tenantId={tenantOrgId}
                       branchId={branchId}
                       readOnly={false}
                       autoLoad={true}

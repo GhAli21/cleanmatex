@@ -59,6 +59,7 @@ export function FastItemizer({ order, productCatalog }: FastItemizerProps) {
 
         <ItemList
           orderId={order.id}
+          tenantOrgId={order.tenant_org_id}
           branchId={order.branch_id}
           items={items}
           defaultExpandAllPieces
