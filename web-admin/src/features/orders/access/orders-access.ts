@@ -245,6 +245,51 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
+        label: 'Order item pieces list',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Order piece update',
+        method: 'PATCH',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Piece service preferences',
+        method: 'GET',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs',
+        requirement: {
+          permissions: ['orders:read'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Piece service preferences mutate',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
+        label: 'Piece conditions replace',
+        method: 'POST',
+        path: '/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions',
+        requirement: {
+          permissions: ['orders:update'],
+          requireAllPermissions: true,
+        },
+      },
+      {
         label: 'Complete preparation',
         method: 'POST',
         path: '/api/v1/preparation/[id]/complete',

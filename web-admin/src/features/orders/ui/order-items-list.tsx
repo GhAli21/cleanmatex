@@ -32,6 +32,7 @@ interface OrderItemsListProps {
   items: OrderItem[];
   orderId?: string;
   tenantId?: string;
+  branchId?: string | null;
   trackByPiece?: boolean;
   readOnly?: boolean;
 }
@@ -40,6 +41,7 @@ export function OrderItemsList({
   items, 
   orderId,
   tenantId,
+  branchId = null,
   trackByPiece = false,
   readOnly = true 
 }: OrderItemsListProps) {
@@ -185,8 +187,11 @@ export function OrderItemsList({
                         orderId={orderId}
                         itemId={item.id}
                         tenantId={tenantId}
+                        branchId={branchId}
                         readOnly={readOnly}
                         autoLoad={true}
+                        enableBulkOperations={!readOnly}
+                        pieceDensity="compact"
                       />
                     </React.Suspense>
                   </PiecesErrorBoundary>

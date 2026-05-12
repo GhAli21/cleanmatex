@@ -11,6 +11,8 @@ import { PREFERENCE_SOURCES } from '@/lib/constants/service-preferences';
 import { logger } from '@/lib/utils/logger';
 import { OrderItemPreferenceService } from './order-item-preference.service';
 import type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
+import { getConditionPrefKind } from '@/lib/utils/condition-codes';
+import { fetchOrgPackingExtraPriceByCodesSupabase } from '@/lib/utils/org-packing-extra-price';
 
 export type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
@@ -232,6 +234,215 @@ export class OrderPiecePreferenceService {
         feature: 'order_piece_preference',
       });
       return { success: false, error: 'Failed to confirm preferences' };
+    }
+  }
+
+  /**
+   * Replace all condition-kind preference rows for a piece (stain / damage / special).
+   * `conditionCodes` are UI codes (e.g. coffee, hole) as used by StainConditionToggles.
+   */
+  static async replacePieceConditions(
+    supabase: SupabaseClient,
+    tenantId: string,
+    orderId: string,
+    orderItemId: string,
+    pieceId: string,
+    conditionCodes: string[],
+    userId: string,
+    branchId?: string | null
+  ): Promise<{ success: boolean; error?: string }> {
+    const CONDITION_KINDS = ['condition_stain', 'condition_damag', 'condition_special'] as const;
+
+    const { error: delErr } = await supabase
+      .from('org_order_preferences_dtl')
+      .delete()
+      .eq('tenant_org_id', tenantId)
+      .eq('order_item_piece_id', pieceId)
+      .eq('prefs_level', 'PIECE')
+      .in('preference_sys_kind', [...CONDITION_KINDS]);
+
+    if (delErr) {
+      logger.error('replacePieceConditions delete failed', new Error(delErr.message), {
+        tenantId,
+        pieceId,
+        feature: 'order_piece_preference',
+      });
+      return { success: false, error: delErr.message };
+    }
+
+    if (conditionCodes.length === 0) {
+      await OrderItemPreferenceService.recalcItemServicePrefCharge(supabase, tenantId, orderItemId);
+      return { success: true };
+    }
+
+    const { data: maxNo } = await supabase
+      .from('org_order_preferences_dtl')
+      .select('prefs_no')
+      .eq('tenant_org_id', tenantId)
+      .eq('order_item_piece_id', pieceId)
+      .eq('prefs_level', 'PIECE')
+      .order('prefs_no', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let prefsNo = (maxNo?.prefs_no ?? 0);
+    const rows = conditionCodes.map((code) => {
+      const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+      prefsNo += 1;
+      return {
+        tenant_org_id: tenantId,
+        order_id: orderId,
+        prefs_no: prefsNo,
+        prefs_level: 'PIECE' as const,
+        order_item_id: orderItemId,
+        order_item_piece_id: pieceId,
+        preference_code,
+        preference_sys_kind,
+        prefs_source: PREFERENCE_SOURCES.MANUAL,
+        extra_price: 0,
+        branch_id: branchId ?? null,
+        created_by: userId,
+      };
+    });
+
+    const { error: insErr } = await supabase.from('org_order_preferences_dtl').insert(rows);
+    if (insErr) {
+      logger.error('replacePieceConditions insert failed', new Error(insErr.message), {
+        tenantId,
+        pieceId,
+        feature: 'order_piece_preference',
+      });
+      return { success: false, error: insErr.message };
+    }
+
+    await OrderItemPreferenceService.recalcItemServicePrefCharge(supabase, tenantId, orderItemId);
+    return { success: true };
+  }
+
+  /**
+   * Replace piece-level packing in `org_order_preferences_dtl` (`preference_sys_kind = packing_prefs`)
+   * and keep `org_order_item_pieces_dtl.packing_pref_code` in sync (denormalized / legacy screens).
+   * Canonical preference facts live in DTL per preferences-architecture-reference.md.
+   */
+  static async replacePiecePacking(
+    supabase: SupabaseClient,
+    tenantId: string,
+    orderId: string,
+    orderItemId: string,
+    pieceId: string,
+    packingPrefCode: string | null,
+    userId: string,
+    preferenceCfId?: string | null
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error: delErr } = await supabase
+        .from('org_order_preferences_dtl')
+        .delete()
+        .eq('tenant_org_id', tenantId)
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
+        .eq('preference_sys_kind', 'packing_prefs');
+
+      if (delErr) {
+        logger.error('replacePiecePacking delete failed', new Error(delErr.message), {
+          tenantId,
+          pieceId,
+          feature: 'order_piece_preference',
+        });
+        return { success: false, error: delErr.message };
+      }
+
+      const codeNorm = packingPrefCode?.trim() ? packingPrefCode.trim() : null;
+
+      const { error: pieceUpdErr } = await supabase
+        .from('org_order_item_pieces_dtl')
+        .update({ packing_pref_code: codeNorm })
+        .eq('tenant_org_id', tenantId)
+        .eq('id', pieceId);
+
+      if (pieceUpdErr) {
+        logger.error('replacePiecePacking piece row update failed', new Error(pieceUpdErr.message), {
+          tenantId,
+          pieceId,
+          feature: 'order_piece_preference',
+        });
+        return { success: false, error: pieceUpdErr.message };
+      }
+
+      if (!codeNorm) {
+        await this.recalcPieceServicePrefCharge(supabase, tenantId, pieceId);
+        await OrderItemPreferenceService.recalcItemServicePrefCharge(supabase, tenantId, orderItemId);
+        return { success: true };
+      }
+
+      const priceMap = await fetchOrgPackingExtraPriceByCodesSupabase(supabase, tenantId, [codeNorm]);
+      const packExtra = priceMap.get(codeNorm) ?? 0;
+
+      let prefId = preferenceCfId ?? null;
+      if (!prefId) {
+        const { data: cf } = await supabase
+          .from('org_packing_preference_cf')
+          .select('id')
+          .eq('tenant_org_id', tenantId)
+          .eq('packing_pref_code', codeNorm)
+          .maybeSingle();
+        prefId = cf?.id ?? null;
+      }
+
+      const { data: ord } = await supabase
+        .from('org_orders_mst')
+        .select('branch_id')
+        .eq('id', orderId)
+        .eq('tenant_org_id', tenantId)
+        .maybeSingle();
+
+      const { data: maxNo } = await supabase
+        .from('org_order_preferences_dtl')
+        .select('prefs_no')
+        .eq('tenant_org_id', tenantId)
+        .eq('order_item_piece_id', pieceId)
+        .eq('prefs_level', 'PIECE')
+        .order('prefs_no', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const prefsNo = (maxNo?.prefs_no ?? 0) + 1;
+
+      const { error: insErr } = await supabase.from('org_order_preferences_dtl').insert({
+        tenant_org_id: tenantId,
+        order_id: orderId,
+        prefs_no: prefsNo,
+        prefs_level: 'PIECE',
+        order_item_id: orderItemId,
+        order_item_piece_id: pieceId,
+        preference_code: codeNorm,
+        preference_sys_kind: 'packing_prefs',
+        prefs_source: PREFERENCE_SOURCES.MANUAL,
+        extra_price: packExtra,
+        branch_id: ord?.branch_id ?? null,
+        created_by: userId,
+        ...(prefId ? { preference_id: prefId } : {}),
+      });
+
+      if (insErr) {
+        logger.error('replacePiecePacking insert failed', new Error(insErr.message), {
+          tenantId,
+          pieceId,
+          feature: 'order_piece_preference',
+        });
+        return { success: false, error: insErr.message };
+      }
+
+      await this.recalcPieceServicePrefCharge(supabase, tenantId, pieceId);
+      await OrderItemPreferenceService.recalcItemServicePrefCharge(supabase, tenantId, orderItemId);
+      return { success: true };
+    } catch (err) {
+      logger.error(
+        'OrderPiecePreferenceService.replacePiecePacking failed',
+        err instanceof Error ? err : new Error(String(err)),
+        { tenantId, pieceId, feature: 'order_piece_preference' }
+      );
+      return { success: false, error: 'Failed to update piece packing preference' };
     }
   }
 

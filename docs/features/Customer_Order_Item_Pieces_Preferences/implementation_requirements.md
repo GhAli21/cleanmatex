@@ -1,6 +1,6 @@
 ---
-version: v1.2.0
-last_updated: 2026-05-11
+version: v1.3.0
+last_updated: 2026-05-12
 author: CleanMateX Team
 ---
 
@@ -8,14 +8,17 @@ author: CleanMateX Team
 
 Feature implementation checklist per PRD rules. **Runtime architecture** (tables, owner/source fields, APIs): [preferences-architecture-reference.md](../../dev/preferences-architecture-reference.md).
 
+**Preparation / workflow piece prefs (completed 2026-05-12):** see [preparation-workflow-ui-status.md](./preparation-workflow-ui-status.md).
+
 ## Permissions
 
 - Existing: `orders:service_prefs_view`, `orders:service_prefs_edit`, `config:preferences_manage`, `customers:preferences_manage`
-- No new permissions for unified preferences
+- Piece-level edits on existing orders use **`orders:read`** / **`orders:update`** (and related order routes) — see `docs/platform/permissions/PERMISSIONS_BY_API.md` (piece PATCH, piece service-prefs, **piece conditions POST**).
 
 ## Navigation Tree
 
-- No new screens; preferences UI is within New Order (Order Details tab) and Edit Order
+- No new **top-level** nav entries for unified prefs; preferences UI is within New Order (Order Details tab) and Edit Order
+- **Preparation** (`/dashboard/preparation`, `/dashboard/preparation/[orderId]`): itemization + **piece preferences editor** (service, packing, conditions) aligned with DTL; contract-linked APIs documented under `orders-access` preparation details
 - Customer/Order/Item/Pieces panel: bottom-left of New Order screen
 
 ## Tenant Settings
@@ -43,8 +46,10 @@ Feature implementation checklist per PRD rules. **Runtime architecture** (tables
 
 ## API Routes
 
-- No new routes; existing order item/piece service-prefs and preference resolution endpoints use `org_order_preferences_dtl`
-- **`GET /api/v1/preferences/last-order`** response shape includes optional catalog FK fields after RPC migration **0260** (`packing_pref_cf_id`, `service_prefs_catalog`).
+- **Existing** order item/piece **service-prefs** and preference resolution endpoints use `org_order_preferences_dtl`
+- **`POST /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions`** — replace piece condition rows (stain/damage/special UI codes → DTL); requires `orders:update`
+- **`PATCH /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]`** — when body includes **`packing_pref_code`** (and optional **`packing_pref_cf_id`**), server syncs **PIECE** **`packing_prefs`** rows in **`org_order_preferences_dtl`** via `OrderPiecePreferenceService.replacePiecePacking` (canonical packing facts; piece row column updated for denormalization)
+- **`GET /api/v1/preferences/last-order`** response shape includes optional catalog FK fields after RPC migration **0260** (`packing_pref_cf_id`, `service_prefs_catalog`)
 
 ## Migrations
 

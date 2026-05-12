@@ -9,7 +9,8 @@ import * as React from 'react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { PieceStatusBadge } from './PieceStatusBadge';
-import { CmxCard, CmxInput, CmxTextarea, CmxCheckbox } from '@ui/primitives';
+import { PiecePreferencesEditorDialog } from './piece-preferences-editor-dialog';
+import { CmxCard, CmxInput, CmxTextarea, CmxCheckbox, CmxButton } from '@ui/primitives';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownContent,
@@ -27,6 +28,18 @@ export interface PieceCardProps {
   isSelectedForSplit?: boolean;
   onSplitToggle?: (pieceId: string, selected: boolean) => void;
   rejectColor?: string;
+  /** Bulk rack/step toolbar: show selection checkbox */
+  bulkSelectMode?: boolean;
+  isBulkSelected?: boolean;
+  onBulkSelectToggle?: (pieceId: string, selected: boolean) => void;
+  /** For preferences dialog */
+  orderId?: string;
+  orderItemId?: string;
+  branchId?: string | null;
+  /** Called after preferences save (reload pieces + price preview) */
+  onPreferencesSaved?: () => void | Promise<void>;
+  /** Tighter layout for long piece lists */
+  density?: 'comfortable' | 'compact';
 }
 
 const PROCESSING_STEPS = [
@@ -37,6 +50,12 @@ const PROCESSING_STEPS = [
   { value: 'finishing', labelKey: 'steps.finishing' },
 ];
 
+function formatPieceCodeDisplay(code: string): { short: string; full: string } {
+  const full = code.trim();
+  if (full.length <= 14) return { short: full, full };
+  return { short: `…${full.slice(-8)}`, full };
+}
+
 const PieceCardComponent = function PieceCard({
   piece,
   onUpdate,
@@ -45,11 +64,21 @@ const PieceCardComponent = function PieceCard({
   isSelectedForSplit = false,
   onSplitToggle,
   rejectColor = '#10B981',
+  bulkSelectMode = false,
+  isBulkSelected = false,
+  onBulkSelectToggle,
+  orderId,
+  orderItemId,
+  branchId,
+  onPreferencesSaved,
+  density = 'comfortable',
 }: PieceCardProps) {
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
+  const [prefsOpen, setPrefsOpen] = React.useState(false);
+  const pad = density === 'compact' ? 'p-3' : 'p-4';
 
-  const handleChange = (field: keyof OrderItemPiece, value: any) => {
+  const handleChange = (field: keyof OrderItemPiece, value: unknown) => {
     if (!readOnly && onUpdate) {
       onUpdate(piece.id, { [field]: value } as Partial<OrderItemPiece>);
     }
@@ -61,9 +90,11 @@ const PieceCardComponent = function PieceCard({
     }
   };
 
+  const codeDisplay = piece.piece_code ? formatPieceCodeDisplay(piece.piece_code) : null;
+
   return (
     <CmxCard
-      className={`p-4 ${
+      className={`${pad} ${
         piece.is_rejected
           ? 'border-l-4'
           : 'border'
@@ -74,25 +105,85 @@ const PieceCardComponent = function PieceCard({
       }}
     >
       {/* Header */}
-      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between mb-3`}>
-        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2`}>
-          <span className="font-medium text-sm text-gray-700">
+      <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between mb-3 gap-2`}>
+        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2 min-w-0 flex-1`}>
+          {bulkSelectMode && !readOnly && (
+            <CmxCheckbox
+              checked={isBulkSelected}
+              onChange={(e) => onBulkSelectToggle?.(piece.id, e.target.checked)}
+              label=""
+              aria-label={t('bulkSelectPiece', { seq: piece.piece_seq })}
+            />
+          )}
+          <span className="font-medium text-sm text-gray-700 shrink-0">
             {t('piece')} {piece.piece_seq}
           </span>
-          {piece.piece_code && (
-            <span className="text-xs text-gray-500">({piece.piece_code})</span>
+          {codeDisplay && (
+            <span
+              className="text-xs text-gray-500 truncate min-w-0"
+              title={codeDisplay.full}
+            >
+              ({codeDisplay.short})
+            </span>
           )}
         </div>
-        <PieceStatusBadge
-          status={piece.piece_status}
-          isRejected={piece.is_rejected || false}
-        />
+        <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center gap-2 shrink-0`}>
+          {!readOnly && orderId && orderItemId && onPreferencesSaved && (
+            <>
+              <CmxButton type="button" variant="outline" size="sm" onClick={() => setPrefsOpen(true)}>
+                {t('editPreferences')}
+              </CmxButton>
+              <PiecePreferencesEditorDialog
+                open={prefsOpen}
+                onOpenChange={setPrefsOpen}
+                orderId={orderId}
+                orderItemId={orderItemId}
+                piece={piece}
+                branchId={branchId}
+                onSaved={() => onPreferencesSaved()}
+              />
+            </>
+          )}
+          <PieceStatusBadge
+            status={piece.piece_status}
+            isRejected={piece.is_rejected || false}
+          />
+        </div>
       </div>
+
+      {(piece.service_prefs?.length || piece.conditions?.length || piece.packing_pref_code) ? (
+        <div
+          className={`flex flex-wrap gap-1 mb-3 ${isRTL ? 'justify-end' : 'justify-start'}`}
+          aria-label={t('prefSummaryAria')}
+        >
+          {piece.packing_pref_code && (
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+              {piece.packing_pref_code.replace(/_/g, ' ')}
+            </span>
+          )}
+          {(piece.service_prefs ?? []).map((p) => (
+            <span
+              key={p.preference_code}
+              className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-800 border border-blue-100"
+            >
+              {p.preference_code.replace(/_/g, ' ')}
+            </span>
+          ))}
+          {(piece.conditions ?? []).map((c) => (
+            <span
+              key={c}
+              className="text-[11px] px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-100"
+            >
+              {c.replace(/_/g, ' ')}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       {/* Content Grid */}
       <div className="grid grid-cols-12 gap-3">
         {/* Processing Step */}
-        <div className="col-span-3">
+        <div className="col-span-12 sm:col-span-3 min-w-0">
           <label className="block text-xs font-medium text-gray-700 mb-1">
             {t('step')}
           </label>
@@ -107,7 +198,7 @@ const PieceCardComponent = function PieceCard({
               value={piece.last_step || ''}
               onValueChange={(value) => handleChange('last_step', value)}
             >
-              <CmxSelectDropdownTrigger className="h-9">
+              <CmxSelectDropdownTrigger className="h-9 w-full min-w-0">
                 <CmxSelectDropdownValue
                   placeholder={t('selectStep')}
                   displayValue={piece.last_step ? t(`steps.${piece.last_step}`) || piece.last_step : undefined}
@@ -125,7 +216,7 @@ const PieceCardComponent = function PieceCard({
         </div>
 
         {/* Ready Status */}
-        <div className="col-span-2 flex items-end pb-1">
+        <div className="col-span-12 sm:col-span-2 flex items-end pb-1">
           <CmxCheckbox
             checked={piece.piece_status === 'ready'}
             onChange={(e) =>
@@ -138,7 +229,7 @@ const PieceCardComponent = function PieceCard({
 
         {/* Split Checkbox */}
         {showSplitCheckbox && (
-          <div className="col-span-2 flex items-end pb-1">
+          <div className="col-span-12 sm:col-span-2 flex items-end pb-1">
             <CmxCheckbox
               checked={isSelectedForSplit}
               onChange={(e) => handleSplitChange(e.target.checked)}
@@ -149,7 +240,7 @@ const PieceCardComponent = function PieceCard({
         )}
 
         {/* Notes */}
-        <div className={showSplitCheckbox ? 'col-span-3' : 'col-span-5'}>
+        <div className={`col-span-12 ${showSplitCheckbox ? 'sm:col-span-3' : 'sm:col-span-5'} min-w-0`}>
           <label className="block text-xs font-medium text-gray-700 mb-1">
             {t('notes')}
           </label>
@@ -162,14 +253,14 @@ const PieceCardComponent = function PieceCard({
               value={piece.notes || ''}
               onChange={(e) => handleChange('notes', e.target.value)}
               placeholder={t('notesPlaceholder')}
-              className="h-9 resize-none text-sm"
+              className="h-9 resize-none text-sm w-full min-w-0"
               rows={1}
             />
           )}
         </div>
 
         {/* Rack Location */}
-        <div className="col-span-2">
+        <div className="col-span-12 sm:col-span-2 min-w-0">
           <label className="block text-xs font-medium text-gray-700 mb-1">
             {t('rackLocation')}
           </label>
@@ -182,7 +273,7 @@ const PieceCardComponent = function PieceCard({
               value={piece.rack_location || ''}
               onChange={(e) => handleChange('rack_location', e.target.value)}
               placeholder={t('rackLocationPlaceholder')}
-              className="h-9 text-sm"
+              className="h-9 text-sm w-full min-w-0"
             />
           )}
         </div>
@@ -192,25 +283,40 @@ const PieceCardComponent = function PieceCard({
       {(piece.color || piece.brand || piece.has_stain || piece.has_damage) && (
         <div className="mt-3 pt-3 border-t text-xs text-gray-500">
           {piece.color && <span>{t('color')}: {typeof piece.color === 'object' ? (piece.color as { primary?: string })?.primary ?? '' : piece.color}</span>}
-          {piece.brand && <span className="ml-2">{t('brand')}: {piece.brand}</span>}
-          {piece.has_stain && <span className="ml-2">{t('hasStain')}</span>}
-          {piece.has_damage && <span className="ml-2">{t('hasDamage')}</span>}
+          {piece.brand && <span className="ms-2">{t('brand')}: {piece.brand}</span>}
+          {piece.has_stain && <span className="ms-2">{t('hasStain')}</span>}
+          {piece.has_damage && <span className="ms-2">{t('hasDamage')}</span>}
         </div>
       )}
     </CmxCard>
   );
 };
 
+function prefsSignature(piece: OrderItemPiece): string {
+  return JSON.stringify({
+    s: piece.service_prefs,
+    c: piece.conditions,
+    p: piece.packing_pref_code,
+  });
+}
+
 export const PieceCard = React.memo(PieceCardComponent, (prevProps, nextProps) => {
-  // Custom comparison function for performance
   return (
     prevProps.piece.id === nextProps.piece.id &&
     prevProps.piece.piece_status === nextProps.piece.piece_status &&
     prevProps.piece.is_rejected === nextProps.piece.is_rejected &&
     prevProps.piece.rack_location === nextProps.piece.rack_location &&
     prevProps.piece.last_step === nextProps.piece.last_step &&
+    prevProps.piece.notes === nextProps.piece.notes &&
+    prevProps.piece.piece_code === nextProps.piece.piece_code &&
+    prevProps.piece.packing_pref_code === nextProps.piece.packing_pref_code &&
+    prefsSignature(prevProps.piece) === prefsSignature(nextProps.piece) &&
     prevProps.isSelectedForSplit === nextProps.isSelectedForSplit &&
-    prevProps.readOnly === nextProps.readOnly
+    prevProps.isBulkSelected === nextProps.isBulkSelected &&
+    prevProps.bulkSelectMode === nextProps.bulkSelectMode &&
+    prevProps.readOnly === nextProps.readOnly &&
+    prevProps.density === nextProps.density &&
+    prevProps.orderId === nextProps.orderId &&
+    prevProps.orderItemId === nextProps.orderItemId
   );
 });
-

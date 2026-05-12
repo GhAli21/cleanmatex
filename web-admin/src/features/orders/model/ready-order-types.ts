@@ -1,3 +1,5 @@
+import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
+
 export interface PaymentSummary {
   status: string;
   total: number;
@@ -29,6 +31,8 @@ export interface ReadyOrderCustomer {
 export interface ReadyOrder {
   id: string;
   orderNo: string;
+  /** From `org_orders_mst.branch_id` — piece preference catalog scoping */
+  branchId?: string | null;
   customer: ReadyOrderCustomer;
   items: ReadyOrderItem[];
   total: number;
@@ -42,6 +46,8 @@ export interface ReadyOrder {
 
 export interface ReadyOrderStateResponse {
   success: boolean;
+  /** Legacy/alternate wrapper shape */
+  data?: { order?: any };
   order?: any;
   items?: any[];
   paymentSummary?: PaymentSummary;
@@ -65,11 +71,14 @@ export interface ReadyOrderStateResponse {
 export function mapReadyOrderFromStateResponse(
   response: ReadyOrderStateResponse,
 ): ReadyOrder | null {
-  if (!response.success || !response.order) {
+  const rawOrder = getOrderFromStateResponse(
+    response as Parameters<typeof getOrderFromStateResponse>[0],
+  );
+  if (!rawOrder) {
     return null;
   }
 
-  const raw: any = response.order;
+  const raw: any = rawOrder;
   const cust = raw.org_customers_mst || raw.customer;
   const sysCust = cust?.sys_customers_mst;
 
@@ -78,12 +87,14 @@ export function mapReadyOrderFromStateResponse(
     phone: sysCust?.phone || cust?.phone || '',
   };
 
-  const items: ReadyOrderItem[] = (response.items || []).map((it: any) => ({
-    id: String(it.id),
-    productName: it.product_name || it.org_product_data_mst?.product_name || 'Item',
-    quantity: Number(it.quantity ?? 0),
-    totalPrice: Number(it.total_price ?? 0),
-  }));
+  const items: ReadyOrderItem[] = ((response.items ?? (response as any).data?.items) || []).map(
+    (it: any) => ({
+      id: String(it.id),
+      productName: it.product_name || it.org_product_data_mst?.product_name || 'Item',
+      quantity: Number(it.quantity ?? 0),
+      totalPrice: Number(it.total_price ?? 0),
+    }),
+  );
 
   const totalVal = Number(raw.total ?? raw.total_amount ?? 0);
 
@@ -105,6 +116,7 @@ export function mapReadyOrderFromStateResponse(
   return {
     id: String(raw.id),
     orderNo: raw.order_no || '',
+    branchId: raw.branch_id ?? null,
     customer,
     items,
     total: totalVal,

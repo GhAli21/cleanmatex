@@ -425,7 +425,7 @@ export default function CmxSidebar() {
                           <ul className="space-y-0.5 py-1" role="group">
                             {section.children!.map((child) => {
                               const ChildIcon = getChildIcon(child.key)
-                              const childActive = pathname === child.path
+                              const childActive = isPathActive(pathname, child.path)
                               return (
                                 <li key={child.key} role="none">
                                   <Link
@@ -497,7 +497,7 @@ export default function CmxSidebar() {
                           <ul className="mt-0.5 ms-2 space-y-0.5 border-s border-gray-200 ps-2">
                             {section.children!.map((child) => {
                               const ChildIcon = getChildIcon(child.key)
-                              const childActive = pathname === child.path
+                              const childActive = isPathActive(pathname, child.path)
                               return (
                                 <li key={child.key}>
                                   <Link

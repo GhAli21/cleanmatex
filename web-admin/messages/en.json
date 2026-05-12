@@ -1621,6 +1621,15 @@
       "brand": "Brand",
       "hasStain": "Has stain",
       "hasDamage": "Has damage",
+      "editPreferences": "Preferences",
+      "preferencesDialogTitle": "Piece {seq} preferences",
+      "preferencesDialogHint": "Changes apply to this piece only and update pricing when service extras apply.",
+      "preferencesSaved": "Preferences saved",
+      "preferencesSaveFailed": "Could not save preferences",
+      "savePreferences": "Save",
+      "conditionsSection": "Conditions & stains",
+      "prefSummaryAria": "Preference summary",
+      "bulkSelectPiece": "Select piece {seq} for bulk actions",
       "status": {
         "intake": "Intake",
         "processing": "Processing",
@@ -2932,6 +2941,26 @@
       "description": "Quick Drop orders requiring itemization",
       "empty": "No orders in preparation",
       "bags": "{count} bags",
+      "pricePreview": {
+        "regionAria": "Order price preview",
+        "items": "Items",
+        "subtotal": "Subtotal",
+        "tax": "Tax",
+        "total": "Total"
+      },
+      "list": {
+        "searchPlaceholder": "Search order #, customer, phone…",
+        "sortBy": "Sort by",
+        "sortDirection": "Direction",
+        "sortOrderNo": "Order #",
+        "sortReceivedAt": "Received date",
+        "sortAsc": "Ascending",
+        "sortDesc": "Descending"
+      },
+      "detail": {
+        "summaryTitle": "Order summary",
+        "bagsLabel": "Bags"
+      },
       "workflowContextTitle": "Workflow context",
       "workflowFlags": {
         "assemblyEnabled": "Assembly enabled",

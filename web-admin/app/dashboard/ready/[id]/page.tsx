@@ -244,8 +244,10 @@ export default function ReadyDetailPage() {
                               orderId={orderId}
                               itemId={item.id}
                               tenantId={currentTenant.tenant_id}
+                              branchId={order?.branchId}
                               readOnly={true}
                               autoLoad={true}
+                              pieceDensity="compact"
                             />
                           </PiecesErrorBoundary>
                         </div>

@@ -24,6 +24,7 @@ import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 
 interface ProcessingItem {
   id: string;
@@ -36,6 +37,7 @@ interface ProcessingItem {
 interface ProcessingOrder {
   id: string;
   order_no: string;
+  branch_id?: string | null;
   status?: string;
   customer: {
     name: string;
@@ -82,12 +84,32 @@ export default function ProcessingDetailPage() {
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
-      if (json.success && json.data?.order) {
-        setOrder(json.data.order);
-        setRackLocation(json.data.order.rack_location || '');
-      } else {
+      const rawOrder = getOrderFromStateResponse(json);
+      if (!rawOrder || typeof rawOrder !== 'object') {
         setError(json.error || t('error.loadingFailed') || 'Failed to load order');
+        return;
       }
+      const raw = rawOrder as Record<string, unknown>;
+      const items: ProcessingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
+        id: String(item.id),
+        product_name:
+          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
+          (item.product_name as string) ||
+          'Unknown Product',
+        quantity: Number(item.quantity ?? 0),
+        item_status: (item.item_status as string) || (item.item_last_step as string) || 'pending',
+        item_last_step: (item.item_last_step as string) || 'sorting',
+      }));
+      setOrder({
+        id: String(raw.id),
+        order_no: String(raw.order_no ?? ''),
+        branch_id: (raw.branch_id as string | null | undefined) ?? null,
+        status: (raw.current_status as string) || (raw.status as string),
+        customer: mapOrderCustomerFromStateRow(raw),
+        items,
+        rack_location: String(raw.rack_location ?? ''),
+      });
+      setRackLocation(String(raw.rack_location ?? ''));
     } catch (err: any) {
       setError(err.message || t('error.loadingFailed') || 'Failed to load order');
     } finally {
@@ -461,8 +483,11 @@ export default function ProcessingDetailPage() {
                               orderId={orderId}
                               itemId={item.id}
                               tenantId={currentTenant.tenant_id}
+                              branchId={order?.branch_id}
                               readOnly={false}
                               autoLoad={true}
+                              enableBulkOperations
+                              pieceDensity="compact"
                               onUpdate={loadOrder}
                             />
                           </PiecesErrorBoundary>

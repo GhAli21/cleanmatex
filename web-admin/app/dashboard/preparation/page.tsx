@@ -6,13 +6,21 @@
 
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { useAuth } from '@/lib/auth/auth-context';
 import Link from 'next/link';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { CmxKpiStatCard } from '@ui/data-display/cmx-kpi-stat-card';
+import { CmxInput, CmxButton } from '@ui/primitives';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+} from '@ui/forms';
 import { Package, ShoppingBag } from 'lucide-react';
 
 interface PreparationOrder {
@@ -37,9 +45,23 @@ interface PreparationOrder {
 
 export default function PreparationPage() {
   const t = useTranslations('workflow');
+  const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const useNewWorkflowSystem = useWorkflowSystemMode();
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [sortBy, setSortBy] = useState<'order_no' | 'received_at'>('received_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  useEffect(() => {
+    const h = window.setTimeout(() => setDebouncedSearch(searchInput.trim()), 350);
+    return () => window.clearTimeout(h);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, sortBy, sortOrder]);
 
   const { orders, pagination, isLoading, error } = useScreenOrders<PreparationOrder>('preparation', {
     page,
@@ -47,6 +69,9 @@ export default function PreparationPage() {
     enabled: !!currentTenant,
     useOldWfCodeOrNew: useNewWorkflowSystem,
     fallbackStatuses: ['intake', 'preparing'],
+    search: debouncedSearch || undefined,
+    sortBy,
+    sortOrder,
   });
 
   const totalBags = useMemo(() => {
@@ -79,6 +104,55 @@ export default function PreparationPage() {
           value={totalBags}
           icon={<ShoppingBag className="h-5 w-5" />}
         />
+      </div>
+
+      <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-end md:flex-wrap">
+        <div className="flex-1 min-w-[200px]">
+          <CmxInput
+            label={tCommon('search')}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder={t('preparation.list.searchPlaceholder')}
+          />
+        </div>
+        <div className="w-full md:w-44 space-y-1">
+          <p id="prep-sort-by-label" className="text-xs font-medium text-gray-600">
+            {t('preparation.list.sortBy')}
+          </p>
+          <CmxSelectDropdown value={sortBy} onValueChange={(v) => setSortBy(v as 'order_no' | 'received_at')}>
+            <CmxSelectDropdownTrigger className="w-full" aria-labelledby="prep-sort-by-label">
+              <CmxSelectDropdownValue
+                displayValue={
+                  sortBy === 'order_no'
+                    ? t('preparation.list.sortOrderNo')
+                    : t('preparation.list.sortReceivedAt')
+                }
+              />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="order_no">{t('preparation.list.sortOrderNo')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="received_at">{t('preparation.list.sortReceivedAt')}</CmxSelectDropdownItem>
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
+        </div>
+        <div className="w-full md:w-40 space-y-1">
+          <p id="prep-sort-dir-label" className="text-xs font-medium text-gray-600">
+            {t('preparation.list.sortDirection')}
+          </p>
+          <CmxSelectDropdown value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
+            <CmxSelectDropdownTrigger className="w-full" aria-labelledby="prep-sort-dir-label">
+              <CmxSelectDropdownValue
+                displayValue={
+                  sortOrder === 'asc' ? t('preparation.list.sortAsc') : t('preparation.list.sortDesc')
+                }
+              />
+            </CmxSelectDropdownTrigger>
+            <CmxSelectDropdownContent>
+              <CmxSelectDropdownItem value="asc">{t('preparation.list.sortAsc')}</CmxSelectDropdownItem>
+              <CmxSelectDropdownItem value="desc">{t('preparation.list.sortDesc')}</CmxSelectDropdownItem>
+            </CmxSelectDropdownContent>
+          </CmxSelectDropdown>
+        </div>
       </div>
 
       {error && (
@@ -139,25 +213,25 @@ export default function PreparationPage() {
 
       {pagination.totalPages > 1 && (
         <div className="mt-6 flex items-center justify-between">
-          <button
+          <CmxButton
             type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            variant="outline"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             {t('labels.previous')}
-          </button>
+          </CmxButton>
           <div className="text-sm text-gray-600">
             {t('labels.pageOf', { page: pagination.page, totalPages: pagination.totalPages })}
           </div>
-          <button
+          <CmxButton
             type="button"
-            className="px-3 py-2 rounded border border-gray-200 bg-white disabled:opacity-50"
+            variant="outline"
             disabled={page >= pagination.totalPages}
             onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
           >
             {t('labels.next')}
-          </button>
+          </CmxButton>
         </div>
       )}
     </div>

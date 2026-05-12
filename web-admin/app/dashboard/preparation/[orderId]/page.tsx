@@ -61,6 +61,37 @@ async function PreparationContent({
         </div>
       </div>
 
+      <section
+        className="rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700"
+        aria-label={tWorkflow('preparation.detail.summaryTitle')}
+      >
+        <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
+          {tWorkflow('preparation.detail.summaryTitle')}
+        </h2>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div>
+            <dt className="text-gray-500">{tWorkflow('labels.customer')}</dt>
+            <dd className="font-medium text-gray-900">{order.customer?.name ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">{tWorkflow('labels.phone')}</dt>
+            <dd className="font-medium text-gray-900">{order.customer?.phone ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">{tWorkflow('labels.received')}</dt>
+            <dd className="font-medium text-gray-900">
+              {order.received_at
+                ? new Date(order.received_at as unknown as string).toLocaleString()
+                : '—'}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-gray-500">{tWorkflow('preparation.detail.bagsLabel')}</dt>
+            <dd className="font-medium text-gray-900">{order.bag_count}</dd>
+          </div>
+        </dl>
+      </section>
+
       <FastItemizer order={order} productCatalog={productCatalog} />
     </div>
   );

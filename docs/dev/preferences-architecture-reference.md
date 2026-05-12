@@ -1,6 +1,6 @@
 ---
-version: 1.5.2
-last_updated: 2026-05-11
+version: 1.5.3
+last_updated: 2026-05-12
 authority: Canonical — use this doc when working on order/piece/catalog preferences (web-admin, APIs, migrations)
 remote_db_checked: Production Supabase MCP (information_schema + sys_preference_kind_cd + distinct preference_sys_kind + org_order_preferences_dtl shape sampling)
 ---
@@ -193,6 +193,17 @@ These columns describe **scope** (where the preference applies), **custody** (wh
 - **`preference_id`** may be **NULL** on older rows or paths that only stored codes. **Current New Order / edit / repeat-last flows** should populate it when the tenant catalog row is known: **`preference_sys_kind = service_prefs`** → **`org_service_preference_cf.id`**; **`color`** → same **`org_service_preference_cf.id`** (color options live in the merged service catalog); **`packing_prefs`** → **`org_packing_preference_cf.id`**. Reports and joins can still fall back to **`preference_code`** + tenant + **`preference_sys_kind`** when **`preference_id`** is null.
 - **`prefs_source`** can differ on the same piece (`manual` vs `ORDER_CREATE`) depending on UX path.
 
+### 6.3 Preparation & workflow piece editing (web-admin)
+
+**Shipped 2026-05-12** — detailed plan, file map, and API notes: **`docs/features/Customer_Order_Item_Pieces_Preferences/preparation-workflow-ui-status.md`**.
+
+- **Reads:** **`OrderPieceService.getPiecesByItem`** attaches DTL-backed prefs (parity with order-scoped piece lists).
+- **Writes (existing orders / operator flows):**
+  - **Service prefs** — existing piece **service-prefs** APIs → **`org_order_preferences_dtl`** (`service_prefs`, etc.).
+  - **Packing** — **`PATCH /api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]`** with **`packing_pref_code`** / optional **`packing_pref_cf_id`** → **`OrderPiecePreferenceService.replacePiecePacking`** → **`packing_prefs`** rows at **PIECE** level; piece-row **`packing_pref_code`** updated as **denormalized** convenience (§7).
+  - **Conditions** (stain / damage / special UI) — **`POST .../pieces/[pieceId]/conditions`** → rows keyed by **`preference_sys_kind`** per **`web-admin/lib/utils/condition-codes.ts`** (§9).
+- **Order payload shape:** workflow screens consume **`GET /api/v1/orders/[id]/state`** via **`getOrderFromStateResponse`** (`web-admin/lib/utils/order-state-response.ts`) so both top-level **`order`** and legacy nested shapes behave consistently.
+
 ---
 
 ## 7. Item / piece tables — operational only (not preference authority)
@@ -308,6 +319,7 @@ See **`docs/platform/permissions/PERMISSIONS_BY_API.md`** — catalog GETs commo
 4. **Downstream surfaces** (Processing, receipts, HQ) **resolve preference display from `org_order_preferences_dtl`**; ignore piece/item duplicated pref fields unless a legacy screen still depends on them.
 5. **Repeat Last Order** RPC / API changes: update **`PreferenceResolutionService.getLastOrderPreferences`** and **`RepeatLastOrderPanel`** together; document in **`preferences-architecture-reference.md`** §8.4.
 6. **Surcharge display (wizard + summary):** if New Order UX for labels or totals changes for **service** prefs, mirror for **packing** (§8.3): dropdown options, **`PreferenceChip`**, **`SummaryCartItem`** teal chips — keep **`pieceToSelectedPreferences`** and catalog maps aligned.
+7. **Preparation / workflow piece editor:** if changing piece PATCH packing or conditions POST, update **`OrderPiecePreferenceService`**, **`PERMISSIONS_BY_API.md`**, and **`preparation-workflow-ui-status.md`** together (§6.3).
 
 ---
 
@@ -317,6 +329,7 @@ See **`docs/platform/permissions/PERMISSIONS_BY_API.md`** — catalog GETs commo
 |-------|-----|
 | **Unified migrations 0165–0169** (apply order, rollback, post-migration checks) | `docs/dev/preferences-unified-migrations-0165-0169.md` |
 | Customer prefs feature intro + overview diagram | `docs/features/Customer_Order_Item_Pieces_Preferences/README.md` |
+| Preparation / workflow piece UI — plan status & checklist | `docs/features/Customer_Order_Item_Pieces_Preferences/preparation-workflow-ui-status.md` |
 | Permissions, flags, routes checklist (PRD-style) | `docs/features/Customer_Order_Item_Pieces_Preferences/implementation_requirements.md` |
 | Compact table glossary (catalogs + tenant + order tables) | `docs/features/Order_Service_Preferences/technical_docs/tech_data_model.md` |
 | Developer file map (APIs, services, flows) | `docs/features/Order_Service_Preferences/developer_guide.md` |

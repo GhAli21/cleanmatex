@@ -850,6 +850,7 @@ export function OrderDetailsFullClient({
             items={items}
             orderId={order.id as string}
             tenantId={tenantId}
+            branchId={(order as { branch_id?: string | null }).branch_id}
             trackByPiece={trackByPiece}
             readOnly
           />

@@ -24,6 +24,15 @@ export interface PieceListProps {
   emptyMessage?: string;
   pageSize?: number;
   enablePagination?: boolean;
+  /** Preparation / bulk toolbar */
+  bulkSelectMode?: boolean;
+  selectedBulkIds?: Set<string>;
+  onBulkSelectToggle?: (pieceId: string, selected: boolean) => void;
+  orderId?: string;
+  orderItemId?: string;
+  branchId?: string | null;
+  onPreferencesSaved?: () => void | Promise<void>;
+  density?: 'comfortable' | 'compact';
 }
 
 const DEFAULT_PAGE_SIZE = 20;
@@ -39,6 +48,14 @@ export function PieceList({
   emptyMessage,
   pageSize = DEFAULT_PAGE_SIZE,
   enablePagination = true,
+  bulkSelectMode = false,
+  selectedBulkIds = new Set(),
+  onBulkSelectToggle,
+  orderId,
+  orderItemId,
+  branchId,
+  onPreferencesSaved,
+  density = 'comfortable',
 }: PieceListProps) {
   const t = useTranslations('orders.pieces');
   const isRTL = useRTL();
@@ -82,6 +99,14 @@ export function PieceList({
             isSelectedForSplit={selectedForSplit.has(piece.id)}
             onSplitToggle={onSplitToggle}
             rejectColor={rejectColor}
+            bulkSelectMode={bulkSelectMode}
+            isBulkSelected={selectedBulkIds.has(piece.id)}
+            onBulkSelectToggle={onBulkSelectToggle}
+            orderId={orderId}
+            orderItemId={orderItemId}
+            branchId={branchId}
+            onPreferencesSaved={onPreferencesSaved}
+            density={density}
           />
         ))}
       </div>

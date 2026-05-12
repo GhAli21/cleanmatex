@@ -22,6 +22,7 @@ export interface OrderPiecesManagerProps {
   orderId: string;
   itemId: string;
   tenantId: string;
+  branchId?: string | null;
   onUpdate?: () => void;
   readOnly?: boolean;
   showSplitCheckbox?: boolean;
@@ -31,12 +32,15 @@ export interface OrderPiecesManagerProps {
   autoLoad?: boolean;
   enableBarcodeScanner?: boolean;
   enableBulkOperations?: boolean;
+  /** Visual density for piece cards */
+  pieceDensity?: 'comfortable' | 'compact';
 }
 
 export function OrderPiecesManager({
   orderId,
   itemId,
   tenantId,
+  branchId = null,
   onUpdate,
   readOnly = false,
   showSplitCheckbox = false,
@@ -46,6 +50,7 @@ export function OrderPiecesManager({
   autoLoad = true,
   enableBarcodeScanner = false,
   enableBulkOperations = false,
+  pieceDensity = 'comfortable',
 }: OrderPiecesManagerProps) {
   // Validate required props
   if (!orderId || !itemId || !tenantId) {
@@ -181,6 +186,20 @@ export function OrderPiecesManager({
     },
     [orderId, itemId, readOnly, onUpdate, pieces]
   );
+
+  const toggleBulkSelect = React.useCallback((pieceId: string, selected: boolean) => {
+    setSelectedPieces((prev) => {
+      const next = new Set(prev);
+      if (selected) next.add(pieceId);
+      else next.delete(pieceId);
+      return next;
+    });
+  }, []);
+
+  const handlePreferencesSaved = React.useCallback(async () => {
+    await loadPieces();
+    onUpdate?.();
+  }, [loadPieces, onUpdate]);
 
   const handleBatchUpdate = React.useCallback(
     async (updates: Array<{ pieceId: string; updates: Partial<OrderItemPiece> }>) => {
@@ -326,6 +345,14 @@ export function OrderPiecesManager({
         selectedForSplit={selectedForSplit}
         onSplitToggle={onSplitToggle}
         rejectColor={rejectColor}
+        bulkSelectMode={enableBulkOperations && !readOnly}
+        selectedBulkIds={selectedPieces}
+        onBulkSelectToggle={toggleBulkSelect}
+        orderId={orderId}
+        orderItemId={itemId}
+        branchId={branchId}
+        onPreferencesSaved={handlePreferencesSaved}
+        density={pieceDensity}
       />
     </div>
   );

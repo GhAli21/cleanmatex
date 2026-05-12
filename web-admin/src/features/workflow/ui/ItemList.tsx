@@ -6,19 +6,24 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { CmxButton } from '@ui/primitives';
 import { OrderPiecesManager } from '@features/orders/ui/OrderPiecesManager';
 import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import type { OrderItem } from '@/types/order';
 
 interface ItemListProps {
   orderId: string;
+  branchId?: string | null;
   items: OrderItem[];
   onItemsChange: (items: OrderItem[]) => void;
+  /** After piece edits or preference saves — refresh price preview */
+  onPiecesOrPrefsChange?: () => void;
   disabled?: boolean;
 }
 
-export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListProps) {
+export function ItemList({ orderId, branchId = null, items, onItemsChange, onPiecesOrPrefsChange, disabled }: ItemListProps) {
   const tPieces = useTranslations('newOrder.pieces');
+  const tCommon = useTranslations('common');
   const { currentTenant } = useAuth();
   const { formatMoneyWithCode } = useTenantCurrency();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
@@ -60,13 +65,16 @@ export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListPr
             </div>
             <div className="flex items-center gap-2">
               <div className="text-sm font-semibold text-gray-900">{formatMoneyWithCode(Number(item.total_price))}</div>
-              <button
+              <CmxButton
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-red-600 border-red-200 hover:bg-red-50"
                 disabled={disabled || busyId === item.id}
                 onClick={() => handleDelete(item.id)}
-                className="px-2 py-1 text-xs rounded border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50"
               >
-                Delete
-              </button>
+                {tCommon('delete')}
+              </CmxButton>
             </div>
           </div>
 
@@ -94,10 +102,13 @@ export function ItemList({ orderId, items, onItemsChange, disabled }: ItemListPr
                       orderId={orderId}
                       itemId={item.id}
                       tenantId={currentTenant.tenant_id}
+                      branchId={branchId}
                       readOnly={false}
                       autoLoad={true}
+                      enableBulkOperations
+                      pieceDensity="compact"
                       onUpdate={() => {
-                        // Refresh items if needed
+                        onPiecesOrPrefsChange?.();
                       }}
                     />
                   </PiecesErrorBoundary>

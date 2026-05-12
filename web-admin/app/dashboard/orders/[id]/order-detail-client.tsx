@@ -476,6 +476,7 @@ export function OrderDetailClient({
               items={order.org_order_items_dtl} 
               orderId={order.id}
               tenantId={currentTenant?.tenant_id}
+              branchId={order.branch_id}
               trackByPiece={trackByPiece}
               readOnly={true}
             />

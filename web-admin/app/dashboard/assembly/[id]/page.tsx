@@ -19,6 +19,7 @@ import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 
 interface AssemblyItem {
   id: string;
@@ -30,6 +31,7 @@ interface AssemblyItem {
 interface AssemblyOrder {
   id: string;
   order_no: string;
+  branch_id?: string | null;
   customer: {
     name: string;
     phone: string;
@@ -72,9 +74,28 @@ export default function AssemblyDetailPage() {
     try {
       const res = await fetch(`/api/v1/orders/${orderId}/state`);
       const json = await res.json();
-      if (json.success && json.data?.order) {
-        setOrder(json.data.order);
+      const rawOrder = getOrderFromStateResponse(json);
+      if (!rawOrder || typeof rawOrder !== 'object') {
+        setOrder(null);
+        return;
       }
+      const raw = rawOrder as Record<string, unknown>;
+      const items: AssemblyItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
+        id: String(item.id),
+        product_name:
+          (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
+          (item.product_name as string) ||
+          'Unknown Product',
+        quantity: Number(item.quantity ?? 0),
+        item_status: (item.item_status as string) || 'pending',
+      }));
+      setOrder({
+        id: String(raw.id),
+        order_no: String(raw.order_no ?? ''),
+        branch_id: (raw.branch_id as string | null | undefined) ?? null,
+        customer: mapOrderCustomerFromStateRow(raw),
+        items,
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to load order');
     } finally {
@@ -198,8 +219,10 @@ export default function AssemblyDetailPage() {
                               orderId={orderId}
                               itemId={item.id}
                               tenantId={currentTenant.tenant_id}
+                              branchId={order?.branch_id}
                               readOnly={true}
                               autoLoad={true}
+                              pieceDensity="compact"
                             />
                           </PiecesErrorBoundary>
                         </div>

@@ -18,6 +18,7 @@ import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { getOrderFromStateResponse, mapOrderCustomerFromStateRow } from '@/lib/utils/order-state-response';
 
 interface PackingItem {
   id: string;
@@ -29,6 +30,7 @@ interface PackingItem {
 interface PackingOrder {
   id: string;
   order_no: string;
+  branch_id?: string | null;
   customer: { name: string; phone: string };
   rack_location?: string;
   items: PackingItem[];
@@ -81,12 +83,32 @@ export default function PackingDetailPage() {
       try {
         const res = await fetch(`/api/v1/orders/${orderId}/state`);
         const json = await res.json();
-        if (json.success && json.data?.order) {
-          setOrder(json.data.order);
-          setRackLocation(json.data.order.rack_location || '');
-        } else {
+        const rawOrder = getOrderFromStateResponse(json);
+        if (!rawOrder || typeof rawOrder !== 'object') {
           setError(json.error || t('packing.messages.loadFailed'));
+          return;
         }
+        const raw = rawOrder as Record<string, unknown>;
+        const items: PackingItem[] = (json.items || []).map((item: Record<string, unknown>) => ({
+          id: String(item.id),
+          product_name:
+            (item.org_product_data_mst as { product_name?: string } | undefined)?.product_name ||
+            (item.product_name as string) ||
+            'Unknown Product',
+          quantity: Number(item.quantity ?? 0),
+          quantity_ready:
+            typeof item.quantity_ready === 'number' ? item.quantity_ready : undefined,
+        }));
+        const mapped: PackingOrder = {
+          id: String(raw.id),
+          order_no: String(raw.order_no ?? ''),
+          branch_id: (raw.branch_id as string | null | undefined) ?? null,
+          customer: mapOrderCustomerFromStateRow(raw),
+          rack_location: String(raw.rack_location ?? ''),
+          items,
+        };
+        setOrder(mapped);
+        setRackLocation(mapped.rack_location || '');
       } catch (err: any) {
         setError(err.message || t('packing.messages.loadFailed'));
       } finally {
@@ -263,8 +285,10 @@ export default function PackingDetailPage() {
                               orderId={orderId}
                               itemId={item.id}
                               tenantId={currentTenant.tenant_id}
+                              branchId={order?.branch_id}
                               readOnly={true}
                               autoLoad={true}
+                              pieceDensity="compact"
                             />
                           </PiecesErrorBoundary>
                         </div>

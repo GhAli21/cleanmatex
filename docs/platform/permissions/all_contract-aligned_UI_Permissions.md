@@ -108,7 +108,7 @@ Legend:
 | `/dashboard/orders/[id]/prepare` | Prepare Order | None | None | None | None | No explicit page gate |
 | `/dashboard/orders/[id]/full` | Full Order Details | None | None | None | None | No explicit page gate |
 | `/dashboard/preparation` | Preparation | None | None | None | None | No explicit page gate |
-| `/dashboard/preparation/[orderId]` | Preparation Details | None | None | None | None | No explicit page gate |
+| `/dashboard/preparation/[orderId]` | Preparation Details | None | None | None | None | No explicit page gate; linked APIs include preparation routes, order pieces, piece service-prefs, and piece **conditions** (`POST .../pieces/[pieceId]/conditions`) per access contract |
 | `/dashboard/processing` | Processing | None | None | None | None | No explicit page gate |
 | `/dashboard/processing/[id]` | Processing Details | None | None | None | None | No explicit page gate |
 | `/dashboard/assembly` | Assembly | None | None | None | None | No explicit page gate |

@@ -783,9 +783,14 @@ export function findNavigationByPath(path: string): NavigationSection | null {
  * @returns True if path matches or is a child route
  */
 export function isPathActive(currentPath: string, itemPath: string): boolean {
-  if (currentPath === itemPath) {
+  const cur = currentPath.replace(/\/$/, '') || '/'
+  const item = itemPath.replace(/\/$/, '') || '/'
+  if (cur === item) {
     return true
   }
-  // Check if current path starts with item path (child route)
-  return currentPath.startsWith(itemPath + '/')
+  // `/dashboard` must match only the hub — otherwise every `/dashboard/*` route highlights Dashboard.
+  if (item === '/dashboard' && cur !== '/dashboard') {
+    return false
+  }
+  return cur.startsWith(item + '/')
 }

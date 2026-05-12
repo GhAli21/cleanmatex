@@ -19,6 +19,7 @@ import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowContext } from '@/lib/hooks/use-workflow-context';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
+import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
 
 interface QAItem {
   id: string;
@@ -30,6 +31,7 @@ interface QAItem {
 interface QAOrder {
   id: string;
   order_no: string;
+  branch_id?: string | null;
   customer: {
     name: string;
     phone: string;
@@ -80,9 +82,10 @@ export default function QADetailPage() {
         return;
       }
 
-      if (json.order) {
+      const jsonOrder = getOrderFromStateResponse(json);
+      if (jsonOrder && typeof jsonOrder === 'object') {
         // Get customer data - prefer sys_customers_mst, fallback to org_customers_mst
-        const orgCustomer = json.order.org_customers_mst;
+        const orgCustomer = (jsonOrder as any).org_customers_mst;
         const sysCustomer = orgCustomer?.sys_customers_mst;
         const customerData = sysCustomer || orgCustomer;
 
@@ -96,8 +99,9 @@ export default function QADetailPage() {
 
         // Transform order to match QAOrder interface
         const qaOrder: QAOrder = {
-          id: json.order.id,
-          order_no: json.order.order_no,
+          id: (jsonOrder as any).id,
+          order_no: (jsonOrder as any).order_no,
+          branch_id: (jsonOrder as any).branch_id ?? null,
           customer: {
             name: customerData?.name || 'Unknown Customer',
             phone: customerData?.phone || 'N/A',
@@ -282,8 +286,11 @@ export default function QADetailPage() {
                               orderId={orderId}
                               itemId={item.id}
                               tenantId={currentTenant.tenant_id}
+                              branchId={order?.branch_id}
                               readOnly={false}
                               autoLoad={true}
+                              enableBulkOperations
+                              pieceDensity="compact"
                               rejectColor={rejectColor}
                               onUpdate={loadOrder}
                             />

@@ -1,10 +1,16 @@
 ---
-version: v1.2.1
-last_updated: 2026-05-11
+version: v1.3.0
+last_updated: 2026-05-12
 author: CleanMateX Team
 ---
 
 # Customer/Order/Item/Pieces Preferences — Unified Feature
+
+## Delivery status (2026-05)
+
+**Preparation & workflow piece editing** (list/detail UX, DTL-backed piece packing, conditions API, price preview refresh, nav highlighting, cross-screen `OrderPiecesManager` wiring) is **complete** as of 2026-05-12.
+
+- **Plan / progress (detailed checklist):** [preparation-workflow-ui-status.md](./preparation-workflow-ui-status.md)
 
 ## Overview
 
@@ -83,6 +89,7 @@ flowchart TB
 
 ## Related Documentation
 
+- [Preparation & workflow piece UI — plan status](./preparation-workflow-ui-status.md)
 - [Preferences architecture — canonical reference](../../dev/preferences-architecture-reference.md) (**start here** for full-stack prefs)
 - [Order Service Preferences — Technical Data Model](../Order_Service_Preferences/technical_docs/tech_data_model.md)
 - [Order Service Preferences — Developer Guide](../Order_Service_Preferences/developer_guide.md)

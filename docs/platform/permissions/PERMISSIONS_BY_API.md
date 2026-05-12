@@ -83,7 +83,7 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | POST | `/api/v1/orders/[id]/items/[itemId]/pieces` | `orders:create` | Piece create |
 | API | PATCH | `/api/v1/orders/[id]/items/[itemId]/pieces` | `orders:update` | Piece update |
 | API | GET | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]` | `orders:read` | Piece detail |
-| API | PATCH | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]` | `orders:update` | Piece detail update |
+| API | PATCH | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]` | `orders:update` | Piece update; `packing_pref_code` syncs **PIECE** `org_order_preferences_dtl` (`packing_prefs`) |
 | API | DELETE | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]` | `orders:delete` | Piece delete |
 | API | GET | `/api/v1/orders/pieces/[pieceId]/history` | `orders:read` | Piece audit history |
 | API | GET | `/api/v1/orders/[id]/items/[itemId]/service-prefs` | `orders:read` | Item preferences read |
@@ -95,6 +95,7 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | POST | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs` | `orders:update` | Piece preferences mutate |
 | API | PATCH | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs` | `orders:update` | Piece preferences mutate |
 | API | POST | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/service-prefs/confirm` | `orders:update` | Piece preference confirmation |
+| API | POST | `/api/v1/orders/[id]/items/[itemId]/pieces/[pieceId]/conditions` | `orders:update` | Piece condition/stain prefs replace |
 | API | POST | `/api/v1/preparation/[id]/complete` | `orders:update` | Also requires tenant auth |
 | API | GET | `/api/v1/preparation/[id]/items/[itemId]` | `orders:update` | Also requires tenant auth |
 | API | PATCH | `/api/v1/preparation/[id]/items/[itemId]` | `orders:update` | Also requires tenant auth |

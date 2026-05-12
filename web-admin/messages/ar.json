@@ -1621,6 +1621,15 @@
       "brand": "العلامة التجارية",
       "hasStain": "يحتوي على بقع",
       "hasDamage": "يحتوي على تلف",
+      "editPreferences": "التفضيلات",
+      "preferencesDialogTitle": "تفضيلات القطعة {seq}",
+      "preferencesDialogHint": "تُطبّق التغييرات على هذه القطعة فقط وقد تُحدّث التسعيرة عند وجود إضافات خدمة.",
+      "preferencesSaved": "تم حفظ التفضيلات",
+      "preferencesSaveFailed": "تعذّر حفظ التفضيلات",
+      "savePreferences": "حفظ",
+      "conditionsSection": "الحالة والبقع",
+      "prefSummaryAria": "ملخص التفضيلات",
+      "bulkSelectPiece": "تحديد القطعة {seq} للإجراءات المجمّعة",
       "status": {
         "intake": "الاستلام",
         "processing": "قيد المعالجة",
@@ -2932,6 +2941,26 @@
       "description": "طلبات الإسقاط السريع التي تتطلب إضافة الأصناف",
       "empty": "لا توجد طلبات في التحضير",
       "bags": "{count} أكياس",
+      "pricePreview": {
+        "regionAria": "معاينة سعر الطلب",
+        "items": "الأصناف",
+        "subtotal": "المجموع الفرعي",
+        "tax": "الضريبة",
+        "total": "الإجمالي"
+      },
+      "list": {
+        "searchPlaceholder": "البحث برقم الطلب أو اسم العميل أو الهاتف…",
+        "sortBy": "ترتيب حسب",
+        "sortDirection": "اتجاه الترتيب",
+        "sortOrderNo": "رقم الطلب",
+        "sortReceivedAt": "تاريخ الاستلام",
+        "sortAsc": "تصاعدي",
+        "sortDesc": "تنازلي"
+      },
+      "detail": {
+        "summaryTitle": "ملخص الطلب",
+        "bagsLabel": "الأكياس"
+      },
       "workflowContextTitle": "سياق سير العمل",
       "workflowFlags": {
         "assemblyEnabled": "التجميع مفعّل",

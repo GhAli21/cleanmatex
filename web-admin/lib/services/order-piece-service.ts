@@ -16,6 +16,7 @@ import {
 } from '@/lib/mappers/order-piece.mapper';
 import { getConditionPrefKind, toUICode } from '@/lib/utils/condition-codes';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
+import { OrderPiecePreferenceService } from '@/lib/services/order-piece-preference.service';
 
 /** Default for piece/item preference rows created in create vs edit-order flows */
 export type OrderPreferencesSourceDefault = 'ORDER_CREATE' | 'ORDER_EDIT';
@@ -52,6 +53,10 @@ export interface UpdatePieceParams {
     is_rejected?: boolean;
     issue_id?: string;
     rack_location?: string;
+    /** Denormalized; DTL sync via {@link OrderPiecePreferenceService.replacePiecePacking} when updated */
+    packing_pref_code?: string | null;
+    /** Optional tenant catalog id for DTL `preference_id` when saving packing */
+    packing_pref_cf_id?: string | null;
     /** ISO string or Date; persisted as timestamptz */
     last_step_at?: Date | string;
     last_step_by?: string;
@@ -77,6 +82,55 @@ export interface BatchUpdatePiecesParams {
 }
 
 export class OrderPieceService {
+  /**
+   * Merge PIECE-level `org_order_preferences_dtl` rows into mapped pieces (`service_prefs`, `conditions`).
+   * Shared by `getPiecesByItem` and `getPiecesByOrder` so all piece list APIs return the same pref shape.
+   */
+  static async attachPieceLevelPreferencesFromDtl(
+    supabase: SupabaseClient,
+    tenantId: string,
+    pieces: OrderItemPiece[]
+  ): Promise<OrderItemPiece[]> {
+    if (pieces.length === 0) return pieces;
+
+    const pieceIds = pieces.map((p) => p.id);
+    const piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
+    const pieceConditionsMap: Record<string, string[]> = {};
+
+    const { data: prefs } = await supabase
+      .from('org_order_preferences_dtl')
+      .select('order_item_piece_id, preference_code, prefs_source, extra_price, preference_sys_kind')
+      .eq('tenant_org_id', tenantId)
+      .eq('prefs_level', 'PIECE')
+      .in('order_item_piece_id', pieceIds);
+
+    for (const row of prefs ?? []) {
+      const pieceId = row.order_item_piece_id as string;
+      const sysKind = row.preference_sys_kind as string | null;
+      if (sysKind === 'service_prefs') {
+        if (!piecePrefsMap[pieceId]) piecePrefsMap[pieceId] = [];
+        piecePrefsMap[pieceId].push({
+          preference_code: row.preference_code,
+          source: row.prefs_source ?? 'manual',
+          extra_price: Number(row.extra_price ?? 0),
+        });
+      } else if (
+        sysKind === 'condition_stain' ||
+        sysKind === 'condition_damag' ||
+        sysKind === 'condition_special'
+      ) {
+        if (!pieceConditionsMap[pieceId]) pieceConditionsMap[pieceId] = [];
+        pieceConditionsMap[pieceId].push(toUICode(row.preference_code));
+      }
+    }
+
+    return pieces.map((p) => ({
+      ...p,
+      service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
+      conditions: pieceConditionsMap[p.id]?.length ? pieceConditionsMap[p.id] : undefined,
+    }));
+  }
+
   /**
    * Create pieces for an order item
    * Auto-creates pieces 1..quantity for order items (pieces are always used)
@@ -665,14 +719,20 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      return { success: true, pieces: mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]) };
+      const mapped = mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]);
+      const enriched = await this.attachPieceLevelPreferencesFromDtl(supabase, tenantId, mapped);
+      return { success: true, pieces: enriched };
     } catch (error) {
-      log.error('[OrderPieceService] Exception fetching pieces', error instanceof Error ? error : new Error(String(error)), {
-        feature: 'order_pieces',
-        action: 'get_pieces_by_item',
-        tenantId,
-        orderItemId,
-      });
+      log.error(
+        '[OrderPieceService] Exception fetching pieces by item',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          feature: 'order_pieces',
+          action: 'get_pieces_by_item',
+          tenantId,
+          orderItemId,
+        }
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -709,45 +769,8 @@ export class OrderPieceService {
         return { success: false, error: error.message };
       }
 
-      const pieceIds = (pieces ?? []).map((p: { id: string }) => p.id);
-      const piecePrefsMap: Record<string, Array<{ preference_code: string; source?: string; extra_price: number }>> = {};
-      const pieceConditionsMap: Record<string, string[]> = {};
-
-      if (pieceIds.length > 0) {
-        const { data: prefs } = await supabase
-          .from('org_order_preferences_dtl')
-          .select('order_item_piece_id, preference_code, prefs_source, extra_price, preference_sys_kind')
-          .eq('tenant_org_id', tenantId)
-          .eq('prefs_level', 'PIECE')
-          .in('order_item_piece_id', pieceIds);
-
-        for (const row of prefs ?? []) {
-          const pieceId = row.order_item_piece_id as string;
-          const sysKind = row.preference_sys_kind as string | null;
-          if (sysKind === 'service_prefs') {
-            if (!piecePrefsMap[pieceId]) piecePrefsMap[pieceId] = [];
-            piecePrefsMap[pieceId].push({
-              preference_code: row.preference_code,
-              source: row.prefs_source ?? 'manual',
-              extra_price: Number(row.extra_price ?? 0),
-            });
-          } else if (
-            sysKind === 'condition_stain' ||
-            sysKind === 'condition_damag' ||
-            sysKind === 'condition_special'
-          ) {
-            if (!pieceConditionsMap[pieceId]) pieceConditionsMap[pieceId] = [];
-            pieceConditionsMap[pieceId].push(toUICode(row.preference_code));
-          }
-        }
-      }
-
       const mapped = mapOrderPiecesFromDb(pieces as OrderPieceDbModel[]);
-      const enriched = mapped.map((p) => ({
-        ...p,
-        service_prefs: piecePrefsMap[p.id]?.length ? piecePrefsMap[p.id] : undefined,
-        conditions: pieceConditionsMap[p.id]?.length ? pieceConditionsMap[p.id] : undefined,
-      }));
+      const enriched = await this.attachPieceLevelPreferencesFromDtl(supabase, tenantId, mapped);
 
       return { success: true, pieces: enriched };
     } catch (error) {
@@ -871,10 +894,31 @@ export class OrderPieceService {
         .eq('tenant_org_id', params.tenantId)
         .maybeSingle();
 
+      const packingPrefExplicit = Object.prototype.hasOwnProperty.call(
+        params.updates as object,
+        'packing_pref_code'
+      );
+      const packingCfExplicit = Object.prototype.hasOwnProperty.call(
+        params.updates as object,
+        'packing_pref_cf_id'
+      );
+      const newPackingCode = packingPrefExplicit
+        ? (params.updates as { packing_pref_code?: string | null }).packing_pref_code ?? null
+        : undefined;
+      const packingCfId = packingCfExplicit
+        ? (params.updates as { packing_pref_cf_id?: string | null }).packing_pref_cf_id ?? null
+        : undefined;
+
       const updateData: any = {
         ...params.updates,
         updated_at: new Date().toISOString(),
       };
+      if (packingPrefExplicit) {
+        delete updateData.packing_pref_code;
+      }
+      if (packingCfExplicit) {
+        delete updateData.packing_pref_cf_id;
+      }
 
       // Convert Date to ISO string if present
       if (updateData.last_step_at instanceof Date) {
@@ -936,7 +980,34 @@ export class OrderPieceService {
         await this.syncItemQuantityReady(params.tenantId, pieceData.order_item_id);
       }
 
-      return { success: true, piece: mapOrderPieceFromDb(piece as OrderPieceDbModel) };
+      const mappedPiece = mapOrderPieceFromDb(piece as OrderPieceDbModel);
+
+      if (packingPrefExplicit && typeof params.updates.updated_by === 'string') {
+        const syncPacking = await OrderPiecePreferenceService.replacePiecePacking(
+          supabase,
+          params.tenantId,
+          mappedPiece.order_id,
+          mappedPiece.order_item_id,
+          params.pieceId,
+          newPackingCode ?? null,
+          params.updates.updated_by,
+          packingCfId
+        );
+        if (!syncPacking.success) {
+          return { success: false, error: syncPacking.error ?? 'Failed to sync packing preference' };
+        }
+        const { data: freshPiece } = await supabase
+          .from('org_order_item_pieces_dtl')
+          .select()
+          .eq('id', params.pieceId)
+          .eq('tenant_org_id', params.tenantId)
+          .single();
+        if (freshPiece) {
+          return { success: true, piece: mapOrderPieceFromDb(freshPiece as OrderPieceDbModel) };
+        }
+      }
+
+      return { success: true, piece: mappedPiece };
     } catch (error) {
       log.error('[OrderPieceService] Exception updating piece', error instanceof Error ? error : new Error(String(error)), {
         feature: 'order_pieces',

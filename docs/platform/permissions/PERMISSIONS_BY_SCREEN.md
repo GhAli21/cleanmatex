@@ -44,6 +44,7 @@ Page-linked backend permissions are documented separately in:
 
 | Route | Page Gate | Action Gates | Notes |
 |---|---|---|---|
+| `/dashboard/preparation/[orderId]` | none (see contract) | none | Uses order/piece APIs including piece conditions + packing DTL sync on PATCH piece; backend enforces `orders:update` / `orders:read` per route |
 | `/dashboard/b2b/contracts` | `b2b_contracts:view` + feature flag `b2b_contracts` | `Create contract` → `b2b_contracts:create` | Contract-first page and action gate |
 | `/dashboard/catalog/preferences` | any of `orders:service_prefs_view`, `orders:read`, `config:preferences_manage` | manage preferences actions → `config:preferences_manage` | Page gate allows viewers; actions stay admin-only |
 | `/dashboard/catalog/customer-categories` | `config:preferences_manage` | manage categories → `config:preferences_manage` | Page and actions aligned |
