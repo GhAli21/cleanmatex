@@ -37,6 +37,8 @@ import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
 import { ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS, PREFERENCE_CATEGORIES } from '@/lib/constants/service-preferences';
 import { normalizeHexDraftForApi } from '@/lib/utils/color-hex';
+import type { ColumnDef } from '@tanstack/react-table';
+import { CmxDataTable } from '@ui/data-display';
 
 interface ServicePref {
   code: string;
@@ -194,6 +196,281 @@ function TableSkeleton({ rows = 5 }: { rows?: number }) {
   );
 }
 
+function servicePrefPrimaryLabel(row: ServicePrefRow, isAdmin: boolean, isRtl: boolean): string {
+  const adminRow = isAdmin ? (row as ServicePrefAdmin) : null;
+  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name ?? '') : ((row as ServicePref).name ?? '');
+  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2 ?? '') : ((row as ServicePref).name2 ?? '');
+  const primary = isRtl ? (displayName2 || displayName) : displayName;
+  return primary.trim() || '—';
+}
+
+function servicePrefSecondaryLabel(row: ServicePrefRow, isAdmin: boolean): string {
+  const adminRow = isAdmin ? (row as ServicePrefAdmin) : null;
+  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2 ?? '') : ((row as ServicePref).name2 ?? '');
+  return displayName2.trim() || '—';
+}
+
+function servicePrefExtraPriceValue(row: ServicePrefRow, isAdmin: boolean): number {
+  if (isAdmin) {
+    const a = row as ServicePrefAdmin;
+    return Number(a.cf_extra_price ?? a.default_extra_price ?? 0);
+  }
+  return Number((row as ServicePref).default_extra_price ?? 0);
+}
+
+function servicePrefSwatchHex(row: ServicePrefRow, isAdmin: boolean): string | null {
+  if (isAdmin) {
+    const a = row as ServicePrefAdmin;
+    return a.cf_color_hex ?? a.color_hex ?? null;
+  }
+  return (row as ServicePref).color_hex ?? null;
+}
+
+function ServicePrefsKindCmxTable({
+  groupRows,
+  isAdmin,
+  isRtl,
+  showSwatchCol,
+  onEdit,
+  onRemove,
+  removePendingCode,
+}: {
+  groupRows: ServicePrefRow[];
+  isAdmin: boolean;
+  isRtl: boolean;
+  showSwatchCol: boolean;
+  onEdit: (p: ServicePrefAdmin) => void;
+  onRemove?: (p: ServicePrefAdmin) => void;
+  removePendingCode: string | null;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const intlLocale = useLocale();
+  const { currencyCode, decimalPlaces } = useTenantCurrency();
+  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
+  const editPerms = CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? [];
+
+  const columns = useMemo((): ColumnDef<ServicePrefRow>[] => {
+    const cols: ColumnDef<ServicePrefRow>[] = [
+      {
+        accessorKey: 'code',
+        header: t('code', { defaultValue: 'Code' }),
+        cell: ({ row }) => (
+          <span className="font-mono text-xs">{row.original.code}</span>
+        ),
+      },
+    ];
+
+    if (showSwatchCol) {
+      cols.push({
+        id: 'swatch',
+        enableSorting: false,
+        meta: { disableSort: true },
+        header: t('preferenceColorShort', { defaultValue: 'Swatch' }),
+        cell: ({ row }) => {
+          const swatchHex = servicePrefSwatchHex(row.original, isAdmin);
+          return swatchHex ? (
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="h-7 w-7 shrink-0 rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] shadow-inner"
+                style={{ backgroundColor: swatchHex }}
+                title={swatchHex}
+                aria-hidden
+              />
+              <span className="font-mono text-[11px] text-gray-600 max-w-[5.5rem] truncate" dir="ltr" lang="en">
+                {swatchHex}
+              </span>
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400">—</span>
+          );
+        },
+      });
+    }
+
+    cols.push(
+      {
+        id: 'name',
+        accessorFn: (r) => servicePrefPrimaryLabel(r, isAdmin, isRtl),
+        header: t('name', { defaultValue: 'Name' }),
+        cell: ({ row }) => <span>{servicePrefPrimaryLabel(row.original, isAdmin, isRtl)}</span>,
+      },
+      {
+        id: 'name2',
+        accessorFn: (r) => servicePrefSecondaryLabel(r, isAdmin),
+        header: t('nameAr', { defaultValue: 'Name (AR)' }),
+        cell: ({ row }) => (
+          <span className="text-gray-600">{servicePrefSecondaryLabel(row.original, isAdmin)}</span>
+        ),
+      },
+      {
+        accessorKey: 'preference_category',
+        header: t('category', { defaultValue: 'Category' }),
+        cell: ({ row }) => (
+          <span className="text-gray-600">{row.original.preference_category ?? '—'}</span>
+        ),
+      },
+      {
+        id: 'extra_price',
+        accessorFn: (r) => servicePrefExtraPriceValue(r, isAdmin),
+        header: t('extraPrice', { defaultValue: 'Extra Price' }),
+        cell: ({ row }) => (
+          <span>
+            +
+            {formatMoneyAmountWithCode(servicePrefExtraPriceValue(row.original, isAdmin), {
+              currencyCode,
+              decimalPlaces,
+              locale: moneyLocale,
+            })}
+          </span>
+        ),
+      },
+      {
+        id: 'status',
+        accessorFn: (r) => {
+          const adminRow = isAdmin ? (r as ServicePrefAdmin) : null;
+          if (adminRow && !adminRow.cf_id) return -1;
+          if (adminRow) return adminRow.cf_is_active !== false ? 1 : 0;
+          return 1;
+        },
+        header: t('status', { defaultValue: 'Status' }),
+        cell: ({ row }) => {
+          const adminRow = isAdmin ? (row.original as ServicePrefAdmin) : null;
+          const rowEnabled =
+            adminRow && !adminRow.cf_id ? null : adminRow ? adminRow.cf_is_active !== false : true;
+          if (rowEnabled === null) {
+            return <span className="text-xs text-gray-400">—</span>;
+          }
+          return (
+            <Badge variant={rowEnabled ? 'success' : 'default'}>
+              {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
+            </Badge>
+          );
+        },
+      },
+    );
+
+    if (isAdmin) {
+      cols.push(
+        {
+          id: 'catalog',
+          accessorFn: (r) => (Boolean((r as ServicePrefAdmin).cf_id) ? 1 : 0),
+          header: t('catalogColumn', { defaultValue: 'Catalog' }),
+          cell: ({ row }) => {
+            const adminRow = row.original as ServicePrefAdmin;
+            const sysActive = adminRow.sys_is_active !== false;
+            const inCatalog = Boolean(adminRow.cf_id);
+            return (
+              <div className="flex flex-col gap-1">
+                <Badge variant={inCatalog ? 'success' : 'default'}>
+                  {inCatalog
+                    ? t('catalogOffered', { defaultValue: 'In catalog' })
+                    : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
+                </Badge>
+                {!sysActive ? (
+                  <span className="text-xs text-amber-700">
+                    {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
+                  </span>
+                ) : null}
+              </div>
+            );
+          },
+        },
+        {
+          id: 'actions',
+          enableSorting: false,
+          meta: { disableSort: true },
+          header: t('actions', { defaultValue: 'Actions' }),
+          cell: ({ row }) => {
+            const adminRow = row.original as ServicePrefAdmin;
+            const sysActive = adminRow.sys_is_active !== false;
+            const inCatalog = Boolean(adminRow.cf_id);
+            return (
+              <RequireAnyPermission permissions={editPerms} fallback={null}>
+                <div className="flex justify-end gap-1">
+                  {!inCatalog && sysActive ? (
+                    <CmxButton
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                      onClick={() => onEdit(adminRow)}
+                      aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      title={t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      data-testid={`add-service-pref-${adminRow.code}`}
+                    >
+                      <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="hidden min-[480px]:inline">
+                        {t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      </span>
+                    </CmxButton>
+                  ) : null}
+                  <CmxButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => onEdit(adminRow)}
+                    disabled={!inCatalog && !sysActive}
+                    aria-label={t('edit', { defaultValue: 'Edit' })}
+                    data-testid={`edit-service-pref-${adminRow.code}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </CmxButton>
+                  {inCatalog && onRemove ? (
+                    <CmxButton
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-red-600 hover:text-red-700"
+                      onClick={() => onRemove(adminRow)}
+                      disabled={removePendingCode === adminRow.code}
+                      aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
+                      data-testid={`remove-service-pref-${adminRow.code}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </CmxButton>
+                  ) : null}
+                </div>
+              </RequireAnyPermission>
+            );
+          },
+        },
+      );
+    }
+
+    return cols;
+  }, [
+    t,
+    showSwatchCol,
+    isAdmin,
+    isRtl,
+    currencyCode,
+    decimalPlaces,
+    moneyLocale,
+    onEdit,
+    onRemove,
+    removePendingCode,
+    editPerms,
+  ]);
+
+  const pageSize = Math.max(groupRows.length, 1);
+
+  return (
+    <CmxDataTable<ServicePrefRow>
+      className="rounded-none border-0 bg-transparent shadow-none"
+      columns={columns}
+      data={groupRows}
+      loading={false}
+      page={0}
+      pageSize={pageSize}
+      total={groupRows.length}
+      paginationFooter="never"
+      clientSideSorting
+      showRowNumbers
+      rowNumberHeader={t('rowNumberShort', { defaultValue: '#' })}
+      rowNumberOffset={0}
+      enableZebraStriping
+    />
+  );
+}
+
 function ServicePrefsTable({
   servicePrefsAdmin,
   servicePrefs,
@@ -216,9 +493,6 @@ function ServicePrefsTable({
   isRtl: boolean;
 }) {
   const t = useTranslations('catalog.preferences');
-  const intlLocale = useLocale();
-  const { currencyCode, decimalPlaces } = useTenantCurrency();
-  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
   const rowsRaw = servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs;
   const isAdmin = servicePrefsAdmin.length > 0;
   const rows = useMemo(() => {
@@ -269,8 +543,6 @@ function ServicePrefsTable({
       })
       .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label));
   }, [isRtl, preferenceKindsAdmin, rows]);
-
-  const editPerms = CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? [];
 
   if (loading) {
     return <TableSkeleton rows={6} />;
@@ -329,156 +601,16 @@ function ServicePrefsTable({
               {group.rows.length} {t('preferences', { defaultValue: 'Preferences' })}
             </Badge>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-white text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">{t('code', { defaultValue: 'Code' })}</th>
-                  {showSwatchCol ? (
-                    <th className="px-4 py-3 text-left font-medium w-[4.5rem]">
-                      {t('preferenceColorShort', { defaultValue: 'Swatch' })}
-                    </th>
-                  ) : null}
-                  <th className="px-4 py-3 text-left font-medium">{t('name', { defaultValue: 'Name' })}</th>
-                  <th className="px-4 py-3 text-left font-medium">{t('nameAr', { defaultValue: 'Name (AR)' })}</th>
-                  <th className="px-4 py-3 text-left font-medium">{t('category', { defaultValue: 'Category' })}</th>
-                  <th className="px-4 py-3 text-left font-medium">{t('extraPrice', { defaultValue: 'Extra Price' })}</th>
-                  <th className="px-4 py-3 text-left font-medium">{t('status', { defaultValue: 'Status' })}</th>
-                  {isAdmin && (
-                    <th className="px-4 py-3 text-left font-medium">{t('catalogColumn', { defaultValue: 'Catalog' })}</th>
-                  )}
-                  {isAdmin && (
-                    <th className="px-4 py-3 text-right font-medium">{t('actions', { defaultValue: 'Actions' })}</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {group.rows.map((p) => {
-                  const adminRow = isAdmin ? (p as ServicePrefAdmin) : null;
-                  const sysActive = adminRow ? adminRow.sys_is_active !== false : true;
-                  const inCatalog = Boolean(adminRow?.cf_id);
-                  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as ServicePref).name;
-                  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as ServicePref).name2;
-                  const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
-                  const displayPrice = adminRow ? (adminRow.cf_extra_price ?? adminRow.default_extra_price) : ((p as ServicePref).default_extra_price ?? 0);
-                  const rowEnabled =
-                    adminRow && !adminRow.cf_id
-                      ? null
-                      : adminRow
-                        ? adminRow.cf_is_active !== false
-                        : true;
-                  const category = p.preference_category ?? 'â€”';
-                  const swatchHex = adminRow
-                    ? adminRow.cf_color_hex ?? adminRow.color_hex
-                    : (p as ServicePref).color_hex ?? null;
-
-                  return (
-                    <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
-                      <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                      {showSwatchCol ? (
-                        <td className="px-4 py-3 align-middle">
-                          {swatchHex ? (
-                            <span className="inline-flex items-center gap-2">
-                              <span
-                                className="h-7 w-7 shrink-0 rounded-full border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] shadow-inner"
-                                style={{ backgroundColor: swatchHex }}
-                                title={swatchHex}
-                                aria-hidden="true"
-                              />
-                              <span className="font-mono text-[11px] text-gray-600 max-w-[5.5rem] truncate" dir="ltr" lang="en">
-                                {swatchHex}
-                              </span>
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-400">â€”</span>
-                          )}
-                        </td>
-                      ) : null}
-                      <td className="px-4 py-3">{primaryName || 'â€”'}</td>
-                      <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
-                      <td className="px-4 py-3 text-gray-600">{category}</td>
-                      <td className="px-4 py-3">
-                        +
-                        {formatMoneyAmountWithCode(Number(displayPrice), {
-                          currencyCode,
-                          decimalPlaces,
-                          locale: moneyLocale,
-                        })}
-                      </td>
-                      <td className="px-4 py-3">
-                        {rowEnabled === null ? (
-                          <span className="text-xs text-gray-400">â€”</span>
-                        ) : (
-                          <Badge variant={rowEnabled ? 'success' : 'default'}>
-                            {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-                          </Badge>
-                        )}
-                      </td>
-                      {isAdmin && adminRow && (
-                        <td className="px-4 py-3">
-                          <div className="flex flex-col gap-1">
-                            <Badge variant={inCatalog ? 'success' : 'default'}>
-                              {inCatalog ? t('catalogOffered', { defaultValue: 'In catalog' }) : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
-                            </Badge>
-                            {!sysActive ? (
-                              <span className="text-xs text-amber-700">{t('systemInactive', { defaultValue: 'Unavailable at platform' })}</span>
-                            ) : null}
-                          </div>
-                        </td>
-                      )}
-                      {isAdmin && adminRow && (
-                        <td className="px-4 py-3 text-right">
-                          <RequireAnyPermission permissions={editPerms} fallback={null}>
-                            <div className="flex justify-end gap-1">
-                              {!inCatalog && sysActive ? (
-                                <CmxButton
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
-                                  onClick={() => onEdit(adminRow)}
-                                  aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
-                                  title={t('enablePreference', { defaultValue: 'Add to catalog' })}
-                                  data-testid={`add-service-pref-${p.code}`}
-                                >
-                                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                  <span className="hidden min-[480px]:inline">
-                                    {t('enablePreference', { defaultValue: 'Add to catalog' })}
-                                  </span>
-                                </CmxButton>
-                              ) : null}
-                              <CmxButton
-                                variant="ghost"
-                                size="sm"
-                                className="h-8 px-2"
-                                onClick={() => onEdit(adminRow)}
-                                disabled={!inCatalog && !sysActive}
-                                aria-label={t('edit', { defaultValue: 'Edit' })}
-                                data-testid={`edit-service-pref-${p.code}`}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </CmxButton>
-                              {inCatalog && onRemove ? (
-                                <CmxButton
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-2 text-red-600 hover:text-red-700"
-                                  onClick={() => onRemove(adminRow)}
-                                  disabled={removePendingCode === p.code}
-                                  aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
-                                  data-testid={`remove-service-pref-${p.code}`}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </CmxButton>
-                              ) : null}
-                            </div>
-                          </RequireAnyPermission>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+          <div className="overflow-hidden rounded-b-xl">
+            <ServicePrefsKindCmxTable
+              groupRows={group.rows}
+              isAdmin={isAdmin}
+              isRtl={isRtl}
+              showSwatchCol={showSwatchCol}
+              onEdit={onEdit}
+              onRemove={onRemove}
+              removePendingCode={removePendingCode}
+            />
           </div>
         </section>
         );
