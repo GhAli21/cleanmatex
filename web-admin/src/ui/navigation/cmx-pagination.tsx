@@ -19,6 +19,11 @@ interface CmxPaginationProps {
   pageSizeOptions?: number[]
   showPageSizeSelector?: boolean
   showInfo?: boolean
+  /**
+   * When true, still renders rows-per-page + range info for a single page
+   * (page buttons are omitted). Useful for data tables that always show a footer.
+   */
+  showWhenSinglePage?: boolean
 }
 
 export function CmxPagination({
@@ -31,9 +36,46 @@ export function CmxPagination({
   pageSizeOptions = [10, 25, 50, 100],
   showPageSizeSelector = true,
   showInfo = true,
+  showWhenSinglePage = false,
 }: CmxPaginationProps) {
   const startItem = (currentPage - 1) * pageSize + 1
   const endItem = Math.min(currentPage * pageSize, totalItems)
+
+  if (totalPages <= 1 && showWhenSinglePage) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-4 px-2 py-3">
+        {showPageSizeSelector && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+              Rows per page:
+            </span>
+            <CmxSelect
+              fullWidth={false}
+              size="sm"
+              className="w-16"
+              options={pageSizeOptions.map((size) => ({
+                value: String(size),
+                label: String(size),
+              }))}
+              value={String(pageSize)}
+              onChange={(e) => onPageSizeChange(Number(e.target.value))}
+            />
+          </div>
+        )}
+        {showInfo && (
+          <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
+            {totalItems > 0 ? (
+              <>
+                {startItem}-{endItem} of {totalItems}
+              </>
+            ) : (
+              'No items'
+            )}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   const getVisiblePages = () => {
     const delta = 2

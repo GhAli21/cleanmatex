@@ -5,8 +5,8 @@
 
 'use client'
 
+import type { ColumnDef, HeaderContext } from '@tanstack/react-table'
 import {
-  ColumnDef,
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
@@ -22,6 +22,8 @@ import { CmxEmptyState } from './cmx-empty-state'
 import { CmxPagination } from '../navigation/cmx-pagination'
 import { cn } from '@/lib/utils'
 
+const ROW_NUM_COL_ID = '__cmx_row_no'
+
 /**
  * Lightweight column descriptor used by feature screens.
  * Internally translated into TanStack `ColumnDef` so callers don't need to
@@ -31,6 +33,7 @@ export interface CmxDataTableSimpleColumn<TData> {
   key: string
   header: ReactNode
   render: (row: TData) => ReactNode
+  /** Default true except `key === 'actions'`. Set false to disable header sort. */
   sortable?: boolean
   align?: 'left' | 'center' | 'right'
 }
@@ -38,6 +41,8 @@ export interface CmxDataTableSimpleColumn<TData> {
 type AnyColumn<TData> =
   | ColumnDef<TData, unknown>
   | CmxDataTableSimpleColumn<TData>
+
+export type CmxDataTablePaginationFooter = 'auto' | 'always' | 'never'
 
 interface CmxDataTableProps<TData> {
   columns: AnyColumn<TData>[]
@@ -57,6 +62,8 @@ interface CmxDataTableProps<TData> {
   /** Sorting support */
   sorting?: SortingState
   onSortingChange?: (sorting: SortingState) => void
+  /** When true, TanStack sorts the current `data` client-side when headers change (use for small local lists). */
+  clientSideSorting?: boolean
   /** Enhanced empty state */
   emptyStateTitle?: string
   emptyStateDescription?: string
@@ -69,12 +76,82 @@ interface CmxDataTableProps<TData> {
   enableZebraStriping?: boolean
   /** Legacy empty message (deprecated, use emptyState* props) */
   emptyMessage?: ReactNode
+  /**
+   * Scroll both axes inside the card. Uses a max height so tall tables scroll vertically.
+   * Set `false` or pass `scrollAreaClassName` without max-h to only rely on horizontal overflow.
+   */
+  scrollable?: boolean
+  /** Tailwind / arbitrary classes for the scroll wrapper (merged with overflow). Default includes max-height. */
+  scrollAreaClassName?: string
+  /** First column with 1-based row index (offset for server pagination = pageIndex * pageSize). */
+  showRowNumbers?: boolean
+  /** Label for the row number column header. */
+  rowNumberHeader?: ReactNode
+  /** Zero-based global offset added to displayed row index (defaults to current page start). */
+  rowNumberOffset?: number
+  /**
+   * When to show the pagination footer (`auto`: only when total &gt; pageSize).
+   * `always` shows rows-per-page + range (and page controls when multiple pages).
+   */
+  paginationFooter?: CmxDataTablePaginationFooter
 }
 
 function isSimpleColumn<TData>(
   col: AnyColumn<TData>,
 ): col is CmxDataTableSimpleColumn<TData> {
   return typeof (col as CmxDataTableSimpleColumn<TData>).render === 'function'
+}
+
+function isSortableSimpleColumn<TData>(col: CmxDataTableSimpleColumn<TData>): boolean {
+  if (col.sortable === false) return false
+  return col.key !== 'actions'
+}
+
+function withSortableColumnHeader<TData>(
+  def: ColumnDef<TData, unknown>,
+): ColumnDef<TData, unknown> {
+  const meta = def.meta as { disableSort?: boolean } | undefined
+  if (def.enableSorting === false || meta?.disableSort) return def
+  const id = typeof def.id === 'string' ? def.id : undefined
+  if (id === 'actions' || id?.endsWith('_actions')) return def
+
+  const origHeader = def.header
+  return {
+    ...def,
+    enableSorting: (def as { enableSorting?: boolean }).enableSorting !== false,
+    header: (ctx: HeaderContext<TData, unknown>) => {
+      const label =
+        typeof origHeader === 'function'
+          ? (origHeader as (c: HeaderContext<TData, unknown>) => ReactNode)(ctx)
+          : (origHeader ?? ctx.column.id)
+      const { column } = ctx
+      if (!column.getCanSort()) {
+        return <span className="inline-flex items-center gap-1">{label}</span>
+      }
+      const sorted = column.getIsSorted()
+      return (
+        <CmxButton
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-auto min-h-8 w-full justify-start gap-1 p-0 font-medium hover:bg-transparent rtl:justify-end"
+          aria-sort={
+            sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
+          }
+          onClick={() => column.toggleSorting()}
+        >
+          <span className="inline-flex items-center gap-1">
+            {label}
+            {sorted === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" aria-hidden /> : null}
+            {sorted === 'desc' ? <ArrowDown className="h-3 w-3 shrink-0" aria-hidden /> : null}
+            {sorted !== 'asc' && sorted !== 'desc' ? (
+              <ArrowUpDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden />
+            ) : null}
+          </span>
+        </CmxButton>
+      )
+    },
+  } as ColumnDef<TData, unknown>
 }
 
 export function CmxDataTable<TData>({
@@ -91,6 +168,7 @@ export function CmxDataTable<TData>({
   onPageSizeChange,
   sorting,
   onSortingChange,
+  clientSideSorting = false,
   emptyStateTitle,
   emptyStateDescription,
   emptyStateIcon,
@@ -99,46 +177,79 @@ export function CmxDataTable<TData>({
   className,
   enableZebraStriping = false,
   emptyMessage,
+  scrollable = true,
+  scrollAreaClassName,
+  showRowNumbers = false,
+  rowNumberHeader = '#',
+  rowNumberOffset: rowNumberOffsetProp,
+  paginationFooter = 'auto',
 }: CmxDataTableProps<TData>) {
   const effectiveLoading = loading ?? isLoading ?? false
   const effectiveTotal = total ?? totalCount ?? 0
   // `currentPage` is 1-based (UI convention); TanStack expects 0-based.
   const effectivePageIndex = page ?? (currentPage != null ? currentPage - 1 : 0)
+  const resolvedRowNumberOffset =
+    rowNumberOffsetProp ?? effectivePageIndex * pageSize
 
   const [internalSorting, setInternalSorting] = useState<SortingState>(sorting ?? [])
 
-  const tanstackColumns = useMemo<ColumnDef<TData, unknown>[]>(
-    () =>
-      columns.map((col) => {
-        if (isSimpleColumn(col)) {
-          return {
-            id: col.key,
-            header: ({ column }) => {
-              if (!col.sortable) {
-                return col.header
-              }
-              return (
-                <CmxButton
-                  variant="ghost"
-                  size="sm"
-                  className="h-auto p-0 font-medium hover:bg-transparent"
-                  onClick={() => column.toggleSorting()}
-                >
+  const tanstackColumns = useMemo<ColumnDef<TData, unknown>[]>(() => {
+    const mapped = columns.map((col) => {
+      if (isSimpleColumn(col)) {
+        const sortable = isSortableSimpleColumn(col)
+        return {
+          id: col.key,
+          header: ({ column }) => {
+            if (!sortable) {
+              return col.header
+            }
+            const sorted = column.getIsSorted()
+            return (
+              <CmxButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-auto min-h-8 w-full justify-start gap-1 p-0 font-medium hover:bg-transparent rtl:justify-end"
+                aria-sort={
+                  sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
+                }
+                onClick={() => column.toggleSorting()}
+              >
+                <span className="inline-flex items-center gap-1">
                   {col.header}
-                  {column.getIsSorted() === 'asc' && <ArrowUp className="ml-1 h-3 w-3" />}
-                  {column.getIsSorted() === 'desc' && <ArrowDown className="ml-1 h-3 w-3" />}
-                  {column.getIsSorted() === false && <ArrowUpDown className="ml-1 h-3 w-3 opacity-50" />}
-                </CmxButton>
-              )
-            },
-            cell: ({ row }) => col.render(row.original),
-            enableSorting: col.sortable,
-          }
-        }
-        return col
-      }),
-    [columns],
-  )
+                  {sorted === 'asc' ? <ArrowUp className="h-3 w-3 shrink-0" aria-hidden /> : null}
+                  {sorted === 'desc' ? <ArrowDown className="h-3 w-3 shrink-0" aria-hidden /> : null}
+                  {sorted !== 'asc' && sorted !== 'desc' ? (
+                    <ArrowUpDown className="h-3 w-3 shrink-0 opacity-50" aria-hidden />
+                  ) : null}
+                </span>
+              </CmxButton>
+            )
+          },
+          cell: ({ row }) => col.render(row.original),
+          enableSorting: sortable,
+        } as ColumnDef<TData, unknown>
+      }
+      return withSortableColumnHeader(col as ColumnDef<TData, unknown>)
+    })
+
+    if (!showRowNumbers) return mapped
+
+    const rowNoCol: ColumnDef<TData, unknown> = {
+      id: ROW_NUM_COL_ID,
+      enableSorting: false,
+      header: () => rowNumberHeader,
+      cell: ({ row }) => (
+        <span
+          className="tabular-nums text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]"
+          aria-label={`Row ${resolvedRowNumberOffset + row.index + 1}`}
+        >
+          {resolvedRowNumberOffset + row.index + 1}
+        </span>
+      ),
+    }
+    return [rowNoCol, ...mapped]
+  }, [columns, showRowNumbers, rowNumberHeader, resolvedRowNumberOffset])
 
   const table = useReactTable({
     data,
@@ -147,7 +258,7 @@ export function CmxDataTable<TData>({
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
-    manualSorting: true,
+    manualSorting: !clientSideSorting,
     pageCount: Math.max(1, Math.ceil(effectiveTotal / pageSize)),
     state: {
       pagination: { pageIndex: effectivePageIndex, pageSize },
@@ -174,19 +285,36 @@ export function CmxDataTable<TData>({
     },
   })
 
+  const defaultScrollClasses =
+    scrollable === false
+      ? 'overflow-x-auto'
+      : 'max-h-[min(70vh,42rem)] overflow-auto'
+
+  const scrollWrapperClass = cn(defaultScrollClasses, scrollAreaClassName)
+
+  const totalPages = Math.max(1, Math.ceil(effectiveTotal / pageSize))
+  const showPaginationBlock =
+    paginationFooter !== 'never' &&
+    (paginationFooter === 'always' || effectiveTotal > pageSize)
+
+  const noopPageSize = () => {}
+
   return (
     <CmxCard className={className}>
       <CmxCardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className={scrollWrapperClass}>
           <table className="min-w-full text-sm">
-            <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+            <thead className="sticky top-0 z-[1] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))] shadow-[0_1px_0_0_rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
                       scope="col"
-                      className="px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right"
+                      className={cn(
+                        'px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.02em] rtl:text-right',
+                        header.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
+                      )}
                     >
                       {header.isPlaceholder
                         ? null
@@ -219,7 +347,7 @@ export function CmxDataTable<TData>({
                     key={row.id}
                     className={cn(
                       'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
-                      enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]'
+                      enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
                     )}
                   >
                     {row.getVisibleCells().map((cell) => {
@@ -228,7 +356,14 @@ export function CmxDataTable<TData>({
                       ) as CmxDataTableSimpleColumn<TData> | undefined
                       const alignClass = simpleCol?.align ? `text-${simpleCol.align}` : ''
                       return (
-                        <td key={cell.id} className={cn('px-4 py-4 align-middle', alignClass)}>
+                        <td
+                          key={cell.id}
+                          className={cn(
+                            'px-4 py-4 align-middle',
+                            alignClass,
+                            cell.column.id === ROW_NUM_COL_ID && 'w-14 text-right tabular-nums rtl:text-left',
+                          )}
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </td>
                       )
@@ -261,23 +396,32 @@ export function CmxDataTable<TData>({
         </div>
       </CmxCardContent>
 
-      {effectiveTotal > pageSize && (
-        <CmxCardFooter className="justify-between gap-4">
+      {showPaginationBlock && (
+        <CmxCardFooter className="flex flex-col gap-3 border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-            Showing {(effectivePageIndex * pageSize) + 1} -{' '}
-            {Math.min((effectivePageIndex + 1) * pageSize, effectiveTotal)} of {effectiveTotal}
+            {effectiveTotal > 0 ? (
+              <>
+                Showing {(effectivePageIndex * pageSize) + 1} -{' '}
+                {Math.min((effectivePageIndex + 1) * pageSize, effectiveTotal)} of {effectiveTotal}
+              </>
+            ) : (
+              'No rows'
+            )}
           </div>
-          <CmxPagination
-            currentPage={effectivePageIndex + 1}
-            totalPages={Math.ceil(effectiveTotal / pageSize)}
-            pageSize={pageSize}
-            totalItems={effectiveTotal}
-            onPageChange={(page) => {
-              if (currentPage != null) onPageChange?.(page)
-              else onPageChange?.(page - 1)
-            }}
-            onPageSizeChange={onPageSizeChange}
-          />
+          <div className="min-w-0 flex-1 sm:flex sm:justify-end">
+            <CmxPagination
+              currentPage={effectivePageIndex + 1}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={effectiveTotal}
+              onPageChange={(p) => {
+                if (currentPage != null) onPageChange?.(p)
+                else onPageChange?.(p - 1)
+              }}
+              onPageSizeChange={onPageSizeChange ?? noopPageSize}
+              showWhenSinglePage={paginationFooter === 'always'}
+            />
+          </div>
         </CmxCardFooter>
       )}
     </CmxCard>

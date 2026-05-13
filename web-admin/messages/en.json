@@ -2669,7 +2669,10 @@
       "confirmDeleteBundleTitle": "Delete care package?",
       "confirmDeleteBundleMessage": "Delete “{name}” ({code})? This cannot be undone.",
       "preferenceKindsNote": "Kind codes are defined by the platform. You can customize labels, colors, and visibility for your tenant.",
-      "catalogAddRowHint": "To offer a platform option on new orders, open rows marked “Not in catalog” and click Add to catalog, or use the Not in catalog filter above."
+      "catalogAddRowHint": "To offer a platform option on new orders, open rows marked \"Not in catalog\" and click Add to catalog, or use the Not in catalog filter above.",
+      "createCustomServicePref": "Create Custom Service Preference",
+      "createCustomPackingPref": "Create Custom Packing Preference",
+      "create": "Create"
     }
   },
   "validation": {
