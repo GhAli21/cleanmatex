@@ -39,6 +39,7 @@ export interface OrderPreferenceRow {
   prefs_level: string;
   order_item_id: string | null;
   order_item_piece_id: string | null;
+  /** Polymorphic catalog id: service CF or packing CF per `preference_sys_kind`; not an FK in the database. */
   preference_id: string | null;
   preference_code: string;
   preference_content: string | null;

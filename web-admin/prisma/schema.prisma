@@ -753,6 +753,7 @@ model org_order_preferences_dtl {
   prefs_level          String    @db.VarChar(20)
   order_item_id        String?   @db.Uuid
   order_item_piece_id  String?   @db.Uuid
+  /// Polymorphic: `org_service_preference_cf.id` (service_prefs, color, …) or `org_packing_preference_cf.id` when `preference_sys_kind = packing_prefs`. No DB FK (migration 0263).
   preference_id         String?   @db.Uuid
   preference_code      String    @db.Text
   preference_content   String?   @db.Text
