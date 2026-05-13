@@ -95,6 +95,7 @@ export class OrderItemPreferenceService {
           prefs_level: 'ITEM',
           order_item_id: orderItemId,
           preference_code: input.preference_code,
+          preference_content: input.preference_code,
           preference_sys_kind: 'service_prefs',
           prefs_source: input.source || PREFERENCE_SOURCES.MANUAL,
           extra_price: input.extra_price,
@@ -213,6 +214,7 @@ export class OrderItemPreferenceService {
           .from('org_order_preferences_dtl')
           .update({
             preference_code: packingPrefCode,
+            preference_content: packingPrefCode,
             prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
             prefs_source: packingPrefSource ?? 'ORDER_UPDATE',
             extra_price: packExtra,
@@ -236,6 +238,7 @@ export class OrderItemPreferenceService {
             prefs_level: 'ITEM',
             order_item_id: orderItemId,
             preference_code: packingPrefCode,
+            preference_content: packingPrefCode,
             preference_sys_kind: 'packing_prefs',
             prefs_owner_type: packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
             prefs_source: packingPrefSource ?? 'ORDER_UPDATE',

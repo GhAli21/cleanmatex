@@ -13,6 +13,7 @@ import { OrderItemPreferenceService } from './order-item-preference.service';
 import type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 import { getConditionPrefKind } from '@/lib/utils/condition-codes';
 import { fetchOrgPackingExtraPriceByCodesSupabase } from '@/lib/utils/org-packing-extra-price';
+import { fetchOrgServicePreferenceCfIdsByCodesSupabase } from '@/lib/utils/org-service-preference-cf-lookup';
 
 export type { AddPieceServicePrefInput } from '@/lib/validations/service-preferences-schemas';
 
@@ -101,6 +102,7 @@ export class OrderPiecePreferenceService {
           order_item_id: orderItemId,
           order_item_piece_id: pieceId,
           preference_code: input.preference_code,
+          preference_content: input.preference_code,
           preference_sys_kind: 'service_prefs',
           prefs_source: input.source || PREFERENCE_SOURCES.MANUAL,
           extra_price: input.extra_price,
@@ -275,6 +277,9 @@ export class OrderPiecePreferenceService {
       return { success: true };
     }
 
+    const catalogCodes = conditionCodes.map((c) => getConditionPrefKind(c).preference_code);
+    const conditionCfByCode = await fetchOrgServicePreferenceCfIdsByCodesSupabase(supabase, tenantId, catalogCodes);
+
     const { data: maxNo } = await supabase
       .from('org_order_preferences_dtl')
       .select('prefs_no')
@@ -289,6 +294,7 @@ export class OrderPiecePreferenceService {
     const rows = conditionCodes.map((code) => {
       const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
       prefsNo += 1;
+      const prefCfId = conditionCfByCode.get(preference_code);
       return {
         tenant_org_id: tenantId,
         order_id: orderId,
@@ -297,11 +303,13 @@ export class OrderPiecePreferenceService {
         order_item_id: orderItemId,
         order_item_piece_id: pieceId,
         preference_code,
+        preference_content: preference_code,
         preference_sys_kind,
         prefs_source: PREFERENCE_SOURCES.MANUAL,
         extra_price: 0,
         branch_id: branchId ?? null,
         created_by: userId,
+        ...(prefCfId ? { preference_id: prefCfId } : {}),
       };
     });
 
@@ -416,6 +424,7 @@ export class OrderPiecePreferenceService {
         order_item_id: orderItemId,
         order_item_piece_id: pieceId,
         preference_code: codeNorm,
+        preference_content: codeNorm,
         preference_sys_kind: 'packing_prefs',
         prefs_source: PREFERENCE_SOURCES.MANUAL,
         extra_price: packExtra,

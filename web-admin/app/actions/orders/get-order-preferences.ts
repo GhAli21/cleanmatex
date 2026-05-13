@@ -19,7 +19,7 @@ export async function getOrderPreferencesAction(
     const { data, error } = await supabase
       .from('org_order_preferences_dtl')
       .select(
-        'id, tenant_org_id, order_id, branch_id, prefs_no, prefs_level, order_item_id, order_item_piece_id, preference_id, preference_code, preference_sys_kind, preference_category, prefs_owner_type, prefs_source, extra_price, processing_confirmed, confirmed_by, confirmed_at, rec_status, created_at, created_by, updated_at, updated_by'
+        'id, tenant_org_id, order_id, branch_id, prefs_no, prefs_level, order_item_id, order_item_piece_id, preference_id, preference_code, preference_content, preference_sys_kind, preference_category, prefs_owner_type, prefs_source, extra_price, processing_confirmed, confirmed_by, confirmed_at, rec_status, created_at, created_by, updated_at, updated_by'
       )
       .eq('tenant_org_id', tenantId)
       .eq('order_id', orderId)
@@ -42,6 +42,7 @@ export async function getOrderPreferencesAction(
       order_item_piece_id: r.order_item_piece_id ?? null,
       preference_id: r.preference_id ?? null,
       preference_code: r.preference_code,
+      preference_content: r.preference_content ?? null,
       preference_sys_kind: r.preference_sys_kind ?? null,
       preference_category: r.preference_category ?? null,
       prefs_owner_type: r.prefs_owner_type,

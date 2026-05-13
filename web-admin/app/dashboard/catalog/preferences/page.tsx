@@ -33,12 +33,13 @@ import { Package, Shirt, Plus, Pencil, Trash2, Gift, ChevronRight, Layers } from
 import { RequireAnyPermission } from '@/src/features/auth/ui/RequirePermission';
 import { getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { formatMoneyAmountWithCode, type MoneyLocale } from '@/lib/money/format-money';
 import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-access';
 import { ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS, PREFERENCE_CATEGORIES } from '@/lib/constants/service-preferences';
 import { normalizeHexDraftForApi } from '@/lib/utils/color-hex';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CmxDataTable, CmxDataGrid, type CmxDataGridLabels, type CmxDataGridColumnMeta } from '@ui/data-display';
+import { CmxDataGrid, type CmxDataGridLabels, type CmxDataGridColumnMeta } from '@ui/data-display';
+import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 
 interface ServicePref {
   code: string;
@@ -105,6 +106,21 @@ interface PreferenceBundle {
   discount_amount?: number;
   is_active?: boolean;
   display_order?: number;
+}
+
+function bundleDiscountDisplay(
+  b: PreferenceBundle,
+  opts: { currencyCode: string; decimalPlaces: number; locale: MoneyLocale }
+): string {
+  if ((b.discount_percent ?? 0) > 0) return `${b.discount_percent}%`;
+  if ((b.discount_amount ?? 0) > 0) {
+    return formatMoneyAmountWithCode(Number(b.discount_amount), {
+      currencyCode: opts.currencyCode,
+      decimalPlaces: opts.decimalPlaces,
+      locale: opts.locale,
+    });
+  }
+  return '—';
 }
 
 type ServicePrefRow = ServicePref | ServicePrefAdmin;
@@ -198,6 +214,42 @@ function TableSkeleton({ rows = 5 }: { rows?: number }) {
   );
 }
 
+function useCatalogPreferencesGridLabels(): Partial<CmxDataGridLabels> {
+  const t = useTranslations('catalog.preferences');
+  return useMemo(
+    () => ({
+      resetFilters: t('dataGrid.resetFilters'),
+      rowsPerPage: t('dataGrid.rowsPerPage'),
+      showing: t('dataGrid.showing'),
+      page: t('dataGrid.page'),
+      firstPage: t('dataGrid.firstPage'),
+      previousPage: t('dataGrid.previousPage'),
+      nextPage: t('dataGrid.nextPage'),
+      lastPage: t('dataGrid.lastPage'),
+      goToPage: t('dataGrid.goToPage'),
+      go: t('dataGrid.go'),
+      filterPlaceholder: t('dataGrid.filterPlaceholder'),
+      empty: t('dataGrid.empty'),
+      columnsMenu: t('dataGrid.columnsMenu'),
+      toggleColumns: t('dataGrid.toggleColumns'),
+      globalSearchPlaceholder: t('dataGrid.globalSearchPlaceholder'),
+      clearFilters: t('dataGrid.clearFilters'),
+      exportCsv: t('dataGrid.exportCsv'),
+      selectedCount: t('dataGrid.selectedCount'),
+      selectAll: t('dataGrid.selectAll'),
+      selectRow: t('dataGrid.selectRow'),
+      clearColumnFilter: t('dataGrid.clearColumnFilter'),
+      emptyFilteredHint: t('dataGrid.emptyFilteredHint'),
+      density: t('dataGrid.density'),
+      densityCompact: t('dataGrid.densityCompact'),
+      densityStandard: t('dataGrid.densityStandard'),
+      densityComfortable: t('dataGrid.densityComfortable'),
+      copyToClipboard: t('dataGrid.copyToClipboard'),
+    }),
+    [t]
+  );
+}
+
 function servicePrefPrimaryLabel(row: ServicePrefRow, isAdmin: boolean, isRtl: boolean): string {
   const adminRow = isAdmin ? (row as ServicePrefAdmin) : null;
   const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name ?? '') : ((row as ServicePref).name ?? '');
@@ -228,7 +280,8 @@ function servicePrefSwatchHex(row: ServicePrefRow, isAdmin: boolean): string | n
   return (row as ServicePref).color_hex ?? null;
 }
 
-function ServicePrefsKindCmxTable({
+function ServicePrefsKindDataGrid({
+  kindCode,
   groupRows,
   isAdmin,
   isRtl,
@@ -236,7 +289,10 @@ function ServicePrefsKindCmxTable({
   onEdit,
   onRemove,
   removePendingCode,
+  labels,
+  columnVisibilityStorageKey,
 }: {
+  kindCode: string;
   groupRows: ServicePrefRow[];
   isAdmin: boolean;
   isRtl: boolean;
@@ -244,15 +300,18 @@ function ServicePrefsKindCmxTable({
   onEdit: (p: ServicePrefAdmin) => void;
   onRemove?: (p: ServicePrefAdmin) => void;
   removePendingCode: string | null;
+  labels: Partial<CmxDataGridLabels>;
+  columnVisibilityStorageKey: string;
 }) {
   const t = useTranslations('catalog.preferences');
+  const dir = isRtl ? 'rtl' : 'ltr';
   const intlLocale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
-  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
+  const moneyLocale: MoneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
   const editPerms = CATALOG_PREFERENCES_ACCESS.actions?.editServicePreferences.requirement.permissions ?? [];
 
-  const columns = useMemo((): ColumnDef<ServicePrefRow>[] => {
-    const cols: ColumnDef<ServicePrefRow>[] = [
+  const columns = useMemo((): ColumnDef<ServicePrefRow, unknown>[] => {
+    const cols: ColumnDef<ServicePrefRow, unknown>[] = [
       {
         accessorKey: 'code',
         header: t('code', { defaultValue: 'Code' }),
@@ -266,7 +325,7 @@ function ServicePrefsKindCmxTable({
       cols.push({
         id: 'swatch',
         enableSorting: false,
-        meta: { disableSort: true },
+        meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
         header: t('preferenceColorShort', { defaultValue: 'Swatch' }),
         cell: ({ row }) => {
           const swatchHex = servicePrefSwatchHex(row.original, isAdmin);
@@ -294,12 +353,14 @@ function ServicePrefsKindCmxTable({
         id: 'name',
         accessorFn: (r) => servicePrefPrimaryLabel(r, isAdmin, isRtl),
         header: t('name', { defaultValue: 'Name' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
         cell: ({ row }) => <span>{servicePrefPrimaryLabel(row.original, isAdmin, isRtl)}</span>,
       },
       {
         id: 'name2',
         accessorFn: (r) => servicePrefSecondaryLabel(r, isAdmin),
         header: t('nameAr', { defaultValue: 'Name (AR)' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
         cell: ({ row }) => (
           <span className="text-gray-600">{servicePrefSecondaryLabel(row.original, isAdmin)}</span>
         ),
@@ -315,6 +376,7 @@ function ServicePrefsKindCmxTable({
         id: 'extra_price',
         accessorFn: (r) => servicePrefExtraPriceValue(r, isAdmin),
         header: t('extraPrice', { defaultValue: 'Extra Price' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
         cell: ({ row }) => (
           <span>
             +
@@ -380,7 +442,7 @@ function ServicePrefsKindCmxTable({
         {
           id: 'actions',
           enableSorting: false,
-          meta: { disableSort: true },
+          meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
           header: t('actions', { defaultValue: 'Actions' }),
           cell: ({ row }) => {
             const adminRow = row.original as ServicePrefAdmin;
@@ -452,23 +514,25 @@ function ServicePrefsKindCmxTable({
     editPerms,
   ]);
 
-  const pageSize = Math.max(groupRows.length, 1);
-
   return (
-    <CmxDataTable<ServicePrefRow>
-      className="rounded-none border-0 bg-transparent shadow-none"
-      columns={columns}
+    <CmxDataGrid<ServicePrefRow>
       data={groupRows}
-      loading={false}
-      page={0}
-      pageSize={pageSize}
-      total={groupRows.length}
-      paginationFooter="never"
-      clientSideSorting
-      showRowNumbers
-      rowNumberHeader={t('rowNumberShort', { defaultValue: '#' })}
-      rowNumberOffset={0}
-      enableZebraStriping
+      columns={columns}
+      getRowId={(row) => row.code}
+      initialPageSize={25}
+      pageSizeOptions={[10, 25, 50, 100]}
+      labels={labels}
+      dir={dir}
+      enableZebra
+      enableGlobalSearch
+      enableExportCsv
+      exportFileName={`service-preferences-${kindCode.replace(/[^a-zA-Z0-9_-]/g, '_')}`}
+      enableStickyFirstColumn
+      columnVisibilityStorageKey={columnVisibilityStorageKey}
+      enableDensityToggle
+      tableWrapperClassName="max-h-[min(60vh,34rem)] min-w-0"
+      enableColumnVisibility
+      className="min-w-0"
     />
   );
 }
@@ -495,6 +559,8 @@ function ServicePrefsTable({
   isRtl: boolean;
 }) {
   const t = useTranslations('catalog.preferences');
+  const { currentTenant } = useAuth();
+  const gridLabels = useCatalogPreferencesGridLabels();
   const rowsRaw = servicePrefsAdmin.length > 0 ? servicePrefsAdmin : servicePrefs;
   const isAdmin = servicePrefsAdmin.length > 0;
   const rows = useMemo(() => {
@@ -604,7 +670,8 @@ function ServicePrefsTable({
             </Badge>
           </div>
           <div className="overflow-hidden rounded-b-xl">
-            <ServicePrefsKindCmxTable
+            <ServicePrefsKindDataGrid
+              kindCode={group.kindCode}
               groupRows={group.rows}
               isAdmin={isAdmin}
               isRtl={isRtl}
@@ -612,6 +679,12 @@ function ServicePrefsTable({
               onEdit={onEdit}
               onRemove={onRemove}
               removePendingCode={removePendingCode}
+              labels={gridLabels}
+              columnVisibilityStorageKey={
+                currentTenant?.tenant_id
+                  ? `catalog-service-prefs-grid-${currentTenant.tenant_id}-${group.kindCode}`
+                  : `catalog-service-prefs-grid-${group.kindCode}`
+              }
             />
           </div>
         </section>
@@ -854,6 +927,7 @@ function PackingPrefsTable({
   const { currentTenant } = useAuth();
   const rowsRaw = packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs;
   const isAdmin = packingPrefsAdmin.length > 0;
+  const gridLabels = useCatalogPreferencesGridLabels();
   const rows = useMemo(() => {
     if (!isAdmin || offerFilter === 'all') return rowsRaw;
     return (rowsRaw as PackingPrefAdmin[]).filter((r) => {
@@ -861,39 +935,6 @@ function PackingPrefsTable({
       return offerFilter === 'offered' ? offered : !offered;
     });
   }, [rowsRaw, isAdmin, offerFilter]);
-
-  const gridLabels = useMemo(
-    (): Partial<CmxDataGridLabels> => ({
-      resetFilters: t('dataGrid.resetFilters'),
-      rowsPerPage: t('dataGrid.rowsPerPage'),
-      showing: t('dataGrid.showing'),
-      page: t('dataGrid.page'),
-      firstPage: t('dataGrid.firstPage'),
-      previousPage: t('dataGrid.previousPage'),
-      nextPage: t('dataGrid.nextPage'),
-      lastPage: t('dataGrid.lastPage'),
-      goToPage: t('dataGrid.goToPage'),
-      go: t('dataGrid.go'),
-      filterPlaceholder: t('dataGrid.filterPlaceholder'),
-      empty: t('dataGrid.empty'),
-      columnsMenu: t('dataGrid.columnsMenu'),
-      toggleColumns: t('dataGrid.toggleColumns'),
-      globalSearchPlaceholder: t('dataGrid.globalSearchPlaceholder'),
-      clearFilters: t('dataGrid.clearFilters'),
-      exportCsv: t('dataGrid.exportCsv'),
-      selectedCount: t('dataGrid.selectedCount'),
-      selectAll: t('dataGrid.selectAll'),
-      selectRow: t('dataGrid.selectRow'),
-      clearColumnFilter: t('dataGrid.clearColumnFilter'),
-      emptyFilteredHint: t('dataGrid.emptyFilteredHint'),
-      density: t('dataGrid.density'),
-      densityCompact: t('dataGrid.densityCompact'),
-      densityStandard: t('dataGrid.densityStandard'),
-      densityComfortable: t('dataGrid.densityComfortable'),
-      copyToClipboard: t('dataGrid.copyToClipboard'),
-    }),
-    [t]
-  );
 
   if (loading) {
     return <TableSkeleton rows={6} />;
@@ -958,7 +999,98 @@ function BundlesTable({
   const t = useTranslations('catalog.preferences');
   const intlLocale = useLocale();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
-  const moneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
+  const moneyLocale: MoneyLocale = intlLocale === 'ar' ? 'ar' : 'en';
+  const dir = intlLocale === 'ar' ? 'rtl' : 'ltr';
+  const { currentTenant } = useAuth();
+  const gridLabels = useCatalogPreferencesGridLabels();
+  const bundleManagePerms = CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? [];
+  const canManageBundles = useHasAnyPermission(bundleManagePerms);
+
+  const moneyOpts = useMemo(
+    () => ({ currencyCode, decimalPlaces, locale: moneyLocale }),
+    [currencyCode, decimalPlaces, moneyLocale]
+  );
+
+  const columns = useMemo((): ColumnDef<PreferenceBundle, unknown>[] => {
+    const cols: ColumnDef<PreferenceBundle, unknown>[] = [
+      {
+        accessorKey: 'bundle_code',
+        header: t('bundleCode', { defaultValue: 'Code' }),
+        cell: ({ row }) => <span className="font-mono text-xs">{row.original.bundle_code}</span>,
+      },
+      {
+        accessorKey: 'name',
+        header: t('bundleName', { defaultValue: 'Name' }),
+      },
+      {
+        id: 'preference_codes',
+        accessorFn: (b) => (b.preference_codes || []).join(', '),
+        header: t('preferences', { defaultValue: 'Preferences' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
+        cell: ({ row }) => {
+          const text = (row.original.preference_codes || []).join(', ') || '—';
+          return (
+            <span className="text-muted-foreground block max-w-[200px] truncate" title={text}>
+              {text}
+            </span>
+          );
+        },
+      },
+      {
+        id: 'discount',
+        accessorFn: (b) => bundleDiscountDisplay(b, moneyOpts),
+        header: t('discount', { defaultValue: 'Discount' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
+        cell: ({ row }) => <span>{bundleDiscountDisplay(row.original, moneyOpts)}</span>,
+      },
+      {
+        id: 'status',
+        accessorFn: (b) => (b.is_active ? 1 : 0),
+        header: t('status', { defaultValue: 'Status' }),
+        cell: ({ row }) => (
+          <Badge variant={row.original.is_active ? 'success' : 'default'}>
+            {row.original.is_active ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
+          </Badge>
+        ),
+      },
+    ];
+
+    if (canManageBundles) {
+      cols.push({
+        id: 'actions',
+        enableSorting: false,
+        meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
+        header: t('actions', { defaultValue: 'Actions' }),
+        cell: ({ row }) => (
+          <div className="flex justify-end gap-1">
+            <CmxButton
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onEdit(row.original)}
+              aria-label={t('edit', { defaultValue: 'Edit' })}
+              data-testid={`edit-bundle-${row.original.bundle_code}`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </CmxButton>
+            <CmxButton
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-red-600 hover:text-red-700"
+              onClick={() => onDelete(row.original)}
+              disabled={deletePending}
+              aria-label={t('delete', { defaultValue: 'Delete' })}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </CmxButton>
+          </div>
+        ),
+      });
+    }
+
+    return cols;
+  }, [t, moneyOpts, canManageBundles, onEdit, onDelete, deletePending]);
+
   if (loading) {
     return <TableSkeleton rows={5} />;
   }
@@ -976,83 +1108,30 @@ function BundlesTable({
   }
 
   return (
-    <div
-      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
-      data-testid="bundles-table"
-    >
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium">{t('bundleCode', { defaultValue: 'Code' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('bundleName', { defaultValue: 'Name' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('preferences', { defaultValue: 'Preferences' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('discount', { defaultValue: 'Discount' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('status', { defaultValue: 'Status' })}</th>
-            <RequireAnyPermission
-              permissions={CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? []}
-              fallback={<th />}
-            >
-              <th className="px-4 py-3 text-right font-medium">{t('actions', { defaultValue: 'Actions' })}</th>
-            </RequireAnyPermission>
-          </tr>
-        </thead>
-        <tbody>
-          {bundles.map((b) => (
-            <tr key={b.id} className="border-t border-gray-100 hover:bg-gray-50/50">
-              <td className="px-4 py-3 font-mono text-xs">{b.bundle_code}</td>
-              <td className="px-4 py-3">{b.name}</td>
-              <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate" title={(b.preference_codes || []).join(', ')}>
-                {(b.preference_codes || []).join(', ') || 'â€”'}
-              </td>
-              <td className="px-4 py-3">
-                {(b.discount_percent ?? 0) > 0
-                  ? `${b.discount_percent}%`
-                  : (b.discount_amount ?? 0) > 0
-                    ? formatMoneyAmountWithCode(Number(b.discount_amount), {
-                        currencyCode,
-                        decimalPlaces,
-                        locale: moneyLocale,
-                      })
-                    : 'â€”'}
-              </td>
-              <td className="px-4 py-3">
-                <Badge variant={b.is_active ? 'success' : 'default'}>
-                  {b.is_active ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-                </Badge>
-              </td>
-              <RequireAnyPermission
-                permissions={CATALOG_PREFERENCES_ACCESS.actions?.manageBundles.requirement.permissions ?? []}
-                fallback={<td />}
-              >
-                <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-1">
-                    <CmxButton
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2"
-                      onClick={() => onEdit(b)}
-                      aria-label={t('edit', { defaultValue: 'Edit' })}
-                      data-testid={`edit-bundle-${b.bundle_code}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </CmxButton>
-                    <CmxButton
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 text-red-600 hover:text-red-700"
-                      onClick={() => onDelete(b)}
-                      disabled={deletePending}
-                      aria-label={t('delete', { defaultValue: 'Delete' })}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </CmxButton>
-                  </div>
-                </td>
-              </RequireAnyPermission>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="min-w-0" data-testid="bundles-table">
+      <CmxDataGrid<PreferenceBundle>
+        data={bundles}
+        columns={columns}
+        getRowId={(b) => b.id}
+        initialPageSize={25}
+        pageSizeOptions={[10, 25, 50, 100]}
+        labels={gridLabels}
+        dir={dir}
+        enableZebra
+        enableGlobalSearch
+        enableExportCsv
+        exportFileName="preference-bundles-catalog"
+        enableStickyFirstColumn
+        columnVisibilityStorageKey={
+          currentTenant?.tenant_id
+            ? `catalog-preference-bundles-grid-${currentTenant.tenant_id}`
+            : 'catalog-preference-bundles-grid'
+        }
+        enableDensityToggle
+        tableWrapperClassName="max-h-[min(60vh,34rem)] min-w-0"
+        enableColumnVisibility
+        className="min-w-0"
+      />
     </div>
   );
 }
@@ -1075,6 +1154,17 @@ interface PreferenceKindAdmin {
   cf_is_active: boolean | null;
 }
 
+function preferenceKindPrimaryLabel(k: PreferenceKindAdmin, rtl: boolean): string {
+  const displayName = k.cf_name ?? k.name ?? '';
+  const displayName2 = k.cf_name2 ?? k.name2 ?? '';
+  const primary = rtl ? (displayName2 || displayName) : displayName;
+  return primary.trim() || '—';
+}
+
+function preferenceKindSecondaryLabel(k: PreferenceKindAdmin): string {
+  return (k.cf_name2 ?? k.name2 ?? '').trim() || '—';
+}
+
 function PreferenceKindsTable({
   kinds,
   loading,
@@ -1087,6 +1177,130 @@ function PreferenceKindsTable({
   isRtl: boolean;
 }) {
   const t = useTranslations('catalog.preferences');
+  const dir = isRtl ? 'rtl' : 'ltr';
+  const { currentTenant } = useAuth();
+  const gridLabels = useCatalogPreferencesGridLabels();
+  const kindEditPerms = CATALOG_PREFERENCES_ACCESS.actions?.editPreferenceKinds.requirement.permissions ?? [];
+  const canEditKinds = useHasAnyPermission(kindEditPerms);
+
+  const columns = useMemo((): ColumnDef<PreferenceKindAdmin, unknown>[] => {
+    const cols: ColumnDef<PreferenceKindAdmin, unknown>[] = [
+      {
+        accessorKey: 'kind_code',
+        header: t('kindCode', { defaultValue: 'Kind Code' }),
+        cell: ({ row }) => <span className="font-mono text-xs">{row.original.kind_code}</span>,
+      },
+      {
+        id: 'primaryName',
+        accessorFn: (k) => preferenceKindPrimaryLabel(k, isRtl),
+        header: t('name', { defaultValue: 'Name' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
+        cell: ({ row }) => <span>{preferenceKindPrimaryLabel(row.original, isRtl)}</span>,
+      },
+      {
+        id: 'name2',
+        accessorFn: (k) => preferenceKindSecondaryLabel(k),
+        header: t('nameAr', { defaultValue: 'Name (AR)' }),
+        meta: { filterable: true } as CmxDataGridColumnMeta & { filterable?: boolean },
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{preferenceKindSecondaryLabel(row.original)}</span>
+        ),
+      },
+      {
+        accessorKey: 'main_type_code',
+        header: t('mainType', { defaultValue: 'Main Type' }),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{row.original.main_type_code || '—'}</span>
+        ),
+      },
+      {
+        id: 'bg_color',
+        enableSorting: false,
+        meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
+        header: t('bgColor', { defaultValue: 'BG Color' }),
+        cell: ({ row }) => {
+          const bgColor = row.original.cf_kind_bg_color ?? row.original.kind_bg_color;
+          return bgColor ? (
+            <span className="flex items-center gap-1.5">
+              <span
+                className="inline-block h-4 w-4 rounded-full border border-gray-300"
+                style={{ backgroundColor: bgColor }}
+                aria-hidden
+              />
+              <span className="font-mono text-xs text-muted-foreground">{bgColor}</span>
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          );
+        },
+      },
+      {
+        id: 'quick_bar',
+        accessorFn: (k) => (k.cf_is_show_in_quick_bar ?? false ? 1 : 0),
+        header: t('showInQuickBar', { defaultValue: 'Quick Bar' }),
+        cell: ({ row }) => {
+          const showQuickBar = row.original.cf_is_show_in_quick_bar ?? false;
+          return (
+            <Badge variant={showQuickBar ? 'success' : 'default'}>
+              {showQuickBar ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: 'customer',
+        accessorFn: (k) => (k.cf_is_show_for_customer ?? false ? 1 : 0),
+        header: t('showForCustomer', { defaultValue: 'Customer' }),
+        cell: ({ row }) => {
+          const showForCustomer = row.original.cf_is_show_for_customer ?? false;
+          return (
+            <Badge variant={showForCustomer ? 'success' : 'default'}>
+              {showForCustomer ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
+            </Badge>
+          );
+        },
+      },
+      {
+        id: 'status',
+        accessorFn: (k) => (k.cf_is_active !== false ? 1 : 0),
+        header: t('status', { defaultValue: 'Status' }),
+        cell: ({ row }) => {
+          const isActive = row.original.cf_is_active !== false;
+          return (
+            <Badge variant={isActive ? 'success' : 'default'}>
+              {isActive ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
+            </Badge>
+          );
+        },
+      },
+    ];
+
+    if (canEditKinds) {
+      cols.push({
+        id: 'actions',
+        enableSorting: false,
+        meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
+        header: t('actions', { defaultValue: 'Actions' }),
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <CmxButton
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2"
+              onClick={() => onEdit(row.original)}
+              aria-label={t('edit', { defaultValue: 'Edit' })}
+              data-testid={`edit-preference-kind-${row.original.kind_code}`}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </CmxButton>
+          </div>
+        ),
+      });
+    }
+
+    return cols;
+  }, [t, isRtl, canEditKinds, onEdit]);
+
   if (loading) {
     return <TableSkeleton rows={6} />;
   }
@@ -1104,91 +1318,30 @@ function PreferenceKindsTable({
   }
 
   return (
-    <div
-      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
-      data-testid="preference-kinds-table"
-    >
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium">{t('kindCode', { defaultValue: 'Kind Code' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('name', { defaultValue: 'Name' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('nameAr', { defaultValue: 'Name (AR)' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('mainType', { defaultValue: 'Main Type' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('bgColor', { defaultValue: 'BG Color' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('showInQuickBar', { defaultValue: 'Quick Bar' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('showForCustomer', { defaultValue: 'Customer' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('status', { defaultValue: 'Status' })}</th>
-            <th className="px-4 py-3 text-right font-medium">{t('actions', { defaultValue: 'Actions' })}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {kinds.map((k) => {
-            const displayName = k.cf_name ?? k.name;
-            const displayName2 = k.cf_name2 ?? k.name2;
-            const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
-            const isActive = k.cf_is_active !== false;
-            const bgColor = k.cf_kind_bg_color ?? k.kind_bg_color;
-            const showQuickBar = k.cf_is_show_in_quick_bar ?? false;
-            const showForCustomer = k.cf_is_show_for_customer ?? false;
-
-            return (
-              <tr key={k.kind_code} className="border-t border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-3 font-mono text-xs">{k.kind_code}</td>
-                <td className="px-4 py-3">{primaryName || 'â€”'}</td>
-                <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
-                <td className="px-4 py-3 text-gray-600">{k.main_type_code || 'â€”'}</td>
-                <td className="px-4 py-3">
-                  {bgColor ? (
-                    <span className="flex items-center gap-1.5">
-                      <span
-                        className="inline-block w-4 h-4 rounded-full border border-gray-300"
-                        style={{ backgroundColor: bgColor }}
-                        aria-hidden="true"
-                      />
-                      <span className="font-mono text-xs text-gray-600">{bgColor}</span>
-                    </span>
-                  ) : (
-                    <span className="text-gray-400">â€”</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={showQuickBar ? 'success' : 'default'}>
-                    {showQuickBar ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={showForCustomer ? 'success' : 'default'}>
-                    {showForCustomer ? t('yes', { defaultValue: 'Yes' }) : t('no', { defaultValue: 'No' })}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={isActive ? 'success' : 'default'}>
-                    {isActive ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <RequireAnyPermission
-                    permissions={CATALOG_PREFERENCES_ACCESS.actions?.editPreferenceKinds.requirement.permissions ?? []}
-                    fallback={null}
-                  >
-                    <CmxButton
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2"
-                      onClick={() => onEdit(k)}
-                      aria-label={t('edit', { defaultValue: 'Edit' })}
-                      data-testid={`edit-preference-kind-${k.kind_code}`}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </CmxButton>
-                  </RequireAnyPermission>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="min-w-0" data-testid="preference-kinds-table">
+      <CmxDataGrid<PreferenceKindAdmin>
+        data={kinds}
+        columns={columns}
+        getRowId={(k) => k.kind_code}
+        initialPageSize={25}
+        pageSizeOptions={[10, 25, 50, 100]}
+        labels={gridLabels}
+        dir={dir}
+        enableZebra
+        enableGlobalSearch
+        enableExportCsv
+        exportFileName="preference-kinds-catalog"
+        enableStickyFirstColumn
+        columnVisibilityStorageKey={
+          currentTenant?.tenant_id
+            ? `catalog-preference-kinds-grid-${currentTenant.tenant_id}`
+            : 'catalog-preference-kinds-grid'
+        }
+        enableDensityToggle
+        tableWrapperClassName="max-h-[min(60vh,34rem)] min-w-0"
+        enableColumnVisibility
+        className="min-w-0"
+      />
     </div>
   );
 }

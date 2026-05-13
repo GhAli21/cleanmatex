@@ -27,6 +27,7 @@ import { validateOrderSourceForCreation, type OrderSourceCatalogRow } from '@/li
 import { buildDiscountLinesFromOrderInput, insertDiscountLines, insertDiscountLinesTx } from '@/lib/db/order-discounts';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 import { fetchOrgPackingExtraPriceByCodesSupabase, fetchOrgPackingExtraPriceByCodesPrismaTx } from '@/lib/utils/org-packing-extra-price';
+import { fetchOrgServicePreferenceCfIdsByCodesPrismaTx } from '@/lib/utils/org-service-preference-cf-lookup';
 
 /** Packing codes from order item payload (ITEM + piece rows). */
 function collectPackingPrefCodesFromOrderPayload(
@@ -43,6 +44,23 @@ function collectPackingPrefCodesFromOrderPayload(
     }
   }
   return c;
+}
+
+/** Catalog `preference_code` values for all piece-level conditions on the order (stain / damage / special). */
+function collectConditionCatalogCodesFromOrderItems(
+  orderItems: ReadonlyArray<{
+    pieces?: ReadonlyArray<{ conditions?: string[] }>;
+  }>
+): string[] {
+  const set = new Set<string>();
+  for (const it of orderItems) {
+    for (const p of it.pieces ?? []) {
+      for (const uiCode of p.conditions ?? []) {
+        set.add(getConditionPrefKind(uiCode).preference_code);
+      }
+    }
+  }
+  return [...set];
 }
 
 function inferredPackingLineChargeOnCreateItem(
@@ -745,6 +763,7 @@ export class OrderService {
             prefs_level: string;
             order_item_id: string;
             preference_code: string;
+            preference_content: string;
             preference_sys_kind: string;
             prefs_source: string;
             extra_price: number;
@@ -765,6 +784,7 @@ export class OrderService {
                   prefs_level: 'ITEM',
                   order_item_id: createdItem.id,
                   preference_code: pref.preference_code,
+                  preference_content: pref.preference_code,
                   preference_sys_kind: 'service_prefs',
                   prefs_source: pref.source ?? 'manual',
                   extra_price: pref.extra_price ?? 0,
@@ -810,6 +830,7 @@ export class OrderService {
                 prefs_level: 'ITEM',
                 order_item_id: createdItem.id,
                 preference_code: itemData.packingPrefCode,
+                preference_content: itemData.packingPrefCode,
                 preference_sys_kind: 'packing_prefs',
                 prefs_owner_type: itemData.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
                 prefs_source: itemData.packingPrefSource ?? 'ORDER_CREATE',
@@ -1281,6 +1302,12 @@ export class OrderService {
         collectPackingPrefCodesFromOrderPayload(items)
       );
 
+      const conditionCfIdByCode = await fetchOrgServicePreferenceCfIdsByCodesPrismaTx(
+        tx,
+        tenantId,
+        collectConditionCatalogCodesFromOrderItems(items)
+      );
+
       for (let index = 0; index < items.length; index++) {
         const item = items[index];
         const createdItem = await tx.org_order_items_dtl.create({
@@ -1322,6 +1349,7 @@ export class OrderService {
               prefs_level: 'ITEM',
               order_item_id: createdItem.id,
               preference_code: pref.preference_code,
+              preference_content: pref.preference_code,
               preference_sys_kind: 'service_prefs',
               prefs_source: pref.source ?? 'manual',
               extra_price: pref.extra_price ?? 0,
@@ -1342,6 +1370,7 @@ export class OrderService {
               prefs_level: 'ITEM',
               order_item_id: createdItem.id,
               preference_code: item.packingPrefCode,
+              preference_content: item.packingPrefCode,
               preference_sys_kind: 'packing_prefs',
               prefs_owner_type: item.packingPrefIsOverride ? 'OVERRIDE' : 'SYSTEM',
               prefs_source: item.packingPrefSource ?? 'ORDER_CREATE',
@@ -1404,6 +1433,7 @@ export class OrderService {
               await tx.org_order_preferences_dtl.createMany({
                 data: conditions.map((code, cidx) => {
                   const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+                  const prefCfId = conditionCfIdByCode.get(preference_code);
                   return {
                     tenant_org_id: tenantId,
                     order_id: order.id,
@@ -1412,11 +1442,13 @@ export class OrderService {
                     order_item_id: createdItem.id,
                     order_item_piece_id: createdPiece.id,
                     preference_code,
+                    preference_content: preference_code,
                     preference_sys_kind,
                     prefs_source: prefsSourceOnCreate,
                     extra_price: 0,
                     branch_id: branchId ?? null,
                     created_by: userId,
+                    ...(prefCfId ? { preference_id: prefCfId } : {}),
                   };
                 }),
               });
@@ -1433,6 +1465,7 @@ export class OrderService {
                   order_item_id: createdItem.id,
                   order_item_piece_id: createdPiece.id,
                   preference_code: pref.preference_code,
+                  preference_content: pref.preference_code,
                   preference_sys_kind: 'service_prefs',
                   prefs_source: pref.source ?? 'manual',
                   extra_price: pref.extra_price ?? 0,
@@ -1454,6 +1487,7 @@ export class OrderService {
                   order_item_id: createdItem.id,
                   order_item_piece_id: createdPiece.id,
                   preference_code: pieceInput.packingPrefCode,
+                  preference_content: pieceInput.packingPrefCode,
                   preference_sys_kind: 'packing_prefs',
                   prefs_owner_type: 'SYSTEM',
                   prefs_source: prefsSourceOnCreate,
@@ -1478,6 +1512,7 @@ export class OrderService {
                   order_item_id: createdItem.id,
                   order_item_piece_id: createdPiece.id,
                   preference_code: code,
+                  preference_content: code,
                   preference_sys_kind: 'color',
                   prefs_source: prefsSourceOnCreate,
                   extra_price: 0,
@@ -1503,6 +1538,7 @@ export class OrderService {
                   order_item_id: createdItem.id,
                   order_item_piece_id: createdPiece.id,
                   preference_code: pieceInput.notes,
+                  preference_content: pieceInput.notes,
                   preference_sys_kind: 'note',
                   prefs_source: prefsSourceOnCreate,
                   extra_price: 0,

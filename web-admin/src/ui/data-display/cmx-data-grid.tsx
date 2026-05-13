@@ -861,8 +861,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
             />
           </>
         ) : null}
-        <table className="min-w-[72rem] w-full border-collapse text-sm">
-          <thead className="sticky top-0 z-20 bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] shadow-sm">
+        {/* border-separate: border-collapse breaks sticky thead + tbody paint order in Chrome */}
+        <table className="min-w-[72rem] w-full border-separate border-spacing-0 text-sm">
+          <thead className="sticky top-0 z-30 bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] shadow-sm">
             {headerGroup ? (
               <>
                 <tr className="border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]">
@@ -882,8 +883,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           dir === 'rtl' && 'text-right',
                           canSort && 'cursor-pointer select-none hover:bg-black/[0.03]',
                           rb,
+                          'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
                           stickyFirst &&
-                            'sticky start-0 z-40 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
+                            'sticky start-0 z-50 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
                         )}
                         aria-sort={
                           sorted === 'asc' ? 'ascending' : sorted === 'desc' ? 'descending' : 'none'
@@ -934,8 +936,9 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           densityFilterRowClass(density),
                           'align-top',
                           rb,
+                          'bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]',
                           stickyFirst &&
-                            'sticky start-0 z-40 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
+                            'sticky start-0 z-50 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))]'
                         )}
                       >
                         {canFilter ? (
@@ -1030,7 +1033,7 @@ export function CmxDataGrid<TData>(props: CmxDataGridProps<TData>) {
                           rb,
                           stickyFirst &&
                             cn(
-                              'sticky start-0 z-20 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
+                              'sticky start-0 z-10 border-e border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
                               stickyBg
                             )
                         )}

@@ -755,6 +755,7 @@ model org_order_preferences_dtl {
   order_item_piece_id  String?   @db.Uuid
   preference_id         String?   @db.Uuid
   preference_code      String    @db.Text
+  preference_content   String?   @db.Text
   preference_sys_kind  String?   @db.VarChar(30)
   preference_category  String?   @db.VarChar(30)
   prefs_owner_type     String    @default("SYSTEM") @db.VarChar(20)

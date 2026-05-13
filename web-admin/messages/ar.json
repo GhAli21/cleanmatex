@@ -3768,10 +3768,20 @@
         "totalSavings": "إجمالي التوفير",
         "amountDue": "المبلغ المستحق",
         "paidAmount": "المبلغ المدفوع",
-        "remainingBalance": "الرصيد المتبقي"
+        "remainingBalance": "الرصيد المتبقي",
+        "rulesDiscount": "خصم القواعد",
+        "settlementSection": "التسوية",
+        "paidCash": "مدفوع (نقدًا)",
+        "paidCard": "مدفوع (بطاقة)",
+        "paidCheck": "مدفوع (شيك)",
+        "deferredPayOnCollection": "الدفع عند الاستلام (إجمالي الطلب)",
+        "deferredInvoice": "فاتورة (إجمالي الطلب)",
+        "notPaidBalance": "غير المدفوع بعد هذا الدفع"
       },
       "actions": {
         "submit": "تأكيد",
+        "submitChargeOnly": "{submit} — {currency} {amount}",
+        "submitWithUnpaid": "{submit} — {currency} {payNow} · {unpaid}: {currency} {remaining}",
         "submitPayment": "تأكيد الدفع",
         "processing": "جاري المعالجة...",
         "processPayment": "معالجة الدفع",

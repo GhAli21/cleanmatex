@@ -17,6 +17,10 @@ import {
 import { getConditionPrefKind, toUICode } from '@/lib/utils/condition-codes';
 import { effectivePieceColorsForPersist } from '@/lib/utils/order-piece-color-persist';
 import { OrderPiecePreferenceService } from '@/lib/services/order-piece-preference.service';
+import {
+  fetchOrgServicePreferenceCfIdsByCodesPrismaTx,
+  fetchOrgServicePreferenceCfIdsByCodesSupabase,
+} from '@/lib/utils/org-service-preference-cf-lookup';
 
 /** Default for piece/item preference rows created in create vs edit-order flows */
 export type OrderPreferencesSourceDefault = 'ORDER_CREATE' | 'ORDER_EDIT';
@@ -285,6 +289,17 @@ export class OrderPieceService {
         return { success: false, error: insertError.message };
       }
 
+      const allConditionCatalogCodes = new Set<string>();
+      for (const pd of piecesData ?? []) {
+        for (const c of pd.conditions ?? []) {
+          allConditionCatalogCodes.add(getConditionPrefKind(c).preference_code);
+        }
+      }
+      const conditionCfByCode =
+        allConditionCatalogCodes.size > 0
+          ? await fetchOrgServicePreferenceCfIdsByCodesSupabase(supabase, tenantId, [...allConditionCatalogCodes])
+          : new Map<string, string>();
+
       // Insert piece-level preferences (org_order_preferences_dtl, prefs_level=PIECE).
       // Order and prefs_no match Prisma createOrderInTransaction: conditions, then service_prefs, then packing.
       const createdPieces = pieces as Array<{ id: string; piece_seq: number }>;
@@ -300,6 +315,7 @@ export class OrderPieceService {
         if (conditions.length > 0) {
           const condRows = conditions.map((code, idx) => {
             const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+            const prefCfId = conditionCfByCode.get(preference_code);
             return {
               tenant_org_id: tenantId,
               order_id: orderId,
@@ -308,9 +324,11 @@ export class OrderPieceService {
               order_item_id: orderItemId,
               order_item_piece_id: createdPiece.id,
               preference_code,
+              preference_content: preference_code,
               preference_sys_kind,
               prefs_source: preferencesSourceDefault,
               branch_id: branchId ?? null,
+              ...(prefCfId ? { preference_id: prefCfId } : {}),
             };
           });
           const { error: condError } = await supabase.from('org_order_preferences_dtl').insert(condRows);
@@ -333,6 +351,7 @@ export class OrderPieceService {
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
             preference_code: p.preference_code,
+            preference_content: p.preference_code,
             preference_sys_kind: 'service_prefs',
             prefs_source: p.source ?? preferencesSourceDefault,
             extra_price: Number(p.extra_price ?? 0),
@@ -360,6 +379,7 @@ export class OrderPieceService {
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
             preference_code: pieceData.packingPrefCode,
+            preference_content: pieceData.packingPrefCode,
             preference_sys_kind: 'packing_prefs',
             prefs_owner_type: 'SYSTEM',
             prefs_source: preferencesSourceDefault,
@@ -389,6 +409,7 @@ export class OrderPieceService {
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
             preference_code: code,
+            preference_content: code,
             preference_sys_kind: 'color',
             prefs_source: preferencesSourceDefault,
             extra_price: 0,
@@ -417,6 +438,7 @@ export class OrderPieceService {
             order_item_id: orderItemId,
             order_item_piece_id: createdPiece.id,
             preference_code: pieceData.notes,
+            preference_content: pieceData.notes,
             preference_sys_kind: 'note',
             prefs_source: preferencesSourceDefault,
             extra_price: 0,
@@ -563,6 +585,17 @@ export class OrderPieceService {
 
       await tx.org_order_item_pieces_dtl.createMany({ data: piecesToInsert });
 
+      const allConditionCatalogCodesTx = new Set<string>();
+      for (const pd of piecesData ?? []) {
+        for (const c of pd.conditions ?? []) {
+          allConditionCatalogCodesTx.add(getConditionPrefKind(c).preference_code);
+        }
+      }
+      const conditionCfByCodeTx =
+        allConditionCatalogCodesTx.size > 0
+          ? await fetchOrgServicePreferenceCfIdsByCodesPrismaTx(tx, tenantId, [...allConditionCatalogCodesTx])
+          : new Map<string, string>();
+
       // Insert piece-level service prefs and conditions (org_order_preferences_dtl)
       if (piecesData && piecesData.length > 0) {
         const createdPieces = await tx.org_order_item_pieces_dtl.findMany({
@@ -592,6 +625,7 @@ export class OrderPieceService {
           if (conditions.length > 0) {
             const condData = conditions.map((code, idx) => {
               const { preference_code, preference_sys_kind } = getConditionPrefKind(code);
+              const prefCfId = conditionCfByCodeTx.get(preference_code);
               return {
                 tenant_org_id: tenantId,
                 order_id: orderId,
@@ -600,9 +634,12 @@ export class OrderPieceService {
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
                 preference_code,
+                preference_content: preference_code,
                 preference_sys_kind,
                 prefs_source: preferencesSourceDefault,
+                extra_price: 0,
                 branch_id: branchId ?? null,
+                ...(prefCfId ? { preference_id: prefCfId } : {}),
               };
             });
             await tx.org_order_preferences_dtl.createMany({ data: condData });
@@ -618,6 +655,7 @@ export class OrderPieceService {
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
                 preference_code: p.preference_code,
+                preference_content: p.preference_code,
                 preference_sys_kind: 'service_prefs',
                 prefs_source: p.source ?? preferencesSourceDefault,
                 extra_price: p.extra_price ?? 0,
@@ -637,6 +675,7 @@ export class OrderPieceService {
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
                 preference_code: pieceData.packingPrefCode,
+                preference_content: pieceData.packingPrefCode,
                 preference_sys_kind: 'packing_prefs',
                 prefs_owner_type: 'SYSTEM',
                 prefs_source: preferencesSourceDefault,
@@ -660,6 +699,7 @@ export class OrderPieceService {
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
                 preference_code: code,
+                preference_content: code,
                 preference_sys_kind: 'color',
                 prefs_source: preferencesSourceDefault,
                 extra_price: 0,
@@ -683,6 +723,7 @@ export class OrderPieceService {
                 order_item_id: orderItemId,
                 order_item_piece_id: createdPiece.id,
                 preference_code: pieceData.notes,
+                preference_content: pieceData.notes,
                 preference_sys_kind: 'note',
                 prefs_source: preferencesSourceDefault,
                 extra_price: 0,

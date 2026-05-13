@@ -10,6 +10,7 @@ export const ORDER_PREF_DTL_DISPLAY_COLUMNS = [
   'order_item_piece_id',
   'preference_id',
   'preference_code',
+  'preference_content',
   'preference_sys_kind',
   'preference_category',
   'prefs_owner_type',
@@ -40,6 +41,7 @@ export interface OrderPreferenceRow {
   order_item_piece_id: string | null;
   preference_id: string | null;
   preference_code: string;
+  preference_content: string | null;
   preference_sys_kind: string | null;
   preference_category: string | null;
   prefs_owner_type: string;

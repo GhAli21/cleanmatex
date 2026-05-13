@@ -3768,10 +3768,20 @@
         "totalSavings": "Total Savings",
         "amountDue": "Amount Due",
         "paidAmount": "Paid Amount",
-        "remainingBalance": "Remaining Balance"
+        "remainingBalance": "Remaining Balance",
+        "rulesDiscount": "Rules discount",
+        "settlementSection": "Settlement",
+        "paidCash": "Paid (cash)",
+        "paidCard": "Paid (card)",
+        "paidCheck": "Paid (check)",
+        "deferredPayOnCollection": "Pay on collection (order total)",
+        "deferredInvoice": "Invoice (order total)",
+        "notPaidBalance": "Not paid after this payment"
       },
       "actions": {
         "submit": "Submit",
+        "submitChargeOnly": "{submit} — {currency} {amount}",
+        "submitWithUnpaid": "{submit} — {currency} {payNow} · {unpaid}: {currency} {remaining}",
         "submitPayment": "Submit Payment",
         "processing": "Processing...",
         "processPayment": "Process Payment",

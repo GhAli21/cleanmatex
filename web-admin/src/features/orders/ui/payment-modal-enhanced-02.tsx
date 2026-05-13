@@ -228,6 +228,10 @@ export function PaymentModalEnhanced02({
   const [pinVisible, setPinVisible]       = useState(false);
   const [pinFieldError, setPinFieldError] = useState<string | null>(null);
 
+  /** Manual amount discount: text field so values like `.5` normalize to `0.5` while typing. */
+  const [amountDiscountFocused, setAmountDiscountFocused] = useState(false);
+  const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
+
   const [couponOpen, setCouponOpen] = useState(false);
   const [taxRate, setTaxRate] = useState<number>(0.06);
   const [orderTaxRate, setOrderTaxRate] = useState<number>(0);
@@ -243,6 +247,8 @@ export function PaymentModalEnhanced02({
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
     manualDiscount: number;
+    /** Automatic discount rule (server-calculated). */
+    autoRuleDiscount: number;
     promoDiscount: number;
     afterDiscounts: number;
     vatValue: number;
@@ -322,6 +328,7 @@ export function PaymentModalEnhanced02({
         setServerTotals({
           subtotal: d.subtotal,
           manualDiscount: d.manualDiscount,
+          autoRuleDiscount: typeof d.autoRuleDiscount === 'number' ? d.autoRuleDiscount : 0,
           promoDiscount: d.promoDiscount,
           afterDiscounts: d.afterDiscounts,
           vatValue: d.vatValue,
@@ -396,6 +403,8 @@ export function PaymentModalEnhanced02({
       setPayPartial(false);
       setPartialAmount(0);
       setCreditLimitOverride(false);
+      setAmountDiscountFocused(false);
+      setAmountDiscountDraft('');
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
 
@@ -478,6 +487,7 @@ export function PaymentModalEnhanced02({
     return {
       subtotal,
       manualDiscount,
+      autoRuleDiscount: 0,
       promoDiscount,
       afterDiscounts,
       taxRate: orderTaxRate,
@@ -495,6 +505,54 @@ export function PaymentModalEnhanced02({
     const clamped = Math.max(0, Math.min(totals.finalTotal, partialAmount));
     return parseFloat(clamped.toFixed(decimalPlaces));
   }, [payPartial, isImmediatePayment, totals.finalTotal, partialAmount, decimalPlaces]);
+
+  const remainingAfterThisPayment = useMemo(
+    () => parseFloat(Math.max(0, totals.finalTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
+    [totals.finalTotal, effectiveAmountToCharge, decimalPlaces]
+  );
+
+  const sanitizeAmountDiscountDraft = useCallback(
+    (raw: string): string => {
+      let s = raw.replace(/[^\d.]/g, '');
+      if (s.startsWith('.')) s = `0${s}`;
+      const di = s.indexOf('.');
+      if (di !== -1) {
+        s = s.slice(0, di + 1) + s.slice(di + 1).replace(/\./g, '');
+        const frac = s.slice(di + 1);
+        if (frac.length > decimalPlaces) {
+          s = s.slice(0, di + 1 + decimalPlaces);
+        }
+      }
+      return s;
+    },
+    [decimalPlaces]
+  );
+
+  const submitButtonLabel = useMemo(() => {
+    const epsilon = Math.pow(10, -(decimalPlaces + 1));
+    if (isImmediatePayment && payPartial && remainingAfterThisPayment > epsilon) {
+      return t('actions.submitWithUnpaid', {
+        submit: t('actions.submit'),
+        currency: currencyCode,
+        payNow: formatAmount(effectiveAmountToCharge),
+        unpaid: t('summary.notPaidBalance'),
+        remaining: formatAmount(remainingAfterThisPayment),
+      });
+    }
+    return t('actions.submitChargeOnly', {
+      submit: t('actions.submit'),
+      currency: currencyCode,
+      amount: formatAmount(effectiveAmountToCharge),
+    });
+  }, [
+    t,
+    currencyCode,
+    decimalPlaces,
+    isImmediatePayment,
+    payPartial,
+    remainingAfterThisPayment,
+    effectiveAmountToCharge,
+  ]);
 
   const handleValidatePromoCode = async () => {
     if (NEW_ORDER_PROMO_GIFT_DISABLED) return;
@@ -1036,18 +1094,48 @@ export function PaymentModalEnhanced02({
                     control={control}
                     render={({ field }) => (
                       <input
-                        {...field}
-                        type="number"
-                        value={field.value || ''}
-                        onChange={(e) => {
-                          const value = Math.max(0, parseFloat(e.target.value) || 0);
+                        type="text"
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={
+                          amountDiscountFocused
+                            ? amountDiscountDraft
+                            : field.value && field.value > 0
+                              ? String(field.value)
+                              : ''
+                        }
+                        onFocus={() => {
+                          setAmountDiscountFocused(true);
+                          const v = Number(field.value) || 0;
+                          setAmountDiscountDraft(v > 0 ? String(v) : '');
+                        }}
+                        onBlur={() => {
+                          setAmountDiscountFocused(false);
+                          const raw = sanitizeAmountDiscountDraft(amountDiscountDraft.trim());
+                          const n = raw === '' || raw === '.' ? 0 : parseFloat(raw);
+                          const value = Number.isFinite(n) ? Math.max(0, Math.min(n, total)) : 0;
                           field.onChange(value);
                           if (value > 0) setValue('percentDiscount', 0);
+                          setAmountDiscountDraft('');
+                        }}
+                        onChange={(e) => {
+                          const s = sanitizeAmountDiscountDraft(e.target.value);
+                          setAmountDiscountDraft(s);
+                          if (s === '' || s === '.') {
+                            field.onChange(0);
+                            return;
+                          }
+                          const n = parseFloat(s);
+                          if (Number.isFinite(n)) {
+                            const value = Math.max(0, Math.min(n, total));
+                            field.onChange(value);
+                            if (value > 0) setValue('percentDiscount', 0);
+                          }
                         }}
                         dir="ltr"
                         className="flex-1 min-w-0 px-2 py-2 text-sm text-center border-0 focus:ring-0"
                         placeholder={t('manualDiscount.amountPlaceholder')}
-                        step="0.001"
+                        aria-label={t('manualDiscount.amount')}
                       />
                     )}
                   />
@@ -1427,14 +1515,102 @@ export function PaymentModalEnhanced02({
 
           {/* Fixed Footer */}
           <footer className="flex-shrink-0 p-4 border-t border-gray-200 bg-gray-50 space-y-3">
-            {totals.totalSavings > 0 && (
-              <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-center' : 'justify-center'} gap-2`}>
-                <span className="text-xs text-gray-500 line-through">{currencyCode} {formatAmount(total)}</span>
-                <span className="text-xs font-semibold text-green-600">
-                  {t('savings')} {currencyCode} {formatAmount(totals.totalSavings)}
-                </span>
+            <div
+              className={`rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-800 space-y-1 ${isRTL ? 'text-right' : 'text-left'}`}
+            >
+              <p className="font-semibold text-gray-900 mb-1">{t('summary.title')}</p>
+              <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-gray-600">{t('summary.subtotal')}</span>
+                <span className="font-medium tabular-nums">{currencyCode} {formatAmount(totals.subtotal)}</span>
               </div>
-            )}
+              {(totals.autoRuleDiscount ?? 0) > 0 && (
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.rulesDiscount')}</span>
+                  <span className="font-medium text-red-700 tabular-nums">−{currencyCode} {formatAmount(totals.autoRuleDiscount ?? 0)}</span>
+                </div>
+              )}
+              {totals.manualDiscount > 0 && (
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.manualDiscount')}</span>
+                  <span className="font-medium text-red-700 tabular-nums">−{currencyCode} {formatAmount(totals.manualDiscount)}</span>
+                </div>
+              )}
+              {totals.promoDiscount > 0 && (
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.promoDiscount')}</span>
+                  <span className="font-medium text-red-700 tabular-nums">−{currencyCode} {formatAmount(totals.promoDiscount)}</span>
+                </div>
+              )}
+              <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-gray-600">{t('summary.vatValue')} ({totals.vatTaxPercent.toFixed(0)}%)</span>
+                <span className="font-medium tabular-nums">{currencyCode} {formatAmount(totals.vatValue)}</span>
+              </div>
+              {(totals.taxAmount ?? 0) > 0 && (
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.taxAmount')}</span>
+                  <span className="font-medium tabular-nums">{currencyCode} {formatAmount(totals.taxAmount ?? 0)}</span>
+                </div>
+              )}
+              {totals.giftCardApplied > 0 && (
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.giftCardApplied')}</span>
+                  <span className="font-medium text-red-700 tabular-nums">−{currencyCode} {formatAmount(totals.giftCardApplied)}</span>
+                </div>
+              )}
+              <div className={`flex justify-between gap-2 border-t border-gray-100 pt-1.5 mt-1 font-bold ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span>{t('summary.totalAmount')}</span>
+                <span className="tabular-nums">{currencyCode} {formatAmount(totals.finalTotal)}</span>
+              </div>
+              {totals.totalSavings > 0 && (
+                <div className={`flex justify-between gap-2 text-green-700 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span>{t('summary.totalSavings')}</span>
+                  <span className="font-semibold tabular-nums">{currencyCode} {formatAmount(totals.totalSavings)}</span>
+                </div>
+              )}
+              <div className="border-t border-gray-100 pt-2 mt-1 space-y-1">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('summary.settlementSection')}</p>
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.paidCash')}</span>
+                  <span className="font-medium tabular-nums">
+                    {paymentMethod === PAYMENT_METHODS.CASH && isImmediatePayment
+                      ? `${currencyCode} ${formatAmount(effectiveAmountToCharge)}`
+                      : `${currencyCode} ${formatAmount(0)}`}
+                  </span>
+                </div>
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.paidCard')}</span>
+                  <span className="font-medium tabular-nums">
+                    {paymentMethod === PAYMENT_METHODS.CARD && isImmediatePayment
+                      ? `${currencyCode} ${formatAmount(effectiveAmountToCharge)}`
+                      : `${currencyCode} ${formatAmount(0)}`}
+                  </span>
+                </div>
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.paidCheck')}</span>
+                  <span className="font-medium tabular-nums">
+                    {paymentMethod === PAYMENT_METHODS.CHECK && isImmediatePayment
+                      ? `${currencyCode} ${formatAmount(effectiveAmountToCharge)}`
+                      : `${currencyCode} ${formatAmount(0)}`}
+                  </span>
+                </div>
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.deferredPayOnCollection')}</span>
+                  <span className="font-medium tabular-nums">
+                    {paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION
+                      ? `${currencyCode} ${formatAmount(totals.finalTotal)}`
+                      : `${currencyCode} ${formatAmount(0)}`}
+                  </span>
+                </div>
+                <div className={`flex justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <span className="text-gray-600">{t('summary.deferredInvoice')}</span>
+                  <span className="font-medium tabular-nums">
+                    {paymentMethod === PAYMENT_METHODS.INVOICE
+                      ? `${currencyCode} ${formatAmount(totals.finalTotal)}`
+                      : `${currencyCode} ${formatAmount(0)}`}
+                  </span>
+                </div>
+              </div>
+            </div>
             <button
               type="submit"
               disabled={
@@ -1453,7 +1629,7 @@ export function PaymentModalEnhanced02({
                   {t('actions.processing')}
                 </>
               ) : (
-                `${t('actions.submit')} - ${currencyCode} ${formatAmount(effectiveAmountToCharge)}`
+                submitButtonLabel
               )}
             </button>
             {paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim() && (
