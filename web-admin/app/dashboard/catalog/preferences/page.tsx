@@ -38,7 +38,7 @@ import { CATALOG_PREFERENCES_ACCESS } from '@features/catalog/access/catalog-acc
 import { ORG_SERVICE_PREFERENCE_CATEGORY_OPTIONS, PREFERENCE_CATEGORIES } from '@/lib/constants/service-preferences';
 import { normalizeHexDraftForApi } from '@/lib/utils/color-hex';
 import type { ColumnDef } from '@tanstack/react-table';
-import { CmxDataTable } from '@ui/data-display';
+import { CmxDataTable, CmxDataGrid, type CmxDataGridLabels, type CmxDataGridColumnMeta } from '@ui/data-display';
 
 interface ServicePref {
   code: string;
@@ -108,6 +108,8 @@ interface PreferenceBundle {
 }
 
 type ServicePrefRow = ServicePref | ServicePrefAdmin;
+
+type PackingPrefRow = PackingPref | PackingPrefAdmin;
 
 type CatalogOfferFilter = 'all' | 'offered' | 'not_offered';
 
@@ -619,6 +621,216 @@ function ServicePrefsTable({
   );
 }
 
+function packingPrefPrimaryLabel(row: PackingPrefRow, isAdmin: boolean, isRtl: boolean): string {
+  const adminRow = isAdmin ? (row as PackingPrefAdmin) : null;
+  const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name ?? '') : ((row as PackingPref).name ?? '');
+  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2 ?? '') : ((row as PackingPref).name2 ?? '');
+  const primary = isRtl ? (displayName2 || displayName) : displayName;
+  return primary.trim() || '—';
+}
+
+function packingPrefSecondaryLabel(row: PackingPrefRow, isAdmin: boolean): string {
+  const adminRow = isAdmin ? (row as PackingPrefAdmin) : null;
+  const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2 ?? '') : ((row as PackingPref).name2 ?? '');
+  return displayName2.trim() || '—';
+}
+
+function packingPrefPackagingType(row: PackingPrefRow, isAdmin: boolean): string {
+  const v = isAdmin
+    ? (row as PackingPrefAdmin).maps_to_packaging_type
+    : (row as PackingPref).maps_to_packaging_type;
+  return (v && String(v).trim()) || '—';
+}
+
+function PackingPrefsDataGrid({
+  rows,
+  isAdmin,
+  isRtl,
+  onEdit,
+  onRemove,
+  removePendingCode,
+  labels,
+  columnVisibilityStorageKey,
+}: {
+  rows: PackingPrefRow[];
+  isAdmin: boolean;
+  isRtl: boolean;
+  onEdit: (p: PackingPrefAdmin) => void;
+  onRemove?: (p: PackingPrefAdmin) => void;
+  removePendingCode: string | null;
+  labels: Partial<CmxDataGridLabels>;
+  columnVisibilityStorageKey: string;
+}) {
+  const t = useTranslations('catalog.preferences');
+  const dir = isRtl ? 'rtl' : 'ltr';
+  const packEditPerms = CATALOG_PREFERENCES_ACCESS.actions?.editPackingPreferences.requirement.permissions ?? [];
+
+  const columns = useMemo((): ColumnDef<PackingPrefRow, unknown>[] => {
+    const cols: ColumnDef<PackingPrefRow, unknown>[] = [
+      {
+        accessorKey: 'code',
+        header: t('code', { defaultValue: 'Code' }),
+        cell: ({ row }) => <span className="font-mono text-xs">{row.original.code}</span>,
+      },
+      {
+        id: 'name',
+        accessorFn: (r) => packingPrefPrimaryLabel(r, isAdmin, isRtl),
+        header: t('name', { defaultValue: 'Name' }),
+        cell: ({ row }) => <span>{packingPrefPrimaryLabel(row.original, isAdmin, isRtl)}</span>,
+      },
+      {
+        id: 'name2',
+        accessorFn: (r) => packingPrefSecondaryLabel(r, isAdmin),
+        header: t('nameAr', { defaultValue: 'Name (AR)' }),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{packingPrefSecondaryLabel(row.original, isAdmin)}</span>
+        ),
+      },
+      {
+        id: 'maps_to_packaging_type',
+        accessorFn: (r) => packingPrefPackagingType(r, isAdmin),
+        header: t('packagingType', { defaultValue: 'Packaging Type' }),
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">{packingPrefPackagingType(row.original, isAdmin)}</span>
+        ),
+      },
+      {
+        id: 'status',
+        accessorFn: (r) => {
+          const adminRow = isAdmin ? (r as PackingPrefAdmin) : null;
+          if (adminRow && !adminRow.cf_id) return -1;
+          if (adminRow) return adminRow.cf_is_active !== false ? 1 : 0;
+          return 1;
+        },
+        header: t('status', { defaultValue: 'Status' }),
+        cell: ({ row }) => {
+          const adminRow = isAdmin ? (row.original as PackingPrefAdmin) : null;
+          const rowEnabled =
+            adminRow && !adminRow.cf_id ? null : adminRow ? adminRow.cf_is_active !== false : true;
+          if (rowEnabled === null) {
+            return <span className="text-xs text-muted-foreground">—</span>;
+          }
+          return (
+            <Badge variant={rowEnabled ? 'success' : 'default'}>
+              {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
+            </Badge>
+          );
+        },
+      },
+    ];
+
+    if (isAdmin) {
+      cols.push(
+        {
+          id: 'catalog',
+          accessorFn: (r) => (Boolean((r as PackingPrefAdmin).cf_id) ? 'in-catalog' : 'not-in-catalog'),
+          header: t('catalogColumn', { defaultValue: 'Catalog' }),
+          cell: ({ row }) => {
+            const adminRow = row.original as PackingPrefAdmin;
+            const sysActive = adminRow.sys_is_active !== false;
+            const inCatalog = Boolean(adminRow.cf_id);
+            return (
+              <div className="flex flex-col gap-1">
+                <Badge variant={inCatalog ? 'success' : 'default'}>
+                  {inCatalog
+                    ? t('catalogOffered', { defaultValue: 'In catalog' })
+                    : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
+                </Badge>
+                {!sysActive ? (
+                  <span className="text-xs text-amber-700">
+                    {t('systemInactive', { defaultValue: 'Unavailable at platform' })}
+                  </span>
+                ) : null}
+              </div>
+            );
+          },
+        },
+        {
+          id: 'actions',
+          enableSorting: false,
+          meta: { disableFilter: true } satisfies CmxDataGridColumnMeta,
+          header: t('actions', { defaultValue: 'Actions' }),
+          cell: ({ row }) => {
+            const adminRow = row.original as PackingPrefAdmin;
+            const sysActive = adminRow.sys_is_active !== false;
+            const inCatalog = Boolean(adminRow.cf_id);
+            return (
+              <RequireAnyPermission permissions={packEditPerms} fallback={null}>
+                <div className="flex justify-end gap-1">
+                  {!inCatalog && sysActive ? (
+                    <CmxButton
+                      variant="outline"
+                      size="sm"
+                      className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
+                      onClick={() => onEdit(adminRow)}
+                      aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      title={t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      data-testid={`add-packing-pref-${adminRow.code}`}
+                    >
+                      <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span className="hidden min-[480px]:inline">
+                        {t('enablePreference', { defaultValue: 'Add to catalog' })}
+                      </span>
+                    </CmxButton>
+                  ) : null}
+                  <CmxButton
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    onClick={() => onEdit(adminRow)}
+                    disabled={!inCatalog && !sysActive}
+                    aria-label={t('edit', { defaultValue: 'Edit' })}
+                    data-testid={`edit-packing-pref-${adminRow.code}`}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </CmxButton>
+                  {inCatalog && onRemove ? (
+                    <CmxButton
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-red-600 hover:text-red-700"
+                      onClick={() => onRemove(adminRow)}
+                      disabled={removePendingCode === adminRow.code}
+                      aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
+                      data-testid={`remove-packing-pref-${adminRow.code}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </CmxButton>
+                  ) : null}
+                </div>
+              </RequireAnyPermission>
+            );
+          },
+        },
+      );
+    }
+
+    return cols;
+  }, [t, isAdmin, isRtl, onEdit, onRemove, removePendingCode, packEditPerms]);
+
+  return (
+    <CmxDataGrid<PackingPrefRow>
+      data={rows}
+      columns={columns}
+      getRowId={(row) => row.code}
+      initialPageSize={25}
+      pageSizeOptions={[10, 25, 50, 100]}
+      labels={labels}
+      dir={dir}
+      enableZebra
+      enableGlobalSearch
+      enableExportCsv
+      exportFileName="packing-preferences-catalog"
+      enableStickyFirstColumn
+      columnVisibilityStorageKey={columnVisibilityStorageKey}
+      enableDensityToggle
+      tableWrapperClassName="max-h-[min(60vh,34rem)] min-w-0"
+      enableColumnVisibility
+      className="min-w-0"
+    />
+  );
+}
+
 function PackingPrefsTable({
   packingPrefsAdmin,
   packingPrefs,
@@ -639,6 +851,7 @@ function PackingPrefsTable({
   isRtl: boolean;
 }) {
   const t = useTranslations('catalog.preferences');
+  const { currentTenant } = useAuth();
   const rowsRaw = packingPrefsAdmin.length > 0 ? packingPrefsAdmin : packingPrefs;
   const isAdmin = packingPrefsAdmin.length > 0;
   const rows = useMemo(() => {
@@ -649,7 +862,38 @@ function PackingPrefsTable({
     });
   }, [rowsRaw, isAdmin, offerFilter]);
 
-  const packEditPerms = CATALOG_PREFERENCES_ACCESS.actions?.editPackingPreferences.requirement.permissions ?? [];
+  const gridLabels = useMemo(
+    (): Partial<CmxDataGridLabels> => ({
+      resetFilters: t('dataGrid.resetFilters'),
+      rowsPerPage: t('dataGrid.rowsPerPage'),
+      showing: t('dataGrid.showing'),
+      page: t('dataGrid.page'),
+      firstPage: t('dataGrid.firstPage'),
+      previousPage: t('dataGrid.previousPage'),
+      nextPage: t('dataGrid.nextPage'),
+      lastPage: t('dataGrid.lastPage'),
+      goToPage: t('dataGrid.goToPage'),
+      go: t('dataGrid.go'),
+      filterPlaceholder: t('dataGrid.filterPlaceholder'),
+      empty: t('dataGrid.empty'),
+      columnsMenu: t('dataGrid.columnsMenu'),
+      toggleColumns: t('dataGrid.toggleColumns'),
+      globalSearchPlaceholder: t('dataGrid.globalSearchPlaceholder'),
+      clearFilters: t('dataGrid.clearFilters'),
+      exportCsv: t('dataGrid.exportCsv'),
+      selectedCount: t('dataGrid.selectedCount'),
+      selectAll: t('dataGrid.selectAll'),
+      selectRow: t('dataGrid.selectRow'),
+      clearColumnFilter: t('dataGrid.clearColumnFilter'),
+      emptyFilteredHint: t('dataGrid.emptyFilteredHint'),
+      density: t('dataGrid.density'),
+      densityCompact: t('dataGrid.densityCompact'),
+      densityStandard: t('dataGrid.densityStandard'),
+      densityComfortable: t('dataGrid.densityComfortable'),
+      copyToClipboard: t('dataGrid.copyToClipboard'),
+    }),
+    [t]
+  );
 
   if (loading) {
     return <TableSkeleton rows={6} />;
@@ -679,122 +923,21 @@ function PackingPrefsTable({
   }
 
   return (
-    <div
-      className="overflow-x-auto rounded-xl border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]"
-      data-testid="packing-prefs-table"
-    >
-      <table className="min-w-full text-sm">
-        <thead className="bg-[rgb(var(--cmx-table-header-bg-rgb,248_250_252))] text-[rgb(var(--cmx-muted-foreground-rgb,148_163_184))]">
-          <tr>
-            <th className="px-4 py-3 text-left font-medium">{t('code', { defaultValue: 'Code' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('name', { defaultValue: 'Name' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('nameAr', { defaultValue: 'Name (AR)' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('packagingType', { defaultValue: 'Packaging Type' })}</th>
-            <th className="px-4 py-3 text-left font-medium">{t('status', { defaultValue: 'Status' })}</th>
-            {isAdmin && (
-              <th className="px-4 py-3 text-left font-medium">{t('catalogColumn', { defaultValue: 'Catalog' })}</th>
-            )}
-            {isAdmin && (
-              <th className="px-4 py-3 text-right font-medium">{t('actions', { defaultValue: 'Actions' })}</th>
-            )}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((p) => {
-            const adminRow = isAdmin ? (p as PackingPrefAdmin) : null;
-            const sysActive = adminRow ? adminRow.sys_is_active !== false : true;
-            const inCatalog = Boolean(adminRow?.cf_id);
-            const displayName = adminRow ? (adminRow.cf_name ?? adminRow.name) : (p as PackingPref).name;
-            const displayName2 = adminRow ? (adminRow.cf_name2 ?? adminRow.name2) : (p as PackingPref).name2;
-            const primaryName = isRtl ? (displayName2 ?? displayName) : displayName;
-            const rowEnabled =
-              adminRow && !adminRow.cf_id
-                ? null
-                : adminRow
-                  ? adminRow.cf_is_active !== false
-                  : true;
-            const packagingType = adminRow?.maps_to_packaging_type ?? (p as PackingPref).maps_to_packaging_type ?? 'â€”';
-
-            return (
-              <tr key={p.code} className="border-t border-gray-100 hover:bg-gray-50/50">
-                <td className="px-4 py-3 font-mono text-xs">{p.code}</td>
-                <td className="px-4 py-3">{primaryName || 'â€”'}</td>
-                <td className="px-4 py-3 text-gray-600">{displayName2 || 'â€”'}</td>
-                <td className="px-4 py-3 text-gray-600">{packagingType}</td>
-                <td className="px-4 py-3">
-                  {rowEnabled === null ? (
-                    <span className="text-xs text-gray-400">â€”</span>
-                  ) : (
-                    <Badge variant={rowEnabled ? 'success' : 'default'}>
-                      {rowEnabled ? t('active', { defaultValue: 'Active' }) : t('inactive', { defaultValue: 'Inactive' })}
-                    </Badge>
-                  )}
-                </td>
-                {isAdmin && adminRow && (
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-1">
-                      <Badge variant={inCatalog ? 'success' : 'default'}>
-                        {inCatalog ? t('catalogOffered', { defaultValue: 'In catalog' }) : t('catalogNotOffered', { defaultValue: 'Not in catalog' })}
-                      </Badge>
-                      {!sysActive ? (
-                        <span className="text-xs text-amber-700">{t('systemInactive', { defaultValue: 'Unavailable at platform' })}</span>
-                      ) : null}
-                    </div>
-                  </td>
-                )}
-                {isAdmin && adminRow && (
-                  <td className="px-4 py-3 text-right">
-                    <RequireAnyPermission permissions={packEditPerms} fallback={null}>
-                      <div className="flex justify-end gap-1">
-                        {!inCatalog && sysActive ? (
-                          <CmxButton
-                            variant="outline"
-                            size="sm"
-                            className="h-8 gap-1 border-emerald-200 text-emerald-800 hover:bg-emerald-50"
-                            onClick={() => onEdit(adminRow)}
-                            aria-label={t('enablePreference', { defaultValue: 'Add to catalog' })}
-                            title={t('enablePreference', { defaultValue: 'Add to catalog' })}
-                            data-testid={`add-packing-pref-${p.code}`}
-                          >
-                            <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                            <span className="hidden min-[480px]:inline">
-                              {t('enablePreference', { defaultValue: 'Add to catalog' })}
-                            </span>
-                          </CmxButton>
-                        ) : null}
-                        <CmxButton
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 px-2"
-                          onClick={() => onEdit(adminRow)}
-                          disabled={!inCatalog && !sysActive}
-                          aria-label={t('edit', { defaultValue: 'Edit' })}
-                          data-testid={`edit-packing-pref-${p.code}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </CmxButton>
-                        {inCatalog && onRemove ? (
-                          <CmxButton
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-red-600 hover:text-red-700"
-                            onClick={() => onRemove(adminRow)}
-                            disabled={removePendingCode === p.code}
-                            aria-label={t('removeFromCatalog', { defaultValue: 'Remove from catalog' })}
-                            data-testid={`remove-packing-pref-${p.code}`}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </CmxButton>
-                        ) : null}
-                      </div>
-                    </RequireAnyPermission>
-                  </td>
-                )}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="min-w-0" data-testid="packing-prefs-table">
+      <PackingPrefsDataGrid
+        rows={rows as PackingPrefRow[]}
+        isAdmin={isAdmin}
+        isRtl={isRtl}
+        onEdit={onEdit}
+        onRemove={onRemove}
+        removePendingCode={removePendingCode}
+        labels={gridLabels}
+        columnVisibilityStorageKey={
+          currentTenant?.tenant_id
+            ? `catalog-packing-prefs-grid-${currentTenant.tenant_id}`
+            : 'catalog-packing-prefs-grid'
+        }
+      />
     </div>
   );
 }
