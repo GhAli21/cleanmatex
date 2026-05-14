@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
       SELECT id, order_no, current_status
       FROM org_orders_mst
-      WHERE tenant_org_id = CAST(${tenantId} AS uuid)
+      WHERE tenant_org_id = ${tenantId}::uuid
         AND idempotency_key = ${input.idempotencyKey}
       LIMIT 1
     `;
@@ -446,8 +446,8 @@ export async function POST(request: NextRequest) {
           await tx.$executeRaw`
             UPDATE org_orders_mst
             SET idempotency_key = ${input.idempotencyKey}
-            WHERE id = CAST(${orderId} AS uuid)
-              AND tenant_org_id = CAST(${tenantId} AS uuid)
+            WHERE id = ${orderId}::uuid
+              AND tenant_org_id = ${tenantId}::uuid
           `;
         }
 
@@ -515,7 +515,7 @@ export async function POST(request: NextRequest) {
       const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
         SELECT id, order_no, current_status
         FROM org_orders_mst
-        WHERE tenant_org_id = CAST(${tenantId} AS uuid)
+        WHERE tenant_org_id = ${tenantId}::uuid
           AND idempotency_key = ${input.idempotencyKey}
         LIMIT 1
       `;
