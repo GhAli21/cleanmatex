@@ -40,7 +40,7 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
 
   useEffect(() => {
     if (!open) return;
-    getAvailableHqPaymentMethods('').then((result) => {
+    getAvailableHqPaymentMethods().then((result) => {
       if (result.success && result.data) setAvailableMethods(result.data);
     });
   }, [open]);

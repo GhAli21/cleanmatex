@@ -34,18 +34,21 @@ function maskMethodConfig(row: OrgPaymentMethodConfig): OrgPaymentMethodConfig {
 }
 
 /** List all sys_payment_method_cd codes NOT yet configured for this tenant */
-export async function getAvailableHqPaymentMethods(
-  tenantId: string
-): Promise<{ success: boolean; data?: { payment_method_code: string; payment_method_name: string; payment_method_name2: string | null }[]; error?: string }> {
+export async function getAvailableHqPaymentMethods(): Promise<{
+  success: boolean;
+  data?: { payment_method_code: string; payment_method_name: string; payment_method_name2: string | null }[];
+  error?: string;
+}> {
   try {
+    const { tenantId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const allMethods = await prisma.sys_payment_method_cd.findMany({
-        where: { is_active: true, is_enabled: true },
+        where: { is_active: true },
         select: { payment_method_code: true, payment_method_name: true, payment_method_name2: true },
         orderBy: { payment_method_name: 'asc' },
       });
       const configured = await prisma.org_payment_methods_cf.findMany({
-        where: { tenant_org_id: tenantId, is_active: true },
+        where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
         select: { payment_method_code: true },
       });
       const configuredCodes = new Set(configured.map((c) => c.payment_method_code));
