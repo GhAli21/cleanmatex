@@ -69,7 +69,18 @@ export function EnablePaymentMethodDialog({ open, onClose, onSuccess }: EnablePa
             <label className="text-sm font-medium">{t('methods.paymentMethod')}</label>
             <CmxSelectDropdown
               value={form.watch('payment_method_code')}
-              onValueChange={(v) => form.setValue('payment_method_code', v)}
+              onValueChange={(v) => {
+                form.setValue('payment_method_code', v);
+                const method = availableMethods.find((m) => m.payment_method_code === v);
+                if (method) {
+                  if (!form.getValues('display_name')) {
+                    form.setValue('display_name', method.payment_method_name ?? '');
+                  }
+                  if (!form.getValues('display_name2') && method.payment_method_name2) {
+                    form.setValue('display_name2', method.payment_method_name2);
+                  }
+                }
+              }}
             >
               <CmxSelectDropdownTrigger>
                 <CmxSelectDropdownValue placeholder={t('methods.selectMethod')} />
