@@ -81,7 +81,7 @@ const CHILD_ICON_FALLBACK: Record<string, string> = {
   settings_branding: 'Palette',
   settings_subscription: 'CreditCard',
   settings_all: 'Settings',
-  settings_preferences: 'User',
+  settings_preferences: 'Users',
   settings_finance: 'DollarSign',
   settings_payments: 'CreditCard',
   settings_workflows: 'Workflow',

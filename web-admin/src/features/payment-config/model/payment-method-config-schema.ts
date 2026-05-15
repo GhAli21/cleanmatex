@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PAYMENT_NATURE, FEE_TYPES } from '@/lib/constants/payment';
 
-export const createPaymentMethodConfigSchema = z.object({
+const paymentMethodConfigBaseSchema = z.object({
   payment_method_code: z.string().min(1),
   gateway_code: z.string().optional(),
   display_name: z.string().min(1).max(250),
@@ -35,12 +35,22 @@ export const createPaymentMethodConfigSchema = z.object({
   fee_amount: z.number().nonnegative().optional(),
   fee_rate: z.number().nonnegative().optional(),
   display_order: z.number().int().nonnegative().optional(),
-}).refine(
+});
+
+/** Create form schema keeps cross-field validation outside the reusable base object. */
+export const createPaymentMethodConfigSchema = paymentMethodConfigBaseSchema.refine(
   (d) => d.max_amount == null || d.min_amount == null || d.max_amount >= d.min_amount,
   { message: 'Max amount must be >= min amount', path: ['max_amount'] }
 );
 
-export const updatePaymentMethodConfigSchema = createPaymentMethodConfigSchema.partial().omit({ payment_method_code: true });
+/** Update form schema must partialize before refine because refined Zod schemas cannot be partialized. */
+export const updatePaymentMethodConfigSchema = paymentMethodConfigBaseSchema
+  .omit({ payment_method_code: true })
+  .partial()
+  .refine(
+    (d) => d.max_amount == null || d.min_amount == null || d.max_amount >= d.min_amount,
+    { message: 'Max amount must be >= min amount', path: ['max_amount'] }
+  );
 
 export const hyperPayGatewayConfigSchema = z.object({
   entityId: z.string().min(1),
