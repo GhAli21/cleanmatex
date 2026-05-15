@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { getPrismaClient } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
 import type {
   OrgPaymentMethodConfig,
   CreatePaymentMethodConfigInput,
@@ -38,7 +38,6 @@ export async function getAvailableHqPaymentMethods(
   tenantId: string
 ): Promise<{ success: boolean; data?: { payment_method_code: string; payment_method_name: string; payment_method_name2: string | null }[]; error?: string }> {
   try {
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const allMethods = await prisma.sys_payment_method_cd.findMany({
         where: { is_active: true, is_enabled: true },
@@ -66,7 +65,6 @@ export async function getPaymentMethodConfigs(): Promise<{
 }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const rows = await prisma.org_payment_methods_cf.findMany({
         where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
@@ -85,7 +83,6 @@ export async function getPaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -104,7 +101,6 @@ export async function createPaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_payment_methods_cf.create({
         data: {
@@ -159,7 +155,6 @@ export async function updatePaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -212,7 +207,6 @@ export async function updateGatewayConfig(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -241,7 +235,6 @@ export async function togglePaymentMethodEnabled(
 ): Promise<{ success: boolean; data?: { is_enabled: boolean }; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -266,7 +259,6 @@ export async function softDeletePaymentMethodConfig(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },

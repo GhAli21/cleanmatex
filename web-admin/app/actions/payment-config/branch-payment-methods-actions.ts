@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { getPrismaClient } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
 import type { OrgBranchPaymentMethodConfig, UpsertBranchPaymentMethodInput } from '@/lib/types/payment';
 
 const REVALIDATE_PATH = '/dashboard/settings/payments';
@@ -16,7 +16,6 @@ export async function getBranchPaymentMethods(branchId: string): Promise<{
 }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const tenantMethods = await prisma.org_payment_methods_cf.findMany({
         where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
@@ -73,7 +72,6 @@ export async function upsertBranchPaymentMethod(
 ): Promise<{ success: boolean; data?: OrgBranchPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_branch_payment_methods_cf.findFirst({
         where: {
@@ -132,7 +130,6 @@ export async function softDeleteBranchPaymentMethod(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_branch_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },

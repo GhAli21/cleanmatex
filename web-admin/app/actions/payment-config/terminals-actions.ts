@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { getPrismaClient } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
 import type { OrgPaymentTerminal, CreateTerminalInput, UpdateTerminalInput } from '@/lib/types/payment';
 
 const REVALIDATE_PATH = '/dashboard/settings/payments';
@@ -14,7 +14,6 @@ export async function getTerminals(
 ): Promise<{ success: boolean; data?: OrgPaymentTerminal[]; error?: string }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const rows = await prisma.org_payment_terminals_cf.findMany({
         where: {
@@ -38,7 +37,6 @@ export async function createTerminal(
 ): Promise<{ success: boolean; data?: OrgPaymentTerminal; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_payment_terminals_cf.create({
         data: {
@@ -75,7 +73,6 @@ export async function updateTerminal(
 ): Promise<{ success: boolean; data?: OrgPaymentTerminal; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_terminals_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -112,7 +109,6 @@ export async function toggleTerminalEnabled(
 ): Promise<{ success: boolean; data?: { is_enabled: boolean }; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_terminals_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -137,7 +133,6 @@ export async function softDeleteTerminal(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_terminals_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },

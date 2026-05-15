@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { getPrismaClient } from '@/lib/db/prisma';
+import { prisma } from '@/lib/db/prisma';
 import type {
   OrgCashDrawer,
   OrgCashDrawerSession,
@@ -26,7 +26,6 @@ export async function getCashDrawers(
 }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const drawers = await prisma.org_cash_drawers_mst.findMany({
         where: {
@@ -67,7 +66,6 @@ export async function createCashDrawer(
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_cash_drawers_mst.create({
         data: {
@@ -104,7 +102,6 @@ export async function updateCashDrawer(
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_cash_drawers_mst.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -147,7 +144,6 @@ export async function toggleCashDrawerActive(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_cash_drawers_mst.findFirst({
         where: { id, tenant_org_id: tenantId },
@@ -186,7 +182,6 @@ export async function getActiveDrawerSession(
 ): Promise<{ success: boolean; data?: OrgCashDrawerSession | null; error?: string }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
         where: { cash_drawer_id: drawerId, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
@@ -204,7 +199,6 @@ export async function openDrawerSession(
 ): Promise<{ success: boolean; data?: OrgCashDrawerSession; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const drawer = await prisma.org_cash_drawers_mst.findFirst({
         where: { id: input.cash_drawer_id, tenant_org_id: tenantId, is_active: true },
@@ -283,7 +277,6 @@ export async function closeDrawerSession(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
         where: { id: input.session_id, tenant_org_id: tenantId, status: 'OPEN', is_active: true },
@@ -369,7 +362,6 @@ export async function getDrawerMovements(
 ): Promise<{ success: boolean; data?: OrgCashDrawerMovement[]; total?: number; error?: string }> {
   try {
     const { tenantId } = await getAuthContext();
-    const prisma = getPrismaClient();
     return withTenantContext(tenantId, async () => {
       const [rows, total] = await prisma.$transaction([
         prisma.org_cash_drawer_movements_dtl.findMany({
