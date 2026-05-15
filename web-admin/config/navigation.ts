@@ -350,7 +350,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     icon: BarChart3,
     path: '/dashboard/reports',
     roles: ['admin', 'super_admin', 'tenant_admin', 'operator'],
-    featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
+    //featureFlag: FLAG_KEYS.ADVANCED_ANALYTICS,
     children: [
       {
         key: 'reports_orders',
