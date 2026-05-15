@@ -33,7 +33,7 @@ import {
 } from 'lucide-react'
 
 /** `none` = placeholder sections with no role gate (permissions-only). */
-export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'operator' | 'viewer' | 'none'
+export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manager' | 'operator' | 'viewer' | 'none'
 
 export interface NavigationSection {
   key: string
@@ -216,10 +216,18 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   },
   {
     key: 'customers',
-    label: 'Customers',
+    label: 'Customer Management',
     icon: Users,
     path: '/dashboard/customers',
-    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+    roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+    children: [
+      {
+        key: 'customers_list',
+        label: 'All Customers',
+        path: '/dashboard/customers',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'viewer'],
+      },
+    ],
   },
   {
     key: 'b2b',
@@ -305,7 +313,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   },
   {
     key: 'billing',
-    label: 'Invoices & Payments',
+    label: 'Internal Finance Operations',
     icon: Receipt,
     path: '/dashboard/billing',
     roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
@@ -378,7 +386,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
   },
   {
     key: 'erp_lite',
-    label: 'ERP-Lite Finance & Accounting',
+    label: 'ERP-Lite',
     icon: Landmark,
     path: '/dashboard/erp-lite',
     roles: ['admin', 'super_admin', 'tenant_admin'],

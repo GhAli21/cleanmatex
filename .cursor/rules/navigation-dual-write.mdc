@@ -1,0 +1,35 @@
+---
+description: Navigation changes must update both navigation.ts and sys_components_cd DB migration
+alwaysApply: true
+---
+
+# Navigation Changes Are DUAL-WRITE
+
+Every navigation add or modify requires **both** steps. Doing only one is incomplete.
+
+| Step | What | Location |
+|------|------|----------|
+| 1 | Update **frontend sidebar** | `web-admin/config/navigation.ts` |
+| 2 | Generate **DB migration** for `sys_components_cd` | new `supabase/migrations/{next_seq}_nav_*.sql` |
+
+`navigation.ts` drives the React sidebar.
+`sys_components_cd` drives RBAC, permission checks, and the navigation API (`get_navigation_with_parents_jh`).
+They must always be in sync.
+
+## Mapping
+
+| `sys_components_cd` column | `navigation.ts` field |
+|----------------------------|-----------------------|
+| `comp_code` | `key` |
+| `label` | `label` |
+| `comp_path` | `path` |
+| `roles` (JSONB) | `roles` array |
+| `main_permission_code` | `permissions` array |
+| `feature_flag` | `featureFlag` |
+| `comp_icon` | Lucide icon import |
+
+## References
+- Frontend sidebar: `web-admin/config/navigation.ts`
+- DB table: `sys_components_cd` (no tenant_org_id)
+- Seed example: `supabase/migrations/0059_navigation_seed.sql`
+- Script example: `docs/navigation/add_sys_comp.sql`

@@ -1,0 +1,32 @@
+---
+description: TypeScript constants must use exact DB string values — no reformatting
+alwaysApply: true
+---
+
+# Constants Must Mirror DB Names
+
+Before defining any constant whose value is stored in the database (status codes, type codes, permission codes, enum values, lookup codes):
+
+1. **Check the DB first** — find the actual stored string value in the column or enum
+2. **Use it verbatim** — the TypeScript constant value MUST be the exact same string
+   - Same case (usually `UPPER_SNAKE_CASE` for codes)
+   - Same separators (`_` not `-`)
+   - Same spelling — no abbreviation or expansion
+
+**Correct:**
+```ts
+// DB stores: 'PENDING_PAYMENT'
+export const ORDER_STATUS = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
+} as const
+```
+
+**Wrong:**
+```ts
+PENDING_PAYMENT: 'pending-payment'   // different separator
+PENDING_PAYMENT: 'PendingPayment'    // different case
+PENDING_PAYMENT: 'PENDING'           // truncated
+```
+
+**Scope:** `lib/constants/`, Zod enums, any value that round-trips to/from the DB.
+Drift between DB values and TS constants causes silent bugs — values match at definition but break on DB comparison.

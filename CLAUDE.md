@@ -17,6 +17,9 @@
 7. **Use agents for exploration** — see efficiency guide below
 8. **Use `/clear` frequently** — when switching topics or context >70%
 9. **Check skills for detailed rules** — use `/skill-name` for specifics
+10. **Navigation changes are DUAL-WRITE** — any add/modify to navigation MUST update BOTH `web-admin/config/navigation.ts` (frontend sidebar) AND generate a DB migration for `sys_components_cd` using the `/navigation` skill. Neither alone is complete.
+11. **New permissions MUST have a migration** — every new permission code added to the system requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
+12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
 
 ---
 
@@ -56,6 +59,7 @@ Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
 | Any new feature implementation | `/implementation` |
 | Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
 | Any `.stories.tsx` file, new Cmx component | `/storybook` |
+| Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
 
 **How to enforce:**
 - Plan mode: load skills during Phase 1 exploration, before Phase 2 design
@@ -103,6 +107,8 @@ npm run build                      # Build (run after changes)
 - Soft delete: `is_active=false`, `rec_status=0`
 - Money fields: `DECIMAL(19, 4)`
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
+- **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
+- **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. Use the `/navigation` skill to generate it. See CRITICAL RULE #10.
 
 **See:** `/database` skill for complete rules
 
@@ -137,6 +143,7 @@ npm run build                      # Build (run after changes)
 - **Types/interfaces live in `lib/types/`** — import const-derived types from constants; re-export types and key consts for single-import usage
 - **Do not duplicate** — same concept in one place only; other files re-export or import. Zod validation should align with the same constants
 - **Order status:** workflow order status → `lib/types/workflow.ts`; payment-related → `lib/constants/payment.ts` + `lib/types/payment.ts`
+- **DB-mirror rule (CRITICAL):** Before defining any constant whose value is stored in the database (status codes, type codes, permission codes, enum values, lookup codes), first check the DB for the existing value. The TypeScript constant value MUST be the exact same string — same case, same separators, same spelling. Example: if the DB column stores `'PENDING_PAYMENT'`, the constant must be `PENDING_PAYMENT: 'PENDING_PAYMENT'`, not `'pending-payment'` or `'PendingPayment'`. This applies to `lib/constants/`, Zod enums, and any lookup that round-trips to/from the DB.
 
 **See:** `docs/dev/unification_types_order_payment_audit.md`
 
@@ -223,7 +230,8 @@ docs/         # All documentation
 ## How to Make Cursor/Claude Follow the Rules
 
 1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   **→ Claude equivalent:** Same rules embedded in `.claude/skills/frontend/SKILL.md`, `.claude/skills/frontend/uiux-rules.md`, `.claude/docs/web-admin-ui-imports.md`
+   Current rule files: `constants-db-mirror.mdc`, `navigation-dual-write.mdc`, `permissions-migration.mdc`
+   **→ Claude equivalent:** Same rules in CLAUDE.md CRITICAL RULES + `.claude/skills/` (implementation, navigation, database)
 
 2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
 

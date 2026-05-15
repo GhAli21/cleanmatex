@@ -23,6 +23,9 @@ Prefer `.claude/skills/implementation/`, `CLAUDE.md`, and current module docs fo
 - ❌ Don't skip error handling
 - ❌ Don't commit code without tests for business logic
 - ❌ **NEVER create duplicate `getTenantIdFromSession()` implementations** - Always use centralized version from `@/lib/db/tenant-context`
+- ❌ **NEVER define a constant with a value that differs from its DB string** — check the DB first; use the exact same case, separators, spelling
+- ❌ **NEVER add navigation without BOTH** updating `web-admin/config/navigation.ts` AND generating a `sys_components_cd` migration — doing only one is incomplete
+- ❌ **NEVER add a permission code in TypeScript only** — every new permission must be seeded into the DB (`sys_auth_permissions` + `sys_auth_role_default_permissions`) via a migration
 
 ---
 

@@ -1,0 +1,52 @@
+---
+description: Every new permission code must have a DB seed migration — not just TypeScript
+alwaysApply: true
+---
+
+# New Permissions Require a DB Migration
+
+Permissions are database-backed. A permission that exists only in TypeScript is **incomplete**.
+
+## Rule
+
+For every new permission code added to the system:
+
+1. **Create a migration file** — seed the permission code(s) into the DB permissions table
+2. **Include ALL permissions for a feature in one migration** — do not scatter them across multiple files
+3. **The migration file name must follow the project convention** — `{next_seq}_permissions_{feature_name}.sql`
+
+## What "only in TypeScript" looks like (WRONG)
+
+```ts
+// lib/constants/permissions.ts
+export const PERMISSIONS = {
+  PROMOTIONS_VIEW: 'promotions:view',
+  PROMOTIONS_MANAGE: 'promotions:manage',
+} as const
+// ← No migration → permissions don't exist in DB → RBAC checks fail silently
+```
+
+## What complete looks like (CORRECT)
+
+```ts
+// lib/constants/permissions.ts — define the constant
+export const PERMISSIONS = {
+  PROMOTIONS_VIEW: 'promotions:view',
+  PROMOTIONS_MANAGE: 'promotions:manage',
+} as const
+```
+
+```sql
+-- supabase/migrations/0085_permissions_promotions.sql
+BEGIN;
+INSERT INTO sys_auth_permissions_cd (permission_code, name, name2, module_code, is_active)
+VALUES
+  ('promotions:view',   'View Promotions',   'عرض العروض',   'promotions', true),
+  ('promotions:manage', 'Manage Promotions', 'إدارة العروض', 'promotions', true)
+ON CONFLICT (permission_code) DO NOTHING;
+COMMIT;
+```
+
+## References
+- Permissions table: `sys_auth_permissions_cd`
+- Migration conventions: `/database` skill

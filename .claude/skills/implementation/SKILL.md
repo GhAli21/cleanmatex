@@ -31,6 +31,8 @@ user-invocable: true
 - [ ] Enable RLS policies
 - [ ] Add standard indexes
 - [ ] Update Prisma schema
+- [ ] **Permissions** — for every new permission code: create a migration that seeds it into the DB permissions table (a TypeScript-only permission is incomplete)
+- [ ] **Navigation** — for every new/modified nav entry: (a) update `web-admin/config/navigation.ts` AND (b) generate a `sys_components_cd` DB migration via the `/navigation` skill
 
 ### Phase 3: Backend/API
 - [ ] Implement service layer with tenant context
@@ -77,6 +79,12 @@ user-invocable: true
 - No `any` types
 - Proper type definitions
 
+### Constants — DB-Mirror Rule
+- Before defining any constant whose value is stored in the DB (status codes, permission codes, type codes, lookup codes), **check the DB first**
+- The TS constant value MUST be the exact same string as the DB value — same case, separators, spelling
+- Example: DB stores `'PENDING_PAYMENT'` → constant must be `PENDING_PAYMENT: 'PENDING_PAYMENT'`, not `'pending-payment'`
+- Applies to `lib/constants/`, Zod enums, and any value that round-trips to/from the DB
+
 ### Database
 - Always use tenant_org_id filtering
 - Use centralized `getTenantIdFromSession()`
@@ -104,6 +112,9 @@ user-invocable: true
 - [ ] Logging uses centralized logger
 - [ ] API routes have input validation
 - [ ] Build succeeds without errors
+- [ ] New constants match exact DB string values (no reformatting)
+- [ ] New navigation entries updated in both `navigation.ts` AND `sys_components_cd` migration
+- [ ] New permission codes have a DB seed migration
 
 ## Additional Resources
 
