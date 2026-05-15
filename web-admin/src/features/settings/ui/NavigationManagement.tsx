@@ -216,7 +216,9 @@ export function NavigationManagement() {
     )
   }
 
-  const parentOptions = components.filter((c) => c.comp_level === 0)
+  const parentOptions = components.filter(
+    (c) => c.comp_level === 0 && c.is_active !== false && c.is_navigable !== false
+  )
 
   return (
     <div className="space-y-4">

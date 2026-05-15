@@ -29,6 +29,14 @@ import {
   Package,
   Box,
   Loader2,
+  DollarSign,
+  Workflow,
+  Navigation,
+  Palette,
+  CreditCard,
+  Building2,
+  Landmark,
+  Megaphone,
 } from 'lucide-react'
 
 /**
@@ -57,6 +65,14 @@ export const ICON_REGISTRY: Record<string, LucideIcon> = {
   Package,
   Box,
   Loader2,
+  DollarSign,
+  Workflow,
+  Navigation,
+  Palette,
+  CreditCard,
+  Building2,
+  Landmark,
+  Megaphone,
 }
 
 /**

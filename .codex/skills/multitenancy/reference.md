@@ -9,6 +9,13 @@
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
 
 -- Policy: Users can only see their tenant's orders
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation_policy ON org_orders_mst
   FOR ALL
   USING (tenant_org_id = auth.jwt() ->> 'tenant_org_id'::text);

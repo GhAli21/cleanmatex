@@ -15,6 +15,13 @@ CREATE POLICY tenant_isolation_org_orders_mst ON org_orders_mst
   WITH CHECK (tenant_org_id = current_tenant_id());
 
 -- Service role bypass (cleanmatexsaas uses service role key — no tenant filter needed)
+Best approach:
+CREATE POLICY service_role_org_orders_mst ON org_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY service_role_org_orders_mst ON org_orders_mst
   FOR ALL
   USING (auth.jwt() ->> 'role' = 'service_role')

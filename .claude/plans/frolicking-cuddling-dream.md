@@ -186,6 +186,13 @@ CREATE INDEX IF NOT EXISTS idx_org_pref_kind_cf_created
 -- Enable RLS
 ALTER TABLE org_preference_kind_cf ENABLE ROW LEVEL SECURITY;
 
+Best approach:
+CREATE POLICY tenant_isolation_org_customers ON org_customers_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_preference_kind_cf
   FOR ALL
   USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));

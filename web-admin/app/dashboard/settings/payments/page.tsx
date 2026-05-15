@@ -1,0 +1,149 @@
+'use client';
+
+import { useState, useTransition } from 'react';
+import { useTranslations } from 'next-intl';
+import { CreditCard } from 'lucide-react';
+import { CmxTabsPanel } from '@ui/navigation';
+import { CmxSkeletonTable } from '@ui/primitives';
+import { cmxMessage } from '@ui/feedback';
+import { PaymentMethodsTab } from '@features/payment-config/ui/payment-methods-tab';
+import { BranchOverridesTab } from '@features/payment-config/ui/branch-overrides-tab';
+import { TerminalsTab } from '@features/payment-config/ui/terminals-tab';
+import { CashDrawersTab } from '@features/payment-config/ui/cash-drawers-tab';
+import { getPaymentMethodConfigs } from '@/app/actions/payment-config/payment-methods-actions';
+import { getTerminals } from '@/app/actions/payment-config/terminals-actions';
+import { getCashDrawers } from '@/app/actions/payment-config/cash-drawers-actions';
+import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
+import { useEffect } from 'react';
+import type { OrgPaymentMethodConfig, OrgPaymentTerminal } from '@/lib/types/payment';
+
+interface Branch {
+  id: string;
+  branch_name: string;
+}
+
+export default function PaymentSettingsPage() {
+  const t = useTranslations('paymentConfig');
+  const [, startTransition] = useTransition();
+
+  const [methods, setMethods] = useState<OrgPaymentMethodConfig[]>([]);
+  const [terminals, setTerminals] = useState<OrgPaymentTerminal[]>([]);
+  const [drawers, setDrawers] = useState<Parameters<typeof CashDrawersTab>[0]['drawers']>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+
+  const [methodsLoading, setMethodsLoading] = useState(true);
+  const [terminalsLoading, setTerminalsLoading] = useState(true);
+  const [drawersLoading, setDrawersLoading] = useState(true);
+  const [branchesLoading, setBranchesLoading] = useState(true);
+
+  const loadMethods = () => {
+    setMethodsLoading(true);
+    startTransition(async () => {
+      const result = await getPaymentMethodConfigs();
+      setMethodsLoading(false);
+      if (result.success && result.data) setMethods(result.data);
+      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
+    });
+  };
+
+  const loadTerminals = () => {
+    setTerminalsLoading(true);
+    startTransition(async () => {
+      const result = await getTerminals();
+      setTerminalsLoading(false);
+      if (result.success && result.data) setTerminals(result.data);
+      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
+    });
+  };
+
+  const loadDrawers = () => {
+    setDrawersLoading(true);
+    startTransition(async () => {
+      const result = await getCashDrawers();
+      setDrawersLoading(false);
+      if (result.success && result.data) setDrawers(result.data as Parameters<typeof CashDrawersTab>[0]['drawers']);
+      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
+    });
+  };
+
+  const loadBranches = () => {
+    setBranchesLoading(true);
+    startTransition(async () => {
+      const result = await getBranchesAction();
+      setBranchesLoading(false);
+      if (result.success && result.data) {
+        setBranches(
+          (result.data as Array<{ id: string; name?: string; branch_name?: string }>).map((b) => ({
+            id: b.id,
+            branch_name: b.name ?? b.branch_name ?? 'Branch',
+          }))
+        );
+      }
+    });
+  };
+
+  useEffect(() => {
+    loadMethods();
+    loadTerminals();
+    loadDrawers();
+    loadBranches();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const tabs = [
+    {
+      key: 'methods',
+      label: t('tabs.methods'),
+      content: (
+        <PaymentMethodsTab
+          methods={methods}
+          isLoading={methodsLoading}
+          onRefresh={loadMethods}
+        />
+      ),
+    },
+    {
+      key: 'branches',
+      label: t('tabs.branches'),
+      content: branchesLoading ? (
+        <CmxSkeletonTable rows={3} columns={4} showHeader />
+      ) : (
+        <BranchOverridesTab branches={branches} />
+      ),
+    },
+    {
+      key: 'terminals',
+      label: t('tabs.terminals'),
+      content: (
+        <TerminalsTab
+          terminals={terminals}
+          isLoading={terminalsLoading}
+          onRefresh={loadTerminals}
+        />
+      ),
+    },
+    {
+      key: 'cashDrawers',
+      label: t('tabs.cashDrawers'),
+      content: (
+        <CashDrawersTab
+          drawers={drawers}
+          isLoading={drawersLoading}
+          onRefresh={loadDrawers}
+        />
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6 p-6">
+      <div className="flex items-center gap-3">
+        <CreditCard className="h-6 w-6 text-muted-foreground" />
+        <div>
+          <h1 className="text-xl font-semibold">{t('title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+        </div>
+      </div>
+      <CmxTabsPanel tabs={tabs} />
+    </div>
+  );
+}

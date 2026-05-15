@@ -41,6 +41,7 @@
     "customers": "العملاء",
     "reports": "التقارير",
     "settings": "الإعدادات",
+    "configAndSettings": "الإعدادات والتكوين",
     "name": "الاسم",
     "phone": "الهاتف",
     "email": "البريد الإلكتروني",
@@ -404,7 +405,9 @@
     "stock": "المخزون",
     "machines": "الآلات",
     "settings": "الإعدادات",
+    "configAndSettings": "الإعدادات والتكوين",
     "allSettings": "كل الإعدادات Profile",
+    "userPreferences": "تفضيلات المستخدم",
     "general": "عام",
     "teamMembers": "أعضاء الفريق",
     "rolesAndPermissions": "الأدوار والصلاحيات",
@@ -429,7 +432,11 @@
     "bankReconciliation": "تسوية البنك",
     "accountsPayable": "الذمم الدائنة",
     "purchaseOrders": "أوامر الشراء",
-    "branchPL": "الأرباح والخسائر للفرع"
+    "branchPL": "الأرباح والخسائر للفرع",
+    "settingsFinance": "المالية",
+    "paymentSetup": "إعداد المدفوعات",
+    "workflows": "سير العمل",
+    "navigationAdmin": "التنقل"
   },
   "dashboard": {
     "title": "لوحة التحكم",

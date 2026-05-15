@@ -1083,8 +1083,40 @@ model org_payments_dtl_tr {
   trans_desc               String?                 @db.VarChar(500)
   voucher_id               String?                 @db.Uuid
   branch_id                String?                 @db.Uuid
-  org_payment_audit_log    org_payment_audit_log[]
-  org_branches_mst         org_branches_mst?       @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payment_branch")
+  // V1 Payment Config linking columns
+  org_payment_method_id    String?                 @db.Uuid
+  branch_payment_method_id String?                 @db.Uuid
+  payment_terminal_id      String?                 @db.Uuid
+  cash_drawer_id           String?                 @db.Uuid
+  cash_drawer_session_id   String?                 @db.Uuid
+  // Historical snapshots (denormalized — preserved regardless of sys_payment_method_cd changes)
+  payment_method_name      String?
+  payment_method_name2     String?
+  payment_status           String?                 @default("COMPLETED")
+  // Cash payment details
+  tendered_amount          Decimal?                @db.Decimal(19, 4)
+  change_returned_amount   Decimal?                @db.Decimal(19, 4)
+  // Card details (PCI: last 4 only)
+  card_brand_code          String?
+  card_last4               String?
+  // Authorization
+  auth_code                String?
+  gateway_transaction_id   String?
+  gateway_reference        String?
+  bank_reference           String?
+  // Idempotency: prevents duplicate submissions from mobile/customer app
+  idempotency_key          String?                 @unique
+  received_by              String?                 @db.Uuid
+  // Relations
+  org_payment_audit_log          org_payment_audit_log[]
+  org_cash_drawer_movements_dtl  org_cash_drawer_movements_dtl[]
+  org_order_refunds_dtl          org_order_refunds_dtl[]
+  org_payment_methods_cf_rel     org_payment_methods_cf?         @relation("PaymentMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_branch_pay_methods_cf_rel  org_branch_payment_methods_cf?  @relation("BranchPaymentMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_payment_terminals_cf_rel   org_payment_terminals_cf?       @relation("PaymentTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawers_mst_rel       org_cash_drawers_mst?           @relation("CashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_sessions_rel   org_cash_drawer_sessions_mst?   @relation("CashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_branches_mst               org_branches_mst?               @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_payment_branch")
   org_invoice_mst          org_invoice_mst?        @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_invoice")
   org_tenants_mst          org_tenants_mst         @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_payment_tenant")
   sys_payment_method_cd    sys_payment_method_cd   @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction, map: "fk_org_payments_payment_method")
@@ -1402,9 +1434,18 @@ model org_tenants_mst {
   org_ord_discounts_dtl             org_ord_discounts_dtl[]
   org_order_status_history         org_order_status_history[]
   org_orders_mst                   org_orders_mst[]
+  org_order_payments_dtl           org_order_payments_dtl[]
   org_payment_audit_log            org_payment_audit_log[]
+  org_payment_methods_cf           org_payment_methods_cf[]
+  org_branch_payment_methods_cf    org_branch_payment_methods_cf[]
+  org_payment_terminals_cf         org_payment_terminals_cf[]
   org_payment_reconciliation_log   org_payment_reconciliation_log[]
   org_payments_dtl_tr              org_payments_dtl_tr[]
+  org_cash_drawers_mst             org_cash_drawers_mst[]
+  org_cash_drawer_sessions_mst     org_cash_drawer_sessions_mst[]
+  org_cash_drawer_movements_dtl    org_cash_drawer_movements_dtl[]
+  org_order_credit_apps_dtl        org_order_credit_apps_dtl[]
+  org_order_refunds_dtl            org_order_refunds_dtl[]
   org_pck_packing_lists_mst        org_pck_packing_lists_mst[]
   org_pln_change_history_tr        org_pln_change_history_tr[]
   org_pln_subscriptions_mst        org_pln_subscriptions_mst[]
@@ -2411,6 +2452,7 @@ model sys_payment_method_cd {
   org_subscriptions_mst          org_subscriptions_mst[]
   sys_bill_invoice_payments_tr   sys_bill_invoice_payments_tr[]
   sys_bill_invoices_mst          sys_bill_invoices_mst[]
+  org_payment_methods_cf         org_payment_methods_cf[]
 
   @@schema("public")
 }
@@ -3589,6 +3631,9 @@ model sys_payment_gateway_cd {
   updated_info              String?
   rec_order                 Int?
   rec_notes                 String?
+
+  org_payment_methods_cf   org_payment_methods_cf[]
+  org_payment_terminals_cf org_payment_terminals_cf[] @relation("TerminalGateway")
 
   @@index([is_active, display_order], map: "idx_payment_gateway_active")
   @@index([gateway_type], map: "idx_payment_gateway_type")
@@ -5988,6 +6033,385 @@ model sys_fin_voucher_subtype_cd {
 
   @@schema("public")
 }
+
+// =============================================================================
+// V1 Payment Config — Client Layer Models
+// =============================================================================
+
+model org_payment_methods_cf {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                 String                          @db.Uuid
+  payment_method_code           String
+  gateway_code                  String?
+  display_name                  String
+  display_name2                 String?
+  description                   String?
+  description2                  String?
+  payment_nature                String                          @default("REAL_PAYMENT")
+  is_enabled                    Boolean                         @default(true)
+  allowed_in_pos                Boolean                         @default(true)
+  allowed_in_customer_app       Boolean                         @default(false)
+  allowed_in_staff_app          Boolean                         @default(true)
+  allowed_in_admin_app          Boolean                         @default(true)
+  allowed_for_pay_now           Boolean                         @default(true)
+  allowed_for_pay_on_collection Boolean                         @default(true)
+  allowed_for_invoice_payment   Boolean                         @default(true)
+  allowed_for_refund            Boolean                         @default(true)
+  supports_partial_payment      Boolean                         @default(true)
+  supports_overpayment          Boolean                         @default(false)
+  supports_change_return        Boolean                         @default(false)
+  requires_reference            Boolean                         @default(false)
+  requires_approval             Boolean                         @default(false)
+  min_amount                    Decimal?                        @db.Decimal(19, 4)
+  max_amount                    Decimal?                        @db.Decimal(19, 4)
+  currency_code                 String?
+  fee_type                      String                          @default("NONE")
+  fee_amount                    Decimal                         @default(0) @db.Decimal(19, 4)
+  fee_rate                      Decimal                         @default(0) @db.Decimal(9, 4)
+  gateway_config                Json                            @default("{}")
+  ui_config                     Json                            @default("{}")
+  validation_rules              Json                            @default("{}")
+  metadata                      Json                            @default("{}")
+  display_order                 Int                             @default(0)
+  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  created_by                    String?
+  created_info                  String?
+  updated_at                    DateTime?                       @db.Timestamptz(6)
+  updated_by                    String?
+  updated_info                  String?
+  rec_status                    Int                             @default(1) @db.SmallInt
+  rec_order                     Int?
+  rec_notes                     String?
+  is_active                     Boolean                         @default(true)
+  org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_payment_method_cd         sys_payment_method_cd           @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction)
+  sys_payment_gateway_cd        sys_payment_gateway_cd?         @relation(fields: [gateway_code], references: [code], onUpdate: NoAction)
+  org_branch_payment_methods_cf org_branch_payment_methods_cf[]
+  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("PaymentMethodConfig")
+  org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayMethodConfig")
+
+  @@unique([tenant_org_id, payment_method_code, gateway_code], map: "uq_org_payment_methods_cf")
+  @@index([tenant_org_id], map: "idx_org_pay_methods_cf_tenant")
+  @@index([tenant_org_id, is_active, display_order], map: "idx_org_pay_methods_cf_t_active")
+  @@schema("public")
+}
+
+model org_branch_payment_methods_cf {
+  id                        String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id             String                   @db.Uuid
+  branch_id                 String                   @db.Uuid
+  org_payment_method_id     String                   @db.Uuid
+  is_enabled                Boolean?
+  allowed_in_pos            Boolean?
+  allowed_in_customer_app   Boolean?
+  allowed_in_staff_app      Boolean?
+  allowed_for_pay_now       Boolean?
+  allowed_for_pay_on_collection Boolean?
+  allowed_for_invoice_payment   Boolean?
+  allowed_for_refund        Boolean?
+  cash_drawer_required      Boolean                  @default(false)
+  terminal_required         Boolean                  @default(false)
+  min_amount                Decimal?                 @db.Decimal(19, 4)
+  max_amount                Decimal?                 @db.Decimal(19, 4)
+  branch_gateway_config     Json                     @default("{}")
+  metadata                  Json                     @default("{}")
+  display_order             Int                      @default(0)
+  created_at                DateTime?                @default(now()) @db.Timestamptz(6)
+  created_by                String?
+  created_info              String?
+  updated_at                DateTime?                @db.Timestamptz(6)
+  updated_by                String?
+  updated_info              String?
+  rec_status                Int                      @default(1) @db.SmallInt
+  rec_order                 Int?
+  rec_notes                 String?
+  is_active                 Boolean                  @default(true)
+  org_tenants_mst           org_tenants_mst          @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payment_methods_cf    org_payment_methods_cf   @relation(fields: [org_payment_method_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payments_dtl_tr       org_payments_dtl_tr[]    @relation("BranchPaymentMethodConfig")
+  org_order_payments_dtl    org_order_payments_dtl[] @relation("OrdBranchPayMethodConfig")
+
+  @@unique([tenant_org_id, branch_id, org_payment_method_id], map: "uq_org_branch_pay_methods_cf")
+  @@index([tenant_org_id], map: "idx_org_br_pay_methods_tenant")
+  @@index([tenant_org_id, branch_id, is_active], map: "idx_org_br_pay_methods_branch")
+  @@schema("public")
+}
+
+model org_payment_terminals_cf {
+  id                       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                     @db.Uuid
+  branch_id                String?                    @db.Uuid
+  terminal_code            String
+  terminal_name            String
+  terminal_name2           String?
+  terminal_type            String
+  gateway_code             String?
+  serial_no                String?
+  merchant_id              String?
+  terminal_external_id     String?
+  is_enabled               Boolean                    @default(true)
+  config                   Json                       @default("{}")
+  metadata                 Json                       @default("{}")
+  created_at               DateTime?                  @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  updated_at               DateTime?                  @db.Timestamptz(6)
+  updated_by               String?
+  updated_info             String?
+  rec_status               Int                        @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                    @default(true)
+  org_tenants_mst          org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sys_payment_gateway_cd   sys_payment_gateway_cd?    @relation("TerminalGateway", fields: [gateway_code], references: [code], onUpdate: NoAction)
+  org_cash_drawers_mst     org_cash_drawers_mst[]
+  org_payments_dtl_tr      org_payments_dtl_tr[]      @relation("PaymentTerminal")
+  org_order_payments_dtl   org_order_payments_dtl[]   @relation("OrdPayTerminal")
+
+  @@unique([tenant_org_id, terminal_code], map: "uq_org_pay_terminals_cf_code")
+  @@index([tenant_org_id], map: "idx_org_pay_terminals_tenant")
+  @@index([tenant_org_id, branch_id, is_active], map: "idx_org_pay_terminals_branch")
+  @@schema("public")
+}
+
+model org_cash_drawers_mst {
+  id                           String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                String                          @db.Uuid
+  branch_id                    String                          @db.Uuid
+  drawer_code                  String
+  drawer_name                  String
+  drawer_name2                 String?
+  drawer_type                  String                          @default("COUNTER")
+  currency_code                String
+  requires_session             Boolean                         @default(true)
+  opening_float_required       Boolean                         @default(true)
+  max_cash_limit               Decimal?                        @db.Decimal(19, 4)
+  assigned_user_id             String?                         @db.Uuid
+  assigned_terminal_id         String?                         @db.Uuid
+  metadata                     Json                            @default("{}")
+  created_at                   DateTime?                       @default(now()) @db.Timestamptz(6)
+  created_by                   String?
+  created_info                 String?
+  updated_at                   DateTime?                       @db.Timestamptz(6)
+  updated_by                   String?
+  updated_info                 String?
+  rec_status                   Int                             @default(1) @db.SmallInt
+  rec_order                    Int?
+  rec_notes                    String?
+  is_active                    Boolean                         @default(true)
+  org_tenants_mst              org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payment_terminals_cf     org_payment_terminals_cf?       @relation(fields: [assigned_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst[]
+  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
+  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("CashDrawer")
+  org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawer")
+
+  @@unique([tenant_org_id, drawer_code], map: "uq_org_cash_drawers_mst_code")
+  @@index([tenant_org_id], map: "idx_org_cash_drawers_tenant")
+  @@index([tenant_org_id, branch_id, is_active], map: "idx_org_cash_drawers_branch")
+  @@schema("public")
+}
+
+model org_cash_drawer_sessions_mst {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                 String                          @db.Uuid
+  branch_id                     String                          @db.Uuid
+  cash_drawer_id                String                          @db.Uuid
+  session_no                    String
+  opened_by                     String                          @db.Uuid
+  opened_at                     DateTime                        @default(now()) @db.Timestamptz(6)
+  opening_float_amount          Decimal                         @default(0) @db.Decimal(19, 4)
+  currency_code                 String
+  status                        String                          @default("OPEN")
+  expected_cash_amount          Decimal                         @default(0) @db.Decimal(19, 4)
+  counted_cash_amount           Decimal?                        @db.Decimal(19, 4)
+  difference_amount             Decimal?                        @db.Decimal(19, 4)
+  closed_by                     String?                         @db.Uuid
+  closed_at                     DateTime?                       @db.Timestamptz(6)
+  close_notes                   String?
+  force_close_reason            String?
+  metadata                      Json                            @default("{}")
+  created_at                    DateTime?                       @default(now()) @db.Timestamptz(6)
+  created_by                    String?
+  created_info                  String?
+  updated_at                    DateTime?                       @db.Timestamptz(6)
+  updated_by                    String?
+  updated_info                  String?
+  rec_status                    Int                             @default(1) @db.SmallInt
+  rec_order                     Int?
+  rec_notes                     String?
+  is_active                     Boolean                         @default(true)
+  org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_cash_drawers_mst          org_cash_drawers_mst            @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  org_cash_drawer_movements_dtl org_cash_drawer_movements_dtl[]
+  org_payments_dtl_tr           org_payments_dtl_tr[]           @relation("CashDrawerSession")
+  org_order_refunds_dtl         org_order_refunds_dtl[]
+  org_order_payments_dtl        org_order_payments_dtl[]        @relation("OrdPayCashDrawerSession")
+
+  @@unique([tenant_org_id, session_no], map: "uq_org_cash_drawer_sessions_no")
+  @@index([tenant_org_id], map: "idx_org_cds_tenant")
+  @@index([tenant_org_id, cash_drawer_id, status], map: "idx_org_cds_drawer")
+  @@schema("public")
+}
+
+model org_cash_drawer_movements_dtl {
+  id                       String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id            String                       @db.Uuid
+  branch_id                String                       @db.Uuid
+  cash_drawer_id           String                       @db.Uuid
+  cash_drawer_session_id   String                       @db.Uuid
+  movement_type            String
+  direction                String
+  amount                   Decimal                      @db.Decimal(19, 4)
+  currency_code            String
+  order_id                 String?                      @db.Uuid
+  order_payment_id         String?                      @db.Uuid
+  refund_id                String?                      @db.Uuid
+  reference_no             String?
+  reason                   String?
+  performed_by             String                       @db.Uuid
+  performed_at             DateTime                     @default(now()) @db.Timestamptz(6)
+  metadata                 Json                         @default("{}")
+  created_at               DateTime?                    @default(now()) @db.Timestamptz(6)
+  created_by               String?
+  created_info             String?
+  rec_status               Int                          @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean                      @default(true)
+  org_tenants_mst          org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_cash_drawers_mst     org_cash_drawers_mst         @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst @relation(fields: [cash_drawer_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  org_payments_dtl_tr      org_payments_dtl_tr?         @relation(fields: [order_payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tenant_org_id, cash_drawer_session_id, performed_at], map: "idx_org_cdm_session")
+  @@index([tenant_org_id, cash_drawer_id, performed_at(sort: Desc)], map: "idx_org_cdm_drawer")
+  @@schema("public")
+}
+
+model org_order_credit_apps_dtl {
+  id               String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id    String          @db.Uuid
+  order_id         String          @db.Uuid
+  credit_type      String
+  credit_source_id String?         @db.Uuid
+  applied_amount   Decimal         @db.Decimal(19, 4)
+  currency_code    String
+  reference_no     String?
+  applied_by       String?         @db.Uuid
+  applied_at       DateTime        @default(now()) @db.Timestamptz(6)
+  metadata         Json            @default("{}")
+  created_at       DateTime?       @default(now()) @db.Timestamptz(6)
+  created_by       String?
+  created_info     String?
+  updated_at       DateTime?       @db.Timestamptz(6)
+  updated_by       String?
+  updated_info     String?
+  rec_status       Int             @default(1) @db.SmallInt
+  rec_order        Int?
+  rec_notes        String?
+  is_active        Boolean         @default(true)
+  org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([tenant_org_id], map: "idx_org_order_credit_apps_tenant")
+  @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_credit_apps_order")
+  @@schema("public")
+}
+
+model org_order_refunds_dtl {
+  id                     String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                        @db.Uuid
+  order_id               String                        @db.Uuid
+  original_payment_id    String?                       @db.Uuid
+  refund_method_code     String?
+  refund_amount          Decimal                       @db.Decimal(19, 4)
+  currency_code          String
+  refund_status          String                        @default("PENDING")
+  refund_reason          String?
+  gateway_refund_id      String?
+  cash_drawer_session_id String?                       @db.Uuid
+  approved_by            String?                       @db.Uuid
+  approved_at            DateTime?                     @db.Timestamptz(6)
+  processed_at           DateTime?                     @db.Timestamptz(6)
+  metadata               Json                          @default("{}")
+  created_at             DateTime?                     @default(now()) @db.Timestamptz(6)
+  created_by             String?
+  created_info           String?
+  updated_at             DateTime?                     @db.Timestamptz(6)
+  updated_by             String?
+  updated_info           String?
+  rec_status             Int                           @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?
+  is_active              Boolean                       @default(true)
+  org_tenants_mst        org_tenants_mst               @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payments_dtl_tr    org_payments_dtl_tr?          @relation(fields: [original_payment_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst? @relation(fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tenant_org_id], map: "idx_org_order_refunds_tenant")
+  @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_refunds_order")
+  @@schema("public")
+}
+
+model org_order_payments_dtl {
+  id                            String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id                 String                          @db.Uuid
+  branch_id                     String?                         @db.Uuid
+  order_id                      String                          @db.Uuid
+  customer_id                   String?                         @db.Uuid
+  org_payment_method_id         String?                         @db.Uuid
+  branch_payment_method_id      String?                         @db.Uuid
+  payment_terminal_id           String?                         @db.Uuid
+  cash_drawer_id                String?                         @db.Uuid
+  cash_drawer_session_id        String?                         @db.Uuid
+  payment_method_code           String
+  payment_method_name_snapshot  String?
+  payment_status                String                          @default("COMPLETED")
+  amount                        Decimal                         @db.Decimal(19, 4)
+  currency_code                 String
+  tendered_amount               Decimal?                        @db.Decimal(19, 4)
+  change_returned_amount        Decimal?                        @db.Decimal(19, 4)
+  card_brand_code               String?
+  card_last4                    String?
+  auth_code                     String?
+  gateway_code                  String?
+  gateway_transaction_id        String?
+  gateway_reference             String?
+  check_no                      String?
+  check_bank_name               String?
+  check_due_date                DateTime?                       @db.Date
+  check_status                  String?
+  bank_reference                String?
+  idempotency_key               String?                         @unique(map: "uq_org_ord_pay_dtl_idempotency")
+  paid_at                       DateTime?                       @db.Timestamptz(6)
+  received_by                   String?                         @db.Uuid
+  created_at                    DateTime                        @default(now()) @db.Timestamptz(6)
+  created_by                    String?                         @db.Uuid
+  created_info                  String?
+  updated_at                    DateTime?                       @db.Timestamptz(6)
+  updated_by                    String?                         @db.Uuid
+  updated_info                  String?
+  rec_status                    Int                             @default(1) @db.SmallInt
+  rec_order                     Int?
+  rec_notes                     String?
+  is_active                     Boolean                         @default(true)
+  metadata                      Json                            @default("{}")
+  org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  org_payment_methods_cf        org_payment_methods_cf?         @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_branch_payment_methods_cf org_branch_payment_methods_cf?  @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_payment_terminals_cf      org_payment_terminals_cf?       @relation("OrdPayTerminal", fields: [payment_terminal_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawers_mst          org_cash_drawers_mst?           @relation("OrdPayCashDrawer", fields: [cash_drawer_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  org_cash_drawer_sessions_mst  org_cash_drawer_sessions_mst?   @relation("OrdPayCashDrawerSession", fields: [cash_drawer_session_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([tenant_org_id], map: "idx_org_ord_pay_dtl_tenant")
+  @@index([tenant_org_id, order_id, is_active], map: "idx_org_ord_pay_dtl_order")
+  @@map("org_order_payments_dtl")
+  @@schema("public")
+}
+
+// =============================================================================
+// End V1 Payment Config Models
+// =============================================================================
 
 enum aal_level {
   aal1

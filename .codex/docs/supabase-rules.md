@@ -37,6 +37,13 @@ CREATE TABLE org_orders_mst (
 #### Tenant Isolation Policy
 
 ```sql
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 -- Standard tenant isolation policy
 CREATE POLICY tenant_isolation ON org_orders_mst
   FOR ALL
@@ -237,6 +244,13 @@ CREATE INDEX idx_orders_created ON org_orders_mst(tenant_org_id, created_at DESC
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policy
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_orders_mst
   FOR ALL
   USING (

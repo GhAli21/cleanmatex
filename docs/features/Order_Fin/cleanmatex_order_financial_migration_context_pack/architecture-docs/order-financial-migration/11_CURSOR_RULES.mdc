@@ -1,0 +1,32 @@
+---
+description: CleanMateX Order Financial Migration Rules
+globs:
+  - "**/*"
+alwaysApply: false
+---
+
+# CleanMateX Order Financial Migration
+
+Before editing order/payment/financial code, read:
+
+```text
+/architecture-docs/order-financial-migration
+```
+
+## Critical Rules
+
+- Do not rewrite checkout.
+- Do not break preview-payment.
+- Do not break create-with-payment.
+- Do not remove AMOUNT_MISMATCH.
+- Do not remove legacy fields during migration.
+- Use expand → dual-write → reconcile → switch-read → retire.
+- Gift card is liability, not discount.
+- Wallet/customer credit/advance are stored-value applications, not payments.
+- Invoice is AR, not payment.
+- Preferences are operational selections.
+- Charges are monetary additions.
+- Tax happens before credits/payments.
+- One payment row per real payment leg.
+- One credit application row per stored-value usage.
+- Every tenant-owned table/query must include tenant_org_id.

@@ -102,6 +102,13 @@ Enable on ALL `org_*` tables:
 ```sql
 ALTER TABLE org_example_mst ENABLE ROW LEVEL SECURITY;
 
+Best approach:
+CREATE POLICY tenant_isolation_org_customers ON org_customers_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_example_mst
   FOR ALL
   USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
@@ -221,6 +228,13 @@ CREATE INDEX idx_example_active ON org_example_mst(tenant_org_id, is_active);
 ALTER TABLE org_example_mst ENABLE ROW LEVEL SECURITY;
 
 -- RLS policy
+Best approach:
+CREATE POLICY tenant_isolation_org_customers ON org_customers_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_example_mst
   FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
 ```

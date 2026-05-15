@@ -343,9 +343,15 @@ CREATE INDEX idx_sys_auth_users_email ON sys_auth_users_mst(email);
 
 ```sql
 -- ✅ NEW: Feature-grouped policies
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
   FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
-
 CREATE POLICY org_auth_users_tenant_isolation ON org_auth_users_mst
   FOR ALL USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));
 ```
@@ -354,10 +360,15 @@ CREATE POLICY org_auth_users_tenant_isolation ON org_auth_users_mst
 
 ```
 -- ✅ NEW: Feature-grouped migrations
-20251114103000_sys_auth_create_users_table.sql
-20251114104500_org_ord_create_orders_table.sql
-20251114110000_org_stng_create_settings_table.sql
-20251114111500_org_ord_add_order_status_index.sql
+Last File seq+1 xxxx Not Timestamp
+--20251114103000
+1111_sys_auth_create_users_table.sql
+--20251114104500
+1112_org_ord_create_orders_table.sql
+--20251114110000
+1113_org_stng_create_settings_table.sql
+--20251114111500
+1114_org_ord_add_order_status_index.sql
 ```
 
 ---
@@ -481,6 +492,13 @@ CREATE INDEX idx_example_active ON org_example_mst(tenant_org_id, is_active);
 ALTER TABLE org_example_mst ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policy
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_example_mst
   FOR ALL USING (tenant_org_id = auth.jwt() ->> 'tenant_org_id'::text);
 ```

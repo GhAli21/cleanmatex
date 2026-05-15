@@ -39,9 +39,9 @@ function getBasicNavigationForSuperAdmin(): NavigationSection[] {
       roles: ['super_admin'],
     },
     {
-      key: 'settings',
-      label: 'Settings',
-      icon: 'Settings',
+      key: 'config_settings',
+      label: 'Config And Settings',
+      icon: 'Settings2',
       path: '/dashboard/settings',
       roles: ['super_admin'],
     },

@@ -940,3 +940,379 @@ export interface AmountMismatchDiff {
 export type AmountMismatchDifferences = Partial<
   Record<'subtotal' | 'manualDiscount' | 'promoDiscount' | 'vatValue' | 'finalTotal', AmountMismatchDiff>
 >;
+
+// ============================================================================
+// V1 Payment Config Client Layer Types
+// ============================================================================
+
+import type {
+  PaymentNature, FeeType, TerminalType, DrawerType,
+  CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
+  CreditType, OrderPaymentStatus, RefundStatus,
+} from '../constants/payment';
+
+export type {
+  PaymentNature, FeeType, TerminalType, DrawerType,
+  CashDrawerSessionStatus, CashDrawerMovementType, MovementDirection,
+  CreditType, OrderPaymentStatus, RefundStatus,
+};
+
+/** Typed gateway credential shapes — secrets masked after first save */
+export interface HyperPayGatewayConfig {
+  entityId: string;
+  apiKey: string;
+  webhookSecret: string;
+  testMode: boolean;
+  supportedBrands: string[];
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export interface StripeGatewayConfig {
+  publishableKey: string;
+  secretKey: string;
+  webhookSecret: string;
+  testMode: boolean;
+  supportedBrands: string[];
+}
+
+export interface PayTabsGatewayConfig {
+  entityId: string;
+  apiKey: string;
+  webhookSecret: string;
+  testMode: boolean;
+  supportedBrands: string[];
+  returnUrl: string;
+  cancelUrl: string;
+}
+
+export type GatewayConfig = HyperPayGatewayConfig | StripeGatewayConfig | PayTabsGatewayConfig | Record<string, unknown>;
+
+/** Tenant-level payment method config row (gateway_config secrets masked) */
+export interface OrgPaymentMethodConfig {
+  id: string;
+  tenant_org_id: string;
+  payment_method_code: string;
+  gateway_code: string | null;
+  display_name: string;
+  display_name2: string | null;
+  description: string | null;
+  description2: string | null;
+  payment_nature: PaymentNature;
+  is_enabled: boolean;
+  allowed_in_pos: boolean;
+  allowed_in_customer_app: boolean;
+  allowed_in_staff_app: boolean;
+  allowed_in_admin_app: boolean;
+  allowed_for_pay_now: boolean;
+  allowed_for_pay_on_collection: boolean;
+  allowed_for_invoice_payment: boolean;
+  allowed_for_refund: boolean;
+  supports_partial_payment: boolean;
+  supports_overpayment: boolean;
+  supports_change_return: boolean;
+  requires_reference: boolean;
+  requires_approval: boolean;
+  min_amount: number | null;
+  max_amount: number | null;
+  currency_code: string | null;
+  fee_type: FeeType;
+  fee_amount: number;
+  fee_rate: number;
+  gateway_config: GatewayConfig;
+  ui_config: Record<string, unknown>;
+  validation_rules: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  created_by: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  rec_status: number;
+}
+
+/** Branch-level override row */
+export interface OrgBranchPaymentMethodConfig {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string;
+  org_payment_method_id: string;
+  is_enabled: boolean | null;
+  allowed_in_pos: boolean | null;
+  allowed_in_customer_app: boolean | null;
+  allowed_in_staff_app: boolean | null;
+  allowed_for_pay_now: boolean | null;
+  allowed_for_pay_on_collection: boolean | null;
+  allowed_for_invoice_payment: boolean | null;
+  allowed_for_refund: boolean | null;
+  cash_drawer_required: boolean;
+  terminal_required: boolean;
+  min_amount: number | null;
+  max_amount: number | null;
+  branch_gateway_config: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  display_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+  rec_status: number;
+}
+
+/** POS terminal row */
+export interface OrgPaymentTerminal {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string | null;
+  terminal_code: string;
+  terminal_name: string;
+  terminal_name2: string | null;
+  terminal_type: TerminalType;
+  gateway_code: string | null;
+  serial_no: string | null;
+  merchant_id: string | null;
+  terminal_external_id: string | null;
+  is_enabled: boolean;
+  config: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+  rec_status: number;
+}
+
+/** Cash drawer row */
+export interface OrgCashDrawer {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string;
+  drawer_code: string;
+  drawer_name: string;
+  drawer_name2: string | null;
+  drawer_type: DrawerType;
+  currency_code: string;
+  requires_session: boolean;
+  opening_float_required: boolean;
+  max_cash_limit: number | null;
+  assigned_user_id: string | null;
+  assigned_terminal_id: string | null;
+  is_active: boolean;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string | null;
+  rec_status: number;
+}
+
+/** Cash drawer session row */
+export interface OrgCashDrawerSession {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string;
+  cash_drawer_id: string;
+  session_no: string;
+  opened_by: string;
+  opened_at: string;
+  opening_float_amount: number;
+  currency_code: string;
+  status: CashDrawerSessionStatus;
+  expected_cash_amount: number;
+  counted_cash_amount: number | null;
+  difference_amount: number | null;
+  closed_by: string | null;
+  closed_at: string | null;
+  close_notes: string | null;
+  force_close_reason: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+/** Cash drawer movement row */
+export interface OrgCashDrawerMovement {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string;
+  cash_drawer_id: string;
+  cash_drawer_session_id: string;
+  movement_type: CashDrawerMovementType;
+  direction: MovementDirection;
+  amount: number;
+  currency_code: string;
+  order_id: string | null;
+  order_payment_id: string | null;
+  reference_no: string | null;
+  reason: string | null;
+  performed_by: string;
+  performed_at: string;
+  created_at: string;
+}
+
+/** Dedicated order payment row (org_order_payments_dtl) */
+export interface OrgOrderPayment {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string | null;
+  order_id: string;
+  customer_id: string | null;
+  org_payment_method_id: string | null;
+  branch_payment_method_id: string | null;
+  payment_terminal_id: string | null;
+  cash_drawer_id: string | null;
+  cash_drawer_session_id: string | null;
+  payment_method_code: string;
+  payment_method_name_snapshot: string | null;
+  payment_status: OrderPaymentStatus;
+  amount: number;
+  currency_code: string;
+  tendered_amount: number | null;
+  change_returned_amount: number | null;
+  card_brand_code: string | null;
+  card_last4: string | null;
+  auth_code: string | null;
+  gateway_code: string | null;
+  gateway_transaction_id: string | null;
+  gateway_reference: string | null;
+  check_no: string | null;
+  check_bank_name: string | null;
+  check_due_date: string | null;
+  check_status: string | null;
+  bank_reference: string | null;
+  idempotency_key: string | null;
+  paid_at: string | null;
+  received_by: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+  rec_status: number;
+  metadata: Record<string, unknown>;
+}
+
+// ---- Input Types ----
+
+export interface CreatePaymentMethodConfigInput {
+  payment_method_code: string;
+  gateway_code?: string;
+  display_name: string;
+  display_name2?: string;
+  description?: string;
+  description2?: string;
+  payment_nature: PaymentNature;
+  allowed_in_pos?: boolean;
+  allowed_in_customer_app?: boolean;
+  allowed_in_staff_app?: boolean;
+  allowed_in_admin_app?: boolean;
+  allowed_for_pay_now?: boolean;
+  allowed_for_pay_on_collection?: boolean;
+  allowed_for_invoice_payment?: boolean;
+  allowed_for_refund?: boolean;
+  supports_partial_payment?: boolean;
+  supports_overpayment?: boolean;
+  supports_change_return?: boolean;
+  requires_reference?: boolean;
+  requires_approval?: boolean;
+  min_amount?: number;
+  max_amount?: number;
+  currency_code?: string;
+  fee_type?: FeeType;
+  fee_amount?: number;
+  fee_rate?: number;
+  gateway_config?: GatewayConfig;
+  display_order?: number;
+}
+
+export type UpdatePaymentMethodConfigInput = Partial<CreatePaymentMethodConfigInput>;
+
+export interface UpdateGatewayConfigInput {
+  gateway_config: GatewayConfig;
+}
+
+export interface CreateTerminalInput {
+  terminal_code: string;
+  terminal_name: string;
+  terminal_name2?: string;
+  terminal_type: TerminalType;
+  gateway_code?: string;
+  branch_id?: string;
+  serial_no?: string;
+  merchant_id?: string;
+  terminal_external_id?: string;
+  config?: Record<string, unknown>;
+}
+
+export type UpdateTerminalInput = Partial<CreateTerminalInput>;
+
+export interface CreateCashDrawerInput {
+  drawer_code: string;
+  drawer_name: string;
+  drawer_name2?: string;
+  drawer_type: DrawerType;
+  branch_id: string;
+  currency_code: string;
+  requires_session?: boolean;
+  opening_float_required?: boolean;
+  max_cash_limit?: number;
+  assigned_terminal_id?: string;
+}
+
+export type UpdateCashDrawerInput = Partial<Omit<CreateCashDrawerInput, 'currency_code' | 'drawer_code'>>;
+
+export interface OpenDrawerSessionInput {
+  cash_drawer_id: string;
+  branch_id: string;
+  opening_float_amount: number;
+  currency_code: string;
+}
+
+export interface CloseDrawerSessionInput {
+  session_id: string;
+  counted_cash_amount: number;
+  close_notes?: string;
+}
+
+export interface UpsertBranchPaymentMethodInput {
+  branch_id: string;
+  org_payment_method_id: string;
+  is_enabled?: boolean;
+  allowed_in_pos?: boolean;
+  allowed_in_customer_app?: boolean;
+  allowed_in_staff_app?: boolean;
+  allowed_for_pay_now?: boolean;
+  allowed_for_pay_on_collection?: boolean;
+  allowed_for_invoice_payment?: boolean;
+  allowed_for_refund?: boolean;
+  cash_drawer_required?: boolean;
+  terminal_required?: boolean;
+  min_amount?: number;
+  max_amount?: number;
+  branch_gateway_config?: Record<string, unknown>;
+  display_order?: number;
+}
+
+export interface CreateOrderPaymentInput {
+  order_id: string;
+  customer_id?: string;
+  branch_id?: string;
+  payment_method_code: string;
+  payment_method_name_snapshot?: string;
+  amount: number;
+  currency_code: string;
+  org_payment_method_id?: string;
+  branch_payment_method_id?: string;
+  payment_terminal_id?: string;
+  cash_drawer_id?: string;
+  cash_drawer_session_id?: string;
+  tendered_amount?: number;
+  change_returned_amount?: number;
+  card_brand_code?: string;
+  card_last4?: string;
+  auth_code?: string;
+  gateway_code?: string;
+  gateway_transaction_id?: string;
+  gateway_reference?: string;
+  check_no?: string;
+  check_bank_name?: string;
+  check_due_date?: string;
+  bank_reference?: string;
+  idempotency_key?: string;
+  paid_at?: string;
+  received_by?: string;
+}

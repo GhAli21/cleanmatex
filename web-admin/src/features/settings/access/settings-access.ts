@@ -20,6 +20,12 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
+    routePattern: '/dashboard/setting',
+    label: 'Settings Redirect',
+    page: {},
+    notes: ['Compatibility redirect to /dashboard/settings for singular legacy links.'],
+  },
+  {
     routePattern: '/dashboard/settings/general',
     label: 'General Settings',
     page: {},

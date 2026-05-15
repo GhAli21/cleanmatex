@@ -38,7 +38,7 @@ CREATE TABLE org_orders_mst (
 #### Tenant Isolation Policy
 
 ```sql
--- Standard tenant isolation policy
+Best approach: Standard tenant isolation policy
 DROP POLICY IF EXISTS tenant_isolation_org_orders ON org_orders_mst;
 CREATE POLICY tenant_isolation_org_orders ON org_orders_mst
   FOR ALL
@@ -48,6 +48,7 @@ CREATE POLICY tenant_isolation_org_orders ON org_orders_mst
 COMMENT ON POLICY tenant_isolation_org_orders ON org_orders_mst IS 
   'Allow users to access orders for their current tenant';
 
+Second Option:
 -- Or this if previous way have errors
 CREATE POLICY tenant_isolation ON org_orders_mst
   FOR ALL
@@ -248,6 +249,13 @@ CREATE INDEX idx_orders_created ON org_orders_mst(tenant_org_id, created_at DESC
 ALTER TABLE org_orders_mst ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policy
+Best approach:
+CREATE POLICY org_ord_orders_tenant_isolation ON org_ord_orders_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_orders_mst
   FOR ALL
   USING (

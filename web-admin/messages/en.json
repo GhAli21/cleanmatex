@@ -41,6 +41,7 @@
     "customers": "Customers",
     "reports": "Reports",
     "settings": "Settings",
+    "configAndSettings": "Config And Settings",
     "name": "Name",
     "phone": "Phone",
     "email": "Email",
@@ -404,7 +405,9 @@
     "stock": "Stock",
     "machines": "Machines",
     "settings": "Settings",
+    "configAndSettings": "Config And Settings",
     "allSettings": "All Settings Profile",
+    "userPreferences": "User Preferences",
     "general": "General",
     "teamMembers": "Team Members",
     "rolesAndPermissions": "Roles & Permissions",
@@ -429,7 +432,11 @@
     "bankReconciliation": "Bank Reconciliation",
     "accountsPayable": "Accounts Payable",
     "purchaseOrders": "Purchase Orders",
-    "branchPL": "Branch P&L"
+    "branchPL": "Branch P&L",
+    "settingsFinance": "Finance",
+    "paymentSetup": "Payment Setup",
+    "workflows": "Workflows",
+    "navigationAdmin": "Navigation"
   },
   "dashboard": {
     "title": "Dashboard",

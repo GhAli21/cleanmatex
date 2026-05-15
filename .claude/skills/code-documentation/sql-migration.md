@@ -74,6 +74,13 @@ CREATE INDEX idx_ord_prefs_dtl_tenant_item ON org_order_prefs_dtl(tenant_org_id,
 ```sql
 -- Standard CleanMateX tenant isolation: allow all operations only when JWT tenant matches row.
 -- Bypassed only by the service-role key used in server actions (never by client code).
+Best approach:
+CREATE POLICY tenant_isolation_org_customers ON org_customers_mst
+  FOR ALL
+  USING (tenant_org_id = current_tenant_id())
+  WITH CHECK (tenant_org_id = current_tenant_id());
+
+Second Option:
 CREATE POLICY tenant_isolation ON org_order_prefs_dtl
   FOR ALL
   USING (tenant_org_id::text = (auth.jwt() ->> 'tenant_org_id'));

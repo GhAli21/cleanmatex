@@ -78,7 +78,8 @@
       "Bash(python -c \"import json; data=json.load\\(open\\('messages/en.json'\\)\\); print\\(json.dumps\\(data.get\\('marketing', {}\\).get\\('giftCards', {}\\), indent=2\\)\\)\")",
       "Bash(node -e \"const fs=require\\('fs'\\); const en=JSON.parse\\(fs.readFileSync\\('f:/jhapp/cleanmatex/web-admin/messages/en.json','utf8'\\)\\); const gc=en.marketing?.giftCards; console.log\\(JSON.stringify\\(gc, null, 2\\)\\);\")",
       "Bash(node -e \"const fs=require\\('fs'\\); const en=JSON.parse\\(fs.readFileSync\\('f:/jhapp/cleanmatex/web-admin/messages/en.json','utf8'\\)\\); const common=en.common; const keys=Object.keys\\(common\\); console.log\\(keys.join\\('\\\\n'\\)\\);\")",
-      "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\src\\\\ui\\\\\" -Directory | Select-Object Name)"
+      "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\src\\\\ui\\\\\" -Directory | Select-Object Name)",
+      "PowerShell(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\"\\), \".\" } | Sort-Object)"
     ],
     "deny": [
       "Read(node_modules)",
