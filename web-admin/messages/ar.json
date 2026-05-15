@@ -5226,5 +5226,175 @@
         "errorCode": "رمز الخطأ"
       }
     }
+  },
+  "paymentConfig": {
+    "title": "إعداد المدفوعات",
+    "subtitle": "إدارة طرق الدفع، واستثناءات الفروع، والأجهزة الطرفية، وأدراج النقد.",
+    "tabs": {
+      "methods": "طرق الدفع",
+      "branches": "الفروع",
+      "terminals": "الأجهزة الطرفية",
+      "cashDrawers": "أدراج النقد",
+      "channels": "القنوات"
+    },
+    "common": {
+      "error": "حدث خطأ ما",
+      "save": "حفظ",
+      "saving": "جارٍ الحفظ...",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "edit": "تعديل",
+      "deactivate": "تعطيل"
+    },
+    "methods": {
+      "enable": "تفعيل طريقة دفع",
+      "configure": "تهيئة",
+      "saved": "تم حفظ طريقة الدفع بنجاح",
+      "deactivated": "تم تعطيل طريقة الدفع",
+      "toggleError": "تعذر تحديث حالة طريقة الدفع",
+      "paymentMethod": "طريقة الدفع",
+      "selectMethod": "اختر طريقة دفع",
+      "displayName": "الاسم المعروض",
+      "displayNamePlaceholder": "أدخل الاسم المعروض",
+      "displayName2": "الاسم المعروض بالعربية",
+      "displayName2Placeholder": "أدخل الاسم العربي المعروض",
+      "paymentNature": "طبيعة الدفع",
+      "name": "الاسم",
+      "enabled": "مفعل",
+      "nature": {
+        "REAL_PAYMENT": "دفعة فعلية",
+        "CREDIT_APPLICATION": "تطبيق رصيد",
+        "AR_ALLOCATION": "تخصيص ذمم مدينة",
+        "DEFERRED_SETTLEMENT": "تسوية مؤجلة",
+        "INTERNAL_ADJUSTMENT": "تسوية داخلية"
+      },
+      "channels": {
+        "label": "القنوات",
+        "pos": "نقطة البيع",
+        "app": "تطبيق العميل",
+        "staff": "تطبيق الموظفين",
+        "admin": "تطبيق الإدارة"
+      },
+      "purposes": {
+        "payNow": "الدفع الآن",
+        "payOnCollection": "الدفع عند الاستلام",
+        "invoicePayment": "سداد الفاتورة",
+        "refund": "استرداد"
+      },
+      "sections": {
+        "general": "عام",
+        "channels": "القنوات والأغراض",
+        "limitsAndFees": "الحدود والرسوم"
+      },
+      "minAmount": "الحد الأدنى للمبلغ",
+      "maxAmount": "الحد الأقصى للمبلغ",
+      "feeType": "نوع الرسوم",
+      "feeAmount": "مبلغ الرسوم",
+      "feeRate": "نسبة الرسوم",
+      "feeTypes": {
+        "NONE": "بدون رسوم",
+        "FIXED": "مبلغ ثابت",
+        "PERCENTAGE": "نسبة مئوية"
+      },
+      "empty": {
+        "title": "لا توجد طرق دفع مفعلة",
+        "description": "قم بتفعيل طريقة دفع لبدء استقبال المدفوعات في هذا المستأجر."
+      },
+      "deactivateConfirm": {
+        "title": "تعطيل طريقة الدفع؟",
+        "description": "لن تعود طريقة الدفع هذه متاحة للمدفوعات الجديدة."
+      }
+    },
+    "branches": {
+      "saved": "تم حفظ استثناء الفرع بنجاح",
+      "overrideRemoved": "تمت إزالة استثناء الفرع",
+      "noBranches": "لا توجد فروع متاحة لإعدادات الدفع حتى الآن.",
+      "status": "الحالة",
+      "overridden": "مخصص",
+      "inherited": "موروث",
+      "fromTenant": "موروث من المستأجر",
+      "enabled": "مفعل",
+      "disabled": "معطل",
+      "addOverride": "إضافة استثناء",
+      "removeOverride": "إزالة الاستثناء",
+      "selectBranch": "اختر الفرع",
+      "overrideFor": "تخصيص الإعدادات لـ {method}",
+      "enableSection": "التفعيل",
+      "isEnabled": "مفعل لهذا الفرع",
+      "channelsSection": "القنوات",
+      "purposesSection": "أغراض الدفع",
+      "requirementsSection": "المتطلبات",
+      "allowedForPayNow": "السماح بالدفع الآن",
+      "allowedForCollection": "السماح بالدفع عند الاستلام",
+      "allowedForInvoice": "السماح بسداد الفواتير",
+      "allowedForRefund": "السماح بعمليات الاسترداد",
+      "cashDrawerRequired": "يشترط درج نقد",
+      "terminalRequired": "يشترط جهاز طرفي"
+    },
+    "terminals": {
+      "saved": "تم حفظ الجهاز الطرفي بنجاح",
+      "add": "إضافة جهاز طرفي",
+      "edit": "تعديل الجهاز الطرفي",
+      "code": "الرمز",
+      "name": "الاسم",
+      "name2": "الاسم بالعربية",
+      "type": "النوع",
+      "gateway": "بوابة الدفع",
+      "enabled": "مفعل",
+      "serialNo": "الرقم التسلسلي",
+      "merchantId": "معرف التاجر",
+      "terminalType": {
+        "POS_CARD_TERMINAL": "جهاز بطاقات نقطة البيع",
+        "CASH_DRAWER": "درج نقد",
+        "ONLINE_GATEWAY": "بوابة إلكترونية",
+        "BANK_DEVICE": "جهاز بنكي",
+        "OTHER": "أخرى"
+      },
+      "empty": {
+        "title": "لا توجد أجهزة طرفية مهيأة بعد"
+      },
+      "deleteConfirm": {
+        "title": "تعطيل الجهاز الطرفي؟",
+        "description": "سيتم تعطيل الجهاز الطرفي وإخفاؤه من عمليات الدفع النشطة."
+      }
+    },
+    "cashDrawers": {
+      "saved": "تم حفظ درج النقد بنجاح",
+      "deactivated": "تم تعطيل درج النقد",
+      "add": "إضافة درج نقد",
+      "edit": "تعديل درج النقد",
+      "code": "الرمز",
+      "name": "الاسم",
+      "name2": "الاسم بالعربية",
+      "drawerType": "نوع الدرج",
+      "drawerTypeLabel": {
+        "COUNTER": "الكاونتر",
+        "SAFE": "الخزنة",
+        "DRIVER_BAG": "حقيبة السائق",
+        "TEMPORARY": "مؤقت"
+      },
+      "currency": "العملة",
+      "selectCurrency": "اختر العملة",
+      "maxCashLimit": "الحد الأقصى للنقد",
+      "requiresSession": "يتطلب جلسة",
+      "openingFloatRequired": "يتطلب رصيد افتتاحي",
+      "sessionStatus": "حالة الجلسة",
+      "noOpenSession": "لا توجد جلسة مفتوحة",
+      "openSince": "مفتوحة منذ {time}",
+      "viewSession": "عرض الجلسة",
+      "sessionOpen": "الجلسة مفتوحة",
+      "openedAt": "وقت الفتح",
+      "openingFloat": "الرصيد الافتتاحي",
+      "expectedCash": "النقد المتوقع",
+      "countedCash": "النقد المعدود",
+      "difference": "الفرق",
+      "empty": {
+        "title": "لا توجد أدراج نقد مهيأة بعد"
+      },
+      "deactivateConfirm": {
+        "title": "تعطيل درج النقد؟",
+        "description": "سيتم تعطيل درج النقد للجلسات النقدية الجديدة."
+      }
+    }
   }
 }

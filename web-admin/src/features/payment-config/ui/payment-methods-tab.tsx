@@ -97,7 +97,7 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
     },
     {
       key: 'payment_nature',
-      header: t('methods.nature'),
+      header: t('methods.paymentNature'),
       render: (m: OrgPaymentMethodConfig) => (
         <Badge variant="outline">{t(`methods.nature.${m.payment_nature}` as never)}</Badge>
       ),

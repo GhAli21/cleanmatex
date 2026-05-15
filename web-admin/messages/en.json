@@ -5226,5 +5226,175 @@
         "errorCode": "Error Code"
       }
     }
+  },
+  "paymentConfig": {
+    "title": "Payment Setup",
+    "subtitle": "Manage payment methods, branch overrides, terminals, and cash drawers.",
+    "tabs": {
+      "methods": "Methods",
+      "branches": "Branches",
+      "terminals": "Terminals",
+      "cashDrawers": "Cash Drawers",
+      "channels": "Channels"
+    },
+    "common": {
+      "error": "Something went wrong",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "close": "Close",
+      "edit": "Edit",
+      "deactivate": "Deactivate"
+    },
+    "methods": {
+      "enable": "Enable payment method",
+      "configure": "Configure",
+      "saved": "Payment method saved successfully",
+      "deactivated": "Payment method deactivated",
+      "toggleError": "Failed to update payment method status",
+      "paymentMethod": "Payment method",
+      "selectMethod": "Select a payment method",
+      "displayName": "Display name",
+      "displayNamePlaceholder": "Enter a display name",
+      "displayName2": "Display name (Arabic)",
+      "displayName2Placeholder": "Enter the Arabic display name",
+      "paymentNature": "Payment nature",
+      "name": "Name",
+      "enabled": "Enabled",
+      "nature": {
+        "REAL_PAYMENT": "Real payment",
+        "CREDIT_APPLICATION": "Credit application",
+        "AR_ALLOCATION": "AR allocation",
+        "DEFERRED_SETTLEMENT": "Deferred settlement",
+        "INTERNAL_ADJUSTMENT": "Internal adjustment"
+      },
+      "channels": {
+        "label": "Channels",
+        "pos": "POS",
+        "app": "Customer app",
+        "staff": "Staff app",
+        "admin": "Admin app"
+      },
+      "purposes": {
+        "payNow": "Pay now",
+        "payOnCollection": "Pay on collection",
+        "invoicePayment": "Invoice payment",
+        "refund": "Refund"
+      },
+      "sections": {
+        "general": "General",
+        "channels": "Channels and purposes",
+        "limitsAndFees": "Limits and fees"
+      },
+      "minAmount": "Minimum amount",
+      "maxAmount": "Maximum amount",
+      "feeType": "Fee type",
+      "feeAmount": "Fee amount",
+      "feeRate": "Fee rate",
+      "feeTypes": {
+        "NONE": "No fee",
+        "FIXED": "Fixed amount",
+        "PERCENTAGE": "Percentage"
+      },
+      "empty": {
+        "title": "No payment methods enabled",
+        "description": "Enable a payment method to start accepting payments in this tenant."
+      },
+      "deactivateConfirm": {
+        "title": "Deactivate payment method?",
+        "description": "This payment method will no longer be available for new payments."
+      }
+    },
+    "branches": {
+      "saved": "Branch override saved successfully",
+      "overrideRemoved": "Branch override removed",
+      "noBranches": "No branches are available for payment overrides yet.",
+      "status": "Status",
+      "overridden": "Overridden",
+      "inherited": "Inherited",
+      "fromTenant": "Inherited from tenant",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "addOverride": "Add override",
+      "removeOverride": "Remove override",
+      "selectBranch": "Select branch",
+      "overrideFor": "Override settings for {method}",
+      "enableSection": "Enablement",
+      "isEnabled": "Enabled for this branch",
+      "channelsSection": "Channels",
+      "purposesSection": "Payment purposes",
+      "requirementsSection": "Requirements",
+      "allowedForPayNow": "Allow pay now",
+      "allowedForCollection": "Allow pay on collection",
+      "allowedForInvoice": "Allow invoice payments",
+      "allowedForRefund": "Allow refunds",
+      "cashDrawerRequired": "Cash drawer required",
+      "terminalRequired": "Terminal required"
+    },
+    "terminals": {
+      "saved": "Terminal saved successfully",
+      "add": "Add terminal",
+      "edit": "Edit terminal",
+      "code": "Code",
+      "name": "Name",
+      "name2": "Name (Arabic)",
+      "type": "Type",
+      "gateway": "Gateway",
+      "enabled": "Enabled",
+      "serialNo": "Serial number",
+      "merchantId": "Merchant ID",
+      "terminalType": {
+        "POS_CARD_TERMINAL": "POS card terminal",
+        "CASH_DRAWER": "Cash drawer",
+        "ONLINE_GATEWAY": "Online gateway",
+        "BANK_DEVICE": "Bank device",
+        "OTHER": "Other"
+      },
+      "empty": {
+        "title": "No terminals configured yet"
+      },
+      "deleteConfirm": {
+        "title": "Deactivate terminal?",
+        "description": "The terminal will be disabled and hidden from active payment operations."
+      }
+    },
+    "cashDrawers": {
+      "saved": "Cash drawer saved successfully",
+      "deactivated": "Cash drawer deactivated",
+      "add": "Add cash drawer",
+      "edit": "Edit cash drawer",
+      "code": "Code",
+      "name": "Name",
+      "name2": "Name (Arabic)",
+      "drawerType": "Drawer type",
+      "drawerTypeLabel": {
+        "COUNTER": "Counter",
+        "SAFE": "Safe",
+        "DRIVER_BAG": "Driver bag",
+        "TEMPORARY": "Temporary"
+      },
+      "currency": "Currency",
+      "selectCurrency": "Select currency",
+      "maxCashLimit": "Maximum cash limit",
+      "requiresSession": "Requires session",
+      "openingFloatRequired": "Opening float required",
+      "sessionStatus": "Session status",
+      "noOpenSession": "No open session",
+      "openSince": "Open since {time}",
+      "viewSession": "View session",
+      "sessionOpen": "Session open",
+      "openedAt": "Opened at",
+      "openingFloat": "Opening float",
+      "expectedCash": "Expected cash",
+      "countedCash": "Counted cash",
+      "difference": "Difference",
+      "empty": {
+        "title": "No cash drawers configured yet"
+      },
+      "deactivateConfirm": {
+        "title": "Deactivate cash drawer?",
+        "description": "The cash drawer will be disabled for new cashier sessions."
+      }
+    }
   }
 }
