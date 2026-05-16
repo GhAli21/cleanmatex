@@ -19,12 +19,12 @@ Build a production-grade financial platform for CleanMateX order checkout, settl
 - Support VAT/tax.
 - Support invoice/AR.
 - Support audit and reconciliation.
-
-## 3. Non-Goals
-
 - Microservice rewrite.
 - Frontend redesign.
 - Big-bang DB replacement.
+
+## 3. Non-Goals
+- none
 
 ## 4. Functional Requirements
 

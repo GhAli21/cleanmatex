@@ -79,7 +79,19 @@
       "Bash(node -e \"const fs=require\\('fs'\\); const en=JSON.parse\\(fs.readFileSync\\('f:/jhapp/cleanmatex/web-admin/messages/en.json','utf8'\\)\\); const gc=en.marketing?.giftCards; console.log\\(JSON.stringify\\(gc, null, 2\\)\\);\")",
       "Bash(node -e \"const fs=require\\('fs'\\); const en=JSON.parse\\(fs.readFileSync\\('f:/jhapp/cleanmatex/web-admin/messages/en.json','utf8'\\)\\); const common=en.common; const keys=Object.keys\\(common\\); console.log\\(keys.join\\('\\\\n'\\)\\);\")",
       "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\src\\\\ui\\\\\" -Directory | Select-Object Name)",
-      "PowerShell(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\"\\), \".\" } | Sort-Object)"
+      "PowerShell(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName -replace [regex]::Escape\\(\"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\\\\dashboard\\\\settings\"\\), \".\" } | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" -Filter \"*.sql\" | Sort-Object Name | Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\services\\\\\" -File | Select-Object Name)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx\\)$\")",
+      "Bash(Test-Path \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\constants\\\\financial.ts\" -PathType Leaf)",
+      "Bash(Test-Path \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\types\\\\financial.ts\" -PathType Leaf)",
+      "PowerShell(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\" -Recurse -Directory | Where-Object { $_.Name -eq \"supabase\" })",
+      "Bash(order)",
+      "Bash(invoice\")",
+      "PowerShell(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\lib\\\\types\\\\\" -File | Where-Object { $_.Name -match \"payment|order|invoice\" } | Select-Object Name)",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\\\\\" -File | Sort-Object Name | Select-Object -ExpandProperty Name)",
+      "Bash(Get-ChildItem -Path \"F:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" -Filter \"*.sql\" -File)",
+      "Bash(Sort-Object Name)"
     ],
     "deny": [
       "Read(node_modules)",

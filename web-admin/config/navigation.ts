@@ -38,6 +38,7 @@ export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manage
 export interface NavigationSection {
   key: string
   label: string
+  label2?: string  // Arabic label from DB (sys_components_cd.label2)
   icon: LucideIcon
   path: string
   roles?: UserRole[]  // Optional: role-based access (fallback)
@@ -51,6 +52,7 @@ export interface NavigationSection {
 export interface NavigationItem {
   key: string
   label: string
+  label2?: string  // Arabic label from DB (sys_components_cd.label2)
   path: string
   roles?: UserRole[]  // Optional: role-based access
   permissions?: string[]  // Optional: permission-based access

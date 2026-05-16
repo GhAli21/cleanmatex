@@ -234,6 +234,7 @@ function transformItemToSection(
   return {
     key: item.comp_code,
     label: item.label || item.comp_code,
+    label2: item.label2 || undefined,
     icon: item.comp_icon || 'Home', // Store icon name as string
     path: item.comp_path || `#${item.comp_code}`,
     roles: item.roles && item.roles.length > 0 ? (item.roles as UserRole[]) : undefined,
@@ -259,6 +260,7 @@ function transformItemToNavigationItem(
   return {
     key: item.comp_code,
     label: item.label || item.comp_code,
+    label2: item.label2 || undefined,
     path: item.comp_path || `#${item.comp_code}`,
     roles: rolesArray && rolesArray.length > 0 ? (rolesArray as UserRole[]) : undefined,
     permissions: permissionsArray && permissionsArray.length > 0 ? permissionsArray : undefined,

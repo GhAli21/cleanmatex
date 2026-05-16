@@ -89,6 +89,75 @@ const CHILD_ICON_FALLBACK: Record<string, string> = {
   users_list: 'Users',
 }
 
+/** Fallback i18n key map — used only for hardcoded navigation.ts items (super_admin / tenant_admin
+ *  fallback path) that have no label2 from the DB. DB-sourced items bypass this entirely. */
+const NAV_TRANSLATION_KEY_MAP: Record<string, string> = {
+  home: 'dashboard',
+  orders: 'orders',
+  orders_list: 'allOrders',
+  orders_new: 'newOrder',
+  orders_preparation: 'preparation',
+  orders_processing: 'processing',
+  orders_assembly: 'assembly',
+  orders_qa: 'qualityCheck',
+  orders_ready: 'ready',
+  orders_packing: 'packing',
+  orders_delivery: 'delivery',
+  assembly: 'assembly',
+  drivers: 'driversAndRoutes',
+  drivers_list: 'allDrivers',
+  drivers_routes: 'routes',
+  delivery: 'delivery',
+  users: 'users',
+  users_list: 'teamMembers',
+  customers: 'customers',
+  catalog: 'catalog',
+  catalog_services: 'services',
+  catalog_pricing: 'pricing',
+  catalog_addons: 'addons',
+  billing: 'invoicesAndPayments',
+  billing_invoices: 'invoices',
+  billing_vouchers: 'receiptVouchers',
+  billing_payments: 'payments',
+  billing_cashup: 'cashUp',
+  reports: 'reportsAndAnalytics',
+  reports_orders: 'reportsAndAnalytics',
+  reports_payments: 'payments',
+  reports_invoices: 'invoices',
+  reports_revenue: 'reportsAndAnalytics',
+  reports_customers: 'customers',
+  inventory: 'inventoryAndMachines',
+  inventory_stock: 'stock',
+  inventory_machines: 'machines',
+  config_settings: 'configAndSettings',
+  settings: 'settings',
+  settings_general: 'general',
+  settings_users: 'teamMembers',
+  settings_roles: 'rolesAndPermissions',
+  settings_permissions: 'rolesAndPermissions',
+  settings_workflow_roles: 'workflowRoles',
+  settings_branding: 'branding',
+  settings_subscription: 'subscription',
+  settings_all: 'allSettings',
+  settings_preferences: 'userPreferences',
+  settings_finance: 'settingsFinance',
+  settings_payments: 'paymentSetup',
+  settings_workflows: 'workflows',
+  settings_navigation: 'navigationAdmin',
+  erp_lite: 'financeAndAccounting',
+  erp_lite_coa: 'chartOfAccounts',
+  erp_lite_gl: 'generalLedger',
+  erp_lite_reports: 'financialReports',
+  erp_lite_ar: 'arAging',
+  erp_lite_expenses: 'expenses',
+  erp_lite_bank_recon: 'bankReconciliation',
+  erp_lite_ap: 'accountsPayable',
+  erp_lite_po: 'purchaseOrders',
+  erp_lite_branch_pl: 'branchPL',
+  help: 'help',
+  jhtestui: 'jwtTest',
+}
+
 export default function CmxSidebar() {
   const pathname = usePathname()
   const { currentTenant } = useAuth()
@@ -175,47 +244,22 @@ export default function CmxSidebar() {
       .join(' ')
   }
 
-  const getNavLabel = (key: string, fallback: string): string => {
-    const translationKeyMap: Record<string, string> = {
-      'home': 'dashboard',
-      'orders': 'orders', 'orders_list': 'allOrders', 'orders_new': 'newOrder',
-      'orders_preparation': 'preparation', 'orders_processing': 'processing',
-      'orders_assembly': 'assembly', 'orders_qa': 'qualityCheck', 'orders_ready': 'ready',
-      'orders_packing': 'packing', 'orders_delivery': 'delivery',
-      'assembly': 'assembly', 'drivers': 'driversAndRoutes',
-      'drivers_list': 'allDrivers', 'drivers_routes': 'routes', 'customers': 'customers',
-      'catalog': 'catalog', 'catalog_services': 'services', 'catalog_pricing': 'pricing',
-      'catalog_addons': 'addons', 'billing': 'invoicesAndPayments', 'billing_invoices': 'invoices',
-      'billing_vouchers': 'receiptVouchers', 'billing_payments': 'payments', 'billing_cashup': 'cashUp',
-      'reports': 'reportsAndAnalytics', 'inventory': 'inventoryAndMachines', 'inventory_stock': 'stock',
-      'inventory_machines': 'machines', 'config_settings': 'configAndSettings', 'settings': 'settings', 'settings_general': 'general',
-      'settings_users': 'teamMembers', 'settings_roles': 'rolesAndPermissions',
-      'settings_workflow_roles': 'workflowRoles', 'settings_branding': 'branding',
-      'settings_subscription': 'subscription', 'settings_all': 'allSettings', 'settings_preferences': 'userPreferences', 'help': 'help', 'jhtestui': 'jwtTest',
-      'delivery': 'delivery', 'users': 'users', 'users_list': 'teamMembers',
-      'reports_orders': 'reportsAndAnalytics', 'reports_payments': 'payments', 'reports_invoices': 'invoices',
-      'reports_revenue': 'reportsAndAnalytics', 'reports_customers': 'customers',
-      'settings_permissions': 'rolesAndPermissions',
-      'settings_finance': 'settingsFinance',
-      'settings_payments': 'paymentSetup',
-      'settings_workflows': 'workflows',
-      'settings_navigation': 'navigationAdmin',
-      'erp_lite': 'financeAndAccounting',
-      'erp_lite_coa': 'chartOfAccounts',
-      'erp_lite_gl': 'generalLedger',
-      'erp_lite_reports': 'financialReports',
-      'erp_lite_ar': 'arAging',
-      'erp_lite_expenses': 'expenses',
-      'erp_lite_bank_recon': 'bankReconciliation',
-      'erp_lite_ap': 'accountsPayable',
-      'erp_lite_po': 'purchaseOrders',
-      'erp_lite_branch_pl': 'branchPL',
-    }
-    const translationKey = translationKeyMap[key]
+  const getNavLabel = (key: string, label: string, label2?: string): string => {
+    // Priority 1: DB Arabic label when in RTL mode
+    if (isRTL && label2) return label2
+
+    // Priority 2: DB English label — use it directly when it's a real value.
+    // The service falls back to comp_code when label is null, so skip if label === key.
+    if (label && label !== key) return label
+
+    // Priority 3: i18n translation map — safety net for hardcoded navigation.ts
+    // fallback items (super_admin / tenant_admin path) that have no label2.
+    const translationKey = NAV_TRANSLATION_KEY_MAP[key]
     if (translationKey) {
-      try { return tNav(translationKey) } catch { return fallback }
+      try { return tNav(translationKey) } catch { /* fall through */ }
     }
-    return fallback
+
+    return label || key
   }
 
   const filteredNavigation = useMemo(() => {
@@ -397,7 +441,7 @@ export default function CmxSidebar() {
                 const SectionIcon = getSectionIcon(section)
                 const isActive = isPathActive(pathname, section.path)
                 const hasChildren = section.children && section.children.length > 0
-                const label = getNavLabel(section.key, section.label)
+                const label = getNavLabel(section.key, section.label, section.label2)
 
                 if (isCollapsed && hasChildren) {
                   const showFlyout = hoverSectionKey === section.key
@@ -448,7 +492,7 @@ export default function CmxSidebar() {
                                     } ${isRTL ? 'flex-row-reverse' : ''}`}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
-                                    <span className="truncate">{getNavLabel(child.key, child.label)}</span>
+                                    <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
                                   </Link>
                                 </li>
                               )
@@ -519,7 +563,7 @@ export default function CmxSidebar() {
                                     } ${isRTL ? 'flex-row-reverse' : ''}`}
                                   >
                                     <ChildIcon className="h-4 w-4 flex-shrink-0 opacity-80" />
-                                    <span className="truncate">{getNavLabel(child.key, child.label)}</span>
+                                    <span className="truncate">{getNavLabel(child.key, child.label, child.label2)}</span>
                                   </Link>
                                 </li>
                               )

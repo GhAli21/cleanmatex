@@ -556,7 +556,7 @@ create table if not exists public.org_order_taxes_dtl (
   constraint chk_order_taxes_rec_status check (rec_status in (0,1,2))
 );
 
-create table if not exists public.org_order_credit_applications_dtl (
+create table if not exists public.org_order_credit_apps_dtl (
   id uuid primary key default gen_random_uuid(),
   tenant_org_id uuid not null,
   branch_id uuid,
@@ -1365,12 +1365,12 @@ end $$;
 create index if not exists idx_order_charges_order on public.org_order_charges_dtl (tenant_org_id, order_id, rec_status);
 create index if not exists idx_order_discounts_order on public.org_order_discounts_dtl (tenant_org_id, order_id, rec_status);
 create index if not exists idx_order_taxes_order on public.org_order_taxes_dtl (tenant_org_id, order_id, rec_status);
-create index if not exists idx_order_credit_app_order on public.org_order_credit_applications_dtl (tenant_org_id, order_id, rec_status);
+create index if not exists idx_order_credit_app_order on public.org_order_credit_apps_dtl (tenant_org_id, order_id, rec_status);
 create index if not exists idx_order_payments_order on public.org_order_payments_dtl (tenant_org_id, order_id, rec_status);
 create index if not exists idx_order_refunds_order on public.org_order_refunds_dtl (tenant_org_id, order_id, rec_status);
 
 create unique index if not exists uq_order_credit_app_idempotency
-on public.org_order_credit_applications_dtl (tenant_org_id, idempotency_key)
+on public.org_order_credit_apps_dtl (tenant_org_id, idempotency_key)
 where idempotency_key is not null;
 
 create unique index if not exists uq_order_payments_idempotency
@@ -1391,7 +1391,7 @@ comment on table public.org_cash_drawers_mst is 'Cash drawer master table. Defin
 comment on table public.org_cash_drawer_sessions_mst is 'Cash drawer session table. Tracks cashier opening and closing sessions for cash accountability.';
 comment on table public.org_cash_drawer_movements_dtl is 'Cash drawer movement details. Stores every cash movement such as opening float, cash sale, refund, cash in/out, drop, shortage, and overage.';
 comment on table public.org_order_payments_dtl is 'Actual order payment transaction rows. Stores real payments only: cash, card, check, bank transfer, payment gateway, COD. Stored-value applications are not stored here.';
-comment on table public.org_order_credit_applications_dtl is 'Stored-value applications against orders: gift card, wallet, advance, customer credit, loyalty credit. These are not real payment rows.';
+comment on table public.org_order_credit_apps_dtl is 'Stored-value applications against orders: gift card, wallet, advance, customer credit, loyalty credit. These are not real payment rows.';
 comment on table public.org_gift_cards_mst is 'Gift card stored-value master. Gift cards are liabilities, not discounts.';
 comment on table public.org_gift_card_txn_dtl is 'Gift card transaction ledger. Mandatory for audit, accounting, fraud prevention, and reconciliation.';
 
