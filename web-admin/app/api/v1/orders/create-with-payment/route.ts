@@ -2,6 +2,10 @@
  * Create Order With Payment API - Single transaction flow
  * Replaces sequential create order → create invoice → process payment.
  * On amount mismatch: returns AMOUNT_MISMATCH, creates nothing.
+ *
+ * P9.1 — settlement writes go through order-settlement.service (fact tables).
+ * Order creation + promo/gift redemption in a first transaction; fact-table
+ * settlement in a second transaction via settleOrder().
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -10,10 +14,9 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { createInvoice } from '@/lib/services/invoice-service';
-import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
-import { insertDiscountLinesTx } from '@/lib/db/order-discounts';
+import { settleOrder } from '@/lib/services/order-settlement.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {
@@ -24,13 +27,26 @@ import type { AmountMismatchDifferences, PaymentMethodCode } from '@/lib/types/p
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
+import { TAX_TYPES } from '@/lib/constants/order-financial';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
+import type {
+  FinancialBreakdownSnapshot,
+  ResolvedSettlementLeg,
+  TaxLineItem,
+  DiscountLineInput as FinancialDiscountLineInput,
+  SettlementOption,
+} from '@/lib/types/order-financial';
+import { Decimal } from '@prisma/client/runtime/library';
 
 const TOLERANCE = 0.001;
 
 function withinTolerance(a: number, b: number): boolean {
   return Math.abs(a - b) <= TOLERANCE;
+}
+
+function toNum(d: Decimal | null | undefined): number {
+  return d ? Number(d) : 0;
 }
 
 function buildDifferences(
@@ -127,11 +143,10 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const UUID_REGEX_V2 = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/i;
 
   // Resolve branchId: use provided value if valid UUID and exists for tenant; otherwise main branch
-  let branchId: string | undefined = input.branchId; 
+  let branchId: string | undefined = input.branchId;
   if (branchId && !UUID_REGEX_V2.test(branchId.trim())) {
     branchId = undefined;
   }
@@ -380,6 +395,7 @@ export async function POST(request: NextRequest) {
       }),
     };
 
+    // ── Transaction 1: create order, invoice, redeem promo/gift card ───────────
     const result = await withTenantContext(tenantId, async () =>
       prisma.$transaction(async (tx) => {
         const orderResult = await OrderService.createOrderInTransaction(tx, createOrderParams);
@@ -397,7 +413,6 @@ export async function POST(request: NextRequest) {
             discount: serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
             total: serverTotals.finalTotal,
             promo_discount_amount: serverTotals.promoDiscount,
-            // Renamed from gift_card_discount_amount in migration 0257
             gift_card_applied_amount: serverTotals.giftCardApplied,
             vatAmount: serverTotals.vatValue,
             tax: serverTotals.additionalTaxAmount ?? 0,
@@ -405,80 +420,6 @@ export async function POST(request: NextRequest) {
           },
           tx
         );
-
-        if (hasImmediatePayment && amountToCharge > 0) {
-          // Process each immediate leg individually
-          const immediateLegs = resolvedLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method));
-
-          for (const leg of immediateLegs) {
-            await recordPaymentTransaction(
-              {
-                invoice_id: invoice.id,
-                order_id: orderId,
-                customer_id: input.customerId ?? undefined,
-                paid_amount: leg.amount,
-                payment_method_code: leg.method as PaymentMethodCode,
-                payment_type_code: getPaymentTypeFromMethod(leg.method),
-                paid_by: userId,
-                branch_id: branchId,
-                subtotal: serverTotals.subtotal,
-                manual_discount_amount: serverTotals.manualDiscount,
-                promo_discount_amount: serverTotals.promoDiscount,
-                gift_card_applied_amount: serverTotals.giftCardApplied,
-                vat_rate: serverTotals.vatTaxPercent,
-                vat_amount: serverTotals.vatValue,
-                currency_code: serverTotals.currencyCode,
-                check_number: leg.checkNumber,
-                check_bank: leg.checkBank,
-                check_date: leg.checkDate ? new Date(leg.checkDate) : undefined,
-                promo_code_id: input.promoCodeId,
-                gift_card_id: input.giftCardId,
-                metadata: {
-                  promo_code: input.promoCode,
-                  gift_card_number: input.giftCardNumber,
-                  gift_card_amount: input.giftCardAmount,
-                  split_leg_count: immediateLegs.length,
-                },
-                payment_channel: 'web_admin',
-              },
-              tx
-            );
-          }
-
-          const isFullyPaid = amountToCharge >= serverTotals.finalTotal - TOLERANCE;
-          // For invoice/order update, use primary method (first immediate leg)
-          const primaryMethodCode = immediateLegs[0]?.method as PaymentMethodCode ?? 'CASH';
-
-          await tx.org_invoice_mst.update({
-            where: {
-              id_tenant_org_id: {
-                id: invoice.id,
-                tenant_org_id: tenantId,
-              },
-            },
-            data: {
-              paid_amount: amountToCharge,
-              status: isFullyPaid ? 'paid' : 'partial',
-              paid_at: new Date(),
-              paid_by: userId,
-              payment_method_code: primaryMethodCode,
-              updated_at: new Date(),
-              updated_by: userId,
-            },
-          });
-
-          await tx.org_orders_mst.update({
-            where: { id: orderId },
-            data: {
-              paid_amount: amountToCharge,
-              payment_status: isFullyPaid ? 'paid' : 'partial',
-              paid_at: new Date(),
-              paid_by: userId,
-              updated_at: new Date(),
-              updated_by: userId,
-            },
-          });
-        }
 
         // Apply promo code usage atomically within this transaction.
         // SELECT FOR UPDATE inside applyPromoCodeTx prevents TOCTOU races on max_uses.
@@ -507,7 +448,6 @@ export async function POST(request: NextRequest) {
 
         // Debit gift card atomically within this transaction.
         // SELECT FOR UPDATE inside redeemGiftCardTx prevents double-debit races.
-        // Idempotency key ties the debit to this specific order so retries are safe.
         if (input.giftCardId && serverTotals.giftCardApplied > 0) {
           await redeemGiftCardTx(tx, {
             giftCardId: input.giftCardId,
@@ -539,25 +479,152 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        if (serverTotals.discountLines.length > 0) {
-          await insertDiscountLinesTx(tx, {
-            orderId,
-            tenantOrgId: tenantId,
-            lines: serverTotals.discountLines,
-            createdBy: userId,
-          });
-        }
-
-        return { orderId, orderNo, currentStatus: orderResult.order.currentStatus };
+        return { orderId, orderNo, invoiceId: invoice.id, currentStatus: orderResult.order.currentStatus };
       })
     );
+
+    // ── Transaction 2: write financial fact tables via settleOrder ─────────────
+
+    // Look up org_payment_methods_cf rows for each method code
+    const methodCodes = [...new Set(resolvedLegs.map((l) => l.method))];
+    const methodRows = await prisma.org_payment_methods_cf.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        payment_method_code: { in: methodCodes },
+        is_active: true,
+      },
+    });
+
+    // Build ResolvedSettlementLeg[] for each payment leg
+    const settlementLegs: ResolvedSettlementLeg[] = resolvedLegs.map((leg) => {
+      const row = methodRows.find((r) => r.payment_method_code === leg.method);
+      if (!row) {
+        throw new Error(`Payment method config not found for code: ${leg.method}`);
+      }
+      const settlementOption: SettlementOption = {
+        id:                    row.id,
+        paymentMethodCode:     row.payment_method_code,
+        paymentNature:         row.payment_nature as SettlementOption['paymentNature'],
+        gatewayCode:           row.gateway_code ?? null,
+        displayName:           row.display_name,
+        displayName2:          row.display_name2 ?? null,
+        settlementTypeCode:    row.settlement_type_code as SettlementOption['settlementTypeCode'],
+        creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
+        requiresCashDrawer:    row.requires_cash_drawer,
+        requiresTerminal:      row.requires_terminal,
+        minAmount:             row.min_amount != null ? toNum(row.min_amount) : null,
+        maxAmount:             row.max_amount != null ? toNum(row.max_amount) : null,
+        minOrderAmount:        row.min_order_amount != null ? toNum(row.min_order_amount) : null,
+        maxOrderAmount:        row.max_order_amount != null ? toNum(row.max_order_amount) : null,
+        isPlatformDisabled:    row.is_platform_disabled,
+        isGloballyDisabled:    false,
+      };
+      return {
+        settlementOption,
+        amount:        leg.amount,
+        cashTendered:  leg.cashTendered,
+        // checkNumber/checkBank/checkDate stored on order; creditReferenceId N/A for standard payment legs
+      };
+    });
+
+    // Build FinancialBreakdownSnapshot from server-computed totals
+    const discountTotal = serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount;
+    const taxTotal      = serverTotals.vatValue + (serverTotals.additionalTaxAmount ?? 0);
+    const creditsTotal  = serverTotals.giftCardApplied;
+
+    const taxLines: TaxLineItem[] = [];
+    if (serverTotals.vatValue > 0) {
+      taxLines.push({
+        taxType:    TAX_TYPES.VAT,
+        label:      'VAT',
+        label2:     'ضريبة القيمة المضافة',
+        rate:       serverTotals.vatTaxPercent,
+        baseAmount: serverTotals.afterDiscounts,
+        taxAmount:  serverTotals.vatValue,
+      });
+    }
+    if ((serverTotals.additionalTaxAmount ?? 0) > 0) {
+      taxLines.push({
+        taxType:    TAX_TYPES.CUSTOM,
+        label:      'Additional Tax',
+        label2:     'ضريبة إضافية',
+        rate:       input.additionalTaxRate ?? 0,
+        baseAmount: serverTotals.afterDiscounts,
+        taxAmount:  serverTotals.additionalTaxAmount!,
+      });
+    }
+
+    const breakdown: FinancialBreakdownSnapshot = {
+      subtotal:         serverTotals.subtotal,
+      chargesTotal:     0,
+      grossTotal:       serverTotals.subtotal,
+      discountTotal,
+      netBeforeTax:     serverTotals.afterDiscounts,
+      taxBreakdown:     taxLines,
+      taxTotal,
+      grandTotal:       serverTotals.finalTotal,
+      creditsTotal,
+      netReceivable:    serverTotals.finalTotal - creditsTotal,
+      paymentLegsTotal: amountToCharge,
+      changeReturned:   0,
+      outstanding:      isInvoiceOnly
+        ? serverTotals.finalTotal
+        : Math.max(0, serverTotals.finalTotal - creditsTotal - amountToCharge),
+      currencyCode:     serverTotals.currencyCode,
+      decimalPlaces:    serverTotals.decimalPlaces,
+    };
+
+    // Map discount lines to the financial platform type
+    const financialDiscountLines: FinancialDiscountLineInput[] = serverTotals.discountLines.map((d) => ({
+      sourceType:     d.sourceType,
+      sourceId:       d.sourceId ?? null,
+      sourceName:     d.sourceName,
+      sourceName2:    d.sourceName2 ?? null,
+      discountType:   d.discountType,
+      discountRate:   d.discountRate ?? null,
+      discountAmount: d.discountAmount,
+    }));
+
+    // Write charges, taxes, discounts, payments to financial fact tables.
+    // settleOrder also updates org_orders_mst snapshot and emits outbox events.
+    await withTenantContext(tenantId, () =>
+      settleOrder({
+        orderId:             result.orderId,
+        tenantId,
+        breakdown,
+        chargeLines:         [],
+        taxLines,
+        discountLines:       financialDiscountLines,
+        settlementLegs,
+        cashDrawerSessionId: input.cashDrawerSessionId ?? undefined,
+        settledBy:           userId,
+      })
+    );
+
+    // Update invoice status to reflect settlement outcome
+    if (hasImmediatePayment && amountToCharge > 0) {
+      const isFullyPaid      = amountToCharge >= serverTotals.finalTotal - creditsTotal - TOLERANCE;
+      const primaryMethodCode = resolvedLegs.filter((l) => !DEFERRED_METHODS.has(l.method))[0]?.method as PaymentMethodCode ?? 'CASH';
+      await prisma.org_invoice_mst.update({
+        where: { id_tenant_org_id: { id: result.invoiceId, tenant_org_id: tenantId } },
+        data: {
+          paid_amount:          amountToCharge,
+          status:               isFullyPaid ? 'paid' : 'partial',
+          paid_at:              new Date(),
+          paid_by:              userId,
+          payment_method_code:  primaryMethodCode,
+          updated_at:           new Date(),
+          updated_by:           userId,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
       data: {
-        id: result.orderId,
-        orderId: result.orderId,
-        orderNo: result.orderNo,
+        id:            result.orderId,
+        orderId:       result.orderId,
+        orderNo:       result.orderNo,
         currentStatus: result.currentStatus,
       },
     });
@@ -577,9 +644,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           data: {
-            id: existing[0].id,
-            orderId: existing[0].id,
-            orderNo: existing[0].order_no,
+            id:            existing[0].id,
+            orderId:       existing[0].id,
+            orderNo:       existing[0].order_no,
             currentStatus: existing[0].current_status,
           },
         });

@@ -55,6 +55,8 @@ export const paymentLegSchema = z.object({
   checkBank: z.string().optional(),
   /** Check date (ISO date string) */
   checkDate: z.string().optional(),
+  /** Cash tendered by customer (only for CASH legs — used to compute change returned) */
+  cashTendered: z.number().min(0).optional(),
 });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;
@@ -235,6 +237,8 @@ export const createWithPaymentRequestSchema = z.object({
   creditLimitOverride: z.boolean().optional(),
   /** Client-generated UUID for idempotent retry — server returns existing order if key is seen again. */
   idempotencyKey: z.string().max(100).optional(),
+  /** Cash drawer session ID — required when a CASH payment method has requiresCashDrawer=true. */
+  cashDrawerSessionId: z.preprocess(optionalUuidJsonPreprocess, z.string().uuid().optional()).optional(),
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),
