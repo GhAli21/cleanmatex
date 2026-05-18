@@ -2560,7 +2560,15 @@
     "certificateNo": "رقم الشهادة",
     "serviceType": "نوع الخدمة",
     "exemptionSaved": "تم حفظ الإعفاء",
-    "emptyExemptions": "لا توجد إعفاءات مكونة"
+    "emptyExemptions": "لا توجد إعفاءات مكونة",
+    "isCompound": "ضريبة مركبة",
+    "compound": "مركبة",
+    "editProfile": "تعديل الملف",
+    "editExemption": "تعديل الإعفاء",
+    "updated": "تم تحديث ملف الضريبة",
+    "exemptionUpdated": "تم تحديث الإعفاء",
+    "exemptionDeactivated": "تم إلغاء تفعيل الإعفاء",
+    "actions": "الإجراءات"
   },
   "notifications": {
     "title": "الإشعارات",

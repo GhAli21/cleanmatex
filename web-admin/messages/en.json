@@ -2560,7 +2560,15 @@
     "certificateNo": "Certificate No.",
     "serviceType": "Service Type",
     "exemptionSaved": "Exemption saved",
-    "emptyExemptions": "No exemptions configured"
+    "emptyExemptions": "No exemptions configured",
+    "isCompound": "Is Compound Tax",
+    "compound": "Compound",
+    "editProfile": "Edit Profile",
+    "editExemption": "Edit Exemption",
+    "updated": "Tax profile updated",
+    "exemptionUpdated": "Exemption updated",
+    "exemptionDeactivated": "Exemption deactivated",
+    "actions": "Actions"
   },
   "notifications": {
     "title": "Notifications",

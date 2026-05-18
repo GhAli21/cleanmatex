@@ -49,7 +49,6 @@ export default async function TaxSetupPage() {
       <TaxSetupClient
         initialProfiles={serializedProfiles}
         initialExemptions={serializedExemptions}
-        tenantId={tenantId}
       />
     </div>
   );

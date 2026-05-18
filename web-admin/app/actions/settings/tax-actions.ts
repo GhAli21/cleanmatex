@@ -64,6 +64,26 @@ export interface CreateTaxExemptionInput {
   serviceType?: string;
 }
 
+export interface UpdateTaxProfileInput {
+  name?: string;
+  name2?: string;
+  taxType?: 'VAT' | 'GST' | 'CUSTOM';
+  rate?: number;
+  isCompound?: boolean;
+  appliesTo?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string | null;
+  isDefault?: boolean;
+}
+
+export interface UpdateTaxExemptionInput {
+  exemptionType?: string;
+  certificateNo?: string;
+  serviceType?: string;
+  validFrom?: string;
+  validTo?: string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Actions
 // ---------------------------------------------------------------------------
@@ -205,6 +225,97 @@ export async function getTaxExemptionsAction(): Promise<{
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch tax exemptions',
     };
+  }
+}
+
+/** Update an existing tax profile */
+export async function updateTaxProfileAction(
+  id: string,
+  input: UpdateTaxProfileInput
+): Promise<{ success: boolean; data?: TaxProfile; error?: string }> {
+  try {
+    const { tenantId, userId } = await getAuthContext();
+    return withTenantContext(tenantId, async () => {
+      const existing = await prisma.org_tax_profiles_cf.findFirst({
+        where: { id, tenant_org_id: tenantId, rec_status: 1 },
+      });
+      if (!existing) return { success: false, error: 'Tax profile not found' };
+
+      const appliesToArr =
+        input.appliesTo !== undefined
+          ? input.appliesTo.split(',').map((s) => s.trim()).filter(Boolean)
+          : undefined;
+
+      const profile = await prisma.org_tax_profiles_cf.update({
+        where: { id },
+        data: {
+          ...(input.name !== undefined && { name: input.name }),
+          ...(input.name2 !== undefined && { name2: input.name2 || null }),
+          ...(input.taxType !== undefined && { tax_type: input.taxType }),
+          ...(input.rate !== undefined && { rate: input.rate }),
+          ...(input.isCompound !== undefined && { is_compound: input.isCompound }),
+          ...(appliesToArr !== undefined && { applies_to: appliesToArr }),
+          ...(input.effectiveFrom !== undefined && { effective_from: new Date(input.effectiveFrom) }),
+          ...(input.effectiveTo !== undefined && { effective_to: input.effectiveTo ? new Date(input.effectiveTo) : null }),
+          updated_by: userId,
+          updated_at: new Date(),
+        },
+      });
+      revalidatePath(REVALIDATE_PATH);
+      return { success: true, data: profile as unknown as TaxProfile };
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to update tax profile' };
+  }
+}
+
+/** Update an existing tax exemption */
+export async function updateTaxExemptionAction(
+  id: string,
+  input: UpdateTaxExemptionInput
+): Promise<{ success: boolean; data?: TaxExemption; error?: string }> {
+  try {
+    const { tenantId, userId } = await getAuthContext();
+    return withTenantContext(tenantId, async () => {
+      const existing = await prisma.org_tax_exemptions_cf.findFirst({
+        where: { id, tenant_org_id: tenantId, is_active: true },
+      });
+      if (!existing) return { success: false, error: 'Tax exemption not found' };
+
+      const exemption = await prisma.org_tax_exemptions_cf.update({
+        where: { id },
+        data: {
+          ...(input.exemptionType !== undefined && { exemption_type: input.exemptionType }),
+          ...(input.certificateNo !== undefined && { certificate_no: input.certificateNo || null }),
+          ...(input.serviceType !== undefined && { service_type: input.serviceType || null }),
+          ...(input.validFrom !== undefined && { valid_from: new Date(input.validFrom) }),
+          ...(input.validTo !== undefined && { valid_to: input.validTo ? new Date(input.validTo) : null }),
+          updated_by: userId,
+          updated_at: new Date(),
+        },
+      });
+      revalidatePath(REVALIDATE_PATH);
+      return { success: true, data: exemption as unknown as TaxExemption };
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to update tax exemption' };
+  }
+}
+
+/** Soft-deactivate a tax exemption */
+export async function deactivateTaxExemptionAction(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { tenantId, userId } = await getAuthContext();
+    return withTenantContext(tenantId, async () => {
+      await prisma.org_tax_exemptions_cf.update({
+        where: { id },
+        data: { is_active: false, rec_status: 0, updated_by: userId, updated_at: new Date() },
+      });
+      revalidatePath(REVALIDATE_PATH);
+      return { success: true };
+    });
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to deactivate exemption' };
   }
 }
 
