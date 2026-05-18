@@ -134,7 +134,10 @@
       "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/assembly/tasks/[orderId]\")",
       "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/public/orders/[orderNo]\")",
       "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/public/orders/[orderNo]\")",
-      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/customers/[customerId]\")"
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/customers/[customerId]\")",
+      "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\\" | Where-Object { $_.Name -match \"codex\" })",
+      "Bash(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\" -Recurse -Filter \"*cash*drawer*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object FullName)"
     ],
     "deny": [
       "Read(node_modules)",

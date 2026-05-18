@@ -141,36 +141,58 @@ Before adding a migration:
 
 Never reuse or skip version numbers. When in doubt, list the migrations directory and take max(version) + 1.
 
-## DROP ... CASCADE in Migrations (CRITICAL)
+## DROP ... CASCADE in Migrations — BANNED BY DEFAULT
 
-**When a migration uses `DROP ... CASCADE`** (e.g. `DROP FUNCTION get_user_tenants() CASCADE`), PostgreSQL drops dependent objects (RLS policies, views, triggers, etc.) and does **not** recreate them. This can break tenant isolation and the app.
+**`DROP ... CASCADE` is banned by default.**
 
-**MANDATORY workflow before adding DROP ... CASCADE:**
+**The default for every DROP statement in a migration MUST be `RESTRICT`:**
 
-1. **Fetch affected objects** — Run the discovery queries (see
-   [docs/dev/drop-cascade-migration-workflow.md](docs/dev/
-   drop-cascade-migration-workflow.md)) against the target DB to
-   list all objects that will be dropped.
+```sql
+DROP FUNCTION IF EXISTS my_function() RESTRICT;
+DROP TABLE IF EXISTS my_table RESTRICT;
+DROP VIEW IF EXISTS my_view RESTRICT;
+```
 
-Or 2. **Fetch affected objects** — Use **Supabase MCP** (`supabase_local` for local, `supabase_remote` for remote) to execute the discovery queries against the target DB. This returns the exact policy definitions from the live database. See [docs/dev/drop-cascade-migration-workflow.md](docs/dev/drop-cascade-migration-workflow.md). 2. **Prepare recreate statements** — For each affected object (especially RLS policies), write the exact `CREATE POLICY` / `CREATE VIEW` / etc. statements needed to restore them. 3. **Include in the same migration file** — Place recreate statements **after** the DROP and CREATE of the modified object, inside the same `BEGIN;`/`COMMIT;` block. 4. **Order matters** — Drop → Recreate the modified object → Recreate all dropped dependents.
+`RESTRICT` causes PostgreSQL to raise an error if any dependent objects exist, which is the safe default — it forces you to know about and handle every dependency explicitly.
 
-**Example structure:**
+### When CASCADE Is Allowed
+
+`DROP ... CASCADE` is only permitted when **all three** conditions are met:
+
+1. **No safer alternative exists** — you cannot drop dependents individually first, or replace the object without dropping
+2. **Complete dependency manifest** — you have run the discovery queries and documented every object that will be dropped
+3. **Full recreate plan + rollback strategy** — the same migration file contains `CREATE` statements to restore every dropped dependent, and the transaction is wrapped in `BEGIN;`/`COMMIT;` so a failure rolls back atomically
+
+**STOP and get explicit user confirmation before writing any migration that uses CASCADE.**
+
+### Mandatory CASCADE Workflow (when approved)
+
+1. **Run discovery queries first** — use **Supabase MCP** (`supabase_local` / `supabase_remote`) to execute the discovery queries against the live DB and capture every dependent object. See [drop-cascade-migration-workflow.md](../../../docs/dev/drop-cascade-migration-workflow.md).
+2. **Document the manifest** — add a comment at the top of the migration listing every object that CASCADE will drop (e.g. `-- WARNING: CASCADE drops 8 RLS policies — all recreated below`).
+3. **Prepare recreate statements** — for each dropped object (RLS policies, views, triggers) write the exact restore statement from the live DB definition.
+4. **Include in the same migration** — recreate statements go **after** the DROP/CREATE of the modified object, inside the same `BEGIN;`/`COMMIT;` block.
+5. **Order** — Drop → Recreate modified object → Recreate all dropped dependents.
 
 ```sql
 BEGIN;
--- 1. Drop (CASCADE will drop dependents)
+
+-- WARNING: CASCADE drops 2 RLS policies — recreated below
+-- Dependency manifest: tenant_isolation ON org_orders_mst, tenant_isolation ON org_customers_mst
+
+-- 1. Drop (CASCADE; only because dependents are fully recreated below)
 DROP FUNCTION IF EXISTS get_user_tenants() CASCADE;
 
 -- 2. Recreate the modified object
 CREATE FUNCTION get_user_tenants() RETURNS TABLE (...) AS $$ ... $$;
 
--- 3. Recreate all dropped policies/views (from step 1 discovery)
+-- 3. Recreate every dropped dependent
 CREATE POLICY tenant_isolation ON org_orders_mst FOR ALL USING (...);
--- ... more policies
+CREATE POLICY tenant_isolation ON org_customers_mst FOR ALL USING (...);
+
 COMMIT;
 ```
 
-See [docs/dev/drop-cascade-migration-workflow.md](docs/dev/drop-cascade-migration-workflow.md) for discovery queries and full workflow.
+See [drop-cascade-migration-workflow.md](../../../docs/dev/drop-cascade-migration-workflow.md) for discovery queries and full workflow.
 
 ## Before Creating Any Table
 

@@ -30,28 +30,33 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
   const form = useForm<UpdatePaymentMethodConfigFormValues>({
     resolver: zodResolver(updatePaymentMethodConfigSchema),
     defaultValues: {
-      display_name: method.display_name,
-      display_name2: method.display_name2 ?? '',
-      description: method.description ?? '',
-      description2: method.description2 ?? '',
-      payment_nature: method.payment_nature,
-      allowed_in_pos: method.allowed_in_pos,
-      allowed_in_customer_app: method.allowed_in_customer_app,
-      allowed_in_staff_app: method.allowed_in_staff_app,
-      allowed_in_admin_app: method.allowed_in_admin_app,
-      allowed_for_pay_now: method.allowed_for_pay_now,
+      display_name:                  method.display_name,
+      display_name2:                 method.display_name2 ?? '',
+      description:                   method.description ?? '',
+      description2:                  method.description2 ?? '',
+      payment_nature:                method.payment_nature,
+      allowed_in_pos:                method.allowed_in_pos,
+      allowed_in_customer_app:       method.allowed_in_customer_app,
+      allowed_in_staff_app:          method.allowed_in_staff_app,
+      allowed_in_admin_app:          method.allowed_in_admin_app,
+      allowed_for_pay_now:           method.allowed_for_pay_now,
       allowed_for_pay_on_collection: method.allowed_for_pay_on_collection,
-      allowed_for_invoice_payment: method.allowed_for_invoice_payment,
-      allowed_for_refund: method.allowed_for_refund,
-      supports_partial_payment: method.supports_partial_payment,
-      supports_overpayment: method.supports_overpayment,
-      supports_change_return: method.supports_change_return,
-      requires_reference: method.requires_reference,
-      requires_approval: method.requires_approval,
-      fee_type: method.fee_type,
-      fee_amount: method.fee_amount,
-      fee_rate: method.fee_rate,
-      display_order: method.display_order,
+      allowed_for_invoice_payment:   method.allowed_for_invoice_payment,
+      allowed_for_refund:            method.allowed_for_refund,
+      supports_partial_payment:      method.supports_partial_payment,
+      supports_overpayment:          method.supports_overpayment,
+      supports_change_return:        method.supports_change_return,
+      requires_reference:            method.requires_reference,
+      requires_approval:             method.requires_approval,
+      requires_cash_drawer:          method.requires_cash_drawer,
+      requires_terminal:             method.requires_terminal,
+      min_amount:                    method.min_amount ?? undefined,
+      max_amount:                    method.max_amount ?? undefined,
+      currency_code:                 method.currency_code ?? '',
+      fee_type:                      method.fee_type,
+      fee_amount:                    method.fee_amount,
+      fee_rate:                      method.fee_rate,
+      display_order:                 method.display_order,
     },
   });
 
@@ -68,6 +73,11 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
   };
 
   const feeType = form.watch('fee_type');
+
+  const boolField = (field: keyof UpdatePaymentMethodConfigFormValues) => ({
+    checked: !!form.watch(field),
+    onCheckedChange: (v: boolean) => form.setValue(field, v as never),
+  });
 
   return (
     <CmxDialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -91,16 +101,37 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                   <CmxInput {...form.register('display_name2')} dir="rtl" />
                 </div>
               </div>
-              <div>
-                <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
-                <CmxSelectDropdown value={form.watch('payment_nature')} onValueChange={(v) => form.setValue('payment_nature', v as never)}>
-                  <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
-                  <CmxSelectDropdownContent>
-                    {Object.values(PAYMENT_NATURE).map((n) => (
-                      <CmxSelectDropdownItem key={n} value={n}>{t(`methods.nature.${n}` as never)}</CmxSelectDropdownItem>
-                    ))}
-                  </CmxSelectDropdownContent>
-                </CmxSelectDropdown>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{t('methods.description')}</label>
+                  <CmxInput {...form.register('description')} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('methods.description2')}</label>
+                  <CmxInput {...form.register('description2')} dir="rtl" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-sm font-medium">{t('methods.paymentNature')}</label>
+                  <CmxSelectDropdown value={form.watch('payment_nature')} onValueChange={(v) => form.setValue('payment_nature', v as never)}>
+                    <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+                    <CmxSelectDropdownContent>
+                      {Object.values(PAYMENT_NATURE).map((n) => (
+                        <CmxSelectDropdownItem key={n} value={n}>{t(`methods.nature.${n}` as never)}</CmxSelectDropdownItem>
+                      ))}
+                    </CmxSelectDropdownContent>
+                  </CmxSelectDropdown>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('methods.displayOrder')}</label>
+                  <CmxInput
+                    type="number"
+                    min={0}
+                    step={1}
+                    {...form.register('display_order', { setValueAs: (v) => v === '' ? undefined : Number(v) })}
+                  />
+                </div>
               </div>
             </CmxCardContent>
           </CmxCard>
@@ -110,22 +141,42 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
             <CmxCardHeader><CmxCardTitle className="text-base">{t('methods.sections.channels')}</CmxCardTitle></CmxCardHeader>
             <CmxCardContent>
               <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                {[
-                  ['allowed_in_pos', t('methods.channels.pos')],
-                  ['allowed_in_customer_app', t('methods.channels.app')],
-                  ['allowed_in_staff_app', t('methods.channels.staff')],
-                  ['allowed_in_admin_app', t('methods.channels.admin')],
-                  ['allowed_for_pay_now', t('methods.purposes.payNow')],
-                  ['allowed_for_pay_on_collection', t('methods.purposes.payOnCollection')],
-                  ['allowed_for_invoice_payment', t('methods.purposes.invoicePayment')],
-                  ['allowed_for_refund', t('methods.purposes.refund')],
-                ].map(([field, label]) => (
+                {([
+                  ['allowed_in_pos',                t('methods.channels.pos')],
+                  ['allowed_in_customer_app',        t('methods.channels.app')],
+                  ['allowed_in_staff_app',           t('methods.channels.staff')],
+                  ['allowed_in_admin_app',           t('methods.channels.admin')],
+                  ['allowed_for_pay_now',            t('methods.purposes.payNow')],
+                  ['allowed_for_pay_on_collection',  t('methods.purposes.payOnCollection')],
+                  ['allowed_for_invoice_payment',    t('methods.purposes.invoicePayment')],
+                  ['allowed_for_refund',             t('methods.purposes.refund')],
+                ] as [keyof UpdatePaymentMethodConfigFormValues, string][]).map(([field, label]) => (
                   <div key={field} className="flex items-center justify-between">
                     <span className="text-sm">{label}</span>
-                    <CmxSwitch
-                      checked={!!form.watch(field as keyof UpdatePaymentMethodConfigFormValues)}
-                      onCheckedChange={(v) => form.setValue(field as keyof UpdatePaymentMethodConfigFormValues, v as never)}
-                    />
+                    <CmxSwitch {...boolField(field)} />
+                  </div>
+                ))}
+              </div>
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* Behavior */}
+          <CmxCard>
+            <CmxCardHeader><CmxCardTitle className="text-base">{t('methods.sections.behavior')}</CmxCardTitle></CmxCardHeader>
+            <CmxCardContent>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+                {([
+                  ['supports_partial_payment', t('methods.supportsPartialPayment')],
+                  ['supports_overpayment',     t('methods.supportsOverpayment')],
+                  ['supports_change_return',   t('methods.supportsChangeReturn')],
+                  ['requires_reference',       t('methods.requiresReference')],
+                  ['requires_approval',        t('methods.requiresApproval')],
+                  ['requires_cash_drawer',     t('methods.requiresCashDrawer')],
+                  ['requires_terminal',        t('methods.requiresTerminal')],
+                ] as [keyof UpdatePaymentMethodConfigFormValues, string][]).map(([field, label]) => (
+                  <div key={field} className="flex items-center justify-between">
+                    <span className="text-sm">{label}</span>
+                    <CmxSwitch {...boolField(field)} />
                   </div>
                 ))}
               </div>
@@ -136,14 +187,23 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
           <CmxCard>
             <CmxCardHeader><CmxCardTitle className="text-base">{t('methods.sections.limitsAndFees')}</CmxCardTitle></CmxCardHeader>
             <CmxCardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="text-sm font-medium">{t('methods.minAmount')}</label>
-                  <CmxInput type="number" step="0.001" {...form.register('min_amount', { valueAsNumber: true })} />
+                  <CmxInput type="number" step="0.001" {...form.register('min_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
                 <div>
                   <label className="text-sm font-medium">{t('methods.maxAmount')}</label>
-                  <CmxInput type="number" step="0.001" {...form.register('max_amount', { valueAsNumber: true })} />
+                  <CmxInput type="number" step="0.001" {...form.register('max_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">{t('methods.currencyCode')}</label>
+                  <CmxInput
+                    {...form.register('currency_code')}
+                    maxLength={3}
+                    placeholder="e.g. SAR"
+                    className="uppercase"
+                  />
                 </div>
               </div>
               <div>
@@ -160,13 +220,13 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
               {feeType === FEE_TYPES.FIXED && (
                 <div>
                   <label className="text-sm font-medium">{t('methods.feeAmount')}</label>
-                  <CmxInput type="number" step="0.001" {...form.register('fee_amount', { valueAsNumber: true })} />
+                  <CmxInput type="number" step="0.001" {...form.register('fee_amount', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
               )}
               {feeType === FEE_TYPES.PERCENTAGE && (
                 <div>
                   <label className="text-sm font-medium">{t('methods.feeRate')} (%)</label>
-                  <CmxInput type="number" step="0.01" {...form.register('fee_rate', { valueAsNumber: true })} />
+                  <CmxInput type="number" step="0.01" {...form.register('fee_rate', { setValueAs: (v) => v === '' ? undefined : Number(v) })} />
                 </div>
               )}
             </CmxCardContent>

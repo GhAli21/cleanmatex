@@ -32,16 +32,16 @@ try {
 // Use Upstash Redis REST API if configured, otherwise create a no-op client for local dev
 let redis: any = null;
 
-if (Redis && process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+if (
+  Redis &&
+  process.env.NODE_ENV !== 'development' &&
+  process.env.UPSTASH_REDIS_REST_URL &&
+  process.env.UPSTASH_REDIS_REST_TOKEN
+) {
   redis = new Redis({
     url: process.env.UPSTASH_REDIS_REST_URL,
     token: process.env.UPSTASH_REDIS_REST_TOKEN,
   });
-} else if (process.env.NODE_ENV === 'development') {
-  // In development, log warning but allow requests (fail open)
-  console.warn(
-    'Rate limiting disabled: UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN not configured, or dependencies not installed'
-  );
 }
 
 /**

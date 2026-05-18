@@ -1,8 +1,36 @@
 # DROP CASCADE Migration Workflow
 
+## Core Rule — RESTRICT by Default
+
+**`DROP ... CASCADE` is banned by default.**
+
+Every `DROP` statement in a migration MUST use `RESTRICT` unless explicitly approved:
+
+```sql
+-- ✅ DEFAULT — safe, raises an error if dependents exist
+DROP FUNCTION IF EXISTS my_function() RESTRICT;
+DROP TABLE IF EXISTS my_table RESTRICT;
+
+-- ❌ BANNED by default — requires explicit approval + full workflow below
+DROP FUNCTION IF EXISTS my_function() CASCADE;
+```
+
+`RESTRICT` is the correct default: it surfaces hidden dependencies instead of silently deleting them.
+
+`DROP ... CASCADE` is only allowed when **all three** conditions are met:
+1. No safer alternative exists (cannot drop dependents individually first)
+2. A complete dependency manifest has been produced via the discovery queries below
+3. The migration includes `CREATE` statements to restore every dropped dependent, plus an atomic `BEGIN;`/`COMMIT;` block as the rollback strategy
+
+**STOP and get explicit user confirmation before writing any migration that uses CASCADE.**
+
+---
+
+## When CASCADE Is Unavoidable
+
 When a migration uses `DROP ... CASCADE` (e.g. `DROP FUNCTION get_user_tenants() CASCADE`), PostgreSQL drops all dependent objects (RLS policies, views, triggers, etc.) and does **not** recreate them. This can break tenant isolation and the application.
 
-**Rule:** Before adding `DROP ... CASCADE` to a migration, you MUST:
+**Before adding `DROP ... CASCADE` to a migration, you MUST:**
 
 1. Fetch the affected objects that will be dropped
 2. Prepare recreate statements for each

@@ -1011,6 +1011,8 @@ export interface OrgPaymentMethodConfig {
   supports_change_return: boolean;
   requires_reference: boolean;
   requires_approval: boolean;
+  requires_cash_drawer: boolean;
+  requires_terminal: boolean;
   min_amount: number | null;
   max_amount: number | null;
   currency_code: string | null;
@@ -1207,6 +1209,8 @@ export interface CreatePaymentMethodConfigInput {
   supports_change_return?: boolean;
   requires_reference?: boolean;
   requires_approval?: boolean;
+  requires_cash_drawer?: boolean;
+  requires_terminal?: boolean;
   min_amount?: number;
   max_amount?: number;
   currency_code?: string;

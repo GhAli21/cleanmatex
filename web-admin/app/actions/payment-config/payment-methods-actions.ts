@@ -184,6 +184,8 @@ export async function updatePaymentMethodConfig(
           ...(input.supports_change_return !== undefined && { supports_change_return: input.supports_change_return }),
           ...(input.requires_reference !== undefined && { requires_reference: input.requires_reference }),
           ...(input.requires_approval !== undefined && { requires_approval: input.requires_approval }),
+          ...(input.requires_cash_drawer !== undefined && { requires_cash_drawer: input.requires_cash_drawer }),
+          ...(input.requires_terminal !== undefined && { requires_terminal: input.requires_terminal }),
           ...(input.min_amount !== undefined && { min_amount: input.min_amount }),
           ...(input.max_amount !== undefined && { max_amount: input.max_amount }),
           ...(input.currency_code !== undefined && { currency_code: input.currency_code }),

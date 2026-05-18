@@ -28,6 +28,8 @@ const paymentMethodConfigBaseSchema = z.object({
   supports_change_return: z.boolean().optional(),
   requires_reference: z.boolean().optional(),
   requires_approval: z.boolean().optional(),
+  requires_cash_drawer: z.boolean().optional(),
+  requires_terminal: z.boolean().optional(),
   min_amount: z.number().nonnegative().optional(),
   max_amount: z.number().nonnegative().optional(),
   currency_code: z.string().length(3).optional(),

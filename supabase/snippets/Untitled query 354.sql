@@ -14,11 +14,11 @@
 BEGIN;
 
 -- 1. Drop both functions (CASCADE drops 8 dependent RLS policies)
-DROP FUNCTION IF EXISTS get_user_tenants() CASCADE;
-DROP FUNCTION IF EXISTS get_user_tenants_u(UUID) CASCADE;
+--DROP FUNCTION IF EXISTS get_user_tenants() CASCADE;
+--DROP FUNCTION IF EXISTS get_user_tenants_u(UUID) CASCADE;
 
 -- 2. Recreate get_user_tenants() with TEXT return types
-CREATE FUNCTION get_user_tenants()
+CREATE or replace FUNCTION public.get_user_tenants()
 RETURNS TABLE (
   tenant_id        UUID,
   tenant_name      TEXT,
@@ -52,7 +52,7 @@ END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 -- 3. Recreate get_user_tenants_u() with TEXT return types
-CREATE FUNCTION get_user_tenants_u(p_cur_user_id UUID DEFAULT NULL)
+CREATE or replace FUNCTION public.get_user_tenants_u(p_cur_user_id UUID DEFAULT NULL)
 RETURNS TABLE (
   tenant_id        UUID,
   tenant_name      TEXT,
