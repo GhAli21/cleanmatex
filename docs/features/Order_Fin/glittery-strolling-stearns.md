@@ -2996,19 +2996,19 @@ Keep `docs/features/Order_Fin/current_status.md` in sync with this tracker.
 - [x] P9.11 — Reconciliation routes (4 routes) — already existed
 - [x] P9.12 — Financial report routes (3 routes) — already existed
 
-### PHASE 10 — UI: Billing Section
+### PHASE 10 — UI: Billing Section ✅ 2026-05-18
 - [x] P10.1 — Cash Drawer pages: `billing/cash-drawers/page.tsx`, `billing/cash-drawers/[drawerId]/page.tsx`, `src/features/billing/ui/cash-drawer-detail-client.tsx`
 - [x] P10.2 — Refunds pages: `billing/refunds/page.tsx`, `src/features/billing/ui/refunds-list-client.tsx`
 - [x] P10.3 — Reconciliation pages: `billing/reconciliation/page.tsx`, `billing/reconciliation/[runId]/page.tsx`, `src/features/billing/ui/reconciliation-list-client.tsx`, `src/features/billing/ui/reconciliation-detail-client.tsx`
 - [x] P10.4 — Financial tab on `orders/[id]/full` page — server action `get-order-financial.ts`, component `orders-financial-tab-rprt.tsx`, wired into full client — 2026-05-17
 - Server actions created: `app/actions/billing/cash-drawer-actions.ts`, `app/actions/billing/refund-actions.ts`, `app/actions/billing/reconciliation-actions.ts`
 
-### PHASE 11 — UI: Customer Stored Value
+### PHASE 11 — UI: Customer Stored Value ✅ 2026-05-18
 - [x] P11.1 — Stored Value hub page: `app/dashboard/customers/stored-value/page.tsx`, `src/features/customers/ui/stored-value-hub-client.tsx`
 - [x] P11.2 — Customer detail Stored Value tab: `src/features/customers/ui/customer-stored-value-tab.tsx` (ready to wire into customer detail page)
 - Server actions created: `app/actions/customers/stored-value-actions.ts`
 
-### PHASE 12 — UI: Marketing
+### PHASE 12 — UI: Marketing ✅ 2026-05-18
 - [x] P12.1 — Promotions management: `app/dashboard/marketing/promotions/page.tsx`, `src/features/marketing/ui/promotions-list-client.tsx`
 - [x] P12.2 — Loyalty program: `app/dashboard/marketing/loyalty/page.tsx`, `src/features/marketing/ui/loyalty-config-client.tsx`
 - Server actions created: `app/actions/marketing/promotions-actions.ts`, `app/actions/marketing/loyalty-actions.ts`
@@ -3017,14 +3017,14 @@ Keep `docs/features/Order_Fin/current_status.md` in sync with this tracker.
 - [x] P13.1 — Tax Setup page: `app/dashboard/settings/tax/page.tsx`, `src/features/settings/tax/ui/tax-setup-client.tsx`
 - [x] P13.2 — Payment Setup page enhanced: `app/dashboard/settings/payments/page.tsx` already has Methods / Terminals / Cash Drawers / Branch Overrides tabs — 2026-05-17
 
-### PHASE 14 — UI: Financial Reports
+### PHASE 14 — UI: Financial Reports ✅ 2026-05-18
 - [x] P14.1 — Financial Reports hub: `app/dashboard/reports/financial/page.tsx`, `src/features/reports/ui/financial-reports-client.tsx` (3 tabs: orders/payments/tax + CSV export)
 
-### PHASE 15 — Print & Export
-- [ ] P15.1 — Enhanced receipt (charges + tax breakdown + credits + multi-leg)
-- [ ] P15.2 — Cash Drawer session report (`*-rprt.tsx` pattern)
+### PHASE 15 — Print & Export ✅ 2026-05-18
+- [x] P15.1 — Enhanced receipt (`billing-receipt-voucher-print-rprt.tsx`) — `financial` prop with charges/taxes/discounts/multi-leg payments; wired via `billing/payments/[id]/print/receipt-voucher/page.tsx` — confirmed already exists — 2026-05-18
+- [x] P15.2 — Cash Drawer session report (`cash-drawer-session-print-rprt.tsx`) — session/movements/payments/totals; wired via `billing/cash-drawers/[drawerId]/session/[sessionId]/print/page.tsx` — confirmed already exists — 2026-05-18
 - [x] P15.3 — Tax report CSV export — DONE (handled in `api/v1/finance/reports/tax-report/route.ts` with `?format=csv`)
-- [ ] P15.4 — Reconciliation issue PDF/CSV export
+- [x] P15.4 — Reconciliation CSV export — `?format=csv` in `api/v1/finance/reconciliation/runs/[runId]/route.ts`; export button in `reconciliation-detail-client.tsx` — confirmed already exists — 2026-05-18
 
 ### PHASE 16 — Background Jobs ✅ 2026-05-18
 - [x] P16.1 — `supabase/functions/outbox-worker/index.ts` — confirmed already exists — 2026-05-18
@@ -3056,4 +3056,4 @@ Keep `docs/features/Order_Fin/current_status.md` in sync with this tracker.
 ### Build Checks (run after every phase)
 - [x] `cd web-admin && npx tsc --noEmit` — 0 errors — 2026-05-18
 - [x] `cd web-admin && npm run build` — succeeds — 2026-05-18
-- [ ] `npm run check:i18n` — no missing keys (after Phase 17)
+- [x] `npm run check:i18n` — en.json and ar.json have matching keys — 2026-05-18

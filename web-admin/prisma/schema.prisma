@@ -6147,7 +6147,7 @@ model org_payment_methods_cf {
   platform_disabled_reason      String?
   platform_disabled_at          DateTime?                       @db.Timestamptz(6)
   platform_disabled_by          String?
-  settlement_type_code          String                          @default("IMMEDIATE")
+  settlement_type_code          String?
   credit_application_type       String?
   requires_cash_drawer          Boolean                         @default(false)
   requires_terminal             Boolean                         @default(false)
@@ -6516,10 +6516,10 @@ model org_order_charges_dtl {
   void_reason      String?
   metadata         Json?
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
-  created_by       String?
+  created_by       String?         @db.Uuid
   created_info     String?
   updated_at       DateTime?       @db.Timestamptz(6)
-  updated_by       String?
+  updated_by       String?         @db.Uuid
   updated_info     String?
   rec_status       Int             @default(1) @db.SmallInt
   rec_order        Int?
@@ -6549,10 +6549,10 @@ model org_order_taxes_dtl {
   applied_seq      Int             @default(1) @db.SmallInt
   metadata         Json?
   created_at       DateTime        @default(now()) @db.Timestamptz(6)
-  created_by       String?
+  created_by       String?         @db.Uuid
   created_info     String?
   updated_at       DateTime?       @db.Timestamptz(6)
-  updated_by       String?
+  updated_by       String?         @db.Uuid
   updated_info     String?
   rec_status       Int             @default(1) @db.SmallInt
   rec_order        Int?
