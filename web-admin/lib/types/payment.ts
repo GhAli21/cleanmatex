@@ -812,18 +812,16 @@ export interface PaymentReceipt {
 // ============================================================================
 
 export const PAYMENT_METHOD_ICONS: Record<PaymentMethodCode, string> = {
-  CASH: 'banknotes',
-  CARD: 'credit-card',
-  PAY_ON_COLLECTION: 'hand-coins',
-  CHECK: 'receipt',
-  INVOICE: 'file-text',
-  HYPERPAY: 'credit-card',
-  PAYTABS: 'credit-card',
-  STRIPE: 'credit-card',
-  BANK_TRANSFER: 'building-2',
-  MOBILE_PAYMENT: 'smartphone',
-  GIFT_CARD: 'gift',
-  PROMO_CODE: 'tag',
+  CASH:             'banknotes',
+  CARD:             'credit-card',
+  PAY_ON_COLLECTION:'hand-coins',
+  CHECK:            'receipt',
+  INVOICE:          'file-text',
+  HYPERPAY:         'credit-card',
+  PAYTABS:          'credit-card',
+  STRIPE:           'credit-card',
+  BANK_TRANSFER:    'building-2',
+  MOBILE_PAYMENT:   'smartphone',
 };
 
 export const DEFAULT_CURRENCY = 'USD';

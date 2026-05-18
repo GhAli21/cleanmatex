@@ -51,7 +51,7 @@ export async function validatePromoCode(
   return withTenantContext(tenantId, async () => {
     try {
       // Find promo code - middleware adds tenant_org_id automatically
-      const promoCode = await prisma.org_promo_codes_mst.findFirst({
+      const promoCode = await prisma.org_promotions_mst.findFirst({
         where: {
           promo_code: input.promo_code.toUpperCase(),
           is_active: true,
@@ -152,7 +152,7 @@ export async function validatePromoCode(
 
     // Check customer usage limit
     if (input.customer_id && promoCode.max_uses_per_customer !== null) {
-      const customerUsageCount = await prisma.org_promo_usage_log.count({
+      const customerUsageCount = await prisma.org_promotion_usage_dtl.count({
         where: {
           promo_code_id: promoCode.id,
           customer_id: input.customer_id,
@@ -258,7 +258,7 @@ export async function applyPromoCodeTx(
     { id: string; current_uses: number; max_uses: number | null }[]
   >`
     SELECT id, current_uses, max_uses
-    FROM org_promo_codes_mst
+    FROM org_promotions_mst
     WHERE id = CAST(${promoCodeId} AS uuid)
       AND tenant_org_id = CAST(${tenantOrgId} AS uuid)
     FOR UPDATE
@@ -271,7 +271,7 @@ export async function applyPromoCodeTx(
     throw new Error('PROMO_MAX_USES_EXCEEDED');
   }
 
-  await tx.org_promo_usage_log.create({
+  await tx.org_promotion_usage_dtl.create({
     data: {
       tenant_org_id: tenantOrgId,
       promo_code_id: promoCodeId,
@@ -287,7 +287,7 @@ export async function applyPromoCodeTx(
   });
 
   // Safe to increment here because SELECT FOR UPDATE held the lock.
-  await tx.org_promo_codes_mst.update({
+  await tx.org_promotions_mst.update({
     where: { id: promoCodeId },
     data: {
       current_uses: { increment: 1 },
@@ -367,7 +367,7 @@ export async function reversePromoUsageTx(
 
   // Find non-voided usage rows for this order — middleware adds tenant filter
   // but we also pass it explicitly for clarity.
-  const usages = await tx.org_promo_usage_log.findMany({
+  const usages = await tx.org_promotion_usage_dtl.findMany({
     where: {
       tenant_org_id: tenantOrgId,
       order_id: orderId,
@@ -393,7 +393,7 @@ export async function reversePromoUsageTx(
   // applyPromoCodeTx calls reading stale current_uses.
   for (const promoCodeId of decrementByPromo.keys()) {
     await tx.$queryRaw`
-      SELECT id FROM org_promo_codes_mst
+      SELECT id FROM org_promotions_mst
       WHERE id = CAST(${promoCodeId} AS uuid)
         AND tenant_org_id = CAST(${tenantOrgId} AS uuid)
       FOR UPDATE
@@ -401,7 +401,7 @@ export async function reversePromoUsageTx(
   }
 
   // Mark all matching usage rows as voided in one statement.
-  await tx.org_promo_usage_log.updateMany({
+  await tx.org_promotion_usage_dtl.updateMany({
     where: {
       tenant_org_id: tenantOrgId,
       order_id: orderId,
@@ -415,7 +415,7 @@ export async function reversePromoUsageTx(
 
   // Decrement current_uses per promo by exactly the count we voided.
   for (const [promoCodeId, decBy] of decrementByPromo) {
-    await tx.org_promo_codes_mst.update({
+    await tx.org_promotions_mst.update({
       where: { id: promoCodeId },
       data: {
         current_uses: { decrement: decBy },
@@ -442,7 +442,7 @@ export async function getPromoCodeUsage(
 
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
-    const usages = await prisma.org_promo_usage_log.findMany({
+    const usages = await prisma.org_promotion_usage_dtl.findMany({
       where: {
         promo_code_id: promoCodeId,
       },
@@ -483,7 +483,7 @@ export async function getCustomerPromoUsageCount(
 
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
-    return prisma.org_promo_usage_log.count({
+    return prisma.org_promotion_usage_dtl.count({
       where: {
         promo_code_id: promoCodeId,
         customer_id: customerId,
@@ -652,7 +652,7 @@ export async function getActivePromoCodes(
 ): Promise<PromoCode[]> {
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantOrgId, async () => {
-    const promoCodes = await prisma.org_promo_codes_mst.findMany({
+    const promoCodes = await prisma.org_promotions_mst.findMany({
       where: {
         tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
         is_active: true,
@@ -691,7 +691,7 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
 
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
-    const promoCode = await prisma.org_promo_codes_mst.findUnique({
+    const promoCode = await prisma.org_promotions_mst.findUnique({
       where: { id: promoCodeId },
     });
 
@@ -699,7 +699,7 @@ export async function getPromoCodeStats(promoCodeId: string): Promise<{
       throw new Error('Promo code not found');
     }
 
-    const usages = await prisma.org_promo_usage_log.findMany({
+    const usages = await prisma.org_promotion_usage_dtl.findMany({
       where: {
         promo_code_id: promoCodeId,
       },

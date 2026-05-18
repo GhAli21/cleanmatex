@@ -192,7 +192,7 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
       {fetchLoading ? (
         <CmxSkeletonTable rows={4} columns={5} showHeader />
       ) : (
-        <CmxDataTable columns={columns} data={rows} rowKey="org_payment_method_id" />
+        <CmxDataTable columns={columns} data={rows} />
       )}
 
       {overrideTarget && (

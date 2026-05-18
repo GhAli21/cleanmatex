@@ -10,6 +10,7 @@ import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { getReceiptVoucherDataByPaymentIdAction } from '@/app/actions/payments/voucher-actions';
 import { getPaymentAction } from '@/app/actions/payments/payment-crud-actions';
+import { getOrderFinancialForReceiptAction } from '@/app/actions/orders/get-order-financial';
 import { BillingReceiptVoucherPrintRprt } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
 import type { BillingReceiptVoucherPrintRprtData } from '@features/billing/ui/billing-receipt-voucher-print-rprt';
 
@@ -29,19 +30,25 @@ export default function ReceiptVoucherPrintPage() {
       setLoading(true);
       setError(null);
       try {
-        const voucherResult = await getReceiptVoucherDataByPaymentIdAction(paymentId);
+        const [voucherResult, paymentResult] = await Promise.all([
+          getReceiptVoucherDataByPaymentIdAction(paymentId),
+          getPaymentAction(paymentId),
+        ]);
         if (!voucherResult.success || !voucherResult.data) {
           setError(tBilling('receiptVoucher.printPage.voucherNotFound'));
           return;
         }
-        const voucher = voucherResult.data;
-        const paymentResult = await getPaymentAction(paymentId);
         if (!paymentResult.success || !paymentResult.data) {
           setError(paymentResult.error || tBilling('receiptVoucher.printPage.paymentNotFound'));
           return;
         }
+        const voucher = voucherResult.data;
         const payment = paymentResult.data;
-        // Tenant info - simplified for now (can be enhanced later)
+
+        const financialResult = voucher.order_id
+          ? await getOrderFinancialForReceiptAction(voucher.order_id)
+          : null;
+
         const tenant = {
           name: tBilling('receiptVoucher.defaultBusinessName'),
           phone: null,
@@ -57,24 +64,23 @@ export default function ReceiptVoucherPrintPage() {
             transaction_id: payment.transaction_id,
           },
           invoice: voucher.invoice_id && payment.invoiceNumber
-            ? {
-                invoice_no: payment.invoiceNumber,
-                invoice_date: null, // Can be fetched separately if needed
-              }
+            ? { invoice_no: payment.invoiceNumber, invoice_date: null }
             : undefined,
           order: voucher.order_id && payment.orderReference
-            ? {
-                order_no: payment.orderReference,
-              }
+            ? { order_no: payment.orderReference }
             : undefined,
           customer: voucher.customer_id && payment.customerName
-            ? {
-                name: payment.customerName,
-                phone: null, // Can be fetched separately if needed
-                email: null, // Can be fetched separately if needed
-              }
+            ? { name: payment.customerName, phone: null, email: null }
             : undefined,
           tenant,
+          financial: financialResult?.success && financialResult.data
+            ? {
+                charges:     financialResult.data.charges,
+                taxes:       financialResult.data.taxes,
+                discounts:   financialResult.data.discounts,
+                paymentLegs: financialResult.data.payments,
+              }
+            : undefined,
         };
         setPrintData(data);
       } catch (e) {

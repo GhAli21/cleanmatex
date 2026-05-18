@@ -12,6 +12,7 @@ import { getOrderEditHistoryAction } from '@/app/actions/orders/get-order-edit-h
 import { getOrderPreferencesAction } from '@/app/actions/orders/get-order-preferences';
 import { getDiscountLinesForOrder } from '@/lib/db/order-discounts';
 import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+import { getOrderFinancialAction } from '@/app/actions/orders/get-order-financial';
 import {
   ORDER_PREF_DTL_DISPLAY_COLUMNS,
   type OrderPreferenceDtlColumn,
@@ -86,6 +87,7 @@ async function OrderDetailsFullContent({
     editHistoryResult,
     preferencesResult,
     discountLines,
+    financialResult,
   ] = await Promise.all([
     getOrder(tenantId, orderId),
     getPaymentsForOrder(orderId),
@@ -96,6 +98,7 @@ async function OrderDetailsFullContent({
     getOrderEditHistoryAction(orderId),
     getOrderPreferencesAction(orderId),
     getDiscountLinesForOrder(tenantId, orderId).catch(() => [] as OrderDiscountLine[]),
+    getOrderFinancialAction(tenantId, orderId),
   ]);
 
   if (!orderResult.success || !orderResult.data) {
@@ -126,6 +129,7 @@ async function OrderDetailsFullContent({
   const receipts = receiptsResult ?? [];
   const editHistory = editHistoryResult.success && editHistoryResult.data ? editHistoryResult.data : [];
   const orderPreferences = preferencesResult.success && preferencesResult.data ? preferencesResult.data : [];
+  const financialData = financialResult.success ? financialResult.data : undefined;
 
   const serializedOrder = {
     ...order,
@@ -167,6 +171,7 @@ async function OrderDetailsFullContent({
       editHistory={editHistory}
       orderPreferences={orderPreferences}
       discountLines={discountLines}
+      financialData={financialData}
       orderPreferenceDtlColumnLabels={preferenceDtlColumnLabels}
       tenantOrgId={tenantId}
       userId={userId ?? ''}
@@ -241,6 +246,7 @@ async function OrderDetailsFullContent({
         tabsReceipts: tFull('tabs.receipts'),
         tabsPreferences: tFull('tabs.preferences'),
         tabsActions: tFull('tabs.actions'),
+        tabsFinancial: tFull('tabs.financial'),
         orderSummary: tFull('orderSummary'),
         viewPayments: tFull('viewPayments'),
         viewReceiptVouchers: tFull('viewReceiptVouchers'),

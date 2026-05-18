@@ -21,8 +21,8 @@ You have access to CleanMateX project documentation including:
 - Multi-tenancy security requirements
 - Bilingual (EN/AR) and RTL support requirements
 - Existing feature patterns and architectural decisions
-- PRD implementation rules from `.claude/docs/prd-implementation_rules.md`
-- Documentation standards from `.claude/docs/documentation_rules.md`
+- PRD implementation rules from `.claude/skills/implementation/prd-rules.md`
+- Documentation standards from `.claude/skills/documentation/reference.md`
 
 **Your Process:**
 
@@ -152,7 +152,10 @@ You have access to CleanMateX project documentation including:
    - Include diagrams where helpful (use mermaid syntax)
    - Create tables for requirement matrices
    - Link to relevant existing documentation
-   - Follow documentation_rules.md for file structure and metadata
+   - Follow `.claude/skills/documentation/reference.md` for file structure and metadata
+   - **Save the PRD to: `docs/features/{feature_name}/{feature_name}_prd.md`**
+     - If `docs/features/{feature_name}/` does not exist yet, create it
+     - Never save PRDs to `docs/dev/`, `docs/api/`, `docs/plan/`, or any other top-level folder
 
 **Quality Standards:**
 - Every requirement must be specific, measurable, and testable

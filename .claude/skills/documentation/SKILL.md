@@ -8,30 +8,43 @@ user-invocable: true
 
 ## Documentation Structure
 
+**ALL new documentation goes into `docs/features/{feature_name}/`** — no exceptions.
+Do NOT create new files under `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level docs subfolder.
+Those folders are legacy; they receive no new content.
+
 ```
 docs/
-  features/           # Feature documentation
+  features/                         # ← THE ONLY TARGET for new docs
     orders/
-      orders_prd.md            # Product requirements
-      orders_implementation.md  # Implementation status
-      orders_api.md             # API documentation
+      README.md
+      development_plan.md
+      progress_summary.md
+      current_status.md
+      developer_guide.md
+      developer_guide_mermaid.md
+      user_guide.md
+      user_guide_mermaid.md
+      deploy_guide.md
+      testing_scenarios.md
+      CHANGELOG.md
+      version.txt
+      technical_docs/               # API specs, data models, architecture diagrams
+        tech_api.md
+        tech_data_model.md
+      components/
+        Order_Form/
+          ...
+      services/
+        ...
+      screens/
+        ...
     pricing/
+      README.md
+      ...
     invoices/
-
-  plan/               # Implementation plans
-    master_plan_cc_01.md
-    feature_implementation_plan.md
-
-  dev/                # Development guides
-    QUICK_START.md
-    architecture_guide.md
-
-  database/           # Database documentation
-    schema.sql
-    migration_guide.md
-
-  api/                # API documentation
-    api_reference.md
+      README.md
+      ...
+  folders_lookup.md                 # Root index — one entry per feature folder
 ```
 
 ## Feature Documentation Template

@@ -120,7 +120,7 @@ export function CashDrawersTab({ drawers, isLoading, onRefresh }: CashDrawersTab
           {t('cashDrawers.add')}
         </CmxButton>
       </div>
-      <CmxDataTable columns={columns} data={drawers} rowKey="id" />
+      <CmxDataTable columns={columns} data={drawers} />
       <CashDrawerFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
       {editTarget && (
         <CashDrawerFormDialog drawer={editTarget} open={!!editTarget} onClose={() => setEditTarget(null)} onSuccess={() => { setEditTarget(null); onRefresh(); }} />

@@ -21,6 +21,7 @@ import {
   type CreateWithPaymentRequest,
 } from '@/lib/validations/new-order-payment-schemas';
 import type { AmountMismatchDifferences, PaymentMethodCode } from '@/lib/types/payment';
+import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import { logger } from '@/lib/utils/logger';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
@@ -203,7 +204,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isInvoiceOnly = input.paymentMethod === PAYMENT_METHODS.INVOICE || input.paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION;
+    // ---------------------------------------------------------------------------
+    // Resolve payment legs (multi-leg split or single-leg fallback)
+    // ---------------------------------------------------------------------------
+    const DEFERRED_METHODS = new Set<string>([PAYMENT_METHODS.PAY_ON_COLLECTION, PAYMENT_METHODS.INVOICE]);
+
+    /** Resolved legs — always at least one entry */
+    const resolvedLegs: PaymentLeg[] = (input.paymentLegs && input.paymentLegs.length > 0)
+      ? input.paymentLegs
+      : [
+          {
+            method: input.paymentMethod as PaymentLeg['method'],
+            amount: input.amountToCharge ?? clientTotals.finalTotal,
+            checkNumber: input.checkNumber,
+            checkBank: input.checkBank,
+            checkDate: input.checkDate,
+          },
+        ];
+
+    // isInvoiceOnly: true when ALL legs are deferred methods
+    const isInvoiceOnly = resolvedLegs.every((leg) => DEFERRED_METHODS.has(leg.method));
+
     const creditLimitOverride = input.creditLimitOverride === true;
     if (isInvoiceOnly) {
       const creditCheck = await checkCreditLimit(input.customerId, serverTotals.finalTotal);
@@ -231,13 +252,13 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    const hasImmediatePayment = !isInvoiceOnly && (
-      input.paymentMethod === PAYMENT_METHODS.CASH ||
-      input.paymentMethod === PAYMENT_METHODS.CARD ||
-      input.paymentMethod === PAYMENT_METHODS.CHECK
-    );
+    const hasImmediatePayment = !isInvoiceOnly;
 
-    const amountToCharge = input.amountToCharge ?? clientTotals.finalTotal;
+    // Total amount across all immediate (non-deferred) legs
+    const amountToCharge = resolvedLegs
+      .filter((leg) => !DEFERRED_METHODS.has(leg.method))
+      .reduce((sum, leg) => sum + leg.amount, 0);
+
     if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE) {
       return NextResponse.json(
         {
@@ -256,15 +277,46 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (input.paymentMethod === PAYMENT_METHODS.CHECK && !input.checkNumber?.trim()) {
+
+    // Validate: multi-leg sum must equal finalTotal (within tolerance) when more than one leg
+    if (resolvedLegs.length > 1) {
+      const legSum = resolvedLegs.reduce((s, l) => s + l.amount, 0);
+      if (Math.abs(legSum - serverTotals.finalTotal) > TOLERANCE) {
+        return NextResponse.json(
+          {
+            success: false,
+            errorCode: 'SPLIT_AMOUNT_MISMATCH',
+            error: `Sum of payment legs (${legSum}) must equal order total (${serverTotals.finalTotal}).`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate: if any leg uses deferred method it must be the only leg
+    if (resolvedLegs.length > 1 && resolvedLegs.some((leg) => DEFERRED_METHODS.has(leg.method))) {
       return NextResponse.json(
         {
           success: false,
-          errorCode: 'CHECK_NUMBER_REQUIRED',
-          error: 'Check number is required for check payments.',
+          errorCode: 'DEFERRED_LEG_NOT_ALONE',
+          error: 'A deferred payment method (Invoice/Pay on Collection) must be the only payment leg.',
         },
         { status: 400 }
       );
+    }
+
+    // Validate check legs: each CHECK leg must have a checkNumber
+    for (const leg of resolvedLegs) {
+      if (leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()) {
+        return NextResponse.json(
+          {
+            success: false,
+            errorCode: 'CHECK_NUMBER_REQUIRED',
+            error: 'Check number is required for check payments.',
+          },
+          { status: 400 }
+        );
+      }
     }
 
     const createOrderParams = {
@@ -355,45 +407,47 @@ export async function POST(request: NextRequest) {
         );
 
         if (hasImmediatePayment && amountToCharge > 0) {
-          const paymentMethodCode = input.paymentMethod === PAYMENT_METHODS.CASH
-            ? 'CASH'
-            : input.paymentMethod === PAYMENT_METHODS.CARD
-              ? 'CARD'
-              : 'CHECK';
+          // Process each immediate leg individually
+          const immediateLegs = resolvedLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method));
+
+          for (const leg of immediateLegs) {
+            await recordPaymentTransaction(
+              {
+                invoice_id: invoice.id,
+                order_id: orderId,
+                customer_id: input.customerId ?? undefined,
+                paid_amount: leg.amount,
+                payment_method_code: leg.method as PaymentMethodCode,
+                payment_type_code: getPaymentTypeFromMethod(leg.method),
+                paid_by: userId,
+                branch_id: branchId,
+                subtotal: serverTotals.subtotal,
+                manual_discount_amount: serverTotals.manualDiscount,
+                promo_discount_amount: serverTotals.promoDiscount,
+                gift_card_applied_amount: serverTotals.giftCardApplied,
+                vat_rate: serverTotals.vatTaxPercent,
+                vat_amount: serverTotals.vatValue,
+                currency_code: serverTotals.currencyCode,
+                check_number: leg.checkNumber,
+                check_bank: leg.checkBank,
+                check_date: leg.checkDate ? new Date(leg.checkDate) : undefined,
+                promo_code_id: input.promoCodeId,
+                gift_card_id: input.giftCardId,
+                metadata: {
+                  promo_code: input.promoCode,
+                  gift_card_number: input.giftCardNumber,
+                  gift_card_amount: input.giftCardAmount,
+                  split_leg_count: immediateLegs.length,
+                },
+                payment_channel: 'web_admin',
+              },
+              tx
+            );
+          }
 
           const isFullyPaid = amountToCharge >= serverTotals.finalTotal - TOLERANCE;
-
-          await recordPaymentTransaction(
-            {
-              invoice_id: invoice.id,
-              order_id: orderId,
-              customer_id: input.customerId ?? undefined,
-              paid_amount: amountToCharge,
-              payment_method_code: paymentMethodCode,
-              payment_type_code: getPaymentTypeFromMethod(input.paymentMethod),
-              paid_by: userId,
-              branch_id: branchId,
-              subtotal: serverTotals.subtotal,
-              manual_discount_amount: serverTotals.manualDiscount,
-              promo_discount_amount: serverTotals.promoDiscount,
-              gift_card_applied_amount: serverTotals.giftCardApplied,
-              vat_rate: serverTotals.vatTaxPercent,
-              vat_amount: serverTotals.vatValue,
-              currency_code: serverTotals.currencyCode,
-              check_number: input.checkNumber,
-              check_bank: input.checkBank,
-              check_date: input.checkDate ? new Date(input.checkDate) : undefined,
-              promo_code_id: input.promoCodeId,
-              gift_card_id: input.giftCardId,
-              metadata: {
-                promo_code: input.promoCode,
-                gift_card_number: input.giftCardNumber,
-                gift_card_amount: input.giftCardAmount,
-              },
-              payment_channel: 'web_admin',
-            },
-            tx
-          );
+          // For invoice/order update, use primary method (first immediate leg)
+          const primaryMethodCode = immediateLegs[0]?.method as PaymentMethodCode ?? 'CASH';
 
           await tx.org_invoice_mst.update({
             where: {
@@ -407,7 +461,7 @@ export async function POST(request: NextRequest) {
               status: isFullyPaid ? 'paid' : 'partial',
               paid_at: new Date(),
               paid_by: userId,
-              payment_method_code: paymentMethodCode,
+              payment_method_code: primaryMethodCode,
               updated_at: new Date(),
               updated_by: userId,
             },

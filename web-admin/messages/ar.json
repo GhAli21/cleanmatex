@@ -885,6 +885,10 @@
       "orderNo": "رقم الطلب #",
       "customerInfo": "معلومات العميل",
       "amountPaid": "المبلغ المدفوع",
+      "charges": "الرسوم",
+      "discounts": "الخصومات والائتمانات",
+      "taxes": "تفاصيل الضريبة",
+      "paymentBreakdown": "طرق الدفع",
       "paymentDetails": "تفاصيل الدفع",
       "businessInfo": "معلومات العمل",
       "thankYou": "شكراً لتعاملك معنا!",
@@ -927,6 +931,132 @@
         "paymentNotFound": "الدفعة غير موجودة",
         "loadFailed": "فشل تحميل الإيصال",
         "layoutA4": "تنسيق A4"
+      }
+    },
+    "cashDrawers": {
+      "title": "صناديق النقد",
+      "description": "إدارة جلسات وحركات صناديق النقد",
+      "noDrawers": "لا توجد صناديق نقد مُهيَّأة",
+      "openSession": "فتح جلسة",
+      "closeSession": "إغلاق الجلسة",
+      "addMovement": "إضافة حركة",
+      "sessionHistory": "سجل الجلسات",
+      "movements": "الحركات",
+      "openingBalance": "رصيد الافتتاح",
+      "physicalCount": "العد الفعلي",
+      "notes": "ملاحظات",
+      "notesOptional": "ملاحظات (اختياري)",
+      "cashIn": "إيداع نقدي",
+      "cashOut": "سحب نقدي",
+      "pettyCash": "مصروفات نثرية",
+      "reason": "السبب",
+      "movementType": "نوع الحركة",
+      "amount": "المبلغ",
+      "performedBy": "تم بواسطة",
+      "performedAt": "تاريخ التنفيذ",
+      "variance": "الفرق",
+      "balanced": "متوازن",
+      "short": "عجز",
+      "over": "زيادة",
+      "sessionNo": "رقم الجلسة",
+      "sessionStatus": "الحالة",
+      "openedAt": "تاريخ الفتح",
+      "closedAt": "تاريخ الإغلاق",
+      "openedBy": "فُتحت بواسطة",
+      "closedBy": "أُغلقت بواسطة",
+      "openSessionConfirm": "فتح جلسة نقدية جديدة",
+      "closeSessionConfirm": "إغلاق الجلسة",
+      "closeSessionDesc": "أدخل العد الفعلي للنقد لإتمام تسوية الجلسة.",
+      "confirmClose": "تأكيد الإغلاق"
+    },
+    "refunds": {
+      "title": "المستردات",
+      "description": "عرض وإدارة مستردات الطلبات",
+      "noRefunds": "لا توجد مستردات",
+      "initiateRefund": "بدء استرداد",
+      "refundNo": "رقم الاسترداد #",
+      "order": "الطلب",
+      "amount": "المبلغ",
+      "method": "طريقة الاسترداد",
+      "status": "الحالة",
+      "reason": "السبب",
+      "requestedAt": "تاريخ الطلب",
+      "processedAt": "تاريخ المعالجة",
+      "approveRefund": "موافقة",
+      "rejectRefund": "رفض",
+      "methodLabels": {
+        "CASH": "نقداً",
+        "WALLET": "رصيد المحفظة",
+        "CREDIT_NOTE": "إشعار دائن",
+        "ORIGINAL_METHOD": "طريقة الدفع الأصلية"
+      },
+      "statusLabels": {
+        "PENDING_APPROVAL": "بانتظار الموافقة",
+        "APPROVED": "موافق عليه",
+        "PROCESSED": "تمت المعالجة",
+        "REJECTED": "مرفوض"
+      },
+      "reasonLabels": {
+        "DUPLICATE": "رسوم مكررة",
+        "QUALITY": "مشكلة جودة",
+        "CANCELLED": "طلب ملغى",
+        "OVERCHARGE": "فوترة زائدة",
+        "OTHER": "أخرى"
+      }
+    },
+    "reconciliation": {
+      "title": "المطابقة المالية",
+      "description": "تشغيل فحوصات المطابقة المالية عبر الطلبات والمدفوعات والقيم المخزّنة",
+      "runReconciliation": "تشغيل المطابقة",
+      "noRuns": "لا توجد عمليات مطابقة بعد",
+      "runNo": "رقم العملية #",
+      "status": "الحالة",
+      "period": "الفترة",
+      "branch": "الفرع",
+      "currency": "العملة",
+      "ranAt": "وقت التشغيل",
+      "ranBy": "شغّلها",
+      "blockers": "عوائق",
+      "warnings": "تحذيرات",
+      "info": "معلومات",
+      "viewDetails": "عرض التفاصيل",
+      "statusLabels": {
+        "PENDING": "قيد الانتظار",
+        "RUNNING": "جارٍ التشغيل",
+        "PASSED": "ناجح",
+        "FAILED": "فاشل",
+        "PARTIAL": "جزئي"
+      },
+      "issues": {
+        "title": "المشكلات",
+        "checkName": "الفحص",
+        "severity": "الخطورة",
+        "affectedEntity": "الكيان المتأثر",
+        "expected": "المتوقع",
+        "actual": "الفعلي",
+        "delta": "الفرق",
+        "message": "الرسالة",
+        "status": "الحالة",
+        "noIssues": "لا توجد مشكلات — اجتاز جميع الفحوصات",
+        "exportCsv": "تصدير CSV",
+        "severityLabels": {
+          "BLOCKER": "عائق",
+          "WARNING": "تحذير",
+          "INFO": "معلومة"
+        },
+        "statusLabels": {
+          "OPEN": "مفتوح",
+          "ACKNOWLEDGED": "تم الإقرار",
+          "RESOLVED": "تم الحل"
+        }
+      },
+      "runForm": {
+        "title": "تشغيل المطابقة",
+        "periodFrom": "من تاريخ",
+        "periodTo": "إلى تاريخ",
+        "currency": "العملة",
+        "submit": "تشغيل",
+        "running": "جارٍ التشغيل..."
       }
     }
   },
@@ -1321,7 +1451,8 @@
         "actions": "الإجراءات",
         "stock": "حركات المخزون",
         "receipts": "إرسال الإيصالات",
-        "preferences": "التفضيلات"
+        "preferences": "التفضيلات",
+        "financial": "المالية"
       },
       "editHistory": {
         "empty": "لا يوجد سجل تعديلات لهذا الطلب",
@@ -1982,7 +2113,43 @@
     "floor": "الطابق",
     "updating": "جاري التحديث...",
     "saveChanges": "حفظ التغييرات",
-    "category": "الفئة"
+    "category": "الفئة",
+    "storedValue": {
+      "title": "القيمة المخزنة",
+      "wallet": "المحفظة",
+      "advance": "سلفة العميل",
+      "creditNotes": "إشعارات الائتمان",
+      "walletBalance": "رصيد المحفظة",
+      "advanceBalance": "رصيد السلفة",
+      "topUp": "شحن الرصيد",
+      "issueAdvance": "إصدار سلفة",
+      "issueCreditNote": "إصدار إشعار ائتمان",
+      "noWallet": "لا توجد محفظة",
+      "noAdvance": "لا يوجد رصيد سلفة",
+      "noCreditNotes": "لا توجد إشعارات ائتمان",
+      "amount": "المبلغ",
+      "notes": "الملاحظات",
+      "notesOptional": "ملاحظات (اختياري)",
+      "reason": "السبب",
+      "reasonRequired": "السبب مطلوب",
+      "currency": "العملة",
+      "creditNoteNo": "رقم الإشعار",
+      "originalAmount": "المبلغ الأصلي",
+      "remainingBalance": "الرصيد المتبقي",
+      "expiresAt": "تاريخ الانتهاء",
+      "noExpiry": "بلا انتهاء",
+      "creditNoteStatus": {
+        "ACTIVE": "نشط",
+        "EXHAUSTED": "مستنفد",
+        "EXPIRED": "منتهي",
+        "CANCELLED": "ملغي"
+      },
+      "topUpSuccess": "تم شحن المحفظة بنجاح",
+      "issueAdvanceSuccess": "تم إصدار السلفة بنجاح",
+      "issueCreditNoteSuccess": "تم إصدار إشعار الائتمان بنجاح",
+      "hubTitle": "العملاء ذوو القيمة المخزنة",
+      "hubDescription": "العملاء الذين لديهم أرصدة محافظ أو سلف أو إشعارات ائتمان نشطة"
+    }
   },
   "settings": {
     "title": "الإعدادات",
@@ -2356,6 +2523,45 @@
       }
     }
   },
+  "taxSetup": {
+    "title": "إعداد الضريبة",
+    "description": "تكوين ملفات الضريبة والإعفاءات",
+    "profiles": "ملفات الضريبة",
+    "exemptions": "الإعفاءات الضريبية",
+    "addProfile": "إضافة ملف ضريبة",
+    "addExemption": "إضافة إعفاء",
+    "profileName": "اسم الملف",
+    "profileName2": "اسم الملف (عربي)",
+    "taxType": "نوع الضريبة",
+    "rate": "النسبة (%)",
+    "appliesTo": "تنطبق على",
+    "isDefault": "تعيين كافتراضي",
+    "effectiveFrom": "سارية من",
+    "effectiveTo": "سارية حتى",
+    "typeLabels": {
+      "VAT": "ضريبة القيمة المضافة",
+      "GST": "ضريبة السلع والخدمات",
+      "CUSTOM": "ضريبة مخصصة"
+    },
+    "default": "افتراضي",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "activate": "تفعيل",
+    "deactivate": "إلغاء التفعيل",
+    "setDefault": "تعيين كافتراضي",
+    "saved": "تم حفظ ملف الضريبة",
+    "deactivated": "تم إلغاء تفعيل ملف الضريبة",
+    "empty": "لا توجد ملفات ضريبة مكونة",
+    "customerId": "معرف العميل",
+    "exemptionType": "نوع الإعفاء",
+    "validFrom": "صالح من",
+    "validTo": "صالح حتى",
+    "noExpiry": "بدون انتهاء",
+    "certificateNo": "رقم الشهادة",
+    "serviceType": "نوع الخدمة",
+    "exemptionSaved": "تم حفظ الإعفاء",
+    "emptyExemptions": "لا توجد إعفاءات مكونة"
+  },
   "notifications": {
     "title": "الإشعارات",
     "markAllRead": "تحديد الكل كمقروء",
@@ -2491,6 +2697,41 @@
       "excel": "Excel",
       "pdf": "PDF",
       "downloading": "جاري التحميل..."
+    },
+    "financial": {
+      "title": "التقارير المالية",
+      "description": "تقارير الإيرادات والمدفوعات والضرائب",
+      "ordersSummary": "ملخص الطلبات",
+      "paymentsBreakdown": "تفصيل المدفوعات",
+      "taxReport": "تقرير الضريبة",
+      "periodFrom": "من",
+      "periodTo": "إلى",
+      "apply": "تطبيق",
+      "totalOrders": "إجمالي الطلبات",
+      "grossRevenue": "إجمالي الإيرادات",
+      "totalTax": "إجمالي الضريبة",
+      "totalDiscounts": "إجمالي الخصومات",
+      "orderNo": "رقم الطلب",
+      "customer": "العميل",
+      "date": "التاريخ",
+      "subtotal": "المجموع الفرعي",
+      "tax": "الضريبة",
+      "discounts": "الخصومات",
+      "grandTotal": "الإجمالي",
+      "paymentStatus": "حالة الدفع",
+      "paymentMethod": "طريقة الدفع",
+      "count": "العدد",
+      "amount": "المبلغ",
+      "percentage": "% من الإجمالي",
+      "taxType": "نوع الضريبة",
+      "label": "التسمية",
+      "taxableAmount": "المبلغ الخاضع للضريبة",
+      "taxAmount": "مبلغ الضريبة",
+      "orderCount": "الطلبات",
+      "grandTotalRow": "الإجمالي الكلي",
+      "empty": "لا توجد بيانات للفترة المحددة",
+      "loading": "جاري تحميل التقرير...",
+      "exportCSV": "تصدير CSV"
     }
   },
   "catalog": {
@@ -3836,6 +4077,19 @@
         "download": "تحميل",
         "email": "إرسال بالبريد",
         "whatsapp": "إرسال بالواتساب"
+      },
+      "splitPayment": {
+        "title": "أقساط الدفع",
+        "addMethod": "+ إضافة طريقة دفع",
+        "remaining": "المتبقي",
+        "method": "الطريقة",
+        "amount": "المبلغ",
+        "remove": "حذف",
+        "validation": {
+          "sumMismatch": "مجموع أقساط الدفع يجب أن يساوي إجمالي الطلب",
+          "amountMustBePositive": "يجب أن يكون مبلغ كل قسط أكبر من صفر",
+          "deferredMustBeAlone": "طريقة الدفع المؤجلة يجب أن تكون القسط الوحيد"
+        }
       }
     },
     "actions": {
@@ -5394,6 +5648,59 @@
       "deactivateConfirm": {
         "title": "تعطيل درج النقد؟",
         "description": "سيتم تعطيل درج النقد للجلسات النقدية الجديدة."
+      }
+    },
+    "promotionsV2": {
+      "title": "العروض الترويجية",
+      "description": "إدارة رموز العروض والخصومات",
+      "add": "إضافة عرض ترويجي",
+      "edit": "تعديل العرض الترويجي",
+      "name": "الاسم",
+      "name2": "الاسم (عربي)",
+      "code": "رمز العرض",
+      "discountType": "نوع الخصم",
+      "discountValue": "قيمة الخصم",
+      "maxUses": "الحد الأقصى للاستخدامات",
+      "maxUsesPerCustomer": "الحد الأقصى لكل عميل",
+      "currentUses": "الاستخدامات",
+      "validFrom": "صالح من",
+      "validTo": "صالح حتى",
+      "noExpiry": "بلا انتهاء",
+      "discountTypeLabels": {
+        "PERCENTAGE": "نسبة مئوية",
+        "FIXED_AMOUNT": "مبلغ ثابت",
+        "BUY_X_GET_Y": "اشترِ X واحصل على Y",
+        "FREE_ITEM": "عنصر مجاني"
+      },
+      "activate": "تفعيل",
+      "deactivate": "تعطيل",
+      "saved": "تم حفظ العرض الترويجي",
+      "activated": "تم تفعيل العرض الترويجي",
+      "deactivated": "تم تعطيل العرض الترويجي",
+      "empty": "لا توجد عروض ترويجية بعد"
+    },
+    "loyalty": {
+      "title": "برنامج الولاء",
+      "description": "إعداد برنامج نقاط الولاء",
+      "config": {
+        "title": "إعدادات البرنامج",
+        "earnRate": "معدل الاكتساب (نقاط لكل وحدة عملة)",
+        "redeemRate": "معدل الاسترداد (نقاط لكل وحدة عملة)",
+        "minRedeemPoints": "الحد الأدنى لنقاط الاسترداد",
+        "maxRedeemPercent": "الحد الأقصى لنسبة الاسترداد لكل طلب",
+        "expiryDays": "انتهاء صلاحية النقاط (أيام، 0 = بلا انتهاء)",
+        "save": "حفظ الإعدادات",
+        "saved": "تم حفظ إعدادات الولاء"
+      },
+      "tiers": {
+        "title": "مستويات الولاء",
+        "add": "إضافة مستوى",
+        "name": "اسم المستوى",
+        "minPoints": "الحد الأدنى من النقاط",
+        "bonusMultiplier": "مضاعف المكافأة",
+        "saved": "تم حفظ المستوى",
+        "deleted": "تم حذف المستوى",
+        "empty": "لا توجد مستويات مهيأة"
       }
     }
   }

@@ -10,7 +10,11 @@ This document outlines comprehensive, structured, and scalable rules for creatin
 ## 1. Folder and Lookup File Structure
 
 ### 1.1 Dedicated Feature Folders
-- Each **feature** must have a dedicated folder under `docs/`, uniquely named after the feature (e.g. `docs/features/Feature_A`).
+
+> **RULE: `docs/features/` is the ONLY root for all documentation.**
+> Never create new files under `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level subfolder — those are legacy locations that receive no new content.
+
+- Each **feature** must have a dedicated folder under **`docs/features/`**, uniquely named after the feature (e.g. `docs/features/Feature_A`).
 - Duplicate folders for the same feature are not allowed.
 - Each feature folder contains documentation files and subfolders for components, services, screens, etc.
 
@@ -213,9 +217,11 @@ Provide comprehensive developer-centric documentation describing:
 
 ## 13. Sample Folder Tree
 
+All new documentation lives under `docs/features/`. Do NOT add new files to `docs/dev/`, `docs/api/`, `docs/database/`, `docs/plan/`, or any other top-level folder — those are legacy.
+
 docs/
-├── folders_lookup.md
-├── features/
+├── folders_lookup.md              ← root index for all feature folders
+├── features/                      ← THE ONLY TARGET for new documentation
 │ ├── Feature_A/
 │ │ ├── Feature_A_lookup.md
 │ │ ├── README.md

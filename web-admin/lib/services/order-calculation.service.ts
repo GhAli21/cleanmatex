@@ -350,3 +350,42 @@ export async function calculateOrderTotals(
     discountLines,
   };
 }
+
+// ── P8.1 — FinancialBreakdownSnapshot adapter ──────────────────────────────────
+
+import type { FinancialBreakdownSnapshot, TaxLineItem } from '@/lib/types/order-financial';
+
+/**
+ * Convert a flat OrderCalculationResult into the structured FinancialBreakdownSnapshot
+ * used by order-settlement.service.ts and the Financial tab on order detail pages.
+ *
+ * creditApplicationsTotal = sum of credit apps already validated (wallet, advance, CN, loyalty, GC).
+ */
+export function toFinancialBreakdownSnapshot(
+  result:                  OrderCalculationResult,
+  taxLines:                TaxLineItem[],
+  chargesTotal:            number,
+  creditApplicationsTotal: number
+): FinancialBreakdownSnapshot {
+  const grandTotal    = result.finalTotal;
+  const creditsTotal  = creditApplicationsTotal;
+  const netReceivable = Math.max(0, grandTotal - creditsTotal);
+
+  return {
+    subtotal:         result.subtotal,
+    chargesTotal,
+    grossTotal:       result.subtotal + chargesTotal,
+    discountTotal:    result.manualDiscount + result.autoRuleDiscount + result.promoDiscount,
+    netBeforeTax:     result.afterDiscounts,
+    taxBreakdown:     taxLines,
+    taxTotal:         result.taxAmount + result.additionalTaxAmount,
+    grandTotal,
+    creditsTotal,
+    netReceivable,
+    paymentLegsTotal: 0,
+    changeReturned:   0,
+    outstanding:      netReceivable,
+    currencyCode:     result.currencyCode,
+    decimalPlaces:    result.decimalPlaces,
+  };
+}

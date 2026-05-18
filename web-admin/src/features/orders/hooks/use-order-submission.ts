@@ -293,6 +293,9 @@ export function useOrderSubmission() {
                     ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),
                     ...(paymentData.poNumber?.trim() && { poNumber: paymentData.poNumber.trim() }),
                     ...(payload.creditLimitOverride && { creditLimitOverride: true }),
+                    ...(payload.paymentLegs && payload.paymentLegs.length > 0 && {
+                        paymentLegs: payload.paymentLegs,
+                    }),
                     idempotencyKey: idempotencyKeyRef.current,
                 };
 

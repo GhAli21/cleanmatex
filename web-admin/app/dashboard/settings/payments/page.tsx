@@ -91,7 +91,7 @@ export default function PaymentSettingsPage() {
 
   const tabs = [
     {
-      key: 'methods',
+      id: 'methods',
       label: t('tabs.methods'),
       content: (
         <PaymentMethodsTab
@@ -102,7 +102,7 @@ export default function PaymentSettingsPage() {
       ),
     },
     {
-      key: 'branches',
+      id: 'branches',
       label: t('tabs.branches'),
       content: branchesLoading ? (
         <CmxSkeletonTable rows={3} columns={4} showHeader />
@@ -111,7 +111,7 @@ export default function PaymentSettingsPage() {
       ),
     },
     {
-      key: 'terminals',
+      id: 'terminals',
       label: t('tabs.terminals'),
       content: (
         <TerminalsTab
@@ -122,7 +122,7 @@ export default function PaymentSettingsPage() {
       ),
     },
     {
-      key: 'cashDrawers',
+      id: 'cashDrawers',
       label: t('tabs.cashDrawers'),
       content: (
         <CashDrawersTab

@@ -11,21 +11,22 @@ import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-fl
  * Payment method schema
  * Includes all payment methods used in the payment modal
  */
+// GIFT_CARD and PROMO_CODE are kept as string literals here because this legacy modal
+// is being replaced by the multi-leg checkout in Phase 9. They are no longer in
+// PAYMENT_METHODS (GIFT_CARD = credit application, PROMO_CODE = discount source only).
 const paymentMethodSchema = z.enum([
   PAYMENT_METHODS.CASH,
   PAYMENT_METHODS.CARD,
   PAYMENT_METHODS.CHECK,
-  PAYMENT_METHODS.GIFT_CARD,
-  PAYMENT_METHODS.PROMO_CODE,
+  'GIFT_CARD',
+  'PROMO_CODE',
   PAYMENT_METHODS.PAY_ON_COLLECTION,
   PAYMENT_METHODS.BANK_TRANSFER,
   PAYMENT_METHODS.MOBILE_PAYMENT,
   PAYMENT_METHODS.HYPERPAY,
   PAYMENT_METHODS.PAYTABS,
   PAYMENT_METHODS.STRIPE,
-  PAYMENT_METHODS.INVOICE, // Invoice payment
-   //'pay_on_collection', // Pay on collection/delivery
-   //'invoice', // Invoice payment
+  PAYMENT_METHODS.INVOICE,
 ]);
 
 /**

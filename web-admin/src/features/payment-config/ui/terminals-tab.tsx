@@ -125,7 +125,7 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
           {t('terminals.add')}
         </CmxButton>
       </div>
-      <CmxDataTable columns={columns} data={terminals} rowKey="id" />
+      <CmxDataTable columns={columns} data={terminals} />
       <TerminalFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
       {editTarget && (
         <TerminalFormDialog terminal={editTarget} open={!!editTarget} onClose={() => setEditTarget(null)} onSuccess={() => { setEditTarget(null); onRefresh(); }} />

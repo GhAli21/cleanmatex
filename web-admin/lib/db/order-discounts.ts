@@ -92,7 +92,7 @@ export function buildDiscountLinesFromOrderInput(input: {
 // ============================================================================
 
 /** Prisma-compatible client interface for discount line operations (accepts tx or prisma directly) */
-type DiscountDbClient = Pick<typeof prisma, 'org_ord_discounts_dtl'>;
+type DiscountDbClient = Pick<typeof prisma, 'org_order_discounts_dtl'>;
 
 /**
  * Insert discount lines using any Prisma-compatible client (tx or prisma directly).
@@ -113,13 +113,13 @@ async function insertDiscountLinesInternal(
   const positiveLines = lines.filter((l) => l.discountAmount > 0);
   if (positiveLines.length === 0) return;
 
-  const existing = await db.org_ord_discounts_dtl.aggregate({
+  const existing = await db.org_order_discounts_dtl.aggregate({
     where: { order_id: orderId, tenant_org_id: tenantOrgId },
     _max: { applied_seq: true },
   });
   const baseSeq = existing._max.applied_seq ?? 0;
 
-  await db.org_ord_discounts_dtl.createMany({
+  await db.org_order_discounts_dtl.createMany({
     data: positiveLines.map((line, index) => ({
       tenant_org_id:   tenantOrgId,
       order_id:        orderId,
@@ -177,7 +177,7 @@ export async function voidDiscountLinesTx(
   }
 ): Promise<void> {
   const { orderId, tenantOrgId, voidedBy } = params;
-  await tx.org_ord_discounts_dtl.updateMany({
+  await tx.org_order_discounts_dtl.updateMany({
     where: { order_id: orderId, tenant_org_id: tenantOrgId, is_voided: false },
     data: {
       is_voided:  true,
@@ -201,7 +201,7 @@ export async function getDiscountLinesForOrder(
   tenantOrgId: string,
   orderId: string
 ): Promise<OrderDiscountLine[]> {
-  const rows = await prisma.org_ord_discounts_dtl.findMany({
+  const rows = await prisma.org_order_discounts_dtl.findMany({
     where:   { order_id: orderId, tenant_org_id: tenantOrgId, is_voided: false },
     orderBy: [{ applied_seq: 'asc' }, { created_at: 'asc' }],
     select: {

@@ -865,3 +865,49 @@ function mapInvoiceToType(invoice: any): Invoice {
   };
 }
 
+// ── P8.11 — Financial Snapshot Extensions ─────────────────────────────────────
+
+import type { FinancialBreakdownSnapshot } from '@/lib/types/order-financial';
+
+/**
+ * Persist snapshot totals on an invoice after order settlement.
+ * Called inside the settlement transaction to keep invoice totals in sync.
+ */
+export async function updateInvoiceWithFinancialSnapshot(
+  tx: PrismaTx,
+  invoiceId: string,
+  breakdown: FinancialBreakdownSnapshot
+): Promise<void> {
+  await tx.org_invoice_mst.updateMany({
+    where:  { id: invoiceId },
+    data: {
+      subtotal:    breakdown.subtotal,
+      discount:    breakdown.discountTotal,
+      tax:         breakdown.taxTotal,
+      total:       breakdown.grandTotal,
+      paid_amount: breakdown.paymentLegsTotal,
+      updated_at:      new Date(),
+    },
+  });
+}
+
+/**
+ * Fetch an invoice with its joined financial fact rows for the invoice detail view.
+ */
+export async function getInvoiceWithBreakdown(tenantId: string, invoiceId: string) {
+  return withTenantContext(tenantId, () =>
+    prisma.org_invoice_mst.findFirstOrThrow({
+      where: { id: invoiceId, tenant_org_id: tenantId },
+      include: {
+        org_orders_mst: {
+          include: {
+            org_order_charges_dtl:  true,
+            org_order_taxes_dtl:    true,
+            org_order_discounts_dtl:true,
+          },
+        },
+      },
+    })
+  );
+}
+

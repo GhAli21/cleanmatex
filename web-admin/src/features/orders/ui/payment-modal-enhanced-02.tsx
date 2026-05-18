@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, useId } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
 import { useForm, Controller, type Resolver } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
@@ -15,7 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
   Tag, Gift, Loader2, CheckCircle, AlertCircle, ChevronDown, ChevronUp,
-  Eye, EyeOff, KeyRound,
+  Eye, EyeOff, KeyRound, PlusCircle, Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -26,12 +26,13 @@ import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-confi
 import type { ValidatePromoCodeResult, ValidateGiftCardResult } from '@/lib/types/payment';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import { taxService } from '@/lib/services/tax.service';
-import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
+import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload, type PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import { cmxMessage } from '@ui/feedback';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import type { Control } from 'react-hook-form';
+import type { PaymentMethodCode } from '@/lib/constants/order-types';
 
 /** B2B contract selector - fetches contracts for customer */
 function B2BContractsSelect({
@@ -239,10 +240,24 @@ export function PaymentModalEnhanced02({
 
   const isImmediatePayment = paymentMethod === PAYMENT_METHODS.CASH ||
     paymentMethod === PAYMENT_METHODS.CARD ||
-    paymentMethod === PAYMENT_METHODS.CHECK;
+    paymentMethod === PAYMENT_METHODS.CHECK ||
+    paymentMethod === PAYMENT_METHODS.BANK_TRANSFER ||
+    paymentMethod === PAYMENT_METHODS.MOBILE_PAYMENT;
   const [payPartial, setPayPartial] = useState(false);
   const [partialAmount, setPartialAmount] = useState<number>(0);
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
+
+  /** Unique id prefix for split-leg inputs (stable across renders) */
+  const legIdPrefix = useId();
+
+  /**
+   * Split-payment legs state.
+   * Initialised to a single leg matching the selected payment method and full total.
+   * Only shown when isImmediatePayment is true.
+   */
+  const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([
+    { method: PAYMENT_METHODS.CASH as PaymentMethodCode, amount: 0 },
+  ]);
 
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
@@ -405,6 +420,8 @@ export function PaymentModalEnhanced02({
       setCreditLimitOverride(false);
       setAmountDiscountFocused(false);
       setAmountDiscountDraft('');
+      const initialMethod = (isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION) as PaymentMethodCode;
+      setPaymentLegs([{ method: initialMethod, amount: 0 }]);
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
 
@@ -412,8 +429,14 @@ export function PaymentModalEnhanced02({
     if (!isImmediatePayment) {
       setPayPartial(false);
       setPartialAmount(0);
+      // Reset legs to a single deferred leg when switching to a deferred method
+      setPaymentLegs([{ method: paymentMethod as PaymentMethodCode, amount: 0 }]);
+    } else {
+      // When switching to an immediate method, reset to single leg with full total
+      setPaymentLegs([{ method: paymentMethod as PaymentMethodCode, amount: 0 }]);
     }
-  }, [isImmediatePayment]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod]);
 
   const currencyCode = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
@@ -510,6 +533,36 @@ export function PaymentModalEnhanced02({
     () => parseFloat(Math.max(0, totals.finalTotal - effectiveAmountToCharge).toFixed(decimalPlaces)),
     [totals.finalTotal, effectiveAmountToCharge, decimalPlaces]
   );
+
+  /** Sum of all split-payment leg amounts */
+  const legSum = useMemo(
+    () => paymentLegs.reduce((s, l) => s + (l.amount || 0), 0),
+    [paymentLegs]
+  );
+
+  /** Remaining amount not yet allocated across legs */
+  const legRemaining = useMemo(
+    () => parseFloat(Math.max(0, totals.finalTotal - legSum).toFixed(decimalPlaces)),
+    [totals.finalTotal, legSum, decimalPlaces]
+  );
+
+  /** Whether the multi-leg section has a valid sum matching the total */
+  const legsValid = useMemo(
+    () => Math.abs(legSum - totals.finalTotal) <= 0.001,
+    [legSum, totals.finalTotal]
+  );
+
+  /** Immediate-only payment method codes allowed as split-payment legs */
+  const IMMEDIATE_METHOD_CODES = [
+    PAYMENT_METHODS.CASH,
+    PAYMENT_METHODS.CARD,
+    PAYMENT_METHODS.CHECK,
+    PAYMENT_METHODS.BANK_TRANSFER,
+    PAYMENT_METHODS.MOBILE_PAYMENT,
+  ] as const;
+
+  /** True when multi-leg mode is active (more than one leg or leg differs from primary method) */
+  const isMultiLeg = isImmediatePayment && paymentLegs.length > 1;
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -704,8 +757,22 @@ export function PaymentModalEnhanced02({
       giftCardId: appliedGiftCard ? giftCardDetails?.id : undefined,
     } as PaymentFormData;
 
+    // Client-side validation for multi-leg mode
+    if (isImmediatePayment && paymentLegs.length > 1) {
+      if (!legsValid) {
+        cmxMessage.error(t('splitPayment.validation.sumMismatch'));
+        return;
+      }
+      for (const leg of paymentLegs) {
+        if (!leg.amount || leg.amount <= 0) {
+          cmxMessage.error(t('splitPayment.validation.amountMustBePositive'));
+          return;
+        }
+      }
+    }
+
     const payload = {
-      amountToCharge: effectiveAmountToCharge,
+      amountToCharge: isMultiLeg ? legSum : effectiveAmountToCharge,
       totals: {
         subtotal: totals.subtotal,
         manualDiscount: totals.manualDiscount,
@@ -723,6 +790,8 @@ export function PaymentModalEnhanced02({
         currencyExRate: currencyConfig.currencyExRate,
       }),
       creditLimitOverride: creditLimitOverride || undefined,
+      // Include legs only for actual multi-leg payment (>1 leg)
+      ...(isMultiLeg && { paymentLegs }),
     };
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
     if (!parsed.success) {
@@ -730,7 +799,7 @@ export function PaymentModalEnhanced02({
       cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
       return;
     }
-    if (isImmediatePayment && effectiveAmountToCharge <= 0) {
+    if (isImmediatePayment && (isMultiLeg ? legSum : effectiveAmountToCharge) <= 0) {
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
@@ -1052,6 +1121,113 @@ export function PaymentModalEnhanced02({
                     )}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Split Payment Legs — visible only for immediate payment methods */}
+            {isImmediatePayment && (
+              <div className={`bg-blue-50 p-3 rounded-lg border border-blue-200 space-y-3 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <h3 className="font-semibold text-gray-900 text-sm">{t('splitPayment.title')}</h3>
+                  {paymentLegs.length > 1 && (
+                    <span className={`text-xs font-medium ${legsValid ? 'text-green-700' : 'text-amber-700'}`}>
+                      {t('splitPayment.remaining')}: {currencyCode} {formatAmount(legRemaining)}
+                    </span>
+                  )}
+                </div>
+
+                {/* Leg rows */}
+                {paymentLegs.map((leg, idx) => (
+                  <div key={`${legIdPrefix}-leg-${idx}`} className={`flex gap-2 items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
+                    {/* Method selector */}
+                    <select
+                      value={leg.method}
+                      onChange={(e) => {
+                        const updated = [...paymentLegs];
+                        updated[idx] = { ...updated[idx], method: e.target.value as PaymentMethodCode };
+                        setPaymentLegs(updated);
+                      }}
+                      className="flex-shrink-0 w-36 px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white"
+                      aria-label={t('splitPayment.method')}
+                    >
+                      {IMMEDIATE_METHOD_CODES.map((code) => (
+                        <option key={code} value={code}>
+                          {getPaymentLabel(code)}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* Amount input */}
+                    <div className="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                      <span className={`px-2 text-gray-500 text-sm bg-gray-50 ${isRTL ? 'order-2' : ''}`}>{currencyCode}</span>
+                      <input
+                        type="number"
+                        min={0}
+                        step={Math.pow(10, -decimalPlaces)}
+                        value={leg.amount > 0 ? leg.amount : ''}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          const updated = [...paymentLegs];
+                          updated[idx] = { ...updated[idx], amount: Number.isFinite(val) ? Math.max(0, val) : 0 };
+                          setPaymentLegs(updated);
+                        }}
+                        placeholder={formatAmount(0)}
+                        dir="ltr"
+                        className="flex-1 min-w-0 px-3 py-2 text-sm border-0 focus:ring-0"
+                        aria-label={t('splitPayment.amount')}
+                      />
+                    </div>
+
+                    {/* Check fields for this leg */}
+                    {leg.method === PAYMENT_METHODS.CHECK && (
+                      <input
+                        type="text"
+                        dir="ltr"
+                        value={leg.checkNumber ?? ''}
+                        onChange={(e) => {
+                          const updated = [...paymentLegs];
+                          updated[idx] = { ...updated[idx], checkNumber: e.target.value };
+                          setPaymentLegs(updated);
+                        }}
+                        placeholder={t('checkNumber.placeholder')}
+                        className="w-28 px-2 py-2 text-sm border border-gray-300 rounded-lg"
+                        aria-label={t('checkNumber.label')}
+                      />
+                    )}
+
+                    {/* Remove button (only when >1 legs) */}
+                    {paymentLegs.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => setPaymentLegs((prev) => prev.filter((_, i) => i !== idx))}
+                        className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
+                        aria-label={t('splitPayment.remove')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Remaining indicator when multiple legs */}
+                {paymentLegs.length > 1 && !legsValid && (
+                  <p className={`text-xs font-medium text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                    {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(totals.finalTotal - legSum))})
+                  </p>
+                )}
+
+                {/* Add another method */}
+                <button
+                  type="button"
+                  onClick={() => setPaymentLegs((prev) => [
+                    ...prev,
+                    { method: PAYMENT_METHODS.CASH as PaymentMethodCode, amount: parseFloat(legRemaining.toFixed(decimalPlaces)) },
+                  ])}
+                  className={`flex items-center gap-1.5 text-sm text-blue-600 font-medium hover:underline ${isRTL ? 'flex-row-reverse' : ''}`}
+                >
+                  <PlusCircle className="w-4 h-4" />
+                  {t('splitPayment.addMethod')}
+                </button>
               </div>
             )}
 
@@ -1616,8 +1792,9 @@ export function PaymentModalEnhanced02({
               disabled={
                 loading ||
                 totalsLoading ||
-                (paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim()) ||
-                (payPartial && isImmediatePayment && effectiveAmountToCharge <= 0) ||
+                (paymentMethod === PAYMENT_METHODS.CHECK && !isMultiLeg && !watch('checkNumber')?.trim()) ||
+                (payPartial && isImmediatePayment && !isMultiLeg && effectiveAmountToCharge <= 0) ||
+                (isMultiLeg && !legsValid) ||
                 (serverTotals?.creditLimit?.wouldExceed &&
                   (serverTotals.creditLimit.mode !== 'warn' || !creditLimitOverride))
               }
@@ -1632,7 +1809,7 @@ export function PaymentModalEnhanced02({
                 submitButtonLabel
               )}
             </button>
-            {paymentMethod === PAYMENT_METHODS.CHECK && !watch('checkNumber')?.trim() && (
+            {paymentMethod === PAYMENT_METHODS.CHECK && !isMultiLeg && !watch('checkNumber')?.trim() && (
               <p className={`text-xs text-center text-red-600 ${isRTL ? 'text-right' : 'text-left'}`}>
                 {t('checkNumber.required')}
               </p>

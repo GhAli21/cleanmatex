@@ -214,17 +214,32 @@ export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manage
 
 The `roles` array in `navigation.ts` and the `roles` JSONB column in `sys_components_cd` must list the **same set of role codes**. Drift between them causes the sidebar to show/hide items inconsistently with the DB-driven RBAC. Always update both in the same change.
 
+### Label rendering architecture — how labels reach the sidebar
+
+The sidebar (`cmx-sidebar.tsx`) resolves each nav item's display label through three priority levels:
+
+| Priority | Source | When active |
+|---|---|---|
+| 1 | DB `label2` (Arabic) | RTL locale + `label2` is non-empty |
+| 2 | DB `label` (English) | `label` is a real value, not just the `comp_code` echoed as fallback |
+| 3 | `NAV_TRANSLATION_KEY_MAP` → `messages/en.json` / `messages/ar.json` | **super_admin / tenant_admin only** — they receive hardcoded `NAVIGATION_SECTIONS` (no DB row query), so `label2` is absent and i18n is the only bilingual source |
+
+**Consequence for renaming:** a label change must update **both** the DB (`label` + `label2`) **and** the i18n files (`en.json` + `ar.json`) to be visible to all roles. DB-only changes are invisible to super_admin/tenant_admin; i18n-only changes are invisible to all other roles.
+
 ### Structure
 
-- **NavigationSection** (parent): `key`, `label`, `icon`, `path`, `roles`, `permissions`, `featureFlag`, `children`
-- **NavigationItem** (child): `key`, `label`, `path`, `roles`, `permissions`, `featureFlag`
+- **NavigationSection** (parent): `key`, `label`, `label2?`, `icon`, `path`, `roles`, `permissions`, `featureFlag`, `children`
+- **NavigationItem** (child): `key`, `label`, `label2?`, `path`, `roles`, `permissions`, `featureFlag`
+
+`label2` is populated from `sys_components_cd.label2` and flows through the API response and the client hook automatically. It is absent on hardcoded fallback items.
 
 ### Mapping from sys_components_cd
 
 | sys_components_cd | navigation.ts |
 |------------------|---------------|
 | `comp_code` | `key` |
-| `label` | `label` |
+| `label` | `label` (EN) |
+| `label2` | `label2` (AR) — optional, populated for DB-sourced items |
 | `comp_path` | `path` |
 | `roles` (JSONB array) | `roles` (e.g. `['admin','super_admin','tenant_admin','operator']`) |
 | `main_permission_code` | `permissions` (e.g. `['config:preferences_manage']`) |
@@ -247,7 +262,7 @@ The `roles` array in `navigation.ts` and the `roles` JSONB column in `sys_compon
    ```
 3. **New top-level section** — Add a new object to `NAVIGATION_SECTIONS` with `icon` (import from `lucide-react`), `path`, `roles`, and optionally `children`.
 4. **Display order** — Insert the new item in the correct position among siblings (same order as `display_order` in sys_components_cd).
-5. **i18n** — Prefer translation keys for labels; if using hardcoded labels, add keys to `messages/en.json` and `messages/ar.json` and use `t('catalog.customerCategories')` etc. where applicable.
+5. **i18n** — The DB `label`/`label2` columns are the primary label source for all roles except `super_admin`/`tenant_admin`. For complete bilingual coverage across all roles, **also** add the translation key to `messages/en.json` and `messages/ar.json` and register it in `NAV_TRANSLATION_KEY_MAP` inside `cmx-sidebar.tsx`. Without this, super_admin/tenant_admin (who use the hardcoded fallback path) will not see the correct label or Arabic translation.
 
 ### Example (child under catalog)
 

@@ -6,6 +6,12 @@ import { useLocale } from '@/lib/hooks/useLocale';
 import type { VoucherData } from '@/lib/types/voucher';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import type {
+  OrderChargeRow,
+  OrderTaxRow,
+  OrderPaymentRow,
+  OrderDiscountRow,
+} from '@/app/actions/orders/get-order-financial';
 
 export interface BillingReceiptVoucherPrintRprtData {
   voucher: VoucherData;
@@ -31,6 +37,12 @@ export interface BillingReceiptVoucherPrintRprtData {
     name: string;
     phone?: string | null;
     address?: string | null;
+  };
+  financial?: {
+    charges: OrderChargeRow[];
+    taxes: OrderTaxRow[];
+    discounts: OrderDiscountRow[];
+    paymentLegs: OrderPaymentRow[];
   };
 }
 
@@ -59,7 +71,7 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
   const { currencyCode: tenantCurrency, decimalPlaces } = useTenantCurrency();
   const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
-  const { voucher, payment, invoice, order, customer, tenant } = data;
+  const { voucher, payment, invoice, order, customer, tenant, financial } = data;
   const voucherCurrency = (voucher.currency_code?.trim() || tenantCurrency) as string;
 
   return (
@@ -155,6 +167,74 @@ export function BillingReceiptVoucherPrintRprt({ data }: BillingReceiptVoucherPr
           </div>
         </div>
       </section>
+
+      {/* Charges breakdown */}
+      {financial && financial.charges.length > 0 && (
+        <section className="print-section">
+          <h2>{tBilling('receiptVoucher.charges')}</h2>
+          <div className="space-y-1">
+            {financial.charges.map((c) => (
+              <div key={c.id} className="flex justify-between print-row">
+                <span>{c.label || c.charge_type}</span>
+                <span className="tabular-nums">
+                  {formatMoneyAmountWithCode(c.amount, { currencyCode: c.currency_code || voucherCurrency, decimalPlaces, locale: moneyLocale })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Discounts / credits applied */}
+      {financial && financial.discounts.length > 0 && (
+        <section className="print-section">
+          <h2>{tBilling('receiptVoucher.discounts')}</h2>
+          <div className="space-y-1">
+            {financial.discounts.map((d) => (
+              <div key={d.id} className="flex justify-between print-row text-green-700">
+                <span>{d.source_name || d.source_type}</span>
+                <span className="tabular-nums">
+                  −{formatMoneyAmountWithCode(d.discount_amount, { currencyCode: voucherCurrency, decimalPlaces, locale: moneyLocale })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Tax breakdown */}
+      {financial && financial.taxes.length > 0 && (
+        <section className="print-section">
+          <h2>{tBilling('receiptVoucher.taxes')}</h2>
+          <div className="space-y-1">
+            {financial.taxes.map((t) => (
+              <div key={t.id} className="flex justify-between print-row">
+                <span>{t.label} ({t.rate}%)</span>
+                <span className="tabular-nums">
+                  {formatMoneyAmountWithCode(t.tax_amount, { currencyCode: t.currency_code || voucherCurrency, decimalPlaces, locale: moneyLocale })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Multi-leg payment breakdown */}
+      {financial && financial.paymentLegs.length > 1 && (
+        <section className="print-section">
+          <h2>{tBilling('receiptVoucher.paymentBreakdown')}</h2>
+          <div className="space-y-1">
+            {financial.paymentLegs.map((leg) => (
+              <div key={leg.id} className="flex justify-between print-row">
+                <span>{leg.payment_method_code || '—'}</span>
+                <span className="tabular-nums">
+                  {formatMoneyAmountWithCode(leg.amount, { currencyCode: voucherCurrency, decimalPlaces, locale: moneyLocale })}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Payment Details */}
       {payment && (

@@ -151,7 +151,7 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
         </CmxButton>
       </div>
 
-      <CmxDataTable columns={columns} data={methods} rowKey="id" />
+      <CmxDataTable columns={columns} data={methods} />
 
       <EnablePaymentMethodDialog
         open={showEnableDialog}

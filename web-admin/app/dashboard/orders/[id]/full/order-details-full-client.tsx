@@ -27,7 +27,14 @@ import { OrdersReceiptsTabRprt } from '@features/orders/ui/orders-receipts-tab-r
 import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
+import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
 import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
+import type {
+  OrderChargeRow,
+  OrderTaxRow,
+  OrderPaymentRow,
+  OrderRefundRow,
+} from '@/app/actions/orders/get-order-financial';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
@@ -38,7 +45,7 @@ import type { OrderItem } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
 
-const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts'] as const;
+const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -59,6 +66,12 @@ interface OrderDetailsFullClientProps {
   editHistory: OrderEditHistoryEntry[];
   orderPreferences: OrderPreferenceRow[];
   discountLines?: OrderDiscountLine[];
+  financialData?: {
+    charges: OrderChargeRow[];
+    taxes: OrderTaxRow[];
+    payments: OrderPaymentRow[];
+    refunds: OrderRefundRow[];
+  };
   /** Localized headers for org_order_preferences_dtl columns (Preferences tab) */
   orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   tenantOrgId: string;
@@ -102,6 +115,7 @@ export function OrderDetailsFullClient({
   editHistory,
   orderPreferences,
   discountLines = [],
+  financialData,
   orderPreferenceDtlColumnLabels,
   tenantOrgId,
   userId,
@@ -1184,6 +1198,18 @@ export function OrderDetailsFullClient({
         <div className="bg-white rounded-lg border border-gray-200 p-6">
           <OrdersReceiptsTabRprt receipts={receipts} translations={tabTranslations} />
         </div>
+      ),
+    },
+    {
+      id: 'financial',
+      label: t.tabsFinancial ?? 'Financial',
+      content: (
+        <OrdersFinancialTabRprt
+          charges={financialData?.charges ?? []}
+          taxes={financialData?.taxes ?? []}
+          payments={financialData?.payments ?? []}
+          refunds={financialData?.refunds ?? []}
+        />
       ),
     },
   ];

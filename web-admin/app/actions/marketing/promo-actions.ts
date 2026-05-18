@@ -1,7 +1,7 @@
 /**
  * Server Actions: Promo Codes
  *
- * CRUD operations for org_promo_codes_mst. All actions resolve tenant from
+ * CRUD operations for org_promotions_mst. All actions resolve tenant from
  * session and filter by tenant_org_id — never expose cross-tenant data.
  */
 
@@ -82,7 +82,7 @@ export async function listPromoCodes(params: {
 
     return withTenantContext(tenantId, async () => {
       // Build where clause — always filter by tenant_org_id.
-      const where: Parameters<typeof prisma.org_promo_codes_mst.findMany>[0]['where'] = {
+      const where: Parameters<typeof prisma.org_promotions_mst.findMany>[0]['where'] = {
         tenant_org_id: tenantId,
         is_active: true,
       };
@@ -107,13 +107,13 @@ export async function listPromoCodes(params: {
       }
 
       const [rows, total] = await Promise.all([
-        prisma.org_promo_codes_mst.findMany({
+        prisma.org_promotions_mst.findMany({
           where,
           orderBy: { created_at: 'desc' },
           skip,
           take: limit,
         }),
-        prisma.org_promo_codes_mst.count({ where }),
+        prisma.org_promotions_mst.count({ where }),
       ]);
 
       const data: PromoCode[] = rows.map((row) => ({
@@ -176,7 +176,7 @@ export async function createPromoCode(
 
     return withTenantContext(tenantId, async () => {
       // Enforce uniqueness per tenant.
-      const existing = await prisma.org_promo_codes_mst.findFirst({
+      const existing = await prisma.org_promotions_mst.findFirst({
         where: {
           tenant_org_id: tenantId,
           promo_code: parsed.data.promo_code.toUpperCase(),
@@ -188,7 +188,7 @@ export async function createPromoCode(
         return { success: false, error: 'Promo code already exists for this tenant' };
       }
 
-      const row = await prisma.org_promo_codes_mst.create({
+      const row = await prisma.org_promotions_mst.create({
         data: {
           tenant_org_id: tenantId,
           promo_code: parsed.data.promo_code.toUpperCase(),
@@ -271,14 +271,14 @@ export async function updatePromoCode(
     const { tenantId, userId } = auth;
 
     return withTenantContext(tenantId, async () => {
-      const existing = await prisma.org_promo_codes_mst.findFirst({
+      const existing = await prisma.org_promotions_mst.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
       });
       if (!existing) {
         return { success: false, error: 'Promo code not found' };
       }
 
-      const row = await prisma.org_promo_codes_mst.update({
+      const row = await prisma.org_promotions_mst.update({
         where: { id },
         data: {
           ...(input.promo_name != null && { promo_name: input.promo_name }),
@@ -357,7 +357,7 @@ export async function archivePromoCode(
     const { tenantId, userId } = auth;
 
     return withTenantContext(tenantId, async () => {
-      const existing = await prisma.org_promo_codes_mst.findFirst({
+      const existing = await prisma.org_promotions_mst.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
         select: { id: true },
       });
@@ -365,7 +365,7 @@ export async function archivePromoCode(
         return { success: false, error: 'Promo code not found' };
       }
 
-      await prisma.org_promo_codes_mst.update({
+      await prisma.org_promotions_mst.update({
         where: { id },
         data: { is_active: false, updated_at: new Date(), updated_by: userId ?? undefined },
       });
@@ -398,7 +398,7 @@ export async function getPromoCodeUsageAction(
 
     return withTenantContext(tenantId, async () => {
       // Verify ownership before returning usage logs.
-      const owner = await prisma.org_promo_codes_mst.findFirst({
+      const owner = await prisma.org_promotions_mst.findFirst({
         where: { id: promoCodeId, tenant_org_id: tenantId },
         select: { id: true },
       });

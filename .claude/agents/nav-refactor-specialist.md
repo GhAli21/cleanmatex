@@ -89,7 +89,7 @@ Changes:
   Permissions:  customers:read (existing) — confirm in sys_auth_permissions
 ```
 
-### Step 3 — Update navigation.ts
+### Step 3 — Update navigation.ts + i18n files
 
 Apply all changes per the `/refactor-nav-section` Phase 2 checklist:
 
@@ -98,6 +98,14 @@ Apply all changes per the `/refactor-nav-section` Phase 2 checklist:
 - First child carries the original `path`
 - Update `roles[]` on parent and all children
 - Check `UserRole` type — add any new role codes
+
+**Also update i18n files for every label rename** (required for super_admin/tenant_admin, who use the hardcoded fallback path and never receive DB labels):
+
+1. `web-admin/messages/en.json` → find the `navigation` block, update the key's value to the new EN label
+2. `web-admin/messages/ar.json` → find the `navigation` block, update the key's value to the new AR label
+3. `cmx-sidebar.tsx` `NAV_TRANSLATION_KEY_MAP` → confirm the `key` → translation-key mapping exists (add if the nav item is new)
+
+Run `npm run check:i18n` after to confirm en.json and ar.json remain in parity.
 
 ### Step 4 — Write DB migration
 
@@ -121,6 +129,9 @@ Use templates from `/navigation` SKILL.md exactly — including all bilingual co
 Before calling the build, verify all items in the `/refactor-nav-section` Phase 4 checklist:
 - `roles[]` in `navigation.ts` === `roles` JSONB in migration
 - `key` === `comp_code`, `path` === `comp_path`, `label` === `label` (EN)
+- `label2` (AR) set in DB INSERT — never NULL
+- `messages/en.json` and `messages/ar.json` updated for every renamed label
+- `NAV_TRANSLATION_KEY_MAP` in `cmx-sidebar.tsx` has an entry for the key
 - `parent_comp_id` resolution UPDATE present
 - `is_leaf = false` UPDATE present
 
@@ -153,11 +164,14 @@ Output a concise summary:
 ```
 ## Nav Refactor Complete — Customer Management
 
-### navigation.ts
+### navigation.ts + i18n
 - Label: "Customers" → "Customer Management"
 - Converted: flat leaf → expandable section
 - Children added: customers_list (/dashboard/customers)
 - Roles updated: added branch_manager, viewer
+- messages/en.json `navigation.customers`: "Customer Management"
+- messages/ar.json `navigation.customers`: "إدارة العملاء"
+- NAV_TRANSLATION_KEY_MAP: customers → 'customers' (confirmed present)
 
 ### Migration: 0275_nav_customer_management_section.sql
 - sys_auth_permissions: 10 customer permissions (ON CONFLICT DO NOTHING)
@@ -182,5 +196,7 @@ Output a concise summary:
 - Do NOT delete nav entries without explicit user confirmation + a separate delete script
 - Do NOT use `ON CONFLICT DO NOTHING` on `sys_auth_role_default_permissions`
 - Do NOT leave `label2`, `description`, or `description2` as NULL
+- Do NOT rename a label in only one place — DB-only renames are invisible to super_admin/tenant_admin; i18n-only renames are invisible to all other roles. Both must be updated together.
+- Do NOT skip `npm run check:i18n` after editing translation files
 - Do NOT skip the `npm run build` step
 - Do NOT report done before verifying `roles[]` ↔ JSONB parity

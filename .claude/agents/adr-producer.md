@@ -214,6 +214,10 @@ Chosen option: **[Option X]**
    - Include all sections from template
    - Be specific and actionable
    - Reference relevant documentation
+   - **Save the ADR to: `docs/features/{feature_name}/technical_docs/ADR-XXX-{short_title}.md`**
+     - If the feature folder or `technical_docs/` subfolder does not exist, create them
+     - Never save ADRs to `docs/dev/`, `docs/api/`, `docs/plan/`, or any other top-level folder
+     - Increment `XXX` from the last ADR number in that feature's `technical_docs/` folder
 
 5. **Set Status**
    - If all constraints satisfied: READY_FOR_BUILD

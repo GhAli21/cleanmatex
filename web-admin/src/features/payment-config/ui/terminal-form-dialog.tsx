@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -27,7 +27,7 @@ export function TerminalFormDialog({ terminal, open, onClose, onSuccess }: Termi
   const isEdit = !!terminal;
 
   const form = useForm<CreateTerminalFormValues>({
-    resolver: zodResolver(isEdit ? updateTerminalSchema : createTerminalSchema),
+    resolver: zodResolver(isEdit ? updateTerminalSchema : createTerminalSchema) as Resolver<CreateTerminalFormValues>,
     defaultValues: terminal ? {
       terminal_name: terminal.terminal_name,
       terminal_name2: terminal.terminal_name2 ?? '',

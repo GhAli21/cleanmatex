@@ -37,6 +37,29 @@ const paymentMethodCodeSchema = z.enum([
 ]);
 
 // ---------------------------------------------------------------------------
+// Payment leg (one leg in a multi-leg split payment)
+// ---------------------------------------------------------------------------
+
+/**
+ * A single payment leg in a split-payment flow.
+ * Only immediate methods are allowed as legs (deferred methods must be the sole leg).
+ */
+export const paymentLegSchema = z.object({
+  /** Payment method code for this leg (must match paymentMethodCodeSchema) */
+  method: paymentMethodCodeSchema,
+  /** Positive amount for this leg */
+  amount: z.number().positive(),
+  /** Check number — required when method is CHECK */
+  checkNumber: z.string().optional(),
+  /** Issuing bank for check payments */
+  checkBank: z.string().optional(),
+  /** Check date (ISO date string) */
+  checkDate: z.string().optional(),
+});
+
+export type PaymentLeg = z.infer<typeof paymentLegSchema>;
+
+// ---------------------------------------------------------------------------
 // Extended payload (modal → submission hook)
 // ---------------------------------------------------------------------------
 
@@ -63,6 +86,8 @@ export const newOrderPaymentPayloadSchema = z
     currencyExRate: z.number().min(0).optional(),
     /** B2B: When true, admin overrides credit limit (warn mode). Passed to create-with-payment. */
     creditLimitOverride: z.boolean().optional(),
+    /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal finalTotal. */
+    paymentLegs: z.array(paymentLegSchema).optional(),
   })
   .refine(
     (data) => data.amountToCharge <= data.totals.finalTotal + 0.001,
@@ -213,6 +238,11 @@ export const createWithPaymentRequestSchema = z.object({
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),
+  /**
+   * Split-payment legs. When provided and non-empty, the route processes each leg individually.
+   * Omit (or pass undefined) for single-leg behaviour (backward-compatible).
+   */
+  paymentLegs: z.array(paymentLegSchema).min(1).optional(),
 });
 
 export type CreateWithPaymentRequest = z.infer<typeof createWithPaymentRequestSchema>;

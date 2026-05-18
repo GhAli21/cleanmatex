@@ -1,7 +1,13 @@
 /**
  * Payment Constants — Single source of truth for payment kinds and method codes.
  * Used by lib/types/payment.ts and lib/constants/order-types.ts.
+ *
+ * For new financial platform constants (charge types, tax types, credit application
+ * types, loyalty, outbox, reconciliation) see lib/constants/order-financial.ts.
  */
+
+export { LOYALTY_TXN_TYPES } from '@/lib/constants/order-financial';
+export type { LoyaltyTxnType } from '@/lib/constants/order-financial';
 
 /**
  * Payment Kind IDs (invoice, deposit, advance, pos, normal)
@@ -19,19 +25,19 @@ export type PaymentKind = (typeof PAYMENT_KINDS)[keyof typeof PAYMENT_KINDS];
 /**
  * Payment Method Codes (DB/API codes)
  */
+// GIFT_CARD is a CREDIT_APPLICATION type, not a payment method — see CREDIT_APPLICATION_TYPES in order-financial.ts
+// PROMO_CODE is a discount source, never a settlement option — removed to prevent misuse
 export const PAYMENT_METHODS = {
-  CASH: 'CASH',
-  CARD: 'CARD',
-  CHECK: 'CHECK',
-  INVOICE: 'INVOICE',
+  CASH:           'CASH',
+  CARD:           'CARD',
+  CHECK:          'CHECK',
+  INVOICE:        'INVOICE',
   PAY_ON_COLLECTION: 'PAY_ON_COLLECTION',
-  BANK_TRANSFER: 'BANK_TRANSFER',
+  BANK_TRANSFER:  'BANK_TRANSFER',
   MOBILE_PAYMENT: 'MOBILE_PAYMENT',
-  GIFT_CARD: 'GIFT_CARD',
-  PROMO_CODE: 'PROMO_CODE',
-  HYPERPAY: 'HYPERPAY',
-  PAYTABS: 'PAYTABS',
-  STRIPE: 'STRIPE',
+  HYPERPAY:       'HYPERPAY',
+  PAYTABS:        'PAYTABS',
+  STRIPE:         'STRIPE',
 } as const;
 
 export type PaymentMethodCode = (typeof PAYMENT_METHODS)[keyof typeof PAYMENT_METHODS];
