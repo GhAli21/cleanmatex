@@ -101,7 +101,7 @@ npm run build                      # Build (run after changes)
 - Max 30 chars for all DB objects
 - **NEVER modify existing migration files** — always create a NEW migration
 - **Migrations: always use last seq** — list `supabase/migrations/`, take next version (e.g. after `0082` use `0083`), name `{version}_{descriptive_snake_case}.sql`
-- **DROP ... CASCADE** — before adding DROP CASCADE, fetch affected objects (RLS policies, views, triggers), prepare recreate statements, include them in the same migration. See `docs/dev/drop-cascade-migration-workflow.md`
+- **DROP ... CASCADE is BANNED by default** — always use `DROP ... RESTRICT`. CASCADE is only allowed when: (1) no safer alternative exists, (2) a full dependency manifest has been produced, (3) recreate statements + rollback strategy are in the same migration. STOP and get user confirmation before writing any CASCADE migration. See `docs/dev/drop-cascade-migration-workflow.md`
 - Audit fields: `created_at/_by/_info`, `updated_at/_by/_info`
 - Bilingual: `name/name2`, `description/description2`
 - Soft delete: `is_active=false`, `rec_status=0`
@@ -250,7 +250,7 @@ docs/         # All documentation
 - Local: `supabase_local MCP`
 - Remote: `supabase_remote MCP`
 - MCP allowed for **read-only discovery queries only** (e.g. finding affected objects before DROP CASCADE)
-- **DROP ... CASCADE:** Use MCP read queries to discover affected objects, include recreate statements in the migration file. See `docs/dev/drop-cascade-migration-workflow.md`
+- **DROP ... CASCADE is BANNED by default** — use `DROP ... RESTRICT`. If CASCADE is unavoidable: STOP, get user confirmation, run discovery queries via MCP to produce the dependency manifest, then include recreate statements in the same migration. See `docs/dev/drop-cascade-migration-workflow.md`
 
 # CleanMateX Repository Additional Rules - from chatgpt
 

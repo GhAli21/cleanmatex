@@ -1,3 +1,20 @@
+# ⛔ HARD STOP — READ BEFORE ANYTHING ELSE
+
+**Before writing ANY code, SQL, migration, component, route, or translation — load the relevant skill first. No exceptions. The rule is at line 48. This is not optional.**
+
+| Writing... | Load first |
+|---|---|
+| SQL / migration / function | `/database` |
+| Frontend / component / JSX | `/frontend` |
+| i18n / translation | `/i18n` |
+| API route / service / backend | `/backend` |
+| Any `org_*` table query | `/multitenancy` |
+| New feature | `/implementation` |
+
+**If the skill is not loaded — do not write. Load it, then write.**
+
+---
+
 # CLAUDE.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)

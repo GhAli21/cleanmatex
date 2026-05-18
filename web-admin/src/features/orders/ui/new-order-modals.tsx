@@ -47,7 +47,7 @@ const CustomerEditModal = dynamic(
 );
 
 const PaymentModalEnhanced02 = dynamic(
-  () => import('@features/orders/ui/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
+  () => import('@features/orders/ui/payment-modal-v3').then(mod => ({ default: mod.PaymentModalV3 })),
   {
     ssr: false,
     loading: () => null
