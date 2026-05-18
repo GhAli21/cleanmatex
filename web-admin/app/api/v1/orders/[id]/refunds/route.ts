@@ -4,13 +4,13 @@ import { getOrderRefunds } from '@/lib/services/order-refund.service';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('orders:view_financial_breakdown')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
 
   try {
     const refunds = await getOrderRefunds(tenantId, orderId);

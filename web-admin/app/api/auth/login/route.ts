@@ -18,6 +18,8 @@ import {
 import { logger } from '@/lib/utils/logger';
 
 export async function POST(request: NextRequest) {
+  const t0 = Date.now();
+  console.log('[LOGIN] ▶ start');
   try {
     // CSRF validation
     const headerToken = getCSRFTokenFromHeader(request.headers);
@@ -30,7 +32,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Apply rate limiting
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ checkLoginRateLimit`);
     const rateLimitResponse = await checkLoginRateLimit(request);
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ checkLoginRateLimit done`);
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -49,9 +53,11 @@ export async function POST(request: NextRequest) {
 
     // Check if account is locked
     try {
+      console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ is_account_locked`);
       const { data: lockStatus, error: lockError } = await supabase.rpc('is_account_locked', {
         p_email: email,
       });
+      console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ is_account_locked done — ${lockStatus?.length ?? 0} row(s)`);
 
       if (!lockError && lockStatus && lockStatus.length > 0 && lockStatus[0].is_locked) {
         const lockedUntil = new Date(lockStatus[0].locked_until);
@@ -77,22 +83,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Attempt login
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ signInWithPassword`);
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    console.log(`[LOGIN supabase.auth.signInWithPassword] [${Date.now() - t0}ms] ✓ signInWithPassword done`);
 
     if (error) {
-      // Record failed login attempt
-      await supabase.rpc('record_login_attempt', {
-        p_email: email,
-        p_success: false,
-        p_ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-        p_user_agent: request.headers.get('user-agent') || null,
-        p_error_message: error.message,
-      });
-
-      // Check if account was just locked
+      // Record failed login attempt and check if account is now locked
+      console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ record_login_attempt (failed)`);
       const { data: loginResult } = await supabase.rpc('record_login_attempt', {
         p_email: email,
         p_success: false,
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
         p_user_agent: request.headers.get('user-agent') || null,
         p_error_message: error.message,
       });
+      console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt (failed) done — ${loginResult?.length ?? 0} row(s)`);
 
       if (loginResult && loginResult.length > 0 && loginResult[0].is_locked) {
         const lockedUntil = new Date(loginResult[0].locked_until);
@@ -119,42 +120,52 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Record successful login attempt
-    await supabase.rpc('record_login_attempt', {
-      p_email: email,
-      p_success: true,
-      p_ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null,
-      p_user_agent: request.headers.get('user-agent') || null,
-      p_error_message: undefined,
-    });
+    // Parallel: record successful login + fetch tenants (both are independent of each other)
+    const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || null;
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ record_login_attempt (success) + get_user_tenants [parallel]`);
+    const [, tenantsResult] = await Promise.all([
+      supabase.rpc('record_login_attempt', {
+        p_email: email,
+        p_success: true,
+        p_ip_address: ipAddress,
+        p_user_agent: request.headers.get('user-agent') || null,
+        p_error_message: undefined,
+      }),
+      supabase.rpc('get_user_tenants'),
+    ]);
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ record_login_attempt + get_user_tenants done — tenants: ${tenantsResult.data?.length ?? 0} row(s)`);
 
-    // Ensure tenant context is in JWT metadata
-    try {
-      // Get user's active tenant
-      const { data: tenants, error: tenantsError } = await supabase.rpc('get_user_tenants');
+    const tenants = tenantsResult.data ?? [];
+    const activeTenant = tenants.find((t: { is_active: boolean }) => t.is_active) ?? tenants[0];
 
-      // Block login if the user has no active tenant membership
-      if (!tenantsError && (!tenants || tenants.length === 0 || !tenants[0].is_active)) {
-        // Sign the user back out so no session cookie is retained
-        await supabase.auth.signOut();
-        return NextResponse.json(
-          { error: 'Your account has been deactivated. Please contact your administrator.' },
-          { status: 403 }
-        );
+    // Block login if the user has no active tenant membership
+    if (!tenantsResult.error && (!tenants.length || !activeTenant?.is_active)) {
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { error: 'Your account has been deactivated. Please contact your administrator.' },
+        { status: 403 }
+      );
+    }
+
+    // Ensure tenant context in JWT only if it differs (avoids getUser + updateUser round-trips)
+    if (!tenantsResult.error && activeTenant) {
+      if (data.user.user_metadata?.tenant_org_id !== activeTenant.tenant_id) {
+        console.log(`[LOGIN] [${Date.now() - t0}ms] ▶ ensureTenantInUserMetadata`);
+        try {
+          await ensureTenantInUserMetadata(data.user.id, activeTenant.tenant_id);
+          console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ ensureTenantInUserMetadata done`);
+        } catch (metadataError) {
+          console.log(`[LOGIN] [${Date.now() - t0}ms] ✗ ensureTenantInUserMetadata failed`);
+          logger.warn('Failed to ensure tenant in user metadata', {
+            feature: 'auth',
+            action: 'login',
+            userId: data.user.id,
+            error: metadataError instanceof Error ? metadataError.message : String(metadataError),
+          });
+        }
+      } else {
+        console.log(`[LOGIN] [${Date.now() - t0}ms] ⏭ ensureTenantInUserMetadata skipped (JWT already correct)`);
       }
-
-      if (!tenantsError && tenants && tenants.length > 0) {
-        const activeTenantId = tenants[0].tenant_id;
-        await ensureTenantInUserMetadata(data.user.id, activeTenantId);
-      }
-    } catch (metadataError) {
-      // Log but don't fail login if metadata update fails
-      logger.warn('Failed to ensure tenant in user metadata', {
-        feature: 'auth',
-        action: 'login',
-        userId: data.user.id,
-        error: metadataError instanceof Error ? metadataError.message : String(metadataError),
-      });
     }
 
     // Set sb-remember-me so proxy/server/browser respect session vs persistent cookies
@@ -167,10 +178,12 @@ export async function POST(request: NextRequest) {
       ...(rememberMe ? { maxAge: 60 * 60 * 24 } : {}),
     });
 
-    // Return session data
+    console.log(`[LOGIN] [${Date.now() - t0}ms] ✓ done — returning response`);
+    // Return session + tenants so client can skip a redundant get_user_tenants call
     return NextResponse.json({
       user: data.user,
       session: data.session,
+      tenants,
     });
   } catch (error) {
     logger.error('Login API error', error as Error, {

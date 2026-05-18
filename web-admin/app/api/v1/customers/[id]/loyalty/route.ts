@@ -4,13 +4,13 @@ import { getLoyaltyAccount, getCustomerTier } from '@/lib/services/loyalty.servi
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ customerId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('loyalty:view')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { customerId } = await params;
+  const { id: customerId } = await params;
 
   try {
     const account = await getLoyaltyAccount(tenantId, customerId);

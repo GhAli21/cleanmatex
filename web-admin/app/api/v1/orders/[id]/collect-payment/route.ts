@@ -17,7 +17,7 @@ const schema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
@@ -26,7 +26,7 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
   const body   = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });

@@ -209,11 +209,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (isLoggingInRef.current) {
       throw new Error('Login already in progress')
     }
-    
+
     isLoggingInRef.current = true
     setIsLoading(true)
+    const t0 = Date.now()
+    console.log('[LOGIN:client] ▶ start')
     try {
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ▶ getCSRFToken`)
       const csrfToken = await getCSRFToken()
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ getCSRFToken done`)
+
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ▶ POST /api/auth/login`)
       const loginResponse = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -222,6 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
         body: JSON.stringify({ email, password, remember_me: rememberMe }),
       })
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ POST /api/auth/login done — status: ${loginResponse.status}`)
 
       const loginData = await loginResponse.json()
 
@@ -238,17 +245,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(loginData.error || 'Invalid email or password')
       }
 
-      const { user: authUser, session: authSession } = loginData
+      const { user: authUser, session: authSession, tenants: rawTenants } = loginData
 
       if (!authUser || !authSession) {
         throw new Error('Invalid response from login API')
       }
 
       // Update Supabase client session
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ▶ supabase.auth.setSession`)
       await supabase.auth.setSession({
         access_token: authSession.access_token,
         refresh_token: authSession.refresh_token,
       })
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ supabase.auth.setSession done`)
 
       setUser(authUser as AuthUser)
       setSession({
@@ -259,11 +268,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         expires_in: authSession.expires_in ?? null,
       })
 
-      // Batch fetch all auth data after successful login
-      // This is more efficient than sequential calls
-      // Set a flag to prevent useEffect hooks from duplicating these calls
-      const authData = await fetchAuthData()
-      
+      // Transform tenants already returned by the login API (avoids a duplicate get_user_tenants call)
+      const prefetchedTenants: UserTenant[] = Array.isArray(rawTenants)
+        ? rawTenants.map((t: {
+            tenant_id: string
+            tenant_name: string
+            tenant_slug: string
+            user_role: string
+            is_active: boolean
+            last_login_at: string | null
+            s_current_plan?: string
+          }) => ({
+            tenant_id: t.tenant_id,
+            tenant_name: t.tenant_name,
+            tenant_slug: t.tenant_slug,
+            user_role: t.user_role as UserRole,
+            is_active: t.is_active,
+            last_login_at: t.last_login_at,
+            s_current_plan: t.s_current_plan ?? 'FREE_TRIAL',
+          }))
+        : []
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] tenants from login response: ${prefetchedTenants.length} row(s)`)
+
+      // Fetch permissions + workflow roles in parallel; skip tenant re-fetch when already available
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ▶ fetchAuthData (tenants prefetched: ${prefetchedTenants.length > 0})`)
+      const authData = await fetchAuthData(
+        prefetchedTenants.length > 0 ? { prefetchedTenants } : undefined
+      )
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ fetchAuthData done — permissions: ${authData.permissions.length}, workflowRoles: ${authData.workflowRoles.length}, tenants: ${authData.tenants.length}`)
+
       // Block inactive users — sign out immediately before touching any state
       const activeTenant = authData.tenants.find(t => t.is_active)
       if (!activeTenant) {
@@ -286,6 +319,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setIsTenantContextReady(true)
 
+      console.log(`[LOGIN:client] [${Date.now() - t0}ms] ✓ done — redirecting to /dashboard`)
       // Redirect after state is set
       router.push('/dashboard')
     } catch (error: unknown) {

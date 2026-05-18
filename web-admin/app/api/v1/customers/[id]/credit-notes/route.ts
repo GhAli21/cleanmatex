@@ -4,13 +4,13 @@ import { getCreditNotes } from '@/lib/services/stored-value.service';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ customerId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('stored_value:view')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { customerId } = await params;
+  const { id: customerId } = await params;
 
   try {
     const creditNotes = await getCreditNotes(tenantId, customerId);

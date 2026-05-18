@@ -127,7 +127,14 @@
       "Bash(node -e \"const ar = JSON.parse\\(require\\('fs'\\).readFileSync\\('./messages/ar.json','utf8'\\)\\); console.log\\(JSON.stringify\\(ar.newOrder?.payment?.summary, null, 2\\)\\)\")",
       "Bash(node -e \"const ar = JSON.parse\\(require\\('fs'\\).readFileSync\\('./messages/ar.json','utf8'\\)\\); const en = JSON.parse\\(require\\('fs'\\).readFileSync\\('./messages/en.json','utf8'\\)\\); console.log\\(JSON.stringify\\(ar.newOrder?.payment?.partialPayment, null, 2\\)\\); console.log\\('---'\\); console.log\\(JSON.stringify\\(en.newOrder?.payment?.partialPayment, null, 2\\)\\)\")",
       "Bash(node -e \"const {z} = require\\('zod'\\); console.log\\('schema file ok'\\)\")",
-      "Bash(npx ts-node -e ' *)"
+      "Bash(npx ts-node -e ' *)",
+      "PowerShell(Get-ChildItem -Path \"f:\\\\jhapp\\\\cleanmatex\\\\web-admin\\\\app\" -Recurse -Directory | Where-Object { $_.Name -match '^\\\\[' } | Select-Object -ExpandProperty FullName | Sort-Object)",
+      "Bash(awk -F/ '{OFS=\"/\"; NF--; print}')",
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[orderId]\")",
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/assembly/tasks/[orderId]\")",
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/public/orders/[orderNo]\")",
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/public/orders/[orderNo]\")",
+      "Bash(rm -rf \"F:/jhapp/cleanmatex/web-admin/app/api/v1/customers/[customerId]\")"
     ],
     "deny": [
       "Read(node_modules)",

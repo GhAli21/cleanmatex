@@ -37,17 +37,52 @@ async function fetchTenantsWithRetry(maxAttempts = 2) {
 }
 
 /**
- * Fetch all authentication data in parallel
- * @returns Combined auth data (tenants, permissions, workflow roles, feature flags)
+ * Fetch all authentication data in parallel.
+ * Pass `prefetchedTenants` to skip the get_user_tenants RPC (e.g. when the login
+ * API already returned tenant data in the same response).
  */
-export async function fetchAuthData(): Promise<AuthData> {
+export async function fetchAuthData(options?: { prefetchedTenants?: UserTenant[] }): Promise<AuthData> {
+  const skipTenants = (options?.prefetchedTenants?.length ?? 0) > 0
+  const t0 = Date.now()
+
+  if (skipTenants) {
+    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions + get_user_workflow_roles [parallel] (tenants prefetched: ${options!.prefetchedTenants!.length})`)
+    const [permissionsResult, workflowRolesResult] = await Promise.all([
+      supabase.rpc('get_user_permissions'),
+      supabase.rpc('get_user_workflow_roles'),
+    ])
+    console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s), workflowRoles: ${workflowRolesResult.data?.length ?? 0} row(s)`)
+
+    if (permissionsResult.error) {
+      console.error('Error fetching permissions:', permissionsResult.error)
+    }
+    if (workflowRolesResult.error) {
+      console.error('Error fetching workflow roles:', workflowRolesResult.error)
+    }
+
+    const permissions: string[] = (permissionsResult.data || []).map(
+      (p: { permission_code: string }) => p.permission_code
+    )
+    const workflowRoles: string[] = (workflowRolesResult.data || []).map(
+      (r: { workflow_role: string }) => r.workflow_role
+    )
+
+    return {
+      tenants: options!.prefetchedTenants!,
+      permissions,
+      workflowRoles,
+      featureFlags: {},
+    }
+  }
+
+  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ▶ get_user_permissions + get_user_workflow_roles + get_user_tenants [parallel]`)
   const [permissionsResult, workflowRolesResult, tenantsResult] = await Promise.all([
     supabase.rpc('get_user_permissions'),
     supabase.rpc('get_user_workflow_roles'),
     fetchTenantsWithRetry(),
   ])
+  console.log(`[LOGIN:fetchAuthData] [${Date.now() - t0}ms] ✓ done — permissions: ${permissionsResult.data?.length ?? 0} row(s), workflowRoles: ${workflowRolesResult.data?.length ?? 0} row(s), tenants: ${tenantsResult.data?.length ?? 0} row(s)`)
 
-  // Handle errors
   if (tenantsResult.error) {
     console.error('Error fetching tenants:', tenantsResult.error)
     const message =
@@ -62,15 +97,11 @@ export async function fetchAuthData(): Promise<AuthData> {
 
   if (permissionsResult.error) {
     console.error('Error fetching permissions:', permissionsResult.error)
-    // Don't throw - permissions might not be critical for initial load
   }
-
   if (workflowRolesResult.error) {
     console.error('Error fetching workflow roles:', workflowRolesResult.error)
-    // Don't throw - workflow roles might not be critical for initial load
   }
 
-  // Transform data
   const tenants: UserTenant[] = (tenantsResult.data || []).map((t: {
     tenant_id: string
     tenant_name: string
@@ -92,32 +123,18 @@ export async function fetchAuthData(): Promise<AuthData> {
   const permissions: string[] = (permissionsResult.data || []).map(
     (p: { permission_code: string }) => p.permission_code
   )
-
   const workflowRoles: string[] = (workflowRolesResult.data || []).map(
     (r: { workflow_role: string }) => r.workflow_role
   )
 
   // Fetch feature flags for first tenant (if available)
-  let featureFlags: Record<string, boolean> = {}
   // TEMPORARILY DISABLED
-  // if (tenants.length > 0) {
-  //   try {
-  //     const response = await fetch('/api/feature-flags')
-  //     if (response.ok) {
-  //       featureFlags = await response.json()
-  //     } else {
-  //       console.warn('Failed to fetch feature flags:', response.statusText)
-  //     }
-  //   } catch (error) {
-  //     console.warn('Error fetching feature flags:', error)
-  //     // Continue with empty feature flags
-  //   }
-  // }
+  // if (tenants.length > 0) { ... }
 
   return {
     tenants,
     permissions,
     workflowRoles,
-    featureFlags,
+    featureFlags: {},
   }
 }

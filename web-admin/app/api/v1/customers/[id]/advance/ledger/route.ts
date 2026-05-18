@@ -5,13 +5,13 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ customerId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('stored_value:view')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { customerId } = await params;
+  const { id: customerId } = await params;
   const page  = Number(request.nextUrl.searchParams.get('page') ?? '1');
   const limit = Number(request.nextUrl.searchParams.get('limit') ?? '20');
 
