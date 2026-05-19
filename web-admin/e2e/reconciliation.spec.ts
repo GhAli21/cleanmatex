@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Reconciliation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/dashboard/billing/reconciliation');
+    await page.goto('/dashboard/internal_fin/reconciliation');
   });
 
   test('should display reconciliation list page', async ({ page }) => {
@@ -23,7 +23,7 @@ test.describe('Reconciliation', () => {
 
   test('should show run reconciliation button', async ({ page }) => {
     const runBtn = page.locator('button').filter({ hasText: /run reconciliation|new run/i }).first();
-    // Button presence depends on permission — just check page is accessible
+    // Button presence depends on permission Ã¢â‚¬â€ just check page is accessible
     await expect(page.locator('body')).not.toContainText('Internal Server Error');
   });
 
@@ -32,7 +32,7 @@ test.describe('Reconciliation', () => {
     if (await runBtn.isVisible()) {
       await runBtn.click();
 
-      // Wait for result — either PASSED/PARTIAL/FAILED badge
+      // Wait for result Ã¢â‚¬â€ either PASSED/PARTIAL/FAILED badge
       await expect(
         page.locator('text=/passed|partial|failed|running/i').first()
       ).toBeVisible({ timeout: 10000 });
@@ -67,7 +67,7 @@ test.describe('Reconciliation', () => {
         // Notes input in modal
         const notesInput = page.locator('[role="dialog"] textarea, [role="dialog"] input[type="text"]').first();
         if (await notesInput.isVisible()) {
-          await notesInput.fill('Reviewed and confirmed — data entry timing issue');
+          await notesInput.fill('Reviewed and confirmed Ã¢â‚¬â€ data entry timing issue');
           await page.locator('[role="dialog"] button[type="submit"]').click();
           await expect(
             page.locator('text=/acknowledged|updated/i').first()

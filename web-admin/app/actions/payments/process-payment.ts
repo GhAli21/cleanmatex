@@ -172,8 +172,8 @@ export async function processPayment(
     }
     const invoiceIdToRevalidate = input.invoiceId || result.invoice_id;
     if (invoiceIdToRevalidate) {
-      revalidatePath('/dashboard/billing/invoices');
-      revalidatePath(`/dashboard/billing/invoices/${invoiceIdToRevalidate}`);
+      revalidatePath('/dashboard/internal_fin/invoices');
+      revalidatePath(`/dashboard/internal_fin/invoices/${invoiceIdToRevalidate}`);
     }
 
     return result;
@@ -313,8 +313,8 @@ export async function applyPaymentToInvoice(
     );
     const result = await applyToInvoice(paymentId, invoiceId, userId);
     if (result.success) {
-      revalidatePath('/dashboard/billing/invoices');
-      revalidatePath(`/dashboard/billing/invoices/${invoiceId}`);
+      revalidatePath('/dashboard/internal_fin/invoices');
+      revalidatePath(`/dashboard/internal_fin/invoices/${invoiceId}`);
       revalidatePath('/dashboard/orders');
       if (orderId) revalidatePath(`/dashboard/orders/${orderId}`);
     }

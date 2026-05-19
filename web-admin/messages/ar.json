@@ -436,7 +436,11 @@
     "settingsFinance": "المالية",
     "paymentSetup": "إعداد المدفوعات",
     "workflows": "سير العمل",
-    "navigationAdmin": "التنقل"
+    "navigationAdmin": "التنقل",
+    "internalFinanceOps": "العمليات المالية الداخلية والتشغيل",
+    "businessVouchers": "السندات التجارية",
+    "newVoucher": "سند جديد",
+    "voucherReports": "تقارير السندات"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -5721,6 +5725,83 @@
         "saved": "تم حفظ المستوى",
         "deleted": "تم حذف المستوى",
         "empty": "لا توجد مستويات مهيأة"
+      }
+    }
+  },
+  "finance": {
+    "vouchers": {
+      "title": "السندات التجارية",
+      "newVoucher": "سند جديد",
+      "voucherNo": "رقم السند",
+      "voucherType": "نوع السند",
+      "voucherDate": "تاريخ السند",
+      "voucherDetail": "تفاصيل السند",
+      "voucherSummary": "ملخص السند",
+      "direction": "الاتجاه",
+      "status": "الحالة",
+      "postingStatus": "حالة الترحيل",
+      "partyType": "نوع الطرف",
+      "party": "الطرف",
+      "totalAmount": "المبلغ الإجمالي",
+      "description": "الوصف",
+      "notes": "ملاحظات",
+      "lineNo": "رقم البند",
+      "lineType": "نوع البند",
+      "lineRole": "دور البند",
+      "targetType": "نوع الهدف",
+      "paymentMethod": "طريقة الدفع",
+      "amount": "المبلغ",
+      "tenderedAmount": "المبلغ المقدم",
+      "changeReturned": "الباقي المرتجع",
+      "expenseCategory": "فئة المصروف",
+      "transactionLines": "بنود المعاملة",
+      "noLines": "لا توجد بنود معاملات بعد.",
+      "noVouchers": "لا توجد سندات.",
+      "cancellationReason": "سبب الإلغاء",
+      "reversalReason": "سبب الإلغاء/العكس",
+      "reasonPlaceholder": "أدخل السبب...",
+      "postedAt": "تاريخ الترحيل",
+      "postingNote": "هذا السند مرحّل ونهائي. التأثيرات التشغيلية (مدفوعات الطلبات، حركات النقد) تُعالج بشكل منفصل.",
+      "postSuccess": "تم ترحيل السند بنجاح.",
+      "cancelSuccess": "تم إلغاء السند.",
+      "reverseSuccess": "تم إنشاء سند العكس.",
+      "lineDeleted": "تم حذف البند.",
+      "actions": {
+        "post": "ترحيل السند",
+        "cancel": "إلغاء السند",
+        "reverse": "عكس السند",
+        "addLine": "إضافة بند",
+        "editLine": "تعديل البند",
+        "deleteLine": "حذف البند",
+        "print": "طباعة",
+        "export": "تصدير"
+      },
+      "statusLabels": {
+        "DRAFT": "مسودة",
+        "POSTED": "مرحّل",
+        "CANCELLED": "ملغى",
+        "REVERSED": "معكوس",
+        "PARTIALLY_REVERSED": "معكوس جزئياً"
+      },
+      "directionLabels": {
+        "IN": "وارد",
+        "OUT": "صادر",
+        "NEUTRAL": "محايد"
+      },
+      "voucherTypeLabels": {
+        "RECEIPT_VOUCHER": "سند قبض",
+        "PAYMENT_VOUCHER": "سند صرف",
+        "REFUND_VOUCHER": "سند استرداد",
+        "ADJUSTMENT_VOUCHER": "سند تسوية",
+        "TRANSFER_VOUCHER": "سند تحويل"
+      },
+      "validation": {
+        "atLeastOneLine": "يجب أن يحتوي السند على بند نشط واحد على الأقل قبل الترحيل.",
+        "totalMismatch": "إجمالي السند لا يتطابق مع مجموع مبالغ البنود.",
+        "bankReferenceRequired": "المرجع البنكي مطلوب للتحويل البنكي.",
+        "checkFieldsRequired": "رقم الشيك والبنك والتاريخ مطلوبة لمدفوعات الشيكات.",
+        "roleNotAllowed": "دورك لا يسمح بتنفيذ هذا الإجراء.",
+        "reasonRequired": "السبب مطلوب."
       }
     }
   }

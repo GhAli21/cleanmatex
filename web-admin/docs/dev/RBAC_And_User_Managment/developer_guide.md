@@ -146,12 +146,16 @@ interface TenantRole {
 | `deletePermission(code, token)` | `DELETE /tenant-api/permissions/:code` | Delete |
 | `isValidPermissionCode(code)` | (client-only) | Validates `resource:action` format |
 
-**Permission code format:** `resource:action` — must match `/^[a-z_]+:[a-z_]+$/`
+**Permission code format:** `resource:action` — must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`
+
 ```
 orders:read        ✅
 customers:create   ✅
+orders:*           ✅ (wildcard action)
+*:*                ✅ (global wildcard)
 Orders:Read        ❌ (uppercase)
 orders.read        ❌ (wrong separator)
+orders:*:extra     ❌ (too many segments)
 ```
 
 ### Users (`lib/api/users.ts`)

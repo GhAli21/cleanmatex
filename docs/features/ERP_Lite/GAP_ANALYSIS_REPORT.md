@@ -145,7 +145,7 @@ Implemented and strong.
 
 #### Evidence
 
-- Invoice list page in `web-admin/app/dashboard/billing/invoices/page.tsx`
+- Invoice list page in `web-admin/app/dashboard/internal_fin/invoices/page.tsx`
 - Payment and invoice services in:
   - `web-admin/lib/services/invoice-service.ts`
   - `web-admin/lib/services/payment-service.ts`
@@ -193,7 +193,7 @@ Implemented, but operational rather than full accounting.
 - Receipt schema in `supabase/migrations/0064_org_rcpt_receipts_system.sql`
 - Voucher schema in `supabase/migrations/0100_org_fin_vouchers_and_receipt_voucher_id.sql`
 - Cash-up service in `web-admin/lib/services/cashup-service.ts`
-- Cash-up pages in `web-admin/app/dashboard/billing/cashup/`
+- Cash-up pages in `web-admin/app/dashboard/internal_fin/cashup/`
 - Payment reconciliation log migration in `supabase/migrations/0093_create_payment_reconciliation_log.sql`
 
 #### Strengths
@@ -485,7 +485,7 @@ This is almost entirely unimplemented.
 
 #### Assessment
 
-AP/PO is a genuine greenfield module inside this repo and should not be treated as “almost there.”
+AP/PO is a genuine greenfield module inside this repo and should not be treated as â€œalmost there.â€
 
 ---
 

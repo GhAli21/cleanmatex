@@ -1,4 +1,4 @@
-Claude’s Plan
+Claudeâ€™s Plan
 Tenant Main Dashboard Implementation Plan
 Overview
 Build a comprehensive dashboard system with:
@@ -42,7 +42,7 @@ File: web-admin/config/navigation.ts
     { key: "drivers", icon: "Truck", path: "/dashboard/drivers", roles: ["admin"], featureFlag: "driver_app" },
     { key: "customers", icon: "Users", path: "/dashboard/customers", roles: ["admin","staff"] },
     { key: "catalog", icon: "Tags", path: "/dashboard/catalog", roles: ["admin"] },
-    { key: "billing", icon: "Receipt", path: "/dashboard/billing", roles: ["admin","staff"] },
+    { key: "billing", icon: "Receipt", path: "/dashboard/internal_fin", roles: ["admin","staff"] },
     { key: "reports", icon: "BarChart3", path: "/dashboard/reports", roles: ["admin"], featureFlag: "advanced_analytics" },
     { key: "inventory", icon: "Boxes", path: "/dashboard/inventory", roles: ["admin","staff"] },
     { key: "settings", icon: "Settings", path: "/dashboard/settings", roles: ["admin"] },
@@ -83,7 +83,7 @@ Auto-refresh capability (default 60s)
 Role/feature flag visibility
 3.2 KPI Widgets (from PRD-007)
 Files: web-admin/src/features/dashboard/ui/
-OrdersToday.tsx - Today's order count + Δ vs last week
+OrdersToday.tsx - Today's order count + Î” vs last week
 OrderStatus.tsx - In-Process/Ready/Out-for-Delivery counts
 Revenue.tsx - Today, MTD, Last 30d revenue
 Turnaround.tsx - Avg turnaround time (hours)
@@ -167,7 +167,7 @@ Files: web-admin/messages/dashboard.{en,ar}.json
   }
 }
 7.2 RTL Layout Adjustments
-Sidebar flip (left→right in AR)
+Sidebar flip (leftâ†’right in AR)
 Chart axis flip
 Number formatting (Arabic numerals)
 Date/time localization
@@ -197,14 +197,14 @@ Widget drilldowns
 RBAC enforcement
 RTL layout validation
 Implementation Order
-✅ Week 1: Layout & Navigation (Phase 1)
-✅ Week 2: RBAC System (Phase 2)
-🔄 Week 3: Widget Framework + First 5 Widgets (Phase 3)
-🔄 Week 4: Remaining Widgets + Quick Actions (Phase 3-4)
-⏳ Week 5: Filters + Notifications (Phase 4-5)
-⏳ Week 6: Backend APIs + Views (Phase 6)
-⏳ Week 7: i18n/RTL + Performance (Phase 7-8)
-⏳ Week 8: Testing + Polish (Phase 9)
+âœ… Week 1: Layout & Navigation (Phase 1)
+âœ… Week 2: RBAC System (Phase 2)
+ðŸ”„ Week 3: Widget Framework + First 5 Widgets (Phase 3)
+ðŸ”„ Week 4: Remaining Widgets + Quick Actions (Phase 3-4)
+â³ Week 5: Filters + Notifications (Phase 4-5)
+â³ Week 6: Backend APIs + Views (Phase 6)
+â³ Week 7: i18n/RTL + Performance (Phase 7-8)
+â³ Week 8: Testing + Polish (Phase 9)
 Files to Create/Modify
 New Files (~40 files)
 Layout: (dashboard)/layout.tsx, Sidebar.tsx, TopBar.tsx

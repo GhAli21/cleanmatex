@@ -154,6 +154,10 @@ const NAV_TRANSLATION_KEY_MAP: Record<string, string> = {
   erp_lite_ap: 'accountsPayable',
   erp_lite_po: 'purchaseOrders',
   erp_lite_branch_pl: 'branchPL',
+  internal_fin: 'internalFinanceOps',
+  finance_vouchers: 'businessVouchers',
+  finance_vouchers_new: 'newVoucher',
+  finance_vouchers_reports: 'voucherReports',
   help: 'help',
   jhtestui: 'jwtTest',
 }

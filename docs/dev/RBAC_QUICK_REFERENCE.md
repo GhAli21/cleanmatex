@@ -6,19 +6,19 @@
 
 ---
 
-## 🎯 Role Hierarchy
+## Ã°Å¸Å½Â¯ Role Hierarchy
 
 ```
 admin (level 3) - Full access
-  ↓
+  Ã¢â€ â€œ
 staff (level 2) - Operational access
-  ↓
+  Ã¢â€ â€œ
 driver (level 1) - Limited access
 ```
 
 ---
 
-## 🔧 Common Use Cases
+## Ã°Å¸â€Â§ Common Use Cases
 
 ### 1. Hide/Show UI Based on Role
 
@@ -143,7 +143,7 @@ Routes in `proxy.ts` ADMIN_ROUTES are automatically protected.
 
 ---
 
-## 📋 Available Hooks
+## Ã°Å¸â€œâ€¹ Available Hooks
 
 ### `useRole()`
 ```tsx
@@ -184,7 +184,7 @@ const hasWhatsApp = useFeature('whatsapp_receipts')
 
 ---
 
-## 🎨 Available Components
+## Ã°Å¸Å½Â¨ Available Components
 
 ### `<RequireRole>`
 ```tsx
@@ -252,7 +252,7 @@ const hasWhatsApp = useFeature('whatsapp_receipts')
 
 ---
 
-## 🔒 Feature Flags
+## Ã°Å¸â€â€™ Feature Flags
 
 ### Available Features
 ```typescript
@@ -291,7 +291,7 @@ type FeatureFlagKey =
 
 ---
 
-## 🛣️ Protected Routes (Automatic)
+## Ã°Å¸â€ºÂ£Ã¯Â¸Â Protected Routes (Automatic)
 
 These routes are automatically protected by middleware:
 
@@ -308,13 +308,13 @@ These routes are automatically protected by middleware:
 - `/dashboard/orders`
 - `/dashboard/assembly`
 - `/dashboard/customers`
-- `/dashboard/billing`
+- `/dashboard/internal_fin`
 - `/dashboard/inventory`
 - `/dashboard/help`
 
 ---
 
-## 📝 Examples
+## Ã°Å¸â€œÂ Examples
 
 ### Example 1: Order Actions Based on Role
 ```tsx
@@ -403,16 +403,16 @@ function OrderForm() {
 
 ---
 
-## 🚨 Best Practices
+## Ã°Å¸Å¡Â¨ Best Practices
 
-### DO ✅
+### DO Ã¢Å“â€¦
 - Use hooks for conditional logic
 - Use components for conditional rendering
 - Check roles client-side for UX
 - Rely on middleware for security
 - Provide fallback content for better UX
 
-### DON'T ❌
+### DON'T Ã¢ÂÅ’
 - Don't rely only on client-side checks for security
 - Don't expose sensitive data to client then hide with CSS
 - Don't check roles on every render (hooks are memoized)
@@ -420,7 +420,7 @@ function OrderForm() {
 
 ---
 
-## 🔧 Troubleshooting
+## Ã°Å¸â€Â§ Troubleshooting
 
 ### "Role is always null"
 - Check that RoleProvider wraps your component

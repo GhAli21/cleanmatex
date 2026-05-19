@@ -6,7 +6,7 @@ const BILLING_NOTES = [
 
 export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
-    routePattern: '/dashboard/billing/invoices',
+    routePattern: '/dashboard/internal_fin/invoices',
     label: 'Invoices',
     page: {},
     actions: {
@@ -33,13 +33,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/invoices/[id]',
+    routePattern: '/dashboard/internal_fin/invoices/[id]',
     label: 'Invoice Details',
     page: {},
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/payments',
+    routePattern: '/dashboard/internal_fin/payments',
     label: 'Payments',
     page: {},
     actions: {
@@ -83,13 +83,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/payments/new',
+    routePattern: '/dashboard/internal_fin/payments/new',
     label: 'New Payment',
     page: {},
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/payments/[id]',
+    routePattern: '/dashboard/internal_fin/payments/[id]',
     label: 'Payment Details',
     page: {},
     actions: {
@@ -133,25 +133,25 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/payments/[id]/print/receipt-voucher',
+    routePattern: '/dashboard/internal_fin/payments/[id]/print/receipt-voucher',
     label: 'Print Receipt Voucher',
     page: {},
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/vouchers',
+    routePattern: '/dashboard/internal_fin/vouchers',
     label: 'Receipt Vouchers',
     page: {},
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/vouchers/new',
+    routePattern: '/dashboard/internal_fin/vouchers/new',
     label: 'New Receipt Voucher',
     page: {},
     notes: BILLING_NOTES,
   },
   {
-    routePattern: '/dashboard/billing/cashup',
+    routePattern: '/dashboard/internal_fin/cashup',
     label: 'Cash Up',
     page: {},
     notes: BILLING_NOTES,
@@ -159,10 +159,10 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
 ]
 
 export const BILLING_PAYMENTS_ACCESS =
-  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/billing/payments')!
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/payments')!
 
 export const BILLING_PAYMENT_DETAIL_ACCESS =
-  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/billing/payments/[id]')!
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/payments/[id]')!
 
 export const BILLING_INVOICES_ACCESS =
-  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/billing/invoices')!
+  BILLING_ACCESS_CONTRACTS.find((contract) => contract.routePattern === '/dashboard/internal_fin/invoices')!

@@ -217,7 +217,7 @@ INSERT INTO sys_components_cd (
   is_leaf, is_navigable, is_active, is_system, is_for_tenant_use,
   roles, main_permission_code, rec_status
 ) VALUES (
-  'billing', 'Invoices & Payments', '/dashboard/billing', 'Receipt', 0, 6,
+  'billing', 'Invoices & Payments', '/dashboard/internal_fin', 'Receipt', 0, 6,
   false, true, true, true, true,
   '["admin", "operator"]'::jsonb, 'billing:read', 1
 ) ON CONFLICT (comp_code) DO UPDATE SET
@@ -233,13 +233,13 @@ INSERT INTO sys_components_cd (
   is_leaf, is_navigable, is_active, is_system, is_for_tenant_use,
   roles, main_permission_code, rec_status
 ) VALUES
-  ('billing_invoices', 'billing', 'Invoices', '/dashboard/billing/invoices', 'Receipt', 1, 0,
+  ('billing_invoices', 'billing', 'Invoices', '/dashboard/internal_fin/invoices', 'Receipt', 1, 0,
    true, true, true, true, true,
    '["admin", "operator"]'::jsonb, 'billing:read', 1),
-  ('billing_payments', 'billing', 'Payments', '/dashboard/billing/payments', 'Receipt', 1, 1,
+  ('billing_payments', 'billing', 'Payments', '/dashboard/internal_fin/payments', 'Receipt', 1, 1,
    true, true, true, true, true,
    '["admin", "operator"]'::jsonb, 'billing:read', 1),
-  ('billing_cashup', 'billing', 'Cash Up', '/dashboard/billing/cashup', 'Receipt', 1, 2,
+  ('billing_cashup', 'billing', 'Cash Up', '/dashboard/internal_fin/cashup', 'Receipt', 1, 2,
    true, true, true, true, true,
    '["admin", "operator"]'::jsonb, 'billing:read', 1)
 ON CONFLICT (comp_code) DO UPDATE SET
@@ -422,7 +422,7 @@ BEGIN
   IF v_count < 10 THEN
     RAISE WARNING 'Expected at least 10 navigation items, found %', v_count;
   ELSE
-    RAISE NOTICE '✅ Navigation seed completed. % items inserted.', v_count;
+    RAISE NOTICE 'Ã¢Å“â€¦ Navigation seed completed. % items inserted.', v_count;
   END IF;
 END $$;
 

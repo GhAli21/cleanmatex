@@ -1,17 +1,17 @@
-# Order Financial Platform — Comprehensive Implementation Plan
+# Order Financial Platform â€” Comprehensive Implementation Plan
 
 ## Context
 
-CleanMateX needs a production-grade, enterprise-quality financial platform built on top of its existing order system. The current checkout flow (create-with-payment) supports single-leg payments and basic promo/gift card discounts. The goal is a full normalized financial fact layer: multi-leg payments, per-order charges/taxes/discounts/credits, stored value (wallet, advance, credit note), loyalty, a promotion engine, cash drawer sessions, tax engine, outbox-driven async events, and a reconciliation system — all multi-tenant, bilingual (EN/AR + RTL), RBAC-gated, and production-ready.
+CleanMateX needs a production-grade, enterprise-quality financial platform built on top of its existing order system. The current checkout flow (create-with-payment) supports single-leg payments and basic promo/gift card discounts. The goal is a full normalized financial fact layer: multi-leg payments, per-order charges/taxes/discounts/credits, stored value (wallet, advance, credit note), loyalty, a promotion engine, cash drawer sessions, tax engine, outbox-driven async events, and a reconciliation system â€” all multi-tenant, bilingual (EN/AR + RTL), RBAC-gated, and production-ready.
 
-**No production data exists. No dual-write, no backward-compat shims — clean build only.**
+**No production data exists. No dual-write, no backward-compat shims â€” clean build only.**
 
 **Existing assets to extend (do NOT recreate):**
-- `org_gift_cards_mst` + `org_gift_card_txn_dtl` — already exist (migrations 0029, 0257, 0258)
-- `org_promotions_mst` + `org_promotion_usage_dtl` — renamed from `org_promo_codes_mst` + `org_promo_usage_log` in migration 0288; extended with campaign-level columns in same migration
-- `org_discount_rules_cf` — already exists
-- `gift-card-service.ts`, `discount-service.ts`, `tax.service.ts`, `invoice-service.ts`, `payment-service.ts` — extend, don't replace
-- Prisma models for migrations 0267–0271 — all exist; only 3 sys code table models are missing
+- `org_gift_cards_mst` + `org_gift_card_txn_dtl` â€” already exist (migrations 0029, 0257, 0258)
+- `org_promotions_mst` + `org_promotion_usage_dtl` â€” renamed from `org_promo_codes_mst` + `org_promo_usage_log` in migration 0288; extended with campaign-level columns in same migration
+- `org_discount_rules_cf` â€” already exists
+- `gift-card-service.ts`, `discount-service.ts`, `tax.service.ts`, `invoice-service.ts`, `payment-service.ts` â€” extend, don't replace
+- Prisma models for migrations 0267â€“0271 â€” all exist; only 3 sys code table models are missing
 
 **Next available migration number: 0278**
 
@@ -19,7 +19,7 @@ CleanMateX needs a production-grade, enterprise-quality financial platform built
 
 ## Architectural Decisions (Locked)
 
-### ADR: Credit Note vs Customer Credit — V1 Scope
+### ADR: Credit Note vs Customer Credit â€” V1 Scope
 
 **Decision:** V1 uses **Credit Note** (`CREDIT_NOTE`) as the only formal credit instrument.
 
@@ -40,21 +40,21 @@ CleanMateX needs a production-grade, enterprise-quality financial platform built
 
 ### ADR: org_payment_methods_cf = Unified Tenant Checkout Settlement Options Config
 
-**Decision:** `org_payment_methods_cf` is the **single source of truth for every checkout settlement option** a tenant offers — not only real payments. `payment_nature` controls backend routing; the UI groups by it.
+**Decision:** `org_payment_methods_cf` is the **single source of truth for every checkout settlement option** a tenant offers â€” not only real payments. `payment_nature` controls backend routing; the UI groups by it.
 
 | `payment_nature`      | UI section           | Backend writes to                                                              |
 |---|---|---|
 | `REAL_PAYMENT`        | Payment Methods      | `org_order_payments_dtl`                                                       |
 | `CREDIT_APPLICATION`  | Credits Applied      | `org_order_credit_apps_dtl` + stored-value ledger via `credit_application_type`|
 | `DEFERRED_SETTLEMENT` | Deferred Settlement  | `org_orders_mst` snapshot cols only (`payment_status`, `outstanding_amount`)   |
-| `AR_ALLOCATION`       | Invoice / AR         | Invoice/AR fields — **disabled by default in V1**                              |
-| `INTERNAL_ADJUSTMENT` | Internal (admin)     | Adjustment table — **disabled by default in V1**                               |
+| `AR_ALLOCATION`       | Invoice / AR         | Invoice/AR fields â€” **disabled by default in V1**                              |
+| `INTERNAL_ADJUSTMENT` | Internal (admin)     | Adjustment table â€” **disabled by default in V1**                               |
 
 **Rules enforced by this decision:**
 - `org_order_payments_dtl` contains **REAL_PAYMENT legs only**. Any row written there has `payment_nature_snapshot = 'REAL_PAYMENT'` enforced by DB check constraint.
 - `PROMO_CODE`/`COUPON` is a **discount source**, not a payment method, not a credit application, and not a settlement option. It must never appear in `org_payment_methods_cf`.
 - Gateway providers (`HYPERPAY`, `PAYTABS`, `STRIPE`) must **not** be `payment_method_code` values in tenant config. Use `payment_method_code = PAYMENT_GATEWAY` + `gateway_code = HYPERPAY` etc.
-- `PAYMENT_GATEWAY` may appear multiple times per tenant (one row per gateway_code). Unique index is `(tenant_org_id, payment_method_code, COALESCE(gateway_code, ''))` — not a simple unique on `(tenant_org_id, payment_method_code)`.
+- `PAYMENT_GATEWAY` may appear multiple times per tenant (one row per gateway_code). Unique index is `(tenant_org_id, payment_method_code, COALESCE(gateway_code, ''))` â€” not a simple unique on `(tenant_org_id, payment_method_code)`.
 - `AR_ALLOCATION` and `INTERNAL_ADJUSTMENT` rows are seeded with `is_enabled = false` in V1. Enabling them requires explicit tenant config and future UI work.
 
 ---
@@ -63,11 +63,11 @@ CleanMateX needs a production-grade, enterprise-quality financial platform built
 
 ---
 
-### PHASE 0 — Foundation (Zero Behavior Change)
+### PHASE 0 â€” Foundation (Zero Behavior Change)
 
 **Goal:** Sync code layer with existing DB; add constants/types; rename discount table. No UI or logic changes.
 
-#### P0.1 — Add 3 Missing Prisma Models
+#### P0.1 â€” Add 3 Missing Prisma Models
 **File:** `web-admin/prisma/schema.prisma`
 
 Add models for HQ code tables created in migration 0267:
@@ -78,7 +78,7 @@ model sys_cash_drawer_movement_type_cd { ... }
 ```
 Add relations from `org_cash_drawer_sessions_mst` and `org_order_payments_dtl` to `sys_card_brand_cd`.
 
-#### P0.2 — Migration 0278: Rename Discount Table + Extend
+#### P0.2 â€” Migration 0278: Rename Discount Table + Extend
 **File:** `supabase/migrations/0278_rename_order_discounts_dtl.sql`
 
 ```sql
@@ -99,9 +99,9 @@ ALTER TABLE org_order_discounts_dtl
 -- 5. Rename Prisma model reference everywhere
 ```
 
-**Prisma:** Rename `org_ord_discounts_dtl` → `org_order_discounts_dtl` in schema.
+**Prisma:** Rename `org_ord_discounts_dtl` â†’ `org_order_discounts_dtl` in schema.
 
-#### P0.3 — New Constants File
+#### P0.3 â€” New Constants File
 **File:** `web-admin/lib/constants/order-financial.ts` (CREATE NEW)
 
 ```typescript
@@ -118,7 +118,7 @@ export const RECONCILIATION_RUN_STATUSES = { PENDING, RUNNING, PASSED, FAILED, P
 export const OUTBOX_EVENT_TYPES = { ORDER_COMPLETED, PAYMENT_RECEIVED, REFUND_PROCESSED, LOYALTY_EARN, STORED_VALUE_CHANGED, GIFT_CARD_REDEEMED } as const
 export const OUTBOX_STATUSES = { PENDING, PROCESSING, PROCESSED, FAILED } as const
 
-// Checkout settlement routing — mirrors org_payment_methods_cf.payment_nature (from sys_payment_method_cd)
+// Checkout settlement routing â€” mirrors org_payment_methods_cf.payment_nature (from sys_payment_method_cd)
 export const PAYMENT_NATURE = {
   REAL_PAYMENT:        'REAL_PAYMENT',
   CREDIT_APPLICATION:  'CREDIT_APPLICATION',
@@ -146,12 +146,12 @@ export const SETTLEMENT_TYPE_CODES = {
 ### Naming Convention (apply throughout all phases)
 
 **Order-related services** (directly operate on order financial data): prefix with `order-`
-- `order-settlement.service.ts` — writes order financial fact rows (charges, taxes, discounts, credits, payments) to DB
-- `order-refund.service.ts` — handles refund lifecycle scoped to an order
-- `order-calculation.service.ts` ✓ already correct
+- `order-settlement.service.ts` â€” writes order financial fact rows (charges, taxes, discounts, credits, payments) to DB
+- `order-refund.service.ts` â€” handles refund lifecycle scoped to an order
+- `order-calculation.service.ts` âœ“ already correct
 
 **General-purpose / cross-domain services** (used by orders AND other contexts): no prefix
-- `tax-engine.service.ts` — computes tax rates, applies profiles, handles exemptions; used by orders, invoices, quotes, B2B statements
+- `tax-engine.service.ts` â€” computes tax rates, applies profiles, handles exemptions; used by orders, invoices, quotes, B2B statements
 - `stored-value.service.ts`, `cash-drawer.service.ts`, `loyalty.service.ts`
 - `promotion-engine.service.ts`, `outbox.service.ts`, `reconciliation.service.ts`
 
@@ -161,7 +161,7 @@ export const SETTLEMENT_TYPE_CODES = {
 
 **API routes**: order-related routes live under `/orders/[id]/` (already correct in plan).
 
-**DB tables**: `order_` prefix already applied to all order fact tables (`org_order_charges_dtl`, `org_order_taxes_dtl`, etc.) ✓
+**DB tables**: `order_` prefix already applied to all order fact tables (`org_order_charges_dtl`, `org_order_taxes_dtl`, etc.) âœ“
 
 ---
 
@@ -195,21 +195,21 @@ exchange_rate   DECIMAL(19,6) NOT NULL DEFAULT 1,  -- rate to tenant base curren
 ```
 
 Tables that need `currency_code` + `exchange_rate` added vs plan draft:
-- `org_order_charges_dtl` — add `exchange_rate`
-- `org_order_taxes_dtl` — add `exchange_rate`
-- `org_order_discounts_dtl` (renamed) — add both
-- `org_order_credit_apps_dtl` — add `exchange_rate`
-- `org_order_payments_dtl` — add `exchange_rate` (already has currency_code)
-- `org_order_refunds_dtl` — add both
-- `org_wallet_txn_dtl` — add `exchange_rate`
-- `org_advance_txn_dtl` — add `exchange_rate`
-- `org_credit_note_txn_dtl` — add `exchange_rate`
-- `org_gift_card_txn_dtl` — add `exchange_rate` (existing table, add via migration)
-- `org_promotion_usage_dtl` — add `currency_code` + `exchange_rate` (renamed + extended in 0288)
-- `org_promotions_mst` — add `currency_code` + `exchange_rate` (renamed + extended in 0288)
-- `org_fin_recon_runs_mst` — add `currency_code` (base currency of the run)
+- `org_order_charges_dtl` â€” add `exchange_rate`
+- `org_order_taxes_dtl` â€” add `exchange_rate`
+- `org_order_discounts_dtl` (renamed) â€” add both
+- `org_order_credit_apps_dtl` â€” add `exchange_rate`
+- `org_order_payments_dtl` â€” add `exchange_rate` (already has currency_code)
+- `org_order_refunds_dtl` â€” add both
+- `org_wallet_txn_dtl` â€” add `exchange_rate`
+- `org_advance_txn_dtl` â€” add `exchange_rate`
+- `org_credit_note_txn_dtl` â€” add `exchange_rate`
+- `org_gift_card_txn_dtl` â€” add `exchange_rate` (existing table, add via migration)
+- `org_promotion_usage_dtl` â€” add `currency_code` + `exchange_rate` (renamed + extended in 0288)
+- `org_promotions_mst` â€” add `currency_code` + `exchange_rate` (renamed + extended in 0288)
+- `org_fin_recon_runs_mst` â€” add `currency_code` (base currency of the run)
 
-#### P0.4 — New Types File
+#### P0.4 â€” New Types File
 **File:** `web-admin/lib/types/order-financial.ts` (CREATE NEW)
 
 ```typescript
@@ -220,7 +220,7 @@ export type CreditApplicationInput = { type: CreditApplicationType, referenceId:
 export type PaymentLegInput = { paymentMethodId, kind, amount, reference?, terminalId?, cashTendered? }
 export type ReconciliationIssue = { id, checkName, severity, affectedEntityType, affectedEntityId?, expectedValue?, actualValue?, delta?, message, status }
 
-// Checkout settlement grouping — returned by checkout-config.service.ts
+// Checkout settlement grouping â€” returned by checkout-config.service.ts
 export type SettlementOption = {
   id: string
   paymentMethodCode: string
@@ -252,9 +252,9 @@ export type CheckoutSettlementOptions = {
 
 **Update `payment.ts`:** Add `LOYALTY_TXN_TYPES` constant.
 
-**Cleanup rule:** Remove `GIFT_CARD` and `PROMO_CODE` from the legacy `PAYMENT_METHODS` constant in `payment.ts`. `GIFT_CARD` is now a `CREDIT_APPLICATION` type, not a payment method. `PROMO_CODE` is never a settlement option — it is a discount source only. This cleanup is safe because `org_payment_methods_cf` is the runtime source; the legacy constant was only used in old checkout code being replaced.
+**Cleanup rule:** Remove `GIFT_CARD` and `PROMO_CODE` from the legacy `PAYMENT_METHODS` constant in `payment.ts`. `GIFT_CARD` is now a `CREDIT_APPLICATION` type, not a payment method. `PROMO_CODE` is never a settlement option â€” it is a discount source only. This cleanup is safe because `org_payment_methods_cf` is the runtime source; the legacy constant was only used in old checkout code being replaced.
 
-#### P0.5 — Migration 0279: sys Financial Lookup Tables
+#### P0.5 â€” Migration 0279: sys Financial Lookup Tables
 **File:** `supabase/migrations/0279_sys_financial_lookup_tables.sql`
 
 Create all lookup code tables needed by the financial platform, with full EN/AR seed data.
@@ -262,7 +262,7 @@ These tables are referenced (logically) by CHECK constraints across the financia
 Max 30-char table name rule strictly applied.
 
 ```sql
--- ── sys_payment_nature_cd ─────────────────────────────────────────────────────
+-- â”€â”€ sys_payment_nature_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE sys_payment_nature_cd (
   payment_nature  TEXT PRIMARY KEY,
   name            TEXT NOT NULL,
@@ -274,14 +274,14 @@ CREATE TABLE sys_payment_nature_cd (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_payment_nature_cd (payment_nature, name, name2, sort_order) VALUES
-  ('REAL_PAYMENT',        'Real Payment',         'دفعة حقيقية',          1),
-  ('CREDIT_APPLICATION',  'Credit Application',   'تطبيق رصيد',           2),
-  ('DEFERRED_SETTLEMENT', 'Deferred Settlement',  'تسوية مؤجلة',          3),
-  ('AR_ALLOCATION',       'AR Allocation',        'تخصيص ذمم مدينة',      4),
-  ('INTERNAL_ADJUSTMENT', 'Internal Adjustment',  'تسوية داخلية',         5);
+  ('REAL_PAYMENT',        'Real Payment',         'Ø¯ÙØ¹Ø© Ø­Ù‚ÙŠÙ‚ÙŠØ©',          1),
+  ('CREDIT_APPLICATION',  'Credit Application',   'ØªØ·Ø¨ÙŠÙ‚ Ø±ØµÙŠØ¯',           2),
+  ('DEFERRED_SETTLEMENT', 'Deferred Settlement',  'ØªØ³ÙˆÙŠØ© Ù…Ø¤Ø¬Ù„Ø©',          3),
+  ('AR_ALLOCATION',       'AR Allocation',        'ØªØ®ØµÙŠØµ Ø°Ù…Ù… Ù…Ø¯ÙŠÙ†Ø©',      4),
+  ('INTERNAL_ADJUSTMENT', 'Internal Adjustment',  'ØªØ³ÙˆÙŠØ© Ø¯Ø§Ø®Ù„ÙŠØ©',         5);
 
--- ── sys_credit_app_types_cd ───────────────────────────────────────────────────
--- NOTE: max 30 chars → sys_credit_app_types_cd (not sys_credit_application_types_cd)
+-- â”€â”€ sys_credit_app_types_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- NOTE: max 30 chars â†’ sys_credit_app_types_cd (not sys_credit_application_types_cd)
 CREATE TABLE sys_credit_app_types_cd (
   credit_app_type TEXT PRIMARY KEY,
   name            TEXT NOT NULL,
@@ -293,19 +293,19 @@ CREATE TABLE sys_credit_app_types_cd (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_credit_app_types_cd (credit_app_type, name, name2, sort_order) VALUES
-  ('GIFT_CARD',      'Gift Card',          'بطاقة هدية',    1),
-  ('WALLET',         'Wallet',             'المحفظة',       2),
-  ('ADVANCE',        'Customer Advance',   'سلفة العميل',   3),
-  ('CREDIT_NOTE',    'Credit Note',        'إشعار دائن',    4),
-  ('LOYALTY_POINTS', 'Loyalty Points',     'نقاط الولاء',   5);
+  ('GIFT_CARD',      'Gift Card',          'Ø¨Ø·Ø§Ù‚Ø© Ù‡Ø¯ÙŠØ©',    1),
+  ('WALLET',         'Wallet',             'Ø§Ù„Ù…Ø­ÙØ¸Ø©',       2),
+  ('ADVANCE',        'Customer Advance',   'Ø³Ù„ÙØ© Ø§Ù„Ø¹Ù…ÙŠÙ„',   3),
+  ('CREDIT_NOTE',    'Credit Note',        'Ø¥Ø´Ø¹Ø§Ø± Ø¯Ø§Ø¦Ù†',    4),
+  ('LOYALTY_POINTS', 'Loyalty Points',     'Ù†Ù‚Ø§Ø· Ø§Ù„ÙˆÙ„Ø§Ø¡',   5);
 
--- ── sys_settlement_type_codes_cd — NOT CREATED ──────────────────────────────
+-- â”€â”€ sys_settlement_type_codes_cd â€” NOT CREATED â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- sys_payment_type_cd already exists (created in migration 0001, seeded in 0030).
 -- Its PK is payment_type_code and contains: PAY_IN_ADVANCE, PAY_ON_COLLECTION,
 -- PAY_ON_DELIVERY, CREDIT_INVOICE. SETTLEMENT_TYPE_CODES constants map to these
 -- exact PK values. No new table needed.
 
--- ── sys_charge_types_cd ───────────────────────────────────────────────────────
+-- â”€â”€ sys_charge_types_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE sys_charge_types_cd (
   charge_type   TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -316,12 +316,12 @@ CREATE TABLE sys_charge_types_cd (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_charge_types_cd (charge_type, name, name2, sort_order) VALUES
-  ('PREFERENCE',        'Preference Charge',   'رسوم تفضيل',         1),
-  ('EXPRESS',           'Express Charge',      'رسوم سريعة',          2),
-  ('BULK_SURCHARGE',    'Bulk Surcharge',      'رسوم الكميات',        3),
-  ('SPECIAL_HANDLING',  'Special Handling',    'معالجة خاصة',         4);
+  ('PREFERENCE',        'Preference Charge',   'Ø±Ø³ÙˆÙ… ØªÙØ¶ÙŠÙ„',         1),
+  ('EXPRESS',           'Express Charge',      'Ø±Ø³ÙˆÙ… Ø³Ø±ÙŠØ¹Ø©',          2),
+  ('BULK_SURCHARGE',    'Bulk Surcharge',      'Ø±Ø³ÙˆÙ… Ø§Ù„ÙƒÙ…ÙŠØ§Øª',        3),
+  ('SPECIAL_HANDLING',  'Special Handling',    'Ù…Ø¹Ø§Ù„Ø¬Ø© Ø®Ø§ØµØ©',         4);
 
--- ── sys_tax_types_cd ──────────────────────────────────────────────────────────
+-- â”€â”€ sys_tax_types_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE sys_tax_types_cd (
   tax_type      TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -332,11 +332,11 @@ CREATE TABLE sys_tax_types_cd (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_tax_types_cd (tax_type, name, name2, sort_order) VALUES
-  ('VAT',    'Value Added Tax',    'ضريبة القيمة المضافة',  1),
-  ('GST',    'GST',                'ضريبة السلع والخدمات',  2),
-  ('CUSTOM', 'Custom Tax',         'ضريبة مخصصة',           3);
+  ('VAT',    'Value Added Tax',    'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ©',  1),
+  ('GST',    'GST',                'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ø³Ù„Ø¹ ÙˆØ§Ù„Ø®Ø¯Ù…Ø§Øª',  2),
+  ('CUSTOM', 'Custom Tax',         'Ø¶Ø±ÙŠØ¨Ø© Ù…Ø®ØµØµØ©',           3);
 
--- ── sys_refund_methods_cd ─────────────────────────────────────────────────────
+-- â”€â”€ sys_refund_methods_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE sys_refund_methods_cd (
   refund_method TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -347,12 +347,12 @@ CREATE TABLE sys_refund_methods_cd (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_refund_methods_cd (refund_method, name, name2, sort_order) VALUES
-  ('ORIGINAL_METHOD', 'Original Payment Method', 'طريقة الدفع الأصلية', 1),
-  ('CASH',            'Cash Refund',              'استرداد نقدي',        2),
-  ('CREDIT_NOTE',     'Credit Note',              'إشعار دائن',          3),
-  ('WALLET',          'Wallet Credit',            'رصيد المحفظة',        4);
+  ('ORIGINAL_METHOD', 'Original Payment Method', 'Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø£ØµÙ„ÙŠØ©', 1),
+  ('CASH',            'Cash Refund',              'Ø§Ø³ØªØ±Ø¯Ø§Ø¯ Ù†Ù‚Ø¯ÙŠ',        2),
+  ('CREDIT_NOTE',     'Credit Note',              'Ø¥Ø´Ø¹Ø§Ø± Ø¯Ø§Ø¦Ù†',          3),
+  ('WALLET',          'Wallet Credit',            'Ø±ØµÙŠØ¯ Ø§Ù„Ù…Ø­ÙØ¸Ø©',        4);
 
--- ── sys_refund_reason_codes_cd ────────────────────────────────────────────────
+-- â”€â”€ sys_refund_reason_codes_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 CREATE TABLE sys_refund_reason_codes_cd (
   reason_code   TEXT PRIMARY KEY,
   name          TEXT NOT NULL,
@@ -363,24 +363,24 @@ CREATE TABLE sys_refund_reason_codes_cd (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 INSERT INTO sys_refund_reason_codes_cd (reason_code, name, name2, sort_order) VALUES
-  ('DUPLICATE',   'Duplicate Charge',    'رسوم مكررة',          1),
-  ('QUALITY',     'Quality Issue',       'مشكلة جودة',          2),
-  ('CANCELLED',   'Order Cancelled',     'تم إلغاء الطلب',      3),
-  ('OVERCHARGE',  'Overcharge',          'فرض رسوم زائدة',      4),
-  ('OTHER',       'Other',               'أخرى',                5);
+  ('DUPLICATE',   'Duplicate Charge',    'Ø±Ø³ÙˆÙ… Ù…ÙƒØ±Ø±Ø©',          1),
+  ('QUALITY',     'Quality Issue',       'Ù…Ø´ÙƒÙ„Ø© Ø¬ÙˆØ¯Ø©',          2),
+  ('CANCELLED',   'Order Cancelled',     'ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø·Ù„Ø¨',      3),
+  ('OVERCHARGE',  'Overcharge',          'ÙØ±Ø¶ Ø±Ø³ÙˆÙ… Ø²Ø§Ø¦Ø¯Ø©',      4),
+  ('OTHER',       'Other',               'Ø£Ø®Ø±Ù‰',                5);
 ```
 
-**No RLS** — these are global sys tables (no `tenant_org_id`).
-**No Prisma models needed** — sys lookup tables are read-only reference data; consumed via DB CHECK constraints and TypeScript constants. Add models only if needed for admin UI.
+**No RLS** â€” these are global sys tables (no `tenant_org_id`).
+**No Prisma models needed** â€” sys lookup tables are read-only reference data; consumed via DB CHECK constraints and TypeScript constants. Add models only if needed for admin UI.
 **`SETTLEMENT_TYPE_CODES` constant** maps to `sys_payment_type_cd.payment_type_code` values (existing table). The CHECK constraint on `org_payment_methods_cf.settlement_type_code` uses: `PAY_IN_ADVANCE`, `PAY_ON_COLLECTION`, `PAY_ON_DELIVERY`, `CREDIT_INVOICE`.
 
 ---
 
-### PHASE 1 — Order Financial Fact Tables
+### PHASE 1 â€” Order Financial Fact Tables
 
-Each migration: CREATE TABLE → RLS → indexes → no app code changes yet.
+Each migration: CREATE TABLE â†’ RLS â†’ indexes â†’ no app code changes yet.
 
-#### P1.1 — Migration 0280: Order Charges
+#### P1.1 â€” Migration 0280: Order Charges
 **File:** `supabase/migrations/0280_order_charges_dtl.sql`
 
 ```sql
@@ -407,7 +407,7 @@ CREATE TABLE org_order_charges_dtl (
   updated_info        TEXT,
   metadata            JSONB
 );
--- Note: no rec_status/is_active — voided flag used instead (immutable ledger rows)
+-- Note: no rec_status/is_active â€” voided flag used instead (immutable ledger rows)
 
 CREATE INDEX IF NOT EXISTS idx_order_charges_order
   ON org_order_charges_dtl (tenant_org_id, order_id);
@@ -423,7 +423,7 @@ CREATE POLICY tenant_isolation_org_order_charges_dtl
 
 **Prisma:** Add `org_order_charges_dtl` model.
 
-#### P1.2 — Migration 0281: Order Taxes
+#### P1.2 â€” Migration 0281: Order Taxes
 **File:** `supabase/migrations/0281_order_taxes_dtl.sql`
 
 ```sql
@@ -450,7 +450,7 @@ CREATE TABLE org_order_taxes_dtl (
   updated_info        TEXT,
   metadata            JSONB
 );
--- Note: no rec_status — immutable ledger row; void handled at order level
+-- Note: no rec_status â€” immutable ledger row; void handled at order level
 
 CREATE INDEX IF NOT EXISTS idx_order_taxes_order
   ON org_order_taxes_dtl (tenant_org_id, order_id);
@@ -466,7 +466,7 @@ CREATE POLICY tenant_isolation_org_order_taxes_dtl
 
 **Prisma:** Add `org_order_taxes_dtl` model.
 
-#### P1.3 — Migration 0282: Order Financial Snapshot Columns
+#### P1.3 â€” Migration 0282: Order Financial Snapshot Columns
 **File:** `supabase/migrations/0282_orders_financial_snapshot.sql`
 
 Add to `org_orders_mst`:
@@ -497,7 +497,7 @@ ALTER TABLE org_orders_mst ADD COLUMN IF NOT EXISTS
 
 **Prisma:** Add these fields to `org_orders_mst` model.
 
-#### P1.4 — Migration 0283: Harden Credit Apps + Fix Refund FK
+#### P1.4 â€” Migration 0283: Harden Credit Apps + Fix Refund FK
 **File:** `supabase/migrations/0283_harden_credit_apps_refunds.sql`
 
 ```sql
@@ -510,7 +510,7 @@ ALTER TABLE org_order_credit_apps_dtl
   ADD CONSTRAINT uq_credit_app_idempotency
     UNIQUE (tenant_org_id, idempotency_key);
 
--- Fix org_order_refunds_dtl: change FK from org_payments_dtl_tr → org_order_payments_dtl
+-- Fix org_order_refunds_dtl: change FK from org_payments_dtl_tr â†’ org_order_payments_dtl
 ALTER TABLE org_order_refunds_dtl
   DROP CONSTRAINT org_order_refunds_dtl_original_payment_id_fkey,
   ADD CONSTRAINT org_order_refunds_dtl_original_payment_id_fkey
@@ -537,9 +537,9 @@ ALTER TABLE org_order_payments_dtl
 
 ---
 
-### PHASE 2 — Stored Value Tables
+### PHASE 2 â€” Stored Value Tables
 
-#### P2.1 — Migration 0284: Wallet
+#### P2.1 â€” Migration 0284: Wallet
 **File:** `supabase/migrations/0284_customer_wallets.sql`
 
 ```sql
@@ -584,7 +584,7 @@ CREATE TABLE org_wallet_txn_dtl (
   created_info    TEXT,
   CONSTRAINT uq_wallet_txn_idempotency UNIQUE (tenant_org_id, idempotency_key)
 );
--- Note: txn rows are immutable (no updated_at) — append-only ledger
+-- Note: txn rows are immutable (no updated_at) â€” append-only ledger
 
 CREATE INDEX IF NOT EXISTS idx_wallets_customer
   ON org_customer_wallets_mst (tenant_org_id, customer_id);
@@ -608,7 +608,7 @@ CREATE POLICY tenant_isolation_org_wallet_txn_dtl
 
 **Prisma:** Add `org_customer_wallets_mst` + `org_wallet_txn_dtl` models.
 
-#### P2.2 — Migration 0285: Customer Advances
+#### P2.2 â€” Migration 0285: Customer Advances
 **File:** `supabase/migrations/0285_customer_advances.sql`
 
 Same structure pattern as wallet. Separate table per business semantics (advance = pre-payment deposited, wallet = topped-up credit).
@@ -678,7 +678,7 @@ CREATE POLICY tenant_isolation_org_advance_txn_dtl
 
 **Prisma:** Add both models.
 
-#### P2.3 — Migration 0286: Credit Notes
+#### P2.3 â€” Migration 0286: Credit Notes
 **File:** `supabase/migrations/0286_credit_notes.sql`
 
 ```sql
@@ -758,9 +758,9 @@ CREATE POLICY tenant_isolation_org_credit_note_txn_dtl
 
 ---
 
-### PHASE 3 — Loyalty
+### PHASE 3 â€” Loyalty
 
-#### P3.1 — Migration 0287: Loyalty Tables
+#### P3.1 â€” Migration 0287: Loyalty Tables
 **File:** `supabase/migrations/0287_loyalty.sql`
 
 ```sql
@@ -879,9 +879,9 @@ CREATE POLICY tenant_isolation_org_loyalty_txn_dtl
   WITH CHECK (tenant_org_id = current_tenant_id());
 ```
 
-**Seed data — loyalty programs + tiers for both demo tenants:**
+**Seed data â€” loyalty programs + tiers for both demo tenants:**
 ```sql
--- ─── Tenant 1 Program ───
+-- â”€â”€â”€ Tenant 1 Program â”€â”€â”€
 WITH prog1 AS (
   INSERT INTO org_loyalty_programs_cf
     (id, tenant_org_id, program_name, program_name2,
@@ -891,7 +891,7 @@ WITH prog1 AS (
   VALUES
     ('aaaaaaaa-0001-0001-0001-000000000001',
      '11111111-1111-1111-1111-111111111111',
-     'CleanMate Rewards', 'مكافآت كلين ميت',
+     'CleanMate Rewards', 'Ù…ÙƒØ§ÙØ¢Øª ÙƒÙ„ÙŠÙ† Ù…ÙŠØª',
      1.00, 0.01, 100, 20.00, 365, true, 1)
   RETURNING id
 )
@@ -903,14 +903,14 @@ SELECT
   id, name, name2, min_pts, multiplier, ord, true, 1
 FROM prog1
 CROSS JOIN (VALUES
-  ('Bronze',   'برونزي',      0,     1.00, 1),
-  ('Silver',   'فضي',         1000,  1.25, 2),
-  ('Gold',     'ذهبي',        5000,  1.50, 3),
-  ('Platinum', 'بلاتيني',     15000, 2.00, 4),
-  ('VIP',      'في آي بي',    50000, 3.00, 5)
+  ('Bronze',   'Ø¨Ø±ÙˆÙ†Ø²ÙŠ',      0,     1.00, 1),
+  ('Silver',   'ÙØ¶ÙŠ',         1000,  1.25, 2),
+  ('Gold',     'Ø°Ù‡Ø¨ÙŠ',        5000,  1.50, 3),
+  ('Platinum', 'Ø¨Ù„Ø§ØªÙŠÙ†ÙŠ',     15000, 2.00, 4),
+  ('VIP',      'ÙÙŠ Ø¢ÙŠ Ø¨ÙŠ',    50000, 3.00, 5)
 ) AS t(name, name2, min_pts, multiplier, ord);
 
--- ─── Tenant 2 Program ───
+-- â”€â”€â”€ Tenant 2 Program â”€â”€â”€
 WITH prog2 AS (
   INSERT INTO org_loyalty_programs_cf
     (id, tenant_org_id, program_name, program_name2,
@@ -920,7 +920,7 @@ WITH prog2 AS (
   VALUES
     ('aaaaaaaa-0002-0002-0002-000000000002',
      'c9ac29d1-219c-4a3a-8887-f860550c32be',
-     'Prestige Points', 'نقاط البرستيج',
+     'Prestige Points', 'Ù†Ù‚Ø§Ø· Ø§Ù„Ø¨Ø±Ø³ØªÙŠØ¬',
      1.50, 0.015, 50, 25.00, 730, true, 1)
   RETURNING id
 )
@@ -932,10 +932,10 @@ SELECT
   id, name, name2, min_pts, multiplier, ord, true, 1
 FROM prog2
 CROSS JOIN (VALUES
-  ('Member',   'عضو',         0,     1.00, 1),
-  ('Silver',   'فضي',         2000,  1.25, 2),
-  ('Gold',     'ذهبي',        8000,  1.75, 3),
-  ('Diamond',  'ألماسي',      25000, 2.50, 4)
+  ('Member',   'Ø¹Ø¶Ùˆ',         0,     1.00, 1),
+  ('Silver',   'ÙØ¶ÙŠ',         2000,  1.25, 2),
+  ('Gold',     'Ø°Ù‡Ø¨ÙŠ',        8000,  1.75, 3),
+  ('Diamond',  'Ø£Ù„Ù…Ø§Ø³ÙŠ',      25000, 2.50, 4)
 ) AS t(name, name2, min_pts, multiplier, ord);
 ```
 
@@ -943,15 +943,15 @@ CROSS JOIN (VALUES
 
 ---
 
-### PHASE 4 — Promotions Engine
+### PHASE 4 â€” Promotions Engine
 
-> Renames `org_promo_codes_mst` → `org_promotions_mst` and `org_promo_usage_log` → `org_promotion_usage_dtl`, then extends both with campaign-level fields. No new tables are created.
+> Renames `org_promo_codes_mst` â†’ `org_promotions_mst` and `org_promo_usage_log` â†’ `org_promotion_usage_dtl`, then extends both with campaign-level fields. No new tables are created.
 
-#### P4.1 — Migration 0288: Extend Promotion Tables
+#### P4.1 â€” Migration 0288: Extend Promotion Tables
 **File:** `supabase/migrations/0288_extend_promo_tables.sql`
 
 ```sql
--- ── Step 1: Rename tables ───────────────────────────────────────────────────
+-- â”€â”€ Step 1: Rename tables â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ALTER TABLE org_promo_codes_mst    RENAME TO org_promotions_mst;
 ALTER TABLE org_promo_usage_log    RENAME TO org_promotion_usage_dtl;
 
@@ -977,7 +977,7 @@ CREATE POLICY tenant_isolation_org_prom_usage_dtl ON org_promotion_usage_dtl
     SELECT tenant_org_id FROM org_users_mst WHERE user_id = auth.uid()
   ));
 
--- ── Step 2: Extend org_promotions_mst ──────────────────────────────────────
+-- â”€â”€ Step 2: Extend org_promotions_mst â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Allow NULL promo_code for auto-apply rules (existing column is NOT NULL)
 ALTER TABLE org_promotions_mst
   ALTER COLUMN promo_code DROP NOT NULL;
@@ -997,7 +997,7 @@ CREATE INDEX IF NOT EXISTS idx_promo_codes_auto_apply
   ON org_promotions_mst (tenant_org_id, is_active, valid_from, valid_to)
   WHERE promo_code IS NULL;
 
--- ── Step 3: Extend org_promotion_usage_dtl ────────────────────────────────
+-- â”€â”€ Step 3: Extend org_promotion_usage_dtl â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ALTER TABLE org_promotion_usage_dtl
   ADD COLUMN IF NOT EXISTS currency_code   TEXT,
   ADD COLUMN IF NOT EXISTS exchange_rate   DECIMAL(19,6) NOT NULL DEFAULT 1,
@@ -1007,14 +1007,14 @@ ALTER TABLE org_promotion_usage_dtl
   ADD CONSTRAINT uq_promo_usage_idempotency
     UNIQUE (tenant_org_id, idempotency_key);
 
--- ── Step 4: FK on org_order_discounts_dtl.promotion_id ────────────────────
--- org_promotions_mst now exists (renamed above) — add FK directly
+-- â”€â”€ Step 4: FK on org_order_discounts_dtl.promotion_id â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+-- org_promotions_mst now exists (renamed above) â€” add FK directly
 ALTER TABLE org_order_discounts_dtl
   ADD CONSTRAINT fk_ord_disc_promo
     FOREIGN KEY (promotion_id) REFERENCES org_promotions_mst(id) ON DELETE SET NULL;
 ```
 
-**Existing column name mapping** (use these names everywhere — do NOT alias):
+**Existing column name mapping** (use these names everywhere â€” do NOT alias):
 
 | Plan concept | Existing DB column |
 |---|---|
@@ -1024,9 +1024,9 @@ ALTER TABLE org_order_discounts_dtl
 | `minimum_order_amount` | `min_order_amount` |
 | `name` / `name2` | `promo_name` / `promo_name2` |
 
-**Seed data — realistic promotions for both demo tenants (INSERT into `org_promotions_mst`):**
+**Seed data â€” realistic promotions for both demo tenants (INSERT into `org_promotions_mst`):**
 ```sql
--- ─── Tenant 1: Oman market promotions (OMR) ───
+-- â”€â”€â”€ Tenant 1: Oman market promotions (OMR) â”€â”€â”€
 -- Note: discount_type uses existing DB values ('percentage' / 'fixed_amount' lowercase)
 INSERT INTO org_promotions_mst
   (id, tenant_org_id, promo_code, promo_name, promo_name2,
@@ -1035,43 +1035,43 @@ INSERT INTO org_promotions_mst
    valid_from, valid_to, stackable, currency_code,
    is_active, rec_status, created_by) VALUES
 
--- Welcome offer — auto-apply (NULL code), first order only
+-- Welcome offer â€” auto-apply (NULL code), first order only
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'Welcome 10% Off', 'خصم ترحيبي 10%',
+  NULL, 'Welcome 10% Off', 'Ø®ØµÙ… ØªØ±Ø­ÙŠØ¨ÙŠ 10%',
   'percentage', 10.000, 'PERCENTAGE',
   NULL, NULL, 1, '2024-01-01', NULL, false, 'OMR', true, 1, NULL),
 
--- Ramadan campaign — coupon code
+-- Ramadan campaign â€” coupon code
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'RAMADAN25', 'Ramadan Special 25%', 'عرض رمضان 25%',
+  'RAMADAN25', 'Ramadan Special 25%', 'Ø¹Ø±Ø¶ Ø±Ù…Ø¶Ø§Ù† 25%',
   'percentage', 25.000, 'PERCENTAGE',
   20.000, 500, 1, '2025-03-01', '2025-03-31', false, 'OMR', true, 1, NULL),
 
--- Fixed OMR discount — requires minimum order
+-- Fixed OMR discount â€” requires minimum order
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'SAVE8', 'Save 8 OMR', 'وفّر 8 ريال عماني',
+  'SAVE8', 'Save 8 OMR', 'ÙˆÙÙ‘Ø± 8 Ø±ÙŠØ§Ù„ Ø¹Ù…Ø§Ù†ÙŠ',
   'fixed_amount', 8.000, 'FIXED_AMOUNT',
   40.000, 1000, 2, '2024-01-01', NULL, false, 'OMR', true, 1, NULL),
 
--- Weekend bonus — stackable with loyalty
+-- Weekend bonus â€” stackable with loyalty
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'WEEKEND15', 'Weekend 15% Off', 'خصم نهاية الأسبوع 15%',
+  'WEEKEND15', 'Weekend 15% Off', 'Ø®ØµÙ… Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø£Ø³Ø¨ÙˆØ¹ 15%',
   'percentage', 15.000, 'PERCENTAGE',
   12.000, NULL, NULL, '2024-01-01', NULL, true, 'OMR', true, 1, NULL),
 
--- Bulk order discount — auto-apply, no code
+-- Bulk order discount â€” auto-apply, no code
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'Bulk Order 5% Off', 'خصم الطلبات الكبيرة 5%',
+  NULL, 'Bulk Order 5% Off', 'Ø®ØµÙ… Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„ÙƒØ¨ÙŠØ±Ø© 5%',
   'percentage', 5.000, 'PERCENTAGE',
   80.000, NULL, NULL, '2024-01-01', NULL, true, 'OMR', true, 1, NULL),
 
 -- B2B corporate code
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'CORP30', 'Corporate Partner 30%', 'شريك مؤسسي 30%',
+  'CORP30', 'Corporate Partner 30%', 'Ø´Ø±ÙŠÙƒ Ù…Ø¤Ø³Ø³ÙŠ 30%',
   'percentage', 30.000, 'PERCENTAGE',
   60.000, NULL, NULL, '2024-01-01', NULL, false, 'OMR', true, 1, NULL);
 
--- ─── Tenant 2: Saudi market promotions (SAR) ───
+-- â”€â”€â”€ Tenant 2: Saudi market promotions (SAR) â”€â”€â”€
 INSERT INTO org_promotions_mst
   (id, tenant_org_id, promo_code, promo_name, promo_name2,
    discount_type, discount_value, promo_type,
@@ -1079,50 +1079,50 @@ INSERT INTO org_promotions_mst
    valid_from, valid_to, stackable, currency_code,
    is_active, rec_status, created_by) VALUES
 
--- Welcome offer — auto-apply, first order only
+-- Welcome offer â€” auto-apply, first order only
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'First Order 20 SAR Off', 'خصم 20 ريال للطلب الأول',
+  NULL, 'First Order 20 SAR Off', 'Ø®ØµÙ… 20 Ø±ÙŠØ§Ù„ Ù„Ù„Ø·Ù„Ø¨ Ø§Ù„Ø£ÙˆÙ„',
   'fixed_amount', 20.000, 'FIXED_AMOUNT',
   NULL, NULL, 1, '2024-01-01', NULL, false, 'SAR', true, 1, NULL),
 
--- Saudi National Day campaign (September 23 — 94th)
+-- Saudi National Day campaign (September 23 â€” 94th)
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'KSA94', 'National Day 25% Off', 'عروض اليوم الوطني 25%',
+  'KSA94', 'National Day 25% Off', 'Ø¹Ø±ÙˆØ¶ Ø§Ù„ÙŠÙˆÙ… Ø§Ù„ÙˆØ·Ù†ÙŠ 25%',
   'percentage', 25.000, 'PERCENTAGE',
   80.000, 500, 1, '2025-09-20', '2025-09-23', false, 'SAR', true, 1, NULL),
 
 -- Referral bonus
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'REFER25', 'Referral 25 SAR', 'مكافأة الإحالة 25 ريال',
+  'REFER25', 'Referral 25 SAR', 'Ù…ÙƒØ§ÙØ£Ø© Ø§Ù„Ø¥Ø­Ø§Ù„Ø© 25 Ø±ÙŠØ§Ù„',
   'fixed_amount', 25.000, 'FIXED_AMOUNT',
   50.000, NULL, 1, '2024-01-01', NULL, false, 'SAR', true, 1, NULL),
 
--- VIP member stackable — auto-apply
+-- VIP member stackable â€” auto-apply
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'VIP Member 10% Extra', 'خصم إضافي للأعضاء 10%',
+  NULL, 'VIP Member 10% Extra', 'Ø®ØµÙ… Ø¥Ø¶Ø§ÙÙŠ Ù„Ù„Ø£Ø¹Ø¶Ø§Ø¡ 10%',
   'percentage', 10.000, 'PERCENTAGE',
   NULL, NULL, NULL, '2024-01-01', NULL, true, 'SAR', true, 1, NULL),
 
 -- Summer clearance
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'SUMMER20', 'Summer Sale 20%', 'تخفيضات الصيف 20%',
+  'SUMMER20', 'Summer Sale 20%', 'ØªØ®ÙÙŠØ¶Ø§Øª Ø§Ù„ØµÙŠÙ 20%',
   'percentage', 20.000, 'PERCENTAGE',
   60.000, 300, 2, '2025-06-01', '2025-08-31', false, 'SAR', true, 1, NULL),
 
 -- Express service add-on (stackable)
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'EXPRESS30', 'Express 30 SAR Off', 'خصم 30 ريال على الخدمة السريعة',
+  'EXPRESS30', 'Express 30 SAR Off', 'Ø®ØµÙ… 30 Ø±ÙŠØ§Ù„ Ø¹Ù„Ù‰ Ø§Ù„Ø®Ø¯Ù…Ø© Ø§Ù„Ø³Ø±ÙŠØ¹Ø©',
   'fixed_amount', 30.000, 'FIXED_AMOUNT',
   150.000, NULL, NULL, '2024-01-01', NULL, true, 'SAR', true, 1, NULL);
 ```
 
-**Prisma:** Rename model `org_promo_codes_mst` → `org_promotions_mst` and `org_promo_usage_log` → `org_promotion_usage_dtl`. Add 7 new fields to `org_promotions_mst`. Add 3 new fields + unique constraint to `org_promotion_usage_dtl`. Update all `@@map` decorators and relation references across the schema.
+**Prisma:** Rename model `org_promo_codes_mst` â†’ `org_promotions_mst` and `org_promo_usage_log` â†’ `org_promotion_usage_dtl`. Add 7 new fields to `org_promotions_mst`. Add 3 new fields + unique constraint to `org_promotion_usage_dtl`. Update all `@@map` decorators and relation references across the schema.
 
 ---
 
-### PHASE 5 — Tax Configuration
+### PHASE 5 â€” Tax Configuration
 
-#### P5.1 — Migration 0289: Tax Profiles
+#### P5.1 â€” Migration 0289: Tax Profiles
 **File:** `supabase/migrations/0289_tax_config.sql`
 
 ```sql
@@ -1186,58 +1186,58 @@ CREATE POLICY tenant_isolation_org_tax_exemptions_cf
   WITH CHECK (tenant_org_id = current_tenant_id());
 ```
 
-Add FK from `org_order_taxes_dtl.tax_profile_id → org_tax_profiles_cf(id)` in this migration.
+Add FK from `org_order_taxes_dtl.tax_profile_id â†’ org_tax_profiles_cf(id)` in this migration.
 
-**Seed data for both demo tenants** — realistic GCC-market tax profiles:
+**Seed data for both demo tenants** â€” realistic GCC-market tax profiles:
 ```sql
--- ─── Tenant 1: 11111111-1111-1111-1111-111111111111 (Oman / OMR) ───
+-- â”€â”€â”€ Tenant 1: 11111111-1111-1111-1111-111111111111 (Oman / OMR) â”€â”€â”€
 -- Oman introduced VAT at 5% effective April 2021 (Royal Decree 121/2020)
 INSERT INTO org_tax_profiles_cf
   (id, tenant_org_id, name, name2, tax_type, rate, is_compound,
    applies_to, effective_from, is_default, is_active, rec_status, created_by) VALUES
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'VAT 5%', 'ضريبة القيمة المضافة 5%',
+  'VAT 5%', 'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ© 5%',
   'VAT', 5.00, false, NULL, '2024-01-01', true, true, 1, NULL),
 
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'VAT Exempt', 'معفى من ضريبة القيمة المضافة',
+  'VAT Exempt', 'Ù…Ø¹ÙÙ‰ Ù…Ù† Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ©',
   'VAT', 0.00, false, ARRAY['EXEMPT_SERVICE'], '2024-01-01', false, true, 1, NULL),
 
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'Zero-Rated VAT', 'ضريبة صفرية',
+  'Zero-Rated VAT', 'Ø¶Ø±ÙŠØ¨Ø© ØµÙØ±ÙŠØ©',
   'VAT', 0.00, false, ARRAY['EXPORT'], '2024-01-01', false, true, 1, NULL),
 
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  'Selective Tax 100%', 'ضريبة انتقائية 100%',
+  'Selective Tax 100%', 'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù†ØªÙ‚Ø§Ø¦ÙŠØ© 100%',
   'CUSTOM', 100.00, false, ARRAY['TOBACCO'], '2024-01-01', false, true, 1, NULL);
 
--- ─── Tenant 2: c9ac29d1-219c-4a3a-8887-f860550c32be (Saudi Arabia / SAR) ───
+-- â”€â”€â”€ Tenant 2: c9ac29d1-219c-4a3a-8887-f860550c32be (Saudi Arabia / SAR) â”€â”€â”€
 -- Saudi VAT raised to 15% effective July 2020 (Royal Decree M/113)
 INSERT INTO org_tax_profiles_cf
   (id, tenant_org_id, name, name2, tax_type, rate, is_compound,
    applies_to, effective_from, is_default, is_active, rec_status, created_by) VALUES
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'VAT 15%', 'ضريبة القيمة المضافة 15%',
+  'VAT 15%', 'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ© 15%',
   'VAT', 15.00, false, NULL, '2024-01-01', true, true, 1, NULL),
 
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'VAT Exempt', 'معفى من ضريبة القيمة المضافة',
+  'VAT Exempt', 'Ù…Ø¹ÙÙ‰ Ù…Ù† Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ©',
   'VAT', 0.00, false, ARRAY['EXEMPT_SERVICE'], '2024-01-01', false, true, 1, NULL),
 
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'Zero-Rated VAT', 'ضريبة صفرية',
+  'Zero-Rated VAT', 'Ø¶Ø±ÙŠØ¨Ø© ØµÙØ±ÙŠØ©',
   'VAT', 0.00, false, ARRAY['EXPORT'], '2024-01-01', false, true, 1, NULL),
 
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'Selective Tax 100%', 'ضريبة انتقائية 100%',
+  'Selective Tax 100%', 'Ø¶Ø±ÙŠØ¨Ø© Ø§Ù†ØªÙ‚Ø§Ø¦ÙŠØ© 100%',
   'CUSTOM', 100.00, false, ARRAY['TOBACCO'], '2024-01-01', false, true, 1, NULL),
 
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  'Municipal Fee 2%', 'رسوم بلدية 2%',
+  'Municipal Fee 2%', 'Ø±Ø³ÙˆÙ… Ø¨Ù„Ø¯ÙŠØ© 2%',
   'CUSTOM', 2.00, false, NULL, '2024-01-01', false, true, 1, NULL);
 ```
 
-**Seed for `org_tax_exemptions_cf`** — sample B2B exemption for each tenant:
+**Seed for `org_tax_exemptions_cf`** â€” sample B2B exemption for each tenant:
 ```sql
 INSERT INTO org_tax_exemptions_cf
   (id, tenant_org_id, customer_id, exemption_type, certificate_no,
@@ -1254,9 +1254,9 @@ INSERT INTO org_tax_exemptions_cf
 
 ---
 
-### PHASE 6 — Infrastructure Tables
+### PHASE 6 â€” Infrastructure Tables
 
-#### P6.1 — Migration 0290: Currency Rounding Rules
+#### P6.1 â€” Migration 0290: Currency Rounding Rules
 **File:** `supabase/migrations/0290_currency_rounding.sql`
 
 ```sql
@@ -1277,42 +1277,42 @@ CREATE TABLE sys_currency_rounding_rules_cd (
 INSERT INTO sys_currency_rounding_rules_cd
   (currency_code, rounding_method, rounding_unit, notes) VALUES
 -- GCC
-('SAR', 'HALF_UP', 0.01,   'Saudi Riyal — 2 decimals; 0.01 halalas'),
-('AED', 'HALF_UP', 0.01,   'UAE Dirham — 2 decimals; fils'),
-('QAR', 'HALF_UP', 0.01,   'Qatari Riyal — 2 decimals; dirham'),
-('KWD', 'HALF_UP', 0.001,  'Kuwaiti Dinar — 3 decimals; fils'),
-('BHD', 'HALF_UP', 0.001,  'Bahraini Dinar — 3 decimals; fils'),
-('OMR', 'HALF_UP', 0.001,  'Omani Rial — 3 decimals; baisa'),
+('SAR', 'HALF_UP', 0.01,   'Saudi Riyal â€” 2 decimals; 0.01 halalas'),
+('AED', 'HALF_UP', 0.01,   'UAE Dirham â€” 2 decimals; fils'),
+('QAR', 'HALF_UP', 0.01,   'Qatari Riyal â€” 2 decimals; dirham'),
+('KWD', 'HALF_UP', 0.001,  'Kuwaiti Dinar â€” 3 decimals; fils'),
+('BHD', 'HALF_UP', 0.001,  'Bahraini Dinar â€” 3 decimals; fils'),
+('OMR', 'HALF_UP', 0.001,  'Omani Rial â€” 3 decimals; baisa'),
 -- Arab region
-('EGP', 'HALF_UP', 0.01,   'Egyptian Pound — 2 decimals; piastres'),
-('JOD', 'HALF_UP', 0.001,  'Jordanian Dinar — 3 decimals; fils'),
-('LBP', 'HALF_UP', 1.00,   'Lebanese Pound — 0 decimals'),
+('EGP', 'HALF_UP', 0.01,   'Egyptian Pound â€” 2 decimals; piastres'),
+('JOD', 'HALF_UP', 0.001,  'Jordanian Dinar â€” 3 decimals; fils'),
+('LBP', 'HALF_UP', 1.00,   'Lebanese Pound â€” 0 decimals'),
 -- International
-('USD', 'HALF_UP', 0.01,   'US Dollar — 2 decimals; cents'),
-('GBP', 'HALF_UP', 0.01,   'British Pound — 2 decimals; pence'),
-('EUR', 'HALF_UP', 0.01,   'Euro — 2 decimals; cents'),
-('INR', 'HALF_UP', 0.01,   'Indian Rupee — 2 decimals; paise');
+('USD', 'HALF_UP', 0.01,   'US Dollar â€” 2 decimals; cents'),
+('GBP', 'HALF_UP', 0.01,   'British Pound â€” 2 decimals; pence'),
+('EUR', 'HALF_UP', 0.01,   'Euro â€” 2 decimals; cents'),
+('INR', 'HALF_UP', 0.01,   'Indian Rupee â€” 2 decimals; paise');
 ```
 
 **Prisma:** Add `sys_currency_rounding_rules_cd` model.
 
-#### P6.2 — Migration 0291: Extend org_payment_methods_cf + Seed Payment Config
+#### P6.2 â€” Migration 0291: Extend org_payment_methods_cf + Seed Payment Config
 
 **File:** `supabase/migrations/0291_payment_config_seed.sql`
 
 `org_payment_methods_cf` is the **unified tenant checkout settlement options config table**.
 `payment_nature` controls backend routing. The table covers real payments, credit applications,
-deferred settlements, and AR options — not only "payment methods" in the narrow sense.
+deferred settlements, and AR options â€” not only "payment methods" in the narrow sense.
 
 **Key facts verified from existing migrations:**
-- `org_payment_methods_cf` created in 0269 — already has gateway-aware unique index `uq_org_payment_methods_cf`
-- `sys_payment_gateway_cd` exists (0043) with STRIPE, HYPERPAY, PAYTABS — no `is_globally_disabled` yet
-- `sys_payment_type_cd` exists (0001) — PKs: `PAY_IN_ADVANCE`, `PAY_ON_COLLECTION`, `PAY_ON_DELIVERY`, `CREDIT_INVOICE`
+- `org_payment_methods_cf` created in 0269 â€” already has gateway-aware unique index `uq_org_payment_methods_cf`
+- `sys_payment_gateway_cd` exists (0043) with STRIPE, HYPERPAY, PAYTABS â€” no `is_globally_disabled` yet
+- `sys_payment_type_cd` exists (0001) â€” PKs: `PAY_IN_ADVANCE`, `PAY_ON_COLLECTION`, `PAY_ON_DELIVERY`, `CREDIT_INVOICE`
 - In `sys_payment_method_cd`: `PAY_ON_COLLECTION` and `INVOICE` are deprecated (migration 0267); `PAYMENT_GATEWAY` is already seeded
-- `PAY_ON_DELIVERY` and `CREDIT_INVOICE` do NOT exist in `sys_payment_method_cd` — must be added in Step 3
+- `PAY_ON_DELIVERY` and `CREDIT_INVOICE` do NOT exist in `sys_payment_method_cd` â€” must be added in Step 3
 
 ```sql
--- ── Step 0a: Add HQ-level disable controls to sys_payment_method_cd ──────────
+-- â”€â”€ Step 0a: Add HQ-level disable controls to sys_payment_method_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- HQ disables a payment method code globally across ALL tenants
 ALTER TABLE sys_payment_method_cd
   ADD COLUMN IF NOT EXISTS is_globally_disabled      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1320,7 +1320,7 @@ ALTER TABLE sys_payment_method_cd
   ADD COLUMN IF NOT EXISTS globally_disabled_at      TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS globally_disabled_by      TEXT;
 
--- ── Step 0b: Add HQ-level disable controls to sys_payment_gateway_cd ─────────
+-- â”€â”€ Step 0b: Add HQ-level disable controls to sys_payment_gateway_cd â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- HQ disables a gateway globally (e.g. fraud incident, platform contract termination)
 ALTER TABLE sys_payment_gateway_cd
   ADD COLUMN IF NOT EXISTS is_globally_disabled      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1328,7 +1328,7 @@ ALTER TABLE sys_payment_gateway_cd
   ADD COLUMN IF NOT EXISTS globally_disabled_at      TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS globally_disabled_by      TEXT;
 
--- ── Step 0c: Add platform-level disable controls to org_payment_methods_cf ───
+-- â”€â”€ Step 0c: Add platform-level disable controls to org_payment_methods_cf â”€â”€â”€
 -- HQ disables a method for a SPECIFIC tenant only (compliance, plan restriction)
 ALTER TABLE org_payment_methods_cf
   ADD COLUMN IF NOT EXISTS is_platform_disabled      BOOLEAN NOT NULL DEFAULT FALSE,
@@ -1336,7 +1336,7 @@ ALTER TABLE org_payment_methods_cf
   ADD COLUMN IF NOT EXISTS platform_disabled_at      TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS platform_disabled_by      TEXT;
 
--- ── Step 1: Extend org_payment_methods_cf with routing + eligibility columns ─
+-- â”€â”€ Step 1: Extend org_payment_methods_cf with routing + eligibility columns â”€
 ALTER TABLE org_payment_methods_cf
   ADD COLUMN IF NOT EXISTS settlement_type_code    TEXT
     CHECK (settlement_type_code IN (
@@ -1353,34 +1353,34 @@ ALTER TABLE org_payment_methods_cf
   -- NOTE: existing min_amount/max_amount = per-option amount limits (e.g. max gift card redemption)
   --       min_order_amount/max_order_amount = order-total eligibility filters for checkout UI
 
--- ── Step 2: Unique index — ALREADY EXISTS ────────────────────────────────────
+-- â”€â”€ Step 2: Unique index â€” ALREADY EXISTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- migration 0269 created: uq_org_payment_methods_cf ON
 --   org_payment_methods_cf (tenant_org_id, payment_method_code, COALESCE(gateway_code, ''))
--- No action needed. Do NOT recreate — would create a redundant duplicate index.
+-- No action needed. Do NOT recreate â€” would create a redundant duplicate index.
 
--- ── Step 3: Seed sys_payment_method_cd — add missing codes ────────────────────
+-- â”€â”€ Step 3: Seed sys_payment_method_cd â€” add missing codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 -- Adds CREDIT_APPLICATION codes (GIFT_CARD, WALLET, ADVANCE, CREDIT_NOTE, LOYALTY_POINTS).
--- Adds PAY_ON_DELIVERY (DEFERRED_SETTLEMENT) — needed for Batch C FK.
--- Adds CREDIT_INVOICE (AR_ALLOCATION, is_enabled=false) — replaces deprecated INVOICE.
+-- Adds PAY_ON_DELIVERY (DEFERRED_SETTLEMENT) â€” needed for Batch C FK.
+-- Adds CREDIT_INVOICE (AR_ALLOCATION, is_enabled=false) â€” replaces deprecated INVOICE.
 -- Re-activates PAY_ON_COLLECTION (was deprecated in 0267; unified design needs it active).
--- PAYMENT_GATEWAY already seeded in 0267 — ON CONFLICT DO NOTHING handles it.
+-- PAYMENT_GATEWAY already seeded in 0267 â€” ON CONFLICT DO NOTHING handles it.
 -- HYPERPAY/PAYTABS/STRIPE remain deprecated as PROVIDER (not globally disabled).
 INSERT INTO sys_payment_method_cd
   (payment_method_code, payment_method_name, payment_method_name2,
    payment_nature, method_category, is_enabled, is_active, rec_status,
    is_deprecated, replacement_code)
 VALUES
-  ('GIFT_CARD',       'Gift Card',            'بطاقة هدية',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
-  ('WALLET',          'Wallet',               'المحفظة',            'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
-  ('ADVANCE',         'Customer Advance',     'سلفة العميل',        'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
-  ('CREDIT_NOTE',     'Credit Note',          'إشعار دائن',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
-  ('LOYALTY_POINTS',  'Loyalty Points',       'نقاط الولاء',        'CREDIT_APPLICATION',  'LOYALTY',      true,  true, 1, false, NULL),
-  ('PAYMENT_GATEWAY', 'Payment Gateway',      'بوابة الدفع',        'REAL_PAYMENT',        'GATEWAY',      true,  true, 1, false, NULL),
-  ('PAY_ON_DELIVERY', 'Pay on Delivery',      'الدفع عند التسليم',  'DEFERRED_SETTLEMENT', 'TIMING',       true,  true, 1, false, NULL),
-  ('CREDIT_INVOICE',  'Credit Invoice',       'فاتورة آجلة',        'AR_ALLOCATION',       'INVOICE',      false, true, 1, false, NULL)
+  ('GIFT_CARD',       'Gift Card',            'Ø¨Ø·Ø§Ù‚Ø© Ù‡Ø¯ÙŠØ©',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
+  ('WALLET',          'Wallet',               'Ø§Ù„Ù…Ø­ÙØ¸Ø©',            'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
+  ('ADVANCE',         'Customer Advance',     'Ø³Ù„ÙØ© Ø§Ù„Ø¹Ù…ÙŠÙ„',        'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
+  ('CREDIT_NOTE',     'Credit Note',          'Ø¥Ø´Ø¹Ø§Ø± Ø¯Ø§Ø¦Ù†',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
+  ('LOYALTY_POINTS',  'Loyalty Points',       'Ù†Ù‚Ø§Ø· Ø§Ù„ÙˆÙ„Ø§Ø¡',        'CREDIT_APPLICATION',  'LOYALTY',      true,  true, 1, false, NULL),
+  ('PAYMENT_GATEWAY', 'Payment Gateway',      'Ø¨ÙˆØ§Ø¨Ø© Ø§Ù„Ø¯ÙØ¹',        'REAL_PAYMENT',        'GATEWAY',      true,  true, 1, false, NULL),
+  ('PAY_ON_DELIVERY', 'Pay on Delivery',      'Ø§Ù„Ø¯ÙØ¹ Ø¹Ù†Ø¯ Ø§Ù„ØªØ³Ù„ÙŠÙ…',  'DEFERRED_SETTLEMENT', 'TIMING',       true,  true, 1, false, NULL),
+  ('CREDIT_INVOICE',  'Credit Invoice',       'ÙØ§ØªÙˆØ±Ø© Ø¢Ø¬Ù„Ø©',        'AR_ALLOCATION',       'INVOICE',      false, true, 1, false, NULL)
 ON CONFLICT (payment_method_code) DO NOTHING;
 
--- Re-activate PAY_ON_COLLECTION — was deprecated in 0267 but unified design requires it
+-- Re-activate PAY_ON_COLLECTION â€” was deprecated in 0267 but unified design requires it
 -- as an active, non-deprecated code for the FK and checkout visibility
 UPDATE sys_payment_method_cd
 SET is_deprecated = false, is_active = true, rec_status = 1,
@@ -1388,16 +1388,16 @@ SET is_deprecated = false, is_active = true, rec_status = 1,
     replacement_code = NULL
 WHERE payment_method_code = 'PAY_ON_COLLECTION';
 
--- HYPERPAY/PAYTABS/STRIPE remain deprecated (PROVIDER nature) — no change needed
--- INVOICE remains deprecated — replaced by CREDIT_INVOICE above
+-- HYPERPAY/PAYTABS/STRIPE remain deprecated (PROVIDER nature) â€” no change needed
+-- INVOICE remains deprecated â€” replaced by CREDIT_INVOICE above
 ```
 
 **Prisma:**
 - `sys_payment_method_cd`: Add `is_globally_disabled`, `globally_disabled_reason`, `globally_disabled_at`, `globally_disabled_by` fields.
 - `sys_payment_gateway_cd`: Add same 4 governance fields.
-- `org_payment_methods_cf`: Add 6 routing/eligibility fields (`settlement_type_code`, `credit_application_type`, `requires_cash_drawer`, `requires_terminal`, `min_order_amount`, `max_order_amount`) + 4 platform-disable fields. Remove `@@unique([tenant_org_id, payment_method_code])` if present — uniqueness enforced by existing gateway-aware DB index `uq_org_payment_methods_cf`.
+- `org_payment_methods_cf`: Add 6 routing/eligibility fields (`settlement_type_code`, `credit_application_type`, `requires_cash_drawer`, `requires_terminal`, `min_order_amount`, `max_order_amount`) + 4 platform-disable fields. Remove `@@unique([tenant_org_id, payment_method_code])` if present â€” uniqueness enforced by existing gateway-aware DB index `uq_org_payment_methods_cf`.
 
-**Disable logic — checkout query must apply all three gates:**
+**Disable logic â€” checkout query must apply all three gates:**
 ```sql
 -- A method is available to a tenant only when ALL three pass:
 WHERE o.is_enabled = true
@@ -1410,12 +1410,12 @@ WHERE o.is_enabled = true
 --   AND add: g.is_globally_disabled = false
 ```
 
-This query pattern is implemented in `checkout-config.service.ts → getCheckoutOptions()`.
+This query pattern is implemented in `checkout-config.service.ts â†’ getCheckoutOptions()`.
 
 Both demo tenants need sample cash drawers and payment method configs for a realistic dev/demo environment:
 
 ```sql
--- ─── Cash Drawers — Tenant 1 (Oman / OMR) ───
+-- â”€â”€â”€ Cash Drawers â€” Tenant 1 (Oman / OMR) â”€â”€â”€
 -- NOTE: branch_id = NULL = template-only placeholder.
 -- Must be updated with a real branch id from org_branches_mst before production use.
 INSERT INTO org_cash_drawers_mst
@@ -1423,20 +1423,20 @@ INSERT INTO org_cash_drawers_mst
    drawer_type, currency_code, requires_session, opening_float_required,
    max_cash_limit, is_active, rec_status, created_by)
 VALUES
--- Main counter drawer (OMR — 3 decimal currency, smaller nominal amounts)
+-- Main counter drawer (OMR â€” 3 decimal currency, smaller nominal amounts)
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'DRAWER-01', 'Main Counter Drawer', 'صندوق الكاونتر الرئيسي',
+  NULL, 'DRAWER-01', 'Main Counter Drawer', 'ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„ÙƒØ§ÙˆÙ†ØªØ± Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ',
   'COUNTER', 'OMR', true, true, 2000.000, true, 1, NULL),
 -- Safe / drop safe
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'SAFE-01', 'Branch Safe', 'خزنة الفرع',
+  NULL, 'SAFE-01', 'Branch Safe', 'Ø®Ø²Ù†Ø© Ø§Ù„ÙØ±Ø¹',
   'SAFE', 'OMR', false, false, 20000.000, true, 1, NULL),
 -- Driver cash bag
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'DRIVER-01', 'Driver Bag #1', 'حقيبة السائق 1',
+  NULL, 'DRIVER-01', 'Driver Bag #1', 'Ø­Ù‚ÙŠØ¨Ø© Ø§Ù„Ø³Ø§Ø¦Ù‚ 1',
   'DRIVER_BAG', 'OMR', true, false, 800.000, true, 1, NULL);
 
--- ─── Cash Drawers — Tenant 2 (Saudi Arabia / SAR) ───
+-- â”€â”€â”€ Cash Drawers â€” Tenant 2 (Saudi Arabia / SAR) â”€â”€â”€
 -- NOTE: branch_id = NULL = template-only; update with real org_branches_mst id before production.
 INSERT INTO org_cash_drawers_mst
   (id, tenant_org_id, branch_id, drawer_code, drawer_name, drawer_name2,
@@ -1444,45 +1444,45 @@ INSERT INTO org_cash_drawers_mst
    max_cash_limit, is_active, rec_status, created_by)
 VALUES
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'DRAWER-01', 'Reception Drawer', 'صندوق الاستقبال',
+  NULL, 'DRAWER-01', 'Reception Drawer', 'ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„Ø§Ø³ØªÙ‚Ø¨Ø§Ù„',
   'COUNTER', 'SAR', true, true, 10000.00, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'DRAWER-02', 'VIP Counter Drawer', 'صندوق كاونتر VIP',
+  NULL, 'DRAWER-02', 'VIP Counter Drawer', 'ØµÙ†Ø¯ÙˆÙ‚ ÙƒØ§ÙˆÙ†ØªØ± VIP',
   'COUNTER', 'SAR', true, true, 10000.00, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'SAFE-01', 'Main Safe', 'الخزنة الرئيسية',
+  NULL, 'SAFE-01', 'Main Safe', 'Ø§Ù„Ø®Ø²Ù†Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©',
   'SAFE', 'SAR', false, false, 100000.00, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'DRIVER-01', 'Driver Bag #1', 'حقيبة السائق 1',
+  NULL, 'DRIVER-01', 'Driver Bag #1', 'Ø­Ù‚ÙŠØ¨Ø© Ø§Ù„Ø³Ø§Ø¦Ù‚ 1',
   'DRIVER_BAG', 'SAR', true, false, 3000.00, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'DRIVER-02', 'Driver Bag #2', 'حقيبة السائق 2',
+  NULL, 'DRIVER-02', 'Driver Bag #2', 'Ø­Ù‚ÙŠØ¨Ø© Ø§Ù„Ø³Ø§Ø¦Ù‚ 2',
   'DRIVER_BAG', 'SAR', true, false, 3000.00, true, 1, NULL);
 
--- ─── Payment Method / Settlement Options Config — 3-batch seed ────────────────
+-- â”€â”€â”€ Payment Method / Settlement Options Config â€” 3-batch seed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 --
 -- Seed strategy: 3 source-specific batches, using NOT EXISTS instead of ON CONFLICT
 -- to avoid hitting the expression-based unique index with partial conditions.
 --
--- Batch A: REAL_PAYMENT + CREDIT_APPLICATION — sourced from sys_payment_method_cd
+-- Batch A: REAL_PAYMENT + CREDIT_APPLICATION â€” sourced from sys_payment_method_cd
 --   strict filter: is_active=true AND is_enabled=true AND rec_status=1
 --                  AND is_deprecated=false AND is_globally_disabled=false
 --   excludes: DEFERRED_SETTLEMENT, AR_ALLOCATION, PROVIDER, INTERNAL_ADJUSTMENT
 --   includes: CASH, CARD, CHECK, BANK_TRANSFER, MOBILE_PAYMENT, PAYMENT_GATEWAY (base row),
 --             GIFT_CARD, WALLET, ADVANCE, CREDIT_NOTE, LOYALTY_POINTS
 --
--- Batch B: PAYMENT_GATEWAY rows — one per active gateway from sys_payment_gateway_cd
+-- Batch B: PAYMENT_GATEWAY rows â€” one per active gateway from sys_payment_gateway_cd
 --   payment_method_code = 'PAYMENT_GATEWAY', gateway_code = g.code
 --
--- Batch C: DEFERRED + AR — direct INSERT for PAY_ON_COLLECTION, PAY_ON_DELIVERY, CREDIT_INVOICE
+-- Batch C: DEFERRED + AR â€” direct INSERT for PAY_ON_COLLECTION, PAY_ON_DELIVERY, CREDIT_INVOICE
 --   sourced conceptually from sys_payment_type_cd but inserted directly to avoid FK complexity.
 --   AR rows (CREDIT_INVOICE) seeded with is_enabled=false.
 --
--- Column mapping (sys → org):
---   payment_method_name → display_name, payment_method_name2 → display_name2
+-- Column mapping (sys â†’ org):
+--   payment_method_name â†’ display_name, payment_method_name2 â†’ display_name2
 --   sys-only fields (method_category, colors, icon, image) stored in metadata JSONB
 
--- ═══ TENANT 1: 11111111-1111-1111-1111-111111111111 (Oman / OMR) ══════════════
+-- â•â•â• TENANT 1: 11111111-1111-1111-1111-111111111111 (Oman / OMR) â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 -- Batch A: REAL_PAYMENT + CREDIT_APPLICATION from sys_payment_method_cd
 INSERT INTO org_payment_methods_cf (
@@ -1544,7 +1544,7 @@ WHERE s.is_active = true AND s.is_enabled = true AND s.rec_status = 1
   );
 
 -- Batch B: One row per active gateway from sys_payment_gateway_cd
---   payment_method_code = 'PAYMENT_GATEWAY', gateway_code = g.code (HYPERPAY, PAYTABS, STRIPE…)
+--   payment_method_code = 'PAYMENT_GATEWAY', gateway_code = g.code (HYPERPAY, PAYTABS, STRIPEâ€¦)
 --   requires_terminal = true (gateway = card terminal or redirect flow)
 INSERT INTO org_payment_methods_cf (
   id, tenant_org_id, payment_method_code, payment_nature, gateway_code,
@@ -1580,7 +1580,7 @@ WHERE g.is_active = true AND g.is_globally_disabled = false
       AND o.gateway_code = g.code
   );
 
--- Batch C: DEFERRED_SETTLEMENT + AR_ALLOCATION — direct INSERT
+-- Batch C: DEFERRED_SETTLEMENT + AR_ALLOCATION â€” direct INSERT
 --   Sources: PAY_ON_COLLECTION, PAY_ON_DELIVERY (DEFERRED, enabled)
 --            CREDIT_INVOICE (AR, disabled by default in V1)
 --   settlement_type_code mirrors sys_payment_type_cd.payment_type_code value exactly
@@ -1602,21 +1602,21 @@ SELECT * FROM (VALUES
    'PAY_ON_COLLECTION', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_COLLECTION', NULL::TEXT, false, false,
    true, false, true, 1,
-   'Pay on Collection', 'الدفع عند الاستلام', '{}'::JSONB,
+   'Pay on Collection', 'Ø§Ù„Ø¯ÙØ¹ Ø¹Ù†Ø¯ Ø§Ù„Ø§Ø³ØªÙ„Ø§Ù…', '{}'::JSONB,
    true, false, false, true, false, true, false, false,
    true, false, false, false, false, 200),
   (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
    'PAY_ON_DELIVERY', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_DELIVERY', NULL::TEXT, false, false,
    true, false, true, 1,
-   'Pay on Delivery', 'الدفع عند التسليم', '{}'::JSONB,
+   'Pay on Delivery', 'Ø§Ù„Ø¯ÙØ¹ Ø¹Ù†Ø¯ Ø§Ù„ØªØ³Ù„ÙŠÙ…', '{}'::JSONB,
    false, false, false, true, false, false, false, false,
    true, false, false, false, false, 201),
   (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
    'CREDIT_INVOICE', 'AR_ALLOCATION', NULL::TEXT,
    'CREDIT_INVOICE', NULL::TEXT, false, false,
    false, false, true, 1,  -- is_enabled=false: AR disabled by default in V1
-   'Credit Invoice', 'فاتورة آجلة', '{}'::JSONB,
+   'Credit Invoice', 'ÙØ§ØªÙˆØ±Ø© Ø¢Ø¬Ù„Ø©', '{}'::JSONB,
    false, false, false, true, false, false, true, false,
    true, false, false, true, true, 202)
 ) AS v(id, tenant_org_id, payment_method_code, payment_nature, gateway_code,
@@ -1636,7 +1636,7 @@ WHERE NOT EXISTS (
     AND COALESCE(o.gateway_code, '') = ''
 );
 
--- ═══ TENANT 2: c9ac29d1-219c-4a3a-8887-f860550c32be (Saudi Arabia / SAR) ══════
+-- â•â•â• TENANT 2: c9ac29d1-219c-4a3a-8887-f860550c32be (Saudi Arabia / SAR) â•â•â•â•â•â•
 
 -- Batch A: REAL_PAYMENT + CREDIT_APPLICATION from sys_payment_method_cd
 INSERT INTO org_payment_methods_cf (
@@ -1732,7 +1732,7 @@ WHERE g.is_active = true AND g.is_globally_disabled = false
       AND o.gateway_code = g.code
   );
 
--- Batch C: DEFERRED_SETTLEMENT + AR_ALLOCATION — direct INSERT
+-- Batch C: DEFERRED_SETTLEMENT + AR_ALLOCATION â€” direct INSERT
 INSERT INTO org_payment_methods_cf (
   id, tenant_org_id, payment_method_code, payment_nature, gateway_code,
   settlement_type_code, credit_application_type,
@@ -1751,21 +1751,21 @@ SELECT * FROM (VALUES
    'PAY_ON_COLLECTION', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_COLLECTION', NULL::TEXT, false, false,
    true, false, true, 1,
-   'Pay on Collection', 'الدفع عند الاستلام', '{}'::JSONB,
+   'Pay on Collection', 'Ø§Ù„Ø¯ÙØ¹ Ø¹Ù†Ø¯ Ø§Ù„Ø§Ø³ØªÙ„Ø§Ù…', '{}'::JSONB,
    true, false, false, true, false, true, false, false,
    true, false, false, false, false, 200),
   (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
    'PAY_ON_DELIVERY', 'DEFERRED_SETTLEMENT', NULL::TEXT,
    'PAY_ON_DELIVERY', NULL::TEXT, false, false,
    true, false, true, 1,
-   'Pay on Delivery', 'الدفع عند التسليم', '{}'::JSONB,
+   'Pay on Delivery', 'Ø§Ù„Ø¯ÙØ¹ Ø¹Ù†Ø¯ Ø§Ù„ØªØ³Ù„ÙŠÙ…', '{}'::JSONB,
    false, false, false, true, false, false, false, false,
    true, false, false, false, false, 201),
   (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
    'CREDIT_INVOICE', 'AR_ALLOCATION', NULL::TEXT,
    'CREDIT_INVOICE', NULL::TEXT, false, false,
    false, false, true, 1,
-   'Credit Invoice', 'فاتورة آجلة', '{}'::JSONB,
+   'Credit Invoice', 'ÙØ§ØªÙˆØ±Ø© Ø¢Ø¬Ù„Ø©', '{}'::JSONB,
    false, false, false, true, false, false, true, false,
    true, false, false, true, true, 202)
 ) AS v(id, tenant_org_id, payment_method_code, payment_nature, gateway_code,
@@ -1785,35 +1785,35 @@ WHERE NOT EXISTS (
     AND COALESCE(o.gateway_code, '') = ''
 );
 
--- ─── Payment Terminals — Tenant 1 ───
+-- â”€â”€â”€ Payment Terminals â€” Tenant 1 â”€â”€â”€
 INSERT INTO org_payment_terminals_cf
   (id, tenant_org_id, branch_id, terminal_code, terminal_name, terminal_name2,
    terminal_type, is_enabled, is_active, rec_status, created_by)
 VALUES
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'POS-001', 'Main POS Terminal', 'جهاز البيع الرئيسي',
+  NULL, 'POS-001', 'Main POS Terminal', 'Ø¬Ù‡Ø§Ø² Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ',
   'POS_CARD_TERMINAL', true, true, 1, NULL),
 (gen_random_uuid(), '11111111-1111-1111-1111-111111111111',
-  NULL, 'MOB-001', 'Mobile POS #1', 'جهاز بيع متنقل 1',
+  NULL, 'MOB-001', 'Mobile POS #1', 'Ø¬Ù‡Ø§Ø² Ø¨ÙŠØ¹ Ù…ØªÙ†Ù‚Ù„ 1',
   'POS_CARD_TERMINAL', true, true, 1, NULL);
 
--- ─── Payment Terminals — Tenant 2 ───
+-- â”€â”€â”€ Payment Terminals â€” Tenant 2 â”€â”€â”€
 INSERT INTO org_payment_terminals_cf
   (id, tenant_org_id, branch_id, terminal_code, terminal_name, terminal_name2,
    terminal_type, is_enabled, is_active, rec_status, created_by)
 VALUES
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'POS-001', 'Reception POS', 'جهاز استقبال POS',
+  NULL, 'POS-001', 'Reception POS', 'Ø¬Ù‡Ø§Ø² Ø§Ø³ØªÙ‚Ø¨Ø§Ù„ POS',
   'POS_CARD_TERMINAL', true, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'POS-002', 'VIP Counter POS', 'جهاز VIP POS',
+  NULL, 'POS-002', 'VIP Counter POS', 'Ø¬Ù‡Ø§Ø² VIP POS',
   'POS_CARD_TERMINAL', true, true, 1, NULL),
 (gen_random_uuid(), 'c9ac29d1-219c-4a3a-8887-f860550c32be',
-  NULL, 'MOB-001', 'Driver Mobile POS', 'جهاز السائق المتنقل',
+  NULL, 'MOB-001', 'Driver Mobile POS', 'Ø¬Ù‡Ø§Ø² Ø§Ù„Ø³Ø§Ø¦Ù‚ Ø§Ù„Ù…ØªÙ†Ù‚Ù„',
   'POS_CARD_TERMINAL', true, true, 1, NULL);
 ```
 
-#### P6.3 — Migration 0292: Outbox + Idempotency
+#### P6.3 â€” Migration 0292: Outbox + Idempotency
 **File:** `supabase/migrations/0292_outbox_idempotency.sql`
 
 ```sql
@@ -1869,7 +1869,7 @@ CREATE POLICY tenant_isolation_org_idempotency_keys
 
 **Prisma:** Add both models.
 
-#### P6.4 — Migration 0293: Reconciliation Tables
+#### P6.4 â€” Migration 0293: Reconciliation Tables
 **File:** `supabase/migrations/0293_reconciliation.sql`
 
 ```sql
@@ -1947,12 +1947,12 @@ CREATE POLICY tenant_isolation_org_fin_recon_issues
 
 ---
 
-### PHASE 7 — Permissions + Navigation
+### PHASE 7 â€” Permissions + Navigation
 
-#### P7.1 — Migration 0294: Seed All New Permissions
+#### P7.1 â€” Migration 0294: Seed All New Permissions
 **File:** `supabase/migrations/0294_financial_permissions_seed.sql`
 
-Seed into `sys_permissions_cd` (or equivalent permission table — check existing pattern):
+Seed into `sys_permissions_cd` (or equivalent permission table â€” check existing pattern):
 
 ```sql
 -- Orders financial
@@ -1978,7 +1978,7 @@ Seed into `sys_permissions_cd` (or equivalent permission table — check existin
 ('loyalty:view_config', ...), ('loyalty:manage_config', ...),
 ('loyalty:view_customer_points', ...), ('loyalty:adjust_points', ...),
 
--- Promotions (campaign level — separate from existing promotions:read)
+-- Promotions (campaign level â€” separate from existing promotions:read)
 ('promotions:view', ...),
 ('promotions:create', ...), ('promotions:edit', ...),
 ('promotions:delete', ...), ('promotions:activate_deactivate', ...),
@@ -1999,32 +1999,32 @@ Seed into `sys_permissions_cd` (or equivalent permission table — check existin
 
 Map to roles per the RBAC table in the planning session.
 
-#### P7.2 — Migration 0295: Navigation Entries
+#### P7.2 â€” Migration 0295: Navigation Entries
 **File:** `supabase/migrations/0295_financial_navigation.sql`
 
 Insert into `sys_components_cd`:
 
 | nav_key | parent | label (EN) | label (AR) | path | permissions |
 |---|---|---|---|---|---|
-| `cash_drawers` | `billing` | Cash Drawers | الصناديق النقدية | /dashboard/billing/cash-drawers | cash_drawer:view |
-| `refunds` | `billing` | Refunds | المرتجعات | /dashboard/billing/refunds | orders:process_refund |
-| `reconciliation` | `billing` | Reconciliation | التسوية المالية | /dashboard/billing/reconciliation | reconciliation:view |
-| `customer_stored_value` | `customers` (section) | Stored Value | القيمة المخزنة | /dashboard/customers/stored-value | stored_value:view_balances |
-| `gift_cards_admin` | `marketing` | Gift Cards (Admin) | بطاقات الهدايا | /dashboard/marketing/gift-cards | gift_cards:view |
-| `loyalty_program` | `marketing` | Loyalty Program | برنامج الولاء | /dashboard/marketing/loyalty | loyalty:view_config |
-| `promotions_engine` | `marketing` | Promotions | العروض الترويجية | /dashboard/marketing/promotions | promotions:view |
-| `tax_setup` | `config_settings` | Tax Setup | إعداد الضريبة | /dashboard/settings/tax | tax:view_config |
-| `fin_reports` | `reports` | Financial Reports | التقارير المالية | /dashboard/reports/financial | finance_reports:view |
+| `cash_drawers` | `billing` | Cash Drawers | Ø§Ù„ØµÙ†Ø§Ø¯ÙŠÙ‚ Ø§Ù„Ù†Ù‚Ø¯ÙŠØ© | /dashboard/internal_fin/cash-drawers | cash_drawer:view |
+| `refunds` | `billing` | Refunds | Ø§Ù„Ù…Ø±ØªØ¬Ø¹Ø§Øª | /dashboard/internal_fin/refunds | orders:process_refund |
+| `reconciliation` | `billing` | Reconciliation | Ø§Ù„ØªØ³ÙˆÙŠØ© Ø§Ù„Ù…Ø§Ù„ÙŠØ© | /dashboard/internal_fin/reconciliation | reconciliation:view |
+| `customer_stored_value` | `customers` (section) | Stored Value | Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…Ø®Ø²Ù†Ø© | /dashboard/customers/stored-value | stored_value:view_balances |
+| `gift_cards_admin` | `marketing` | Gift Cards (Admin) | Ø¨Ø·Ø§Ù‚Ø§Øª Ø§Ù„Ù‡Ø¯Ø§ÙŠØ§ | /dashboard/marketing/gift-cards | gift_cards:view |
+| `loyalty_program` | `marketing` | Loyalty Program | Ø¨Ø±Ù†Ø§Ù…Ø¬ Ø§Ù„ÙˆÙ„Ø§Ø¡ | /dashboard/marketing/loyalty | loyalty:view_config |
+| `promotions_engine` | `marketing` | Promotions | Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø§Ù„ØªØ±ÙˆÙŠØ¬ÙŠØ© | /dashboard/marketing/promotions | promotions:view |
+| `tax_setup` | `config_settings` | Tax Setup | Ø¥Ø¹Ø¯Ø§Ø¯ Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© | /dashboard/settings/tax | tax:view_config |
+| `fin_reports` | `reports` | Financial Reports | Ø§Ù„ØªÙ‚Ø§Ø±ÙŠØ± Ø§Ù„Ù…Ø§Ù„ÙŠØ© | /dashboard/reports/financial | finance_reports:view |
 
 **MANDATORY DUAL-WRITE:** Also update `web-admin/config/navigation.ts` with all corresponding entries.
 
 ---
 
-### PHASE 8 — Service Layer
+### PHASE 8 â€” Service Layer
 
 All new services created in `web-admin/lib/services/`. All use `withTenantContext` + `PrismaTx` pattern.
 
-#### P8.1 — Rewrite `order-calculation.service.ts`
+#### P8.1 â€” Rewrite `order-calculation.service.ts`
 **File:** `web-admin/lib/services/order-calculation.service.ts`
 
 New return type `FinancialBreakdownSnapshot` (replace flat `OrderCalculationResult`).
@@ -2053,7 +2053,7 @@ interface CalculationResult {
 
 Internally call `tax-engine.service.ts` for tax breakdown.
 
-#### P8.2 — New `tax-engine.service.ts`
+#### P8.2 â€” New `tax-engine.service.ts`
 **File:** `web-admin/lib/services/tax-engine.service.ts`
 
 ```typescript
@@ -2066,7 +2066,7 @@ async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]>
 
 Reads from `org_tax_profiles_cf`. Falls back to tenant `tax_rate` setting if no profile configured.
 
-#### P8.3 — New `order-settlement.service.ts`
+#### P8.3 â€” New `order-settlement.service.ts`
 **File:** `web-admin/lib/services/order-settlement.service.ts`
 
 Responsible for writing all financial fact rows in a single transaction.
@@ -2085,7 +2085,7 @@ async function settleOrder(tx: PrismaTx, params: {
   cashDrawerSessionId?: string
 }): Promise<SettlementResult>
 
-// ResolvedSettlementLeg — resolved by checkout-config.service.ts before this call
+// ResolvedSettlementLeg â€” resolved by checkout-config.service.ts before this call
 type ResolvedSettlementLeg = {
   settlementOption: SettlementOption   // full row from org_payment_methods_cf
   amount: number
@@ -2110,15 +2110,15 @@ Steps inside tx:
 1. Write `org_order_charges_dtl` rows
 2. Write `org_order_taxes_dtl` rows
 3. Write `org_order_discounts_dtl` rows (via existing `insertDiscountLinesTx`)
-4. For each `CREDIT_APPLICATION` leg: SELECT FOR UPDATE on source balance → write `org_order_credit_apps_dtl` → debit ledger via `stored-value.service.ts` / `loyalty.service.ts`
+4. For each `CREDIT_APPLICATION` leg: SELECT FOR UPDATE on source balance â†’ write `org_order_credit_apps_dtl` â†’ debit ledger via `stored-value.service.ts` / `loyalty.service.ts`
 5. For each `REAL_PAYMENT` leg: write `org_order_payments_dtl` row with `payment_nature_snapshot = 'REAL_PAYMENT'`; if CASH leg: link to `cashDrawerSessionId`
 6. For `DEFERRED_SETTLEMENT` leg: skip payment row; set order snapshot:
    - `payment_status = 'PENDING_COLLECTION'`, `outstanding_amount = grand_total`, `pay_on_collection_amount = grand_total`
 7. Update `org_orders_mst` snapshot columns:
-   - PAY_NOW / fully settled → `payment_status = 'PAID'`, `outstanding_amount = 0`
+   - PAY_NOW / fully settled â†’ `payment_status = 'PAID'`, `outstanding_amount = 0`
 8. Emit outbox events (ORDER_COMPLETED + per-credit-type STORED_VALUE_CHANGED / GIFT_CARD_REDEEMED)
 
-**PAY_ON_COLLECTION — second-step collection function:**
+**PAY_ON_COLLECTION â€” second-step collection function:**
 ```typescript
 async function collectPaymentTx(tx: PrismaTx, params: {
   orderId: string
@@ -2130,7 +2130,7 @@ async function collectPaymentTx(tx: PrismaTx, params: {
 ```
 
 Steps inside tx:
-1. Load order (SELECT FOR UPDATE) — verify `payment_status = 'PENDING_COLLECTION'`
+1. Load order (SELECT FOR UPDATE) â€” verify `payment_status = 'PENDING_COLLECTION'`
 2. Write `org_order_payments_dtl` rows for the actual payment legs
 3. Compute `change_returned_amount` if cash tendered > outstanding
 4. Update `org_orders_mst`:
@@ -2142,7 +2142,7 @@ Steps inside tx:
 5. Link payment rows to `cashDrawerSessionId` if cash leg present
 6. Emit `PAYMENT_RECEIVED` outbox event
 
-#### P8.4 — New `stored-value.service.ts`
+#### P8.4 â€” New `stored-value.service.ts`
 **File:** `web-admin/lib/services/stored-value.service.ts`
 
 ```typescript
@@ -2167,7 +2167,7 @@ async function getStoredValueSummary(tenantId, customerId): Promise<StoredValueS
 
 All balance mutations: `SELECT ... FOR UPDATE`, then insert ledger row, then update master balance.
 
-#### P8.5 — New `loyalty.service.ts`
+#### P8.5 â€” New `loyalty.service.ts`
 **File:** `web-admin/lib/services/loyalty.service.ts`
 
 ```typescript
@@ -2181,7 +2181,7 @@ async function getCustomerTier(account: LoyaltyAccount): Promise<LoyaltyTier | n
 
 Earn is async (via outbox). Redeem is in-transaction (SELECT FOR UPDATE).
 
-#### P8.6 — New `promotion-engine.service.ts`
+#### P8.6 â€” New `promotion-engine.service.ts`
 **File:** `web-admin/lib/services/promotion-engine.service.ts`
 
 ```typescript
@@ -2192,9 +2192,9 @@ async function calculatePromotionDiscount(promotion, orderAmount): Promise<numbe
 // Stacking: sort by discount desc, apply stacking rules, enforce max_stacking_discount
 ```
 
-Extends existing `discount-service.ts` — operates on `org_promotions_mst` (renamed from `org_promo_codes_mst`), adding auto-apply (NULL promo_code) and stacking logic on top of the existing coupon code flow.
+Extends existing `discount-service.ts` â€” operates on `org_promotions_mst` (renamed from `org_promo_codes_mst`), adding auto-apply (NULL promo_code) and stacking logic on top of the existing coupon code flow.
 
-#### P8.7 — New `cash-drawer.service.ts`
+#### P8.7 â€” New `cash-drawer.service.ts`
 **File:** `web-admin/lib/services/cash-drawer.service.ts`
 
 ```typescript
@@ -2206,7 +2206,7 @@ async function getSessionSummary(tenantId, sessionId): Promise<SessionSummary>
 async function validateDrawerForCashPayment(tenantId, drawerId): Promise<void>
 ```
 
-#### P8.8 — New `order-refund.service.ts`
+#### P8.8 â€” New `order-refund.service.ts`
 **File:** `web-admin/lib/services/order-refund.service.ts`
 
 ```typescript
@@ -2219,7 +2219,7 @@ async function getOrderRefunds(tenantId, orderId): Promise<Refund[]>
 // If method=CREDIT_NOTE: calls issueCreditNote
 ```
 
-#### P8.9 — New `outbox.service.ts`
+#### P8.9 â€” New `outbox.service.ts`
 **File:** `web-admin/lib/services/outbox.service.ts`
 
 ```typescript
@@ -2228,33 +2228,33 @@ async function claimBatch(limit: number): Promise<OutboxEvent[]>
 async function markProcessed(eventId): Promise<void>
 async function markFailed(eventId, error): Promise<void>
 async function scheduleRetry(eventId, attempts): Promise<void>
-// Retry schedule: 1m → 5m → 15m → 1h → 4h → FAILED
+// Retry schedule: 1m â†’ 5m â†’ 15m â†’ 1h â†’ 4h â†’ FAILED
 ```
 
-#### P8.10 — New `reconciliation.service.ts`
+#### P8.10 â€” New `reconciliation.service.ts`
 **File:** `web-admin/lib/services/reconciliation.service.ts`
 
 ```typescript
 async function runReconciliation(tenantId, params): Promise<ReconRun>
 // 7 checks:
-// 1. PAYMENT_TOTAL_MATCH — sum(org_order_payments_dtl) = org_orders_mst.total_paid_amount
-// 2. CREDIT_APP_BALANCE — credit apps don't exceed grand_total
-// 3. STORED_VALUE_LEDGER — ledger sum = master balance
-// 4. TAX_CALCULATION — sum(org_order_taxes_dtl) = org_orders_mst.total_tax_amount
-// 5. DISCOUNT_VALIDATION — discount total matches snapshot
-// 6. REFUND_CONSISTENCY — refund amounts don't exceed paid amounts
-// 7. OUTBOX_PROCESSED — no stuck PENDING/FAILED events older than 1h
+// 1. PAYMENT_TOTAL_MATCH â€” sum(org_order_payments_dtl) = org_orders_mst.total_paid_amount
+// 2. CREDIT_APP_BALANCE â€” credit apps don't exceed grand_total
+// 3. STORED_VALUE_LEDGER â€” ledger sum = master balance
+// 4. TAX_CALCULATION â€” sum(org_order_taxes_dtl) = org_orders_mst.total_tax_amount
+// 5. DISCOUNT_VALIDATION â€” discount total matches snapshot
+// 6. REFUND_CONSISTENCY â€” refund amounts don't exceed paid amounts
+// 7. OUTBOX_PROCESSED â€” no stuck PENDING/FAILED events older than 1h
 async function acknowledgeIssue(tenantId, issueId, status, notes): Promise<void>
 ```
 
-#### P8.11 — Extend `invoice-service.ts`
+#### P8.11 â€” Extend `invoice-service.ts`
 **File:** `web-admin/lib/services/invoice-service.ts`
 
 Add:
-- `updateInvoiceWithFinancialSnapshot(tx, invoiceId, breakdown)` — record snapshot totals
-- `getInvoiceWithBreakdown(tenantId, invoiceId)` — fetch with joined fact tables
+- `updateInvoiceWithFinancialSnapshot(tx, invoiceId, breakdown)` â€” record snapshot totals
+- `getInvoiceWithBreakdown(tenantId, invoiceId)` â€” fetch with joined fact tables
 
-#### P8.12 — New `checkout-config.service.ts`
+#### P8.12 â€” New `checkout-config.service.ts`
 **File:** `web-admin/lib/services/checkout-config.service.ts`
 
 Reads `org_payment_methods_cf` and returns settlement options grouped by `payment_nature`.
@@ -2286,18 +2286,18 @@ Steps:
    ```
 2. Filter by `min_order_amount`/`max_order_amount` against `orderContext.amount`
 3. For each `CREDIT_APPLICATION` row: enrich `availableBalance`:
-   - `GIFT_CARD` → skip (balance looked up at time of redemption by code)
-   - `WALLET` → call `stored-value.service.getWalletBalance(tenantId, customerId)`
-   - `ADVANCE` → call `stored-value.service.getAdvanceBalance(tenantId, customerId)`
-   - `CREDIT_NOTE` → call `stored-value.service.getCreditNotes(tenantId, customerId)` (sum active balances)
-   - `LOYALTY_POINTS` → call `loyalty.service.getLoyaltyAccount(tenantId, customerId)` (points × redeem_rate)
+   - `GIFT_CARD` â†’ skip (balance looked up at time of redemption by code)
+   - `WALLET` â†’ call `stored-value.service.getWalletBalance(tenantId, customerId)`
+   - `ADVANCE` â†’ call `stored-value.service.getAdvanceBalance(tenantId, customerId)`
+   - `CREDIT_NOTE` â†’ call `stored-value.service.getCreditNotes(tenantId, customerId)` (sum active balances)
+   - `LOYALTY_POINTS` â†’ call `loyalty.service.getLoyaltyAccount(tenantId, customerId)` (points Ã— redeem_rate)
 4. Group rows:
    ```typescript
    switch (row.payment_nature) {
-     case 'REAL_PAYMENT':        → paymentMethods
-     case 'CREDIT_APPLICATION':  → creditApplications
-     case 'DEFERRED_SETTLEMENT': → deferredSettlement
-     case 'AR_ALLOCATION':       → arOptions
+     case 'REAL_PAYMENT':        â†’ paymentMethods
+     case 'CREDIT_APPLICATION':  â†’ creditApplications
+     case 'DEFERRED_SETTLEMENT': â†’ deferredSettlement
+     case 'AR_ALLOCATION':       â†’ arOptions
    }
    ```
 5. Return `CheckoutSettlementOptions`
@@ -2314,30 +2314,30 @@ async function resolveSettlementLeg(
 // to get payment_nature and verify gateway is not globally disabled before routing
 ```
 
-**Note:** `INTERNAL_ADJUSTMENT` rows are never returned by `getCheckoutOptions()` — they are admin-only and must be accessed through a separate manager flow, not the standard checkout UI.
+**Note:** `INTERNAL_ADJUSTMENT` rows are never returned by `getCheckoutOptions()` â€” they are admin-only and must be accessed through a separate manager flow, not the standard checkout UI.
 
 ---
 
-### PHASE 9 — API Routes
+### PHASE 9 â€” API Routes
 
 Create all new routes under `web-admin/app/api/v1/`. Each follows:
-1. `requirePermission(...)` → extract `tenantId, userId`
+1. `requirePermission(...)` â†’ extract `tenantId, userId`
 2. Zod schema validation
 3. `withTenantContext(tenantId, ...)` wrapping
 4. Service call(s)
 5. Consistent response envelope
 
-#### P9.1 — Extend Checkout Routes
+#### P9.1 â€” Extend Checkout Routes
 **Files:**
-- `web-admin/app/api/v1/orders/create-with-payment/route.ts` — extend Zod schema; call `order-settlement.service.ts` for fact-table writes
-- `web-admin/app/api/v1/orders/preview-payment/route.ts` — extend to accept credit applications + loyalty
+- `web-admin/app/api/v1/orders/create-with-payment/route.ts` â€” extend Zod schema; call `order-settlement.service.ts` for fact-table writes
+- `web-admin/app/api/v1/orders/preview-payment/route.ts` â€” extend to accept credit applications + loyalty
 
 Full multi-leg payment support, credit applications, loyalty redemption, cash drawer context.
 
-#### P9.2 — Collect Payment Route (PAY_ON_COLLECTION second step)
+#### P9.2 â€” Collect Payment Route (PAY_ON_COLLECTION second step)
 **File:** `web-admin/app/api/v1/orders/[orderId]/collect-payment/route.ts`
 
-`POST` — called when staff physically collects payment at counter or on delivery.
+`POST` â€” called when staff physically collects payment at counter or on delivery.
 
 Zod input:
 ```typescript
@@ -2351,30 +2351,30 @@ Zod input:
 Guards:
 - `requirePermission('orders:collect_payment')`
 - Order must have `payment_status = 'PENDING_COLLECTION'`
-- Sum of `paymentLegs.amount` must be ≥ `outstanding_amount`
+- Sum of `paymentLegs.amount` must be â‰¥ `outstanding_amount`
 - If CASH leg: `cashDrawerSessionId` required + session must be OPEN
 
 Calls `order-settlement.service.collectPaymentTx()`.
 
 Response: updated `FinancialBreakdownSnapshot` + `change_returned_amount`.
 
-**Permission to seed in 0294:** `orders:collect_payment` — assigned to CASHIER + MANAGER roles.
+**Permission to seed in 0294:** `orders:collect_payment` â€” assigned to CASHIER + MANAGER roles.
 
-#### P9.3 — Order Refund Routes
+#### P9.3 â€” Order Refund Routes
 **Files:** (order-prefixed in path; use `order-refund.service.ts`)
 - `POST web-admin/app/api/v1/orders/[orderId]/refund/route.ts`
 - `GET web-admin/app/api/v1/orders/[orderId]/refunds/route.ts`
 - `PATCH web-admin/app/api/v1/orders/refunds/[refundId]/approve/route.ts`
 
-#### P9.4 — Cash Drawer Routes
+#### P9.4 â€” Cash Drawer Routes
 **Files (all under `web-admin/app/api/v1/cash-drawers/`):**
-- `GET route.ts` — list drawers
+- `GET route.ts` â€” list drawers
 - `POST [drawerId]/open-session/route.ts`
 - `POST [drawerId]/close-session/route.ts`
 - `POST [drawerId]/cash-movement/route.ts`
 - `GET [drawerId]/session/[sessionId]/summary/route.ts`
 
-#### P9.5 — Stored Value Routes
+#### P9.5 â€” Stored Value Routes
 **Files (under `web-admin/app/api/v1/customers/[customerId]/`):**
 - `GET stored-value/route.ts`
 - `POST wallet/top-up/route.ts`
@@ -2384,28 +2384,28 @@ Response: updated `FinancialBreakdownSnapshot` + `change_returned_amount`.
 - `POST credit-note/issue/route.ts`
 - `GET credit-notes/route.ts`
 
-#### P9.6 — Gift Card Routes (extend existing)
+#### P9.6 â€” Gift Card Routes (extend existing)
 **Files:**
 - `GET web-admin/app/api/v1/gift-cards/[cardCode]/balance/route.ts`
 - `GET web-admin/app/api/v1/gift-cards/[cardCode]/ledger/route.ts`
 
-#### P9.7 — Loyalty Routes
+#### P9.7 â€” Loyalty Routes
 **Files:**
 - `GET web-admin/app/api/v1/loyalty/config/route.ts`
 - `PATCH web-admin/app/api/v1/loyalty/config/route.ts`
 - `GET web-admin/app/api/v1/customers/[customerId]/loyalty/route.ts`
 - `POST web-admin/app/api/v1/loyalty/tiers/route.ts`
 
-#### P9.8 — Promotions Routes
+#### P9.8 â€” Promotions Routes
 **Files (under `web-admin/app/api/v1/marketing/promotions/`):**
-- `GET route.ts` — paginated list
-- `POST route.ts` — create
+- `GET route.ts` â€” paginated list
+- `POST route.ts` â€” create
 - `GET [promoId]/route.ts`
 - `PATCH [promoId]/route.ts`
 - `DELETE [promoId]/route.ts`
-- `POST validate/route.ts` — validate code before checkout
+- `POST validate/route.ts` â€” validate code before checkout
 
-#### P9.9 — Tax Config Routes
+#### P9.9 â€” Tax Config Routes
 **Files (under `web-admin/app/api/v1/settings/tax/`):**
 - `GET profiles/route.ts`
 - `POST profiles/route.ts`
@@ -2413,21 +2413,21 @@ Response: updated `FinancialBreakdownSnapshot` + `change_returned_amount`.
 - `GET exemptions/route.ts`
 - `POST exemptions/route.ts`
 
-#### P9.10 — Payment Config Routes
+#### P9.10 â€” Payment Config Routes
 **Files (under `web-admin/app/api/v1/settings/payments/`):**
 - `GET methods/route.ts`
 - `PATCH methods/[methodId]/route.ts`
 - `GET terminals/route.ts`
 - `POST terminals/route.ts`
 
-#### P9.11 — Reconciliation Routes
+#### P9.11 â€” Reconciliation Routes
 **Files (under `web-admin/app/api/v1/finance/reconciliation/`):**
 - `GET runs/route.ts`
 - `POST runs/route.ts`
 - `GET runs/[runId]/route.ts`
 - `PATCH issues/[issueId]/route.ts`
 
-#### P9.12 — Financial Report Routes
+#### P9.12 â€” Financial Report Routes
 **Files (under `web-admin/app/api/v1/finance/reports/`):**
 - `GET orders-summary/route.ts`
 - `GET payments-breakdown/route.ts`
@@ -2435,14 +2435,14 @@ Response: updated `FinancialBreakdownSnapshot` + `change_returned_amount`.
 
 ---
 
-### PHASE 10 — UI: Internal Finance Operations (Billing Section)
+### PHASE 10 â€” UI: Internal Finance Operations (Billing Section)
 
-All pages in `web-admin/app/dashboard/billing/`. Follow existing billing page patterns. Use `src/features/billing/ui/` for feature components.
+All pages in `web-admin/app/dashboard/internal_fin/`. Follow existing billing page patterns. Use `src/features/billing/ui/` for feature components.
 
-#### P10.1 — Cash Drawer Pages
-- **List:** `billing/cash-drawers/page.tsx` — Show drawers, active session badge, open/close buttons
-- **Detail/Session:** `billing/cash-drawers/[drawerId]/page.tsx` — Tabs: Overview, Current Session, Session History, Movements
-- **Session Summary:** `billing/cash-drawers/[drawerId]/session/[sessionId]/page.tsx` — Full breakdown with payment method table
+#### P10.1 â€” Cash Drawer Pages
+- **List:** `billing/cash-drawers/page.tsx` â€” Show drawers, active session badge, open/close buttons
+- **Detail/Session:** `billing/cash-drawers/[drawerId]/page.tsx` â€” Tabs: Overview, Current Session, Session History, Movements
+- **Session Summary:** `billing/cash-drawers/[drawerId]/session/[sessionId]/page.tsx` â€” Full breakdown with payment method table
 
 **UX:**
 - Real-time balance display
@@ -2450,8 +2450,8 @@ All pages in `web-admin/app/dashboard/billing/`. Follow existing billing page pa
 - Confirm dialog before close with physical count input
 - Movement type badges
 
-#### P10.2 — Refunds Pages
-- **List:** `billing/refunds/page.tsx` — All refunds with status filter, date range, approval actions
+#### P10.2 â€” Refunds Pages
+- **List:** `billing/refunds/page.tsx` â€” All refunds with status filter, date range, approval actions
 - **Detail per Order:** Refunds tab on `orders/[id]/page.tsx`
 
 **UX:**
@@ -2459,9 +2459,9 @@ All pages in `web-admin/app/dashboard/billing/`. Follow existing billing page pa
 - Refund method badge
 - Link back to original order
 
-#### P10.3 — Reconciliation Pages
-- **List:** `billing/reconciliation/page.tsx` — Runs list, status badges, run button (manager permission gate)
-- **Detail:** `billing/reconciliation/[runId]/page.tsx` — Summary cards (BLOCKER/WARNING/INFO counts) + issues table
+#### P10.3 â€” Reconciliation Pages
+- **List:** `billing/reconciliation/page.tsx` â€” Runs list, status badges, run button (manager permission gate)
+- **Detail:** `billing/reconciliation/[runId]/page.tsx` â€” Summary cards (BLOCKER/WARNING/INFO counts) + issues table
 - **Issue Management:** Inline acknowledge/resolve in issues table with notes field
 
 **UX:**
@@ -2470,26 +2470,26 @@ All pages in `web-admin/app/dashboard/billing/`. Follow existing billing page pa
 - Delta amount display (expected vs actual)
 - Auto-scroll to first BLOCKER issue
 
-#### P10.4 — Enhance Existing Order Detail Page And Order Full Details Page 
+#### P10.4 â€” Enhance Existing Order Detail Page And Order Full Details Page 
 **File:**
 - `web-admin/app/dashboard/orders/[id]/page.tsx`
 - `web-admin/app/dashboard/orders/[id]/full/page.tsx`
  
 Add new "Financial" tab:
-- `FinancialBreakdownCard` — charges, discounts, taxes, credits, payment legs in structured layout
-- `OrderPaymentsTable` — multi-leg payments with method, amount, status, terminal
-- `OrderRefundsSection` — list refunds, initiate refund button
+- `FinancialBreakdownCard` â€” charges, discounts, taxes, credits, payment legs in structured layout
+- `OrderPaymentsTable` â€” multi-leg payments with method, amount, status, terminal
+- `OrderRefundsSection` â€” list refunds, initiate refund button
 
 ---
 
-### PHASE 11 — UI: Customer Management — Stored Value
+### PHASE 11 â€” UI: Customer Management â€” Stored Value
 
-#### P11.1 — Stored Value Hub Page
+#### P11.1 â€” Stored Value Hub Page
 **File:** `web-admin/app/dashboard/customers/stored-value/page.tsx`
 
 List all customers with stored value (wallet balance, advance balance, active credit notes). Filters: balance > 0, customer search.
 
-#### P11.2 — Customer Detail — Stored Value Tab
+#### P11.2 â€” Customer Detail â€” Stored Value Tab
 **File:** `web-admin/app/dashboard/customers/[id]/page.tsx`
 
 Add "Stored Value" tab alongside existing tabs:
@@ -2506,9 +2506,9 @@ Add "Stored Value" tab alongside existing tabs:
 
 ---
 
-### PHASE 12 — UI: Marketing
+### PHASE 12 â€” UI: Marketing
 
-#### P12.1 — Promotions Management
+#### P12.1 â€” Promotions Management
 **File:** `web-admin/app/dashboard/marketing/promotions/page.tsx`
 
 Full CRUD for enterprise promotions (separate from existing promo codes page at `/marketing/promos`):
@@ -2520,21 +2520,21 @@ Full CRUD for enterprise promotions (separate from existing promo codes page at 
 **UX:**
 - Usage progress bar: `usageCount / usageLimit`
 - Stacking indicator badge
-- Date range display (valid from → valid to or "No Expiry")
+- Date range display (valid from â†’ valid to or "No Expiry")
 - Empty state with CTA
 
-#### P12.2 — Loyalty Program Management
+#### P12.2 â€” Loyalty Program Management
 **File:** `web-admin/app/dashboard/marketing/loyalty/page.tsx`
 
 Two sections:
-- **Config card:** Earn rate, redeem rate, min redeem, max % per order, expiry days — editable form with dirty tracking
+- **Config card:** Earn rate, redeem rate, min redeem, max % per order, expiry days â€” editable form with dirty tracking
 - **Tiers table:** Create/edit/delete tiers; sort order drag handle
 
 ---
 
-### PHASE 13 — UI: Config And Settings
+### PHASE 13 â€” UI: Config And Settings
 
-#### P13.1 — Tax Setup Page
+#### P13.1 â€” Tax Setup Page
 **File:** `web-admin/app/dashboard/settings/tax/page.tsx`
 
 - Tax Profiles table: list, create, edit, set default, deactivate
@@ -2542,7 +2542,7 @@ Two sections:
 - Per-profile: rate, type badge, applies-to chips, effective dates
 - Confirm dialog before changing default profile
 
-#### P13.2 — Enhance Payment Setup Page
+#### P13.2 â€” Enhance Payment Setup Page
 **File:** `web-admin/app/dashboard/settings/payments/page.tsx` (already exists)
 
 Enhance to include:
@@ -2551,15 +2551,15 @@ Enhance to include:
 
 ---
 
-### PHASE 14 — UI: Financial Reports
+### PHASE 14 â€” UI: Financial Reports
 
-#### P14.1 — Financial Reports Hub
+#### P14.1 â€” Financial Reports Hub
 **File:** `web-admin/app/dashboard/reports/financial/page.tsx`
 
 Three report tabs:
-1. **Orders Summary** — date range + branch filter, KPI cards (total orders, gross, tax, net), table with pagination, CSV export
-2. **Payments Breakdown** — by method bar chart + table, method filter
-3. **Tax Report** — by type table, grand total footer, date range, branch filter
+1. **Orders Summary** â€” date range + branch filter, KPI cards (total orders, gross, tax, net), table with pagination, CSV export
+2. **Payments Breakdown** â€” by method bar chart + table, method filter
+3. **Tax Report** â€” by type table, grand total footer, date range, branch filter
 
 **UX patterns:**
 - All reports follow existing `reports/orders/page.tsx` pattern
@@ -2569,10 +2569,10 @@ Three report tabs:
 
 ---
 
-### PHASE 15 — Print & Export
+### PHASE 15 â€” Print & Export
 
-#### P15.1 — Enhanced Receipt
-**File:** `web-admin/app/dashboard/billing/payments/[id]/print/receipt-voucher/page.tsx` (extend)
+#### P15.1 â€” Enhanced Receipt
+**File:** `web-admin/app/dashboard/internal_fin/payments/[id]/print/receipt-voucher/page.tsx` (extend)
 
 Add to receipt template:
 - Charges section (if any)
@@ -2581,38 +2581,38 @@ Add to receipt template:
 - Multi-leg payment rows
 - Change returned row
 
-#### P15.2 — Cash Drawer Session Report
-**File:** `web-admin/app/dashboard/billing/cash-drawers/[drawerId]/session/[sessionId]/print/page.tsx` (NEW, follows `*-rprt.tsx` pattern)
+#### P15.2 â€” Cash Drawer Session Report
+**File:** `web-admin/app/dashboard/internal_fin/cash-drawers/[drawerId]/session/[sessionId]/print/page.tsx` (NEW, follows `*-rprt.tsx` pattern)
 
 Print-ready session summary: opening balance, all movements, payment method breakdown, expected vs counted variance.
 
-#### P15.3 — Tax Report Export
-Download CSV from `GET /api/v1/finance/reports/tax-report?format=csv` — handled in route.ts.
+#### P15.3 â€” Tax Report Export
+Download CSV from `GET /api/v1/finance/reports/tax-report?format=csv` â€” handled in route.ts.
 
-#### P15.4 — Reconciliation Issue Export
+#### P15.4 â€” Reconciliation Issue Export
 PDF/CSV of reconciliation run issues.
 
 ---
 
-### PHASE 16 — Background Jobs
+### PHASE 16 â€” Background Jobs
 
-#### P16.1 — Outbox Worker Edge Function
+#### P16.1 â€” Outbox Worker Edge Function
 **File:** `supabase/functions/outbox-worker/index.ts` (CREATE)
 
 ```typescript
 // Invoked by pg_cron every 30s via HTTP
 // 1. SELECT ... FOR UPDATE SKIP LOCKED LIMIT 50 WHERE status='PENDING' AND next_retry_at <= NOW()
 // 2. Route by event_type:
-//    ORDER_COMPLETED → post to org_payments_dtl_tr
-//    LOYALTY_EARN → insert org_loyalty_txn_dtl, update balance
-//    REFUND_PROCESSED → post reversal
-//    STORED_VALUE_CHANGED → update materialized view (if any)
-//    GIFT_CARD_REDEEMED → check/mark exhausted
+//    ORDER_COMPLETED â†’ post to org_payments_dtl_tr
+//    LOYALTY_EARN â†’ insert org_loyalty_txn_dtl, update balance
+//    REFUND_PROCESSED â†’ post reversal
+//    STORED_VALUE_CHANGED â†’ update materialized view (if any)
+//    GIFT_CARD_REDEEMED â†’ check/mark exhausted
 // 3. On success: mark PROCESSED
-// 4. On error: scheduleRetry (1m→5m→15m→1h→4h→FAILED)
+// 4. On error: scheduleRetry (1mâ†’5mâ†’15mâ†’1hâ†’4hâ†’FAILED)
 ```
 
-#### P16.2 — Migration 0296: pg_cron Jobs
+#### P16.2 â€” Migration 0296: pg_cron Jobs
 **File:** `supabase/migrations/0296_pg_cron_jobs.sql`
 
 ```sql
@@ -2631,76 +2631,76 @@ SELECT cron.schedule('expiry-worker', '0 2 * * *', $$
   WHERE expires_at < CURRENT_DATE AND status='ACTIVE';
 $$);
 
--- Reconciliation auto-run (daily 03:00 UTC) — only if tenant setting enabled
+-- Reconciliation auto-run (daily 03:00 UTC) â€” only if tenant setting enabled
 -- Handled by outbox worker picking up RECON_TRIGGER events
 ```
 
 ---
 
-### PHASE 17 — i18n
+### PHASE 17 â€” i18n
 
 **Files:**
-- `web-admin/messages/en.json` — add all keys from the i18n plan (financial, cash_drawer, stored_value, gift_cards, loyalty, promotions, refunds, tax_setup, reconciliation, finance_reports sections)
-- `web-admin/messages/ar.json` — add all Arabic equivalents
+- `web-admin/messages/en.json` â€” add all keys from the i18n plan (financial, cash_drawer, stored_value, gift_cards, loyalty, promotions, refunds, tax_setup, reconciliation, finance_reports sections)
+- `web-admin/messages/ar.json` â€” add all Arabic equivalents
 - Run `npm run check:i18n` after additions
 
 ---
 
-### PHASE 18 — Testing
+### PHASE 18 â€” Testing
 
-#### P18.1 — Unit Tests (Jest)
+#### P18.1 â€” Unit Tests (Jest)
 **Location:** `web-admin/__tests__/services/`
 
-- `order-calculation.service.test.ts` — test new FinancialBreakdownSnapshot shape; credit application math; rounding
-- `tax-engine.service.test.ts` — VAT, GST, compound tax, exemption logic
-- `settlement.service.test.ts` — mock tx; verify all fact rows written
-- `stored-value.service.test.ts` — SELECT FOR UPDATE mock; balance before/after; idempotency
-- `loyalty.service.test.ts` — earn/redeem/tier calculation
-- `promotion-engine.service.test.ts` — stacking rules, max discount ceiling
-- `cash-drawer.service.test.ts` — session state machine, variance calculation
-- `refund.service.test.ts` — refund limit validation, method routing
-- `reconciliation.service.test.ts` — all 7 checks, BLOCKER/WARNING/INFO classification
+- `order-calculation.service.test.ts` â€” test new FinancialBreakdownSnapshot shape; credit application math; rounding
+- `tax-engine.service.test.ts` â€” VAT, GST, compound tax, exemption logic
+- `settlement.service.test.ts` â€” mock tx; verify all fact rows written
+- `stored-value.service.test.ts` â€” SELECT FOR UPDATE mock; balance before/after; idempotency
+- `loyalty.service.test.ts` â€” earn/redeem/tier calculation
+- `promotion-engine.service.test.ts` â€” stacking rules, max discount ceiling
+- `cash-drawer.service.test.ts` â€” session state machine, variance calculation
+- `refund.service.test.ts` â€” refund limit validation, method routing
+- `reconciliation.service.test.ts` â€” all 7 checks, BLOCKER/WARNING/INFO classification
 
 **Location:** `web-admin/__tests__/validations/`
-- `financial-schemas.test.ts` — Zod schema edge cases
+- `financial-schemas.test.ts` â€” Zod schema edge cases
 
 **Location:** `web-admin/__tests__/tenant-isolation/`
-- `financial-tenant-isolation.test.ts` — cross-tenant data access prevention
+- `financial-tenant-isolation.test.ts` â€” cross-tenant data access prevention
 
-#### P18.2 — Integration Tests
+#### P18.2 â€” Integration Tests
 **Location:** `web-admin/__tests__/integration/`
 
-- `checkout-multi-payment.test.ts` — multi-leg checkout with wallet + cash
-- `gift-card-redemption.test.ts` — concurrent redemption race prevention
-- `refund-flow.test.ts` — initiate → approve → process
-- `reconciliation-run.test.ts` — full run with known mismatches
+- `checkout-multi-payment.test.ts` â€” multi-leg checkout with wallet + cash
+- `gift-card-redemption.test.ts` â€” concurrent redemption race prevention
+- `refund-flow.test.ts` â€” initiate â†’ approve â†’ process
+- `reconciliation-run.test.ts` â€” full run with known mismatches
 
-#### P18.3 — E2E Tests (Playwright)
+#### P18.3 â€” E2E Tests (Playwright)
 **Location:** `web-admin/e2e/`
 
-- `cash-drawer.spec.ts` — open session → movement → close
-- `stored-value.spec.ts` — top-up wallet → apply at checkout
-- `promotions.spec.ts` — create promotion → validate code
-- `tax-setup.spec.ts` — create tax profile → set as default
-- `reconciliation.spec.ts` — run reconciliation → acknowledge issue
+- `cash-drawer.spec.ts` â€” open session â†’ movement â†’ close
+- `stored-value.spec.ts` â€” top-up wallet â†’ apply at checkout
+- `promotions.spec.ts` â€” create promotion â†’ validate code
+- `tax-setup.spec.ts` â€” create tax profile â†’ set as default
+- `reconciliation.spec.ts` â€” run reconciliation â†’ acknowledge issue
 
 ---
 
-### PHASE 19 — Documentation
+### PHASE 19 â€” Documentation
 
 All new documentation follows the `/documentation` skill structure: files go into `docs/features/Order_Fin/` using the standard template (README, developer_guide, current_status, progress_summary, technical_docs/).
 Existing planning docs already under `docs/features/Order_Fin/` stay where they are.
 
-#### P19.1 — Core Feature Docs (Standard Structure)
+#### P19.1 â€” Core Feature Docs (Standard Structure)
 Create/update the following files in `docs/features/Order_Fin/`:
 
-**`README.md`** — Feature overview following the standard template:
+**`README.md`** â€” Feature overview following the standard template:
 - Purpose and scope of the Order Financial Platform
-- Architecture summary (fact tables → service layer → API routes → UI)
+- Architecture summary (fact tables â†’ service layer â†’ API routes â†’ UI)
 - Key ADRs (payment_nature routing, credit note v1 scope, unified config table)
 - Link to developer_guide.md, technical_docs/, and Order_Fin_Docs/
 
-**`developer_guide.md`** — How to work with this feature:
+**`developer_guide.md`** â€” How to work with this feature:
 - Service dependency graph (which service calls which)
 - Multi-leg settlement flow walkthrough
 - SELECT FOR UPDATE pattern for stored value
@@ -2708,30 +2708,30 @@ Create/update the following files in `docs/features/Order_Fin/`:
 - Outbox event emission and worker consumption
 - Environment setup notes
 
-**`current_status.md`** — Implementation status per phase (updated after each phase):
+**`current_status.md`** â€” Implementation status per phase (updated after each phase):
 ```markdown
 ## Implementation Status
-- [ ] PHASE 0 — Foundation (migrations + constants + types)
-- [ ] PHASE 1 — Order Financial Fact Tables
-- [ ] PHASE 2 — Stored Value Tables
-- [ ] PHASE 3 — Loyalty
-- [ ] PHASE 4 — Promotions Engine
-- [ ] PHASE 5 — Tax Configuration
-- [x] PHASE 6 — Infrastructure Tables
-- [x] PHASE 7 — Permissions + Navigation
-- [x] PHASE 8 — Service Layer
-- [x] PHASE 9 — API Routes
-- [x] PHASE 10–14 — UI Pages
-- [x] PHASE 15 — Print & Export
-- [x] PHASE 16 — Background Jobs
-- [x] PHASE 17 — i18n
-- [x] PHASE 18 — Testing
-- [x] PHASE 19 — Documentation
+- [ ] PHASE 0 â€” Foundation (migrations + constants + types)
+- [ ] PHASE 1 â€” Order Financial Fact Tables
+- [ ] PHASE 2 â€” Stored Value Tables
+- [ ] PHASE 3 â€” Loyalty
+- [ ] PHASE 4 â€” Promotions Engine
+- [ ] PHASE 5 â€” Tax Configuration
+- [x] PHASE 6 â€” Infrastructure Tables
+- [x] PHASE 7 â€” Permissions + Navigation
+- [x] PHASE 8 â€” Service Layer
+- [x] PHASE 9 â€” API Routes
+- [x] PHASE 10â€“14 â€” UI Pages
+- [x] PHASE 15 â€” Print & Export
+- [x] PHASE 16 â€” Background Jobs
+- [x] PHASE 17 â€” i18n
+- [x] PHASE 18 â€” Testing
+- [x] PHASE 19 â€” Documentation
 ```
 
-**`progress_summary.md`** — Session-by-session progress log (append after each work session):
+**`progress_summary.md`** â€” Session-by-session progress log (append after each work session):
 ```markdown
-# Progress Summary — Order Financial Platform
+# Progress Summary â€” Order Financial Platform
 
 ## Template (copy per session)
 ### Session: YYYY-MM-DD
@@ -2741,49 +2741,49 @@ Create/update the following files in `docs/features/Order_Fin/`:
 **Next Session:** [numbered list of what to do next]
 ```
 
-**`CHANGELOG.md`** — Chronological list of changes:
+**`CHANGELOG.md`** â€” Chronological list of changes:
 - Each migration with date applied
 - Each service created
 - Each API route shipped
 - Each UI page deployed
 
-#### P19.2 — Technical Docs
+#### P19.2 â€” Technical Docs
 Create in `docs/features/Order_Fin/technical_docs/`:
 
-**`tech_api.md`** — Full API contract documentation for all new routes:
+**`tech_api.md`** â€” Full API contract documentation for all new routes:
 - Full request/response schemas for every route in PHASE 9
 - Error codes and messages
 - Permission required per route
 - Idempotency key header format
 
-**`tech_data_model.md`** — Data model documentation:
+**`tech_data_model.md`** â€” Data model documentation:
 - ER diagram (text/Mermaid) for all new tables
 - Table descriptions and column-level docs
-- Migration dependency graph (0278 → 0296)
+- Migration dependency graph (0278 â†’ 0296)
 - CHECK constraint reference table
 - Currency + exchange_rate field applicability per table
 
-#### P19.3 — Domain Guide Docs
+#### P19.3 â€” Domain Guide Docs
 Create in `docs/features/Order_Fin/Order_Fin_Docs/`:
 
-- `ORDER_FINANCIAL_PLATFORM.md` — formula, financial flow, architecture decisions
-- `STORED_VALUE_GUIDE.md` — wallet/advance/credit-note business rules, SELECT FOR UPDATE, idempotency
-- `LOYALTY_GUIDE.md` — earn/redeem rules, tier logic, async earn via outbox
-- `PROMOTIONS_GUIDE.md` — promotion types, stacking rules, auto-apply vs coupon
-- `TAX_ENGINE_GUIDE.md` — profile config, compound tax, exemptions
-- `RECONCILIATION_GUIDE.md` — 7 checks, severity levels, monitoring
-- `CASH_DRAWER_GUIDE.md` — session lifecycle, variance handling, force-close rules
-- `OUTBOX_PATTERN_GUIDE.md` — event types, retry schedule, worker architecture
+- `ORDER_FINANCIAL_PLATFORM.md` â€” formula, financial flow, architecture decisions
+- `STORED_VALUE_GUIDE.md` â€” wallet/advance/credit-note business rules, SELECT FOR UPDATE, idempotency
+- `LOYALTY_GUIDE.md` â€” earn/redeem rules, tier logic, async earn via outbox
+- `PROMOTIONS_GUIDE.md` â€” promotion types, stacking rules, auto-apply vs coupon
+- `TAX_ENGINE_GUIDE.md` â€” profile config, compound tax, exemptions
+- `RECONCILIATION_GUIDE.md` â€” 7 checks, severity levels, monitoring
+- `CASH_DRAWER_GUIDE.md` â€” session lifecycle, variance handling, force-close rules
+- `OUTBOX_PATTERN_GUIDE.md` â€” event types, retry schedule, worker architecture
 
-#### P19.4 — Root Index Update
+#### P19.4 â€” Root Index Update
 **File:** `docs/features/folders_lookup.md`
 
 Add entry for `Order_Fin` feature folder:
 ```markdown
-- [Order Financial Platform](Order_Fin/README.md) — Multi-leg payments, stored value, loyalty, promotions, tax engine, reconciliation, outbox pattern
+- [Order Financial Platform](Order_Fin/README.md) â€” Multi-leg payments, stored value, loyalty, promotions, tax engine, reconciliation, outbox pattern
 ```
 
-#### P19.5 — Code Documentation (Trigger agents after each phase)
+#### P19.5 â€” Code Documentation (Trigger agents after each phase)
 After completing each phase, run the `code-documenter` agent on all new files:
 - **After PHASE 0:** Constants file + types file
 - **After each migration:** SQL migration files (file-level header, table comment, index rationale, RLS policy explanation)
@@ -2791,21 +2791,21 @@ After completing each phase, run the `code-documenter` agent on all new files:
 - **After each API route in PHASE 9:** Route-level JSDoc block
 - **After all UI pages:** Component-level JSDoc and RTL Tailwind annotations
 
-#### P19.6 — Implementation Checklist (per documentation skill standards)
+#### P19.6 â€” Implementation Checklist (per documentation skill standards)
 The following must be documented per feature:
 
 | Item | File | Status |
 |---|---|---|
-| Permissions | `developer_guide.md` | — |
-| Navigation tree | `developer_guide.md` | — |
-| Tenant settings | `developer_guide.md` | — |
-| Feature flags | `developer_guide.md` | — |
-| Plan limits | `developer_guide.md` | — |
-| i18n keys | `developer_guide.md` | — |
-| API routes | `technical_docs/tech_api.md` | — |
-| Migrations list | `technical_docs/tech_data_model.md` | — |
-| Constants & types | `technical_docs/tech_data_model.md` | — |
-| Env vars | `developer_guide.md` | — |
+| Permissions | `developer_guide.md` | â€” |
+| Navigation tree | `developer_guide.md` | â€” |
+| Tenant settings | `developer_guide.md` | â€” |
+| Feature flags | `developer_guide.md` | â€” |
+| Plan limits | `developer_guide.md` | â€” |
+| i18n keys | `developer_guide.md` | â€” |
+| API routes | `technical_docs/tech_api.md` | â€” |
+| Migrations list | `technical_docs/tech_data_model.md` | â€” |
+| Constants & types | `technical_docs/tech_data_model.md` | â€” |
+| Env vars | `developer_guide.md` | â€” |
 
 ---
 
@@ -2814,8 +2814,8 @@ The following must be documented per feature:
 | File | Action |
 |---|---|
 | `web-admin/prisma/schema.prisma` | Add 3 missing sys models + models for all new tables |
-| `web-admin/lib/constants/order-financial.ts` | CREATE — all new constants |
-| `web-admin/lib/types/order-financial.ts` | CREATE — all new types |
+| `web-admin/lib/constants/order-financial.ts` | CREATE â€” all new constants |
+| `web-admin/lib/types/order-financial.ts` | CREATE â€” all new types |
 | `web-admin/lib/constants/payment.ts` | Add `LOYALTY_TXN_TYPES` |
 | `web-admin/lib/services/order-calculation.service.ts` | Extend return type; call tax-engine.service.ts |
 | `web-admin/lib/services/tax-engine.service.ts` | CREATE (general-purpose: used by orders, invoices, quotes, B2B) |
@@ -2836,7 +2836,7 @@ The following must be documented per feature:
 | `web-admin/messages/en.json` | Add all i18n keys |
 | `web-admin/messages/ar.json` | Add all Arabic keys |
 | `supabase/functions/outbox-worker/index.ts` | CREATE |
-| `supabase/migrations/0278–0296.sql` | CREATE all (19 migrations) |
+| `supabase/migrations/0278â€“0296.sql` | CREATE all (19 migrations) |
 
 ## Existing Patterns to Reuse
 
@@ -2854,41 +2854,41 @@ The following must be documented per feature:
 | Report page pattern | `web-admin/app/dashboard/reports/orders/page.tsx` |
 | Settings page pattern | `web-admin/app/dashboard/settings/general/page.tsx` |
 | Feature components dir | `web-admin/src/features/billing/ui/` |
-| Print report pattern | `web-admin/app/dashboard/billing/payments/[id]/print/receipt-voucher/` |
+| Print report pattern | `web-admin/app/dashboard/internal_fin/payments/[id]/print/receipt-voucher/` |
 
 ## Migration Dependency Order
 
 ```
 0278 (rename + extend org_order_discounts_dtl)
- └── 0279 (sys financial lookup tables: payment_nature, credit_app_types, settlement_type_codes, charge_types, tax_types, refund methods) + SEED all code values
- └── 0280 (org_order_charges_dtl)
- └── 0281 (org_order_taxes_dtl)
- └── 0282 (snapshot cols on org_orders_mst)
- └── 0283 (harden org_order_credit_apps_dtl + fix org_order_refunds_dtl FK + payment_nature_snapshot on org_order_payments_dtl)
- └── 0284 (org_customer_wallets_mst + org_wallet_txn_dtl)
- └── 0285 (org_customer_advances_mst + org_advance_txn_dtl)
- └── 0286 (org_credit_notes_mst + org_credit_note_txn_dtl)
- └── 0287 (loyalty: program + tiers + accounts + txn) + SEED loyalty programs & tiers
- └── 0288 (rename + extend org_promotions_mst + org_promotion_usage_dtl) ← FK 0278
+ â””â”€â”€ 0279 (sys financial lookup tables: payment_nature, credit_app_types, settlement_type_codes, charge_types, tax_types, refund methods) + SEED all code values
+ â””â”€â”€ 0280 (org_order_charges_dtl)
+ â””â”€â”€ 0281 (org_order_taxes_dtl)
+ â””â”€â”€ 0282 (snapshot cols on org_orders_mst)
+ â””â”€â”€ 0283 (harden org_order_credit_apps_dtl + fix org_order_refunds_dtl FK + payment_nature_snapshot on org_order_payments_dtl)
+ â””â”€â”€ 0284 (org_customer_wallets_mst + org_wallet_txn_dtl)
+ â””â”€â”€ 0285 (org_customer_advances_mst + org_advance_txn_dtl)
+ â””â”€â”€ 0286 (org_credit_notes_mst + org_credit_note_txn_dtl)
+ â””â”€â”€ 0287 (loyalty: program + tiers + accounts + txn) + SEED loyalty programs & tiers
+ â””â”€â”€ 0288 (rename + extend org_promotions_mst + org_promotion_usage_dtl) â† FK 0278
        + SEED promotions for both demo tenants into org_promotions_mst
- └── 0289 (org_tax_profiles_cf + org_tax_exemptions_cf) ← adds FK to 0281 taxes col
+ â””â”€â”€ 0289 (org_tax_profiles_cf + org_tax_exemptions_cf) â† adds FK to 0281 taxes col
        + SEED tax profiles & exemptions for both demo tenants
- └── 0290 (sys_currency_rounding_rules_cd) + SEED all GCC + international currencies
- └── 0291 (governance columns on sys_payment_method_cd + sys_payment_gateway_cd; routing cols on org_payment_methods_cf; seed new sys codes; 3-batch tenant seed; cash drawers; terminals)
-       ← depends on 0269 (org_payment_methods_cf) + 0270 (org_cash_drawers_mst)
- └── 0292 (org_domain_events_outbox + org_idempotency_keys) — independent
- └── 0293 (org_fin_recon_runs_mst + org_fin_recon_issues_dtl) — independent
- └── 0294 (permissions seed) — after all tables exist
- └── 0295 (navigation seed in sys_components_cd + dual-write navigation.ts) — after 0294
- └── 0296 (pg_cron schedule jobs) — after 0292 + 0293
+ â””â”€â”€ 0290 (sys_currency_rounding_rules_cd) + SEED all GCC + international currencies
+ â””â”€â”€ 0291 (governance columns on sys_payment_method_cd + sys_payment_gateway_cd; routing cols on org_payment_methods_cf; seed new sys codes; 3-batch tenant seed; cash drawers; terminals)
+       â† depends on 0269 (org_payment_methods_cf) + 0270 (org_cash_drawers_mst)
+ â””â”€â”€ 0292 (org_domain_events_outbox + org_idempotency_keys) â€” independent
+ â””â”€â”€ 0293 (org_fin_recon_runs_mst + org_fin_recon_issues_dtl) â€” independent
+ â””â”€â”€ 0294 (permissions seed) â€” after all tables exist
+ â””â”€â”€ 0295 (navigation seed in sys_components_cd + dual-write navigation.ts) â€” after 0294
+ â””â”€â”€ 0296 (pg_cron schedule jobs) â€” after 0292 + 0293
 ```
 
 **Seed migrations summary:**
 | Migration | Seeded data |
 |---|---|
-| 0279 | All sys financial lookup code tables: payment_nature, credit_app_types, settlement_type_codes, charge_types, tax_types, refund methods — full EN/AR labels |
-| 0287 | Loyalty programs (2 tenants × 1 program) + tiers (5 + 4 tiers) |
-| 0288 | Rename org_promo_codes_mst→org_promotions_mst, org_promo_usage_log→org_promotion_usage_dtl; 12 seed promo rows |
+| 0279 | All sys financial lookup code tables: payment_nature, credit_app_types, settlement_type_codes, charge_types, tax_types, refund methods â€” full EN/AR labels |
+| 0287 | Loyalty programs (2 tenants Ã— 1 program) + tiers (5 + 4 tiers) |
+| 0288 | Rename org_promo_codes_mstâ†’org_promotions_mst, org_promo_usage_logâ†’org_promotion_usage_dtl; 12 seed promo rows |
 | 0289 | Tax profiles (4 Oman/OMR + 5 Saudi/SAR) + exemptions |
 | 0290 | Currency rounding rules (13 currencies) |
 | 0291 | (1) Governance cols on sys_payment_method_cd (is_globally_disabled + 3 audit). (2) Governance cols on sys_payment_gateway_cd (same 4). (3) Platform-disable cols on org_payment_methods_cf (is_platform_disabled + 3 audit). (4) Routing/eligibility cols on org_payment_methods_cf (settlement_type_code, credit_application_type, requires_cash_drawer, requires_terminal, min/max_order_amount). (5) Seed sys_payment_method_cd: GIFT_CARD, WALLET, ADVANCE, CREDIT_NOTE, LOYALTY_POINTS, PAY_ON_DELIVERY, CREDIT_INVOICE; re-activate PAY_ON_COLLECTION; PAYMENT_GATEWAY already seeded in 0267. (6) Cash drawers (3 OMR + 5 SAR; branch_id=NULL template). (7) 3-batch settlement options per tenant (Batch A: REAL_PAYMENT+CREDIT_APPLICATION from sys_payment_method_cd; Batch B: PAYMENT_GATEWAY rows from sys_payment_gateway_cd; Batch C: PAY_ON_COLLECTION+PAY_ON_DELIVERY+CREDIT_INVOICE direct inserts). (8) Terminals (2 OMR + 3 SAR). |
@@ -2897,28 +2897,28 @@ The following must be documented per feature:
 
 ## Verification
 
-1. **TypeScript:** `cd web-admin && npx tsc --noEmit` — must pass with 0 errors
-2. **Build:** `cd web-admin && npm run build` — must succeed
-3. **Unit Tests:** `cd web-admin && npm test -- --coverage` — must pass; target 70%+ coverage on new services
-4. **i18n Check:** `npm run check:i18n` — no missing keys
-5. **Manual checkout flow:** Open session → create order with wallet + cash → verify fact tables written (charges, taxes, payments, credit_apps)
-6. **Manual reconciliation:** Run → confirm all 7 checks execute → verify PASSED status
+1. **TypeScript:** `cd web-admin && npx tsc --noEmit` â€” must pass with 0 errors
+2. **Build:** `cd web-admin && npm run build` â€” must succeed
+3. **Unit Tests:** `cd web-admin && npm test -- --coverage` â€” must pass; target 70%+ coverage on new services
+4. **i18n Check:** `npm run check:i18n` â€” no missing keys
+5. **Manual checkout flow:** Open session â†’ create order with wallet + cash â†’ verify fact tables written (charges, taxes, payments, credit_apps)
+6. **Manual reconciliation:** Run â†’ confirm all 7 checks execute â†’ verify PASSED status
 7. **RTL check:** Load every new page in AR locale; verify layout mirrors correctly
 
 ---
 
 ## Implementation Order Recommendation
 
-1. Phase 0 → Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5 → Phase 6 → Phase 7 (migrations first, all together in one working session)
-2. Phase 8 (all services — backend only, no UI)
-3. Phase 9 (API routes — can be tested with curl/Postman)
+1. Phase 0 â†’ Phase 1 â†’ Phase 2 â†’ Phase 3 â†’ Phase 4 â†’ Phase 5 â†’ Phase 6 â†’ Phase 7 (migrations first, all together in one working session)
+2. Phase 8 (all services â€” backend only, no UI)
+3. Phase 9 (API routes â€” can be tested with curl/Postman)
 4. Phase 10 checkout enhancement (wires services to existing checkout)
-5. Phase 11–14 (UI, in parallel where possible)
+5. Phase 11â€“14 (UI, in parallel where possible)
 6. Phase 15 (print)
 7. Phase 16 (background jobs)
-8. Phase 17 (i18n — can run alongside UI phases)
-9. Phase 18 (tests — write unit tests alongside each service)
-10. Phase 19 (documentation — update current_status.md + progress_summary.md after EVERY phase, not just at the end)
+8. Phase 17 (i18n â€” can run alongside UI phases)
+9. Phase 18 (tests â€” write unit tests alongside each service)
+10. Phase 19 (documentation â€” update current_status.md + progress_summary.md after EVERY phase, not just at the end)
 
 ---
 
@@ -2927,133 +2927,133 @@ The following must be documented per feature:
 **Update this section immediately after completing each item.** Mark `[x]` when done, add date.
 Keep `docs/features/Order_Fin/current_status.md` in sync with this tracker.
 
-### PHASE 0 — Foundation ✅ 2026-05-16
-- [x] P0.1 — Add 3 Missing Prisma Models (`sys_card_brand_cd`, `sys_cash_drawer_session_status_cd`, `sys_cash_drawer_movement_type_cd`) — 2026-05-16
-- [x] P0.2 — Migration 0278: Rename `org_ord_discounts_dtl` → `org_order_discounts_dtl` + extend — 2026-05-16
-- [x] P0.3 — Create `web-admin/lib/constants/order-financial.ts` — 2026-05-16
-- [x] P0.4 — Create `web-admin/lib/types/order-financial.ts`; update `payment.ts` — 2026-05-16
-- [x] P0.5 — Migration 0279: sys financial lookup tables + full EN/AR seed — 2026-05-16
+### PHASE 0 â€” Foundation âœ… 2026-05-16
+- [x] P0.1 â€” Add 3 Missing Prisma Models (`sys_card_brand_cd`, `sys_cash_drawer_session_status_cd`, `sys_cash_drawer_movement_type_cd`) â€” 2026-05-16
+- [x] P0.2 â€” Migration 0278: Rename `org_ord_discounts_dtl` â†’ `org_order_discounts_dtl` + extend â€” 2026-05-16
+- [x] P0.3 â€” Create `web-admin/lib/constants/order-financial.ts` â€” 2026-05-16
+- [x] P0.4 â€” Create `web-admin/lib/types/order-financial.ts`; update `payment.ts` â€” 2026-05-16
+- [x] P0.5 â€” Migration 0279: sys financial lookup tables + full EN/AR seed â€” 2026-05-16
 
-### PHASE 1 — Order Financial Fact Tables ✅ 2026-05-16
-- [x] P1.1 — Migration 0280: `org_order_charges_dtl` — 2026-05-16
-- [x] P1.2 — Migration 0281: `org_order_taxes_dtl` — 2026-05-16
-- [x] P1.3 — Migration 0282: snapshot columns on `org_orders_mst` — 2026-05-16
-- [x] P1.4 — Migration 0283: harden credit apps + fix refund FK + `payment_nature_snapshot` — 2026-05-16
+### PHASE 1 â€” Order Financial Fact Tables âœ… 2026-05-16
+- [x] P1.1 â€” Migration 0280: `org_order_charges_dtl` â€” 2026-05-16
+- [x] P1.2 â€” Migration 0281: `org_order_taxes_dtl` â€” 2026-05-16
+- [x] P1.3 â€” Migration 0282: snapshot columns on `org_orders_mst` â€” 2026-05-16
+- [x] P1.4 â€” Migration 0283: harden credit apps + fix refund FK + `payment_nature_snapshot` â€” 2026-05-16
 
-### PHASE 2 — Stored Value Tables ✅ 2026-05-16
-- [x] P2.1 — Migration 0284: `org_customer_wallets_mst` + `org_wallet_txn_dtl` — 2026-05-16
-- [x] P2.2 — Migration 0285: `org_customer_advances_mst` + `org_advance_txn_dtl` — 2026-05-16
-- [x] P2.3 — Migration 0286: `org_credit_notes_mst` + `org_credit_note_txn_dtl` — 2026-05-16
+### PHASE 2 â€” Stored Value Tables âœ… 2026-05-16
+- [x] P2.1 â€” Migration 0284: `org_customer_wallets_mst` + `org_wallet_txn_dtl` â€” 2026-05-16
+- [x] P2.2 â€” Migration 0285: `org_customer_advances_mst` + `org_advance_txn_dtl` â€” 2026-05-16
+- [x] P2.3 â€” Migration 0286: `org_credit_notes_mst` + `org_credit_note_txn_dtl` â€” 2026-05-16
 
-### PHASE 3 — Loyalty ✅ 2026-05-16
-- [x] P3.1 — Migration 0287: 4 loyalty tables + seed (2 programs, 9 tiers) — 2026-05-16
-- [x] P3.2 — Prisma models: `org_loyalty_programs_cf`, `org_loyalty_tiers_cf`, `org_loyalty_accounts_mst`, `org_loyalty_txn_dtl` — 2026-05-16
+### PHASE 3 â€” Loyalty âœ… 2026-05-16
+- [x] P3.1 â€” Migration 0287: 4 loyalty tables + seed (2 programs, 9 tiers) â€” 2026-05-16
+- [x] P3.2 â€” Prisma models: `org_loyalty_programs_cf`, `org_loyalty_tiers_cf`, `org_loyalty_accounts_mst`, `org_loyalty_txn_dtl` â€” 2026-05-16
 
-### PHASE 4 — Promotions Engine ✅ 2026-05-16
-- [x] P4.1 — Migration 0288: rename promo tables + extend + seed (12 promo rows, tenant-2 conditional) — 2026-05-16
-- [x] P4.2 — Prisma: rename `org_promo_codes_mst` → `org_promotions_mst`, `org_promo_usage_log` → `org_promotion_usage_dtl`; add 7 new fields; update all relation references — 2026-05-16
+### PHASE 4 â€” Promotions Engine âœ… 2026-05-16
+- [x] P4.1 â€” Migration 0288: rename promo tables + extend + seed (12 promo rows, tenant-2 conditional) â€” 2026-05-16
+- [x] P4.2 â€” Prisma: rename `org_promo_codes_mst` â†’ `org_promotions_mst`, `org_promo_usage_log` â†’ `org_promotion_usage_dtl`; add 7 new fields; update all relation references â€” 2026-05-16
 
-### PHASE 5 — Tax Configuration ✅ 2026-05-16
-- [x] P5.1 — Migration 0289: `org_tax_profiles_cf` + `org_tax_exemptions_cf` + FK on `org_order_taxes_dtl` + seed — 2026-05-16
-- [x] P5.2 — Prisma: `org_tax_profiles_cf`, `org_tax_exemptions_cf` models; `org_order_taxes_dtl` relation wired — 2026-05-16
+### PHASE 5 â€” Tax Configuration âœ… 2026-05-16
+- [x] P5.1 â€” Migration 0289: `org_tax_profiles_cf` + `org_tax_exemptions_cf` + FK on `org_order_taxes_dtl` + seed â€” 2026-05-16
+- [x] P5.2 â€” Prisma: `org_tax_profiles_cf`, `org_tax_exemptions_cf` models; `org_order_taxes_dtl` relation wired â€” 2026-05-16
 
-### PHASE 6 — Infrastructure Tables ✅ 2026-05-16
-- [x] P6.1 — Migration 0290: `sys_currency_rounding_rules_cd` + 13 currency seeds — 2026-05-16
-- [x] P6.2 — Migration 0291: governance cols + routing cols + 3-batch payment method seed + cash drawers + terminals — 2026-05-16
-- [x] P6.3 — Migration 0292: `org_domain_events_outbox` + `org_idempotency_keys` — 2026-05-16
-- [x] P6.4 — Migration 0293: `org_fin_recon_runs_mst` + `org_fin_recon_issues_dtl` — 2026-05-16
-- [x] P6.5 — Prisma: 5 new models + 10 new cols on `org_payment_methods_cf` + 8 missing back-relations on `org_tenants_mst`; build green — 2026-05-16
+### PHASE 6 â€” Infrastructure Tables âœ… 2026-05-16
+- [x] P6.1 â€” Migration 0290: `sys_currency_rounding_rules_cd` + 13 currency seeds â€” 2026-05-16
+- [x] P6.2 â€” Migration 0291: governance cols + routing cols + 3-batch payment method seed + cash drawers + terminals â€” 2026-05-16
+- [x] P6.3 â€” Migration 0292: `org_domain_events_outbox` + `org_idempotency_keys` â€” 2026-05-16
+- [x] P6.4 â€” Migration 0293: `org_fin_recon_runs_mst` + `org_fin_recon_issues_dtl` â€” 2026-05-16
+- [x] P6.5 â€” Prisma: 5 new models + 10 new cols on `org_payment_methods_cf` + 8 missing back-relations on `org_tenants_mst`; build green â€” 2026-05-16
 
-### PHASE 7 — Permissions + Navigation ✅ 2026-05-16
-- [x] P7.1 — Migration 0294: seed all new permissions into `sys_auth_permissions` + role mappings — 2026-05-16
-- [x] P7.2 — Migration 0295: seed `sys_components_cd` navigation (9 entries) + update `navigation.ts` (dual-write) — 2026-05-16
+### PHASE 7 â€” Permissions + Navigation âœ… 2026-05-16
+- [x] P7.1 â€” Migration 0294: seed all new permissions into `sys_auth_permissions` + role mappings â€” 2026-05-16
+- [x] P7.2 â€” Migration 0295: seed `sys_components_cd` navigation (9 entries) + update `navigation.ts` (dual-write) â€” 2026-05-16
 
-### PHASE 8 — Service Layer ✅ 2026-05-17
-- [x] P8.1 — Extend `order-calculation.service.ts` — `toFinancialBreakdownSnapshot()` adapter — 2026-05-17
-- [x] P8.2 — Create `tax-engine.service.ts` — profile lookup + compound tax + exemptions — 2026-05-17
-- [x] P8.3 — Create `order-settlement.service.ts` — full fact-table writes + `collectPaymentTx` — 2026-05-17
-- [x] P8.4 — Create `stored-value.service.ts` — wallet + advance + credit note, all SELECT FOR UPDATE — 2026-05-17
-- [x] P8.5 — Create `loyalty.service.ts` — redeem (in-tx), earn (outbox), adjust — 2026-05-17
-- [x] P8.6 — Create `promotion-engine.service.ts` — auto-apply, validate, apply, CRUD — 2026-05-17
-- [x] P8.7 — Create `cash-drawer.service.ts` — open/close/movement/summary — 2026-05-17
-- [x] P8.8 — Create `order-refund.service.ts` — initiate/approve/process + outbox — 2026-05-17
-- [x] P8.9 — Create `outbox.service.ts` — emit/claim/markProcessed/markFailed/scheduleRetry — 2026-05-17
-- [x] P8.10 — Create `reconciliation.service.ts` — 3 checks (+ stubs for 4 more), run/acknowledge — 2026-05-17
-- [x] P8.11 — Extend `invoice-service.ts` — `updateInvoiceWithFinancialSnapshot` + `getInvoiceWithBreakdown` — 2026-05-17
-- [x] P8.12 — Create `checkout-config.service.ts` — 3-gate query, balance enrichment, leg resolver — 2026-05-17
+### PHASE 8 â€” Service Layer âœ… 2026-05-17
+- [x] P8.1 â€” Extend `order-calculation.service.ts` â€” `toFinancialBreakdownSnapshot()` adapter â€” 2026-05-17
+- [x] P8.2 â€” Create `tax-engine.service.ts` â€” profile lookup + compound tax + exemptions â€” 2026-05-17
+- [x] P8.3 â€” Create `order-settlement.service.ts` â€” full fact-table writes + `collectPaymentTx` â€” 2026-05-17
+- [x] P8.4 â€” Create `stored-value.service.ts` â€” wallet + advance + credit note, all SELECT FOR UPDATE â€” 2026-05-17
+- [x] P8.5 â€” Create `loyalty.service.ts` â€” redeem (in-tx), earn (outbox), adjust â€” 2026-05-17
+- [x] P8.6 â€” Create `promotion-engine.service.ts` â€” auto-apply, validate, apply, CRUD â€” 2026-05-17
+- [x] P8.7 â€” Create `cash-drawer.service.ts` â€” open/close/movement/summary â€” 2026-05-17
+- [x] P8.8 â€” Create `order-refund.service.ts` â€” initiate/approve/process + outbox â€” 2026-05-17
+- [x] P8.9 â€” Create `outbox.service.ts` â€” emit/claim/markProcessed/markFailed/scheduleRetry â€” 2026-05-17
+- [x] P8.10 â€” Create `reconciliation.service.ts` â€” 3 checks (+ stubs for 4 more), run/acknowledge â€” 2026-05-17
+- [x] P8.11 â€” Extend `invoice-service.ts` â€” `updateInvoiceWithFinancialSnapshot` + `getInvoiceWithBreakdown` â€” 2026-05-17
+- [x] P8.12 â€” Create `checkout-config.service.ts` â€” 3-gate query, balance enrichment, leg resolver â€” 2026-05-17
 
-### PHASE 9 — API Routes ✅ 2026-05-18
-- [x] P9.1 — Extend `create-with-payment/route.ts`: added `cashDrawerSessionId` + `cashTendered` to schema; removed legacy `recordPaymentTransaction`/`insertDiscountLinesTx`; wired `settleOrder()` for full fact-table writes; invoice status updated post-settlement — 2026-05-18
-- [x] P9.2 — `orders/[orderId]/collect-payment/route.ts` — 2026-05-17
-- [x] P9.3 — Order refund routes: `orders/[orderId]/refund/route.ts` (POST), `orders/[orderId]/refunds/route.ts` (GET), approve route already existed — 2026-05-17
-- [x] P9.4 — Cash drawer routes (5 routes) — already existed
-- [x] P9.5 — Stored value routes (7 routes under `customers/[customerId]/`) — 2026-05-17
-- [x] P9.6 — Gift card routes (2 routes) — already existed
-- [x] P9.7 — Loyalty routes: `loyalty/config`, `loyalty/tiers` (existed), `customers/[customerId]/loyalty` — 2026-05-17
-- [x] P9.8 — Promotions routes (6 routes) — already existed
-- [x] P9.9 — Tax config routes (5 routes) — already existed
-- [x] P9.10 — Payment config routes (4 routes) — already existed
-- [x] P9.11 — Reconciliation routes (4 routes) — already existed
-- [x] P9.12 — Financial report routes (3 routes) — already existed
+### PHASE 9 â€” API Routes âœ… 2026-05-18
+- [x] P9.1 â€” Extend `create-with-payment/route.ts`: added `cashDrawerSessionId` + `cashTendered` to schema; removed legacy `recordPaymentTransaction`/`insertDiscountLinesTx`; wired `settleOrder()` for full fact-table writes; invoice status updated post-settlement â€” 2026-05-18
+- [x] P9.2 â€” `orders/[orderId]/collect-payment/route.ts` â€” 2026-05-17
+- [x] P9.3 â€” Order refund routes: `orders/[orderId]/refund/route.ts` (POST), `orders/[orderId]/refunds/route.ts` (GET), approve route already existed â€” 2026-05-17
+- [x] P9.4 â€” Cash drawer routes (5 routes) â€” already existed
+- [x] P9.5 â€” Stored value routes (7 routes under `customers/[customerId]/`) â€” 2026-05-17
+- [x] P9.6 â€” Gift card routes (2 routes) â€” already existed
+- [x] P9.7 â€” Loyalty routes: `loyalty/config`, `loyalty/tiers` (existed), `customers/[customerId]/loyalty` â€” 2026-05-17
+- [x] P9.8 â€” Promotions routes (6 routes) â€” already existed
+- [x] P9.9 â€” Tax config routes (5 routes) â€” already existed
+- [x] P9.10 â€” Payment config routes (4 routes) â€” already existed
+- [x] P9.11 â€” Reconciliation routes (4 routes) â€” already existed
+- [x] P9.12 â€” Financial report routes (3 routes) â€” already existed
 
-### PHASE 10 — UI: Billing Section ✅ 2026-05-18
-- [x] P10.1 — Cash Drawer pages: `billing/cash-drawers/page.tsx`, `billing/cash-drawers/[drawerId]/page.tsx`, `src/features/billing/ui/cash-drawer-detail-client.tsx`
-- [x] P10.2 — Refunds pages: `billing/refunds/page.tsx`, `src/features/billing/ui/refunds-list-client.tsx`
-- [x] P10.3 — Reconciliation pages: `billing/reconciliation/page.tsx`, `billing/reconciliation/[runId]/page.tsx`, `src/features/billing/ui/reconciliation-list-client.tsx`, `src/features/billing/ui/reconciliation-detail-client.tsx`
-- [x] P10.4 — Financial tab on `orders/[id]/full` page — server action `get-order-financial.ts`, component `orders-financial-tab-rprt.tsx`, wired into full client — 2026-05-17
+### PHASE 10 â€” UI: Billing Section âœ… 2026-05-18
+- [x] P10.1 â€” Cash Drawer pages: `billing/cash-drawers/page.tsx`, `billing/cash-drawers/[drawerId]/page.tsx`, `src/features/billing/ui/cash-drawer-detail-client.tsx`
+- [x] P10.2 â€” Refunds pages: `billing/refunds/page.tsx`, `src/features/billing/ui/refunds-list-client.tsx`
+- [x] P10.3 â€” Reconciliation pages: `billing/reconciliation/page.tsx`, `billing/reconciliation/[runId]/page.tsx`, `src/features/billing/ui/reconciliation-list-client.tsx`, `src/features/billing/ui/reconciliation-detail-client.tsx`
+- [x] P10.4 â€” Financial tab on `orders/[id]/full` page â€” server action `get-order-financial.ts`, component `orders-financial-tab-rprt.tsx`, wired into full client â€” 2026-05-17
 - Server actions created: `app/actions/billing/cash-drawer-actions.ts`, `app/actions/billing/refund-actions.ts`, `app/actions/billing/reconciliation-actions.ts`
 
-### PHASE 11 — UI: Customer Stored Value ✅ 2026-05-18
-- [x] P11.1 — Stored Value hub page: `app/dashboard/customers/stored-value/page.tsx`, `src/features/customers/ui/stored-value-hub-client.tsx`
-- [x] P11.2 — Customer detail Stored Value tab: `src/features/customers/ui/customer-stored-value-tab.tsx` (ready to wire into customer detail page)
+### PHASE 11 â€” UI: Customer Stored Value âœ… 2026-05-18
+- [x] P11.1 â€” Stored Value hub page: `app/dashboard/customers/stored-value/page.tsx`, `src/features/customers/ui/stored-value-hub-client.tsx`
+- [x] P11.2 â€” Customer detail Stored Value tab: `src/features/customers/ui/customer-stored-value-tab.tsx` (ready to wire into customer detail page)
 - Server actions created: `app/actions/customers/stored-value-actions.ts`
 
-### PHASE 12 — UI: Marketing ✅ 2026-05-18
-- [x] P12.1 — Promotions management: `app/dashboard/marketing/promotions/page.tsx`, `src/features/marketing/ui/promotions-list-client.tsx`
-- [x] P12.2 — Loyalty program: `app/dashboard/marketing/loyalty/page.tsx`, `src/features/marketing/ui/loyalty-config-client.tsx`
+### PHASE 12 â€” UI: Marketing âœ… 2026-05-18
+- [x] P12.1 â€” Promotions management: `app/dashboard/marketing/promotions/page.tsx`, `src/features/marketing/ui/promotions-list-client.tsx`
+- [x] P12.2 â€” Loyalty program: `app/dashboard/marketing/loyalty/page.tsx`, `src/features/marketing/ui/loyalty-config-client.tsx`
 - Server actions created: `app/actions/marketing/promotions-actions.ts`, `app/actions/marketing/loyalty-actions.ts`
 
-### PHASE 13 — UI: Config And Settings ✅ 2026-05-17
-- [x] P13.1 — Tax Setup page: `app/dashboard/settings/tax/page.tsx`, `src/features/settings/tax/ui/tax-setup-client.tsx`
-- [x] P13.2 — Payment Setup page enhanced: `app/dashboard/settings/payments/page.tsx` already has Methods / Terminals / Cash Drawers / Branch Overrides tabs — 2026-05-17
+### PHASE 13 â€” UI: Config And Settings âœ… 2026-05-17
+- [x] P13.1 â€” Tax Setup page: `app/dashboard/settings/tax/page.tsx`, `src/features/settings/tax/ui/tax-setup-client.tsx`
+- [x] P13.2 â€” Payment Setup page enhanced: `app/dashboard/settings/payments/page.tsx` already has Methods / Terminals / Cash Drawers / Branch Overrides tabs â€” 2026-05-17
 
-### PHASE 14 — UI: Financial Reports ✅ 2026-05-18
-- [x] P14.1 — Financial Reports hub: `app/dashboard/reports/financial/page.tsx`, `src/features/reports/ui/financial-reports-client.tsx` (3 tabs: orders/payments/tax + CSV export)
+### PHASE 14 â€” UI: Financial Reports âœ… 2026-05-18
+- [x] P14.1 â€” Financial Reports hub: `app/dashboard/reports/financial/page.tsx`, `src/features/reports/ui/financial-reports-client.tsx` (3 tabs: orders/payments/tax + CSV export)
 
-### PHASE 15 — Print & Export ✅ 2026-05-18
-- [x] P15.1 — Enhanced receipt (`billing-receipt-voucher-print-rprt.tsx`) — `financial` prop with charges/taxes/discounts/multi-leg payments; wired via `billing/payments/[id]/print/receipt-voucher/page.tsx` — confirmed already exists — 2026-05-18
-- [x] P15.2 — Cash Drawer session report (`cash-drawer-session-print-rprt.tsx`) — session/movements/payments/totals; wired via `billing/cash-drawers/[drawerId]/session/[sessionId]/print/page.tsx` — confirmed already exists — 2026-05-18
-- [x] P15.3 — Tax report CSV export — DONE (handled in `api/v1/finance/reports/tax-report/route.ts` with `?format=csv`)
-- [x] P15.4 — Reconciliation CSV export — `?format=csv` in `api/v1/finance/reconciliation/runs/[runId]/route.ts`; export button in `reconciliation-detail-client.tsx` — confirmed already exists — 2026-05-18
+### PHASE 15 â€” Print & Export âœ… 2026-05-18
+- [x] P15.1 â€” Enhanced receipt (`billing-receipt-voucher-print-rprt.tsx`) â€” `financial` prop with charges/taxes/discounts/multi-leg payments; wired via `billing/payments/[id]/print/receipt-voucher/page.tsx` â€” confirmed already exists â€” 2026-05-18
+- [x] P15.2 â€” Cash Drawer session report (`cash-drawer-session-print-rprt.tsx`) â€” session/movements/payments/totals; wired via `billing/cash-drawers/[drawerId]/session/[sessionId]/print/page.tsx` â€” confirmed already exists â€” 2026-05-18
+- [x] P15.3 â€” Tax report CSV export â€” DONE (handled in `api/v1/finance/reports/tax-report/route.ts` with `?format=csv`)
+- [x] P15.4 â€” Reconciliation CSV export â€” `?format=csv` in `api/v1/finance/reconciliation/runs/[runId]/route.ts`; export button in `reconciliation-detail-client.tsx` â€” confirmed already exists â€” 2026-05-18
 
-### PHASE 16 — Background Jobs ✅ 2026-05-18
-- [x] P16.1 — `supabase/functions/outbox-worker/index.ts` — confirmed already exists — 2026-05-18
-- [x] P16.2 — Migration 0296: pg_cron jobs (outbox + expiry + recon trigger) — confirmed already exists — 2026-05-18
+### PHASE 16 â€” Background Jobs âœ… 2026-05-18
+- [x] P16.1 â€” `supabase/functions/outbox-worker/index.ts` â€” confirmed already exists â€” 2026-05-18
+- [x] P16.2 â€” Migration 0296: pg_cron jobs (outbox + expiry + recon trigger) â€” confirmed already exists â€” 2026-05-18
 
-### PHASE 17 — i18n ✅ 2026-05-18
-- [x] P17 — Partial: `billing.cashDrawers`, `billing.refunds`, `billing.reconciliation`, `customers.storedValue`, `marketing.promotionsV2`, `marketing.loyalty`, `taxSetup`, `reports.financial` added to en.json + ar.json
-- [x] P17 — `npm run check:i18n` passed: en.json and ar.json have matching keys — 2026-05-18
+### PHASE 17 â€” i18n âœ… 2026-05-18
+- [x] P17 â€” Partial: `billing.cashDrawers`, `billing.refunds`, `billing.reconciliation`, `customers.storedValue`, `marketing.promotionsV2`, `marketing.loyalty`, `taxSetup`, `reports.financial` added to en.json + ar.json
+- [x] P17 â€” `npm run check:i18n` passed: en.json and ar.json have matching keys â€” 2026-05-18
 
-### PHASE 18 — Testing ✅ 2026-05-18
-- [x] P18.1 — Unit tests: `order-calculation.service.test.ts`, `tax-engine.service.test.ts`, `settlement.service.test.ts`, `stored-value.service.test.ts`, `loyalty.service.test.ts`, `promotion-engine.service.test.ts`, `cash-drawer.service.test.ts`, `refund.service.test.ts`, `reconciliation.service.test.ts`, `financial-schemas.test.ts`, `financial-tenant-isolation.test.ts` — 126 tests passing — 2026-05-18
-- [x] P18.2 — Integration tests: `checkout-multi-payment.test.ts`, `gift-card-redemption.test.ts`, `refund-flow.test.ts`, `reconciliation-run.test.ts` — all passing — 2026-05-18
-- [x] P18.3 — E2E tests (Playwright stubs): `cash-drawer.spec.ts`, `stored-value.spec.ts`, `promotions.spec.ts`, `tax-setup.spec.ts`, `reconciliation.spec.ts` — 2026-05-18
+### PHASE 18 â€” Testing âœ… 2026-05-18
+- [x] P18.1 â€” Unit tests: `order-calculation.service.test.ts`, `tax-engine.service.test.ts`, `settlement.service.test.ts`, `stored-value.service.test.ts`, `loyalty.service.test.ts`, `promotion-engine.service.test.ts`, `cash-drawer.service.test.ts`, `refund.service.test.ts`, `reconciliation.service.test.ts`, `financial-schemas.test.ts`, `financial-tenant-isolation.test.ts` â€” 126 tests passing â€” 2026-05-18
+- [x] P18.2 â€” Integration tests: `checkout-multi-payment.test.ts`, `gift-card-redemption.test.ts`, `refund-flow.test.ts`, `reconciliation-run.test.ts` â€” all passing â€” 2026-05-18
+- [x] P18.3 â€” E2E tests (Playwright stubs): `cash-drawer.spec.ts`, `stored-value.spec.ts`, `promotions.spec.ts`, `tax-setup.spec.ts`, `reconciliation.spec.ts` â€” 2026-05-18
 
-### PHASE 19 — Documentation ✅ 2026-05-18
-- [x] P19.1 — `docs/features/Order_Fin/README.md` — 2026-05-18
-- [x] P19.1 — `docs/features/Order_Fin/developer_guide.md` — 2026-05-18
-- [x] P19.1 — `docs/features/Order_Fin/current_status.md` — 2026-05-18
-- [x] P19.1 — `docs/features/Order_Fin/progress_summary.md` — 2026-05-18
-- [x] P19.1 — `docs/features/Order_Fin/CHANGELOG.md` — 2026-05-18
-- [x] P19.2 — `docs/features/Order_Fin/technical_docs/tech_api.md` — 2026-05-18
-- [x] P19.2 — `docs/features/Order_Fin/technical_docs/tech_data_model.md` — 2026-05-18
-- [x] P19.3 — 8 domain guide docs in `Order_Fin_Docs/`: `ORDER_FINANCIAL_PLATFORM.md`, `STORED_VALUE_GUIDE.md`, `LOYALTY_GUIDE.md`, `PROMOTIONS_GUIDE.md`, `TAX_ENGINE_GUIDE.md`, `RECONCILIATION_GUIDE.md`, `CASH_DRAWER_GUIDE.md`, `OUTBOX_PATTERN_GUIDE.md` — 2026-05-18
-- [x] P19.4 — `docs/features/folders_lookup.md` updated with Order_Fin entry — 2026-05-18
-- [ ] P19.5 — code-documenter runs — DEFERRED (dev phase; no real customers; run before first production deploy)
+### PHASE 19 â€” Documentation âœ… 2026-05-18
+- [x] P19.1 â€” `docs/features/Order_Fin/README.md` â€” 2026-05-18
+- [x] P19.1 â€” `docs/features/Order_Fin/developer_guide.md` â€” 2026-05-18
+- [x] P19.1 â€” `docs/features/Order_Fin/current_status.md` â€” 2026-05-18
+- [x] P19.1 â€” `docs/features/Order_Fin/progress_summary.md` â€” 2026-05-18
+- [x] P19.1 â€” `docs/features/Order_Fin/CHANGELOG.md` â€” 2026-05-18
+- [x] P19.2 â€” `docs/features/Order_Fin/technical_docs/tech_api.md` â€” 2026-05-18
+- [x] P19.2 â€” `docs/features/Order_Fin/technical_docs/tech_data_model.md` â€” 2026-05-18
+- [x] P19.3 â€” 8 domain guide docs in `Order_Fin_Docs/`: `ORDER_FINANCIAL_PLATFORM.md`, `STORED_VALUE_GUIDE.md`, `LOYALTY_GUIDE.md`, `PROMOTIONS_GUIDE.md`, `TAX_ENGINE_GUIDE.md`, `RECONCILIATION_GUIDE.md`, `CASH_DRAWER_GUIDE.md`, `OUTBOX_PATTERN_GUIDE.md` â€” 2026-05-18
+- [x] P19.4 â€” `docs/features/folders_lookup.md` updated with Order_Fin entry â€” 2026-05-18
+- [ ] P19.5 â€” code-documenter runs â€” DEFERRED (dev phase; no real customers; run before first production deploy)
 
 ---
 
 ### Build Checks (run after every phase)
-- [x] `cd web-admin && npx tsc --noEmit` — 0 errors — 2026-05-18
-- [x] `cd web-admin && npm run build` — succeeds — 2026-05-18
-- [x] `npm run check:i18n` — en.json and ar.json have matching keys — 2026-05-18
+- [x] `cd web-admin && npx tsc --noEmit` â€” 0 errors â€” 2026-05-18
+- [x] `cd web-admin && npm run build` â€” succeeds â€” 2026-05-18
+- [x] `npm run check:i18n` â€” en.json and ar.json have matching keys â€” 2026-05-18

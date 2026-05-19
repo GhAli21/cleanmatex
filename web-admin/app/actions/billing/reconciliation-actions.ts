@@ -76,7 +76,7 @@ export async function runReconciliationAction(params: {
       triggeredBy:  auth.userId,
     };
     const run = await runReconciliation(auth.tenantId, reconParams);
-    revalidatePath('/dashboard/billing/reconciliation');
+    revalidatePath('/dashboard/internal_fin/reconciliation');
     return { success: true as const, data: { id: run.id, run_no: run.run_no, status: run.status } };
   } catch (error) {
     console.error('[runReconciliationAction] Error:', error);

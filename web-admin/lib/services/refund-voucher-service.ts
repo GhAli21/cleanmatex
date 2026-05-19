@@ -13,8 +13,8 @@ import { withTenantContext } from '../db/tenant-context';
 import {
   VOUCHER_CATEGORY,
   VOUCHER_SUBTYPE,
-  VOUCHER_TYPE,
-  VOUCHER_STATUS,
+  VOUCHER_TYPE_LEGACY as VOUCHER_TYPE,
+  VOUCHER_STATUS_LEGACY as VOUCHER_STATUS,
 } from '../constants/voucher';
 import type { CreateRefundVoucherForPaymentInput } from '../types/voucher';
 
@@ -87,7 +87,7 @@ export async function createRefundVoucherForPayment(
       voucher_no,
       voucher_category: VOUCHER_CATEGORY.CASH_OUT,
       voucher_subtype: VOUCHER_SUBTYPE.REFUND,
-      voucher_type: VOUCHER_TYPE.PAYMENT,
+      voucher_type: 'REFUND_VOUCHER',
       invoice_id: input.invoice_id ?? null,
       order_id: input.order_id ?? null,
       customer_id: input.customer_id ?? null,

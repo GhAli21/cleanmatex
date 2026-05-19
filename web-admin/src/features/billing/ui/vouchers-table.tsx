@@ -61,7 +61,7 @@ export default function VouchersTable({
   );
 
   const fmtDate = (date: Date | string | null | undefined) => {
-    if (!date) return '—';
+    if (!date) return 'Ã¢â‚¬â€';
     const d = typeof date === 'string' ? new Date(date) : date;
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -83,7 +83,7 @@ export default function VouchersTable({
 
   const SortIcon = ({ field }: { field: string }) => {
     if (sortBy !== field) return null;
-    return sortOrder === 'asc' ? '↑' : '↓';
+    return sortOrder === 'asc' ? 'Ã¢â€ â€˜' : 'Ã¢â€ â€œ';
   };
 
   return (
@@ -148,13 +148,13 @@ export default function VouchersTable({
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                       {voucher.invoice_id ? (
                         <Link
-                          href={`/dashboard/billing/invoices/${voucher.invoice_id}`}
+                          href={`/dashboard/internal_fin/invoices/${voucher.invoice_id}`}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           {voucher.invoice_id.slice(0, 8)}...
                         </Link>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400">Ã¢â‚¬â€</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
@@ -166,14 +166,14 @@ export default function VouchersTable({
                           {voucher.order_id.slice(0, 8)}...
                         </Link>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <span className="text-gray-400">Ã¢â‚¬â€</span>
                       )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                       {voucher.voucher_category}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
-                      {voucher.voucher_type || '—'}
+                      {voucher.voucher_type || 'Ã¢â‚¬â€'}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-gray-900">
                       {formatMoneyAmountWithCode(Number(voucher.total_amount ?? 0), {
@@ -192,7 +192,7 @@ export default function VouchersTable({
                     <td className="whitespace-nowrap px-4 py-3 text-sm">
                       {voucher.status === 'issued' && (voucher as any).payment_id && (
                         <Link
-                          href={`/dashboard/billing/payments/${(voucher as any).payment_id}/print/receipt-voucher`}
+                          href={`/dashboard/internal_fin/payments/${(voucher as any).payment_id}/print/receipt-voucher`}
                           target="_blank"
                           className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
                           title={t('printReceiptVoucher')}

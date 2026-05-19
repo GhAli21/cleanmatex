@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Reconciliation List — Client Component
+ * Reconciliation List Ã¢â‚¬â€ Client Component
  *
  * Shows all reconciliation runs with a "Run Reconciliation" action.
  */
@@ -41,7 +41,7 @@ interface ReconciliationListClientProps {
 }
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return 'Ã¢â‚¬â€';
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
@@ -49,12 +49,12 @@ function fmtDate(iso: string | null | undefined): string {
 }
 
 function fmtPeriod(from: string | null, to: string | null): string {
-  if (!from && !to) return '—';
+  if (!from && !to) return 'Ã¢â‚¬â€';
   const fmtShort = (iso: string | null) => {
     if (!iso) return '?';
     return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(iso));
   };
-  return `${fmtShort(from)} – ${fmtShort(to)}`;
+  return `${fmtShort(from)} Ã¢â‚¬â€œ ${fmtShort(to)}`;
 }
 
 function statusBadgeClass(status: string): string {
@@ -100,7 +100,7 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
         setShowRunDialog(false);
         router.refresh();
         if (result.data.id) {
-          router.push(`/dashboard/billing/reconciliation/${result.data.id}`);
+          router.push(`/dashboard/internal_fin/reconciliation/${result.data.id}`);
         }
       } else {
         setErrorMsg(result.error);
@@ -158,7 +158,7 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.currency_code}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-gray-700">{fmtDate(run.completed_at ?? run.started_at)}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.triggered_by ?? '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-gray-700">{run.triggered_by ?? 'Ã¢â‚¬â€'}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       {(run.failed_checks ?? 0) > 0 ? (
                         <span className="font-semibold text-red-700">{run.failed_checks}</span>
@@ -175,7 +175,7 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right">
                       <Link
-                        href={`/dashboard/billing/reconciliation/${run.id}`}
+                        href={`/dashboard/internal_fin/reconciliation/${run.id}`}
                         className="rounded border border-gray-300 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
                       >
                         {t('viewDetails')}
@@ -215,7 +215,7 @@ export default function ReconciliationListClient({ runs, pagination }: Reconcili
         </div>
       )}
 
-      {/* ── Run Reconciliation Dialog ─────────────────────────────────────────── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Run Reconciliation Dialog Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */}
       {showRunDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">

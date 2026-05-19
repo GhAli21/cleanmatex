@@ -14,20 +14,20 @@ Replace the placeholder reports page with a fully functional, multi-tab reports 
 ## Architecture Overview
 
 ```
-/dashboard/reports          → Reports Hub (redirect to /orders or overview)
-/dashboard/reports/orders   → Orders & Sales Report
-/dashboard/reports/payments → Payments Report
-/dashboard/reports/invoices → Invoices Report
-/dashboard/reports/revenue  → Revenue Breakdown
-/dashboard/reports/customers → Customer Report
-/dashboard/reports/print     → Print-optimized view
+/dashboard/reports          â†’ Reports Hub (redirect to /orders or overview)
+/dashboard/reports/orders   â†’ Orders & Sales Report
+/dashboard/reports/payments â†’ Payments Report
+/dashboard/reports/invoices â†’ Invoices Report
+/dashboard/reports/revenue  â†’ Revenue Breakdown
+/dashboard/reports/customers â†’ Customer Report
+/dashboard/reports/print     â†’ Print-optimized view
 ```
 
 **Data Flow:**
 ```
-UI Component → Server Action → Report Service → Prisma (withTenantContext) → DB
-                                    ↓
-                              In-memory aggregation → KPIs + Charts + Table data
+UI Component â†’ Server Action â†’ Report Service â†’ Prisma (withTenantContext) â†’ DB
+                                    â†“
+                              In-memory aggregation â†’ KPIs + Charts + Table data
 ```
 
 ---
@@ -80,9 +80,9 @@ export async function getOrdersReport(params): Promise<OrdersReportData>
 **Pattern:** Use `withTenantContext()` from `lib/db/tenant-context.ts`, Prisma queries with explicit `tenant_org_id` filter, in-memory aggregation with `reduce()` and `Map` (following `payment-service.ts` pattern).
 
 **Queries:**
-1. All orders in date range (select only needed fields) → KPIs + charts
-2. Paginated orders with customer join → table data
-3. Count distinct customers → activeCustomers KPI
+1. All orders in date range (select only needed fields) â†’ KPIs + charts
+2. Paginated orders with customer join â†’ table data
+3. Count distinct customers â†’ activeCustomers KPI
 
 ### 1.2 Report Filter Types
 
@@ -99,7 +99,7 @@ export async function getOrdersReport(params): Promise<OrdersReportData>
 
 ```typescript
 'use server';
-// Uses getAuthContext() → service call → return { success, data?, error? }
+// Uses getAuthContext() â†’ service call â†’ return { success, data?, error? }
 export async function fetchOrdersReport(params): Promise<ActionResult<OrdersReportData>>
 ```
 
@@ -362,7 +362,7 @@ Each calls the appropriate utility with the current report data.
 
 ### Files to MODIFY:
 
-1. `web-admin/app/dashboard/reports/page.tsx` - Replace mock → redirect or overview
+1. `web-admin/app/dashboard/reports/page.tsx` - Replace mock â†’ redirect or overview
 2. `web-admin/config/navigation.ts` - Add children routes under reports
 3. `web-admin/messages/en.json` - Add report i18n keys
 4. `web-admin/messages/ar.json` - Add Arabic translations
@@ -373,8 +373,8 @@ Each calls the appropriate utility with the current report data.
 - `withTenantContext()` from [tenant-context.ts](web-admin/lib/db/tenant-context.ts)
 - `getAuthContext()` from [server-auth.ts](web-admin/lib/auth/server-auth.ts)
 - In-memory aggregation pattern from [payment-service.ts](web-admin/lib/services/payment-service.ts)
-- Filter bar pattern from [invoice-filters-bar.tsx](web-admin/app/dashboard/billing/invoices/components/invoice-filters-bar.tsx)
-- Table pattern from [invoices-table.tsx](web-admin/app/dashboard/billing/invoices/components/invoices-table.tsx)
+- Filter bar pattern from [invoice-filters-bar.tsx](web-admin/app/dashboard/internal_fin/invoices/components/invoice-filters-bar.tsx)
+- Table pattern from [invoices-table.tsx](web-admin/app/dashboard/internal_fin/invoices/components/invoices-table.tsx)
 - Print pattern from [ready print page](web-admin/app/dashboard/ready/[id]/print/[type]/page.tsx)
 - Constants from [order-types.ts](web-admin/lib/constants/order-types.ts) and [payment.ts](web-admin/lib/constants/payment.ts)
 - recharts already installed (v3.3.0)
@@ -387,7 +387,7 @@ Each calls the appropriate utility with the current report data.
 
 After each phase, verify with:
 
-1. **Build check:** `cd web-admin && npm run build` — must pass with no errors
+1. **Build check:** `cd web-admin && npm run build` â€” must pass with no errors
 2. **Manual testing:**
    - Navigate to `/dashboard/reports/orders` (ensure feature flag is enabled)
    - Verify KPI cards show real numbers
@@ -397,7 +397,7 @@ After each phase, verify with:
    - Test filters (status, customer, branch)
 3. **Tenant isolation:** Verify different tenant logins see only their own data
 4. **RTL:** Switch to Arabic locale, verify layout flips correctly
-5. **Export (Phase 4):** Download CSV, Excel, PDF — verify content matches on-screen data
+5. **Export (Phase 4):** Download CSV, Excel, PDF â€” verify content matches on-screen data
 6. **Print (Phase 4):** Click print, verify print-optimized layout
 
 ---

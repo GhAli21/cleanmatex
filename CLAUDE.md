@@ -37,6 +37,7 @@
 10. **Navigation changes are DUAL-WRITE** — any add/modify to navigation MUST update BOTH `web-admin/config/navigation.ts` (frontend sidebar) AND generate a DB migration for `sys_components_cd` using the `/navigation` skill. Neither alone is complete.
 11. **New permissions MUST have a migration** — every new permission code added to the system requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). No mapping layers, no reformatting. Drift between DB values and TS constants causes silent bugs.
+13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 
 ---
 

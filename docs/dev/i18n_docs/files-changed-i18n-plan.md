@@ -1,4 +1,4 @@
-# i18n Enhancement Plan — Files Created or Modified
+# i18n Enhancement Plan â€” Files Created or Modified
 
 Complete list of files created or modified during implementation of the i18n enhancement plan.
 
@@ -33,10 +33,10 @@ Complete list of files created or modified during implementation of the i18n enh
 
 | # | File Path |
 |---|-----------|
-| 12 | `web-admin/app/dashboard/billing/invoices/components/invoice-filters-bar.tsx` |
-| 13 | `web-admin/app/dashboard/billing/payments/components/payment-filters-bar.tsx` |
-| 14 | `web-admin/app/dashboard/billing/payments/components/refund-payment-dialog.tsx` |
-| 15 | `web-admin/app/dashboard/billing/payments/new/create-payment-form.tsx` |
+| 12 | `web-admin/app/dashboard/internal_fin/invoices/components/invoice-filters-bar.tsx` |
+| 13 | `web-admin/app/dashboard/internal_fin/payments/components/payment-filters-bar.tsx` |
+| 14 | `web-admin/app/dashboard/internal_fin/payments/components/refund-payment-dialog.tsx` |
+| 15 | `web-admin/app/dashboard/internal_fin/payments/new/create-payment-form.tsx` |
 
 ### Orders
 
@@ -114,9 +114,9 @@ Complete list of files created or modified during implementation of the i18n enh
 | Category | Count |
 |----------|-------|
 | **New files** | 8 |
-| **Modified – translation/config** | 3 |
-| **Modified – components** | 32 |
-| **Modified – rules** | 4 |
+| **Modified â€“ translation/config** | 3 |
+| **Modified â€“ components** | 32 |
+| **Modified â€“ rules** | 4 |
 | **Total** | **47** |
 
 ---
@@ -128,6 +128,6 @@ Complete list of files created or modified during implementation of the i18n enh
 | Phase 1 (Tooling) | check-i18n-parity.js, package.json, en.json, ar.json, i18n_docs/* |
 | Phase 2 (Common Consolidation) | 19+ components, en.json, ar.json |
 | Phase 3 (ICU Pluralization) | bulk-status-update, order-table, order-summary-panel, pricing/[id], UsageWidget, en.json, ar.json |
-| Phase 4–5 (Docs) | style-guide.md |
+| Phase 4â€“5 (Docs) | style-guide.md |
 | Phase 6 (AI Rules) | i18n.mdc, SKILL.md, aicoderfrontendinstructions.mdc, CLAUDE.md |
 | Phase 7 (Remaining) | en.json, ar.json (parity fixes), manual-verification-en-ar.md |

@@ -11,7 +11,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Cash Drawer Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/dashboard/billing/cash-drawers');
+    await page.goto('/dashboard/internal_fin/cash-drawers');
   });
 
   test('should display cash drawers list', async ({ page }) => {
@@ -35,7 +35,7 @@ test.describe('Cash Drawer Management', () => {
         await expect(page.locator('text=/session.*open|open.*success/i').first()).toBeVisible({ timeout: 5000 });
       }
     } else {
-      // No drawers available — skip gracefully
+      // No drawers available Ã¢â‚¬â€ skip gracefully
       test.skip();
     }
   });

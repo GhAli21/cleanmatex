@@ -1,4 +1,4 @@
-# Payment Cancel, Refund & Audit History — Implementation Plan
+# Payment Cancel, Refund & Audit History â€” Implementation Plan
 
 **Goal:** Implement cancel and refund of payment following best practices, and add a payments audit history that records all changes with before/after values.
 
@@ -13,15 +13,15 @@
 Cancel is already implemented. This phase tightens validation, permissions, and audit integration.
 
 ### 1.1 Current state
-- **Service:** `cancelPayment(paymentId, reason, cancelledBy)` in `payment-service.ts` — atomic transaction, reverses invoice/order.
-- **Action:** `cancelPaymentAction` — checks `payments:cancel`, validates reason.
+- **Service:** `cancelPayment(paymentId, reason, cancelledBy)` in `payment-service.ts` â€” atomic transaction, reverses invoice/order.
+- **Action:** `cancelPaymentAction` â€” checks `payments:cancel`, validates reason.
 - **UI:** Cancel button on list + detail, `cancel-payment-dialog.tsx`.
 
 ### 1.2 Best-practice refinements
 | Item | Action |
 |------|--------|
 | **Idempotency** | Already safe: "already cancelled" returns error. No change. |
-| **Validation** | Reason min/max in `cancelPaymentSchema` — already present. |
+| **Validation** | Reason min/max in `cancelPaymentSchema` â€” already present. |
 | **Permission** | Already gated by `payments:cancel` server-side. |
 | **Audit** | **Add:** After successful cancel, insert one row into payment audit table (see Part 3). |
 | **Reversals** | Already updates invoice `paid_amount`/`status` and order `paid_amount`/`payment_status` in same transaction. |
@@ -35,11 +35,11 @@ Cancel is already implemented. This phase tightens validation, permissions, and 
 
 Refund exists only at service level. Add action, validation, permission, UI, audit, and **refund voucher service**.
 
-### 2.0 Refund Voucher Service (New — Mandatory)
+### 2.0 Refund Voucher Service (New â€” Mandatory)
 
 **Rule:** No payment transaction without voucher master. Refund rows must have `voucher_id` pointing to `org_fin_vouchers_mst`.
 
-**New file:** `web-admin/lib/services/refund-voucher-service.ts` — standalone, best-practice, no-bug refund service.
+**New file:** `web-admin/lib/services/refund-voucher-service.ts` â€” standalone, best-practice, no-bug refund service.
 
 | Responsibility | Detail |
 |----------------|--------|
@@ -56,8 +56,8 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
 ### 2.1 Refund rules (best practice)
 - **Partial refund:** Amount &lt; original payment; original transaction stays `completed`; new row with negative `paid_amount`, status `refunded` (or link to original).
 - **Full refund:** Amount = original; optionally mark original as `refunded` or keep as-is and rely on refund row.
-- **Validation:** Amount &gt; 0, amount ≤ original `paid_amount`, transaction exists and is `completed` (not already cancelled/refunded).
-- **Permission:** New permission `payments:refund` (or reuse `payments:cancel` — recommend separate `payments:refund`).
+- **Validation:** Amount &gt; 0, amount â‰¤ original `paid_amount`, transaction exists and is `completed` (not already cancelled/refunded).
+- **Permission:** New permission `payments:refund` (or reuse `payments:cancel` â€” recommend separate `payments:refund`).
 - **Idempotency:** Same refund (same transaction_id + amount + reason) could be deduplicated by business key if needed later; v1 can allow multiple partial refunds up to original amount.
 
 ### 2.2 Service layer (`payment-service.ts`)
@@ -88,7 +88,7 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
   - Check permission `payments:refund` (e.g. via `hasPermissionServer('payments:refund')`).
   - Parse input with `refundPaymentSchema`.
   - Call `refundPayment({ transaction_id, amount, reason, processed_by: userId })`.
-  - On success: `revalidatePath` for `/dashboard/billing/payments`, `/dashboard/billing/payments/[id]`, `/dashboard/billing/invoices`, `/dashboard/orders`.
+  - On success: `revalidatePath` for `/dashboard/internal_fin/payments`, `/dashboard/internal_fin/payments/[id]`, `/dashboard/internal_fin/invoices`, `/dashboard/orders`.
   - Return `{ success, error?, refund_transaction_id? }`.
 
 ### 2.5 Permission
@@ -103,7 +103,7 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
 
 | Component | Purpose |
 |-----------|--------|
-| **Refund dialog** | **New:** `web-admin/app/dashboard/billing/payments/components/refund-payment-dialog.tsx`. Fields: amount (number, max = original amount), reason (required textarea). Submit → `refundPaymentAction`. Show loading and success/error toast. |
+| **Refund dialog** | **New:** `web-admin/app/dashboard/internal_fin/payments/components/refund-payment-dialog.tsx`. Fields: amount (number, max = original amount), reason (required textarea). Submit â†’ `refundPaymentAction`. Show loading and success/error toast. |
 | **Detail page** | In `payment-detail-client.tsx`: add "Refund" button (only when status is `completed` and amount &gt; 0). Wrap in `<RequirePermission resource="payments" action="refund">`. Open refund dialog with current payment id and `paid_amount`. |
 | **List page** | In `payments-table.tsx`: add "Refund" action in actions column (same visibility as Refund button on detail). Optional: open same dialog with payment id and amount. |
 | **i18n** | Add keys under `payments.refund.*`: title, amountLabel, amountPlaceholder, reasonLabel, reasonPlaceholder, submit, cancelling, cancel, success, error, permissionDenied, maxRefund. EN + AR. |
@@ -114,7 +114,7 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
   - **Create voucher first:** Call `createRefundVoucherForPayment` (refund-voucher-service) with `{ tenantId, amount, invoiceId, orderId, customerId, branchId, reasonCode?, processedBy }`. Get `voucher_id`.
   - Add guard: if `transaction.status !== 'completed'`, return error (e.g. "Only completed payments can be refunded").
   - Wrap entire logic (create voucher, create refund row with `voucher_id`, update invoice, **and update order if order_id present**) in `prisma.$transaction`.
-  - For order: same as cancel — `findUnique` order by `transaction.order_id`, compute new `paid_amount` and `payment_status`, `update` order.
+  - For order: same as cancel â€” `findUnique` order by `transaction.order_id`, compute new `paid_amount` and `payment_status`, `update` order.
   - Pass `voucher_id` to `org_payments_dtl_tr.create` for the refund row.
 
 ---
@@ -131,7 +131,7 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
 
 **New migration:** `supabase/migrations/[NEXT_SEQ]_create_org_payment_audit_log.sql`
 
-**Table name:** `org_payment_audit_log` (max 30 chars: 22 — OK).
+**Table name:** `org_payment_audit_log` (max 30 chars: 22 â€” OK).
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -146,8 +146,8 @@ Refund exists only at service level. Add action, validation, permission, UI, aud
 | `metadata` | JSONB, optional | Reason, IP, user agent, etc. |
 
 **Indexes:**
-- `(tenant_org_id, payment_id)` — list history for one payment.
-- `(tenant_org_id, changed_at DESC)` — recent activity.
+- `(tenant_org_id, payment_id)` â€” list history for one payment.
+- `(tenant_org_id, changed_at DESC)` â€” recent activity.
 
 **RLS:** Same pattern as other org_* tables: policy on `tenant_org_id = current_setting('app.current_tenant_id', true)::uuid` for SELECT/INSERT (and no UPDATE/DELETE).
 
@@ -197,24 +197,24 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 ### 4.1 Payment detail page
 - New section "Audit history" or "Change history".
 - Fetch list: `getPaymentAuditLog(paymentId)` (tenant-scoped, order by changed_at DESC).
-- Display: table or list with columns — Date/time, Action, Changed by, Before → After (or summary per action type). Optional: expand row to show full before_value/after_value JSON.
+- Display: table or list with columns â€” Date/time, Action, Changed by, Before â†’ After (or summary per action type). Optional: expand row to show full before_value/after_value JSON.
 
 ### 4.2 API / server action
 - **New:** `getPaymentAuditLogAction(paymentId)` or direct `payment-audit.service.getPaymentAuditLog(paymentId)` used from server component.
 - Returns: `{ entries: { id, action_type, before_value, after_value, changed_by, changed_at }[] }`.
 
 ### 4.3 i18n
-- Keys: `payments.audit.*` — title, actionCreated, actionCancelled, actionRefunded, actionNotesUpdated, changedBy, changedAt, before, after, noHistory.
+- Keys: `payments.audit.*` â€” title, actionCreated, actionCancelled, actionRefunded, actionNotesUpdated, changedBy, changedAt, before, after, noHistory.
 
 ---
 
 ## Implementation Order
 
-1. **Part 3 (Audit table + helper)** — Migration, Prisma model, `recordPaymentAudit` helper and integrate into `recordPaymentTransaction`, `updatePaymentNotes`, `cancelPayment`. (Refund not yet wired; can add REFUNDED when Part 2 is done.)
-2. **Part 2 (Refund)** — Service fixes (transaction, order reversal, status check), schema, action, permission migration, refund dialog, buttons on detail + list, i18n. Then add REFUNDED audit in `refundPayment`.
-3. **Part 1 (Cancel)** — Only audit integration (CANCELLED) if not already done in step 1.
-4. **Part 4 (Audit UI)** — getPaymentAuditLog, detail page section, i18n.
-5. **Verification** — Build, manual tests: create payment → audit; edit notes → audit; cancel → audit + reversal; refund (full/partial) → audit + reversals; view history on detail page.
+1. **Part 3 (Audit table + helper)** â€” Migration, Prisma model, `recordPaymentAudit` helper and integrate into `recordPaymentTransaction`, `updatePaymentNotes`, `cancelPayment`. (Refund not yet wired; can add REFUNDED when Part 2 is done.)
+2. **Part 2 (Refund)** â€” Service fixes (transaction, order reversal, status check), schema, action, permission migration, refund dialog, buttons on detail + list, i18n. Then add REFUNDED audit in `refundPayment`.
+3. **Part 1 (Cancel)** â€” Only audit integration (CANCELLED) if not already done in step 1.
+4. **Part 4 (Audit UI)** â€” getPaymentAuditLog, detail page section, i18n.
+5. **Verification** â€” Build, manual tests: create payment â†’ audit; edit notes â†’ audit; cancel â†’ audit + reversal; refund (full/partial) â†’ audit + reversals; view history on detail page.
 
 ---
 
@@ -223,19 +223,19 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 ### New files
 - `supabase/migrations/[NEXT_SEQ]_create_org_payment_audit_log.sql`
 - `supabase/migrations/[NEXT_SEQ]_add_payments_refund_permission.sql`
-- `supabase/migrations/[NEXT_SEQ]_enforce_voucher_id_on_payments.sql` — backfill voucher_id for any payment rows missing it; add CHECK or trigger: completed/refunded rows must have voucher_id NOT NULL
+- `supabase/migrations/[NEXT_SEQ]_enforce_voucher_id_on_payments.sql` â€” backfill voucher_id for any payment rows missing it; add CHECK or trigger: completed/refunded rows must have voucher_id NOT NULL
 - `web-admin/lib/services/payment-audit.service.ts`
-- `web-admin/lib/services/refund-voucher-service.ts` — `createRefundVoucherForPayment` (CASH_OUT, REFUND, REF-YYYY-NNNNN)
-- `web-admin/app/dashboard/billing/payments/components/refund-payment-dialog.tsx`
+- `web-admin/lib/services/refund-voucher-service.ts` â€” `createRefundVoucherForPayment` (CASH_OUT, REFUND, REF-YYYY-NNNNN)
+- `web-admin/app/dashboard/internal_fin/payments/components/refund-payment-dialog.tsx`
 
 ### Modified files
-- `web-admin/lib/services/payment-service.ts` — refund: call `createRefundVoucherForPayment` from refund-voucher-service first, pass voucher_id to refund row; transaction, order reversal, status check; audit calls in create/cancel/refund/updateNotes.
-- `web-admin/lib/validations/payment-crud-schemas.ts` — refundPaymentSchema (or new refund schema file).
-- `web-admin/app/actions/payments/payment-crud-actions.ts` — refundPaymentAction (or new refund action file).
-- `web-admin/app/dashboard/billing/payments/[id]/payment-detail-client.tsx` — Refund button, Audit history section.
-- `web-admin/app/dashboard/billing/payments/components/payments-table.tsx` — Refund action.
-- `web-admin/prisma/schema.prisma` — org_payment_audit_log model.
-- `web-admin/messages/en.json`, `web-admin/messages/ar.json` — payments.refund.*, payments.audit.*.
+- `web-admin/lib/services/payment-service.ts` â€” refund: call `createRefundVoucherForPayment` from refund-voucher-service first, pass voucher_id to refund row; transaction, order reversal, status check; audit calls in create/cancel/refund/updateNotes.
+- `web-admin/lib/validations/payment-crud-schemas.ts` â€” refundPaymentSchema (or new refund schema file).
+- `web-admin/app/actions/payments/payment-crud-actions.ts` â€” refundPaymentAction (or new refund action file).
+- `web-admin/app/dashboard/internal_fin/payments/[id]/payment-detail-client.tsx` â€” Refund button, Audit history section.
+- `web-admin/app/dashboard/internal_fin/payments/components/payments-table.tsx` â€” Refund action.
+- `web-admin/prisma/schema.prisma` â€” org_payment_audit_log model.
+- `web-admin/messages/en.json`, `web-admin/messages/ar.json` â€” payments.refund.*, payments.audit.*.
 
 ---
 
@@ -243,7 +243,7 @@ Add model `org_payment_audit_log` with fields matching migration (id, tenant_org
 
 - [ ] **Mandatory voucher rule:** No payment row (including refund) without voucher_id. Refund creates org_fin_vouchers_mst (CASH_OUT, REFUND) first.
 - [ ] Cancel: only for non-cancelled/refunded; reason required; permission enforced; invoice/order reversed; one CANCELLED audit row.
-- [ ] Refund: creates voucher (CASH_OUT, REFUND) first; refund row has voucher_id; only for completed; amount ≤ original; partial and full; invoice + order reversed; REFUNDED audit row.
+- [ ] Refund: creates voucher (CASH_OUT, REFUND) first; refund row has voucher_id; only for completed; amount â‰¤ original; partial and full; invoice + order reversed; REFUNDED audit row.
 - [ ] Create payment: one CREATED audit row with after_value; voucher_id set (receipt voucher).
 - [ ] Edit notes: one NOTES_UPDATED audit row with before/after rec_notes.
 - [ ] Audit history visible on payment detail; RLS and tenant isolation verified.

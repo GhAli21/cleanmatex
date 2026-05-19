@@ -112,7 +112,7 @@ export default function CashUpForm({
           value={selectedDate}
           onChange={(e) => {
             const v = e.target.value;
-            if (v) router.push(`/dashboard/billing/cashup?date=${v}`);
+            if (v) router.push(`/dashboard/internal_fin/cashup?date=${v}`);
           }}
           className="rounded-md border border-gray-300 px-3 py-2 text-sm"
           aria-label={t('selectDate')}

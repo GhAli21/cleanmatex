@@ -48,7 +48,7 @@ export async function openDrawerSession(
       openedBy: auth.userId,
       notes: params.notes,
     });
-    revalidatePath('/dashboard/billing/cash-drawers');
+    revalidatePath('/dashboard/internal_fin/cash-drawers');
     return { success: true as const, data: session };
   } catch (error) {
     console.error('[openDrawerSession] Error:', error);
@@ -72,7 +72,7 @@ export async function closeDrawerSession(
       notes: params.notes,
     };
     const result = await closeSession(auth.tenantId, sessionId, closeParams);
-    revalidatePath('/dashboard/billing/cash-drawers');
+    revalidatePath('/dashboard/internal_fin/cash-drawers');
     return { success: true as const, data: result };
   } catch (error) {
     console.error('[closeDrawerSession] Error:', error);
@@ -98,7 +98,7 @@ export async function addDrawerMovement(
       ...params,
       performedBy: auth.userId,
     });
-    revalidatePath(`/dashboard/billing/cash-drawers`);
+    revalidatePath(`/dashboard/internal_fin/cash-drawers`);
     return { success: true as const, data: movement };
   } catch (error) {
     console.error('[addDrawerMovement] Error:', error);

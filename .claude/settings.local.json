@@ -143,7 +143,15 @@
       "PowerShell(Get-ChildItem \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^0\\\\d{3}' } | Sort-Object Name | Select-Object -Last 5 | Format-Table Name)",
       "Skill(update-config)",
       "Skill(update-config:*)",
-      "Bash(python -c \"import json; json.load\\(open\\('f:/jhapp/cleanmatex/.claude/settings.local.json'\\)\\); print\\('JSON valid'\\)\")"
+      "Bash(python -c \"import json; json.load\\(open\\('f:/jhapp/cleanmatex/.claude/settings.local.json'\\)\\); print\\('JSON valid'\\)\")",
+      "Bash(xargs grep -l \"payment.*refund\\\\|refund.*payment\")",
+      "Bash(not exist *)",
+      "Bash(New-Item -ItemType Directory -Force \"F:\\\\jhapp\\\\cleanmatex\\\\docs\\\\features\\\\Order_Fin\\\\Current_19_05_2026\")",
+      "PowerShell(head -20)",
+      "PowerShell(head -30)",
+      "Bash(mkdir -p /f/jhapp/cleanmatex/web-admin/app/dashboard/internal_fin/vouchers/\\\\[voucherId\\\\] *)",
+      "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\(en.navigation, null, 2\\)\\);\")",
+      "Bash(node -e \"const ar=require\\('./messages/ar.json'\\); console.log\\(JSON.stringify\\(ar.navigation, null, 2\\)\\);\")"
     ],
     "deny": [
       "Read(node_modules)",
@@ -202,7 +210,8 @@
       "C:\\Users\\JHNLP\\.claude\\plans",
       "f:\\jhapp\\cleanmatex",
       "F:\\jhapp\\cleanmatex\\web-admin\\app\\dashboard\\billing\\cash-drawers",
-      "f:\\jhapp\\cleanmatex\\web-admin\\app\\api\\v1\\customers\\[id]\\loyalty"
+      "f:\\jhapp\\cleanmatex\\web-admin\\app\\api\\v1\\customers\\[id]\\loyalty",
+      "F:\\jhapp\\cleanmatex\\web-admin\\app\\dashboard\\internal_fin\\vouchers"
     ]
   },
   "statusLine": {

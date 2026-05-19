@@ -71,8 +71,8 @@ export async function updatePaymentNotesAction(
 
     await updatePaymentNotesService(paymentId, parsed.data.notes, auth.userId);
 
-    revalidatePath('/dashboard/billing/payments');
-    revalidatePath(`/dashboard/billing/payments/${paymentId}`);
+    revalidatePath('/dashboard/internal_fin/payments');
+    revalidatePath(`/dashboard/internal_fin/payments/${paymentId}`);
 
     return { success: true };
   } catch (error) {
@@ -112,10 +112,10 @@ export async function cancelPaymentAction(
     const result = await cancelPaymentService(paymentId, parsed.data.reason, auth.userId);
 
     if (result.success) {
-      revalidatePath('/dashboard/billing/payments');
-      revalidatePath(`/dashboard/billing/payments/${paymentId}`);
+      revalidatePath('/dashboard/internal_fin/payments');
+      revalidatePath(`/dashboard/internal_fin/payments/${paymentId}`);
       revalidatePath('/dashboard/orders');
-      revalidatePath('/dashboard/billing/invoices');
+      revalidatePath('/dashboard/internal_fin/invoices');
     }
 
     return result;
@@ -164,9 +164,9 @@ export async function refundPaymentAction(
     });
 
     if (result.success) {
-      revalidatePath('/dashboard/billing/payments');
-      revalidatePath(`/dashboard/billing/payments/${transactionId}`);
-      revalidatePath('/dashboard/billing/invoices');
+      revalidatePath('/dashboard/internal_fin/payments');
+      revalidatePath(`/dashboard/internal_fin/payments/${transactionId}`);
+      revalidatePath('/dashboard/internal_fin/invoices');
       revalidatePath('/dashboard/orders');
     }
 
@@ -221,9 +221,9 @@ export async function createStandalonePaymentAction(
     });
 
     if (result.success) {
-      revalidatePath('/dashboard/billing/payments');
+      revalidatePath('/dashboard/internal_fin/payments');
       revalidatePath('/dashboard/orders');
-      revalidatePath('/dashboard/billing/invoices');
+      revalidatePath('/dashboard/internal_fin/invoices');
     }
 
     return {

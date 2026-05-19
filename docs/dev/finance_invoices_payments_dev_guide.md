@@ -1,4 +1,4 @@
-# Finance Module – Invoices & Payments (CleanMateX Web Admin)
+# Finance Module Ã¢â‚¬â€œ Invoices & Payments (CleanMateX Web Admin)
 
 ## Overview
 
@@ -17,13 +17,13 @@ This document summarizes the current implementation of **invoices and payments**
 ### Tables
 
 - `org_invoice_mst`
-  - 1–many with `org_orders_mst` (currently 1 invoice per order in the main flow).
+  - 1Ã¢â‚¬â€œmany with `org_orders_mst` (currently 1 invoice per order in the main flow).
   - Stores `subtotal`, `discount`, `tax`, `total`, `status`, `paid_amount`, `due_date`, `payment_method` and audit fields.
   - Tenant isolation via `tenant_org_id` + RLS and composite FKs.
 
 - `org_payments_dtl_tr`
   - Optional link to `org_invoice_mst` (`invoice_id` nullable); optional `order_id`, `customer_id`.
-  - **Payment kind**: `payment_kind` (`invoice` | `deposit` | `advance` | `pos`) — allows payments without an invoice (down payments, POS receipts, advance payments).
+  - **Payment kind**: `payment_kind` (`invoice` | `deposit` | `advance` | `pos`) Ã¢â‚¬â€ allows payments without an invoice (down payments, POS receipts, advance payments).
   - Constraint: at least one of `invoice_id`, `order_id`, or `customer_id` must be set.
   - Stores individual payment transactions (`paid_amount`, `status`, `payment_method_code`, `paid_at`, `paid_by`, `gateway`, `transaction_id`, `metadata`). Column is **`payment_method_code`** (not `payment_method`); Prisma schema and DB match.
   - Supports **partial payments**: invoice-level `paid_amount` is the aggregate of successful transactions when `invoice_id` is set.
@@ -59,7 +59,7 @@ Database indexes and foreign keys are defined in `supabase/migrations/0001_core_
   - `cancelPayment(paymentId, reason, cancelledBy)` cancels a payment and reverses invoice/order balances.
 
 - `web-admin/lib/services/refund-voucher-service.ts`
-  - `createRefundVoucherForPayment(input)` — creates CASH_OUT/REFUND voucher (REF-YYYY-NNNNN). **Rule:** No payment without voucher. Used by `refundPayment` before creating refund row.
+  - `createRefundVoucherForPayment(input)` Ã¢â‚¬â€ creates CASH_OUT/REFUND voucher (REF-YYYY-NNNNN). **Rule:** No payment without voucher. Used by `refundPayment` before creating refund row.
 
 - **Order Cancel/Return:** When order is cancelled (before delivery), `WorkflowServiceEnhanced` cancels linked payments. When customer returns (after delivery), it refunds via `refundPayment` (voucher first). See [Cancel and Return Order](../../features/orders/cancel_return/README.md).
 
@@ -84,9 +84,9 @@ These actions use the same tenant context as the services and are safe to call f
 
 ### Pages
 
-Invoices live under **`/dashboard/billing/invoices`** for consistent information architecture (Billing → Invoices) and alignment with navigation.
+Invoices live under **`/dashboard/internal_fin/invoices`** for consistent information architecture (Billing Ã¢â€ â€™ Invoices) and alignment with navigation.
 
-- `web-admin/app/dashboard/billing/invoices/page.tsx`
+- `web-admin/app/dashboard/internal_fin/invoices/page.tsx`
   - Server Component, lists invoices for the current tenant with basic filters via `searchParams`.
   - Calls `listInvoices` and `getInvoiceStats` from `invoice-service`.
   - Shows:
@@ -94,7 +94,7 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
     - Simple stats: total, paid, pending/partial, overdue.
   - i18n namespace: `invoices` in `messages/en.json` / `messages/ar.json`.
 
-- `web-admin/app/dashboard/billing/invoices/[id]/page.tsx`
+- `web-admin/app/dashboard/internal_fin/invoices/[id]/page.tsx`
   - Server Component, detail view for a single invoice:
     - Invoice financial summary (subtotal, discount, tax, total, paid, balance, status, method).
     - Payment history table (via `getPaymentHistory` service).
@@ -103,7 +103,7 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
 
 ### Record Payment UI
 
-- `web-admin/app/dashboard/billing/invoices/[id]/record-payment-client.tsx`
+- `web-admin/app/dashboard/internal_fin/invoices/[id]/record-payment-client.tsx`
   - `'use client'` component rendered on invoice detail page (invoice-linked payments).
   - Props: `tenantOrgId`, `userId`, `invoiceId`, `orderId`, `remainingBalance`, and a typed `processPaymentAction` bridge.
   - Features: amount input (defaults to remaining balance), payment method CASH/CARD, optional notes; calls `processPayment` with tenant/user context; success/error and `router.refresh()`.
@@ -117,7 +117,7 @@ Invoices live under **`/dashboard/billing/invoices`** for consistent information
   - **Advance balance** section: shows total unapplied advance payments (where `customer_id` matches and `invoice_id` is null) via `getPaymentsForCustomer`; optional list and count.
   - **Record advance** form: records payment with `payment_kind` `advance`, `customer_id` set; calls `processPayment` without `invoiceId`.
 
-> **New Order Flow (Server-Side Payment Calculation):** The new order page uses `PaymentModalEnhanced02`, which fetches totals from `POST /api/v1/orders/preview-payment` and submits via `POST /api/v1/orders/create-with-payment`. This single API creates order + invoice + payment (and receipt voucher when CASH/CARD/CHECK) in one transaction. On amount mismatch, the API returns `AMOUNT_MISMATCH` (400) with differences; nothing is persisted; the client shows `AmountMismatchDialog`. This flow **replaces** the previous sequential `createOrder` → `createInvoiceAction` → `processPayment` for new orders.
+> **New Order Flow (Server-Side Payment Calculation):** The new order page uses `PaymentModalEnhanced02`, which fetches totals from `POST /api/v1/orders/preview-payment` and submits via `POST /api/v1/orders/create-with-payment`. This single API creates order + invoice + payment (and receipt voucher when CASH/CARD/CHECK) in one transaction. On amount mismatch, the API returns `AMOUNT_MISMATCH` (400) with differences; nothing is persisted; the client shows `AmountMismatchDialog`. This flow **replaces** the previous sequential `createOrder` Ã¢â€ â€™ `createInvoiceAction` Ã¢â€ â€™ `processPayment` for new orders.
 >
 > **Partial Payment at Order Creation:** When the customer selects an immediate payment method (CASH, CARD, or CHECK), the modal offers "Pay in full" or "Pay partial amount". If partial is selected, the user can enter the amount to charge now (0 to final total). The `amountToCharge` is passed to the API; the invoice and order get `paid_amount` set to that value and `status`/`payment_status` set to `partial` when paid < total, or `paid` when paid >= total. The remaining balance can be collected later via the invoice detail or order payment form.
 >

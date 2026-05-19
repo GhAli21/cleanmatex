@@ -17,7 +17,6 @@ import {
   PackageCheck,
   Users,
   Tags,
-  Receipt,
   BarChart3,
   Boxes,
   Landmark,
@@ -35,10 +34,12 @@ import {
   Star,
   Tag,
   Calculator,
+  BookOpen,
+  FilePlus,
 } from 'lucide-react'
 
 /** `none` = placeholder sections with no role gate (permissions-only). */
-export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manager' | 'operator' | 'viewer' | 'none'
+export type UserRole = 'super_admin' | 'tenant_admin' | 'admin' | 'branch_manager' | 'operator' | 'cashier' | 'viewer' | 'none'
 
 export interface NavigationSection {
   key: string
@@ -327,41 +328,42 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
     ],
   },
   {
-    key: 'billing',
-    label: 'Internal Finance Operations',
-    icon: Receipt,
-    path: '/dashboard/billing',
-    roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
+    key: 'internal_fin',
+    label: 'Internal Finance And Operations',
+    label2: 'المالية الداخلية والتشغيل',
+    icon: BookOpen,
+    path: '/dashboard/internal_fin',
+    roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'cashier'],
     children: [
       {
         key: 'billing_invoices',
         label: 'Invoices',
-        path: '/dashboard/billing/invoices',
+        path: '/dashboard/internal_fin/invoices',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
         key: 'billing_vouchers',
         label: 'Receipt Vouchers',
-        path: '/dashboard/billing/vouchers',
+        path: '/dashboard/internal_fin/vouchers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
         key: 'billing_payments',
         label: 'Payments',
-        path: '/dashboard/billing/payments',
+        path: '/dashboard/internal_fin/payments',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
         key: 'billing_cashup',
         label: 'Cash Up',
-        path: '/dashboard/billing/cashup',
+        path: '/dashboard/internal_fin/cashup',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
       },
       {
         key: 'billing_cash_drawers',
         label: 'Cash Drawers',
         label2: 'الصناديق النقدية',
-        path: '/dashboard/billing/cash-drawers',
+        path: '/dashboard/internal_fin/cash-drawers',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator'],
         permissions: ['cash_drawer:view'],
       },
@@ -369,7 +371,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         key: 'billing_refunds',
         label: 'Refunds',
         label2: 'المرتجعات',
-        path: '/dashboard/billing/refunds',
+        path: '/dashboard/internal_fin/refunds',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator'],
         permissions: ['orders:process_refund'],
       },
@@ -377,9 +379,33 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         key: 'billing_reconciliation',
         label: 'Reconciliation',
         label2: 'التسوية المالية',
-        path: '/dashboard/billing/reconciliation',
+        path: '/dashboard/internal_fin/reconciliation',
         roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager'],
         permissions: ['reconciliation:view'],
+      },
+      {
+        key: 'finance_vouchers',
+        label: 'Business Vouchers',
+        label2: 'السندات التجارية',
+        path: '/dashboard/internal_fin/vouchers',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'cashier'],
+        permissions: ['fin_vouchers:view'],
+      },
+      {
+        key: 'finance_vouchers_new',
+        label: 'New Voucher',
+        label2: 'سند جديد',
+        path: '/dashboard/internal_fin/vouchers/new',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager', 'operator', 'cashier'],
+        permissions: ['fin_vouchers:create'],
+      },
+      {
+        key: 'finance_vouchers_reports',
+        label: 'Voucher Reports',
+        label2: 'تقارير السندات',
+        path: '/dashboard/internal_fin/vouchers/reports',
+        roles: ['super_admin', 'tenant_admin', 'admin', 'branch_manager'],
+        permissions: ['fin_vouchers:reports'],
       },
     ],
   },

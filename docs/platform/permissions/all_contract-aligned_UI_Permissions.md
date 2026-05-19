@@ -24,7 +24,7 @@ Legend:
 | `/dashboard/help` | Help | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/jhtestui` | JWT Test | None | None | None | None | Debug route |
 | `/dashboard/subscription` | Subscription | None | None | None | None | No explicit UI permission gate |
-| `/dashboard/customers` | Customers | None | None | None | `Use B2B customer options` → Flag: `b2b_contracts` | Page is open; B2B options are gated |
+| `/dashboard/customers` | Customers | None | None | None | `Use B2B customer options` Ã¢â€ â€™ Flag: `b2b_contracts` | Page is open; B2B options are gated |
 | `/dashboard/customers/[id]` | Customer Details | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/users` | Users | None | None | None | None | No explicit UI permission gate |
 | `/dashboard/users/new` | New User | None | None | None | None | No explicit UI permission gate |
@@ -65,7 +65,7 @@ Legend:
 | `/dashboard/b2b/customers/new` | New B2B Customer | `b2b_customers:view` | `b2b_contracts` | None | None | Relies on route contract plus backend |
 | `/dashboard/b2b/customers/[id]` | B2B Customer Details | `b2b_customers:view` | `b2b_contracts` | None | None | Relies on route contract plus backend |
 | `/dashboard/b2b/customers/[id]/edit` | Edit B2B Customer | `b2b_customers:view` | `b2b_contracts` | None | None | Relies on route contract plus backend |
-| `/dashboard/b2b/contracts` | B2B Contracts | `b2b_contracts:view` | `b2b_contracts` | None | `Create contract` → `b2b_contracts:create` | Contract-backed page and action gate |
+| `/dashboard/b2b/contracts` | B2B Contracts | `b2b_contracts:view` | `b2b_contracts` | None | `Create contract` Ã¢â€ â€™ `b2b_contracts:create` | Contract-backed page and action gate |
 | `/dashboard/b2b/statements` | B2B Statements | `b2b_statements:view` | `b2b_contracts` | None | None | Contract-backed page gate |
 | `/dashboard/b2b/statements/[id]` | B2B Statement Details | `b2b_statements:view` | `b2b_contracts` | None | None | Relies on route contract plus backend |
 
@@ -73,15 +73,15 @@ Legend:
 
 | Route | Page Label | Page Gate | Feature Flags | Workflow Roles | Action Gates | Notes |
 |---|---|---|---|---|---|---|
-| `/dashboard/billing/invoices` | Invoices | None | None | None | `Filter B2B invoices` → Flag: `b2b_contracts` | Open page with gated filter behavior |
-| `/dashboard/billing/invoices/[id]` | Invoice Details | None | None | None | None | No explicit page gate |
-| `/dashboard/billing/payments` | Payments | None | None | None | `Cancel payment` → `payments:cancel`; `Refund payment` → `payments:refund` | Open page with gated row actions |
-| `/dashboard/billing/payments/new` | New Payment | None | None | None | None | No explicit page gate |
-| `/dashboard/billing/payments/[id]` | Payment Details | None | None | None | `Cancel payment` → `payments:cancel`; `Refund payment` → `payments:refund` | Open page with gated detail actions |
-| `/dashboard/billing/payments/[id]/print/receipt-voucher` | Print Receipt Voucher | None | None | None | None | No explicit page gate |
-| `/dashboard/billing/vouchers` | Receipt Vouchers | None | None | None | None | No explicit page gate |
-| `/dashboard/billing/vouchers/new` | New Receipt Voucher | None | None | None | None | No explicit page gate |
-| `/dashboard/billing/cashup` | Cash Up | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/invoices` | Invoices | None | None | None | `Filter B2B invoices` Ã¢â€ â€™ Flag: `b2b_contracts` | Open page with gated filter behavior |
+| `/dashboard/internal_fin/invoices/[id]` | Invoice Details | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/payments` | Payments | None | None | None | `Cancel payment` Ã¢â€ â€™ `payments:cancel`; `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page with gated row actions |
+| `/dashboard/internal_fin/payments/new` | New Payment | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/payments/[id]` | Payment Details | None | None | None | `Cancel payment` Ã¢â€ â€™ `payments:cancel`; `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page with gated detail actions |
+| `/dashboard/internal_fin/payments/[id]/print/receipt-voucher` | Print Receipt Voucher | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/vouchers` | Receipt Vouchers | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/vouchers/new` | New Receipt Voucher | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/cashup` | Cash Up | None | None | None | None | No explicit page gate |
 
 ## Catalog
 
@@ -94,15 +94,15 @@ Legend:
 | `/dashboard/catalog/pricing/[id]` | Pricing Details | None | None | None | None | No explicit page gate |
 | `/dashboard/catalog/addons` | Catalog Add-ons | None | None | None | None | No explicit page gate |
 | `/dashboard/catalog/categories` | Catalog Categories | None | None | None | None | No explicit page gate |
-| `/dashboard/catalog/preferences` | Preferences Catalog | `orders:service_prefs_view` OR `orders:read` OR `config:preferences_manage` | None | None | `Edit service preferences` → `config:preferences_manage`; `Edit packing preferences` → `config:preferences_manage`; `Create, edit, and delete bundles` → `config:preferences_manage`; `Edit preference kinds` → `config:preferences_manage` | Page allows viewers and managers |
-| `/dashboard/catalog/customer-categories` | Customer Categories | `config:preferences_manage` | None | None | `Create, edit, and delete customer categories` → `config:preferences_manage` | Explicit page and action gate |
+| `/dashboard/catalog/preferences` | Preferences Catalog | `orders:service_prefs_view` OR `orders:read` OR `config:preferences_manage` | None | None | `Edit service preferences` Ã¢â€ â€™ `config:preferences_manage`; `Edit packing preferences` Ã¢â€ â€™ `config:preferences_manage`; `Create, edit, and delete bundles` Ã¢â€ â€™ `config:preferences_manage`; `Edit preference kinds` Ã¢â€ â€™ `config:preferences_manage` | Page allows viewers and managers |
+| `/dashboard/catalog/customer-categories` | Customer Categories | `config:preferences_manage` | None | None | `Create, edit, and delete customer categories` Ã¢â€ â€™ `config:preferences_manage` | Explicit page and action gate |
 
 ## Orders And Workflow
 
 | Route | Page Label | Page Gate | Feature Flags | Workflow Roles | Action Gates | Notes |
 |---|---|---|---|---|---|---|
 | `/dashboard/orders` | Orders | None | None | None | None | No explicit page gate |
-| `/dashboard/orders/new` | New Order | None | None | None | `Use price override controls` → `pricing:override`; `Use B2B customer options` → Flag: `b2b_contracts` | Action-only gates |
+| `/dashboard/orders/new` | New Order | None | None | None | `Use price override controls` Ã¢â€ â€™ `pricing:override`; `Use B2B customer options` Ã¢â€ â€™ Flag: `b2b_contracts` | Action-only gates |
 | `/dashboard/orders/[id]` | Order Details | None | None | None | None | No explicit page gate |
 | `/dashboard/orders/[id]/edit` | Edit Order | None | None | None | None | No explicit page gate |
 | `/dashboard/orders/[id]/prepare` | Prepare Order | None | None | None | None | No explicit page gate |

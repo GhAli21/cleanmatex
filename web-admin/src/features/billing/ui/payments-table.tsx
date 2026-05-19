@@ -128,7 +128,7 @@ export default function PaymentsTable({
   // ---- Formatters ----
 
   const fmtDate = (dateStr?: string) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'Ã¢â‚¬â€';
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -145,10 +145,10 @@ export default function PaymentsTable({
           decimalPlaces,
           locale: moneyLocale,
         })
-      : '—';
+      : 'Ã¢â‚¬â€';
 
   const fmtPct = (val?: number) =>
-    val != null ? `${val}%` : '—';
+    val != null ? `${val}%` : 'Ã¢â‚¬â€';
 
   // ---- Badge helpers ----
 
@@ -207,7 +207,7 @@ export default function PaymentsTable({
 
       case 'invoice':
         return p.invoiceNumber ? (
-          <Link href={`/dashboard/billing/invoices/${p.invoice_id}`} className="text-blue-600 hover:text-blue-800">
+          <Link href={`/dashboard/internal_fin/invoices/${p.invoice_id}`} className="text-blue-600 hover:text-blue-800">
             {p.invoiceNumber}
           </Link>
         ) : (
@@ -218,13 +218,13 @@ export default function PaymentsTable({
         return <span className="uppercase">{p.paymentMethodName || p.payment_method_code}</span>;
 
       case 'paymentType':
-        return p.paymentTypeName || p.payment_type_code || '—';
+        return p.paymentTypeName || p.payment_type_code || 'Ã¢â‚¬â€';
 
       case 'kind': {
         const kind = p.metadata?.kind as string | undefined;
         return (
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${kindBadge(kind)}`}>
-            {kind ? t(`kinds.${kind}`) : '—'}
+            {kind ? t(`kinds.${kind}`) : 'Ã¢â‚¬â€'}
           </span>
         );
       }
@@ -278,45 +278,45 @@ export default function PaymentsTable({
         );
 
       case 'exRate':
-        return p.currency_ex_rate != null ? p.currency_ex_rate.toFixed(6) : '—';
+        return p.currency_ex_rate != null ? p.currency_ex_rate.toFixed(6) : 'Ã¢â‚¬â€';
 
       case 'gateway':
-        return p.gateway || '—';
+        return p.gateway || 'Ã¢â‚¬â€';
 
       case 'channel':
-        return p.payment_channel || '—';
+        return p.payment_channel || 'Ã¢â‚¬â€';
 
       case 'paidBy':
-        return p.paid_by || '—';
+        return p.paid_by || 'Ã¢â‚¬â€';
 
       case 'checkNumber':
-        return p.check_number || '—';
+        return p.check_number || 'Ã¢â‚¬â€';
 
       case 'checkBank':
-        return p.check_bank || '—';
+        return p.check_bank || 'Ã¢â‚¬â€';
 
       case 'checkDate':
-        return p.check_date ? fmtDate(p.check_date) : '—';
+        return p.check_date ? fmtDate(p.check_date) : 'Ã¢â‚¬â€';
 
       case 'transDesc':
         return p.trans_desc ? (
           <span className="block max-w-[200px] truncate" title={p.trans_desc}>
             {p.trans_desc}
           </span>
-        ) : '—';
+        ) : 'Ã¢â‚¬â€';
 
       case 'notes':
         return p.rec_notes ? (
           <span className="block max-w-[200px] truncate" title={p.rec_notes}>
             {p.rec_notes}
           </span>
-        ) : '—';
+        ) : 'Ã¢â‚¬â€';
 
       case 'createdAt':
         return fmtDate(p.created_at);
 
       case 'createdBy':
-        return p.created_by || '—';
+        return p.created_by || 'Ã¢â‚¬â€';
 
       case 'updatedAt':
         return fmtDate(p.updated_at);
@@ -325,7 +325,7 @@ export default function PaymentsTable({
         return (
           <div className="flex items-center gap-2">
             <Link
-              href={`/dashboard/billing/payments/${p.id}`}
+              href={`/dashboard/internal_fin/payments/${p.id}`}
               className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
               onClick={(e) => e.stopPropagation()}
             >
@@ -365,7 +365,7 @@ export default function PaymentsTable({
         );
 
       default:
-        return '—';
+        return 'Ã¢â‚¬â€';
     }
   };
 
@@ -458,7 +458,7 @@ export default function PaymentsTable({
               <tr
                 key={payment.id}
                 className="cursor-pointer hover:bg-gray-50"
-                onClick={() => router.push(`/dashboard/billing/payments/${payment.id}`)}
+                onClick={() => router.push(`/dashboard/internal_fin/payments/${payment.id}`)}
               >
                 {COLUMNS.map((col) => (
                   <td

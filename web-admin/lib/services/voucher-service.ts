@@ -13,9 +13,9 @@ import type { Prisma } from '@prisma/client';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
 import {
   VOUCHER_CATEGORY,
-  VOUCHER_TYPE,
+  VOUCHER_TYPE_LEGACY as VOUCHER_TYPE,
   VOUCHER_SUBTYPE,
-  VOUCHER_STATUS,
+  VOUCHER_STATUS_LEGACY as VOUCHER_STATUS,
 } from '../constants/voucher';
 import type {
   CreateVoucherInput,
@@ -419,7 +419,7 @@ export async function createReceiptVoucherForPayment(
       branch_id: input.branch_id,
       voucher_category: VOUCHER_CATEGORY.CASH_IN,
       voucher_subtype: VOUCHER_SUBTYPE.SALE_PAYMENT,
-      voucher_type: VOUCHER_TYPE.RECEIPT,
+      voucher_type: 'RECEIPT_VOUCHER',
       invoice_id: input.invoice_id,
       order_id: input.order_id,
       customer_id: input.customer_id,

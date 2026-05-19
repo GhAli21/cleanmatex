@@ -1183,7 +1183,7 @@ model org_fin_vouchers_mst {
   voucher_no                 String                      @db.VarChar(50)
   voucher_category           String                      @db.VarChar(30)
   voucher_subtype            String?                     @db.VarChar(50)
-  voucher_type               String?                     @db.VarChar(30)
+  voucher_type               String?
   invoice_id                 String?                     @db.Uuid
   order_id                   String?                     @db.Uuid
   customer_id                String?                     @db.Uuid
@@ -1198,6 +1198,37 @@ model org_fin_vouchers_mst {
   content_html               String?
   content_text               String?
   metadata                   Json?
+  // BVM columns — added in migration 0300, voucher_type finalized in 0307
+  voucher_status             String                      @default("DRAFT")
+  posting_status             String                      @default("NOT_POSTED")
+  voucher_date               DateTime?                   @db.Date
+  voucher_datetime           DateTime?                   @db.Timestamptz(6)
+  direction                  String?
+  party_type                 String?
+  supplier_id                String?                     @db.Uuid
+  employee_id                String?                     @db.Uuid
+  party_name                 String?
+  currency_ex_rate           Decimal?                    @db.Decimal(19, 6)
+  subtotal_amount            Decimal?                    @db.Decimal(19, 4)
+  discount_amount            Decimal?                    @db.Decimal(19, 4)
+  tax_amount                 Decimal?                    @db.Decimal(19, 4)
+  fee_amount                 Decimal?                    @db.Decimal(19, 4)
+  paid_amount                Decimal?                    @db.Decimal(19, 4)
+  refunded_amount            Decimal?                    @db.Decimal(19, 4)
+  outstanding_amount         Decimal?                    @db.Decimal(19, 4)
+  source_module              String?
+  source_ref_type            String?
+  source_ref_id              String?                     @db.Uuid
+  description                String?
+  notes                      String?
+  approved_at                DateTime?                   @db.Timestamptz(6)
+  approved_by                String?
+  posted_at                  DateTime?                   @db.Timestamptz(6)
+  posted_by                  String?
+  reversed_at                DateTime?                   @db.Timestamptz(6)
+  reversed_by                String?
+  reversal_reason            String?
+  idempotency_key            String?
   rec_status                 Int?                        @default(1) @db.SmallInt
   rec_order                  Int?
   rec_notes                  String?                     @db.VarChar(200)
@@ -1208,7 +1239,8 @@ model org_fin_vouchers_mst {
   updated_at                 DateTime?                   @db.Timestamptz(6)
   updated_by                 String?                     @db.VarChar(120)
   updated_info               String?
-  org_fin_voucher_audit_log  org_fin_voucher_audit_log[]
+  org_fin_voucher_audit_log      org_fin_voucher_audit_log[]
+  org_fin_voucher_trx_lines_dtl  org_fin_voucher_trx_lines_dtl[]
   org_branches_mst           org_branches_mst?           @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_branch")
   org_customers_mst          org_customers_mst?          @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_fin_voucher_customer")
   org_invoice_mst            org_invoice_mst?            @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_invoice")
@@ -1221,9 +1253,12 @@ model org_fin_vouchers_mst {
 
   @@id([id, tenant_org_id], map: "pk_org_fin_vouchers_mst")
   @@unique([tenant_org_id, voucher_no], map: "uq_fin_voucher_tenant_no")
+  @@unique([tenant_org_id, idempotency_key], map: "uq_fin_vouchers_idempotency")
   @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_fin_vouchers_tenant_created")
   @@index([tenant_org_id, status], map: "idx_fin_vouchers_tenant_status")
   @@index([tenant_org_id, voucher_no], map: "idx_fin_vouchers_voucher_no")
+  @@index([tenant_org_id, voucher_type, voucher_status], map: "idx_fin_vouchers_type")
+  @@index([tenant_org_id, direction], map: "idx_fin_vouchers_direction")
   @@schema("public")
 }
 
@@ -1422,6 +1457,7 @@ model org_tenants_mst {
   stng_profile_code                String?
   stng_profile_version_applied     Int?
   stng_profile_locked              Boolean?                           @default(false)
+  is_hq_test_demo                  Boolean                            @default(false)
   created_by                       String?
   created_info                     String?
   updated_by                       String?
@@ -1515,6 +1551,8 @@ model org_tenants_mst {
   org_credit_note_txn_dtl          org_credit_note_txn_dtl[]
   org_domain_events_outbox         org_domain_events_outbox[]
   org_idempotency_keys             org_idempotency_keys[]
+  org_fin_voucher_trx_lines_dtl    org_fin_voucher_trx_lines_dtl[]
+  org_fin_exp_cat_cf               org_fin_exp_cat_cf[]
 
   @@index([business_type_code], map: "idx_tenant_business_type")
   @@index([stng_profile_code], map: "idx_org_tenants_profile")
@@ -2292,6 +2330,9 @@ model org_gift_card_txn_dtl {
   rec_status         Int?               @default(1) @db.SmallInt
   rec_order          Int?
   rec_notes          String?
+  // BVM back-links — populated by wiring service (migration 0303)
+  fin_voucher_id     String?            @db.Uuid
+  fin_voucher_trx_line_id String?       @unique(map: "uq_gc_txn_vch_line") @db.Uuid
   org_branches_mst   org_branches_mst?  @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_gift_card_trans_branch")
   org_gift_cards_mst org_gift_cards_mst @relation(fields: [gift_card_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_card_fk")
   org_tenants_mst    org_tenants_mst    @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "org_gift_card_trans_tenant_fk")
@@ -2300,6 +2341,7 @@ model org_gift_card_txn_dtl {
   @@index([tenant_org_id, transaction_date(sort: Desc)], map: "idx_gc_txn_date")
   @@index([tenant_org_id, order_id], map: "idx_gc_txn_order")
   @@index([tenant_org_id], map: "idx_gc_txn_tenant")
+  @@index([fin_voucher_id], map: "idx_gc_txn_fin_voucher")
   @@map("org_gift_card_txn_dtl")
   @@schema("public")
 }
@@ -6349,6 +6391,9 @@ model org_cash_drawer_movements_dtl {
   rec_order                Int?
   rec_notes                String?
   is_active                Boolean                      @default(true)
+  // BVM back-links — populated by wiring service (migration 0303)
+  fin_voucher_id           String?                      @db.Uuid
+  fin_voucher_trx_line_id  String?                      @unique(map: "uq_cd_mov_vch_line") @db.Uuid
   org_tenants_mst          org_tenants_mst              @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_cash_drawers_mst     org_cash_drawers_mst         @relation(fields: [cash_drawer_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   org_cash_drawer_sessions_mst org_cash_drawer_sessions_mst @relation(fields: [cash_drawer_session_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
@@ -6356,6 +6401,7 @@ model org_cash_drawer_movements_dtl {
 
   @@index([tenant_org_id, cash_drawer_session_id, performed_at], map: "idx_org_cdm_session")
   @@index([tenant_org_id, cash_drawer_id, performed_at(sort: Desc)], map: "idx_org_cdm_drawer")
+  @@index([fin_voucher_id], map: "idx_cd_mov_fin_voucher")
   @@schema("public")
 }
 
@@ -6480,6 +6526,9 @@ model org_order_payments_dtl {
   metadata                      Json                            @default("{}")
   // Added in migration 0283 — enforces REAL_PAYMENT legs only in this table
   payment_nature_snapshot       String                          @default("REAL_PAYMENT")
+  // BVM back-links — populated by wiring service (migration 0303), NOT by posting service
+  fin_voucher_id                String?                         @db.Uuid
+  fin_voucher_trx_line_id       String?                         @unique(map: "uq_ord_pay_vch_line") @db.Uuid
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_payment_methods_cf        org_payment_methods_cf?         @relation("OrdPayMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_branch_payment_methods_cf org_branch_payment_methods_cf?  @relation("OrdBranchPayMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -6490,6 +6539,7 @@ model org_order_payments_dtl {
 
   @@index([tenant_org_id], map: "idx_org_ord_pay_dtl_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_ord_pay_dtl_order")
+  @@index([fin_voucher_id], map: "idx_ord_pay_fin_voucher")
   @@map("org_order_payments_dtl")
   @@schema("public")
 }
@@ -6678,6 +6728,9 @@ model org_wallet_txn_dtl {
   created_at                DateTime                  @default(now()) @db.Timestamptz(6)
   created_by                String?
   created_info              String?
+  // BVM back-links — populated by wiring service (migration 0303)
+  fin_voucher_id            String?                   @db.Uuid
+  fin_voucher_trx_line_id   String?                   @unique(map: "uq_wallet_txn_vch_line") @db.Uuid
   org_tenants_mst           org_tenants_mst           @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_customer_wallets_mst  org_customer_wallets_mst  @relation(fields: [wallet_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
@@ -6685,6 +6738,7 @@ model org_wallet_txn_dtl {
   @@index([tenant_org_id, wallet_id], map: "idx_wallet_txn_wallet")
   @@index([tenant_org_id, customer_id], map: "idx_wallet_txn_customer")
   @@index([tenant_org_id, order_id], map: "idx_wallet_txn_order")
+  @@index([fin_voucher_id], map: "idx_wallet_txn_fin_voucher")
   @@schema("public")
 }
 
@@ -6739,6 +6793,9 @@ model org_advance_txn_dtl {
   created_at                 DateTime                   @default(now()) @db.Timestamptz(6)
   created_by                 String?
   created_info               String?
+  // BVM back-links — populated by wiring service (migration 0303)
+  fin_voucher_id             String?                    @db.Uuid
+  fin_voucher_trx_line_id    String?                    @unique(map: "uq_advance_txn_vch_line") @db.Uuid
   org_tenants_mst            org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_customer_advances_mst  org_customer_advances_mst  @relation(fields: [advance_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
@@ -6746,6 +6803,7 @@ model org_advance_txn_dtl {
   @@index([tenant_org_id, advance_id], map: "idx_advance_txn_advance")
   @@index([tenant_org_id, customer_id], map: "idx_advance_txn_customer")
   @@index([tenant_org_id, order_id], map: "idx_advance_txn_order")
+  @@index([fin_voucher_id], map: "idx_advance_txn_fin_voucher")
   @@schema("public")
 }
 
@@ -6810,6 +6868,9 @@ model org_credit_note_txn_dtl {
   created_at            DateTime              @default(now()) @db.Timestamptz(6)
   created_by            String?
   created_info          String?
+  // BVM back-links — populated by wiring service (migration 0303)
+  fin_voucher_id        String?               @db.Uuid
+  fin_voucher_trx_line_id String?             @unique(map: "uq_cn_txn_vch_line") @db.Uuid
   org_tenants_mst       org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   org_credit_notes_mst  org_credit_notes_mst  @relation(fields: [credit_note_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
@@ -6817,6 +6878,7 @@ model org_credit_note_txn_dtl {
   @@index([tenant_org_id, credit_note_id], map: "idx_cn_txn_note")
   @@index([tenant_org_id, customer_id], map: "idx_cn_txn_customer")
   @@index([tenant_org_id, order_id], map: "idx_cn_txn_order")
+  @@index([fin_voucher_id], map: "idx_cn_txn_fin_voucher")
   @@schema("public")
 }
 
@@ -7099,6 +7161,113 @@ model org_fin_recon_issues_dtl {
 
   @@index([run_id, severity, status], map: "idx_fin_recon_issues_run")
   @@index([tenant_org_id, status, severity], map: "idx_fin_recon_issues_tenant")
+  @@schema("public")
+}
+
+// =============================================================================
+// BVM — Business Voucher Module (migrations 0300–0307)
+// =============================================================================
+
+/// BVM voucher transaction lines. Each line is one financial movement within a voucher.
+/// Wiring back-links (order_payment_id, cash_drawer_mvt_id) are populated by the
+/// wiring service after posting — NOT by the posting service itself.
+/// This model contains row level security and requires additional setup for migrations.
+model org_fin_voucher_trx_lines_dtl {
+  id                      String                @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String                @db.Uuid
+  voucher_id              String                @db.Uuid
+  line_no                 Int
+  line_type               String
+  line_role               String
+  target_type             String?
+  target_id               String?               @db.Uuid
+  order_id                String?               @db.Uuid
+  customer_id             String?               @db.Uuid
+  supplier_id             String?               @db.Uuid
+  employee_id             String?               @db.Uuid
+  branch_id               String?               @db.Uuid
+  cash_drawer_session_id  String?               @db.Uuid
+  payment_method_code     String?
+  amount                  Decimal               @db.Decimal(19, 4)
+  currency_code           String?
+  currency_ex_rate        Decimal?              @db.Decimal(19, 6)
+  direction               String?
+  tendered_amount         Decimal?              @db.Decimal(19, 4)
+  change_returned_amount  Decimal?              @db.Decimal(19, 4)
+  card_brand_code         String?
+  card_last4              String?
+  auth_code               String?
+  gateway_code            String?
+  gateway_transaction_id  String?
+  gateway_reference       String?
+  bank_reference          String?
+  check_number            String?
+  check_bank              String?
+  check_date              DateTime?             @db.Date
+  expense_category_code   String?
+  party_name              String?
+  description             String?
+  notes                   String?
+  line_status             String                @default("DRAFT")
+  payment_status          String?
+  wiring_status           String                @default("NOT_WIRED")
+  order_payment_id        String?               @db.Uuid
+  cash_drawer_mvt_id      String?               @db.Uuid
+  reversed_line_id        String?               @db.Uuid
+  idempotency_key         String?
+  rec_status              Int                   @default(1) @db.SmallInt
+  rec_order               Int?
+  rec_notes               String?
+  is_active               Boolean               @default(true)
+  created_at              DateTime              @default(now()) @db.Timestamptz(6)
+  created_by              String?
+  created_info            String?
+  updated_at              DateTime?             @db.Timestamptz(6)
+  updated_by              String?
+  updated_info            String?
+  org_fin_vouchers_mst    org_fin_vouchers_mst  @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_vch_trx_line_voucher")
+  org_tenants_mst         org_tenants_mst       @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_vch_trx_line_tenant")
+  // Self-referential FK for reversal chain
+  reversed_line           org_fin_voucher_trx_lines_dtl?  @relation("VchLineReversal", fields: [reversed_line_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_vch_trx_line_reversal")
+  reversal_of             org_fin_voucher_trx_lines_dtl[] @relation("VchLineReversal")
+
+  @@id([id, tenant_org_id], map: "pk_org_fin_vch_trx_lines_dtl")
+  @@unique([tenant_org_id, voucher_id, line_no], map: "uq_vch_trx_line_no")
+  @@unique([tenant_org_id, idempotency_key], map: "uq_vch_trx_line_idempotency")
+  @@index([tenant_org_id, voucher_id], map: "idx_vch_trx_line_voucher")
+  @@index([tenant_org_id, line_role, line_status], map: "idx_vch_trx_line_role")
+  @@index([order_id], map: "idx_vch_trx_line_order")
+  @@index([tenant_org_id, customer_id], map: "idx_vch_trx_line_customer")
+  @@index([tenant_org_id, created_at(sort: Desc)], map: "idx_vch_trx_line_created")
+  @@index([cash_drawer_session_id], map: "idx_vch_trx_line_session")
+  @@schema("public")
+}
+
+/// Tenant-level expense category configuration.
+/// Extends sys_fin_exp_cat_cd with custom labels per tenant.
+/// custom_name overrides sys name when set.
+/// This model contains row level security and requires additional setup for migrations.
+model org_fin_exp_cat_cf {
+  id            String          @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id String          @db.Uuid
+  sys_cat_code  String?
+  custom_name   String?
+  custom_name2  String?
+  is_active     Boolean         @default(true)
+  rec_status    Int             @default(1) @db.SmallInt
+  rec_order     Int?
+  rec_notes     String?
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  created_by    String?
+  created_info  String?
+  updated_at    DateTime?       @db.Timestamptz(6)
+  updated_by    String?
+  updated_info  String?
+  org_tenants_mst org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_exp_cat_cf_tenant")
+
+  @@id([id, tenant_org_id], map: "PK_org_fin_exp_cat_cf")
+  @@unique([tenant_org_id, sys_cat_code], map: "uq_exp_cat_cf_per_tenant")
+  @@index([tenant_org_id, is_active], map: "idx_exp_cat_cf_tenant")
   @@schema("public")
 }
 

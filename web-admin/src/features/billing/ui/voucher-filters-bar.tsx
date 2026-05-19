@@ -43,7 +43,7 @@ export default function VoucherFiltersBar() {
   const handleClearFilters = () => {
     setSearchQuery('');
     startTransition(() => {
-      router.push('/dashboard/billing/vouchers');
+      router.push('/dashboard/internal_fin/vouchers');
     });
   };
 

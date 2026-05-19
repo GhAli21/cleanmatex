@@ -93,7 +93,7 @@ export default function InvoicesTable({
   );
 
   const fmtDate = (dateStr?: string) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'Ã¢â‚¬â€';
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -102,7 +102,7 @@ export default function InvoicesTable({
   };
 
   const fmtDateTime = (dateStr?: string) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return 'Ã¢â‚¬â€';
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -119,7 +119,7 @@ export default function InvoicesTable({
           decimalPlaces,
           locale: moneyLocale,
         })
-      : '—';
+      : 'Ã¢â‚¬â€';
 
   const statusBadge = (status: string) => {
     const cls: Record<string, string> = {
@@ -151,7 +151,7 @@ export default function InvoicesTable({
             {inv.order_no}
           </Link>
         ) : (
-          <span className="text-gray-400">—</span>
+          <span className="text-gray-400">Ã¢â‚¬â€</span>
         );
       case 'customer':
         return inv.customer_id ? (
@@ -160,20 +160,20 @@ export default function InvoicesTable({
             className="text-blue-600 hover:text-blue-800"
             onClick={(e) => e.stopPropagation()}
           >
-            {inv.customerName ?? '—'}
+            {inv.customerName ?? 'Ã¢â‚¬â€'}
           </Link>
         ) : (
           <span className="text-gray-400">{t('table.noCustomer')}</span>
         );
       case 'customerReference':
-        return inv.customer_reference ?? '—';
+        return inv.customer_reference ?? 'Ã¢â‚¬â€';
       case 'transDesc':
         return inv.trans_desc ? (
           <span className="max-w-[160px] truncate block" title={inv.trans_desc}>
             {inv.trans_desc}
           </span>
         ) : (
-          '—'
+          'Ã¢â‚¬â€'
         );
       case 'subtotal':
       case 'discount':
@@ -204,7 +204,7 @@ export default function InvoicesTable({
       case 'dueDate':
         return fmtDate(inv.due_date);
       case 'paymentMethod':
-        return inv.payment_method_code ?? '—';
+        return inv.payment_method_code ?? 'Ã¢â‚¬â€';
       case 'balance':
         return (
           <span className={balance > 0 ? 'text-orange-700 font-medium' : ''}>
@@ -214,11 +214,11 @@ export default function InvoicesTable({
       case 'paidAt':
         return fmtDateTime(inv.paid_at);
       case 'paidByName':
-        return inv.paid_by_name ?? inv.paid_by ?? '—';
+        return inv.paid_by_name ?? inv.paid_by ?? 'Ã¢â‚¬â€';
       case 'handedToName':
-        return inv.handed_to_name ?? '—';
+        return inv.handed_to_name ?? 'Ã¢â‚¬â€';
       case 'handedToMobileNo':
-        return inv.handed_to_mobile_no ?? '—';
+        return inv.handed_to_mobile_no ?? 'Ã¢â‚¬â€';
       case 'currency':
         return inv.currency_code?.trim() || tenantCurrency;
       case 'createdAt':
@@ -226,7 +226,7 @@ export default function InvoicesTable({
       case 'actions':
         return (
           <Link
-            href={`/dashboard/billing/invoices/${inv.id}`}
+            href={`/dashboard/internal_fin/invoices/${inv.id}`}
             className="rounded border border-gray-300 px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50"
             onClick={(e) => e.stopPropagation()}
           >
@@ -234,7 +234,7 @@ export default function InvoicesTable({
           </Link>
         );
       default:
-        return '—';
+        return 'Ã¢â‚¬â€';
     }
   };
 
@@ -303,7 +303,7 @@ export default function InvoicesTable({
               <tr
                 key={inv.id}
                 className="cursor-pointer hover:bg-gray-50"
-                onClick={() => router.push(`/dashboard/billing/invoices/${inv.id}`)}
+                onClick={() => router.push(`/dashboard/internal_fin/invoices/${inv.id}`)}
               >
                 {COLUMNS.map((col) => (
                   <td

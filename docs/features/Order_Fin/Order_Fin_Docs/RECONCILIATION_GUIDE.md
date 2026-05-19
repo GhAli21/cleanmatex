@@ -1,4 +1,4 @@
-# Reconciliation Guide — 7 Checks, Severity, Monitoring
+# Reconciliation Guide Ã¢â‚¬â€ 7 Checks, Severity, Monitoring
 
 ## Overview
 
@@ -65,21 +65,21 @@
 
 ## Overall Status
 
-- `PASSED` — all 7 checks pass
-- `PARTIAL` — at least one WARNING but no BLOCKERs
-- `FAILED` — at least one BLOCKER
+- `PASSED` Ã¢â‚¬â€ all 7 checks pass
+- `PARTIAL` Ã¢â‚¬â€ at least one WARNING but no BLOCKERs
+- `FAILED` Ã¢â‚¬â€ at least one BLOCKER
 
 ## run_no Format
 
-`REC-{YYYYMMDD}-{seq:03d}` — sequential per date per tenant.
+`REC-{YYYYMMDD}-{seq:03d}` Ã¢â‚¬â€ sequential per date per tenant.
 
 ## Monitoring Recommendations
 
 - Run reconciliation daily (migration 0296 sets up a pg_cron job)
 - Alert on FAILED runs via the outbox event `RECONCILIATION_FAILED`
 - Review CASH_DRAWER_VARIANCE issues weekly
-- STORED_VALUE_LEDGER BLOCKER: often indicates a direct DB update bypassing the service layer — investigate immediately
+- STORED_VALUE_LEDGER BLOCKER: often indicates a direct DB update bypassing the service layer Ã¢â‚¬â€ investigate immediately
 
 ## Viewing Results
 
-The reconciliation UI at `/dashboard/billing/reconciliation` lists all runs. Each run's detail page shows per-check status and affected entity counts.
+The reconciliation UI at `/dashboard/internal_fin/reconciliation` lists all runs. Each run's detail page shows per-check status and affected entity counts.

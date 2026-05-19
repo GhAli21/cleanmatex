@@ -48,7 +48,7 @@ export default function InvoiceFiltersBar() {
   const handleClearFilters = () => {
     setSearchQuery('');
     startTransition(() => {
-      router.push('/dashboard/billing/invoices');
+      router.push('/dashboard/internal_fin/invoices');
     });
   };
 

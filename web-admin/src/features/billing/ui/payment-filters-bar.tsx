@@ -64,7 +64,7 @@ export default function PaymentFiltersBar() {
   const handleClearFilters = () => {
     setSearchQuery('');
     startTransition(() => {
-      router.push('/dashboard/billing/payments');
+      router.push('/dashboard/internal_fin/payments');
     });
   };
 

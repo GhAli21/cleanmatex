@@ -36,7 +36,7 @@ export interface TenantPermission {
 export type PermissionsByCategory = Record<string, TenantPermission[]>
 
 export interface CreatePermissionDto {
-  /** Must match /^[a-z_]+:[a-z_]+$/ */
+  /** Must match /^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$/ — e.g. 'orders:read', 'orders:*', '*:*' */
   code: string
   name: string
   name2?: string
@@ -151,9 +151,9 @@ export async function deletePermission(
 }
 
 /**
- * Validate permission code format: must match resource:action pattern.
- * Uses lowercase letters and underscores only (no spaces, no uppercase).
+ * Validate permission code format: `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`
+ * Valid: 'orders:read', 'orders:*', '*:*' — Invalid: uppercase, dots, extra segments.
  */
 export function isValidPermissionCode(code: string): boolean {
-  return /^[a-z_]+:[a-z_]+$/.test(code)
+  return /^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$/.test(code)
 }

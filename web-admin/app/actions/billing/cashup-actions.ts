@@ -107,7 +107,7 @@ export async function submitCashUp(
       reconciledBy
     );
 
-    revalidatePath('/dashboard/billing/cashup');
+    revalidatePath('/dashboard/internal_fin/cashup');
     return { success: true, data: { message: 'Reconciliation saved' } };
   } catch (error) {
     console.error('[submitCashUp] Error:', error);

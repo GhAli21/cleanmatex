@@ -131,8 +131,8 @@ export async function updateInvoiceAction(
     const invoice = await updateInvoice(invoiceId, input);
 
     // Revalidate invoice pages
-    revalidatePath('/dashboard/billing/invoices');
-    revalidatePath(`/dashboard/billing/invoices/${invoiceId}`);
+    revalidatePath('/dashboard/internal_fin/invoices');
+    revalidatePath(`/dashboard/internal_fin/invoices/${invoiceId}`);
 
     return {
       success: true,
@@ -164,8 +164,8 @@ export async function markAsPaidAction(
     const invoice = await markInvoiceAsPaid(invoiceId, paidAmount, paidBy);
 
     // Revalidate invoice pages
-    revalidatePath('/dashboard/billing/invoices');
-    revalidatePath(`/dashboard/billing/invoices/${invoiceId}`);
+    revalidatePath('/dashboard/internal_fin/invoices');
+    revalidatePath(`/dashboard/internal_fin/invoices/${invoiceId}`);
 
     return {
       success: true,
@@ -201,8 +201,8 @@ export async function applyDiscountAction(
     );
 
     // Revalidate invoice pages
-    revalidatePath('/dashboard/billing/invoices');
-    revalidatePath(`/dashboard/billing/invoices/${invoiceId}`);
+    revalidatePath('/dashboard/internal_fin/invoices');
+    revalidatePath(`/dashboard/internal_fin/invoices/${invoiceId}`);
 
     return {
       success: true,

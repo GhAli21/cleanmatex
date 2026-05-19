@@ -436,7 +436,11 @@
     "settingsFinance": "Finance",
     "paymentSetup": "Payment Setup",
     "workflows": "Workflows",
-    "navigationAdmin": "Navigation"
+    "navigationAdmin": "Navigation",
+    "internalFinanceOps": "Internal Finance And Operations",
+    "businessVouchers": "Business Vouchers",
+    "newVoucher": "New Voucher",
+    "voucherReports": "Voucher Reports"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -5721,6 +5725,83 @@
         "saved": "Tier saved",
         "deleted": "Tier deleted",
         "empty": "No tiers configured"
+      }
+    }
+  },
+  "finance": {
+    "vouchers": {
+      "title": "Business Vouchers",
+      "newVoucher": "New Voucher",
+      "voucherNo": "Voucher No.",
+      "voucherType": "Voucher Type",
+      "voucherDate": "Voucher Date",
+      "voucherDetail": "Voucher Detail",
+      "voucherSummary": "Voucher Summary",
+      "direction": "Direction",
+      "status": "Status",
+      "postingStatus": "Posting Status",
+      "partyType": "Party Type",
+      "party": "Party",
+      "totalAmount": "Total Amount",
+      "description": "Description",
+      "notes": "Notes",
+      "lineNo": "Line #",
+      "lineType": "Line Type",
+      "lineRole": "Line Role",
+      "targetType": "Target Type",
+      "paymentMethod": "Payment Method",
+      "amount": "Amount",
+      "tenderedAmount": "Tendered Amount",
+      "changeReturned": "Change Returned",
+      "expenseCategory": "Expense Category",
+      "transactionLines": "Transaction Lines",
+      "noLines": "No transaction lines added yet.",
+      "noVouchers": "No vouchers found.",
+      "cancellationReason": "Cancellation Reason",
+      "reversalReason": "Reversal Reason",
+      "reasonPlaceholder": "Enter reason...",
+      "postedAt": "Posted At",
+      "postingNote": "This voucher is posted and finalized. Operational effects (order payments, cash movements) are processed separately.",
+      "postSuccess": "Voucher posted successfully.",
+      "cancelSuccess": "Voucher cancelled.",
+      "reverseSuccess": "Reversal voucher created.",
+      "lineDeleted": "Line deleted.",
+      "actions": {
+        "post": "Post Voucher",
+        "cancel": "Cancel Voucher",
+        "reverse": "Reverse Voucher",
+        "addLine": "Add Line",
+        "editLine": "Edit Line",
+        "deleteLine": "Delete Line",
+        "print": "Print",
+        "export": "Export"
+      },
+      "statusLabels": {
+        "DRAFT": "Draft",
+        "POSTED": "Posted",
+        "CANCELLED": "Cancelled",
+        "REVERSED": "Reversed",
+        "PARTIALLY_REVERSED": "Partially Reversed"
+      },
+      "directionLabels": {
+        "IN": "In",
+        "OUT": "Out",
+        "NEUTRAL": "Neutral"
+      },
+      "voucherTypeLabels": {
+        "RECEIPT_VOUCHER": "Receipt Voucher",
+        "PAYMENT_VOUCHER": "Payment Voucher",
+        "REFUND_VOUCHER": "Refund Voucher",
+        "ADJUSTMENT_VOUCHER": "Adjustment Voucher",
+        "TRANSFER_VOUCHER": "Transfer Voucher"
+      },
+      "validation": {
+        "atLeastOneLine": "Voucher must have at least one active line before posting.",
+        "totalMismatch": "Voucher total does not match sum of line amounts.",
+        "bankReferenceRequired": "Bank reference is required for bank transfer.",
+        "checkFieldsRequired": "Check number, bank, and date are required for check payments.",
+        "roleNotAllowed": "Your role is not permitted to perform this action.",
+        "reasonRequired": "Reason is required."
       }
     }
   }

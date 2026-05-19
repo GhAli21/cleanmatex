@@ -18,7 +18,7 @@ import { PiecesErrorBoundary } from '@features/orders/ui/PiecesErrorBoundary';
 import { useOrderTransition } from '@/lib/hooks/use-order-transition';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { useMessage } from '@ui/feedback';
-import { RecordPaymentClient } from '@/app/dashboard/billing/invoices/[id]/record-payment-client';
+import { RecordPaymentClient } from '@/app/dashboard/internal_fin/invoices/[id]/record-payment-client';
 import { processPayment } from '@/app/actions/payments/process-payment';
 import {
   mapReadyOrderFromStateResponse,
@@ -174,13 +174,13 @@ export default function ReadyDetailPage() {
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
         <Link href="/dashboard/ready" className="text-blue-600 hover:underline mb-2 inline-block">
-          ← {t('ready.actions.backToReady')}
+          Ã¢â€ Â {t('ready.actions.backToReady')}
         </Link>
         <h1 className="text-3xl font-bold">
           {t('screens.ready')} - {order.orderNo}
         </h1>
         <p className="text-gray-600 mt-1">
-          {order.customer.name} • {order.customer.phone}
+          {order.customer.name} Ã¢â‚¬Â¢ {order.customer.phone}
         </p>
       </div>
 
@@ -519,7 +519,7 @@ export default function ReadyDetailPage() {
                             : t('ready.itemsTitle')}
                 </h2>
                 <p className="text-xs text-gray-500">
-                  {printConfig.layout === 'thermal' ? '80mm' : 'A4'} • {order.orderNo}
+                  {printConfig.layout === 'thermal' ? '80mm' : 'A4'} Ã¢â‚¬Â¢ {order.orderNo}
                 </p>
               </div>
               <button

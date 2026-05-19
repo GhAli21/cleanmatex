@@ -45,21 +45,21 @@ Page-linked backend permissions are documented separately in:
 | Route | Page Gate | Action Gates | Notes |
 |---|---|---|---|
 | `/dashboard/preparation/[orderId]` | none (see contract) | none | Uses order/piece APIs including piece conditions + packing DTL sync on PATCH piece; backend enforces `orders:update` / `orders:read` per route |
-| `/dashboard/b2b/contracts` | `b2b_contracts:view` + feature flag `b2b_contracts` | `Create contract` → `b2b_contracts:create` | Contract-first page and action gate |
-| `/dashboard/catalog/preferences` | any of `orders:service_prefs_view`, `orders:read`, `config:preferences_manage` | manage preferences actions → `config:preferences_manage` | Page gate allows viewers; actions stay admin-only |
-| `/dashboard/catalog/customer-categories` | `config:preferences_manage` | manage categories → `config:preferences_manage` | Page and actions aligned |
-| `/dashboard/billing/payments` | no explicit page permission | `Cancel payment` → `payments:cancel`, `Refund payment` → `payments:refund` | Open page, gated row actions |
+| `/dashboard/b2b/contracts` | `b2b_contracts:view` + feature flag `b2b_contracts` | `Create contract` Ã¢â€ â€™ `b2b_contracts:create` | Contract-first page and action gate |
+| `/dashboard/catalog/preferences` | any of `orders:service_prefs_view`, `orders:read`, `config:preferences_manage` | manage preferences actions Ã¢â€ â€™ `config:preferences_manage` | Page gate allows viewers; actions stay admin-only |
+| `/dashboard/catalog/customer-categories` | `config:preferences_manage` | manage categories Ã¢â€ â€™ `config:preferences_manage` | Page and actions aligned |
+| `/dashboard/internal_fin/payments` | no explicit page permission | `Cancel payment` Ã¢â€ â€™ `payments:cancel`, `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page, gated row actions |
 | `/dashboard/settings/workflow-roles` | `settings:workflow_roles:view` | none | Explicit page gate |
 | `/dashboard/settings/roles` | wildcard/settings/role-prefix/tenant-role contract | none | Page gate is declarative in the contract |
 | `/dashboard/settings/permissions` | wildcard/settings/permission-prefix/tenant-role contract | none | Page gate is declarative in the contract |
-| `/dashboard/orders/new` | no explicit page permission | `Use price override controls` → `pricing:override` | Action-only gate |
+| `/dashboard/orders/new` | no explicit page permission | `Use price override controls` Ã¢â€ â€™ `pricing:override` | Action-only gate |
 | `/dashboard/reports/*` | feature flag `advanced_analytics` | none | Feature-flag page gate |
 | `/dashboard/erp-lite/*` | route-specific `erp_lite_*:view` + ERP-Lite feature flags | page-linked ERP-Lite server actions inherit the same route permission unless a stricter action gate is declared | Finance routes are contract-backed and now include live runtime coverage for COA, reports, expenses, treasury, AP/PO, and profitability screens |
 | `/dashboard/erp-lite` | `erp_lite:view` + `erp_lite_enabled` | none (read-only cockpit) | ERP-Lite home cockpit; shortcuts respect sub-route permissions/flags server-side |
 | `/dashboard/erp-lite/journals` | `erp_lite_gl:view` + `erp_lite_enabled`, `erp_lite_gl_enabled` | none | Journal register links into GL with `journalId` query |
 | `/dashboard/erp-lite/setup` | `erp_lite:view` + `erp_lite_enabled` | none | Local-only setup checklist (localStorage) |
 | `/dashboard/erp-lite/finance-actions` | `erp_lite_periods:view` + `erp_lite_enabled`, `erp_lite_periods_enabled` | none | Read-only `org_fin_post_action_tr` audit list |
-| `/dashboard/erp-lite/exceptions` | `erp_lite_exceptions:view` + `erp_lite_enabled`, `erp_lite_exceptions_enabled` | `Resolve exception` → `erp_lite_post_audit:view` (contract) | Exception workbench |
+| `/dashboard/erp-lite/exceptions` | `erp_lite_exceptions:view` + `erp_lite_enabled`, `erp_lite_exceptions_enabled` | `Resolve exception` Ã¢â€ â€™ `erp_lite_post_audit:view` (contract) | Exception workbench |
 | `/dashboard/erp-lite/usage-maps` | `erp_lite_usage_map:view` + `erp_lite_enabled`, `erp_lite_usage_map_enabled` | usage-map server actions per contract | Usage mapping console |
 | `/dashboard/erp-lite/periods` | `erp_lite:view` + `erp_lite_enabled`, `erp_lite_periods_enabled` | period server actions per contract | Period close precheck links to GL (`dateFrom`/`dateTo`) and exceptions |
 | `/dashboard/erp-lite/posting-audit` | `erp_lite_post_audit:view` + `erp_lite_enabled`, `erp_lite_post_audit_enabled` | none | Posting audit viewer |

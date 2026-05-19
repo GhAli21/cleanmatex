@@ -62,7 +62,7 @@ export default function InvoicesReportTable({
               <tr
                 key={inv.id}
                 className="cursor-pointer hover:bg-gray-50"
-                onClick={() => router.push(`/dashboard/billing/invoices/${inv.id}`)}
+                onClick={() => router.push(`/dashboard/internal_fin/invoices/${inv.id}`)}
               >
                 <td className="px-4 py-3 font-medium text-blue-600">{inv.invoiceNo}</td>
                 <td className="px-4 py-3 text-gray-900">{inv.customerName ?? '-'}</td>
