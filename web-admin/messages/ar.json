@@ -36,6 +36,7 @@
     "refresh": "تحديث",
     "print": "طباعة",
     "optional": "اختياري",
+    "pagination": "صفحة {page} من {totalPages}",
     "newOrder": "طلب جديد",
     "orders": "الطلبات",
     "customers": "العملاء",

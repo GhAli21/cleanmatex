@@ -1,68 +1,65 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createAndIssueReceiptVoucherAction } from '@/app/actions/payments/voucher-crud-actions';
-import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
-import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { createBizVoucherAction } from '@/app/actions/finance/voucher-actions';
+import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE } from '@/lib/constants/voucher';
+import type { VoucherType } from '@/lib/types/voucher';
 
 export default function CreateVoucherForm() {
-  const t = useTranslations('billing.receiptVoucher.create');
+  const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const router = useRouter();
-  const { currencyCode: tenantCurrency } = useTenantCurrency();
-  const [isSubmitting, startSubmitting] = useTransition();
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Form state
-  const [invoiceId, setInvoiceId] = useState('');
-  const [orderId, setOrderId] = useState('');
-  const [customerId, setCustomerId] = useState('');
-  const [amount, setAmount] = useState('');
-  const [currencyCode, setCurrencyCode] = useState<string>(ORDER_DEFAULTS.CURRENCY);
-  const [reasonCode, setReasonCode] = useState('');
+  const [voucherType, setVoucherType] = useState<VoucherType>(VOUCHER_TYPE.RECEIPT);
+  const [direction, setDirection] = useState(VOUCHER_DIRECTION.IN);
+  const [partyType, setPartyType] = useState('');
+  const [partyName, setPartyName] = useState('');
+  const [description, setDescription] = useState('');
+  const [notes, setNotes] = useState('');
 
-  useEffect(() => {
-    if (tenantCurrency) setCurrencyCode(tenantCurrency);
-  }, [tenantCurrency]);
+  const VOUCHER_TYPE_OPTIONS: { value: VoucherType; labelKey: string }[] = [
+    { value: VOUCHER_TYPE.RECEIPT,    labelKey: 'RECEIPT_VOUCHER' },
+    { value: VOUCHER_TYPE.PAYMENT,    labelKey: 'PAYMENT_VOUCHER' },
+    { value: VOUCHER_TYPE.REFUND,     labelKey: 'REFUND_VOUCHER' },
+    { value: VOUCHER_TYPE.ADJUSTMENT, labelKey: 'ADJUSTMENT_VOUCHER' },
+    { value: VOUCHER_TYPE.TRANSFER,   labelKey: 'TRANSFER_VOUCHER' },
+  ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  function handleTypeChange(type: VoucherType) {
+    setVoucherType(type);
+    // Auto-set direction hint
+    if (type === VOUCHER_TYPE.RECEIPT)                                       setDirection(VOUCHER_DIRECTION.IN);
+    else if (type === VOUCHER_TYPE.PAYMENT || type === VOUCHER_TYPE.REFUND)  setDirection(VOUCHER_DIRECTION.OUT);
+    else                                                                      setDirection(VOUCHER_DIRECTION.NEUTRAL);
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setFieldErrors({});
 
-    // Validation
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      setFieldErrors({ amount: t('amountInvalid') });
-      return;
-    }
-
-    if (!invoiceId && !orderId && !customerId) {
-      setError(t('atLeastOneReference'));
-      return;
-    }
-
-    startSubmitting(async () => {
-      const result = await createAndIssueReceiptVoucherAction({
-        invoice_id: invoiceId || undefined,
-        order_id: orderId || undefined,
-        customer_id: customerId || undefined,
-        total_amount: parsedAmount,
-        currency_code: currencyCode || undefined,
-        reason_code: reasonCode || undefined,
+    startTransition(async () => {
+      const result = await createBizVoucherAction({
+        voucher_type:  voucherType,
+        direction:     direction as never,
+        party_type:    partyType   as never || undefined,
+        party_name:    partyName   || undefined,
+        description:   description || undefined,
+        notes:         notes       || undefined,
+        voucher_date:  new Date().toISOString().split('T')[0],
       });
 
       if (result.success && result.data) {
-        router.push(`/dashboard/internal_fin/vouchers`);
+        router.push(`/dashboard/internal_fin/vouchers/${result.data.id}`);
       } else {
-        setError(result.error || t('error'));
+        setError(result.error ?? tCommon('error'));
       }
     });
-  };
+  }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-2xl space-y-6">
@@ -72,125 +69,117 @@ export default function CreateVoucherForm() {
         </div>
       )}
 
-      <div className="rounded-lg border border-gray-200 bg-white p-6">
-        <div className="space-y-4">
-          {/* Invoice */}
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="space-y-5">
+
+          {/* Voucher Type */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('invoice')} <span className="text-gray-400">({tCommon('optional')})</span>
+              {t('voucherType')} <span className="text-red-500">*</span>
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {VOUCHER_TYPE_OPTIONS.map(({ value, labelKey }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleTypeChange(value)}
+                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    voucherType === value
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {t(`voucherTypeLabels.${labelKey}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Direction */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('direction')}
+            </label>
+            <div className="flex gap-2">
+              {([VOUCHER_DIRECTION.IN, VOUCHER_DIRECTION.OUT, VOUCHER_DIRECTION.NEUTRAL] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDirection(d)}
+                  className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                    direction === d
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {t(`directionLabels.${d}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Party Type */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('partyType')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            </label>
+            <select
+              value={partyType}
+              onChange={(e) => setPartyType(e.target.value)}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">—</option>
+              {([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER] as const).map((pt) => (
+                <option key={pt} value={pt}>{pt}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Party Name */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('party')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
-              value={invoiceId}
-              onChange={(e) => {
-                setInvoiceId(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, invoice_id: undefined }));
-              }}
-              placeholder={t('invoicePlaceholder')}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              aria-invalid={!!fieldErrors.invoice_id}
-            />
-            {fieldErrors.invoice_id && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.invoice_id}</p>
-            )}
-          </div>
-
-          {/* Order */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('order')} <span className="text-gray-400">({tCommon('optional')})</span>
-            </label>
-            <input
-              type="text"
-              value={orderId}
-              onChange={(e) => {
-                setOrderId(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, order_id: undefined }));
-              }}
-              placeholder={t('orderPlaceholder')}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              aria-invalid={!!fieldErrors.order_id}
-            />
-            {fieldErrors.order_id && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.order_id}</p>
-            )}
-          </div>
-
-          {/* Customer */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('customer')} <span className="text-gray-400">({tCommon('optional')})</span>
-            </label>
-            <input
-              type="text"
-              value={customerId}
-              onChange={(e) => {
-                setCustomerId(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, customer_id: undefined }));
-              }}
-              placeholder={t('customerPlaceholder')}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              aria-invalid={!!fieldErrors.customer_id}
-            />
-            {fieldErrors.customer_id && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.customer_id}</p>
-            )}
-          </div>
-
-          {/* Amount */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('amount')} <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="number"
-              step="0.001"
-              min="0.001"
-              value={amount}
-              onChange={(e) => {
-                setAmount(e.target.value);
-                setFieldErrors((prev) => ({ ...prev, amount: undefined }));
-              }}
-              placeholder={t('amountPlaceholder')}
-              required
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              aria-invalid={!!fieldErrors.amount}
-            />
-            {fieldErrors.amount && (
-              <p className="mt-1 text-sm text-red-600">{fieldErrors.amount}</p>
-            )}
-          </div>
-
-          {/* Currency */}
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('currency')}
-            </label>
-            <input
-              type="text"
-              value={currencyCode}
-              onChange={(e) => setCurrencyCode(e.target.value.toUpperCase())}
-              placeholder={currencyCode}
-              maxLength={3}
+              value={partyName}
+              onChange={(e) => setPartyName(e.target.value)}
+              maxLength={250}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {/* Reason Code (optional) */}
+          {/* Description */}
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              {t('reasonCode')} <span className="text-gray-400">({tCommon('optional')})</span>
+              {t('description')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
             </label>
             <input
               type="text"
-              value={reasonCode}
-              onChange={(e) => setReasonCode(e.target.value)}
-              placeholder={t('reasonCodePlaceholder')}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
+
+          {/* Notes */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              {t('notes')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={2}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
+          </div>
+
         </div>
       </div>
+
+      {/* Posting note */}
+      <p className="text-xs text-gray-400">{t('postingNote')}</p>
 
       {/* Actions */}
       <div className="flex items-center justify-end gap-3">
@@ -202,10 +191,10 @@ export default function CreateVoucherForm() {
         </Link>
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isPending}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {isSubmitting ? t('creating') : t('create')}
+          {isPending ? tCommon('loading') : tCommon('create')}
         </button>
       </div>
     </form>

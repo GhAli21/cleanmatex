@@ -1,7 +1,5 @@
 /**
- * Vouchers List Page
- *
- * Displays a paginated, filterable list of vouchers for the current tenant.
+ * Business Vouchers List Page
  * Route: /dashboard/internal_fin/vouchers
  */
 
@@ -9,115 +7,82 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { listVouchersAction } from '@/app/actions/payments/voucher-list-actions';
-import VoucherFiltersBar from '@features/billing/ui/voucher-filters-bar';
-import VouchersTable from '@features/billing/ui/vouchers-table';
+import { listBizVouchersAction } from '@/app/actions/finance/voucher-actions';
+import { VouchersListClient } from '@features/finance/vouchers/ui/vouchers-list-client';
+import type { VoucherListFilters } from '@/lib/types/voucher';
 
-type VouchersSearchParams = {
-  page?: string;
-  status?: string;
-  voucherCategory?: string;
-  voucherType?: string;
-  startDate?: string;
-  endDate?: string;
-  search?: string;
-  sortBy?: string;
-  sortOrder?: string;
-};
+const PAGE_SIZE = 20;
 
 interface PageProps {
-  searchParams?: Promise<VouchersSearchParams>;
+  searchParams?: Promise<Record<string, string>>;
 }
 
 export default async function VouchersPage({ searchParams }: PageProps) {
-  const t = await getTranslations('billing');
+  const t = await getTranslations('finance.vouchers');
   const tCommon = await getTranslations('common');
 
-  const resolvedSearchParams = await searchParams;
-  const params: VouchersSearchParams = resolvedSearchParams ?? {};
-
-  let tenantOrgId: string;
   try {
-    const authContext = await getAuthContext();
-    tenantOrgId = authContext.tenantId;
+    await getAuthContext();
   } catch (error) {
-    console.error('[VouchersPage] Auth error:', error);
     return (
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {error instanceof Error ? error.message : t('receiptVoucher.errors.authFailed')}
+          {error instanceof Error ? error.message : tCommon('error')}
         </div>
       </div>
     );
   }
 
-  const page =
-    params.page && !Number.isNaN(Number.parseInt(params.page, 10))
-      ? Number.parseInt(params.page, 10)
-      : 1;
+  const params = (await searchParams) ?? {};
+  const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1);
 
-  const sortBy = params.sortBy || 'created_at';
-  const sortOrder = (params.sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc';
-
-  const filters = {
-    page,
-    limit: 20,
-    status: params.status,
-    voucherCategory: params.voucherCategory,
-    voucherType: params.voucherType,
-    fromDate: params.startDate,
-    toDate: params.endDate,
-    search: params.search,
-    sortBy,
-    sortOrder,
+  const filters: VoucherListFilters = {
+    voucher_type:   params.voucher_type   as VoucherListFilters['voucher_type']   ?? undefined,
+    voucher_status: params.voucher_status as VoucherListFilters['voucher_status'] ?? undefined,
+    direction:      params.direction      as VoucherListFilters['direction']      ?? undefined,
+    date_from:      params.date_from      ?? undefined,
+    date_to:        params.date_to        ?? undefined,
+    search:         params.search         ?? undefined,
   };
 
-  const vouchersResult = await listVouchersAction(filters);
+  const result = await listBizVouchersAction(filters, page, PAGE_SIZE);
 
-  if (!vouchersResult.success) {
+  if (!result.success) {
     return (
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {vouchersResult.error || t('receiptVoucher.errors.loadFailed')}
+          {result.error ?? tCommon('error')}
         </div>
       </div>
     );
   }
 
-  const vouchers = vouchersResult.data?.vouchers || [];
-  const pagination = vouchersResult.data?.pagination || {
-    page: 1,
-    limit: 20,
-    totalCount: 0,
-    totalPages: 0,
-  };
+  const items = result.data?.items ?? [];
+  const total = result.data?.total ?? 0;
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{t('receiptVoucher.title')}</h1>
-          <p className="mt-1 text-gray-600">{t('receiptVoucher.description')}</p>
+          <h1 className="text-3xl font-bold">{t('title')}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {tCommon('total')}: {total}
+          </p>
         </div>
         <Link
           href="/dashboard/internal_fin/vouchers/new"
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
         >
-          {t('receiptVoucher.newVoucher')}
+          {t('newVoucher')}
         </Link>
       </div>
 
-      {/* Filters */}
-      <VoucherFiltersBar />
-
-      {/* Vouchers Table */}
-      <Suspense fallback={<div>{tCommon('loading')}</div>}>
-        <VouchersTable
-          vouchers={vouchers}
-          pagination={pagination}
-          sortBy={sortBy}
-          sortOrder={sortOrder}
+      <Suspense fallback={<div className="py-8 text-center text-sm text-gray-500">{tCommon('loading')}</div>}>
+        <VouchersListClient
+          items={items}
+          total={total}
+          page={page}
+          pageSize={PAGE_SIZE}
         />
       </Suspense>
     </div>

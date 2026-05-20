@@ -36,6 +36,7 @@
     "refresh": "Refresh",
     "print": "Print",
     "optional": "Optional",
+    "pagination": "Page {page} of {totalPages}",
     "newOrder": "New Order",
     "orders": "Orders",
     "customers": "Customers",

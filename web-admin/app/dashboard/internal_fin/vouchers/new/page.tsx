@@ -1,5 +1,5 @@
 /**
- * Create New Voucher Page
+ * Create New Business Voucher Page
  * Route: /dashboard/internal_fin/vouchers/new
  */
 
@@ -8,17 +8,16 @@ import { getAuthContext } from '@/lib/auth/server-auth';
 import CreateVoucherForm from './create-voucher-form';
 
 export default async function CreateVoucherPage() {
-  const t = await getTranslations('billing.receiptVoucher');
+  const t = await getTranslations('finance.vouchers');
 
   await getAuthContext();
 
   return (
     <div className="space-y-6 p-6">
       <div>
-        <h1 className="text-3xl font-bold">{t('create.title')}</h1>
-        <p className="mt-1 text-gray-600">{t('create.description')}</p>
+        <h1 className="text-3xl font-bold">{t('newVoucher')}</h1>
+        <p className="mt-1 text-sm text-gray-500">{t('postingNote')}</p>
       </div>
-
       <CreateVoucherForm />
     </div>
   );
