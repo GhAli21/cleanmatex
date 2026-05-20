@@ -19,6 +19,7 @@ import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
+import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 
 interface OrderDetailClientProps {
   order: any;
@@ -213,6 +214,11 @@ export function OrderDetailClient({
     typeof window !== 'undefined' && publicTrackingPath
       ? `${window.location.origin}${publicTrackingPath}`
       : '';
+  const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {
+    paymentTypeCode: typeof order.payment_type_code === 'string' ? order.payment_type_code : null,
+    payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
+    outstandingAmount: Number(order.outstanding_amount ?? 0),
+  });
 
   async function handleCopyPublicLink() {
     if (!publicTrackingUrl) return;
@@ -349,7 +355,7 @@ export function OrderDetailClient({
               {fmtOrderMoney(parseFloat(order.total?.toString() || '0'))}
             </div>
             <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {order.payment_status === 'paid' ? (
+              {normalizedOrderPaid ? (
                 <span className="text-green-600 font-medium">✓ {t.paid}</span>
               ) : (
                 <span className="text-orange-600 font-medium">{t.pendingPayment}</span>
@@ -832,4 +838,3 @@ export function OrderDetailClient({
     </div>
   );
 }
-

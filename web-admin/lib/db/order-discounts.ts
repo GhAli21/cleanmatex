@@ -72,18 +72,6 @@ export function buildDiscountLinesFromOrderInput(input: {
     });
   }
 
-  const giftAmount = Number(input.giftCardDiscountAmount ?? 0);
-  if (giftAmount > 0) {
-    const last4 = input.giftCardNumber ? input.giftCardNumber.slice(-4) : '????';
-    lines.push({
-      sourceType:    DISCOUNT_SOURCE_TYPE.GIFT_CARD,
-      sourceId:      input.giftCardId ?? undefined,
-      sourceName:    `Gift Card …${last4}`,
-      discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
-      discountAmount: giftAmount,
-    });
-  }
-
   return lines;
 }
 

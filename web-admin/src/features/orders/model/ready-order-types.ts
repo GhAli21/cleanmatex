@@ -1,4 +1,5 @@
 import { getOrderFromStateResponse } from '@/lib/utils/order-state-response';
+import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 
 export interface PaymentSummary {
   status: string;
@@ -99,7 +100,11 @@ export function mapReadyOrderFromStateResponse(
   const totalVal = Number(raw.total ?? raw.total_amount ?? 0);
 
   const fallbackSummary: PaymentSummary = {
-    status: raw.payment_status || 'pending',
+    status: normalizeOrderPaymentStatus(raw.payment_status, {
+      paymentTypeCode: raw.payment_type_code,
+      payOnCollectionAmount: Number(raw.pay_on_collection_amount ?? 0),
+      outstandingAmount: Math.max(0, totalVal - Number(raw.paid_amount ?? 0)),
+    }),
     total: totalVal,
     paid: Number(raw.paid_amount ?? 0),
     remaining: Math.max(0, totalVal - Number(raw.paid_amount ?? 0)),

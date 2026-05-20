@@ -30,7 +30,12 @@ import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences
 import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
 import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
 import type {
+  OrderAdjustmentRow,
   OrderChargeRow,
+  OrderCreditApplicationRow,
+  OrderDiscountRow,
+  OrderFinancialSnapshot,
+  OrderFinancialTimelineRow,
   OrderTaxRow,
   OrderPaymentRow,
   OrderRefundRow,
@@ -44,6 +49,7 @@ import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
 import type { OrderItem } from '@/types/order';
 import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
+import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 
 const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial'] as const;
 
@@ -67,10 +73,16 @@ interface OrderDetailsFullClientProps {
   orderPreferences: OrderPreferenceRow[];
   discountLines?: OrderDiscountLine[];
   financialData?: {
+    snapshot: OrderFinancialSnapshot;
     charges: OrderChargeRow[];
+    discounts: OrderDiscountRow[];
     taxes: OrderTaxRow[];
     payments: OrderPaymentRow[];
+    creditApplications: OrderCreditApplicationRow[];
     refunds: OrderRefundRow[];
+    adjustments: OrderAdjustmentRow[];
+    voucherReferences: Array<{ voucherId: string; voucherLineId: string | null; source: 'PAYMENT' | 'REFUND' | 'CREDIT_APPLICATION' }>;
+    auditTimeline: OrderFinancialTimelineRow[];
   };
   /** Localized headers for org_order_preferences_dtl columns (Preferences tab) */
   orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
@@ -151,6 +163,11 @@ export function OrderDetailsFullClient({
   const orderPaidAmount = Number(_o.paid_amount ?? 0);
   const orderBalanceDue = orderTotal - orderPaidAmount;
   const orderBalanceDueAbs = Math.abs(orderBalanceDue);
+  const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {
+    paymentTypeCode: typeof order.payment_type_code === 'string' ? order.payment_type_code : null,
+    payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
+    outstandingAmount: Number(order.outstanding_amount ?? 0),
+  });
   const balanceColorClass =
     orderBalanceDue < 0
       ? 'text-blue-700'
@@ -1205,10 +1222,16 @@ export function OrderDetailsFullClient({
       label: t.tabsFinancial ?? 'Financial',
       content: (
         <OrdersFinancialTabRprt
+          snapshot={financialData?.snapshot ?? null}
           charges={financialData?.charges ?? []}
+          discounts={financialData?.discounts ?? []}
           taxes={financialData?.taxes ?? []}
           payments={financialData?.payments ?? []}
+          creditApplications={financialData?.creditApplications ?? []}
           refunds={financialData?.refunds ?? []}
+          adjustments={financialData?.adjustments ?? []}
+          voucherReferences={financialData?.voucherReferences ?? []}
+          auditTimeline={financialData?.auditTimeline ?? []}
         />
       ),
     },
@@ -1357,7 +1380,7 @@ export function OrderDetailsFullClient({
               {fmtOrderMoney(parseFloat(String(order.total ?? 0)))}
             </div>
             <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {order.payment_status === 'paid' ? (
+              {normalizedOrderPaid ? (
                 <span className="text-green-600 font-medium">✓ {t.paid}</span>
               ) : (
                 <span className="text-orange-600 font-medium">{t.pendingPayment}</span>

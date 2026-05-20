@@ -151,7 +151,14 @@
       "PowerShell(head -30)",
       "Bash(mkdir -p /f/jhapp/cleanmatex/web-admin/app/dashboard/internal_fin/vouchers/\\\\[voucherId\\\\] *)",
       "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\(en.navigation, null, 2\\)\\);\")",
-      "Bash(node -e \"const ar=require\\('./messages/ar.json'\\); console.log\\(JSON.stringify\\(ar.navigation, null, 2\\)\\);\")"
+      "Bash(node -e \"const ar=require\\('./messages/ar.json'\\); console.log\\(JSON.stringify\\(ar.navigation, null, 2\\)\\);\")",
+      "Bash(node -e \"const en=require\\('./messages/en.json'\\); const fv = en['finance']?.['vouchers']; console.log\\(Object.keys\\(fv || {}\\).join\\('\\\\n'\\)\\);\")",
+      "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\({pagination: en.common?.pagination, previous: en.common?.previous, next: en.common?.next, loading: en.common?.loading, status: en.common?.status, cancel: en.common?.cancel}, null, 2\\)\\);\")",
+      "Bash(node -e \"const en=require\\('./messages/en.json'\\); const fv=en['finance']['vouchers']; console.log\\(JSON.stringify\\({voucherTypeLabels: fv.voucherTypeLabels, directionLabels: fv.directionLabels, validation: fv.validation, actions: fv.actions}, null, 2\\)\\);\")",
+      "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\({save: en.common?.save, create: en.common?.create, optional: en.common?.optional, submit: en.common?.submit, selectPlaceholder: en.common?.selectPlaceholder}, null, 2\\)\\);\")",
+      "Bash(Select-Object -Last 5 -ExpandProperty Name)",
+      "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)",
+      "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^0\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)"
     ],
     "deny": [
       "Read(node_modules)",

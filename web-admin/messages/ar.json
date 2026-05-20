@@ -1635,6 +1635,55 @@
       "fullyPaid": "مدفوع بالكامل",
       "overpaid": "دفع زائد",
       "balanceOwing": "رصيد مستحق",
+      "financialTab": {
+        "summary": {
+          "total": "الإجمالي",
+          "paid": "المدفوع",
+          "credits": "الأرصدة",
+          "outstanding": "المتبقي"
+        },
+        "sections": {
+          "charges": "الرسوم",
+          "discounts": "الخصومات",
+          "taxes": "الضرائب",
+          "paymentLegs": "دفعات السداد",
+          "creditApplications": "تطبيقات الرصيد",
+          "refunds": "المرتجعات",
+          "adjustments": "التسويات",
+          "voucherReferences": "مراجع القيود",
+          "auditTimeline": "السجل المالي"
+        },
+        "columns": {
+          "type": "النوع",
+          "label": "الوصف",
+          "amount": "المبلغ",
+          "source": "المصدر",
+          "taxType": "نوع الضريبة",
+          "rate": "النسبة",
+          "method": "الطريقة",
+          "nature": "الطبيعة",
+          "status": "الحالة",
+          "receivedBy": "تم التحصيل بواسطة",
+          "reference": "المرجع",
+          "appliedBy": "تم التطبيق بواسطة",
+          "refundNo": "رقم المرتجع",
+          "reason": "السبب"
+        },
+        "empty": {
+          "charges": "لا توجد رسوم مسجلة.",
+          "discounts": "لا توجد خصومات مسجلة.",
+          "taxes": "لا توجد بنود ضريبية مسجلة.",
+          "paymentLegs": "لا توجد دفعات سداد مسجلة.",
+          "creditApplications": "لا توجد تطبيقات رصيد مسجلة.",
+          "refunds": "لا توجد مرتجعات مسجلة.",
+          "adjustments": "لا توجد تسويات مسجلة.",
+          "voucherReferences": "لا توجد مراجع قيود مرتبطة حتى الآن.",
+          "auditTimeline": "لا توجد حركة مالية مسجلة."
+        },
+        "misc": {
+          "line": "السطر"
+        }
+      },
       "masterFields": {
         "id": "المعرّف",
         "order_no": "رقم الطلب",

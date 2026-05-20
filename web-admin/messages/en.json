@@ -1634,6 +1634,55 @@
       "fullyPaid": "Fully Paid",
       "overpaid": "Overpaid",
       "balanceOwing": "Balance Owing",
+      "financialTab": {
+        "summary": {
+          "total": "Total",
+          "paid": "Paid",
+          "credits": "Credits",
+          "outstanding": "Outstanding"
+        },
+        "sections": {
+          "charges": "Charges",
+          "discounts": "Discounts",
+          "taxes": "Taxes",
+          "paymentLegs": "Payment Legs",
+          "creditApplications": "Credit Applications",
+          "refunds": "Refunds",
+          "adjustments": "Adjustments",
+          "voucherReferences": "Voucher References",
+          "auditTimeline": "Audit Timeline"
+        },
+        "columns": {
+          "type": "Type",
+          "label": "Label",
+          "amount": "Amount",
+          "source": "Source",
+          "taxType": "Tax Type",
+          "rate": "Rate",
+          "method": "Method",
+          "nature": "Nature",
+          "status": "Status",
+          "receivedBy": "Received By",
+          "reference": "Reference",
+          "appliedBy": "Applied By",
+          "refundNo": "Refund No.",
+          "reason": "Reason"
+        },
+        "empty": {
+          "charges": "No charges recorded.",
+          "discounts": "No discounts recorded.",
+          "taxes": "No tax lines recorded.",
+          "paymentLegs": "No payment legs recorded.",
+          "creditApplications": "No stored-value applications recorded.",
+          "refunds": "No refunds recorded.",
+          "adjustments": "No adjustments recorded.",
+          "voucherReferences": "No linked voucher references yet.",
+          "auditTimeline": "No financial activity recorded."
+        },
+        "misc": {
+          "line": "Line"
+        }
+      },
       "masterFields": {
         "id": "ID",
         "order_no": "Order number",

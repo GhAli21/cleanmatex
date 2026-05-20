@@ -321,17 +321,6 @@ export async function calculateOrderTotals(
     });
   }
 
-  if (giftCardApplied > 0) {
-    const last4 = resolvedGiftCardNumber ? resolvedGiftCardNumber.slice(-4) : '????';
-    discountLines.push({
-      sourceType:    DISCOUNT_SOURCE_TYPE.GIFT_CARD,
-      sourceId:      resolvedGiftCardId ?? undefined,
-      sourceName:    `Gift Card …${last4}`,
-      discountType:  DISCOUNT_CALC_TYPE.FIXED_AMOUNT,
-      discountAmount: giftCardApplied,
-    });
-  }
-
   return {
     subtotal: subtotalRounded,
     manualDiscount,

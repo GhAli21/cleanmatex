@@ -14,6 +14,7 @@ import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
 import { Search, ChevronDown } from 'lucide-react';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { normalizeOrderPaymentStatus } from '@/lib/utils/order-payment-status';
 
 interface ReadyOrder {
   id: string;
@@ -63,7 +64,12 @@ export default function ReadyPage() {
     return (rawOrders ?? []).map((order: any) => {
       const total = Number(order.total ?? 0);
       const paid = Number(order.paid_amount ?? 0);
-      const remaining = Math.max(0, total - paid);
+      const remaining = Number(order.outstanding_amount ?? Math.max(0, total - paid));
+      const paymentStatus = normalizeOrderPaymentStatus(order.payment_status, {
+        paymentTypeCode: order.payment_type_code,
+        payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
+        outstandingAmount: remaining,
+      });
       return {
         id: order.id,
         order_no: order.order_no || '',
@@ -74,7 +80,7 @@ export default function ReadyPage() {
         total_items: order.total_items || 0,
         total,
         remaining,
-        payment_status: order.payment_status || 'pending',
+        payment_status: paymentStatus,
         current_status: order.current_status || order.status || 'ready',
         rack_location: order.rack_location || '',
         ready_by: order.ready_by || order.ready_by_at_new || '',
@@ -91,8 +97,16 @@ export default function ReadyPage() {
   }
 
   const paymentStatusBadge = (status: string) => {
-    const key = status === 'paid' ? 'paymentStatus.paid' : status === 'partial' ? 'paymentStatus.partial' : 'paymentStatus.pending';
-    const cls = status === 'paid' ? 'bg-green-100 text-green-800' : status === 'partial' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-700';
+    const key = status === 'PAID'
+      ? 'paymentStatus.paid'
+      : status === 'PARTIALLY_PAID'
+        ? 'paymentStatus.partial'
+        : 'paymentStatus.pending';
+    const cls = status === 'PAID'
+      ? 'bg-green-100 text-green-800'
+      : status === 'PARTIALLY_PAID'
+        ? 'bg-amber-100 text-amber-800'
+        : 'bg-slate-100 text-slate-700';
     return <span className={`px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{t(`ready.${key}`)}</span>;
   };
 

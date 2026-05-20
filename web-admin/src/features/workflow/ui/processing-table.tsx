@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { cmxMessage } from '@ui/feedback/cmx-message';
+import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 import {
   CmxDialog,
   CmxDialogContent,
@@ -162,7 +163,7 @@ function OrderRow({ order, formatDate, onRefresh, onEditClick, index, selectedOr
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing'); // ✅ For backToProcessing and progress
   const { formatMoneyWithCode } = useTenantCurrency();
-  const isPaid = order.payment_status === 'paid';
+  const isPaid = isOrderPaidStatus(order.payment_status);
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
 
@@ -594,7 +595,7 @@ function ProcessingOrderCard({
   const t = useTranslations('processing.table');
   const tProcessing = useTranslations('processing');
   const { formatMoneyWithCode } = useTenantCurrency();
-  const isPaid = order.payment_status === 'paid';
+  const isPaid = isOrderPaidStatus(order.payment_status);
   const isUrgent = order.priority === 'urgent' || order.priority === 'express';
   const isSelected = selectedOrderId === order.id;
   const [isLoadingEdit, setIsLoadingEdit] = useState(false);

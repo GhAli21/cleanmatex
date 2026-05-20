@@ -16,6 +16,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useScreenOrders } from '@/lib/hooks/use-screen-orders';
 import { useWorkflowSystemMode } from '@/lib/config/workflow-config';
+import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 import type {
   ProcessingOrder,
   ProcessingStats,
@@ -129,7 +130,7 @@ export default function ProcessingPage() {
     const totalPieces = filteredOrders.reduce((sum, order) => sum + order.total_items, 0);
     const totalValue = filteredOrders.reduce((sum, order) => sum + order.total, 0);
     const unpaidValue = filteredOrders
-      .filter((order) => order.payment_status !== 'paid')
+      .filter((order) => !isOrderPaidStatus(order.payment_status))
       .reduce((sum, order) => sum + order.total, 0);
 
     return {

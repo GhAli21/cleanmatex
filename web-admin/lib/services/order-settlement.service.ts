@@ -1,24 +1,24 @@
 import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
-import { withTenantContext } from '../db/tenant-context';
 import {
-  PAYMENT_NATURE,
   CREDIT_APPLICATION_TYPES,
-  ORDER_PAYMENT_STATUS,
   OUTBOX_EVENT_TYPES,
+  PAYMENT_NATURE,
 } from '@/lib/constants/order-financial';
 import type {
-  FinancialBreakdownSnapshot,
   ChargeLineItem,
-  TaxLineItem,
   DiscountLineInput,
+  FinancialBreakdownSnapshot,
   ResolvedSettlementLeg,
+  TaxLineItem,
 } from '@/lib/types/order-financial';
+import { createClient } from '@/lib/supabase/server';
 import { emitEventTx } from './outbox.service';
-import { redeemWalletTx, redeemAdvanceTx, redeemCreditNoteTx } from './stored-value.service';
-import { redeemPointsTx, queueEarnPoints } from './loyalty.service';
-import { validateGiftCardByIdForCalculation, redeemGiftCardTx } from './gift-card-service';
+import { queueEarnPoints, redeemPointsTx } from './loyalty.service';
+import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
+import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
+import { createTenantSettingsService } from './tenant-settings.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
@@ -27,131 +27,170 @@ function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
 
-export interface SettlementParams {
-  orderId:              string;
-  tenantId:             string;
-  breakdown:            FinancialBreakdownSnapshot;
-  chargeLines:          ChargeLineItem[];
-  taxLines:             TaxLineItem[];
-  discountLines:        DiscountLineInput[];
-  settlementLegs:       ResolvedSettlementLeg[];
-  cashDrawerSessionId?: string;
-  settledBy?:           string;
-}
+async function getPartialLaterCollectionPolicy(tenantId: string): Promise<{
+  allowPartialLaterCollection: boolean;
+  requireFullCollectionOnPickup: boolean;
+}> {
+  const supabase = await createClient();
+  const tenantSettings = createTenantSettingsService(supabase);
+  const [allowPartialSetting, requireFullSetting] = await Promise.all([
+    tenantSettings.getSettingValue(tenantId, 'orders.payments.allow_partial_later_collection'),
+    tenantSettings.getSettingValue(tenantId, 'orders.payments.require_full_collection_on_pickup'),
+  ]);
 
-export interface SettlementResult {
-  orderId:            string;
-  paymentStatus:      string;
-  totalPaid:          number;
-  outstanding:        number;
-  changeReturned:     number;
+  return {
+    allowPartialLaterCollection: allowPartialSetting == null ? true : String(allowPartialSetting).toLowerCase() !== 'false',
+    requireFullCollectionOnPickup: String(requireFullSetting ?? '').toLowerCase() === 'true',
+  };
 }
 
 /**
- * Settle an order in a single atomic transaction.
- * Writes all financial fact rows, routes each leg by payment_nature, emits outbox events.
+ * Settlement input for the atomic Order Fin write path.
+ */
+export interface SettlementParams {
+  orderId: string;
+  tenantId: string;
+  breakdown: FinancialBreakdownSnapshot;
+  chargeLines: ChargeLineItem[];
+  taxLines: TaxLineItem[];
+  discountLines: DiscountLineInput[];
+  settlementLegs: ResolvedSettlementLeg[];
+  cashDrawerSessionId?: string;
+  settledBy?: string;
+}
+
+/**
+ * Final settlement result returned to routes and actions.
+ */
+export interface SettlementResult {
+  orderId: string;
+  paymentStatus: string;
+  totalPaid: number;
+  outstanding: number;
+  changeReturned: number;
+}
+
+/**
+ * Settle an order in one transaction.
+ *
+ * Why:
+ * This path writes all order-level financial facts, preserves gateway safety,
+ * and recalculates the header snapshot from persisted rows instead of trusting
+ * one-off request math.
+ *
+ * @param params settlement payload resolved by checkout
+ * @returns normalized snapshot result after persistence
  */
 export async function settleOrder(params: SettlementParams): Promise<SettlementResult> {
   const {
-    orderId, tenantId, breakdown, chargeLines, taxLines,
-    discountLines, settlementLegs, cashDrawerSessionId, settledBy,
+    orderId,
+    tenantId,
+    breakdown,
+    chargeLines,
+    taxLines,
+    discountLines,
+    settlementLegs,
+    cashDrawerSessionId,
+    settledBy,
   } = params;
   const currencyCode = breakdown.currencyCode;
 
   return prisma.$transaction(async (tx) => {
-    // ── 1. Charges ───────────────────────────────────────────────────────────
+    // ── 1. Charges ────────────────────────────────────────────────────────────
     for (const charge of chargeLines) {
       await tx.org_order_charges_dtl.create({
         data: {
-          tenant_org_id:   tenantId,
-          order_id:        orderId,
-          charge_type:     charge.chargeType,
-          label:           charge.label,
-          label2:          charge.label2 ?? null,
-          amount:          charge.amount,
-          currency_code:   currencyCode,
-          charge_source_id:charge.sourceId ?? null,
-          rec_status:      1,
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          charge_type: charge.chargeType,
+          label: charge.label,
+          label2: charge.label2 ?? null,
+          amount: charge.amount,
+          currency_code: currencyCode,
+          charge_source_id: charge.sourceId ?? null,
+          rec_status: 1,
         },
       });
     }
 
-    // ── 2. Taxes ─────────────────────────────────────────────────────────────
+    // ── 2. Taxes ──────────────────────────────────────────────────────────────
     for (const tax of taxLines) {
       await tx.org_order_taxes_dtl.create({
         data: {
-          tenant_org_id:  tenantId,
-          order_id:       orderId,
-          tax_type:       tax.taxType,
-          label:          tax.label,
-          label2:         tax.label2 ?? null,
-          rate:           tax.rate,
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          tax_type: tax.taxType,
+          label: tax.label,
+          label2: tax.label2 ?? null,
+          rate: tax.rate,
           taxable_amount: tax.baseAmount,
-          tax_amount:     tax.taxAmount,
-          currency_code:  currencyCode,
-          rec_status:     1,
+          tax_amount: tax.taxAmount,
+          currency_code: currencyCode,
+          rec_status: 1,
         },
       });
     }
 
-    // ── 3. Discounts ─────────────────────────────────────────────────────────
+    // ── 3. Commercial discounts only ─────────────────────────────────────────
     let discSeq = 1;
     for (const disc of discountLines) {
       await tx.org_order_discounts_dtl.create({
         data: {
-          tenant_org_id:   tenantId,
-          order_id:        orderId,
-          applied_seq:     discSeq++,
-          source_type:     disc.sourceType,
-          source_id:       disc.sourceId ?? null,
-          source_name:     disc.sourceName,
-          source_name2:    disc.sourceName2 ?? null,
-          discount_type:   disc.discountType,
-          discount_rate:   disc.discountRate ?? null,
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          applied_seq: discSeq++,
+          source_type: disc.sourceType,
+          source_id: disc.sourceId ?? null,
+          source_name: disc.sourceName,
+          source_name2: disc.sourceName2 ?? null,
+          discount_type: disc.discountType,
+          discount_rate: disc.discountRate ?? null,
           discount_amount: disc.discountAmount,
-          promotion_id:    disc.promotionId ?? null,
-          stacking_group:  disc.stackingGroup ?? null,
-          rec_status:      1,
+          promotion_id: disc.promotionId ?? null,
+          stacking_group: disc.stackingGroup ?? null,
+          rec_status: 1,
         },
       });
     }
 
-    // ── 4 & 5. Settlement legs ────────────────────────────────────────────────
-    let totalRealPayments = 0;
-    let changeReturned    = 0;
-    let isDeferred        = false;
+    // ── 4. Settlement legs ───────────────────────────────────────────────────
+    let changeReturned = 0;
 
     for (const leg of settlementLegs) {
-      const { settlementOption: opt, amount, terminalId, cashTendered, creditReferenceId } = leg;
-      const nature = opt.paymentNature;
+      const { settlementOption: option, amount, terminalId, cashTendered, creditReferenceId } = leg;
 
-      if (nature === PAYMENT_NATURE.REAL_PAYMENT) {
-        totalRealPayments += amount;
+      if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
         const change = cashTendered && cashTendered > amount ? cashTendered - amount : 0;
+        const paymentStatus = option.gatewayCode ? 'PENDING' : 'COMPLETED';
         changeReturned += change;
 
         await tx.org_order_payments_dtl.create({
           data: {
-            tenant_org_id:           tenantId,
-            order_id:                orderId,
-            org_payment_method_id:   opt.id,
-            payment_method_code:     opt.paymentMethodCode,
-            currency_code:           currencyCode,
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            org_payment_method_id: option.id,
+            payment_method_code: option.paymentMethodCode,
+            currency_code: currencyCode,
             payment_nature_snapshot: 'REAL_PAYMENT',
             amount,
-            payment_terminal_id:     terminalId ?? null,
-            tendered_amount:         cashTendered ?? null,
-            change_returned_amount:  change > 0 ? change : null,
-            cash_drawer_session_id:  opt.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-            payment_status:          'COMPLETED',
-            is_active:               true,
-            rec_status:              1,
-            received_by:             settledBy ?? null,
+            payment_terminal_id: terminalId ?? null,
+            tendered_amount: cashTendered ?? null,
+            change_returned_amount: change > 0 ? change : null,
+            cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
+            gateway_code: option.gatewayCode ?? null,
+            gateway_reference: leg.reference ?? null,
+            payment_status: paymentStatus,
+            paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
+            is_active: true,
+            rec_status: 1,
+            received_by: settledBy ?? null,
           },
         });
+        continue;
+      }
 
-      } else if (nature === PAYMENT_NATURE.CREDIT_APPLICATION) {
-        const creditType = opt.creditApplicationType;
+      if (option.paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION) {
+        const creditType = option.creditApplicationType ?? CREDIT_APPLICATION_TYPES.GIFT_CARD;
         const order = await tx.org_orders_mst.findFirstOrThrow({
           where: { id: orderId, tenant_org_id: tenantId },
           select: { customer_id: true },
@@ -163,132 +202,132 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
         } else if (creditType === CREDIT_APPLICATION_TYPES.ADVANCE) {
           await redeemAdvanceTx(tx, { tenantId, customerId, amount, orderId });
         } else if (creditType === CREDIT_APPLICATION_TYPES.CREDIT_NOTE && creditReferenceId) {
-          await redeemCreditNoteTx(tx, { tenantId, customerId, creditNoteId: creditReferenceId, amount, orderId });
+          await redeemCreditNoteTx(tx, {
+            tenantId,
+            customerId,
+            creditNoteId: creditReferenceId,
+            amount,
+            orderId,
+          });
         } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_POINTS) {
           const idempotencyKey = `loyalty-redeem-${orderId}-${Date.now()}`;
-          const pointsToRedeem = Math.ceil(amount / (opt.minAmount ?? 1));
-          await redeemPointsTx(tx, { tenantId, customerId, pointsToRedeem, monetaryAmount: amount, orderId, idempotencyKey });
+          const pointsToRedeem = Math.ceil(amount / (option.minAmount ?? 1));
+          await redeemPointsTx(tx, {
+            tenantId,
+            customerId,
+            pointsToRedeem,
+            monetaryAmount: amount,
+            orderId,
+            idempotencyKey,
+          });
         }
 
+        // Gift card debit happens earlier in create-with-payment to preserve
+        // the legacy two-transaction order create flow. The settlement step
+        // records only the order-level credit application fact.
         await tx.org_order_credit_apps_dtl.create({
           data: {
-            tenant_org_id:  tenantId,
-            order_id:       orderId,
-            currency_code:  currencyCode,
-            credit_type:    creditType ?? 'GIFT_CARD',
+            tenant_org_id: tenantId,
+            order_id: orderId,
+            currency_code: currencyCode,
+            credit_type: creditType,
             credit_source_id: creditReferenceId ?? null,
             applied_amount: amount,
-            is_active:      true,
-            rec_status:     1,
+            reference_no: leg.reference ?? null,
+            applied_by: settledBy ?? null,
+            is_active: true,
+            rec_status: 1,
           },
         });
-
-      } else if (nature === PAYMENT_NATURE.DEFERRED_SETTLEMENT) {
-        isDeferred = true;
       }
-      // AR_ALLOCATION and INTERNAL_ADJUSTMENT: no action in V1
     }
 
-    // ── 6 & 7. Update order snapshot ─────────────────────────────────────────
-    const grandTotal    = breakdown.grandTotal;
-    const creditsTotal  = breakdown.creditsTotal;
-    const netReceivable = breakdown.netReceivable;
+    // ── 5. Header recalc from fact rows ──────────────────────────────────────
+    const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 
-    let paymentStatus: string;
-    let outstanding:   number;
-
-    if (isDeferred) {
-      paymentStatus = ORDER_PAYMENT_STATUS.PENDING_COLLECTION;
-      outstanding   = grandTotal;
-    } else {
-      outstanding   = Math.max(0, netReceivable - totalRealPayments - creditsTotal);
-      paymentStatus = outstanding <= 0
-        ? (changeReturned > 0 ? ORDER_PAYMENT_STATUS.OVERPAID : ORDER_PAYMENT_STATUS.PAID)
-        : ORDER_PAYMENT_STATUS.PARTIALLY_PAID;
-    }
-
-    await tx.org_orders_mst.update({
-      where: { id: orderId, tenant_org_id: tenantId },
-      data:  {
-        total_paid_amount:          totalRealPayments + creditsTotal,
-        total_discount_amount:      breakdown.discountTotal,
-        total_tax_amount:           breakdown.taxTotal,
-        outstanding_amount:         outstanding,
-        change_returned_amount:     changeReturned > 0 ? changeReturned : null,
-        payment_status:             paymentStatus,
-        pay_on_collection_amount:   isDeferred ? grandTotal : null,
-        updated_at:                 new Date(),
-      },
-    });
-
-    // ── 8. Outbox events ──────────────────────────────────────────────────────
+    // ── 6. Outbox and loyalty follow-up ──────────────────────────────────────
     await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.ORDER_COMPLETED, 'order', orderId, {
-      paymentStatus,
-      grandTotal,
-      settled: !isDeferred,
+      paymentStatus: snapshot.paymentStatus,
+      grandTotal: breakdown.grandTotal,
+      settled: snapshot.outstandingAmount <= 0,
     });
 
-    // Queue loyalty earn (async via outbox)
     const order = await tx.org_orders_mst.findFirst({
-      where: { id: orderId },
+      where: { id: orderId, tenant_org_id: tenantId },
       select: { customer_id: true },
     });
-    if (order?.customer_id && !isDeferred) {
+    if (order?.customer_id && snapshot.outstandingAmount <= 0) {
       await queueEarnPoints(tx, {
         tenantId,
-        customerId:  order.customer_id,
+        customerId: order.customer_id,
         orderId,
-        orderAmount: grandTotal,
+        orderAmount: breakdown.grandTotal,
       });
     }
 
     return {
       orderId,
-      paymentStatus,
-      totalPaid:      totalRealPayments + creditsTotal,
-      outstanding,
+      paymentStatus: snapshot.paymentStatus,
+      totalPaid: snapshot.totalPaidAmount + snapshot.totalCreditAppliedAmount,
+      outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
   });
 }
 
-// ── PAY_ON_COLLECTION — second-step collection ────────────────────────────────
-
+/**
+ * Later collection request on an existing `PAY_ON_COLLECTION` order.
+ */
 export interface CollectPaymentParams {
-  orderId:              string;
-  tenantId:             string;
-  paymentLegs:          Array<{
+  orderId: string;
+  tenantId: string;
+  paymentLegs: Array<{
     paymentMethodId: string;
-    amount:          number;
-    reference?:      string;
-    cashTendered?:   number;
+    amount: number;
+    reference?: string;
+    cashTendered?: number;
   }>;
   cashDrawerSessionId?: string;
-  collectedBy:          string;
+  collectedBy: string;
 }
 
 /**
- * Collect actual payment on a PAY_ON_COLLECTION order.
- * Verifies order status, writes payment rows, updates snapshot.
+ * Collect actual money against an existing deferred order.
+ *
+ * Why:
+ * Batch 0 needs real partial later collection support instead of forcing one
+ * full settlement event that zeroes the header immediately.
+ *
+ * @param params later collection payload
+ * @returns normalized snapshot result after collection
  */
 export async function collectPaymentTx(params: CollectPaymentParams): Promise<SettlementResult> {
   const { orderId, tenantId, paymentLegs, cashDrawerSessionId, collectedBy } = params;
+  const policy = await getPartialLaterCollectionPolicy(tenantId);
 
   return prisma.$transaction(async (tx) => {
-    // SELECT FOR UPDATE
-    const rows = await tx.$queryRaw<{ id: string; outstanding_amount: number; order_no: string; currency_code: string }[]>`
-      SELECT id, outstanding_amount::float8, order_no, currency_code
-      FROM org_orders_mst
-      WHERE id = ${orderId}::uuid AND tenant_org_id = ${tenantId}::uuid
-        AND payment_status = 'PENDING_COLLECTION'
-      FOR UPDATE`;
+    const rows = await tx.$queryRaw<{ id: string; outstanding_amount: number; currency_code: string }[]>`
+      SELECT id, outstanding_amount::float8, currency_code
+      FROM public.org_orders_mst
+      WHERE id = ${orderId}::uuid
+        AND tenant_org_id = ${tenantId}::uuid
+        AND payment_type_code = 'PAY_ON_COLLECTION'
+        AND COALESCE(outstanding_amount, 0) > 0
+      FOR UPDATE
+    `;
 
-    if (!rows[0]) throw new Error('Order not found or not in PENDING_COLLECTION status');
+    if (!rows[0]) {
+      throw new Error('Order not found or not awaiting later collection');
+    }
 
-    const outstanding  = rows[0].outstanding_amount;
+    const outstanding = rows[0].outstanding_amount;
     const currencyCode = rows[0].currency_code ?? 'OMR';
-    const totalCollected = paymentLegs.reduce((s, l) => s + l.amount, 0);
-    if (totalCollected < outstanding) {
+    const totalCollected = paymentLegs.reduce((sum, leg) => sum + leg.amount, 0);
+
+    if (totalCollected <= 0) {
+      throw new Error('Collected amount must be greater than zero');
+    }
+    if ((policy.requireFullCollectionOnPickup || !policy.allowPartialLaterCollection) && totalCollected < outstanding) {
       throw new Error(`Collected amount (${totalCollected}) is less than outstanding (${outstanding})`);
     }
 
@@ -298,59 +337,52 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       const change = leg.cashTendered && leg.cashTendered > leg.amount ? leg.cashTendered - leg.amount : 0;
       changeReturned += change;
 
-      // Look up payment method code from config
       const method = await tx.org_payment_methods_cf.findFirst({
         where: { id: leg.paymentMethodId, tenant_org_id: tenantId },
-        select: { payment_method_code: true },
+        select: {
+          payment_method_code: true,
+          gateway_code: true,
+          requires_cash_drawer: true,
+        },
       });
+      const paymentStatus = method?.gateway_code ? 'PENDING' : 'COMPLETED';
 
       await tx.org_order_payments_dtl.create({
         data: {
-          tenant_org_id:           tenantId,
-          order_id:                orderId,
-          org_payment_method_id:   leg.paymentMethodId,
-          payment_method_code:     method?.payment_method_code ?? 'CASH',
-          currency_code:           currencyCode,
+          tenant_org_id: tenantId,
+          order_id: orderId,
+          org_payment_method_id: leg.paymentMethodId,
+          payment_method_code: method?.payment_method_code ?? 'CASH',
+          currency_code: currencyCode,
           payment_nature_snapshot: 'REAL_PAYMENT',
-          amount:                  leg.amount,
-          tendered_amount:         leg.cashTendered ?? null,
-          change_returned_amount:  change > 0 ? change : null,
-          cash_drawer_session_id:  cashDrawerSessionId ?? null,
-          payment_status:          'COMPLETED',
-          is_active:               true,
-          rec_status:              1,
-          received_by:             collectedBy,
+          amount: leg.amount,
+          tendered_amount: leg.cashTendered ?? null,
+          change_returned_amount: change > 0 ? change : null,
+          cash_drawer_session_id: method?.requires_cash_drawer ? (cashDrawerSessionId ?? null) : null,
+          gateway_code: method?.gateway_code ?? null,
+          gateway_reference: leg.reference ?? null,
+          payment_status: paymentStatus,
+          paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
+          is_active: true,
+          rec_status: 1,
+          received_by: collectedBy,
         },
       });
     }
 
-    const paymentStatus = changeReturned > 0
-      ? ORDER_PAYMENT_STATUS.OVERPAID
-      : ORDER_PAYMENT_STATUS.PAID;
-
-    await tx.org_orders_mst.update({
-      where: { id: orderId },
-      data:  {
-        total_paid_amount:        totalCollected,
-        outstanding_amount:       0,
-        pay_on_collection_amount: 0,
-        change_returned_amount:   changeReturned > 0 ? changeReturned : null,
-        payment_status:           paymentStatus,
-        updated_at:               new Date(),
-      },
-    });
+    const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 
     await emitEventTx(tx, tenantId, OUTBOX_EVENT_TYPES.PAYMENT_RECEIVED, 'order', orderId, {
       collectedBy,
       totalCollected,
-      paymentStatus,
+      paymentStatus: snapshot.paymentStatus,
     });
 
     return {
       orderId,
-      paymentStatus,
-      totalPaid:      totalCollected,
-      outstanding:    0,
+      paymentStatus: snapshot.paymentStatus,
+      totalPaid: snapshot.totalPaidAmount + snapshot.totalCreditAppliedAmount,
+      outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
   });

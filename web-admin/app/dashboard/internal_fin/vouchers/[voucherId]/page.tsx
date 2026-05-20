@@ -16,7 +16,18 @@ export default async function VoucherDetailPage({ params }: PageProps) {
 
   const result = await getBizVoucherDetailAction(voucherId);
   if (!result.success || !result.data) {
-    notFound();
+    const msg = result.error ?? '';
+    // Only show 404 for genuine "not found" — surface all other errors
+    if (msg.toLowerCase().includes('not found') || msg === '') {
+      notFound();
+    }
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {msg}
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
-import { initiateRefund } from '@/lib/services/order-refund.service';
+import {
+  initiateRefund,
+  REFUND_SCOPES,
+} from '@/lib/services/order-refund.service';
 import { REFUND_REASON_CODES, REFUND_METHODS } from '@/lib/constants/order-financial';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 
 const schema = z.object({
   amount:       z.number().positive(),
@@ -11,6 +15,11 @@ const schema = z.object({
   method:       z.enum([REFUND_METHODS.CASH, REFUND_METHODS.WALLET, REFUND_METHODS.CREDIT_NOTE, REFUND_METHODS.ORIGINAL_METHOD]),
   notes:        z.string().optional(),
   currencyCode: z.string().min(1),
+  originalPaymentId: z.string().uuid().optional(),
+  originalCreditAppId: z.string().uuid().optional(),
+  refundScope: z.enum([REFUND_SCOPES.STANDARD, REFUND_SCOPES.MANUAL_EXCEPTION]).optional(),
+  approvalRequired: z.boolean().optional(),
+  idempotencyKey: z.string().min(1).max(120).optional(),
 });
 
 export async function POST(
@@ -29,6 +38,16 @@ export async function POST(
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ success: false, error: 'Invalid request', details: parsed.error.issues }, { status: 400 });
 
+  if (parsed.data.refundScope === REFUND_SCOPES.MANUAL_EXCEPTION) {
+    const allowed = await hasPermissionServer('orders:refunds_manual_exception');
+    if (!allowed) {
+      return NextResponse.json(
+        { success: false, error: 'Permission denied: orders:refunds_manual_exception' },
+        { status: 403 }
+      );
+    }
+  }
+
   try {
     const refund = await initiateRefund(tenantId, {
       orderId,
@@ -38,6 +57,11 @@ export async function POST(
       notes:        parsed.data.notes,
       currencyCode: parsed.data.currencyCode,
       requestedBy:  userId,
+      originalPaymentId: parsed.data.originalPaymentId,
+      originalCreditAppId: parsed.data.originalCreditAppId,
+      refundScope: parsed.data.refundScope,
+      approvalRequired: parsed.data.approvalRequired,
+      idempotencyKey: parsed.data.idempotencyKey,
     });
     return NextResponse.json({ success: true, data: refund }, { status: 201 });
   } catch (err) {
