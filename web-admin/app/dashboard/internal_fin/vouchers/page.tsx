@@ -37,12 +37,12 @@ export default async function VouchersPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? '1', 10) || 1);
 
   const filters: VoucherListFilters = {
-    voucher_type:   params.voucher_type   as VoucherListFilters['voucher_type']   ?? undefined,
-    voucher_status: params.voucher_status as VoucherListFilters['voucher_status'] ?? undefined,
-    direction:      params.direction      as VoucherListFilters['direction']      ?? undefined,
-    date_from:      params.date_from      ?? undefined,
-    date_to:        params.date_to        ?? undefined,
-    search:         params.search         ?? undefined,
+    voucher_type:   (params.voucher_type   || undefined) as VoucherListFilters['voucher_type'],
+    voucher_status: (params.voucher_status || undefined) as VoucherListFilters['voucher_status'],
+    direction:      (params.direction      || undefined) as VoucherListFilters['direction'],
+    date_from:      params.date_from  || undefined,
+    date_to:        params.date_to    || undefined,
+    search:         params.search     || undefined,
   };
 
   const result = await listBizVouchersAction(filters, page, PAGE_SIZE);

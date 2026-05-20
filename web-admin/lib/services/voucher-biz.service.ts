@@ -208,7 +208,6 @@ export async function listBizVouchers(
   return withTenantContext(tenantOrgId, async () => {
     const where = {
       tenant_org_id: tenantOrgId,
-      voucher_status: { not: null as unknown as string },
       ...(filters.voucher_type   && { voucher_type: filters.voucher_type }),
       ...(filters.voucher_status && { voucher_status: filters.voucher_status }),
       ...(filters.direction      && { direction: filters.direction }),
