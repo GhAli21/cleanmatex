@@ -9,8 +9,6 @@ import { withTenantContext } from '../db/tenant-context';
 import { assertVoucherIsMutable, validateVoucherLine } from './voucher-validation.service';
 import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } from '../types/voucher';
 
-type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
 function mapLineRow(row: Record<string, unknown>): VoucherLineData {
@@ -41,8 +39,8 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
   };
 }
 
-async function getNextLineNo(tenantOrgId: string, voucherId: string, tx: PrismaTx): Promise<number> {
-  const last = await (tx as typeof prisma).org_fin_voucher_trx_lines_dtl.findFirst({
+async function getNextLineNo(tenantOrgId: string, voucherId: string): Promise<number> {
+  const last = await prisma.org_fin_voucher_trx_lines_dtl.findFirst({
     where: { tenant_org_id: tenantOrgId, voucher_id: voucherId },
     orderBy: { line_no: 'desc' },
     select: { line_no: true },
@@ -66,25 +64,24 @@ export async function addVoucherLine(
   validateVoucherLine(input, userRole);
 
   return withTenantContext(tenantOrgId, async () => {
-    return prisma.$transaction(async (tx) => {
-      const voucher = await (tx as typeof prisma).org_fin_vouchers_mst.findFirst({
-        where: { id: voucherId, tenant_org_id: tenantOrgId },
-        select: { voucher_status: true },
-      });
+    const voucher = await prisma.org_fin_vouchers_mst.findFirst({
+      where: { id: voucherId, tenant_org_id: tenantOrgId },
+      select: { voucher_status: true },
+    });
 
-      if (!voucher) throw new Error(`Voucher ${voucherId} not found`);
-      assertVoucherIsMutable(voucher.voucher_status as never, 'add a line to');
+    if (!voucher) throw new Error(`Voucher ${voucherId} not found`);
+    assertVoucherIsMutable(voucher.voucher_status as never, 'add a line to');
 
-      const line_no = await getNextLineNo(tenantOrgId, voucherId, tx);
+    const line_no = await getNextLineNo(tenantOrgId, voucherId);
 
-      // Auto-derive change for cash payments
-      let changeReturned: number | null = null;
-      if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined) {
-        changeReturned = input.tendered_amount - input.amount;
-      }
+    // Auto-derive change for cash payments
+    let changeReturned: number | null = null;
+    if (input.payment_method_code === 'CASH' && input.tendered_amount !== undefined) {
+      changeReturned = input.tendered_amount - input.amount;
+    }
 
-      const created = await (tx as typeof prisma).org_fin_voucher_trx_lines_dtl.create({
-        data: {
+    const created = await prisma.org_fin_voucher_trx_lines_dtl.create({
+      data: {
           tenant_org_id:          tenantOrgId,
           voucher_id:             voucherId,
           line_no,
@@ -102,7 +99,7 @@ export async function addVoucherLine(
           amount:                 input.amount,
           currency_code:          input.currency_code ?? null,
           currency_ex_rate:       input.currency_ex_rate ?? null,
-          direction:              input.direction ?? null,
+          direction:              input.direction ?? 'NEUTRAL',
           tendered_amount:        input.tendered_amount ?? null,
           change_returned_amount: changeReturned,
           card_brand_code:        input.card_brand_code ?? null,
@@ -125,11 +122,10 @@ export async function addVoucherLine(
           wiring_status:          'NOT_WIRED',
           created_by:             userId,
         },
-        select: { id: true, line_no: true },
-      });
-
-      return { id: created.id, line_no: created.line_no };
+      select: { id: true, line_no: true },
     });
+
+    return { id: created.id, line_no: created.line_no };
   });
 }
 
