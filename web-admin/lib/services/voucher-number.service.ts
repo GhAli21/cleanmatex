@@ -35,8 +35,9 @@ export async function generateBizVoucherNo(
   const year = new Date().getFullYear();
 
   // Serialize per-tenant to prevent duplicate numbers
+  // Cast to TEXT: pg_advisory_xact_lock returns void, which Prisma cannot deserialize
   await tx.$queryRawUnsafe(
-    `SELECT pg_advisory_xact_lock(hashtext($1::text))`,
+    `SELECT pg_advisory_xact_lock(hashtext($1::text))::TEXT`,
     `bvm_voucher_no_${tenantOrgId}`
   );
 
