@@ -10,14 +10,14 @@ export async function GET(request: NextRequest) {
 
   const sp = request.nextUrl.searchParams;
   const filters: VoucherListFilters = {
-    voucher_type:   (sp.get('voucher_type')   ?? undefined) as VoucherListFilters['voucher_type'],
-    voucher_status: (sp.get('voucher_status') ?? undefined) as VoucherListFilters['voucher_status'],
-    direction:      (sp.get('direction')      ?? undefined) as VoucherListFilters['direction'],
-    party_type:     (sp.get('party_type')     ?? undefined) as VoucherListFilters['party_type'],
-    branch_id:      sp.get('branch_id')      ?? undefined,
-    date_from:      sp.get('date_from')      ?? undefined,
-    date_to:        sp.get('date_to')        ?? undefined,
-    search:         sp.get('search')         ?? undefined,
+    voucher_type:   (sp.get('voucher_type')   || undefined) as VoucherListFilters['voucher_type'],
+    voucher_status: (sp.get('voucher_status') || undefined) as VoucherListFilters['voucher_status'],
+    direction:      (sp.get('direction')      || undefined) as VoucherListFilters['direction'],
+    party_type:     (sp.get('party_type')     || undefined) as VoucherListFilters['party_type'],
+    branch_id:      sp.get('branch_id')      || undefined,
+    date_from:      sp.get('date_from')      || undefined,
+    date_to:        sp.get('date_to')        || undefined,
+    search:         sp.get('search')         || undefined,
   };
   const page     = parseInt(sp.get('page')     ?? '1');
   const pageSize = parseInt(sp.get('pageSize') ?? '20');

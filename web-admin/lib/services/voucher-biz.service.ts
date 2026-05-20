@@ -70,12 +70,17 @@ export async function createBizVoucher(
     return prisma.$transaction(async (tx) => {
       const voucher_no = await generateBizVoucherNo(tenantOrgId, input.voucher_type, tx);
 
+      const direction = input.direction ?? 'NEUTRAL';
+      const voucher_category =
+        direction === 'IN'  ? 'CASH_IN' :
+        direction === 'OUT' ? 'CASH_OUT' : 'NON_CASH';
+
       const created = await (tx as typeof prisma).org_fin_vouchers_mst.create({
         data: {
           tenant_org_id:    tenantOrgId,
           branch_id:        input.branch_id ?? null,
           voucher_no,
-          voucher_category: 'BVM',
+          voucher_category,
           voucher_type:     input.voucher_type,
           voucher_status:   VOUCHER_STATUS.DRAFT,
           posting_status:   'NOT_POSTED',

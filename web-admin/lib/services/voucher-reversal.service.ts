@@ -37,12 +37,13 @@ export async function reverseBizVoucher(
         id: string;
         voucher_no: string;
         voucher_type: string;
+        voucher_category: string;
         voucher_status: string;
         total_amount: string;
         currency_code: string | null;
         branch_id: string | null;
       }>>`
-        SELECT id, voucher_no, voucher_type, voucher_status, total_amount,
+        SELECT id, voucher_no, voucher_type, voucher_category, voucher_status, total_amount,
                currency_code, branch_id
         FROM org_fin_vouchers_mst
         WHERE id = ${voucherId}::uuid
@@ -71,13 +72,16 @@ export async function reverseBizVoucher(
         tx
       );
 
+      // Derive category from original — preserve the original's category on reversal
+      const reversalCategory = original.voucher_category ?? 'NON_CASH';
+
       // Create reversal voucher header
       const reversalVoucher = await db.org_fin_vouchers_mst.create({
         data: {
           tenant_org_id:    tenantOrgId,
           branch_id:        original.branch_id,
           voucher_no:       reversalVoucherNo,
-          voucher_category: 'BVM',
+          voucher_category: reversalCategory,
           voucher_type:     original.voucher_type,
           voucher_status:   VOUCHER_STATUS.POSTED,
           posting_status:   'NOT_POSTED',
