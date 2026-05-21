@@ -165,7 +165,9 @@
       "Bash(xargs grep -l \"voucher\")",
       "Bash(node -e \"const en = require\\('./web-admin/messages/en.json'\\); console.log\\(JSON.stringify\\(en.finance?.vouchers, null, 2\\)\\)\")",
       "Bash(node -e \"const ar = require\\('./web-admin/messages/ar.json'\\); const v = ar.finance?.vouchers; console.log\\(JSON.stringify\\({ declaredTotal: v.declaredTotal, balanceOk: v.balanceOk, balanceOff: v.balanceOff, validation: v.validation }, null, 2\\)\\)\")",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(node -e \"const data = require\\('F:/jhapp/cleanmatex/web-admin/messages/en.json'\\); const m = data.marketing || {}; console.log\\('marketing keys:', Object.keys\\(m\\)\\); console.log\\('promotionsV2 in marketing:', 'promotionsV2' in m\\);\")",
+      "Bash(awk 'NR>=294' /f/jhapp/cleanmatex/web-admin/messages/en.json)"
     ],
     "deny": [
       "Read(node_modules)",

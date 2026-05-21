@@ -338,6 +338,35 @@
       "errors": {
         "codeExists": "Rule code already exists"
       }
+    },
+    "promotionsV2": {
+      "title": "Promotions",
+      "description": "Manage promotional codes and discounts",
+      "add": "Add Promotion",
+      "edit": "Edit Promotion",
+      "name": "Name",
+      "name2": "Name (Arabic)",
+      "code": "Promo Code",
+      "discountType": "Discount Type",
+      "discountValue": "Discount Value",
+      "maxUses": "Max Uses",
+      "maxUsesPerCustomer": "Max Uses Per Customer",
+      "currentUses": "Uses",
+      "validFrom": "Valid From",
+      "validTo": "Valid To",
+      "noExpiry": "No Expiry",
+      "discountTypeLabels": {
+        "PERCENTAGE": "Percentage",
+        "FIXED_AMOUNT": "Fixed Amount",
+        "BUY_X_GET_Y": "Buy X Get Y",
+        "FREE_ITEM": "Free Item"
+      },
+      "activate": "Activate",
+      "deactivate": "Deactivate",
+      "saved": "Promotion saved",
+      "activated": "Promotion activated",
+      "deactivated": "Promotion deactivated",
+      "empty": "No promotions yet"
     }
   },
   "publicOrderTracking": {
@@ -5724,35 +5753,6 @@
         "title": "Deactivate cash drawer?",
         "description": "The cash drawer will be disabled for new cashier sessions."
       }
-    },
-    "promotionsV2": {
-      "title": "Promotions",
-      "description": "Manage promotional codes and discounts",
-      "add": "Add Promotion",
-      "edit": "Edit Promotion",
-      "name": "Name",
-      "name2": "Name (Arabic)",
-      "code": "Promo Code",
-      "discountType": "Discount Type",
-      "discountValue": "Discount Value",
-      "maxUses": "Max Uses",
-      "maxUsesPerCustomer": "Max Uses Per Customer",
-      "currentUses": "Uses",
-      "validFrom": "Valid From",
-      "validTo": "Valid To",
-      "noExpiry": "No Expiry",
-      "discountTypeLabels": {
-        "PERCENTAGE": "Percentage",
-        "FIXED_AMOUNT": "Fixed Amount",
-        "BUY_X_GET_Y": "Buy X Get Y",
-        "FREE_ITEM": "Free Item"
-      },
-      "activate": "Activate",
-      "deactivate": "Deactivate",
-      "saved": "Promotion saved",
-      "activated": "Promotion activated",
-      "deactivated": "Promotion deactivated",
-      "empty": "No promotions yet"
     },
     "loyalty": {
       "title": "Loyalty Program",

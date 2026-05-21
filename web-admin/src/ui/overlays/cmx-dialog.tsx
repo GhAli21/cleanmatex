@@ -58,10 +58,12 @@ export function CmxDialog({ open, onOpenChange, children }: CmxDialogProps) {
 
 export interface CmxDialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
+  bodyPadding?: 'default' | 'compact' | 'none';
 }
 
 export function CmxDialogContent({
   children,
+  bodyPadding = 'default',
   className = '',
   ...props
 }: CmxDialogContentProps) {
@@ -73,12 +75,22 @@ export function CmxDialogContent({
         'relative rounded-lg shadow-xl max-h-[90vh] overflow-y-auto',
         'bg-[rgb(var(--cmx-background-rgb,255_255_255))]',
         'ring-1 ring-[rgb(var(--cmx-border-rgb,226_232_240))]',
+        bodyPadding === 'default' && [
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4',
+          'sm:[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-6',
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-4',
+        ],
+        bodyPadding === 'compact' && [
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4',
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-3',
+        ],
         className
       )}
       {...props}
     >
       {context && (
         <button
+          data-cmx-dialog-close=""
           onClick={() => context.onOpenChange(false)}
           className={cn(
             'absolute top-4 right-4 rtl:right-auto rtl:left-4',
@@ -107,6 +119,7 @@ export function CmxDialogHeader({
 }: CmxDialogHeaderProps) {
   return (
     <div
+      data-cmx-dialog-header=""
       className={cn(
         'px-6 pt-6 pb-4 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))]',
         className
@@ -175,6 +188,7 @@ export function CmxDialogFooter({
 }: CmxDialogFooterProps) {
   return (
     <div
+      data-cmx-dialog-footer=""
       className={cn(
         'px-6 py-4 border-t border-[rgb(var(--cmx-border-rgb,226_232_240))] flex justify-end gap-3',
         className
