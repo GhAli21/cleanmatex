@@ -75,15 +75,10 @@ export function CmxDialogContent({
         'relative rounded-lg shadow-xl max-h-[90vh] overflow-y-auto',
         'bg-[rgb(var(--cmx-background-rgb,255_255_255))]',
         'ring-1 ring-[rgb(var(--cmx-border-rgb,226_232_240))]',
-        bodyPadding === 'default' && [
-          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4',
-          'sm:[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-6',
-          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-4',
-        ],
-        bodyPadding === 'compact' && [
-          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4',
-          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-3',
-        ],
+        bodyPadding === 'default' &&
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4 sm:[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-6 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-4',
+        bodyPadding === 'compact' &&
+          '[&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:px-4 [&>*:not([data-cmx-dialog-header]):not([data-cmx-dialog-footer]):not([data-cmx-dialog-close])]:py-3',
         className
       )}
       {...props}
