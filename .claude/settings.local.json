@@ -161,7 +161,8 @@
       "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^0\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)",
       "Bash(grep -v \"//\")",
       "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); console.log\\(JSON.stringify\\(m.finance?.vouchers, null, 2\\)\\)\")",
-      "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); const idx = JSON.stringify\\(m,null,2\\).indexOf\\('\\\\\"finance.vouchers\\\\\"'\\); console.log\\('finance keys:', Object.keys\\(m.finance || {}\\)\\)\")"
+      "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); const idx = JSON.stringify\\(m,null,2\\).indexOf\\('\\\\\"finance.vouchers\\\\\"'\\); console.log\\('finance keys:', Object.keys\\(m.finance || {}\\)\\)\")",
+      "Bash(xargs grep -l \"voucher\")"
     ],
     "deny": [
       "Read(node_modules)",

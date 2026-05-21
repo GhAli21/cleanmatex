@@ -5819,6 +5819,7 @@
       "postSuccess": "تم ترحيل السند بنجاح.",
       "cancelSuccess": "تم إلغاء السند.",
       "reverseSuccess": "تم إنشاء سند العكس.",
+      "editSuccess": "تم تحديث السند بنجاح.",
       "lineDeleted": "تم حذف البند.",
       "actions": {
         "post": "ترحيل السند",
@@ -5830,7 +5831,8 @@
         "print": "طباعة",
         "export": "تصدير",
         "saveAsDraft": "حفظ كمسودة",
-        "cancelVoucher": "إلغاء القسيمة"
+        "cancelVoucher": "إلغاء القسيمة",
+        "edit": "تعديل السند"
       },
       "statusLabels": {
         "DRAFT": "مسودة",

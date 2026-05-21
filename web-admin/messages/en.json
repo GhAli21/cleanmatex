@@ -5819,6 +5819,7 @@
       "postSuccess": "Voucher posted successfully.",
       "cancelSuccess": "Voucher cancelled.",
       "reverseSuccess": "Reversal voucher created.",
+      "editSuccess": "Voucher updated successfully.",
       "lineDeleted": "Line deleted.",
       "actions": {
         "post": "Post Voucher",
@@ -5830,7 +5831,8 @@
         "print": "Print",
         "export": "Export",
         "saveAsDraft": "Save as Draft",
-        "cancelVoucher": "Cancel Voucher"
+        "cancelVoucher": "Cancel Voucher",
+        "edit": "Edit Voucher"
       },
       "statusLabels": {
         "DRAFT": "Draft",
