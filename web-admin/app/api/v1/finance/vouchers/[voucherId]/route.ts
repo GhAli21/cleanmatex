@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { getBizVoucherById, updateBizVoucher } from '@/lib/services/voucher-biz.service';
+import { updateBizVoucherSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { UpdateBizVoucherInput } from '@/lib/types/voucher';
 
 export async function GET(
@@ -32,11 +33,12 @@ export async function PATCH(
   const { voucherId } = await params;
 
   try {
-    const body = await request.json() as UpdateBizVoucherInput;
-    await updateBizVoucher(tenantId, voucherId, body, userId);
+    const body = await request.json();
+    const validated = updateBizVoucherSchema.parse(body) as UpdateBizVoucherInput;
+    await updateBizVoucher(tenantId, voucherId, validated, userId);
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update voucher';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const { message, status } = formatApiError(err);
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }

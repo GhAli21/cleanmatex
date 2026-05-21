@@ -15,6 +15,7 @@ import { VoucherCancelDialog } from '@features/finance/vouchers/ui/voucher-cance
 import { createBizVoucherAction, postBizVoucherAction, cancelBizVoucherAction } from '@/app/actions/finance/voucher-actions';
 import { addVoucherLineAction, deleteDraftVoucherLineAction } from '@/app/actions/finance/voucher-line-actions';
 import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE, VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { createBizVoucherSchema } from '@/lib/validators/voucher-validators';
 import { useMessage } from '@ui/feedback/useMessage';
 import type {
   CreateVoucherLineInput,
@@ -32,6 +33,7 @@ interface VoucherDraft {
   voucher_no: string;
   voucher_type: VoucherType;
   direction: string;
+  total_amount?: number;
   party_type?: string;
   party_name?: string;
   description?: string;
@@ -74,11 +76,13 @@ export function NewVoucherClient() {
   // ── Header form state ──
   const [voucherType, setVoucherType] = useState<VoucherType>(VOUCHER_TYPE.RECEIPT);
   const [direction, setDirection] = useState<VoucherDirection>(VOUCHER_DIRECTION.IN);
+  const [totalAmountStr, setTotalAmountStr] = useState('');
   const [partyType, setPartyType] = useState('');
   const [partyName, setPartyName] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
-  const [headerError, setHeaderError] = useState<string | null>(null);
+  const [headerError,  setHeaderError]  = useState<string | null>(null);
+  const [fieldErrors,  setFieldErrors]  = useState<Record<string, string | undefined>>({});
 
   // ── Dialog state ──
   const [addLineOpen, setAddLineOpen] = useState(false);
@@ -92,8 +96,10 @@ export function NewVoucherClient() {
 
   const anyPending = isHeaderPending || isLinePending || isPostPending || isCancelPending;
 
-  // ── Computed total ──
-  const total = lines.reduce((sum, l) => sum + l.amount, 0);
+  // ── Computed totals ──
+  const total         = lines.reduce((sum, l) => sum + l.amount, 0);
+  const declaredTotal = draft?.total_amount ?? 0;
+  const isBalanced    = declaredTotal === 0 || Math.abs(total - declaredTotal) <= 0.005;
 
   // ── Header type change ──
   function handleTypeChange(type: VoucherType) {
@@ -107,17 +113,34 @@ export function NewVoucherClient() {
   function handleHeaderSubmit(e: React.FormEvent) {
     e.preventDefault();
     setHeaderError(null);
+    setFieldErrors({});
+
+    const parsedTotal = parseFloat(totalAmountStr);
+    const payload = {
+      voucher_type:  voucherType,
+      direction:     direction as never,
+      party_type:    (partyType || undefined) as never,
+      party_name:    partyName   || undefined,
+      description:   description || undefined,
+      notes:         notes       || undefined,
+      voucher_date:  new Date().toISOString().split('T')[0],
+      total_amount:  parsedTotal > 0 ? parsedTotal : undefined,
+    };
+
+    // Client-side validation — instant feedback, no server round-trip
+    const parse = createBizVoucherSchema.safeParse(payload);
+    if (!parse.success) {
+      const flat = parse.error.flatten().fieldErrors;
+      const mapped: Record<string, string> = {};
+      for (const [key, msgs] of Object.entries(flat)) {
+        if (msgs?.[0]) mapped[key] = msgs[0];
+      }
+      setFieldErrors(mapped);
+      return;
+    }
 
     startHeaderTransition(async () => {
-      const result = await createBizVoucherAction({
-        voucher_type:  voucherType,
-        direction:     direction as never,
-        party_type:    (partyType || undefined) as never,
-        party_name:    partyName   || undefined,
-        description:   description || undefined,
-        notes:         notes       || undefined,
-        voucher_date:  new Date().toISOString().split('T')[0],
-      });
+      const result = await createBizVoucherAction(payload);
 
       if (result.success && result.data) {
         setDraft({
@@ -125,6 +148,7 @@ export function NewVoucherClient() {
           voucher_no:   result.data.voucher_no,
           voucher_type: voucherType,
           direction,
+          total_amount: parsedTotal > 0 ? parsedTotal : undefined,
           party_type:   partyType || undefined,
           party_name:   partyName || undefined,
           description:  description || undefined,
@@ -299,6 +323,26 @@ export function NewVoucherClient() {
               </div>
             </div>
 
+            {/* Declared Total */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                {t('declaredTotal')} <span className="text-xs text-gray-400">({tCommon('optional')})</span>
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={totalAmountStr}
+                onChange={(e) => { setTotalAmountStr(e.target.value); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.total_amount ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                placeholder="0.00"
+              />
+              {fieldErrors.total_amount
+                ? <p className="mt-1 text-xs text-red-600">{fieldErrors.total_amount}</p>
+                : <p className="mt-1 text-xs text-gray-400">{t('declaredTotalHint')}</p>
+              }
+            </div>
+
             {/* Party Type */}
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">
@@ -324,10 +368,11 @@ export function NewVoucherClient() {
               <input
                 type="text"
                 value={partyName}
-                onChange={(e) => setPartyName(e.target.value)}
+                onChange={(e) => { setPartyName(e.target.value); setFieldErrors((p) => ({ ...p, party_name: undefined })); }}
                 maxLength={250}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
               />
+              {fieldErrors.party_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.party_name}</p>}
             </div>
 
             {/* Description */}
@@ -446,15 +491,30 @@ export function NewVoucherClient() {
           />
         </CmxCardContent>
 
-        {/* Running total */}
+        {/* Running total + balance status */}
         {lines.length > 0 && (
-          <div className="flex items-center justify-between border-t border-gray-100 px-6 py-3 rtl:flex-row-reverse">
-            <span className="text-sm text-gray-500">
-              {t('totalLines', { count: lines.length })}
-            </span>
-            <span className="font-mono text-lg font-semibold text-gray-900">
-              {total.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
-            </span>
+          <div className="border-t border-gray-100 px-6 py-3">
+            <div className="flex items-center justify-between rtl:flex-row-reverse">
+              <span className="text-sm text-gray-500">
+                {t('totalLines', { count: lines.length })}
+              </span>
+              <span className="font-mono text-lg font-semibold text-gray-900">
+                {total.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+            {declaredTotal > 0 && (
+              <div className="mt-1.5 flex items-center justify-between rtl:flex-row-reverse">
+                <span className="text-xs text-gray-400">{t('declaredTotal')}</span>
+                <span className={`text-sm font-medium ${isBalanced ? 'text-green-700' : 'text-amber-700'}`}>
+                  {declaredTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
+                  <span className="ms-2">
+                    {isBalanced
+                      ? `✓ ${t('balanceOk')}`
+                      : `⚠ ${t('balanceOff', { diff: Math.abs(total - declaredTotal).toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 }) })}`}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         )}
       </CmxCard>
@@ -483,7 +543,7 @@ export function NewVoucherClient() {
           </CmxButton>
           <CmxButton
             onClick={handlePost}
-            disabled={anyPending || lines.length === 0}
+            disabled={anyPending || lines.length === 0 || (declaredTotal > 0 && !isBalanced)}
           >
             {isPostPending ? tCommon('loading') : t('actions.post')}
           </CmxButton>
@@ -492,6 +552,9 @@ export function NewVoucherClient() {
 
       {lines.length === 0 && (
         <p className="text-center text-xs text-amber-600">{t('validation.atLeastOneLine')}</p>
+      )}
+      {lines.length > 0 && declaredTotal > 0 && !isBalanced && (
+        <p className="text-center text-xs text-amber-600">{t('validation.totalMismatch')}</p>
       )}
 
       {/* ── Dialogs ── */}

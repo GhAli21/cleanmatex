@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
@@ -13,7 +12,11 @@ import {
 } from '@/lib/services/voucher-biz.service';
 import { postBizVoucher } from '@/lib/services/voucher-posting.service';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
-import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE } from '@/lib/constants/voucher';
+import {
+  createBizVoucherSchema,
+  updateBizVoucherSchema,
+  listVoucherFiltersSchema,
+} from '@/lib/validators/voucher-validators';
 import type {
   CreateBizVoucherInput,
   UpdateBizVoucherInput,
@@ -21,57 +24,6 @@ import type {
   BizVoucherDetailData,
   VoucherListItem,
 } from '@/lib/types/voucher';
-
-// ── Zod schemas ───────────────────────────────────────────────────────────────
-
-const createBizVoucherSchema = z.object({
-  voucher_type:      z.enum([
-    VOUCHER_TYPE.RECEIPT, VOUCHER_TYPE.PAYMENT,
-    VOUCHER_TYPE.REFUND, VOUCHER_TYPE.ADJUSTMENT, VOUCHER_TYPE.TRANSFER,
-  ]),
-  branch_id:         z.string().uuid().optional(),
-  voucher_date:      z.string().optional(),
-  voucher_datetime:  z.string().optional(),
-  direction:         z.enum([VOUCHER_DIRECTION.IN, VOUCHER_DIRECTION.OUT, VOUCHER_DIRECTION.NEUTRAL]).optional(),
-  party_type:        z.enum([PARTY_TYPE.CUSTOMER, PARTY_TYPE.SUPPLIER, PARTY_TYPE.EMPLOYEE, PARTY_TYPE.OTHER]).optional(),
-  party_name:        z.string().max(250).optional(),
-  customer_id:       z.string().uuid().optional(),
-  supplier_id:       z.string().uuid().optional(),
-  employee_id:       z.string().uuid().optional(),
-  order_id:          z.string().uuid().optional(),
-  invoice_id:        z.string().uuid().optional(),
-  currency_code:     z.string().length(3).optional(),
-  currency_ex_rate:  z.number().positive().optional(),
-  description:       z.string().optional(),
-  notes:             z.string().optional(),
-  source_module:     z.string().optional(),
-  source_ref_type:   z.string().optional(),
-  source_ref_id:     z.string().uuid().optional(),
-  idempotency_key:   z.string().optional(),
-});
-
-const updateBizVoucherSchema = z.object({
-  branch_id:    z.string().uuid().optional(),
-  voucher_date: z.string().optional(),
-  party_type:   z.string().optional(),
-  supplier_id:  z.string().uuid().optional(),
-  employee_id:  z.string().uuid().optional(),
-  party_name:   z.string().max(250).optional(),
-  customer_id:  z.string().uuid().optional(),
-  description:  z.string().optional(),
-  notes:        z.string().optional(),
-});
-
-const listFiltersSchema = z.object({
-  voucher_type:   z.string().optional(),
-  voucher_status: z.string().optional(),
-  direction:      z.string().optional(),
-  party_type:     z.string().optional(),
-  branch_id:      z.string().uuid().optional(),
-  date_from:      z.string().optional(),
-  date_to:        z.string().optional(),
-  search:         z.string().optional(),
-}).optional();
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
@@ -199,7 +151,7 @@ export async function listBizVouchersAction(
     const hasPerm = await hasPermissionServer('fin_vouchers:view');
     if (!hasPerm) return { success: false, error: 'Permission denied: fin_vouchers:view' };
 
-    const validatedFilters = listFiltersSchema.parse(filters) ?? {};
+    const validatedFilters = listVoucherFiltersSchema.parse(filters) ?? {};
     const result = await listBizVouchers(auth.tenantId, validatedFilters as VoucherListFilters, page, pageSize);
     return { success: true, data: result };
   } catch (error) {

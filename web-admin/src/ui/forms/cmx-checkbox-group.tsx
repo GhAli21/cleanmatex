@@ -29,6 +29,10 @@ export interface CmxCheckboxGroupProps {
   showSelectAll?: boolean
   className?: string
   disabled?: boolean
+  selectAllLabel?: string
+  clearAllLabel?: string
+  selectionSummary?: (selectedCount: number, totalCount: number) => string
+  columns?: 1 | 2 | 3
 }
 
 export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
@@ -42,6 +46,10 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
   showSelectAll = true,
   className,
   disabled,
+  selectAllLabel = 'Select all',
+  clearAllLabel = 'Clear all',
+  selectionSummary,
+  columns = 2,
 }) => {
   const handleToggle = (optionValue: string) => {
     if (!onChange || disabled) return
@@ -65,30 +73,27 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
   }
 
   const allSelected = options.every((opt) => opt.disabled || value.includes(opt.value))
-  const someSelected = value.length > 0 && !allSelected
-
   return (
-    <div className={cn('space-y-3', className)}>
-      {/* Header */}
+    <fieldset className={cn('space-y-3', className)} disabled={disabled}>
       {(label || description || showSelectAll) && (
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            {label && (
-              <label className="text-sm font-medium text-[rgb(var(--cmx-foreground-rgb,15_23_42))]">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0 flex-1">
+            {label ? (
+              <legend className="cmx-type-field-label text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
                 {label}
-                {required && <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>}
-              </label>
-            )}
-            {description && (
-              <p className="mt-0.5 text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                {required ? (
+                  <span className="ml-1 text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">*</span>
+                ) : null}
+              </legend>
+            ) : null}
+            {description ? (
+              <p className="cmx-type-field-helper mt-1 text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
                 {description}
               </p>
-            )}
+            ) : null}
           </div>
-
-          {/* Select All / Deselect All buttons */}
-          {showSelectAll && options.length > 0 && (
-            <div className="flex gap-2">
+          {showSelectAll && options.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
               <CmxButton
                 type="button"
                 variant="ghost"
@@ -96,7 +101,7 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
                 onClick={handleSelectAll}
                 disabled={disabled || allSelected}
               >
-                Select All
+                {selectAllLabel}
               </CmxButton>
               <CmxButton
                 type="button"
@@ -105,42 +110,57 @@ export const CmxCheckboxGroup: React.FC<CmxCheckboxGroupProps> = ({
                 onClick={handleDeselectAll}
                 disabled={disabled || value.length === 0}
               >
-                Deselect All
+                {clearAllLabel}
               </CmxButton>
             </div>
-          )}
+          ) : null}
         </div>
       )}
 
-      {/* Checkbox list */}
-      <div className="space-y-3 rounded-lg border-2 border-[rgb(var(--cmx-border-rgb,226_232_240))] p-4 bg-[rgb(var(--cmx-card-bg-rgb,255_255_255))]">
-        {options.map((option) => (
-          <div key={option.value} className="pb-3 last:pb-0 border-b border-[rgb(var(--cmx-border-rgb,226_232_240))] last:border-b-0">
-            <CmxCheckbox
-              checked={value.includes(option.value)}
-              onChange={() => handleToggle(option.value)}
-              label={option.label}
-              description={option.description}
-              disabled={disabled || option.disabled}
-            />
-          </div>
-        ))}
+      <div className="rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-rgb,255_255_255))] p-4 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]">
+        <div
+          className={cn(
+            'grid gap-3',
+            columns === 1 && 'grid-cols-1',
+            columns === 2 && 'grid-cols-1 md:grid-cols-2',
+            columns === 3 && 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+          )}
+        >
+          {options.map((option) => (
+            <div
+              key={option.value}
+              className={cn(
+                'flex min-h-[44px] cursor-pointer items-start gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-input-bg-rgb,255_255_255))] px-3 py-3 transition hover:bg-[rgb(var(--cmx-secondary-bg-rgb,239_246_255))] hover:shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
+                (disabled || option.disabled) && 'cursor-not-allowed opacity-60'
+              )}
+            >
+              <CmxCheckbox
+                checked={value.includes(option.value)}
+                onChange={() => handleToggle(option.value)}
+                label={option.label}
+                description={option.description}
+                disabled={disabled || option.disabled}
+                className="mt-0.5"
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Error message */}
-      {error && (
-        <p className="text-xs text-[rgb(var(--cmx-destructive-rgb,220_38_38))]">
+      {error ? (
+        <p className="cmx-type-field-error text-[rgb(var(--cmx-destructive-rgb,220_38_38))]" role="alert">
           {error}
         </p>
-      )}
+      ) : null}
 
-      {/* Selection count */}
-      {value.length > 0 && !error && (
-        <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-          {value.length} of {options.length} selected
+      {value.length > 0 && !error ? (
+        <p className="cmx-type-field-helper text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+          {selectionSummary
+            ? selectionSummary(value.length, options.length)
+            : `${value.length} of ${options.length} selected`}
         </p>
-      )}
-    </div>
+      ) : null}
+    </fieldset>
   )
 }
 

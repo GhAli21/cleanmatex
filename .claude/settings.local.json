@@ -162,7 +162,10 @@
       "Bash(grep -v \"//\")",
       "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); console.log\\(JSON.stringify\\(m.finance?.vouchers, null, 2\\)\\)\")",
       "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); const idx = JSON.stringify\\(m,null,2\\).indexOf\\('\\\\\"finance.vouchers\\\\\"'\\); console.log\\('finance keys:', Object.keys\\(m.finance || {}\\)\\)\")",
-      "Bash(xargs grep -l \"voucher\")"
+      "Bash(xargs grep -l \"voucher\")",
+      "Bash(node -e \"const en = require\\('./web-admin/messages/en.json'\\); console.log\\(JSON.stringify\\(en.finance?.vouchers, null, 2\\)\\)\")",
+      "Bash(node -e \"const ar = require\\('./web-admin/messages/ar.json'\\); const v = ar.finance?.vouchers; console.log\\(JSON.stringify\\({ declaredTotal: v.declaredTotal, balanceOk: v.balanceOk, balanceOff: v.balanceOff, validation: v.validation }, null, 2\\)\\)\")",
+      "Bash(npm run *)"
     ],
     "deny": [
       "Read(node_modules)",

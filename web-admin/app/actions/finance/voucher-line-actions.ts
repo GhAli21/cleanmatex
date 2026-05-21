@@ -1,7 +1,6 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
@@ -10,63 +9,11 @@ import {
   deleteDraftVoucherLine,
   listVoucherLines,
 } from '@/lib/services/voucher-line.service';
+import {
+  createVoucherLineSchema as addLineSchema,
+  updateVoucherLineSchema as updateLineSchema,
+} from '@/lib/validators/voucher-validators';
 import type { CreateVoucherLineInput, UpdateVoucherLineInput, VoucherLineData } from '@/lib/types/voucher';
-
-// ── Zod schemas ───────────────────────────────────────────────────────────────
-
-const addLineSchema = z.object({
-  line_type:              z.string(),
-  line_role:              z.string(),
-  target_type:            z.string().optional(),
-  target_id:              z.string().uuid().optional(),
-  order_id:               z.string().uuid().optional(),
-  customer_id:            z.string().uuid().optional(),
-  supplier_id:            z.string().uuid().optional(),
-  employee_id:            z.string().uuid().optional(),
-  branch_id:              z.string().uuid().optional(),
-  cash_drawer_session_id: z.string().uuid().optional(),
-  payment_method_code:    z.string().optional(),
-  amount:                 z.number().min(0),
-  currency_code:          z.string().length(3).optional(),
-  currency_ex_rate:       z.number().positive().optional(),
-  direction:              z.string().optional(),
-  tendered_amount:        z.number().min(0).optional(),
-  card_brand_code:        z.string().optional(),
-  card_last4:             z.string().max(4).optional(),
-  auth_code:              z.string().optional(),
-  gateway_code:           z.string().optional(),
-  gateway_transaction_id: z.string().optional(),
-  gateway_reference:      z.string().optional(),
-  bank_reference:         z.string().optional(),
-  check_number:           z.string().optional(),
-  check_bank:             z.string().optional(),
-  check_date:             z.string().optional(),
-  expense_category_code:  z.string().optional(),
-  party_name:             z.string().optional(),
-  description:            z.string().optional(),
-  notes:                  z.string().optional(),
-  reversed_line_id:       z.string().uuid().optional(),
-  idempotency_key:        z.string().optional(),
-});
-
-const updateLineSchema = z.object({
-  line_type:           z.string().optional(),
-  line_role:           z.string().optional(),
-  target_type:         z.string().optional(),
-  target_id:           z.string().uuid().optional(),
-  order_id:            z.string().uuid().optional(),
-  customer_id:         z.string().uuid().optional(),
-  payment_method_code: z.string().optional(),
-  amount:              z.number().min(0).optional(),
-  currency_code:       z.string().length(3).optional(),
-  direction:           z.string().optional(),
-  tendered_amount:     z.number().min(0).optional(),
-  expense_category_code: z.string().optional(),
-  bank_reference:      z.string().optional(),
-  party_name:          z.string().optional(),
-  description:         z.string().optional(),
-  notes:               z.string().optional(),
-});
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 

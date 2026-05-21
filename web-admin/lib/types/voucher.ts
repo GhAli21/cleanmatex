@@ -132,6 +132,7 @@ export interface CreateBizVoucherInput {
   invoice_id?: string;
   currency_code?: string;
   currency_ex_rate?: number;
+  total_amount?: number;
   description?: string;
   notes?: string;
   source_module?: string;
@@ -149,6 +150,7 @@ export interface UpdateBizVoucherInput {
   employee_id?: string;
   party_name?: string;
   customer_id?: string;
+  total_amount?: number;
   description?: string;
   notes?: string;
 }

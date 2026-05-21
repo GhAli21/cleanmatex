@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listVoucherLines, addVoucherLine } from '@/lib/services/voucher-line.service';
+import { createVoucherLineSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { CreateVoucherLineInput } from '@/lib/types/voucher';
 
 export async function GET(
@@ -30,11 +31,12 @@ export async function POST(
     const hasPerm = await hasPermissionServer('fin_voucher_lines:create');
     if (!hasPerm) return NextResponse.json({ success: false, error: 'Permission denied' }, { status: 403 });
     const { voucherId } = await params;
-    const body = await request.json() as CreateVoucherLineInput;
-    const result = await addVoucherLine(auth.tenantId, voucherId, body, auth.userId);
+    const body = await request.json();
+    const validated = createVoucherLineSchema.parse(body) as CreateVoucherLineInput;
+    const result = await addVoucherLine(auth.tenantId, voucherId, validated, auth.userId);
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to add voucher line';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const { message, status } = formatApiError(err);
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }

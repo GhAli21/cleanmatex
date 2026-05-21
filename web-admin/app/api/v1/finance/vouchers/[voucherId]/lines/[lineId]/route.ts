@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { updateVoucherLine, deleteDraftVoucherLine } from '@/lib/services/voucher-line.service';
+import { updateVoucherLineSchema, formatApiError } from '@/lib/validators/voucher-validators';
 import type { UpdateVoucherLineInput } from '@/lib/types/voucher';
 
 export async function PATCH(
@@ -13,12 +14,13 @@ export async function PATCH(
   const { lineId } = await params;
 
   try {
-    const body = await request.json() as UpdateVoucherLineInput;
-    await updateVoucherLine(tenantId, lineId, body, userId);
+    const body = await request.json();
+    const validated = updateVoucherLineSchema.parse(body) as UpdateVoucherLineInput;
+    await updateVoucherLine(tenantId, lineId, validated, userId);
     return NextResponse.json({ success: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to update voucher line';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    const { message, status } = formatApiError(err);
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }
 

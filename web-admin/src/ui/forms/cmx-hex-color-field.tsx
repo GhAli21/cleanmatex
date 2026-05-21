@@ -5,6 +5,7 @@ import { type ChangeEvent, useCallback, useId, useMemo } from 'react';
 import { CmxButton, CmxInput } from '@ui/primitives';
 import { COLOR_HEX_PICKER_FALLBACK } from '@/lib/constants/css-color';
 import { bridgeHexForNativePicker, parseCssHexToFull } from '@/lib/utils/color-hex';
+import { CmxFieldShell } from './cmx-field-shell';
 
 export interface CmxHexColorFieldProps {
   label: string;
@@ -18,6 +19,8 @@ export interface CmxHexColorFieldProps {
   onChange: (nextHexDraft: string) => void;
   /** Highlight when non-empty hex is malformed */
   invalidMessage?: string;
+  presets?: string[];
+  presetAriaLabel?: string;
 }
 
 /**
@@ -35,15 +38,16 @@ export function CmxHexColorField({
   value,
   onChange,
   invalidMessage,
+  presets = [],
+  presetAriaLabel = 'Select preset color',
 }: CmxHexColorFieldProps) {
   const id = useId();
   const textId = `${id}-hex`;
-  const helperId = `${id}-hint`;
-  const invalidId = `${id}-err`;
 
   const bridge = useMemo(() => bridgeHexForNativePicker(value), [value]);
   const trimmed = value.trim();
   const isInvalid = trimmed.length > 0 && parseCssHexToFull(trimmed) === null;
+  const normalizedValue = parseCssHexToFull(trimmed) ?? bridge;
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -61,11 +65,12 @@ export function CmxHexColorField({
   }, [onChange, trimmed, value]);
 
   return (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-gray-700" htmlFor={textId}>
-        {label}
-      </label>
-
+    <CmxFieldShell
+      id={textId}
+      label={label}
+      hint={helperText}
+      error={invalidMessage && isInvalid ? invalidMessage : undefined}
+    >
       <div className="flex flex-wrap items-stretch gap-2">
         <input
           id={`${id}-picker`}
@@ -75,11 +80,17 @@ export function CmxHexColorField({
           disabled={disabled}
           aria-label={pickerAriaLabel}
           className={[
-            'h-10 w-10 shrink-0 cursor-pointer rounded-md border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
-            'bg-[rgb(var(--cmx-muted-rgb,248_250_252))] p-1',
+            'h-11 w-11 shrink-0 cursor-pointer rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))]',
+            'bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-1 shadow-[var(--cmx-shadow-sm,0_8px_24px_rgba(15,23,42,0.06))]',
             'disabled:opacity-50 disabled:cursor-not-allowed',
           ].join(' ')}
           title={pickerAriaLabel}
+        />
+
+        <div
+          className="hidden h-11 w-11 shrink-0 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] shadow-inner md:block"
+          style={{ backgroundColor: normalizedValue }}
+          aria-hidden="true"
         />
 
         <div dir="ltr" className="min-w-0 flex-1 basis-[140px]" lang="en">
@@ -94,9 +105,6 @@ export function CmxHexColorField({
             disabled={disabled}
             onBlur={onBlurHex}
             aria-invalid={isInvalid}
-            aria-describedby={
-              [helperText ? helperId : '', isInvalid ? invalidId : ''].filter(Boolean).join(' ') || undefined
-            }
             className="w-full font-mono uppercase"
           />
         </div>
@@ -115,17 +123,35 @@ export function CmxHexColorField({
         ) : null}
       </div>
 
-      {helperText ? (
-        <p id={helperId} className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
-          {helperText}
-        </p>
-      ) : null}
+      {presets.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {presets.map((preset) => {
+            const normalizedPreset = parseCssHexToFull(preset);
+            if (!normalizedPreset) {
+              return null;
+            }
 
-      {invalidMessage && isInvalid ? (
-        <p id={invalidId} className="text-xs text-red-600" role="alert">
-          {invalidMessage}
-        </p>
+            const isSelected = normalizedPreset === normalizedValue;
+
+            return (
+              <button
+                key={normalizedPreset}
+                type="button"
+                aria-label={`${presetAriaLabel}: ${normalizedPreset}`}
+                className={[
+                  'h-9 w-9 rounded-full border-2 shadow-sm transition',
+                  isSelected
+                    ? 'border-[rgb(var(--cmx-primary-rgb,37_99_235))] ring-2 ring-[rgb(var(--cmx-focus-ring-rgb,59_130_246))]/20'
+                    : 'border-white hover:scale-[1.03]',
+                ].join(' ')}
+                style={{ backgroundColor: normalizedPreset }}
+                onClick={() => onChange(normalizedPreset)}
+                disabled={disabled}
+              />
+            );
+          })}
+        </div>
       ) : null}
-    </div>
+    </CmxFieldShell>
   );
 }

@@ -27,6 +27,7 @@ import {
   addVoucherLineAction,
   deleteDraftVoucherLineAction,
 } from '@/app/actions/finance/voucher-line-actions';
+import { updateBizVoucherSchema } from '@/lib/validators/voucher-validators';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import type {
   BizVoucherDetailData,
@@ -47,6 +48,7 @@ interface VoucherEditDialogProps {
 interface HeaderForm {
   voucher_date: string;
   party_name: string;
+  total_amount: string;
   description: string;
   notes: string;
 }
@@ -54,6 +56,7 @@ interface HeaderForm {
 const EMPTY_HEADER: HeaderForm = {
   voucher_date: '',
   party_name: '',
+  total_amount: '',
   description: '',
   notes: '',
 };
@@ -76,6 +79,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
   const [lines,          setLines]          = useState<VoucherLineData[]>([]);
   const [form,           setForm]           = useState<HeaderForm>(EMPTY_HEADER);
   const [savingHeader,   setSavingHeader]   = useState(false);
+  const [fieldErrors,    setFieldErrors]    = useState<Record<string, string | undefined>>({});
   const [addLineOpen,    setAddLineOpen]    = useState(false);
   const [addingLine,     setAddingLine]     = useState(false);
   const [deletingLineId, setDeletingLineId] = useState<string | null>(null);
@@ -121,6 +125,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
       setForm({
         voucher_date: d.voucher_date ?? '',
         party_name:   d.party_name   ?? '',
+        total_amount: d.total_amount > 0 ? String(d.total_amount) : '',
         description:  d.description  ?? '',
         notes:        d.notes        ?? '',
       });
@@ -138,6 +143,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
     setLines([]);
     setForm(EMPTY_HEADER);
     setFetchError(null);
+    setFieldErrors({});
     setAddLineOpen(false);
     onClose();
   }
@@ -147,20 +153,44 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
       setForm((prev) => ({ ...prev, [key]: e.target.value }));
   }
 
+  const formTotalAmount   = parseFloat(form.total_amount) || 0;
   const isHeaderDirty =
     detail !== null &&
-    (form.voucher_date !== (detail.voucher_date ?? '') ||
-     form.party_name   !== (detail.party_name   ?? '') ||
-     form.description  !== (detail.description  ?? '') ||
+    (form.voucher_date !== (detail.voucher_date ?? '')  ||
+     form.party_name   !== (detail.party_name   ?? '')  ||
+     formTotalAmount   !== detail.total_amount           ||
+     form.description  !== (detail.description  ?? '')  ||
      form.notes        !== (detail.notes        ?? ''));
 
   async function handleSaveHeader() {
     if (!detail || !isHeaderDirty) return;
+
+    // Client-side validation — instant feedback before server round-trip
+    const payload = {
+      voucher_date: form.voucher_date || undefined,
+      party_name:   form.party_name   || undefined,
+      total_amount: formTotalAmount > 0 ? formTotalAmount : 0,
+      description:  form.description  || undefined,
+      notes:        form.notes        || undefined,
+    };
+    const parse = updateBizVoucherSchema.safeParse(payload);
+    if (!parse.success) {
+      const flat = parse.error.flatten().fieldErrors;
+      const mapped: Record<string, string> = {};
+      for (const [key, msgs] of Object.entries(flat)) {
+        if (msgs?.[0]) mapped[key] = msgs[0];
+      }
+      setFieldErrors(mapped);
+      return;
+    }
+    setFieldErrors({});
+
     setSavingHeader(true);
     try {
       const input: UpdateBizVoucherInput = {
         voucher_date: form.voucher_date || undefined,
         party_name:   form.party_name,
+        total_amount: formTotalAmount > 0 ? formTotalAmount : 0,
         description:  form.description,
         notes:        form.notes,
       };
@@ -175,6 +205,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
         ...prev,
         voucher_date: form.voucher_date || null,
         party_name:   form.party_name   || null,
+        total_amount: formTotalAmount > 0 ? formTotalAmount : 0,
         description:  form.description  || null,
         notes:        form.notes        || null,
       } : prev);
@@ -221,10 +252,6 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
         created_at:            new Date(),
       };
       setLines((prev) => [...prev, optimisticLine]);
-      setDetail((prev) => prev
-        ? { ...prev, total_amount: prev.total_amount + input.amount }
-        : prev
-      );
     } finally {
       setAddingLine(false);
     }
@@ -241,14 +268,7 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
       }
       showSuccess(t('lineDeleted'));
       setHasChanges(true);
-      const removed = lines.find((l) => l.id === lineId);
       setLines((prev) => prev.filter((l) => l.id !== lineId));
-      if (removed) {
-        setDetail((prev) => prev
-          ? { ...prev, total_amount: prev.total_amount - removed.amount }
-          : prev
-        );
-      }
     } finally {
       setDeletingLineId(null);
     }
@@ -256,8 +276,10 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
 
   // ── Derived ───────────────────────────────────────────────────────────────────
 
-  const isDraft    = detail?.voucher_status === VOUCHER_STATUS.DRAFT;
-  const linesTotal = lines.reduce((sum, l) => sum + l.amount, 0);
+  const isDraft      = detail?.voucher_status === VOUCHER_STATUS.DRAFT;
+  const linesTotal   = lines.reduce((sum, l) => sum + l.amount, 0);
+  const declaredAmt  = detail?.total_amount ?? 0;
+  const isBalanced   = declaredAmt === 0 || Math.abs(linesTotal - declaredAmt) <= 0.005;
 
   if (!voucher) return null;
 
@@ -335,10 +357,10 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                       {t('totalAmount')}
                     </p>
                     <p className="mt-0.5 font-mono font-semibold text-gray-900">
-                      {detail.total_amount.toLocaleString(isRtl ? 'ar' : 'en', {
-                        minimumFractionDigits: 2,
-                      })}
-                      {detail.currency_code && (
+                      {detail.total_amount > 0
+                        ? detail.total_amount.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })
+                        : '—'}
+                      {detail.total_amount > 0 && detail.currency_code && (
                         <span className="ms-1 text-xs font-normal text-gray-400">
                           {detail.currency_code}
                         </span>
@@ -382,10 +404,26 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                             <input
                               type="text"
                               value={form.party_name}
-                              onChange={setField('party_name')}
+                              onChange={(e) => { setField('party_name')(e); setFieldErrors((p) => ({ ...p, party_name: undefined })); }}
                               maxLength={250}
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.party_name ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
                             />
+                            {fieldErrors.party_name && <p className="mt-1 text-xs text-red-600">{fieldErrors.party_name}</p>}
+                          </div>
+                          <div>
+                            <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                              {t('declaredTotal')}
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={form.total_amount}
+                              onChange={(e) => { setField('total_amount')(e); setFieldErrors((p) => ({ ...p, total_amount: undefined })); }}
+                              className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${fieldErrors.total_amount ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}`}
+                              placeholder="0.00"
+                            />
+                            {fieldErrors.total_amount && <p className="mt-1 text-xs text-red-600">{fieldErrors.total_amount}</p>}
                           </div>
                         </div>
                         <div>
@@ -427,10 +465,13 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                       /* Read-only view for non-DRAFT vouchers */
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         {[
-                          { label: t('voucherDate'), value: detail.voucher_date },
-                          { label: t('party'),       value: detail.party_name   },
-                          { label: t('description'), value: detail.description  },
-                          { label: t('notes'),       value: detail.notes        },
+                          { label: t('voucherDate'),  value: detail.voucher_date },
+                          { label: t('party'),        value: detail.party_name   },
+                          { label: t('declaredTotal'), value: detail.total_amount > 0
+                              ? detail.total_amount.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })
+                              : null },
+                          { label: t('description'),  value: detail.description  },
+                          { label: t('notes'),        value: detail.notes        },
                         ].map(({ label, value }) => (
                           <div key={label}>
                             <p className="text-xs font-medium text-gray-400">{label}</p>
@@ -551,10 +592,17 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
                           <tfoot className="border-t border-gray-200 bg-gray-50">
                             <tr>
                               <td colSpan={4} className="px-4 py-3" />
-                              <td className="px-4 py-3 text-end font-mono font-semibold text-gray-900 tabular-nums">
-                                {linesTotal.toLocaleString(isRtl ? 'ar' : 'en', {
-                                  minimumFractionDigits: 2,
-                                })}
+                              <td className="px-4 py-3 text-end tabular-nums">
+                                <div className="font-mono font-semibold text-gray-900">
+                                  {linesTotal.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
+                                </div>
+                                {declaredAmt > 0 && (
+                                  <div className={`mt-0.5 text-xs font-medium ${isBalanced ? 'text-green-700' : 'text-amber-700'}`}>
+                                    {isBalanced
+                                      ? `✓ ${t('balanceOk')}`
+                                      : `⚠ ${t('balanceOff', { diff: Math.abs(linesTotal - declaredAmt).toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 }) })}`}
+                                  </div>
+                                )}
                               </td>
                               <td colSpan={isDraft ? 2 : 1} className="px-4 py-3" />
                             </tr>

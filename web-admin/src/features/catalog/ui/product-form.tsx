@@ -1,9 +1,36 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+/**
+ * Product form is the first real feature screen wired to the refreshed
+ * `@ui/forms` layer so the new hierarchy, spacing, and recovery states can
+ * be reviewed in an actual business workflow.
+ */
+
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { useTranslations } from 'next-intl'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+import {
+  CmxForm,
+  CmxFormActions,
+  CmxFormField,
+  CmxFormSection,
+  CmxFormStatusBanner,
+} from '@ui/forms'
+import {
+  Badge,
+  CmxButton,
+  CmxCard,
+  CmxCardContent,
+  CmxCardDescription,
+  CmxCardHeader,
+  CmxCardTitle,
+  CmxInput,
+  CmxSelect,
+  CmxSwitch,
+} from '@ui/primitives'
 import { useRTL } from '@/lib/hooks/useRTL'
-import { CmxInput, CmxSelect, CmxButton, CmxCard, Badge } from '@ui/primitives'
 
 interface CategoryOption {
   code: string
@@ -11,6 +38,24 @@ interface CategoryOption {
   name2: string | null
 }
 
+interface CategoryApiItem {
+  service_category_code: string
+  ctg_name: string
+  ctg_name2: string | null
+}
+
+interface CategoriesApiResponse {
+  data?: CategoryApiItem[]
+  error?: string
+}
+
+interface ProductSaveResponse {
+  data?: { id?: string }
+  error?: string
+  message?: string
+}
+
+/** Form value shape used by the catalog product editor. */
 export interface ProductFormValues {
   id?: string
   service_category_code: string
@@ -34,325 +79,602 @@ interface ProductFormProps {
   onSuccess?: (id: string) => void
 }
 
+/**
+ * Product form connects the refreshed form primitives to the catalog product
+ * workflow while preserving the existing create, edit, and image-upload APIs.
+ *
+ * @param root0 Component props.
+ * @param root0.initialValues Optional starting values for edit mode.
+ * @param root0.mode Whether the form is creating or editing a product.
+ * @param root0.onSuccess Optional callback fired after a successful save.
+ * @returns Product editor form.
+ */
 export default function ProductForm({ initialValues, mode, onSuccess }: ProductFormProps) {
   const t = useTranslations('catalog')
-  const tCommon = useTranslations('common')  // for common keys
-
-  const [loading, setLoading] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [categories, setCategories] = useState<CategoryOption[]>([])
-  const [imageUploading, setImageUploading] = useState(false)
-  const [imageError, setImageError] = useState<string | null>(null)
+  const tCommon = useTranslations('common')
+  const isRtl = useRTL()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [values, setValues] = useState<ProductFormValues>({
-    service_category_code: initialValues?.service_category_code || '',
-    product_code: initialValues?.product_code || '',
-    product_name: initialValues?.product_name || '',
-    product_name2: initialValues?.product_name2 || '',
-    product_unit: (initialValues?.product_unit as any) || 'piece',
-    default_sell_price: Number(initialValues?.default_sell_price || 0),
-    default_express_sell_price: initialValues?.default_express_sell_price ? Number(initialValues.default_express_sell_price) : undefined,
-    min_quantity: initialValues?.min_quantity ? Number(initialValues.min_quantity) : undefined,
-    turnaround_hh: initialValues?.turnaround_hh ? Number(initialValues.turnaround_hh) : undefined,
-    turnaround_hh_express: initialValues?.turnaround_hh_express ? Number(initialValues.turnaround_hh_express) : undefined,
-    is_active: initialValues?.is_active ?? true,
-    id: initialValues?.id,
-    product_image: initialValues?.product_image ?? null,
-    product_icon: initialValues?.product_icon ?? null,
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [categories, setCategories] = useState<CategoryOption[]>([])
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [submitSuccess, setSubmitSuccess] = useState<string | null>(null)
+  const [imageUploading, setImageUploading] = useState(false)
+  const [imageError, setImageError] = useState<string | null>(null)
+
+  /** Validation schema mirrors the persisted product payload used by the API. */
+  const productFormSchema = useMemo(
+    () =>
+      z.object({
+        id: z.string().optional(),
+        service_category_code: z.string().trim().min(1, tCommon('required')),
+        product_code: z.string().trim().optional(),
+        product_name: z.string().trim().min(1, tCommon('required')),
+        product_name2: z.string().trim().optional(),
+        product_unit: z.enum(['piece', 'kg', 'item']),
+        default_sell_price: z.number().min(0, tCommon('required')),
+        default_express_sell_price: z.number().min(0).optional(),
+        min_quantity: z.number().min(0).optional(),
+        turnaround_hh: z.number().min(0).optional(),
+        turnaround_hh_express: z.number().min(0).optional(),
+        is_active: z.boolean().default(true),
+        product_image: z.string().nullable().optional(),
+        product_icon: z.string().nullable().optional(),
+      }),
+    [tCommon]
+  )
+
+  const form = useForm<ProductFormValues>({
+    resolver: zodResolver(productFormSchema),
+    defaultValues: {
+      service_category_code: initialValues?.service_category_code ?? '',
+      product_code: initialValues?.product_code ?? '',
+      product_name: initialValues?.product_name ?? '',
+      product_name2: initialValues?.product_name2 ?? '',
+      product_unit: initialValues?.product_unit ?? 'piece',
+      default_sell_price: Number(initialValues?.default_sell_price ?? 0),
+      default_express_sell_price:
+        initialValues?.default_express_sell_price !== undefined
+          ? Number(initialValues.default_express_sell_price)
+          : undefined,
+      min_quantity:
+        initialValues?.min_quantity !== undefined ? Number(initialValues.min_quantity) : undefined,
+      turnaround_hh:
+        initialValues?.turnaround_hh !== undefined ? Number(initialValues.turnaround_hh) : undefined,
+      turnaround_hh_express:
+        initialValues?.turnaround_hh_express !== undefined
+          ? Number(initialValues.turnaround_hh_express)
+          : undefined,
+      is_active: initialValues?.is_active ?? true,
+      id: initialValues?.id,
+      product_image: initialValues?.product_image ?? null,
+      product_icon: initialValues?.product_icon ?? null,
+    },
   })
 
-  const isRtl = useRTL()
+  const currentValues = form.watch()
+  const categoryOptions = categories.map((category) => ({
+    value: category.code,
+    label: isRtl ? category.name2 || category.name : category.name,
+  }))
+
+  const unitOptions = [
+    { value: 'piece', label: t('unitPiece') },
+    { value: 'kg', label: t('unitKg') },
+    { value: 'item', label: isRtl ? 'لكل عنصر' : 'Per Item' },
+  ]
 
   useEffect(() => {
     let mounted = true
+
     async function loadCategories() {
-      setLoading(true)
-      setError(null)
+      setLoadingCategories(true)
+      setSubmitError(null)
+
       try {
-        const res = await fetch('/api/v1/categories?enabled=true')
-        const json = await res.json()
-        if (!res.ok) throw new Error(json?.error || 'Failed to load categories')
-        const options: CategoryOption[] = (json.data || []).map((c: any) => ({
-          code: c.service_category_code,
-          name: c.ctg_name,
-          name2: c.ctg_name2,
-        }))
-        if (mounted) setCategories(options)
-      } catch (e: any) {
-        if (mounted) setError(e.message || 'Failed to load categories')
+        const response = await fetch('/api/v1/categories?enabled=true')
+        const payload = (await response.json()) as CategoriesApiResponse
+
+        if (!response.ok) {
+          throw new Error(payload.error || tCommon('error'))
+        }
+
+        if (!mounted) {
+          return
+        }
+
+        setCategories(
+          (payload.data ?? []).map((category) => ({
+            code: category.service_category_code,
+            name: category.ctg_name,
+            name2: category.ctg_name2,
+          }))
+        )
+      } catch (error) {
+        if (mounted) {
+          setSubmitError(error instanceof Error ? error.message : tCommon('error'))
+        }
       } finally {
-        if (mounted) setLoading(false)
+        if (mounted) {
+          setLoadingCategories(false)
+        }
       }
     }
-    loadCategories()
+
+    void loadCategories()
+
     return () => {
       mounted = false
     }
-  }, [])
-
-  function setField<K extends keyof ProductFormValues>(key: K, val: ProductFormValues[K]) {
-    setValues((v) => ({ ...v, [key]: val }))
-  }
-
-  function validate(): string[] {
-    const errs: string[] = []
-    if (!values.product_name || values.product_name.trim().length === 0) errs.push(t('productName') + ' ' + t('required'))
-    if (!values.service_category_code) errs.push(t('category') + ' ' + t('required'))
-    if (!values.product_unit) errs.push(t('unit') + ' ' + t('required'))
-    if (values.default_sell_price === undefined || values.default_sell_price < 0) errs.push(t('priceRegular') + ' ' + t('required'))
-    return errs
-  }
+  }, [tCommon])
 
   async function handleImageUpload(file: File) {
-    if (!values.id) return
+    const productId = form.getValues('id')
+    if (!productId) {
+      return
+    }
+
     setImageUploading(true)
     setImageError(null)
+
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      const res = await fetch(`/api/v1/products/${values.id}/image`, { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Upload failed')
-      setField('product_image', json.url)
-    } catch (e: unknown) {
-      setImageError(e instanceof Error ? e.message : 'Upload failed')
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const response = await fetch(`/api/v1/products/${productId}/image`, {
+        method: 'POST',
+        body: formData,
+      })
+      const payload = (await response.json()) as { error?: string; url?: string }
+
+      if (!response.ok || !payload.url) {
+        throw new Error(payload.error || tCommon('error'))
+      }
+
+      form.setValue('product_image', payload.url, { shouldDirty: true })
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : tCommon('error'))
     } finally {
       setImageUploading(false)
     }
   }
 
   async function handleImageRemove() {
-    if (!values.id) return
+    const productId = form.getValues('id')
+    if (!productId) {
+      return
+    }
+
     setImageUploading(true)
     setImageError(null)
+
     try {
-      const res = await fetch(`/api/v1/products/${values.id}/image`, { method: 'DELETE' })
-      if (!res.ok) {
-        const j = await res.json()
-        throw new Error(j?.error || 'Remove failed')
+      const response = await fetch(`/api/v1/products/${productId}/image`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { error?: string }
+        throw new Error(payload.error || tCommon('error'))
       }
-      setField('product_image', null)
-    } catch (e: unknown) {
-      setImageError(e instanceof Error ? e.message : 'Remove failed')
+
+      form.setValue('product_image', null, { shouldDirty: true })
+    } catch (error) {
+      setImageError(error instanceof Error ? error.message : tCommon('error'))
     } finally {
       setImageUploading(false)
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    setError(null)
-    setSuccess(null)
+  async function handleSubmit(values: ProductFormValues) {
+    setSubmitError(null)
+    setSubmitSuccess(null)
 
-    const errs = validate()
-    if (errs.length > 0) {
-      setSaving(false)
-      setError(errs.join(' • '))
-      return
+    const payload = {
+      service_category_code: values.service_category_code,
+      product_code: values.product_code || undefined,
+      product_name: values.product_name,
+      product_name2: values.product_name2 || undefined,
+      product_unit: values.product_unit,
+      default_sell_price: Number(values.default_sell_price),
+      default_express_sell_price:
+        values.default_express_sell_price !== undefined
+          ? Number(values.default_express_sell_price)
+          : undefined,
+      min_quantity: values.min_quantity !== undefined ? Number(values.min_quantity) : undefined,
+      turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
+      turnaround_hh_express:
+        values.turnaround_hh_express !== undefined ? Number(values.turnaround_hh_express) : undefined,
+      is_active: values.is_active ?? true,
+      product_icon: values.product_icon ?? undefined,
     }
 
     try {
-      const payload: any = {
-        service_category_code: values.service_category_code,
-        product_code: values.product_code || undefined,
-        product_name: values.product_name,
-        product_name2: values.product_name2 || undefined,
-        product_unit: values.product_unit,
-        default_sell_price: Number(values.default_sell_price),
-        default_express_sell_price: values.default_express_sell_price !== undefined ? Number(values.default_express_sell_price) : undefined,
-        min_quantity: values.min_quantity !== undefined ? Number(values.min_quantity) : undefined,
-        turnaround_hh: values.turnaround_hh !== undefined ? Number(values.turnaround_hh) : undefined,
-        turnaround_hh_express: values.turnaround_hh_express !== undefined ? Number(values.turnaround_hh_express) : undefined,
-        is_active: values.is_active,
-        product_icon: values.product_icon ?? undefined,
-        // NOTE: product_image is managed exclusively by the upload API route
+      const response = await fetch(mode === 'create' ? '/api/v1/products' : `/api/v1/products/${values.id}`, {
+        method: mode === 'create' ? 'POST' : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const result = (await response.json()) as ProductSaveResponse
+
+      if (!response.ok) {
+        throw new Error(result.error || tCommon('error'))
       }
 
-      let res: Response
-      if (mode === 'create') {
-        res = await fetch('/api/v1/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      } else {
-        res = await fetch(`/api/v1/products/${values.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-      }
-
-      const json = await res.json()
-      if (!res.ok) throw new Error(json?.error || 'Failed to save')
-
-      setSuccess(json?.message || 'Saved')
-      onSuccess?.(json?.data?.id || values.id || '')
-    } catch (e: any) {
-      setError(e.message || 'Failed to save')
-    } finally {
-      setSaving(false)
+      const savedId = result.data?.id || values.id || ''
+      form.reset({
+        ...values,
+        id: savedId,
+      })
+      setSubmitSuccess(result.message || tCommon('success'))
+      onSuccess?.(savedId)
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : tCommon('error'))
     }
   }
 
   return (
-    <CmxCard className="p-4">
-      {error && (
-        <div className="mb-3 rounded-md border border-red-200 bg-red-50 p-3 text-red-700">{error}</div>
-      )}
-      {success && (
-        <div className="mb-3 rounded-md border border-green-200 bg-green-50 p-3 text-green-700">{success}</div>
-      )}
+    <CmxCard className="overflow-hidden">
+      <CmxCardHeader className="border-b border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))]">
+        <CmxCardTitle className="cmx-type-page-title text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
+          {mode === 'create' ? t('newProduct') : t('editProduct')}
+        </CmxCardTitle>
+        <CmxCardDescription className="text-sm text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))]">
+          {t('products')}
+        </CmxCardDescription>
+      </CmxCardHeader>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {/* Category */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('category')}</label>
-          <select value={values.service_category_code} onChange={(e) => setField('service_category_code', e.target.value)}>
-            <option value="">--</option>
-            {categories.map((c) => (
-              <option key={c.code} value={c.code}>
-                {isRtl ? c.name2 || c.name : c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <CmxCardContent className="p-4 md:p-6">
+        <CmxForm
+          form={form}
+          onSubmit={handleSubmit}
+          isPending={form.formState.isSubmitting}
+          isDirty={form.formState.isDirty}
+          showErrorSummary
+          errorSummaryTitle={tCommon('error')}
+          className="space-y-5"
+        >
+          {submitError ? (
+            <CmxFormStatusBanner type="error" title={tCommon('error')} items={[submitError]} />
+          ) : null}
+          {submitSuccess ? (
+            <CmxFormStatusBanner type="success" title={tCommon('success')} items={[submitSuccess]} />
+          ) : null}
+          {imageError ? (
+            <CmxFormStatusBanner type="warning" title={tCommon('error')} items={[imageError]} />
+          ) : null}
 
-        {/* Code */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('productCode')}</label>
-          <CmxInput value={values.product_code || ''} onChange={(e) => setField('product_code', e.target.value)} placeholder="PROD-00001" />
-        </div>
-
-        {/* Name EN */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('productName')}</label>
-          <CmxInput value={values.product_name} onChange={(e) => setField('product_name', e.target.value)} />
-        </div>
-
-        {/* Name AR */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('productNameAr')}</label>
-          <CmxInput value={values.product_name2 || ''} onChange={(e) => setField('product_name2', e.target.value)} />
-        </div>
-
-        {/* Image & Icon */}
-        <div className="col-span-1 md:col-span-2 rounded-lg border border-dashed border-gray-200 p-4">
-          <p className="mb-3 text-sm font-semibold text-gray-700">{t('productImageIconTitle')}</p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-
-            {/* Image upload — edit mode only (product ID required for storage path) */}
-            {mode === 'edit' && (
-              <div>
-                <label className="mb-1 block text-sm font-medium">{t('productImage')}</label>
-                {values.product_image ? (
-                  <div className="relative mb-2 h-32 w-32 overflow-hidden rounded-lg border border-gray-200">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={values.product_image} alt={values.product_name} className="h-full w-full object-cover" />
-                  </div>
-                ) : (
-                  <div className="mb-2 flex h-32 w-32 items-center justify-center rounded-lg border border-dashed border-gray-300 bg-gray-50 text-4xl">
-                    {values.product_icon || '📷'}
-                  </div>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0]
-                    if (f) handleImageUpload(f)
-                    e.target.value = ''
-                  }}
+          <CmxFormSection
+            title={mode === 'create' ? t('newProduct') : t('editProduct')}
+            description={t('category')}
+            layout="twoColumn"
+            badge={loadingCategories ? <Badge variant="secondary">{tCommon('loading')}</Badge> : null}
+          >
+            <CmxFormField name="service_category_code" label={t('category')} required>
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxSelect
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  value={String(value ?? '')}
+                  onChange={(event) => onChange(event.target.value)}
+                  onBlur={onBlur}
+                  options={categoryOptions}
+                  placeholder={loadingCategories ? tCommon('loading') : '--'}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                  disabled={loadingCategories}
                 />
-                <div className="flex flex-wrap gap-2">
-                  <CmxButton
-                    type="button"
-                    variant="outline"
-                    disabled={imageUploading}
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {imageUploading ? tCommon('loading') : t('uploadImage')}
-                  </CmxButton>
-                  {values.product_image && (
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="product_code"
+              label={t('productCode')}
+              optionalLabel={tCommon('optional')}
+            >
+              {({ id, describedBy, invalid, ...field }) => (
+                <CmxInput
+                  {...field}
+                  id={id}
+                  value={String(field.value ?? '')}
+                  placeholder="PROD-00001"
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField name="product_name" label={t('productName')} required>
+              {({ id, describedBy, invalid, ...field }) => (
+                <CmxInput
+                  {...field}
+                  id={id}
+                  value={String(field.value ?? '')}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="product_name2"
+              label={t('productNameAr')}
+              optionalLabel={tCommon('optional')}
+            >
+              {({ id, describedBy, invalid, ...field }) => (
+                <CmxInput
+                  {...field}
+                  id={id}
+                  value={String(field.value ?? '')}
+                  dir="rtl"
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField name="product_unit" label={t('unit')} required>
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxSelect
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  value={String(value ?? '')}
+                  onChange={(event) => onChange(event.target.value)}
+                  onBlur={onBlur}
+                  options={unitOptions}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="is_active"
+              label={t('status')}
+              description={currentValues.is_active ? tCommon('active') : tCommon('inactive')}
+              layout="inline"
+            >
+              {({ id, value, onChange }) => (
+                <div className="flex items-center justify-between gap-3 rounded-[var(--cmx-radius-md,0.875rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] px-4 py-3">
+                  <Badge variant={value ? 'success' : 'secondary'}>
+                    {value ? tCommon('active') : tCommon('inactive')}
+                  </Badge>
+                  <CmxSwitch
+                    id={id}
+                    checked={Boolean(value)}
+                    onCheckedChange={(checked) => onChange(checked)}
+                  />
+                </div>
+              )}
+            </CmxFormField>
+          </CmxFormSection>
+
+          <CmxFormSection title={t('pricing')} description={t('priceRegular')} layout="twoColumn">
+            <CmxFormField name="default_sell_price" label={t('priceRegular')} required>
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxInput
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  type="number"
+                  step="0.001"
+                  value={value ?? ''}
+                  onChange={(event) =>
+                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                  }
+                  onBlur={onBlur}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="default_express_sell_price"
+              label={t('priceExpress')}
+              optionalLabel={tCommon('optional')}
+            >
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxInput
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  type="number"
+                  step="0.001"
+                  value={value ?? ''}
+                  onChange={(event) =>
+                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                  }
+                  onBlur={onBlur}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="min_quantity"
+              label={t('minQuantity')}
+              optionalLabel={tCommon('optional')}
+            >
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxInput
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  type="number"
+                  value={value ?? ''}
+                  onChange={(event) =>
+                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                  }
+                  onBlur={onBlur}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="turnaround_hh"
+              label={t('turnaround')}
+              optionalLabel={tCommon('optional')}
+              hint={t('turnaroundHours')}
+            >
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxInput
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  type="number"
+                  step="0.1"
+                  value={value ?? ''}
+                  onChange={(event) =>
+                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                  }
+                  onBlur={onBlur}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+
+            <CmxFormField
+              name="turnaround_hh_express"
+              label={t('express')}
+              optionalLabel={tCommon('optional')}
+              hint={t('turnaroundHours')}
+            >
+              {({ id, describedBy, invalid, value, onChange, onBlur, name, ref }) => (
+                <CmxInput
+                  id={id}
+                  name={name}
+                  ref={ref}
+                  type="number"
+                  step="0.1"
+                  value={value ?? ''}
+                  onChange={(event) =>
+                    onChange(event.target.value === '' ? undefined : Number(event.target.value))
+                  }
+                  onBlur={onBlur}
+                  aria-describedby={describedBy}
+                  aria-invalid={invalid}
+                />
+              )}
+            </CmxFormField>
+          </CmxFormSection>
+
+          <CmxFormSection
+            title={t('productImageIconTitle')}
+            description={t('imageHint')}
+            layout="single"
+            aside={
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[var(--cmx-radius-lg,1.125rem)] border border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] bg-white text-3xl shadow-inner">
+                    {currentValues.product_image ? (
+                      <img
+                        src={currentValues.product_image}
+                        alt={currentValues.product_name || t('productName')}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      currentValues.product_icon || '👔'
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
+                      {currentValues.product_name || t('productName')}
+                    </p>
+                    <p className="text-xs text-[rgb(var(--cmx-muted-foreground-rgb,100_116_139))]">
+                      {currentValues.product_name2 || t('productNameAr')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(event) => {
+                const nextFile = event.target.files?.[0]
+                if (nextFile) {
+                  void handleImageUpload(nextFile)
+                }
+                event.target.value = ''
+              }}
+            />
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {mode === 'edit' ? (
+                <div className="rounded-[var(--cmx-radius-md,0.875rem)] border border-dashed border-[rgb(var(--cmx-border-rgb,203_213_225))] bg-[rgb(var(--cmx-surface-muted-rgb,236_242_248))] p-4">
+                  <p className="cmx-type-field-label text-[rgb(var(--cmx-text-primary-rgb,15_23_42))]">
+                    {t('productImage')}
+                  </p>
+                  <p className="mt-1 text-sm text-[rgb(var(--cmx-text-secondary-rgb,51_65_85))]">
+                    {t('imageHint')}
+                  </p>
+                  <div className="mt-4 flex flex-wrap gap-2">
                     <CmxButton
                       type="button"
                       variant="outline"
                       disabled={imageUploading}
-                      onClick={handleImageRemove}
+                      onClick={() => fileInputRef.current?.click()}
                     >
-                      {t('removeImage')}
+                      {imageUploading ? tCommon('loading') : t('uploadImage')}
                     </CmxButton>
-                  )}
+                    {currentValues.product_image ? (
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        disabled={imageUploading}
+                        onClick={() => {
+                          void handleImageRemove()
+                        }}
+                      >
+                        {t('removeImage')}
+                      </CmxButton>
+                    ) : null}
+                  </div>
                 </div>
-                {imageError && <p className="mt-1 text-xs text-red-600">{imageError}</p>}
-                <p className="mt-1 text-xs text-gray-500">{t('imageHint')}</p>
-              </div>
-            )}
+              ) : null}
 
-            {/* Emoji icon — always visible (create and edit) */}
-            <div>
-              <label className="mb-1 block text-sm font-medium">{t('productIcon')}</label>
-              <CmxInput
-                value={values.product_icon || ''}
-                maxLength={8}
-                onChange={(e) => setField('product_icon', e.target.value || null)}
-                placeholder="e.g. 👔"
-              />
-              <p className="mt-1 text-xs text-gray-500">{t('iconHint')}</p>
+              <CmxFormField
+                name="product_icon"
+                label={t('productIcon')}
+                optionalLabel={tCommon('optional')}
+                hint={t('iconHint')}
+              >
+                {({ id, describedBy, invalid, ...field }) => (
+                  <CmxInput
+                    {...field}
+                    id={id}
+                    value={String(field.value ?? '')}
+                    maxLength={8}
+                    onChange={(event) => field.onChange(event.target.value || null)}
+                    placeholder="e.g. 👔"
+                    aria-describedby={describedBy}
+                    aria-invalid={invalid}
+                  />
+                )}
+              </CmxFormField>
             </div>
-          </div>
-        </div>
+          </CmxFormSection>
 
-        {/* Unit */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('unit')}</label>
-          <select value={values.product_unit} onChange={(e) => setField('product_unit', e.target.value as any)}>
-            <option value="piece">{t('unitPiece')}</option>
-            <option value="kg">{t('unitKg')}</option>
-            <option value="item">Item</option>
-          </select>
-        </div>
-
-        {/* Prices */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('priceRegular')}</label>
-          <CmxInput type="number" step="0.001" value={values.default_sell_price} onChange={(e) => setField('default_sell_price', Number(e.target.value))} />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('priceExpress')}</label>
-          <CmxInput type="number" step="0.001" value={values.default_express_sell_price ?? ''} onChange={(e) => setField('default_express_sell_price', e.target.value === '' ? undefined : Number(e.target.value))} />
-        </div>
-
-        {/* Min Qty */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('minQuantity')}</label>
-          <CmxInput type="number" value={values.min_quantity ?? ''} onChange={(e) => setField('min_quantity', e.target.value === '' ? undefined : Number(e.target.value))} />
-        </div>
-
-        {/* Turnaround */}
-        <div>
-          <label className="mb-1 block text-sm font-medium">{t('turnaround')}</label>
-          <div className="grid grid-cols-2 gap-2">
-            <CmxInput type="number" step="0.1" placeholder={t('turnaroundHours')} value={values.turnaround_hh ?? ''} onChange={(e) => setField('turnaround_hh', e.target.value === '' ? undefined : Number(e.target.value))} />
-            <CmxInput type="number" step="0.1" placeholder={t('priceExpress')} value={values.turnaround_hh_express ?? ''} onChange={(e) => setField('turnaround_hh_express', e.target.value === '' ? undefined : Number(e.target.value))} />
-          </div>
-        </div>
-
-        {/* Status */}
-        <div className="flex items-end gap-2">
-          <CmxButton type="submit" disabled={saving}>{saving ? tCommon('loading') : mode === 'create' ? tCommon('create') : tCommon('update')}</CmxButton>
-          {values.is_active ? <Badge variant="success">{t('standard')}</Badge> : <Badge variant="default">{t('disableCategories')}</Badge>}
-          <CmxButton type="button" variant="outline" onClick={() => setField('is_active', !values.is_active)}>
-            {values.is_active ? t('disableCategories') : t('enableCategories')}
-          </CmxButton>
-        </div>
-      </form>
+          <CmxFormActions
+            primaryLabel={mode === 'create' ? tCommon('create') : tCommon('update')}
+            loading={form.formState.isSubmitting}
+            isDirty={form.formState.isDirty}
+            dirtyLabel={tCommon('unsavedChanges')}
+            sticky
+          />
+        </CmxForm>
+      </CmxCardContent>
     </CmxCard>
   )
 }
