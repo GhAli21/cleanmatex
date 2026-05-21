@@ -744,11 +744,10 @@ export async function searchCustomers(
  * Step 3: If still not found and searchAllOptions=true, search other tenants' org_customers_mst
  */
 export async function searchCustomersProgressive(
-  params: CustomerSearchParams & { searchAllOptions?: boolean; skipCount?: boolean; excludeB2b?: boolean }
+  params: CustomerSearchParams & { searchAllOptions?: boolean; skipCount?: boolean; excludeB2b?: boolean; tenantId?: string }
 ): Promise<{ customers: CustomerListItem[]; total: number }> {
   const supabase = await createClient();
-  const session = await getCurrentUserTenantSessionContext();
-  const tenantId = session.userTenantOrgId;
+  const tenantId = params.tenantId ?? (await getCurrentUserTenantSessionContext()).userTenantOrgId;
   const searchAllOptions = params.searchAllOptions ?? false;
   const skipCount = params.skipCount ?? false;
   const excludeB2b = params.excludeB2b ?? false;

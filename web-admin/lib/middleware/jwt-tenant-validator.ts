@@ -49,13 +49,13 @@ export async function validateJWTWithTenant(
     // Validate JWT tenant context
     const validation = await validateJWTTenantContext(user);
 
-    // Log health event
-    await logJWTHealthEvent({
+    // Fire-and-forget health logging — never block the request on a monitoring write.
+    logJWTHealthEvent({
       userId: user.id,
       eventType: 'validation',
       tenantId: validation.tenantId || undefined,
       hadTenantContext: validation.isValid,
-    });
+    }).catch(() => {/* ignore — monitoring must not affect request latency */});
 
     if (!validation.isValid) {
       // If repair is possible, attempt it
@@ -69,8 +69,7 @@ export async function validateJWTWithTenant(
 
         const repairResult = await repairJWTTenantContext(user.id, validation.tenantId);
 
-        // Log repair event
-        await logJWTHealthEvent({
+        logJWTHealthEvent({
           userId: user.id,
           eventType: 'repair',
           tenantId: validation.tenantId,
@@ -78,7 +77,7 @@ export async function validateJWTWithTenant(
           repairAttempted: true,
           repairSuccessful: repairResult.success,
           errorMessage: repairResult.error,
-        });
+        }).catch(() => {/* ignore */});
 
         if (repairResult.success) {
           // Refresh session to get new JWT with tenant context
@@ -101,13 +100,12 @@ export async function validateJWTWithTenant(
           if (refreshedUser) {
             const revalidation = await validateJWTTenantContext(refreshedUser);
             if (revalidation.isValid && revalidation.tenantId) {
-              // Log successful repair
-              await logJWTHealthEvent({
+              logJWTHealthEvent({
                 userId: refreshedUser.id,
                 eventType: 'validation',
                 tenantId: revalidation.tenantId,
                 hadTenantContext: true,
-              });
+              }).catch(() => {/* ignore */});
 
               return {
                 user: refreshedUser,

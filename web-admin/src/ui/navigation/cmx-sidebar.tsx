@@ -387,6 +387,7 @@ export default function CmxSidebar() {
         <div className={`pt-4 pb-3 border-b border-gray-200 bg-white flex-shrink-0 overflow-hidden ${isCollapsed ? 'px-2 lg:px-2' : 'px-4 lg:px-4'} ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
             href="/dashboard"
+            prefetch={false}
             className={`flex items-center min-w-0 ${isCollapsed ? 'lg:justify-center' : ''} ${isRTL ? 'flex-row-reverse space-x-reverse' : 'space-x-2'}`}
           >
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -489,6 +490,7 @@ export default function CmxSidebar() {
                                 <li key={child.key} role="none">
                                   <Link
                                     href={child.path}
+                                    prefetch={false}
                                     role="menuitem"
                                     className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg mx-1 transition-colors ${
                                       childActive
@@ -515,6 +517,7 @@ export default function CmxSidebar() {
                       <Tooltip content={label} side={isRTL ? 'left' : 'right'}>
                         <Link
                           href={section.path}
+                          prefetch={false}
                           aria-label={label}
                           className={`w-full flex items-center justify-center px-2 py-2.5 text-sm font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
                             isActive
@@ -561,6 +564,7 @@ export default function CmxSidebar() {
                                 <li key={child.key}>
                                   <Link
                                     href={child.path}
+                                    prefetch={false}
                                     className={`flex items-center gap-2.5 px-3 py-2 text-sm rounded-lg transition-colors duration-150 ${
                                       childActive
                                         ? 'bg-blue-100 text-blue-800 font-medium border border-blue-200'
@@ -579,6 +583,7 @@ export default function CmxSidebar() {
                     ) : (
                       <Link
                         href={section.path}
+                        prefetch={false}
                         className={`flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-colors duration-150 ${
                           isActive
                             ? 'bg-blue-100 text-blue-800 border border-blue-200'

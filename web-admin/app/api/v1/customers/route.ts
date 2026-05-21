@@ -263,21 +263,26 @@ export async function GET(request: NextRequest) {
     const sortOrder = sortOrderParam === 'asc' || sortOrderParam === 'desc' ? sortOrderParam : 'desc';
 
     // Use progressive search (skipCount=true for picker: faster when limit<=15)
-    const result = await searchCustomersProgressive({
-      page,
-      limit,
-      search,
-      searchPhone: searchPhone || undefined,
-      searchName: searchName || undefined,
-      searchEmail: searchEmail || undefined,
-      searchAllOptions,
-      skipCount,
-      type,
-      status,
-      sortBy,
-      sortOrder,
-      excludeB2b,
-    });
+    // Pass tenantId to avoid a redundant get_user_tenants RPC call inside the service.
+    const result = await Promise.race([
+      searchCustomersProgressive({
+        page,
+        limit,
+        search,
+        searchPhone: searchPhone || undefined,
+        searchName: searchName || undefined,
+        searchEmail: searchEmail || undefined,
+        searchAllOptions,
+        skipCount,
+        type,
+        status,
+        sortBy,
+        sortOrder,
+        excludeB2b,
+        tenantId,
+      }),
+      timeoutPromise,
+    ]);
 
     // Calculate pagination
     const total = result.total || 0;

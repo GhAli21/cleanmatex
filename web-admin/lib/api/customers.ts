@@ -25,6 +25,32 @@ import type {
 } from '@/lib/types/customer';
 
 const API_BASE = '/api/v1/customers';
+const CUSTOMER_PICKER_TIMEOUT_MS = 8_000;
+
+function createTimedSignal(signal?: AbortSignal, timeoutMs = CUSTOMER_PICKER_TIMEOUT_MS): AbortSignal {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  const cleanup = () => window.clearTimeout(timeoutId);
+  controller.signal.addEventListener('abort', cleanup, { once: true });
+
+  if (!signal) {
+    return controller.signal;
+  }
+
+  if (signal.aborted) {
+    controller.abort(signal.reason);
+    return controller.signal;
+  }
+
+  signal.addEventListener(
+    'abort',
+    () => controller.abort(signal.reason),
+    { once: true }
+  );
+
+  return controller.signal;
+}
 
 // ==================================================================
 // CUSTOMER SEARCH (Picker / Fast fetch)
@@ -61,7 +87,8 @@ export interface CustomerSearchItem {
  * Uses limit=10 and skipCount on server for quick response.
  */
 export async function searchCustomersForPicker(
-  params: CustomerSearchPickerParams
+  params: CustomerSearchPickerParams,
+  signal?: AbortSignal
 ): Promise<CustomerSearchItem[]> {
   const { search, searchPhone, searchName, searchEmail, searchAllOptions = false, limit = 10 } = params;
   const queryParams = new URLSearchParams({
@@ -73,7 +100,17 @@ export async function searchCustomersForPicker(
   if (searchName?.trim()) queryParams.set('searchName', searchName.trim());
   if (searchEmail?.trim()) queryParams.set('searchEmail', searchEmail.trim());
 
-  const response = await fetch(`${API_BASE}?${queryParams.toString()}`);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}?${queryParams.toString()}`, {
+      signal: createTimedSignal(signal),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('Customer search timed out. Please try again.');
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const error = await response.json();

@@ -88,61 +88,60 @@ export function requirePermission(
   options?: PermissionCheckOptions
 ) {
   return async (request: NextRequest): Promise<AuthContext | NextResponse> => {
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Permission check timeout')), 8000)
+    );
+
     try {
-      // First validate JWT has tenant context
-      const jwtValidation = await validateJWTWithTenant(request)
-      logger.info('JWT validation', {
-        feature: 'auth',
-        action: 'require_permission',
-        message: 'requirePermission(permission: ' + permission + '): TenantId: ' + (jwtValidation as any).tenantId + ' UserId: ' + (jwtValidation as any).userId + ' UserName: ' + (jwtValidation as any).userName,
-        tenantId: (jwtValidation as any).tenantId,
-        userId: (jwtValidation as any).userId,
-        userName: (jwtValidation as any).userName,
-      })
+      // Validate JWT tenant context (includes auth.getUser internally)
+      const jwtValidation = await Promise.race([
+        validateJWTWithTenant(request),
+        timeoutPromise,
+      ]);
+
       if (jwtValidation instanceof NextResponse) {
-        logger.warn('JWT validation failed', {
-          feature: 'auth',
-          action: 'require_permission',
-          message: 'requirePermission(permission: ' + permission + '): TenantId: ' + (jwtValidation as any).tenantId + ' UserId: ' + (jwtValidation as any).userId + ' UserName: ' + (jwtValidation as any).userName,
-          tenantId: jwtValidation.headers.get('X-Tenant-ID'),
-          userId: jwtValidation.headers.get('X-User-ID'),
-          userName: (jwtValidation as any).user.user_metadata?.full_name,
-        })
-        return jwtValidation // JWT validation failed
+        return jwtValidation;
       }
 
-      // Get auth context (now guaranteed to have tenant)
-      const authContext = await getAuthContext()
+      // Reuse user/tenantId from JWT validation — avoids a duplicate auth.getUser() call.
+      const authContext: AuthContext = {
+        user: jwtValidation.user,
+        tenantId: jwtValidation.tenantId,
+        userId: jwtValidation.userId,
+        userName: jwtValidation.user?.user_metadata?.full_name || jwtValidation.user?.email || 'User',
+      };
 
       // Check permission
-      let hasAccess = await hasPermissionServer(permission, options)
+      const hasAccess = await Promise.race([
+        hasPermissionServer(permission, options),
+        timeoutPromise,
+      ]);
 
       if (!hasAccess) {
-        logger.warn('Jh2 Permission denied', {
+        logger.warn('Permission denied', {
           feature: 'auth',
           action: 'require_permission',
-          message: 'requirePermission(permission: ' + permission + '): TenantId: ' + authContext.tenantId + ' UserId: ' + authContext.userId + ' UserName: ' + authContext.userName,
           tenantId: authContext.tenantId,
           userId: authContext.userId,
           permission,
-        })
+        });
         return NextResponse.json(
-          { error: `Jh133 Permission denied: ${permission}` },
+          { error: `Permission denied: ${permission}` },
           { status: 403 }
-        )
+        );
       }
 
-      return authContext
+      return authContext;
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unauthorized'
-      logger.warn('Unauthorized request', {
-        feature: 'auth',
-        action: 'require_permission',
-        message,
-      })
-      return NextResponse.json({ error: message }, { status: 401 })
+      const message = error instanceof Error ? error.message : 'Unauthorized';
+      if (message === 'Permission check timeout') {
+        logger.warn('requirePermission timed out', { feature: 'auth', action: 'require_permission', permission });
+        return NextResponse.json({ error: 'Request timeout' }, { status: 504 });
+      }
+      logger.warn('Unauthorized request', { feature: 'auth', action: 'require_permission', message });
+      return NextResponse.json({ error: message }, { status: 401 });
     }
-  }
+  };
 }
 
 /**

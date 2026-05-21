@@ -53,6 +53,33 @@ interface DefaultGuestCustomer {
   email?: string | null;
 }
 
+const DEFAULT_GUEST_TIMEOUT_MS = 8_000;
+
+function createTimedSignal(signal?: AbortSignal, timeoutMs = DEFAULT_GUEST_TIMEOUT_MS): AbortSignal {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  const cleanup = () => window.clearTimeout(timeoutId);
+  controller.signal.addEventListener('abort', cleanup, { once: true });
+
+  if (!signal) {
+    return controller.signal;
+  }
+
+  if (signal.aborted) {
+    controller.abort(signal.reason);
+    return controller.signal;
+  }
+
+  signal.addEventListener(
+    'abort',
+    () => controller.abort(signal.reason),
+    { once: true }
+  );
+
+  return controller.signal;
+}
+
 function mapSearchItemToCustomer(c: CustomerSearchItem): Customer {
   return {
     id: c.id,
@@ -105,8 +132,10 @@ export function CustomerPickerModal({ open, onClose, onSelectCustomer, tenantId 
   // Fetch default guest customer when modal opens
   const { data: defaultGuest, isLoading: defaultGuestLoading } = useQuery({
     queryKey: ['tenant-settings', 'default-guest-customer', tenantId],
-    queryFn: async (): Promise<DefaultGuestCustomer | null> => {
-      const res = await fetch('/api/v1/tenant-settings/default-guest-customer');
+    queryFn: async ({ signal }): Promise<DefaultGuestCustomer | null> => {
+      const res = await fetch('/api/v1/tenant-settings/default-guest-customer', {
+        signal: createTimedSignal(signal),
+      });
       if (res.status === 404) return null;
       if (!res.ok) throw new Error('Failed to fetch default guest customer');
       const json = await res.json();

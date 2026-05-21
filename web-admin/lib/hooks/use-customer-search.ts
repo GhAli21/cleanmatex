@@ -82,7 +82,7 @@ export function useCustomerSearch(options: UseCustomerSearchOptions): UseCustome
     isFetched,
   } = useQuery({
     queryKey,
-    queryFn: () =>
+    queryFn: ({ signal }) =>
       searchCustomersForPicker({
         search: trimmedSearch,
         searchPhone: trimmedPhone || undefined,
@@ -90,7 +90,7 @@ export function useCustomerSearch(options: UseCustomerSearchOptions): UseCustome
         searchEmail: trimmedEmail || undefined,
         searchAllOptions,
         limit,
-      }),
+      }, signal),
     enabled: canSearch,
     staleTime: 30_000, // 30s - same search within 30s uses cache
     gcTime: 5 * 60 * 1000, // 5 min cache
