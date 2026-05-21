@@ -292,7 +292,7 @@ export async function getVoucherData(
         org_invoice_mst: options?.includeInvoice ?? false,
         org_orders_mst: true,
         org_customers_mst: true,
-        org_payments_dtl_tr: options?.includePayments ?? false,
+        org_payments_dtl_tr: options?.includePayments ?? false, // Jh7
       },
     });
     if (!row) return null;

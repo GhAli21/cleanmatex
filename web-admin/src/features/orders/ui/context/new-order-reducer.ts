@@ -121,6 +121,9 @@ export function newOrderReducer(
       };
 
     case 'SET_BRANCH_ID':
+      if (state.branchId === action.payload) {
+        return state;
+      }
       return {
         ...state,
         branchId: action.payload,
@@ -459,6 +462,9 @@ export function newOrderReducer(
       };
 
     case 'SET_LOADING':
+      if (state.loading === action.payload) {
+        return state;
+      }
       return {
         ...state,
         loading: action.payload,
@@ -502,36 +508,54 @@ export function newOrderReducer(
       };
 
     case 'SET_CATEGORIES':
+      if (state.categories === action.payload) {
+        return state;
+      }
       return {
         ...state,
         categories: action.payload,
       };
 
     case 'SET_PRODUCTS':
+      if (state.products === action.payload) {
+        return state;
+      }
       return {
         ...state,
         products: action.payload,
       };
 
     case 'SET_SELECTED_CATEGORY':
+      if (state.selectedCategory === action.payload) {
+        return state;
+      }
       return {
         ...state,
         selectedCategory: action.payload,
       };
 
     case 'SET_CATEGORIES_LOADING':
+      if (state.categoriesLoading === action.payload) {
+        return state;
+      }
       return {
         ...state,
         categoriesLoading: action.payload,
       };
 
     case 'SET_PRODUCTS_LOADING':
+      if (state.productsLoading === action.payload) {
+        return state;
+      }
       return {
         ...state,
         productsLoading: action.payload,
       };
 
     case 'SET_INITIAL_LOADING':
+      if (state.isInitialLoading === action.payload) {
+        return state;
+      }
       return {
         ...state,
         isInitialLoading: action.payload,

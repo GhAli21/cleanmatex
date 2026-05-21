@@ -280,9 +280,10 @@ export class DashboardService {
         ),
         buildDeliveredQuery('created_at, delivered_at', sevenDaysAgoStr),
         this.supabase
-          .from('org_payments_dtl_tr')
-          .select('payment_method, paid_amount')
+          .from('org_fin_voucher_trx_lines_dtl')
+          .select('payment_method_code, amount')
           .eq('tenant_org_id', tenantId)
+          .eq('direction', 'IN')
           .gte('created_at', last30StartStr),
         this.supabase
           .from('org_order_item_issues')
@@ -364,10 +365,10 @@ export class DashboardService {
 
       const payBuckets = { cash: 0, online: 0, card: 0, other: 0 }
       for (const p of paymentsLast30 || []) {
-        const row = p as { payment_method?: string | null; paid_amount?: number | null }
-        const w = Number(row.paid_amount || 0)
+        const row = p as { payment_method_code?: string | null; amount?: number | null }
+        const w = Number(row.amount || 0)
         if (w <= 0) continue
-        const b = paymentMethodBucket(row.payment_method ?? null)
+        const b = paymentMethodBucket(row.payment_method_code ?? null)
         payBuckets[b] += w
       }
       const paySum =

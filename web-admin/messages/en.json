@@ -359,7 +359,11 @@
         "PERCENTAGE": "Percentage",
         "FIXED_AMOUNT": "Fixed Amount",
         "BUY_X_GET_Y": "Buy X Get Y",
-        "FREE_ITEM": "Free Item"
+        "FREE_ITEM": "Free Item",
+        "percentage": "Percentage",
+        "fixed_amount": "Fixed Amount",
+        "buy_x_get_y": "Buy X Get Y",
+        "free_item": "Free Item"
       },
       "activate": "Activate",
       "deactivate": "Deactivate",

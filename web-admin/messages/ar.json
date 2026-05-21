@@ -359,7 +359,11 @@
         "PERCENTAGE": "نسبة مئوية",
         "FIXED_AMOUNT": "مبلغ ثابت",
         "BUY_X_GET_Y": "اشترِ X واحصل على Y",
-        "FREE_ITEM": "عنصر مجاني"
+        "FREE_ITEM": "عنصر مجاني",
+        "percentage": "نسبة مئوية",
+        "fixed_amount": "مبلغ ثابت",
+        "buy_x_get_y": "اشترِ X واحصل على Y",
+        "free_item": "عنصر مجاني"
       },
       "activate": "تفعيل",
       "deactivate": "تعطيل",

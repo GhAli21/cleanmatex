@@ -22,6 +22,10 @@ import type {
   BulkExportRequest,
 } from '@/lib/types/catalog';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 10;
+
 // ==================================================================
 // HELPER FUNCTIONS
 // ==================================================================
@@ -71,8 +75,18 @@ async function getAuthContext() {
  * Response: { success: true, data: ProductListItem[], pagination: {...} }
  */
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+
   try {
-    await getAuthContext();
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      // Fail fast so the New Order grid does not stay in a permanent loading state
+      // when a tenant-scoped catalog query stalls upstream.
+      setTimeout(() => reject(new Error('Request timeout')), 8000);
+    });
+
+    // Tenant is resolved server-side from the authenticated session before reading
+    // tenant-scoped catalog rows.
+    await Promise.race([getAuthContext(), timeoutPromise]);
 
     const { searchParams } = new URL(request.url);
 
@@ -111,7 +125,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Search products
-    const result = await searchProducts(params);
+    const result = await Promise.race([searchProducts(params), timeoutPromise]) as Awaited<
+      ReturnType<typeof searchProducts>
+    >;
+
+    const duration = Date.now() - startTime;
+    console.log(`[API] GET /api/v1/products - Success (${duration}ms)`);
 
     return NextResponse.json({
       success: true,
@@ -124,11 +143,18 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching products:', error);
+    const duration = Date.now() - startTime;
+    console.error(`[API] GET /api/v1/products - Error after ${duration}ms:`, error);
 
     if (error instanceof Error) {
       if (error.message === 'Unauthorized' || error.message === 'No tenant context') {
         return NextResponse.json({ error: error.message }, { status: 401 });
+      }
+      if (error.message === 'Request timeout') {
+        return NextResponse.json(
+          { error: 'Request timeout - please try again' },
+          { status: 504 }
+        );
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
@@ -218,4 +244,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

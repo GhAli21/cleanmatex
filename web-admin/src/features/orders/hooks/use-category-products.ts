@@ -7,7 +7,7 @@
 
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNewOrderStateWithDispatch } from './use-new-order-state';
+import { useNewOrderDispatch } from '../ui/context/new-order-context';
 import type { ServiceCategory, Product } from '../model/new-order-types';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 
@@ -49,8 +49,7 @@ async function fetchProducts(
  * Hook to fetch categories
  */
 export function useCategories() {
-    const { setCategories, setCategoriesLoading, setSelectedCategory } =
-        useNewOrderStateWithDispatch();
+    const dispatch = useNewOrderDispatch();
 
     const query = useQuery<ServiceCategory[]>({
         queryKey: ['categories', 'enabled'],
@@ -60,18 +59,15 @@ export function useCategories() {
         staleTime: ORDER_DEFAULTS.CACHE.CATEGORIES_STALE_TIME,
     });
 
-    // Sync with state using useEffect
     useEffect(() => {
         if (query.data) {
-            setCategories(query.data);
-            // Set first category as selected if none selected
-            if (query.data.length > 0 && !query.data.find(cat => cat.service_category_code === '')) {
-                // Only set if no category is currently selected
-                // This will be handled by the component using this hook
-            }
+            dispatch({ type: 'SET_CATEGORIES', payload: query.data });
         }
-        setCategoriesLoading(query.isLoading);
-    }, [query.data, query.isLoading, setCategories, setCategoriesLoading]);
+    }, [dispatch, query.data]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_CATEGORIES_LOADING', payload: query.isLoading });
+    }, [dispatch, query.isLoading]);
 
     return query;
 }
@@ -80,7 +76,7 @@ export function useCategories() {
  * Hook to fetch products for selected category
  */
 export function useProducts(category: string | null) {
-    const { setProducts, setProductsLoading } = useNewOrderStateWithDispatch();
+    const dispatch = useNewOrderDispatch();
 
     const query = useQuery<Product[]>({
         queryKey: ['products', category],
@@ -91,13 +87,22 @@ export function useProducts(category: string | null) {
         staleTime: ORDER_DEFAULTS.CACHE.PRODUCTS_STALE_TIME,
     });
 
-    // Sync with state using useEffect
     useEffect(() => {
         if (query.data) {
-            setProducts(query.data);
+            dispatch({ type: 'SET_PRODUCTS', payload: query.data });
         }
-        setProductsLoading(query.isLoading);
-    }, [query.data, query.isLoading, setProducts, setProductsLoading]);
+    }, [dispatch, query.data]);
+
+    useEffect(() => {
+        dispatch({ type: 'SET_PRODUCTS_LOADING', payload: query.isLoading });
+    }, [dispatch, query.isLoading]);
+
+    useEffect(() => {
+        if (!category) {
+            dispatch({ type: 'SET_PRODUCTS', payload: [] });
+            dispatch({ type: 'SET_PRODUCTS_LOADING', payload: false });
+        }
+    }, [dispatch, category]);
 
     return query;
 }
