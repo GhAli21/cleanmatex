@@ -4181,10 +4181,26 @@
         "method": "Method",
         "amount": "Amount",
         "remove": "Remove",
+        "cardBrand": "Card Brand",
+        "cardBrandPlaceholder": "Select brand",
+        "cardLast4": "Last 4 Digits",
+        "authCode": "Auth Code",
+        "checkNumber": "Check Number",
+        "checkBankName": "Bank Name",
+        "checkDueDate": "Due Date",
+        "bankReference": "Bank Reference",
+        "gatewayCode": "Gateway Code",
+        "gatewayTransactionId": "Transaction ID",
+        "gatewayReference": "Gateway Reference",
+        "outstanding": "Outstanding",
+        "allocated": "Fully Allocated",
+        "over": "Over-allocated",
+        "legSum": "Legs Total",
         "validation": {
           "sumMismatch": "Sum of payment legs must equal order total",
           "amountMustBePositive": "Each leg amount must be greater than 0",
-          "deferredMustBeAlone": "A deferred payment method must be the only leg"
+          "deferredMustBeAlone": "A deferred payment method must be the only leg",
+          "checkNumberRequired": "Check number is required for cheque legs"
         }
       }
     },
@@ -5579,9 +5595,10 @@
   },
   "paymentConfig": {
     "title": "Payment Setup",
-    "subtitle": "Manage payment methods, branch overrides, terminals, and cash drawers.",
+    "subtitle": "Manage payment methods, card brands, branch overrides, terminals, and cash drawers.",
     "tabs": {
       "methods": "Methods",
+      "cardBrands": "Card Brands",
       "branches": "Branches",
       "terminals": "Terminals",
       "cashDrawers": "Cash Drawers",
@@ -5594,7 +5611,8 @@
       "cancel": "Cancel",
       "close": "Close",
       "edit": "Edit",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "activate": "Activate"
     },
     "methods": {
       "enable": "Enable payment method",
@@ -5692,6 +5710,27 @@
       "allowedForRefund": "Allow refunds",
       "cashDrawerRequired": "Cash drawer required",
       "terminalRequired": "Terminal required"
+    },
+    "cardBrands": {
+      "saved": "Card brand saved successfully",
+      "activated": "Card brand enabled",
+      "deactivated": "Card brand disabled",
+      "editTitle": "Edit card brand",
+      "code": "Code",
+      "name": "Name",
+      "name2": "Name (Arabic)",
+      "description": "Description",
+      "description2": "Description (Arabic)",
+      "recOrder": "Display order",
+      "enabled": "Enabled",
+      "statusLabel": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "noDescription": "No description",
+      "empty": {
+        "title": "No card brands available",
+        "description": "Card brands will appear here after tenant payment setup is initialized."
+      }
     },
     "terminals": {
       "saved": "Terminal saved successfully",

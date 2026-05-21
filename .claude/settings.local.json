@@ -173,7 +173,8 @@
       "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/credit-applications\")",
       "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/financial-reconcile\")",
       "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/financial-reconciliation\")",
-      "Bash(rm -rf \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[orderId]\")"
+      "Bash(rm -rf \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[orderId]\")",
+      "Bash(npx next *)"
     ],
     "deny": [
       "Read(node_modules)",

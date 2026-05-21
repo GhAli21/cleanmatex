@@ -57,6 +57,20 @@ export const paymentLegSchema = z.object({
   checkDate: z.string().optional(),
   /** Cash tendered by customer (only for CASH legs — used to compute change returned) */
   cashTendered: z.number().min(0).optional(),
+  /** Card brand code — for CARD legs (references org_card_brand_cf.card_brand_code) */
+  card_brand_code: z.string().optional(),
+  /** Last 4 digits of card — for CARD legs (PCI: never store full PAN) */
+  card_last4: z.string().max(4).optional(),
+  /** Authorization code from terminal/gateway — for CARD legs */
+  auth_code: z.string().optional(),
+  /** Bank transfer reference number — for BANK_TRANSFER legs */
+  bank_reference: z.string().optional(),
+  /** Payment gateway code — for gateway legs (HYPERPAY / PAYTABS / STRIPE) */
+  gateway_code: z.string().optional(),
+  /** Gateway transaction identifier */
+  gateway_transaction_id: z.string().optional(),
+  /** Gateway reference string */
+  gateway_reference: z.string().optional(),
 });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;

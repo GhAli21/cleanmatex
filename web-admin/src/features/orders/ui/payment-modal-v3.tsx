@@ -23,7 +23,7 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
-import type { ValidatePromoCodeResult, ValidateGiftCardResult } from '@/lib/types/payment';
+import type { ValidatePromoCodeResult, ValidateGiftCardResult, OrgCardBrandConfig } from '@/lib/types/payment';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import { taxService } from '@/lib/services/tax.service';
 import { newOrderPaymentPayloadSchema, type NewOrderPaymentPayload, type PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
@@ -43,9 +43,16 @@ import { CmxTextarea } from '@ui/primitives';
 import { CmxSwitch } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+} from '@ui/forms';
 
 // ---------------------------------------------------------------------------
-// B2B contract selector — raw select kept intentionally (sub-component only)
+// B2B contract selector
 // ---------------------------------------------------------------------------
 function B2BContractsSelect({
   customerId,
@@ -68,6 +75,8 @@ function B2BContractsSelect({
     enabled: !!customerId,
   });
 
+  const noneLabel = t('b2b.contractOptional') || 'None (optional)';
+
   return (
     <div>
       <label className={`block text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>
@@ -76,22 +85,35 @@ function B2BContractsSelect({
       <Controller
         name="b2bContractId"
         control={control}
-        render={({ field }) => (
-          <select
-            {...field}
-            value={field.value || ''}
-            onChange={(e) => field.onChange(e.target.value || undefined)}
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-          >
-            <option value="">{t('b2b.contractOptional') || 'None (optional)'}</option>
-            {isLoading && <option disabled>Loading...</option>}
-            {contracts.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.contractNo}
-              </option>
-            ))}
-          </select>
-        )}
+        render={({ field }) => {
+          const selectedLabel =
+            contracts.find((c) => c.id === field.value)?.contractNo ?? noneLabel;
+          return (
+            <CmxSelectDropdown
+              value={field.value || ''}
+              onValueChange={(v) => field.onChange(v || undefined)}
+              isLoading={isLoading}
+              emptyLabel={t('b2b.contractOptional') || 'None (optional)'}
+            >
+              <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
+                <CmxSelectDropdownValue
+                  displayValue={selectedLabel}
+                  placeholder={noneLabel}
+                />
+              </CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                <CmxSelectDropdownItem value="">
+                  {noneLabel}
+                </CmxSelectDropdownItem>
+                {contracts.map((c) => (
+                  <CmxSelectDropdownItem key={c.id} value={c.id}>
+                    {c.contractNo}
+                  </CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
+          );
+        }}
       />
     </div>
   );
@@ -260,8 +282,8 @@ export function PaymentModalV3({
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
 
   // Collapsible panel state
-  const [couponOpen, setCouponOpen]     = useState(false);
-  const [taxPanelOpen, setTaxPanelOpen] = useState(false);
+  const [couponOpen, setCouponOpen]     = useState(true);
+  const [taxPanelOpen, setTaxPanelOpen] = useState(true);
 
   // Tax state
   const [taxRate, setTaxRate]               = useState<number>(0.06);
@@ -313,6 +335,19 @@ export function PaymentModalV3({
   const [currencyConfig, setCurrencyConfig] = useState<{
     currencyCode: string; decimalPlaces: number; currencyExRate: number;
   } | null>(null);
+
+  // Active card brands for CARD leg dropdown
+  const { data: cardBrands = [] } = useQuery<OrgCardBrandConfig[]>({
+    queryKey: ['card-brands-active', tenantOrgId],
+    queryFn: async () => {
+      const res = await fetch('/api/v1/settings/payments/card-brands');
+      if (!res.ok) return [];
+      const json = await res.json();
+      return ((json.data ?? []) as OrgCardBrandConfig[]).filter((b) => b.is_active);
+    },
+    enabled: open && isImmediatePayment,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Load tax rate + currency on open
   useEffect(() => {
@@ -441,8 +476,8 @@ export function PaymentModalV3({
       setGiftCardResult(null);
       setGiftCardDetails(null);
       setAppliedGiftCard(null);
-      setCouponOpen(false);
-      setTaxPanelOpen(false);
+      setCouponOpen(true);
+      setTaxPanelOpen(true);
       setPayPartial(false);
       setPartialAmount(0);
       setCreditLimitOverride(false);
@@ -452,18 +487,6 @@ export function PaymentModalV3({
       setPaymentLegs([{ method: initialMethod, amount: 0 }]);
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
-
-  // Reset legs/partial when payment method changes
-  useEffect(() => {
-    if (!isImmediatePayment) {
-      setPayPartial(false);
-      setPartialAmount(0);
-      setPaymentLegs([{ method: paymentMethod as PaymentMethodCode, amount: 0 }]);
-    } else {
-      setPaymentLegs([{ method: paymentMethod as PaymentMethodCode, amount: 0 }]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentMethod]);
 
   const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
@@ -579,9 +602,52 @@ export function PaymentModalV3({
     PAYMENT_METHODS.CHECK,
     PAYMENT_METHODS.BANK_TRANSFER,
     PAYMENT_METHODS.MOBILE_PAYMENT,
+    PAYMENT_METHODS.HYPERPAY,
+    PAYMENT_METHODS.PAYTABS,
+    PAYMENT_METHODS.STRIPE,
   ] as const;
 
+  const GATEWAY_METHOD_CODES: string[] = [
+    PAYMENT_METHODS.HYPERPAY,
+    PAYMENT_METHODS.PAYTABS,
+    PAYMENT_METHODS.STRIPE,
+  ];
+
   const isMultiLeg = isImmediatePayment && paymentLegs.length > 1;
+
+  // Method button handler — deferred methods clear legs; immediate methods ADD a new leg
+  // pre-filled with the remaining outstanding amount (or update the first zero-amount placeholder).
+  const handleMethodSelect = useCallback(
+    (code: PaymentMethodCode) => {
+      setValue('paymentMethod', code);
+      const isImmediate = (IMMEDIATE_METHOD_CODES as readonly string[]).includes(code);
+      if (!isImmediate) {
+        setPayPartial(false);
+        setPartialAmount(0);
+        setPaymentLegs([{ method: code, amount: 0 }]);
+        return;
+      }
+      setPaymentLegs((prev) => {
+        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
+          return [{ ...prev[0], method: code }];
+        }
+        const currentSum = prev.reduce((s, l) => s + (l.amount || 0), 0);
+        const remaining = parseFloat(
+          Math.max(0, totals.finalTotal - currentSum).toFixed(decimalPlaces)
+        );
+        return [...prev, { method: code, amount: remaining }];
+      });
+    },
+    [setValue, totals.finalTotal, decimalPlaces, IMMEDIATE_METHOD_CODES]
+  );
+
+  const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
+    setPaymentLegs((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [key]: value };
+      return updated;
+    });
+  }, []);
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -752,6 +818,9 @@ export function PaymentModalV3({
       if (!legsValid) { cmxMessage.error(t('splitPayment.validation.sumMismatch')); return; }
       for (const leg of paymentLegs) {
         if (!leg.amount || leg.amount <= 0) { cmxMessage.error(t('splitPayment.validation.amountMustBePositive')); return; }
+        if (leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()) {
+          cmxMessage.error(t('splitPayment.validation.checkNumberRequired')); return;
+        }
       }
     }
 
@@ -896,14 +965,14 @@ export function PaymentModalV3({
                   control={control}
                   render={({ field }) => (
                     <div className="space-y-2">
-                      {/* Primary row: CASH + CARD */}
+                      {/* Primary row: CASH + CARD — clicking adds a new leg with remaining amount */}
                       <div className="grid grid-cols-2 gap-2">
                         {[PAYMENT_METHODS.CASH, PAYMENT_METHODS.CARD].map((code) => (
                           <button
                             key={code}
                             type="button"
                             aria-pressed={field.value === code}
-                            onClick={() => field.onChange(code)}
+                            onClick={() => handleMethodSelect(code as PaymentMethodCode)}
                             className={`flex flex-col items-center gap-1.5 rounded-lg border-2 p-3 min-h-[56px] transition-colors
                               ${field.value === code
                                 ? 'border-blue-600 bg-blue-50 text-blue-700'
@@ -920,7 +989,7 @@ export function PaymentModalV3({
                           <button
                             type="button"
                             aria-pressed={field.value === PAYMENT_METHODS.PAY_ON_COLLECTION}
-                            onClick={() => field.onChange(PAYMENT_METHODS.PAY_ON_COLLECTION)}
+                            onClick={() => handleMethodSelect(PAYMENT_METHODS.PAY_ON_COLLECTION as PaymentMethodCode)}
                             className={`min-h-[40px] flex items-center justify-center rounded-lg border px-2 py-2 text-xs font-medium transition-colors
                               ${field.value === PAYMENT_METHODS.PAY_ON_COLLECTION
                                 ? 'border-blue-600 bg-blue-500 text-white'
@@ -934,7 +1003,7 @@ export function PaymentModalV3({
                             key={code}
                             type="button"
                             aria-pressed={field.value === code}
-                            onClick={() => field.onChange(code)}
+                            onClick={() => handleMethodSelect(code as PaymentMethodCode)}
                             className={`min-h-[40px] flex items-center justify-center rounded-lg border px-2 py-2 text-xs font-medium transition-colors
                               ${field.value === code
                                 ? 'border-blue-600 bg-blue-500 text-white'
@@ -1226,83 +1295,209 @@ export function PaymentModalV3({
                 <CmxCardHeader className="pb-2">
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
                     <CmxCardTitle className="text-sm">{t('splitPayment.title')}</CmxCardTitle>
-                    {paymentLegs.length > 1 && (
-                      <span className={`text-xs font-medium ${legsValid ? 'text-green-700' : 'text-amber-700'}`}>
-                        {t('splitPayment.remaining')}: {currencyCode} {formatAmount(legRemaining)}
-                      </span>
-                    )}
+                    {/* Outstanding indicator — always visible for immediate payments */}
+                    <span className={`text-xs font-medium ${
+                      legsValid
+                        ? 'text-green-700'
+                        : legRemaining > 0
+                          ? 'text-amber-700'
+                          : 'text-red-600'
+                    }`}>
+                      {legRemaining > 0
+                        ? `${t('splitPayment.outstanding')}: ${currencyCode} ${formatAmount(legRemaining)}`
+                        : legsValid
+                          ? `✓ ${t('splitPayment.allocated')}`
+                          : `${t('splitPayment.over')}: ${currencyCode} ${formatAmount(Math.abs(legRemaining))}`}
+                    </span>
                   </div>
                 </CmxCardHeader>
-                <CmxCardContent className="space-y-3">
+                <CmxCardContent className="space-y-2">
                   {paymentLegs.map((leg, idx) => (
-                    <div key={`${legIdPrefix}-leg-${idx}`} className={`flex gap-2 items-start ${isRTL ? 'flex-row-reverse' : ''}`}>
-                      <select
-                        value={leg.method}
-                        onChange={(e) => {
-                          const updated = [...paymentLegs];
-                          updated[idx] = { ...updated[idx], method: e.target.value as PaymentMethodCode };
-                          setPaymentLegs(updated);
-                        }}
-                        className="flex-shrink-0 w-36 px-2 py-2 text-sm border border-gray-300 rounded-lg bg-white"
-                        aria-label={t('splitPayment.method')}
-                      >
-                        {IMMEDIATE_METHOD_CODES.map((code) => (
-                          <option key={code} value={code}>{getPaymentLabel(code)}</option>
-                        ))}
-                      </select>
+                    <div
+                      key={`${legIdPrefix}-leg-${idx}`}
+                      className="border border-gray-200 rounded-lg p-2.5 space-y-2 bg-gray-50"
+                    >
+                      {/* Row 1: method selector | amount | trash */}
+                      <div className={`flex gap-2 items-center ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <select
+                          value={leg.method}
+                          onChange={(e) => updateLeg(idx, 'method', e.target.value as PaymentMethodCode)}
+                          className="flex-shrink-0 w-36 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white"
+                          aria-label={t('splitPayment.method')}
+                        >
+                          {IMMEDIATE_METHOD_CODES.map((code) => (
+                            <option key={code} value={code}>{getPaymentLabel(code)}</option>
+                          ))}
+                        </select>
 
-                      <div className="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
-                        <span className={`px-2 text-gray-500 text-sm bg-gray-50 ${isRTL ? 'order-2' : ''}`}>{currencyCode}</span>
-                        <input
-                          type="number"
-                          min={0}
-                          step={Math.pow(10, -decimalPlaces)}
-                          value={leg.amount > 0 ? leg.amount : ''}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            const updated = [...paymentLegs];
-                            updated[idx] = { ...updated[idx], amount: Number.isFinite(val) ? Math.max(0, val) : 0 };
-                            setPaymentLegs(updated);
-                          }}
-                          placeholder={formatAmount(0)}
-                          dir="ltr"
-                          className="flex-1 min-w-0 px-3 py-2 text-sm border-0 focus:ring-0 outline-none"
-                          aria-label={t('splitPayment.amount')}
-                        />
+                        <div className="flex-1 flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white">
+                          <span className={`px-2 text-gray-500 text-sm bg-gray-50 border-r ${isRTL ? 'order-2 border-r-0 border-l' : ''}`}>{currencyCode}</span>
+                          <input
+                            type="number"
+                            min={0}
+                            step={Math.pow(10, -decimalPlaces)}
+                            value={leg.amount > 0 ? leg.amount : ''}
+                            onChange={(e) => {
+                              const val = parseFloat(e.target.value);
+                              updateLeg(idx, 'amount', Number.isFinite(val) ? Math.max(0, val) : 0);
+                            }}
+                            placeholder={formatAmount(0)}
+                            dir="ltr"
+                            className="flex-1 min-w-0 px-3 py-1.5 text-sm border-0 focus:ring-0 outline-none"
+                            aria-label={t('splitPayment.amount')}
+                          />
+                        </div>
+
+                        {paymentLegs.length > 1 && (
+                          <CmxButton
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setPaymentLegs((prev) => prev.filter((_, i) => i !== idx))}
+                            aria-label={t('splitPayment.remove')}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </CmxButton>
+                        )}
                       </div>
 
+                      {/* Row 2: method-specific detail fields */}
+                      {leg.method === PAYMENT_METHODS.CARD && (
+                        <div className={`grid grid-cols-3 gap-2 ${isRTL ? 'direction-rtl' : ''}`}>
+                          {/* Card Brand */}
+                          <div>
+                            <label className={`block text-xs font-medium text-gray-600 mb-1 ${isRTL ? 'text-right' : ''}`}>
+                              {t('splitPayment.cardBrand')}
+                            </label>
+                            <CmxSelectDropdown
+                              value={leg.card_brand_code ?? ''}
+                              onValueChange={(v) => updateLeg(idx, 'card_brand_code', v || undefined)}
+                            >
+                              <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'} className="h-8 text-xs">
+                                <CmxSelectDropdownValue
+                                  displayValue={
+                                    leg.card_brand_code
+                                      ? (cardBrands.find(b => b.card_brand_code === leg.card_brand_code)
+                                          ? (isRTL
+                                              ? (cardBrands.find(b => b.card_brand_code === leg.card_brand_code)?.name2 || cardBrands.find(b => b.card_brand_code === leg.card_brand_code)?.name || leg.card_brand_code)
+                                              : (cardBrands.find(b => b.card_brand_code === leg.card_brand_code)?.name || leg.card_brand_code))
+                                          : leg.card_brand_code)
+                                      : ''
+                                  }
+                                  placeholder={t('splitPayment.cardBrandPlaceholder')}
+                                />
+                              </CmxSelectDropdownTrigger>
+                              <CmxSelectDropdownContent>
+                                <CmxSelectDropdownItem value="">{t('splitPayment.cardBrandPlaceholder')}</CmxSelectDropdownItem>
+                                {cardBrands.map((b) => (
+                                  <CmxSelectDropdownItem key={b.card_brand_code} value={b.card_brand_code}>
+                                    {isRTL ? (b.name2 || b.name) : b.name}
+                                  </CmxSelectDropdownItem>
+                                ))}
+                              </CmxSelectDropdownContent>
+                            </CmxSelectDropdown>
+                          </div>
+                          {/* Last 4 digits */}
+                          <CmxInput
+                            label={t('splitPayment.cardLast4')}
+                            value={leg.card_last4 ?? ''}
+                            dir="ltr"
+                            maxLength={4}
+                            inputMode="numeric"
+                            placeholder="0000"
+                            onChange={(e) => updateLeg(idx, 'card_last4', e.target.value.replace(/\D/g, '').slice(0, 4) || undefined)}
+                            className="text-sm"
+                          />
+                          {/* Auth code */}
+                          <CmxInput
+                            label={t('splitPayment.authCode')}
+                            value={leg.auth_code ?? ''}
+                            dir="ltr"
+                            placeholder="—"
+                            onChange={(e) => updateLeg(idx, 'auth_code', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
+
                       {leg.method === PAYMENT_METHODS.CHECK && (
-                        <input
-                          type="text"
+                        <div className={`grid grid-cols-3 gap-2 ${isRTL ? 'direction-rtl' : ''}`}>
+                          {/* Check number — required */}
+                          <CmxInput
+                            label={`${t('splitPayment.checkNumber')} *`}
+                            value={leg.checkNumber ?? ''}
+                            dir="ltr"
+                            placeholder={t('checkNumber.placeholder')}
+                            onChange={(e) => updateLeg(idx, 'checkNumber', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                          {/* Bank name */}
+                          <CmxInput
+                            label={t('splitPayment.checkBankName')}
+                            value={leg.checkBank ?? ''}
+                            dir="ltr"
+                            placeholder="—"
+                            onChange={(e) => updateLeg(idx, 'checkBank', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                          {/* Due date */}
+                          <CmxInput
+                            type="date"
+                            label={t('splitPayment.checkDueDate')}
+                            value={leg.checkDate ?? ''}
+                            onChange={(e) => updateLeg(idx, 'checkDate', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                        </div>
+                      )}
+
+                      {leg.method === PAYMENT_METHODS.BANK_TRANSFER && (
+                        <CmxInput
+                          label={t('splitPayment.bankReference')}
+                          value={leg.bank_reference ?? ''}
                           dir="ltr"
-                          value={leg.checkNumber ?? ''}
-                          onChange={(e) => {
-                            const updated = [...paymentLegs];
-                            updated[idx] = { ...updated[idx], checkNumber: e.target.value };
-                            setPaymentLegs(updated);
-                          }}
-                          placeholder={t('checkNumber.placeholder')}
-                          className="w-28 px-2 py-2 text-sm border border-gray-300 rounded-lg"
-                          aria-label={t('checkNumber.label')}
+                          placeholder="—"
+                          onChange={(e) => updateLeg(idx, 'bank_reference', e.target.value || undefined)}
+                          className="text-sm"
                         />
                       )}
 
-                      {paymentLegs.length > 1 && (
-                        <CmxButton
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPaymentLegs((prev) => prev.filter((_, i) => i !== idx))}
-                          aria-label={t('splitPayment.remove')}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </CmxButton>
+                      {GATEWAY_METHOD_CODES.includes(leg.method) && (
+                        <div className={`grid grid-cols-3 gap-2 ${isRTL ? 'direction-rtl' : ''}`}>
+                          {/* Gateway code */}
+                          <CmxInput
+                            label={t('splitPayment.gatewayCode')}
+                            value={leg.gateway_code ?? ''}
+                            dir="ltr"
+                            placeholder="—"
+                            onChange={(e) => updateLeg(idx, 'gateway_code', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                          {/* Transaction ID */}
+                          <CmxInput
+                            label={t('splitPayment.gatewayTransactionId')}
+                            value={leg.gateway_transaction_id ?? ''}
+                            dir="ltr"
+                            placeholder="—"
+                            onChange={(e) => updateLeg(idx, 'gateway_transaction_id', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                          {/* Gateway reference */}
+                          <CmxInput
+                            label={t('splitPayment.gatewayReference')}
+                            value={leg.gateway_reference ?? ''}
+                            dir="ltr"
+                            placeholder="—"
+                            onChange={(e) => updateLeg(idx, 'gateway_reference', e.target.value || undefined)}
+                            className="text-sm"
+                          />
+                        </div>
                       )}
                     </div>
                   ))}
 
-                  {paymentLegs.length > 1 && !legsValid && (
+                  {!legsValid && paymentLegs.length > 1 && (
                     <p className={`text-xs font-medium text-amber-700 ${isRTL ? 'text-right' : 'text-left'}`}>
                       {t('splitPayment.validation.sumMismatch')} ({currencyCode} {formatAmount(Math.abs(totals.finalTotal - legSum))})
                     </p>
@@ -1715,6 +1910,23 @@ export function PaymentModalV3({
                 loading={totalsLoading}
                 bold
               />
+              {isImmediatePayment && paymentLegs.length > 1 && (
+                <>
+                  <SummaryRow
+                    label={t('splitPayment.legSum')}
+                    value={`${currencyCode} ${formatAmount(legSum)}`}
+                    loading={totalsLoading}
+                  />
+                  {legRemaining !== 0 && (
+                    <SummaryRow
+                      label={t('splitPayment.outstanding')}
+                      value={`${currencyCode} ${formatAmount(Math.abs(legRemaining))}`}
+                      loading={totalsLoading}
+                      negative={legRemaining > 0}
+                    />
+                  )}
+                </>
+              )}
             </div>
 
             {/* Action buttons */}

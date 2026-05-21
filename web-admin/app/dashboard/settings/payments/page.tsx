@@ -8,15 +8,21 @@ import { CmxTabsPanel } from '@ui/navigation';
 import { CmxSkeletonTable } from '@ui/primitives';
 import { cmxMessage } from '@ui/feedback';
 import { PaymentMethodsTab } from '@features/payment-config/ui/payment-methods-tab';
+import { CardBrandsTab } from '@features/payment-config/ui/card-brands-tab';
 import { BranchOverridesTab } from '@features/payment-config/ui/branch-overrides-tab';
 import { TerminalsTab } from '@features/payment-config/ui/terminals-tab';
 import { CashDrawersTab } from '@features/payment-config/ui/cash-drawers-tab';
+import { getCardBrandConfigs } from '@/app/actions/payment-config/card-brands-actions';
 import { getPaymentMethodConfigs } from '@/app/actions/payment-config/payment-methods-actions';
 import { getTerminals } from '@/app/actions/payment-config/terminals-actions';
 import { getCashDrawers } from '@/app/actions/payment-config/cash-drawers-actions';
 import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
 import { useEffect } from 'react';
-import type { OrgPaymentMethodConfig, OrgPaymentTerminal } from '@/lib/types/payment';
+import type {
+  OrgCardBrandConfig,
+  OrgPaymentMethodConfig,
+  OrgPaymentTerminal,
+} from '@/lib/types/payment';
 
 interface Branch {
   id: string;
@@ -28,11 +34,13 @@ export default function PaymentSettingsPage() {
   const [, startTransition] = useTransition();
 
   const [methods, setMethods] = useState<OrgPaymentMethodConfig[]>([]);
+  const [cardBrands, setCardBrands] = useState<OrgCardBrandConfig[]>([]);
   const [terminals, setTerminals] = useState<OrgPaymentTerminal[]>([]);
   const [drawers, setDrawers] = useState<Parameters<typeof CashDrawersTab>[0]['drawers']>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
 
   const [methodsLoading, setMethodsLoading] = useState(true);
+  const [cardBrandsLoading, setCardBrandsLoading] = useState(true);
   const [terminalsLoading, setTerminalsLoading] = useState(true);
   const [drawersLoading, setDrawersLoading] = useState(true);
   const [branchesLoading, setBranchesLoading] = useState(true);
@@ -43,6 +51,16 @@ export default function PaymentSettingsPage() {
       const result = await getPaymentMethodConfigs();
       setMethodsLoading(false);
       if (result.success && result.data) setMethods(result.data);
+      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
+    });
+  };
+
+  const loadCardBrands = () => {
+    setCardBrandsLoading(true);
+    startTransition(async () => {
+      const result = await getCardBrandConfigs();
+      setCardBrandsLoading(false);
+      if (result.success && result.data) setCardBrands(result.data);
       else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
     });
   };
@@ -85,6 +103,7 @@ export default function PaymentSettingsPage() {
 
   useEffect(() => {
     loadMethods();
+    loadCardBrands();
     loadTerminals();
     loadDrawers();
     loadBranches();
@@ -99,6 +118,17 @@ export default function PaymentSettingsPage() {
           methods={methods}
           isLoading={methodsLoading}
           onRefresh={loadMethods}
+        />
+      ),
+    },
+    {
+      id: 'cardBrands',
+      label: t('tabs.cardBrands'),
+      content: (
+        <CardBrandsTab
+          brands={cardBrands}
+          isLoading={cardBrandsLoading}
+          onRefresh={loadCardBrands}
         />
       ),
     },

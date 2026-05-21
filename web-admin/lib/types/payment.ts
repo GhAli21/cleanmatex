@@ -1082,6 +1082,27 @@ export interface OrgPaymentTerminal {
   rec_status: number;
 }
 
+/** Tenant-level card brand config copied from sys_card_brand_cd and safely overridable per tenant. */
+export interface OrgCardBrandConfig {
+  id: string;
+  tenant_org_id: string;
+  card_brand_code: string;
+  name: string;
+  name2: string | null;
+  description: string | null;
+  description2: string | null;
+  rec_order: number | null;
+  is_active: boolean;
+  created_at: string;
+  created_by: string | null;
+  created_info: string | null;
+  updated_at: string | null;
+  updated_by: string | null;
+  updated_info: string | null;
+  rec_status: number;
+  rec_notes: string | null;
+}
+
 /** Cash drawer row */
 export interface OrgCashDrawer {
   id: string;
@@ -1288,6 +1309,15 @@ export interface UpsertBranchPaymentMethodInput {
   max_amount?: number;
   branch_gateway_config?: Record<string, unknown>;
   display_order?: number;
+}
+
+/** Editable tenant overrides for a seeded card brand row. */
+export interface UpdateCardBrandConfigInput {
+  name?: string;
+  name2?: string | null;
+  description?: string | null;
+  description2?: string | null;
+  rec_order?: number | null;
 }
 
 export interface CreateOrderPaymentInput {

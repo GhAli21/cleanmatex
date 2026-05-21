@@ -1,4 +1,3 @@
-﻿/* eslint-disable jsdoc/require-jsdoc */
 export type Json =
   | string
   | number
@@ -2831,6 +2830,95 @@ export type Database = {
           },
           {
             foreignKeyName: "fk_org_branch_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_tenant_readiness"
+            referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_card_brand_cf: {
+        Row: {
+          card_brand_code: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          description: string | null
+          description2: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name2: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          card_brand_code: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          card_brand_code?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          description?: string | null
+          description2?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name2?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocb_brand"
+            columns: ["card_brand_code"]
+            isOneToOne: false
+            referencedRelation: "sys_card_brand_cd"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "fk_ocb_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_tenants_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ocb_tenant"
+            columns: ["tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fin_missing_required_usage"
+            referencedColumns: ["tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocb_tenant"
             columns: ["tenant_org_id"]
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
@@ -9797,8 +9885,10 @@ export type Database = {
       org_fin_voucher_trx_lines_dtl: {
         Row: {
           amount: number
+          auth_code: string | null
           bank_reference: string | null
           branch_id: string | null
+          card_brand_code: string | null
           card_last4: string | null
           cash_drawer_mvt_id: string | null
           cash_drawer_session_id: string | null
@@ -9816,8 +9906,11 @@ export type Database = {
           direction: string
           employee_id: string | null
           expense_category_code: string | null
+          gateway_code: string | null
           gateway_fee: number | null
           gateway_ref: string | null
+          gateway_reference: string | null
+          gateway_transaction_id: string | null
           gateway_txn_id: string | null
           id: string
           idempotency_key: string | null
@@ -9830,6 +9923,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           order_payment_id: string | null
+          party_name: string | null
           payment_method_code: string | null
           payment_status: string | null
           rec_notes: string | null
@@ -9838,6 +9932,7 @@ export type Database = {
           reference: string | null
           reversed_line_id: string | null
           supplier_id: string | null
+          target_id: string | null
           target_type: string | null
           tenant_org_id: string
           tendered_amount: number | null
@@ -9849,8 +9944,10 @@ export type Database = {
         }
         Insert: {
           amount: number
+          auth_code?: string | null
           bank_reference?: string | null
           branch_id?: string | null
+          card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
@@ -9868,8 +9965,11 @@ export type Database = {
           direction: string
           employee_id?: string | null
           expense_category_code?: string | null
+          gateway_code?: string | null
           gateway_fee?: number | null
           gateway_ref?: string | null
+          gateway_reference?: string | null
+          gateway_transaction_id?: string | null
           gateway_txn_id?: string | null
           id?: string
           idempotency_key?: string | null
@@ -9882,6 +9982,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_payment_id?: string | null
+          party_name?: string | null
           payment_method_code?: string | null
           payment_status?: string | null
           rec_notes?: string | null
@@ -9890,6 +9991,7 @@ export type Database = {
           reference?: string | null
           reversed_line_id?: string | null
           supplier_id?: string | null
+          target_id?: string | null
           target_type?: string | null
           tenant_org_id: string
           tendered_amount?: number | null
@@ -9901,8 +10003,10 @@ export type Database = {
         }
         Update: {
           amount?: number
+          auth_code?: string | null
           bank_reference?: string | null
           branch_id?: string | null
+          card_brand_code?: string | null
           card_last4?: string | null
           cash_drawer_mvt_id?: string | null
           cash_drawer_session_id?: string | null
@@ -9920,8 +10024,11 @@ export type Database = {
           direction?: string
           employee_id?: string | null
           expense_category_code?: string | null
+          gateway_code?: string | null
           gateway_fee?: number | null
           gateway_ref?: string | null
+          gateway_reference?: string | null
+          gateway_transaction_id?: string | null
           gateway_txn_id?: string | null
           id?: string
           idempotency_key?: string | null
@@ -9934,6 +10041,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_payment_id?: string | null
+          party_name?: string | null
           payment_method_code?: string | null
           payment_status?: string | null
           rec_notes?: string | null
@@ -9942,6 +10050,7 @@ export type Database = {
           reference?: string | null
           reversed_line_id?: string | null
           supplier_id?: string | null
+          target_id?: string | null
           target_type?: string | null
           tenant_org_id?: string
           tendered_amount?: number | null
@@ -29837,4 +29946,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

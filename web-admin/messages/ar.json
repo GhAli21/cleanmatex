@@ -4181,10 +4181,26 @@
         "method": "الطريقة",
         "amount": "المبلغ",
         "remove": "حذف",
+        "cardBrand": "العلامة التجارية للبطاقة",
+        "cardBrandPlaceholder": "اختر العلامة التجارية",
+        "cardLast4": "آخر 4 أرقام",
+        "authCode": "كود التفويض",
+        "checkNumber": "رقم الشيك",
+        "checkBankName": "اسم البنك",
+        "checkDueDate": "تاريخ الاستحقاق",
+        "bankReference": "المرجع البنكي",
+        "gatewayCode": "كود البوابة",
+        "gatewayTransactionId": "معرف المعاملة",
+        "gatewayReference": "مرجع البوابة",
+        "outstanding": "المتبقي",
+        "allocated": "تم التوزيع الكامل",
+        "over": "تجاوز المبلغ",
+        "legSum": "مجموع الأقساط",
         "validation": {
           "sumMismatch": "مجموع أقساط الدفع يجب أن يساوي إجمالي الطلب",
           "amountMustBePositive": "يجب أن يكون مبلغ كل قسط أكبر من صفر",
-          "deferredMustBeAlone": "طريقة الدفع المؤجلة يجب أن تكون القسط الوحيد"
+          "deferredMustBeAlone": "طريقة الدفع المؤجلة يجب أن تكون القسط الوحيد",
+          "checkNumberRequired": "رقم الشيك مطلوب لأقساط الشيك"
         }
       }
     },
@@ -5579,9 +5595,10 @@
   },
   "paymentConfig": {
     "title": "إعداد المدفوعات",
-    "subtitle": "إدارة طرق الدفع، واستثناءات الفروع، والأجهزة الطرفية، وأدراج النقد.",
+    "subtitle": "إدارة طرق الدفع، والعلامات التجارية للبطاقات، واستثناءات الفروع، والأجهزة الطرفية، وأدراج النقد.",
     "tabs": {
       "methods": "طرق الدفع",
+      "cardBrands": "العلامات التجارية للبطاقات",
       "branches": "الفروع",
       "terminals": "الأجهزة الطرفية",
       "cashDrawers": "أدراج النقد",
@@ -5594,7 +5611,8 @@
       "cancel": "إلغاء",
       "close": "إغلاق",
       "edit": "تعديل",
-      "deactivate": "تعطيل"
+      "deactivate": "تعطيل",
+      "activate": "تفعيل"
     },
     "methods": {
       "enable": "تفعيل طريقة دفع",
@@ -5692,6 +5710,27 @@
       "allowedForRefund": "السماح بعمليات الاسترداد",
       "cashDrawerRequired": "يشترط درج نقد",
       "terminalRequired": "يشترط جهاز طرفي"
+    },
+    "cardBrands": {
+      "saved": "تم حفظ العلامة التجارية للبطاقة بنجاح",
+      "activated": "تم تفعيل العلامة التجارية للبطاقة",
+      "deactivated": "تم تعطيل العلامة التجارية للبطاقة",
+      "editTitle": "تعديل العلامة التجارية للبطاقة",
+      "code": "الرمز",
+      "name": "الاسم",
+      "name2": "الاسم بالعربية",
+      "description": "الوصف",
+      "description2": "الوصف بالعربية",
+      "recOrder": "ترتيب العرض",
+      "enabled": "مفعل",
+      "statusLabel": "الحالة",
+      "active": "نشط",
+      "inactive": "غير نشط",
+      "noDescription": "لا يوجد وصف",
+      "empty": {
+        "title": "لا توجد علامات تجارية للبطاقات",
+        "description": "ستظهر العلامات التجارية للبطاقات هنا بعد تهيئة إعدادات الدفع للمستأجر."
+      }
     },
     "terminals": {
       "saved": "تم حفظ الجهاز الطرفي بنجاح",
