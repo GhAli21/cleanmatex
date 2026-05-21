@@ -4,7 +4,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import {
   createCustomer,
@@ -17,6 +16,8 @@ import { verifyOTP, hasRecentVerifiedOTP } from '@/lib/services/otp.service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { checkAPIRateLimitTenant } from '@/lib/middleware/rate-limit';
 import { validateCSRF } from '@/lib/middleware/csrf';
+import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import type {
   CustomerCreateRequest,
   CustomerSearchParams,
@@ -196,15 +197,32 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication and permissions
-    const authCheck = await requirePermission('customers:read')(request);
-    if (authCheck instanceof NextResponse) {
-      return authCheck; // Unauthorized or permission denied
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      // Customer picker must fail fast; otherwise the modal blocks the New Order flow.
+      setTimeout(() => reject(new Error('Request timeout')), 8000);
+    });
+
+    // Resolve tenant with RPC fallback so picker searches keep working even if JWT
+    // metadata is stale after tenant switching.
+    const authContext = await Promise.race([getAuthContext(), timeoutPromise]);
+    const { tenantId, userId } = authContext;
+
+    const hasAccess = await Promise.race([
+      hasPermissionServer('customers:read'),
+      timeoutPromise,
+    ]);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Permission denied: customers:read' },
+        { status: 403 }
+      );
     }
-    const { tenantId, userId } = authCheck;
 
     // Apply rate limiting (per tenant)
-    const rateLimitResponse = await checkAPIRateLimitTenant(tenantId);
+    const rateLimitResponse = await Promise.race([
+      checkAPIRateLimitTenant(tenantId),
+      timeoutPromise,
+    ]);
     if (rateLimitResponse) {
       return rateLimitResponse;
     }
@@ -281,6 +299,12 @@ export async function GET(request: NextRequest) {
       error instanceof Error ? error : new Error('Unknown error'),
       { feature: 'customers', action: 'list' }
     );
+    if (error instanceof Error && error.message === 'Request timeout') {
+      return NextResponse.json(
+        { success: false, error: 'Request timeout - please try again' },
+        { status: 504 }
+      );
+    }
     return NextResponse.json(
       { success: false, error: 'Failed to fetch customers' },
       { status: 500 }
