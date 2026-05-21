@@ -4,7 +4,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { getOrderFinancialReconciliation } from '@/lib/services/reconciliation.service';
 
 /**
- * POST /api/v1/orders/[orderId]/financial-reconcile
+ * POST /api/v1/orders/[id]/financial-reconcile
  *
  * Why:
  * Runs an on-demand live reconciliation check for one order without creating a
@@ -17,7 +17,7 @@ import { getOrderFinancialReconciliation } from '@/lib/services/reconciliation.s
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Guard against cross-site request forgery on privileged financial actions.
   const csrf = await validateCSRF(request);
@@ -27,7 +27,7 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
 
   try {
     const result = await getOrderFinancialReconciliation(tenantId, orderId);

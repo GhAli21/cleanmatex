@@ -3,7 +3,7 @@ import { requirePermission } from '@/lib/middleware/require-permission';
 import { getOrderFinancialReconciliation } from '@/lib/services/reconciliation.service';
 
 /**
- * GET /api/v1/orders/[orderId]/financial-reconciliation
+ * GET /api/v1/orders/[id]/financial-reconciliation
  *
  * Why:
  * Exposes the current order-scoped reconciliation view for finance UI and
@@ -16,13 +16,13 @@ import { getOrderFinancialReconciliation } from '@/lib/services/reconciliation.s
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('reconciliation:view')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
 
   try {
     const result = await getOrderFinancialReconciliation(tenantId, orderId);

@@ -167,7 +167,13 @@
       "Bash(node -e \"const ar = require\\('./web-admin/messages/ar.json'\\); const v = ar.finance?.vouchers; console.log\\(JSON.stringify\\({ declaredTotal: v.declaredTotal, balanceOk: v.balanceOk, balanceOff: v.balanceOff, validation: v.validation }, null, 2\\)\\)\")",
       "Bash(npm run *)",
       "Bash(node -e \"const data = require\\('F:/jhapp/cleanmatex/web-admin/messages/en.json'\\); const m = data.marketing || {}; console.log\\('marketing keys:', Object.keys\\(m\\)\\); console.log\\('promotionsV2 in marketing:', 'promotionsV2' in m\\);\")",
-      "Bash(awk 'NR>=294' /f/jhapp/cleanmatex/web-admin/messages/en.json)"
+      "Bash(awk 'NR>=294' /f/jhapp/cleanmatex/web-admin/messages/en.json)",
+      "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/payments\")",
+      "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/adjustments\")",
+      "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/credit-applications\")",
+      "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/financial-reconcile\")",
+      "Bash(mkdir -p \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[id]/financial-reconciliation\")",
+      "Bash(rm -rf \"f:/jhapp/cleanmatex/web-admin/app/api/v1/orders/[orderId]\")"
     ],
     "deny": [
       "Read(node_modules)",
@@ -227,7 +233,8 @@
       "f:\\jhapp\\cleanmatex",
       "F:\\jhapp\\cleanmatex\\web-admin\\app\\dashboard\\billing\\cash-drawers",
       "f:\\jhapp\\cleanmatex\\web-admin\\app\\api\\v1\\customers\\[id]\\loyalty",
-      "F:\\jhapp\\cleanmatex\\web-admin\\app\\dashboard\\internal_fin\\vouchers"
+      "F:\\jhapp\\cleanmatex\\web-admin\\app\\dashboard\\internal_fin\\vouchers",
+      "f:\\jhapp\\cleanmatex\\web-admin\\app\\api\\v1\\orders\\[orderId]"
     ]
   },
   "statusLine": {

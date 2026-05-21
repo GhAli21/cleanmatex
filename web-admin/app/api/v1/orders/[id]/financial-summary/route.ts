@@ -4,13 +4,13 @@ import { getOrderFinancialSummary } from '@/lib/services/order-financial-summary
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requirePermission('orders:view_financial_breakdown')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
 
   try {
     const summary = await getOrderFinancialSummary(tenantId, orderId);

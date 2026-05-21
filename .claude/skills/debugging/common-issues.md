@@ -818,4 +818,30 @@ Lifecycle integration:
 
 ---
 
+### Issue 13: Conflicting Dynamic Slug Names in Next.js App Router
+
+**Symptom**: Server logs repeat:
+```
+⚠ Failed to reload dynamic routes: Error: You cannot use different slug names
+  for the same dynamic path ('id' !== 'orderId').
+```
+
+**Root cause**: Two sibling `[slug]` folders at the same depth under the same parent use different names (e.g. `[id]` and `[orderId]`). Next.js requires a single consistent slug name per path segment across all siblings.
+
+**Fix**: Merge all routes into one folder name (pick the one with the most files — typically `[id]`). In the moved route files update the params type and destructuring:
+```ts
+// Before (in [orderId]/route.ts)
+{ params }: { params: Promise<{ orderId: string }> }
+const { orderId } = await params;
+
+// After (in [id]/route.ts) — alias keeps downstream code unchanged
+{ params }: { params: Promise<{ id: string }> }
+const { id: orderId } = await params;
+```
+Then delete the now-empty conflicting folder.
+
+**Prevention**: When adding a new dynamic API route under an existing dynamic segment (e.g. `orders/`), always check what slug name the sibling `[...]` folder uses and match it exactly. Never introduce a second `[slug]` folder at the same level with a different name.
+
+---
+
 ## Return to [Main Documentation](../CLAUDE.md)

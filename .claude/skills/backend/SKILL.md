@@ -44,6 +44,15 @@ app/api/
           route.ts       # GET /api/v1/orders/:id/items
 ```
 
+**CRITICAL — Dynamic slug consistency**: All sub-routes of the same dynamic segment MUST use the same slug name. Adding a new folder like `[orderId]` alongside an existing `[id]` folder causes:
+```
+Error: You cannot use different slug names for the same dynamic path ('id' !== 'orderId').
+```
+Always match the existing slug name. If the parent folder already has `[id]`, any new sub-routes must also live inside `[id]`, not in a new `[orderId]` or `[fooId]` folder. Inside the route file, destructure with an alias if needed:
+```ts
+const { id: orderId } = await params; // renames to orderId locally
+```
+
 ## Service Layer Pattern
 
 ```typescript

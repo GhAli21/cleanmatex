@@ -26,7 +26,7 @@ const schema = z.object({
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
@@ -36,7 +36,7 @@ export async function POST(
   if (auth instanceof NextResponse) return auth;
   const { tenantId, userId } = auth;
 
-  const { orderId } = await params;
+  const { id: orderId } = await params;
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
