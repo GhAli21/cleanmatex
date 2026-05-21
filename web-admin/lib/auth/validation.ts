@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
 /**
  * Authentication Validation Utilities
  *

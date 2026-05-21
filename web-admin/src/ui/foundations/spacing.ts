@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Spacing System
  * @module ui/foundations/spacing

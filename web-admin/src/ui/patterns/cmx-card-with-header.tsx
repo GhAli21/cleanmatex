@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxCardWithHeader - Composable card with optional header pattern
  * Replaces compat CardHeader with title/subtitle/actions

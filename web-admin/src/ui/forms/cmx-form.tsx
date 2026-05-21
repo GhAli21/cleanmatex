@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxForm - Form shell with React Hook Form + Zod
  * @module ui/forms

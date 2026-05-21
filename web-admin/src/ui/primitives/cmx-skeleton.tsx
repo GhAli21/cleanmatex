@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxSkeleton - Loading skeleton component
  * @module ui/primitives

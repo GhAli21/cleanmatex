@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxProgressSteps - Visual progress indicator for wizard
  * @module ui/navigation

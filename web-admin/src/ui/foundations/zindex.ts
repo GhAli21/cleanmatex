@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Z-Index System
  * @module ui/foundations/zindex

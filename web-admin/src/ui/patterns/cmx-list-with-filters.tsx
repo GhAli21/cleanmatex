@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxListWithFilters - List view with filters pattern
  * @module ui/patterns

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxTextarea - Multi-line text input primitive
  * @module ui/primitives

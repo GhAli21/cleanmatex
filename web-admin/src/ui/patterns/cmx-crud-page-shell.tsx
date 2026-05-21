@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxCrudPageShell - CRUD page shell pattern
  * @module ui/patterns

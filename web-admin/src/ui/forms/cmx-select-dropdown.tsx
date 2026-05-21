@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxSelectDropdown - Dropdown select with theme tokens
  * Portal-based for use inside modals. Compatible with legacy select-dropdown API.

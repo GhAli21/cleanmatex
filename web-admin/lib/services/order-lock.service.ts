@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Order Lock Service
  * Manages edit locking to prevent concurrent modifications

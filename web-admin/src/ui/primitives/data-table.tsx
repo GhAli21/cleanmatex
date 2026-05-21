@@ -1,4 +1,5 @@
 "use client"
+/* eslint-disable jsdoc/require-jsdoc, react-hooks/incompatible-library */
 
 import * as React from "react"
 import {

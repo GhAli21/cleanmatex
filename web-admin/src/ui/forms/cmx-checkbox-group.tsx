@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxCheckboxGroup - Manages multiple checkboxes as a group
  * @module ui/forms

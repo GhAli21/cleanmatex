@@ -5910,7 +5910,17 @@
         "WALLET_REFUND": "Wallet Refund",
         "GIFT_CARD_REFUND": "Gift Card Refund",
         "INTERNAL_TRANSFER": "Internal Transfer"
-      }
+      },
+      "subtotalAmount": "Subtotal",
+      "discountAmount": "Discount",
+      "taxAmount": "Tax",
+      "feeAmount": "Fee",
+      "paidAmount": "Paid Amount",
+      "refundedAmount": "Refunded",
+      "outstandingAmount": "Outstanding",
+      "linesTotal": "Lines Total",
+      "currencyCode": "Currency",
+      "createdAt": "Created"
     }
   }
 }

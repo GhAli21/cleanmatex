@@ -5785,7 +5785,7 @@
       "newVoucher": "سند جديد",
       "voucherNo": "رقم السند",
       "voucherType": "نوع السند",
-      "voucherDate": "تاريخ السند",
+      "voucherDate": "تاريخ القسيمة",
       "voucherDetail": "تفاصيل السند",
       "voucherSummary": "ملخص السند",
       "direction": "الاتجاه",
@@ -5910,7 +5910,17 @@
         "WALLET_REFUND": "استرداد محفظة",
         "GIFT_CARD_REFUND": "استرداد بطاقة هدية",
         "INTERNAL_TRANSFER": "تحويل داخلي"
-      }
+      },
+      "subtotalAmount": "المجموع الفرعي",
+      "discountAmount": "الخصم",
+      "taxAmount": "الضريبة",
+      "feeAmount": "الرسوم",
+      "paidAmount": "المبلغ المدفوع",
+      "refundedAmount": "المسترد",
+      "outstandingAmount": "المستحق",
+      "linesTotal": "إجمالي الأسطر",
+      "currencyCode": "العملة",
+      "createdAt": "تاريخ الإنشاء"
     }
   }
 }

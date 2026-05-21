@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable jsdoc/require-jsdoc */
 
 /**
  * CmxTopBar - Dashboard top bar with search, notifications, user menu

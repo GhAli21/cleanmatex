@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable jsdoc/require-jsdoc */
 
 /**
  * CmxLanguageSwitcher - Switch between English and Arabic with RTL

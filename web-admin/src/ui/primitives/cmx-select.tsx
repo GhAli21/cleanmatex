@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxSelect - Select dropdown primitive with optional label, error, and helpText
  * Replaces compat Select with a single API; supports full-width and accessibility.

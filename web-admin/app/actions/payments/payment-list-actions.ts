@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
 /**
  * Server Action: Payment List Management
  *

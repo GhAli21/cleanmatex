@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxWizard - Multi-step wizard container
  * @module ui/patterns

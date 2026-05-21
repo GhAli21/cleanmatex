@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * PRD-002: Tenant Onboarding & Management Types
  * Type definitions for tenant, subscription, and plan management

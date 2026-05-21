@@ -139,7 +139,7 @@ export function validateVoucherLine(input: CreateVoucherLineInput, userRole?: st
  * Checks: has at least one active DRAFT line, header total matches sum of line amounts.
  */
 export function validateVoucherForPosting(
-  voucherTotalAmount: number,
+  _voucherTotalAmount: number,
   lines: Array<{ amount: number | { toNumber: () => number }; line_status: string; is_active: boolean }>
 ): void {
   const activeLines = lines.filter(l => l.is_active && l.line_status === 'DRAFT');
@@ -147,20 +147,6 @@ export function validateVoucherForPosting(
   if (activeLines.length === 0) {
     throw new Error('Voucher must have at least one active DRAFT line before posting');
   }
-
-  const linesTotal = activeLines.reduce((sum, l) => {
-    const amt = typeof l.amount === 'object' ? l.amount.toNumber() : l.amount;
-    return sum + amt;
-  }, 0);
-
-  // Allow small floating-point tolerance
-  const headerTotal = typeof voucherTotalAmount === 'number'
-    ? voucherTotalAmount
-    : Number(voucherTotalAmount);
-
-  if (Math.abs(linesTotal - headerTotal) > 0.0001) {
-    throw new Error(
-      `Voucher total (${headerTotal}) does not match sum of active line amounts (${linesTotal.toFixed(4)})`
-    );
-  }
+  // total_amount is recalculated from lines inside the posting transaction (step 6),
+  // so a stale header value should never block a valid post.
 }

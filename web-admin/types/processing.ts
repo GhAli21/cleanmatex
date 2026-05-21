@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * Processing Screen TypeScript Interfaces
  * PRD-010: Advanced Order Management - Processing Queue

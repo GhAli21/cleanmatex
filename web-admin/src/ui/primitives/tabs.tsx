@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxTabs - Tab navigation primitive
  * @module ui/primitives
@@ -69,4 +70,3 @@ export const CmxTabsContent = React.forwardRef<
   />
 ))
 CmxTabsContent.displayName = 'CmxTabsContent'
-

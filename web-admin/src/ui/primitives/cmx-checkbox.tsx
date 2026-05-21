@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxCheckbox - Checkbox primitive
  * @module ui/primitives

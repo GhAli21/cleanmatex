@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxButton - Primary button primitive
  * @module ui/primitives

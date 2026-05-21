@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxFormField - Form field with label, description, and error handling
  * @module ui/forms

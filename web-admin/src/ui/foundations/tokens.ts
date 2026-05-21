@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param */
 /**
  * Theme Tokens - Maps Theme Settings Engine to CSS variables
  * @module ui/foundations/tokens

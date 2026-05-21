@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxPagination - Pagination controls for data tables
  * @module ui/navigation

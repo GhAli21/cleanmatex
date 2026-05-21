@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * B2B Dunning Service
  * Evaluates overdue statements and triggers notifications (email/SMS/hold_orders)

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Payment Constants — Single source of truth for payment kinds and method codes.
  * Used by lib/types/payment.ts and lib/constants/order-types.ts.

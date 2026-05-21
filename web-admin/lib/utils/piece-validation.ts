@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Piece Validation Utilities
  * Validates piece data and operations

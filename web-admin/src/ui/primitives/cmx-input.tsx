@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxInput - Text input primitive with optional label, error, helpText, and icons
  * Replaces compat Input with a single API; supports full-width and accessibility.

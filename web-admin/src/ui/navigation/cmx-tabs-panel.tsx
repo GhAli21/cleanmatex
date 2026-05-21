@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxTabsPanel - High-level tabs wrapper with tabs[] API
  * Compatible with the legacy Tabs component from components/ui

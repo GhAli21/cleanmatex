@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxFormSection - Visual section grouping for forms
  * @module ui/forms

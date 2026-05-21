@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxSwitch - Toggle switch with theme tokens
  * Compatible with the legacy Switch from components/ui

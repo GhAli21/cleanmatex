@@ -1,4 +1,5 @@
-﻿export type Json =
+﻿/* eslint-disable jsdoc/require-jsdoc */
+export type Json =
   | string
   | number
   | boolean

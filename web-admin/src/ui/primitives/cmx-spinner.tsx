@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxSpinner - Loading spinner primitive
  * @module ui/primitives

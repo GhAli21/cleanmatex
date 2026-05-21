@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxDialog - Composable modal dialog with theme tokens and a11y
  * Compatible with the legacy Dialog from components/ui

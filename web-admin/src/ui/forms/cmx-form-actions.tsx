@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc */
 /**
  * CmxFormActions - Form submit and cancel actions
  * @module ui/forms

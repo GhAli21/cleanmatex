@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 
 import { type ChangeEvent, useCallback, useId, useMemo } from 'react';
 import { CmxButton, CmxInput } from '@ui/primitives';

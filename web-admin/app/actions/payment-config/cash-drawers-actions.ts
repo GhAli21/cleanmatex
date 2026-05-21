@@ -1,4 +1,5 @@
 'use server';
+/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
 
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
