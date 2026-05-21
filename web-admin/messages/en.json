@@ -5870,6 +5870,7 @@
       },
       "addLineTitle": "Add Transaction Line",
       "addLineSuccess": "Line added successfully.",
+      "deleteLineConfirm": "Delete line {no}? This action cannot be undone.",
       "orderId": "Order ID",
       "customerId": "Customer ID",
       "employeeId": "Employee ID",

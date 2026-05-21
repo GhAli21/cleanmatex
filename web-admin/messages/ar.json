@@ -5870,6 +5870,7 @@
       },
       "addLineTitle": "إضافة سطر معاملة",
       "addLineSuccess": "تمت إضافة السطر بنجاح.",
+      "deleteLineConfirm": "حذف السطر {no}؟ لا يمكن التراجع عن هذا الإجراء.",
       "orderId": "رقم الطلب",
       "customerId": "رقم العميل",
       "employeeId": "رقم الموظف",
