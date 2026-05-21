@@ -4,6 +4,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/immutability */
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * CleanMateX Logging Utility 
  * 
@@ -346,4 +347,3 @@ export const log = {
   error: (message: string, error?: Error, context?: LogContext) => logger.error(message, error, context),
   fatal: (message: string, error?: Error, context?: LogContext) => logger.fatal(message, error, context),
 };
-

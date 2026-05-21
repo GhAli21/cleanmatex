@@ -16,6 +16,9 @@ import type {
   OrderTaxRow,
 } from '@/app/actions/orders/get-order-financial';
 
+/**
+ * Props for the order-detail financial tab renderer.
+ */
 interface OrdersFinancialTabRprtProps {
   snapshot: OrderFinancialSnapshot | null;
   charges: OrderChargeRow[];
@@ -33,6 +36,13 @@ interface OrdersFinancialTabRprtProps {
   auditTimeline: OrderFinancialTimelineRow[];
 }
 
+/**
+ * Render a compact status badge for finance lifecycle rows.
+ *
+ * @param root0 badge props wrapper
+ * @param root0.status status value to visualize
+ * @returns badge element with semantic color treatment
+ */
 function StatusBadge({ status }: { status: string | null }) {
   const colors: Record<string, string> = {
     COMPLETED: 'bg-green-100 text-green-800',
@@ -63,18 +73,40 @@ function SectionTitle({ title, isRTL }: { title: string; isRTL: boolean }) {
   );
 }
 
-export function OrdersFinancialTabRprt({
-  snapshot,
-  charges,
-  discounts,
-  taxes,
-  payments,
-  creditApplications,
-  refunds,
-  adjustments,
-  voucherReferences,
-  auditTimeline,
-}: OrdersFinancialTabRprtProps) {
+/**
+ * Order detail financial tab read-model renderer.
+ *
+ * Why:
+ * Separates discounts, stored value, payment legs, refunds, adjustments,
+ * voucher links, and timeline events so finance users can trace balance
+ * changes without cross-referencing multiple screens.
+ *
+ * @param props financial tab render payload
+ * @param props.snapshot order-level financial header snapshot
+ * @param props.charges persisted charge rows
+ * @param props.discounts persisted commercial discount rows
+ * @param props.taxes persisted tax rows
+ * @param props.payments persisted payment legs
+ * @param props.creditApplications persisted stored-value applications
+ * @param props.refunds persisted refund rows
+ * @param props.adjustments persisted adjustment rows
+ * @param props.voucherReferences linked voucher references
+ * @param props.auditTimeline merged financial activity timeline
+ * @returns structured order finance tab content
+ */
+export function OrdersFinancialTabRprt(props: OrdersFinancialTabRprtProps) {
+  const {
+    snapshot,
+    charges,
+    discounts,
+    taxes,
+    payments,
+    creditApplications,
+    refunds,
+    adjustments,
+    voucherReferences,
+    auditTimeline,
+  } = props;
   const isRTL = useRTL();
   const t = useTranslations('orders.detailFull.financialTab');
   const { currencyCode, decimalPlaces } = useTenantCurrency();

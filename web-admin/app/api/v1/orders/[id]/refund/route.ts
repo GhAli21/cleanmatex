@@ -22,10 +22,24 @@ const schema = z.object({
   idempotencyKey: z.string().min(1).max(120).optional(),
 });
 
+/**
+ * POST /api/v1/orders/[id]/refund
+ *
+ * Why:
+ * Preserves the legacy singular refund surface while routing the request
+ * through the Batch 0 refund lifecycle with lineage and manual-exception
+ * safeguards.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the target order identifier
+ * @param root0.params route params promise containing the target order identifier
+ * @returns standardized refund initiation response
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 

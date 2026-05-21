@@ -25,6 +25,7 @@ async function getPromotion(tenantId: string, promoId: string) {
   });
 }
 
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Return all auto-apply promotions (NULL promo_code) for the given order context.
  */

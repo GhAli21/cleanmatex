@@ -52,15 +52,6 @@ export function OrderPiecesManager({
   enableBulkOperations = false,
   pieceDensity = 'comfortable',
 }: OrderPiecesManagerProps) {
-  // Validate required props
-  if (!orderId || !itemId || !tenantId) {
-    return (
-      <div className="text-center py-4 text-sm text-red-600">
-        Missing required parameters: orderId, itemId, or tenantId
-      </div>
-    );
-  }
-
   const t = useTranslations('orders.pieces');
   const tCommon = useTranslations('common');
   const isRTL = useRTL();
@@ -69,7 +60,6 @@ export function OrderPiecesManager({
   const [loading, setLoading] = React.useState(autoLoad);
   const [error, setError] = React.useState<string | null>(null);
   const [selectedPieces, setSelectedPieces] = React.useState<Set<string>>(new Set());
-
   const loadPieces = React.useCallback(async () => {
     try {
       setLoading(true);
@@ -257,6 +247,16 @@ export function OrderPiecesManager({
     },
     [orderId, itemId, readOnly, loadPieces, onUpdate, pieces]
   );
+
+  const hasRequiredParams = Boolean(orderId && itemId && tenantId);
+
+  if (!hasRequiredParams) {
+    return (
+      <div className="text-center py-4 text-sm text-red-600">
+        Missing required parameters: orderId, itemId, or tenantId
+      </div>
+    );
+  }
 
   if (loading) {
     return (

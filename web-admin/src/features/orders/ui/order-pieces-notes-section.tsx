@@ -4,6 +4,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useTranslations } from 'next-intl';

@@ -38,7 +38,7 @@
 ### Step 2 — Add an ORDER_PAYMENT line
 
 ```javascript
-const VOUCHER_ID = 'PASTE-ID-HERE';
+const VOUCHER_ID = '319ba301-a8a2-49d5-a928-33ad67327dd7';
 
 const r2 = await fetch(`/api/v1/finance/vouchers/${VOUCHER_ID}/lines`, {
   method: 'POST',

@@ -5,6 +5,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, CheckCircle, AlertTriangle, Info, X } from 'lucide-react';

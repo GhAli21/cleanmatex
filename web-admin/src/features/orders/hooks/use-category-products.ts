@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
 import type { ServiceCategory, Product } from '../model/new-order-types';
@@ -52,12 +52,6 @@ export function useCategories() {
     const { setCategories, setCategoriesLoading, setSelectedCategory } =
         useNewOrderStateWithDispatch();
 
-    // Store functions in refs to avoid infinite loops
-    const setCategoriesRef = useRef(setCategories);
-    const setCategoriesLoadingRef = useRef(setCategoriesLoading);
-    setCategoriesRef.current = setCategories;
-    setCategoriesLoadingRef.current = setCategoriesLoading;
-
     const query = useQuery<ServiceCategory[]>({
         queryKey: ['categories', 'enabled'],
         queryFn: fetchCategories,
@@ -69,20 +63,15 @@ export function useCategories() {
     // Sync with state using useEffect
     useEffect(() => {
         if (query.data) {
-            setCategoriesRef.current(query.data);
+            setCategories(query.data);
             // Set first category as selected if none selected
             if (query.data.length > 0 && !query.data.find(cat => cat.service_category_code === '')) {
                 // Only set if no category is currently selected
                 // This will be handled by the component using this hook
             }
         }
-        setCategoriesLoadingRef.current(query.isLoading);
-    }, [
-        query.data,
-        query.isLoading,
-        // Removed setCategories and setCategoriesLoading from dependencies to prevent infinite loop
-        // Using refs instead to always call the latest functions
-    ]);
+        setCategoriesLoading(query.isLoading);
+    }, [query.data, query.isLoading, setCategories, setCategoriesLoading]);
 
     return query;
 }
@@ -92,12 +81,6 @@ export function useCategories() {
  */
 export function useProducts(category: string | null) {
     const { setProducts, setProductsLoading } = useNewOrderStateWithDispatch();
-
-    // Store functions in refs to avoid infinite loops
-    const setProductsRef = useRef(setProducts);
-    const setProductsLoadingRef = useRef(setProductsLoading);
-    setProductsRef.current = setProducts;
-    setProductsLoadingRef.current = setProductsLoading;
 
     const query = useQuery<Product[]>({
         queryKey: ['products', category],
@@ -111,15 +94,10 @@ export function useProducts(category: string | null) {
     // Sync with state using useEffect
     useEffect(() => {
         if (query.data) {
-            setProductsRef.current(query.data);
+            setProducts(query.data);
         }
-        setProductsLoadingRef.current(query.isLoading);
-    }, [
-        query.data,
-        query.isLoading,
-        // Removed setProducts and setProductsLoading from dependencies to prevent infinite loop
-        // Using refs instead to always call the latest functions
-    ]);
+        setProductsLoading(query.isLoading);
+    }, [query.data, query.isLoading, setProducts, setProductsLoading]);
 
     return query;
 }

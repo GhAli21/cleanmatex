@@ -3,9 +3,13 @@ import 'server-only';
 import { prisma } from '@/lib/db/prisma';
 import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
 import { emitEventTx } from '@/lib/services/outbox.service';
+import { recalculateOrderFinancialSnapshotTx } from '@/lib/services/order-financial-write.service';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 
+/**
+ * Adjustment creation payload for the Order Fin controlled-correction ledger.
+ */
 export interface CreateOrderAdjustmentParams {
   tenantId: string;
   orderId: string;
@@ -18,6 +22,27 @@ export interface CreateOrderAdjustmentParams {
   autoApprove?: boolean;
 }
 
+/**
+ * Create an order-level financial adjustment row under tenant scope.
+ *
+ * Why:
+ * Adjustments are intentionally isolated from discounts, payments, and refunds
+ * so finance teams can audit exceptional corrections without mutating the
+ * original source facts.
+ *
+ * @param params tenant-scoped adjustment payload
+ * @returns created adjustment row metadata
+ * @example
+ * await createOrderAdjustment({
+ *   tenantId: 'org-123',
+ *   orderId: 'order-123',
+ *   adjustmentType: 'MANUAL_CORRECTION',
+ *   amount: -2.5,
+ *   currencyCode: 'OMR',
+ *   reason: 'Rounded down after review',
+ *   createdBy: 'user-123',
+ * });
+ */
 export async function createOrderAdjustment(
   params: CreateOrderAdjustmentParams
 ) {
@@ -85,6 +110,12 @@ export async function createOrderAdjustment(
     `;
 
     const created = row[0];
+
+    // Recompute the header snapshot after approved adjustments so downstream
+    // finance reads stay aligned even though Batch 0 keeps header columns lean.
+    if (status === 'APPROVED') {
+      await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
+    }
 
     await emitEventTx(
       tx,

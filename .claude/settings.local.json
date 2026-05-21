@@ -158,7 +158,10 @@
       "Bash(node -e \"const en=require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\({save: en.common?.save, create: en.common?.create, optional: en.common?.optional, submit: en.common?.submit, selectPlaceholder: en.common?.selectPlaceholder}, null, 2\\)\\);\")",
       "Bash(Select-Object -Last 5 -ExpandProperty Name)",
       "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)",
-      "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^0\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)"
+      "PowerShell(ls \"f:\\\\jhapp\\\\cleanmatex\\\\supabase\\\\migrations\" | Where-Object { $_.Name -match '^0\\\\d+' } | Sort-Object Name | Select-Object -Last 5 -ExpandProperty Name)",
+      "Bash(grep -v \"//\")",
+      "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); console.log\\(JSON.stringify\\(m.finance?.vouchers, null, 2\\)\\)\")",
+      "Bash(node -e \"const m=JSON.parse\\(require\\('fs'\\).readFileSync\\('messages/en.json','utf8'\\)\\); const idx = JSON.stringify\\(m,null,2\\).indexOf\\('\\\\\"finance.vouchers\\\\\"'\\); console.log\\('finance keys:', Object.keys\\(m.finance || {}\\)\\)\")"
     ],
     "deny": [
       "Read(node_modules)",

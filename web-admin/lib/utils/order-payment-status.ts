@@ -51,7 +51,6 @@ export function normalizeOrderPaymentStatus(
       return ORDER_PAYMENT_STATUS.PENDING_COLLECTION;
     case ORDER_PAYMENT_STATUS.PARTIALLY_PAID:
     case 'PARTIAL':
-    case 'PARTIALLY_PAID':
       return ORDER_PAYMENT_STATUS.PARTIALLY_PAID;
     case ORDER_PAYMENT_STATUS.PAID:
       return ORDER_PAYMENT_STATUS.PAID;

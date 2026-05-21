@@ -5828,7 +5828,9 @@
         "editLine": "Edit Line",
         "deleteLine": "Delete Line",
         "print": "Print",
-        "export": "Export"
+        "export": "Export",
+        "saveAsDraft": "Save as Draft",
+        "cancelVoucher": "Cancel Voucher"
       },
       "statusLabels": {
         "DRAFT": "Draft",
@@ -5855,7 +5857,59 @@
         "bankReferenceRequired": "Bank reference is required for bank transfer.",
         "checkFieldsRequired": "Check number, bank, and date are required for check payments.",
         "roleNotAllowed": "Your role is not permitted to perform this action.",
-        "reasonRequired": "Reason is required."
+        "reasonRequired": "Reason is required.",
+        "lineRoleRequired": "Please select a line role.",
+        "amountPositive": "Amount must be greater than 0.",
+        "orderIdRequired": "Order ID is required for this line role.",
+        "customerIdRequired": "Customer ID is required for this line role.",
+        "partyNameRequired": "Party name is required for this line role.",
+        "expenseCategoryRequired": "Expense category is required for this line role.",
+        "employeeIdRequired": "Employee ID is required for this line role."
+      },
+      "addLineTitle": "Add Transaction Line",
+      "addLineSuccess": "Line added successfully.",
+      "orderId": "Order ID",
+      "customerId": "Customer ID",
+      "employeeId": "Employee ID",
+      "bankReference": "Bank Reference",
+      "checkNumber": "Check Number",
+      "checkBank": "Check Bank",
+      "checkDate": "Check Date",
+      "cardBrand": "Card Brand",
+      "cardLast4": "Card Last 4",
+      "authCode": "Auth Code",
+      "headerStep": {
+        "hint": "Create the voucher header first, then add transaction lines.",
+        "next": "Next: Add Lines",
+        "created": "Voucher {voucher_no} created in DRAFT. Add transaction lines below."
+      },
+      "totalLines": "Total ({count} lines)",
+      "lineRoleGroups": {
+        "receipts": "Receipts",
+        "payments": "Payments",
+        "refunds": "Refunds",
+        "transfers": "Transfers"
+      },
+      "lineRoleLabels": {
+        "ORDER_PAYMENT": "Order Payment",
+        "INVOICE_PAYMENT": "Invoice Payment",
+        "WALLET_TOPUP": "Wallet Top-up",
+        "GIFT_CARD_SALE": "Gift Card Sale",
+        "CUSTOMER_CREDIT_RECEIPT": "Customer Credit Receipt",
+        "CUSTOMER_ADVANCE_RECEIPT": "Customer Advance Receipt",
+        "SUPPLIER_PAYMENT": "Supplier Payment",
+        "EXPENSE_PAYMENT": "Expense Payment",
+        "SHOP_RENT_PAYMENT": "Shop Rent Payment",
+        "UTILITY_PAYMENT": "Utility Payment",
+        "EMPLOYEE_ADVANCE_PAYMENT": "Employee Advance Payment",
+        "PETTY_CASH_ISSUE": "Petty Cash Issue",
+        "CUSTOMER_REFUND": "Customer Refund",
+        "ORDER_REFUND": "Order Refund",
+        "INVOICE_REFUND": "Invoice Refund",
+        "PETTY_CASH_RETURN": "Petty Cash Return",
+        "WALLET_REFUND": "Wallet Refund",
+        "GIFT_CARD_REFUND": "Gift Card Refund",
+        "INTERNAL_TRANSFER": "Internal Transfer"
       }
     }
   }

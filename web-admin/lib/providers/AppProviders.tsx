@@ -20,6 +20,14 @@ import { type Locale, getLocaleFromLocalStorage } from '@/lib/utils/locale.clien
 import enMessages from '@/messages/en.json'
 import arMessages from '@/messages/ar.json'
 
+function getInitialClientLocale(initialLocale: Locale): Locale {
+  if (typeof window === 'undefined') {
+    return initialLocale
+  }
+
+  return getLocaleFromLocalStorage()
+}
+
 export function AppProviders({
   children,
   initialLocale = 'en'
@@ -42,25 +50,16 @@ export function AppProviders({
   )
 
   // Manage locale state with initial value from server
-  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [locale, setLocaleState] = useState<Locale>(() => getInitialClientLocale(initialLocale));
 
   // Sync with localStorage and listen for locale changes
   useEffect(() => {
-    // Get locale from localStorage on mount (client-side)
-    const savedLocale = getLocaleFromLocalStorage();
-    if (savedLocale !== locale) {
-      setLocaleState(savedLocale);
-      // Ensure HTML attributes are set
-      document.documentElement.lang = savedLocale;
-      document.documentElement.dir = savedLocale === 'ar' ? 'rtl' : 'ltr';
-    }
+    document.documentElement.lang = locale;
+    document.documentElement.dir = locale === 'ar' ? 'rtl' : 'ltr';
 
     // Listen for locale change events from LanguageSwitcher
     const handleLocaleChange = (event: CustomEvent<Locale>) => {
       setLocaleState(event.detail);
-      // Update HTML attributes immediately
-      document.documentElement.lang = event.detail;
-      document.documentElement.dir = event.detail === 'ar' ? 'rtl' : 'ltr';
     };
 
     window.addEventListener('localeChange', handleLocaleChange as EventListener);

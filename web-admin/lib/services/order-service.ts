@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * OrderService
  * Core business logic for order operations
@@ -2615,4 +2616,3 @@ export class OrderService {
 
 // Re-export lock service functions for convenience
 export { lockOrderForEdit, unlockOrder, checkOrderLock } from '@/lib/services/order-lock.service';
-

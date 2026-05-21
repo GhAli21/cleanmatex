@@ -12,10 +12,23 @@ const schema = z.object({
   idempotencyKey: z.string().min(1).max(120).optional(),
 });
 
+/**
+ * POST /api/v1/orders/[orderId]/credit-applications
+ *
+ * Why:
+ * Applies stored value to an existing order through the same tenant-safe Order
+ * Fin write model used by settlement and refunds.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the target order identifier
+ * @param root0.params route params promise containing the target order identifier
+ * @returns standardized credit application response
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
+  // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 

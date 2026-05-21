@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';

@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 
 export interface KeyboardNavigationOptions {
     /**
@@ -48,7 +48,10 @@ export function useKeyboardNavigation(options: KeyboardNavigationOptions = {}) {
     } = options;
 
     const handlersRef = useRef(options);
-    handlersRef.current = options;
+
+    useEffect(() => {
+        handlersRef.current = options;
+    }, [options]);
 
     useEffect(() => {
         if (!enabled) return;
@@ -192,6 +195,7 @@ export function useArrowKeyNavigation<T>(
     enabled: boolean = true
 ) {
     const selectedIndexRef = useRef<number>(-1);
+    const [selectedIndex, setSelectedIndex] = useState(-1);
 
     const handleArrow = useCallback(
         (direction: 'up' | 'down') => {
@@ -206,6 +210,7 @@ export function useArrowKeyNavigation<T>(
             }
 
             selectedIndexRef.current = newIndex;
+            setSelectedIndex(newIndex);
             onSelect(items[newIndex], newIndex);
         },
         [enabled, items, onSelect]
@@ -221,9 +226,10 @@ export function useArrowKeyNavigation<T>(
     });
 
     return {
-        selectedIndex: selectedIndexRef.current,
+        selectedIndex,
         resetSelection: () => {
             selectedIndexRef.current = -1;
+            setSelectedIndex(-1);
         },
     };
 }

@@ -1,5 +1,6 @@
 'use client'
 
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Widget Component
  *

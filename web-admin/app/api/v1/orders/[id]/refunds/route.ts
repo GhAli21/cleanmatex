@@ -34,6 +34,18 @@ const schema = z.object({
   idempotencyKey: z.string().min(1).max(120).optional(),
 });
 
+/**
+ * GET /api/v1/orders/[id]/refunds
+ *
+ * Why:
+ * Returns the order refund ledger from the canonical Order Fin lifecycle so
+ * financial history can be reviewed without joining multiple legacy surfaces.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the target order identifier
+ * @param root0.params route params promise containing the target order identifier
+ * @returns order refund ledger payload
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -53,10 +65,23 @@ export async function GET(
   }
 }
 
+/**
+ * POST /api/v1/orders/[id]/refunds
+ *
+ * Why:
+ * Exposes the canonical plural refund initiation endpoint while enforcing the
+ * live Batch 0 RBAC model and manual-exception safeguards.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the target order identifier
+ * @param root0.params route params promise containing the target order identifier
+ * @returns standardized refund initiation response
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 

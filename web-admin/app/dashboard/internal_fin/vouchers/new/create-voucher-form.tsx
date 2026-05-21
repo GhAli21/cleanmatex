@@ -6,8 +6,17 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createBizVoucherAction } from '@/app/actions/finance/voucher-actions';
 import { VOUCHER_TYPE, VOUCHER_DIRECTION, PARTY_TYPE } from '@/lib/constants/voucher';
-import type { VoucherType } from '@/lib/types/voucher';
+import type { VoucherDirection, VoucherType } from '@/lib/types/voucher';
 
+/**
+ * Legacy voucher creation form kept for the existing internal-finance flow.
+ *
+ * Why:
+ * This screen still supports the simpler header-only voucher flow while the
+ * richer Business Voucher Module continues to expand alongside it.
+ *
+ * @returns legacy voucher creation form UI
+ */
 export default function CreateVoucherForm() {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
@@ -16,7 +25,7 @@ export default function CreateVoucherForm() {
   const [error, setError] = useState<string | null>(null);
 
   const [voucherType, setVoucherType] = useState<VoucherType>(VOUCHER_TYPE.RECEIPT);
-  const [direction, setDirection] = useState(VOUCHER_DIRECTION.IN);
+  const [direction, setDirection] = useState<VoucherDirection>(VOUCHER_DIRECTION.IN);
   const [partyType, setPartyType] = useState('');
   const [partyName, setPartyName] = useState('');
   const [description, setDescription] = useState('');

@@ -44,6 +44,9 @@ export interface ApplyOrderCreditParams {
   idempotencyKey?: string;
 }
 
+/**
+ * Result returned after a successful order credit application write.
+ */
 export interface ApplyOrderCreditResult {
   orderId: string;
   paymentStatus: string;
@@ -52,6 +55,27 @@ export interface ApplyOrderCreditResult {
   creditApplicationId: string;
 }
 
+/**
+ * Debit the originating stored-value ledger and persist the order credit fact.
+ *
+ * Why:
+ * The stored-value source of truth must move in the same transaction as the
+ * order-level credit application row to avoid balance drift.
+ *
+ * @param tx active Prisma transaction client
+ * @param params stored-value debit payload scoped to one order mutation
+ * @param params.tenantId tenant owning the order and stored-value source
+ * @param params.orderId order receiving the credit application
+ * @param params.customerId customer whose stored value is being debited
+ * @param params.creditType stored-value source type being applied
+ * @param params.amount applied monetary amount
+ * @param params.creditReferenceId optional source document or card identifier
+ * @param params.appliedBy user performing the debit
+ * @param params.currencyCode currency used for the order mutation
+ * @param params.idempotencyKey optional idempotency guard
+ * @param params.referenceNo optional human-readable reference to persist
+ * @returns created order credit application row
+ */
 async function applyStoredValueDebitTx(
   tx: PrismaTransactionClient,
   params: {
@@ -61,10 +85,10 @@ async function applyStoredValueDebitTx(
     creditType: string;
     amount: number;
     creditReferenceId?: string;
-    paymentMethodId: string;
     appliedBy: string;
     currencyCode: string;
     idempotencyKey?: string;
+    referenceNo?: string;
   }
 ) {
   const {
@@ -74,10 +98,10 @@ async function applyStoredValueDebitTx(
     creditType,
     amount,
     creditReferenceId,
-    paymentMethodId,
     appliedBy,
     currencyCode,
     idempotencyKey,
+    referenceNo,
   } = params;
 
   if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
@@ -146,7 +170,7 @@ async function applyStoredValueDebitTx(
       credit_source_id: creditReferenceId ?? null,
       applied_amount: amount,
       currency_code: currencyCode,
-      reference_no: paymentMethodId,
+      reference_no: referenceNo ?? null,
       applied_by: appliedBy,
       idempotency_key: idempotencyKey ?? null,
       is_active: true,
@@ -155,6 +179,20 @@ async function applyStoredValueDebitTx(
   });
 }
 
+/**
+ * Apply stored value to an existing order under tenant scope.
+ *
+ * @param params tenant-scoped credit application payload
+ * @returns normalized snapshot outcome after the credit application
+ * @example
+ * await applyOrderCreditApplication({
+ *   orderId: 'order-123',
+ *   tenantId: 'org-123',
+ *   paymentMethodId: 'method-123',
+ *   amount: 10,
+ *   appliedBy: 'user-123',
+ * });
+ */
 export async function applyOrderCreditApplication(
   params: ApplyOrderCreditParams
 ): Promise<ApplyOrderCreditResult> {
@@ -237,18 +275,11 @@ export async function applyOrderCreditApplication(
       creditType,
       amount,
       creditReferenceId,
-      paymentMethodId,
       appliedBy,
       currencyCode: order.currency_code ?? 'OMR',
       idempotencyKey,
+      referenceNo: reference,
     });
-
-    if (reference) {
-      await tx.org_order_credit_apps_dtl.update({
-        where: { id: creditApp.id },
-        data: { reference_no: reference },
-      });
-    }
 
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 
@@ -280,6 +311,15 @@ export async function applyOrderCreditApplication(
   });
 }
 
+/**
+ * Read the customer's currently available stored value for Order Fin use.
+ *
+ * @param tenantId tenant owning the stored-value records
+ * @param customerId customer whose balances should be summarized
+ * @returns wallet, advance, credit-note, and loyalty availability snapshot
+ * @example
+ * await getAvailableStoredValueSummary('org-123', 'customer-123');
+ */
 export async function getAvailableStoredValueSummary(
   tenantId: string,
   customerId: string

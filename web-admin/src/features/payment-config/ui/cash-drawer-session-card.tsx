@@ -13,6 +13,15 @@ interface CashDrawerSessionCardProps {
   onClose: () => void;
 }
 
+function CashDrawerSessionRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium">{value}</span>
+    </div>
+  );
+}
+
 export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDrawerSessionCardProps) {
   const t = useTranslations('paymentConfig');
 
@@ -20,13 +29,6 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
     amount != null
       ? `${amount.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 })} ${session.currency_code}`
       : '—';
-
-  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
-    <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
-    </div>
-  );
 
   const differenceAmount = session.difference_amount;
   const diffColor =
@@ -51,26 +53,26 @@ export function CashDrawerSessionCard({ session, drawer, open, onClose }: CashDr
             <span className="text-xs text-muted-foreground">{session.session_no}</span>
           </div>
 
-          <Row
+          <CashDrawerSessionRow
             label={t('cashDrawers.openedAt')}
             value={new Date(session.opened_at).toLocaleString()}
           />
-          <Row
+          <CashDrawerSessionRow
             label={t('cashDrawers.openingFloat')}
             value={formatAmount(session.opening_float_amount)}
           />
-          <Row
+          <CashDrawerSessionRow
             label={t('cashDrawers.expectedCash')}
             value={formatAmount(session.expected_cash_amount)}
           />
           {session.counted_cash_amount != null && (
-            <Row
+            <CashDrawerSessionRow
               label={t('cashDrawers.countedCash')}
               value={formatAmount(session.counted_cash_amount)}
             />
           )}
           {differenceAmount != null && (
-            <Row
+            <CashDrawerSessionRow
               label={t('cashDrawers.difference')}
               value={
                 <span className={diffColor}>

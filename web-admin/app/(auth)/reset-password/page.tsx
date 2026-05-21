@@ -6,7 +6,7 @@
  * Set new password after clicking reset link in email
  */
 
-import { useState, FormEvent, useEffect, Suspense } from 'react'
+import { useState, FormEvent, Suspense, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -24,16 +24,10 @@ function ResetPasswordForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [resetComplete, setResetComplete] = useState(false)
-  const [tokenValid, setTokenValid] = useState(true)
-
-  // Check if we have a valid token from the URL
-  useEffect(() => {
+  const tokenValid = useMemo(() => {
     const token = searchParams.get('token')
     const type = searchParams.get('type')
-
-    if (!token || type !== 'recovery') {
-      setTokenValid(false)
-    }
+    return Boolean(token) && type === 'recovery'
   }, [searchParams])
 
   const handleSubmit = async (e: FormEvent) => {

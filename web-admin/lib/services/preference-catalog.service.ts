@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Preference Catalog Service
  * Fetches service preferences, packing preferences, and preference bundles

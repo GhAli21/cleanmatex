@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { Shield, User, Building2, RefreshCw, CheckCircle, XCircle, Clock, Code, Zap, AlertCircle } from 'lucide-react';
 
 export default function AuthContextViewer() {
   const authContext = useAuth();
   const [showMethods, setShowMethods] = useState(false);
+  const [nowEpochSeconds, setNowEpochSeconds] = useState(() => Math.floor(Date.now() / 1000));
 
   const {
     user,
@@ -17,11 +18,20 @@ export default function AuthContextViewer() {
     isAuthenticated,
   } = authContext;
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowEpochSeconds(Math.floor(Date.now() / 1000));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, []);
+
   // Calculate session time remaining
   const getTimeRemaining = () => {
     if (!session?.expires_at) return 'N/A';
-    const now = Math.floor(Date.now() / 1000);
-    const remaining = session.expires_at - now;
+    const remaining = session.expires_at - nowEpochSeconds;
 
     if (remaining <= 0) return 'Expired';
 

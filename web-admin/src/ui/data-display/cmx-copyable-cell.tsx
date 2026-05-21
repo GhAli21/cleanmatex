@@ -57,7 +57,7 @@ export function CmxCopyableCell({
     } catch {
       // ignore
     }
-  }, [toCopy, showSuccess]);
+  }, [toCopy, showSuccess, t]);
 
   const isClickable = !!toCopy;
   const Tag = as;

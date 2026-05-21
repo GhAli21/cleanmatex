@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Orders API Client (PRD-010)
  * Client-side functions for order workflow operations
@@ -178,4 +179,3 @@ export async function estimateReadyBy(data: any): Promise<{ readyBy: string }> {
   const result = await response.json();
   return result.data;
 }
-

@@ -5828,7 +5828,9 @@
         "editLine": "تعديل البند",
         "deleteLine": "حذف البند",
         "print": "طباعة",
-        "export": "تصدير"
+        "export": "تصدير",
+        "saveAsDraft": "حفظ كمسودة",
+        "cancelVoucher": "إلغاء القسيمة"
       },
       "statusLabels": {
         "DRAFT": "مسودة",
@@ -5855,7 +5857,59 @@
         "bankReferenceRequired": "المرجع البنكي مطلوب للتحويل البنكي.",
         "checkFieldsRequired": "رقم الشيك والبنك والتاريخ مطلوبة لمدفوعات الشيكات.",
         "roleNotAllowed": "دورك لا يسمح بتنفيذ هذا الإجراء.",
-        "reasonRequired": "السبب مطلوب."
+        "reasonRequired": "السبب مطلوب.",
+        "lineRoleRequired": "يرجى تحديد دور السطر.",
+        "amountPositive": "يجب أن يكون المبلغ أكبر من صفر.",
+        "orderIdRequired": "رقم الطلب مطلوب لهذا الدور.",
+        "customerIdRequired": "رقم العميل مطلوب لهذا الدور.",
+        "partyNameRequired": "اسم الطرف مطلوب لهذا الدور.",
+        "expenseCategoryRequired": "فئة المصروف مطلوبة لهذا الدور.",
+        "employeeIdRequired": "رقم الموظف مطلوب لهذا الدور."
+      },
+      "addLineTitle": "إضافة سطر معاملة",
+      "addLineSuccess": "تمت إضافة السطر بنجاح.",
+      "orderId": "رقم الطلب",
+      "customerId": "رقم العميل",
+      "employeeId": "رقم الموظف",
+      "bankReference": "المرجع البنكي",
+      "checkNumber": "رقم الشيك",
+      "checkBank": "بنك الشيك",
+      "checkDate": "تاريخ الشيك",
+      "cardBrand": "نوع البطاقة",
+      "cardLast4": "آخر 4 أرقام",
+      "authCode": "رمز التفويض",
+      "headerStep": {
+        "hint": "أنشئ رأس القسيمة أولاً، ثم أضف أسطر المعاملات.",
+        "next": "التالي: إضافة الأسطر",
+        "created": "تم إنشاء القسيمة {voucher_no} كمسودة. أضف أسطر المعاملات أدناه."
+      },
+      "totalLines": "الإجمالي ({count} أسطر)",
+      "lineRoleGroups": {
+        "receipts": "الإيصالات",
+        "payments": "المدفوعات",
+        "refunds": "المستردات",
+        "transfers": "التحويلات"
+      },
+      "lineRoleLabels": {
+        "ORDER_PAYMENT": "دفعة طلب",
+        "INVOICE_PAYMENT": "دفعة فاتورة",
+        "WALLET_TOPUP": "شحن محفظة",
+        "GIFT_CARD_SALE": "بيع بطاقة هدية",
+        "CUSTOMER_CREDIT_RECEIPT": "إيصال رصيد عميل",
+        "CUSTOMER_ADVANCE_RECEIPT": "إيصال دفعة مقدمة",
+        "SUPPLIER_PAYMENT": "دفع مورد",
+        "EXPENSE_PAYMENT": "دفع مصروف",
+        "SHOP_RENT_PAYMENT": "دفع إيجار المحل",
+        "UTILITY_PAYMENT": "دفع خدمات",
+        "EMPLOYEE_ADVANCE_PAYMENT": "سلفة موظف",
+        "PETTY_CASH_ISSUE": "صرف عهدة",
+        "CUSTOMER_REFUND": "استرداد عميل",
+        "ORDER_REFUND": "استرداد طلب",
+        "INVOICE_REFUND": "استرداد فاتورة",
+        "PETTY_CASH_RETURN": "إرجاع عهدة",
+        "WALLET_REFUND": "استرداد محفظة",
+        "GIFT_CARD_REFUND": "استرداد بطاقة هدية",
+        "INTERNAL_TRANSFER": "تحويل داخلي"
       }
     }
   }

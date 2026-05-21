@@ -338,28 +338,37 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
       changeReturned += change;
 
       const method = await tx.org_payment_methods_cf.findFirst({
-        where: { id: leg.paymentMethodId, tenant_org_id: tenantId },
+        where: {
+          id: leg.paymentMethodId,
+          tenant_org_id: tenantId,
+          is_active: true,
+          is_enabled: true,
+          is_platform_disabled: false,
+        },
         select: {
           payment_method_code: true,
           gateway_code: true,
           requires_cash_drawer: true,
         },
       });
-      const paymentStatus = method?.gateway_code ? 'PENDING' : 'COMPLETED';
+      if (!method) {
+        throw new Error('Selected payment method is not available for later collection');
+      }
+      const paymentStatus = method.gateway_code ? 'PENDING' : 'COMPLETED';
 
       await tx.org_order_payments_dtl.create({
         data: {
           tenant_org_id: tenantId,
           order_id: orderId,
           org_payment_method_id: leg.paymentMethodId,
-          payment_method_code: method?.payment_method_code ?? 'CASH',
+          payment_method_code: method.payment_method_code,
           currency_code: currencyCode,
           payment_nature_snapshot: 'REAL_PAYMENT',
           amount: leg.amount,
           tendered_amount: leg.cashTendered ?? null,
           change_returned_amount: change > 0 ? change : null,
-          cash_drawer_session_id: method?.requires_cash_drawer ? (cashDrawerSessionId ?? null) : null,
-          gateway_code: method?.gateway_code ?? null,
+          cash_drawer_session_id: method.requires_cash_drawer ? (cashDrawerSessionId ?? null) : null,
+          gateway_code: method.gateway_code ?? null,
           gateway_reference: leg.reference ?? null,
           payment_status: paymentStatus,
           paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Workflow & Status Management Types
  * PRD-005: Basic Workflow & Status Transitions

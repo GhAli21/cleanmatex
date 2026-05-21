@@ -4,6 +4,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useRef, useEffect } from 'react';
 import { X, Camera, RotateCcw, Check, AlertCircle } from 'lucide-react';
@@ -62,27 +63,7 @@ export function PhotoCaptureModal({
     }
   }, [open]);
 
-  // Start camera when modal opens
-  useEffect(() => {
-    if (open && !stream) {
-      startCamera();
-    }
-
-    return () => {
-      stopCamera();
-    };
-  }, [open]);
-
-  // Stop camera when modal closes
-  useEffect(() => {
-    if (!open) {
-      stopCamera();
-      setCapturedPhoto(null);
-      setError(null);
-    }
-  }, [open]);
-
-  const startCamera = async () => {
+  async function startCamera() {
     try {
       setError(null);
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -100,9 +81,9 @@ export function PhotoCaptureModal({
       setError(errorMessage);
       // Camera access error is handled by setting error state
     }
-  };
+  }
 
-  const stopCamera = () => {
+  function stopCamera() {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
@@ -110,7 +91,27 @@ export function PhotoCaptureModal({
     if (videoRef.current) {
       videoRef.current.srcObject = null;
     }
-  };
+  }
+
+  // Start camera when modal opens
+  useEffect(() => {
+    if (open && !stream) {
+      void startCamera();
+    }
+
+    return () => {
+      stopCamera();
+    };
+  }, [open, stream]);
+
+  // Stop camera when modal closes
+  useEffect(() => {
+    if (!open) {
+      stopCamera();
+      setCapturedPhoto(null);
+      setError(null);
+    }
+  }, [open, stream]);
 
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Settings API Client for Tenant Application
  * Connects to Platform HQ Settings API

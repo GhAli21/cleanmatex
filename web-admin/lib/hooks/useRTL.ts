@@ -8,22 +8,33 @@
 
 import { useState, useEffect } from 'react'
 
+function getDocumentDirection(): boolean {
+  if (typeof document === 'undefined') {
+    return false
+  }
+
+  return document.documentElement.dir === 'rtl'
+}
+
+function getDocumentLocale(): 'en' | 'ar' {
+  if (typeof document === 'undefined') {
+    return 'en'
+  }
+
+  return document.documentElement.lang === 'ar' ? 'ar' : 'en'
+}
+
 /**
  * Hook to detect if current direction is RTL
  * Handles hydration properly by reading from HTML dir attribute
  */
 export function useRTL(): boolean {
-  const [isRTL, setIsRTL] = useState(false)
+  const [isRTL, setIsRTL] = useState(getDocumentDirection)
 
   useEffect(() => {
-    // Only run on client side after hydration
-    const dir = document.documentElement.dir
-    setIsRTL(dir === 'rtl')
-
     // Listen for direction changes
     const observer = new MutationObserver(() => {
-      const newDir = document.documentElement.dir
-      setIsRTL(newDir === 'rtl')
+      setIsRTL(getDocumentDirection())
     })
 
     observer.observe(document.documentElement, {
@@ -41,16 +52,12 @@ export function useRTL(): boolean {
  * Hook to get current locale
  */
 export function useLocale(): 'en' | 'ar' {
-  const [locale, setLocale] = useState<'en' | 'ar'>('en')
+  const [locale, setLocale] = useState<'en' | 'ar'>(getDocumentLocale)
 
   useEffect(() => {
-    const lang = document.documentElement.lang
-    setLocale(lang === 'ar' ? 'ar' : 'en')
-
     // Listen for language changes
     const observer = new MutationObserver(() => {
-      const newLang = document.documentElement.lang
-      setLocale(newLang === 'ar' ? 'ar' : 'en')
+      setLocale(getDocumentLocale())
     })
 
     observer.observe(document.documentElement, {

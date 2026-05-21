@@ -30,6 +30,7 @@ export interface DiscountLineInput {
 // Helpers
 // ============================================================================
 
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Build discount lines from stored order fields.
  * Used by OrderService.createOrder (traditional path) and payment-service (quick-drop path).

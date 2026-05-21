@@ -745,7 +745,7 @@ export function ProcessingModal({
     }
 
     return filtered;
-  }, [items, filters, showRejectedOnTop]);
+  }, [items, filters, showRejectedOnTop, getPiecesForItem]);
 
   // Loading states - separate for order vs pieces
   const isLoading = orderLoading || settingsLoading;

@@ -257,11 +257,11 @@ export function OrderDetailClient({
       <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
         <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
           <Link
-            href={returnUrl}                      // ✅ Use dynamic returnUrl
+            href={returnUrl}
             className={`inline-flex items-center text-sm text-gray-600 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
           >
             <ChevronLeft className={`w-4 h-4 ${isRTL ? 'ml-1 rotate-180' : 'mr-1'}`} />
-            {returnLabel || t.backToOrders}       // ✅ Use dynamic label
+            {returnLabel || t.backToOrders}
           </Link>
         </div>
         <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>

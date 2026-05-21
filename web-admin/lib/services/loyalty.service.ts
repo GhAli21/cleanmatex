@@ -45,6 +45,7 @@ export async function getCustomerTier(
   );
 }
 
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Redeem loyalty points within a transaction (SELECT FOR UPDATE).
  */

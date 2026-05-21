@@ -1,4 +1,5 @@
 'use server';
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';

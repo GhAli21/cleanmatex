@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * PRD-003: Customer Management Service
  * Core business logic for progressive customer engagement.
@@ -32,7 +33,7 @@ import type {
 type OrgCustomerInsert = Database['public']['Tables']['org_customers_mst']['Insert'];
 
 /** When true, service uses sys_customers_mst + org_customers_mst; when false, only org_customers_mst. */
-function useSysCustomers(): boolean {
+function shouldUseSysCustomers(): boolean {
   
   return false;
 
@@ -225,11 +226,11 @@ export async function createCustomer(
       throw new Error('Invalid phone number format');
     }
     normalizedPhone = phoneResult.normalized;
-    const duplicateCheck = useSysCustomers()
+    const duplicateCheck = shouldUseSysCustomers()
       ? await supabase.from('sys_customers_mst').select('id').eq('phone', normalizedPhone).maybeSingle()
       : await supabase.from('org_customers_mst').select('id').eq('tenant_org_id', tenantId).eq('phone', normalizedPhone).maybeSingle();
     if (duplicateCheck.data) {
-      if (useSysCustomers()) {
+      if (shouldUseSysCustomers()) {
         const tenantLink = await supabase
           .from('org_customers_mst')
           .select('customer_id')
@@ -245,7 +246,7 @@ export async function createCustomer(
     }
   }
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     // B2B: validate categoryId is B2B when provided
     if (request.type === 'b2b' && 'categoryId' in request && request.categoryId) {
       const { data: cat } = await supabase
@@ -426,7 +427,7 @@ export async function findCustomerById(
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data: orgRow, error } = await supabase
       .from('org_customers_mst')
       .select('*')
@@ -523,7 +524,7 @@ export async function findCustomerByPhone(
   if (!phoneResult.isValid) {
     throw new Error('Invalid phone number format');
   }
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data: orgRow, error } = await supabase
       .from('org_customers_mst')
       .select('*')
@@ -566,7 +567,7 @@ export async function getAllCurrentTenantCustomers(
     logger.error('Error fetching tenant customers', error as Error, { feature: 'customers' });
     throw new Error('Failed to fetch tenant customers');
   }
-  const useSys = useSysCustomers();
+  const useSys = shouldUseSysCustomers();
   return {
     customers: (data || []).map((row) =>
       useSys ? mapToCustomer({ ...row, sys_customers_mst: row }) : mapFromOrgRow(row as Record<string, unknown>, tenantId)
@@ -583,7 +584,7 @@ export async function getAllTenantCustomers(
 ): Promise<Customer[]> {
   const supabase = await createClient();
   const tenantId = tenantOrgId ?? (await getTenantIdFromSession());
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data, error } = await supabase
       .from('org_customers_mst')
       .select('*')
@@ -818,7 +819,7 @@ export async function searchCustomersProgressive(
     };
   }
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     return { customers: [], total: 0 };
   }
 
@@ -969,7 +970,7 @@ export async function linkCustomerToTenant(
   sourceType: 'sys' | 'org_other_tenant',
   originalTenantId?: string
 ): Promise<{ orgCustomerId: string; customerId: string }> {
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     throw new Error('Linking customers to tenant is not supported when CONNECT_WITH_SYS_CUSTOMERS is false');
   }
   const supabase = await createClient();
@@ -1162,7 +1163,7 @@ export async function searchCustomersAll(
   const limit = params.limit || 20;
   const offset = (page - 1) * limit;
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     let query = supabase
       .from('org_customers_mst')
       .select('*', { count: 'exact' })
@@ -1291,7 +1292,7 @@ export async function updateCustomer(
   const tenantId = session.userTenantOrgId;
   const curUserId = session.userId;
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const updatePayload: Record<string, unknown> = {
       first_name: updates.firstName,
       last_name: updates.lastName,
@@ -1428,7 +1429,7 @@ export async function upgradeCustomerProfile(
   const session = await getCurrentUserTenantSessionContext();
   const tenantId = session.userTenantOrgId;
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data: orgRow, error } = await supabase
       .from('org_customers_mst')
       .update({
@@ -1504,7 +1505,7 @@ export async function mergeCustomers(
     throw new Error('Unauthorized');
   }
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data: sourceRow } = await supabase
       .from('org_customers_mst')
       .select('id, loyalty_points')
@@ -1666,7 +1667,7 @@ export async function getCustomerStatistics(): Promise<CustomerStatistics> {
   const supabase = await createClient();
   const tenantId = await getTenantIdFromSession();
 
-  if (!useSysCustomers()) {
+  if (!shouldUseSysCustomers()) {
     const { data: customers } = await supabase
       .from('org_customers_mst')
       .select('id, type, created_at, is_active')

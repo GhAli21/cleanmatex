@@ -6,6 +6,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { LifeBuoy, Book, MessageCircle, Mail, ExternalLink } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 
@@ -112,9 +113,9 @@ export default function HelpPage() {
               </h2>
               <ul className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
                 <li>
-                  <a href="/dashboard/orders/new" className="text-blue-600 hover:text-blue-700">
+                  <Link href="/dashboard/orders/new" className="text-blue-600 hover:text-blue-700">
                     {t('quickLinks.newOrder') || 'Create New Order'}
-                  </a>
+                  </Link>
                 </li>
                 <li>
                   <a href="/dashboard/settings" className="text-blue-600 hover:text-blue-700">
@@ -122,9 +123,9 @@ export default function HelpPage() {
                   </a>
                 </li>
                 <li>
-                  <a href="/dashboard/customers" className="text-blue-600 hover:text-blue-700">
+                  <Link href="/dashboard/customers" className="text-blue-600 hover:text-blue-700">
                     {t('quickLinks.customers') || 'Manage Customers'}
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>

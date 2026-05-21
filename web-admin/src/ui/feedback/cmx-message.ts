@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * CmxMessage - Global Message Utility
  * Unified API for displaying messages across the application

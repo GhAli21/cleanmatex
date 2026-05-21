@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 /**
  * Performance metrics for order creation
@@ -53,7 +53,11 @@ export function useOrderPerformance() {
         validationErrorCount: 0,
     });
 
-    const startTimeRef = useRef<number>(Date.now());
+    const startTimeRef = useRef<number>(0);
+
+    useEffect(() => {
+        startTimeRef.current = Date.now();
+    }, []);
 
     // Track page load time
     const trackPageLoad = useCallback(() => {
@@ -87,9 +91,11 @@ export function useOrderPerformance() {
 
     // Track modal opens
     const trackModalOpen = useCallback((modalName: string) => {
-        const count = metricsRef.current.modalOpenCount || {};
-        count[modalName] = (count[modalName] || 0) + 1;
-        metricsRef.current.modalOpenCount = count;
+        const counts = metricsRef.current.modalOpenCount || {};
+        metricsRef.current.modalOpenCount = {
+            ...counts,
+            [modalName]: (counts[modalName] || 0) + 1,
+        };
     }, []);
 
     // Track order submission

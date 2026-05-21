@@ -5,7 +5,6 @@
 
 'use client';
 
-import { useRef } from 'react';
 import { useNewOrderStateWithDispatch } from './use-new-order-state';
 import { useAuth } from '@/lib/auth/auth-context';
 
@@ -47,10 +46,6 @@ export function useReadyByEstimation() {
     const { state, setReadyByAt } = useNewOrderStateWithDispatch();
     const { currentTenant } = useAuth();
 
-    // Store setReadyByAt in a ref to avoid infinite loops
-    const setReadyByAtRef = useRef(setReadyByAt);
-    setReadyByAtRef.current = setReadyByAt;
-
     /**
      * Manually calculate and set ready-by date
      */
@@ -82,7 +77,7 @@ export function useReadyByEstimation() {
                     : rb instanceof Date
                       ? rb.toISOString()
                       : String(rb);
-                setReadyByAtRef.current(dateValue);
+                setReadyByAt(dateValue);
                 console.log('Set readyByAt to:', dateValue);
                 return dateValue;
             } else {

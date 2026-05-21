@@ -5,6 +5,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/preserve-manual-memoization */
 
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';

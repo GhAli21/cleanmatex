@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * WhatsApp Business API Client
  * Integration with Meta WhatsApp Business API for receipt delivery

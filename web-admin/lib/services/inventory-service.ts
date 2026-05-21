@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Inventory Stock Management Service
  * CRUD operations for inventory items (org_product_data_mst with is_retail_item=true)

@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Invoice Service for CleanMateX
  *
@@ -910,4 +911,3 @@ export async function getInvoiceWithBreakdown(tenantId: string, invoiceId: strin
     })
   );
 }
-

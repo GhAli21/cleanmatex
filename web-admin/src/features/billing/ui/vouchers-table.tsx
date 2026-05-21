@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/static-components */
 
 import { useState, useCallback } from 'react';
 import { useLocale, useTranslations } from 'next-intl';

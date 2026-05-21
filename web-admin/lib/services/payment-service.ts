@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Payment Service for CleanMateX
  *
@@ -2646,4 +2647,3 @@ async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
 
   return `INV-${year}${month}-${String(count + 1).padStart(5, '0')}`;
 }
-

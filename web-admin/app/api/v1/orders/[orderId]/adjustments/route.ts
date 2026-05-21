@@ -15,10 +15,23 @@ const schema = z.object({
   autoApprove: z.boolean().optional(),
 });
 
+/**
+ * POST /api/v1/orders/[orderId]/adjustments
+ *
+ * Why:
+ * Creates a controlled Order Fin adjustment row under tenant scope for audited
+ * financial corrections that do not belong in payments, refunds, or discounts.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the target order identifier
+ * @param root0.params route params promise containing the target order identifier
+ * @returns standardized adjustment creation response
+ */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
+  // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 

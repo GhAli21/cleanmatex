@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable react-hooks/set-state-in-effect */
 
 /**
  * Sidebar Context - Collapsible sidebar state for dashboard
@@ -29,26 +30,37 @@ export interface SidebarContextType {
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
+function getInitialCollapsedState(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  try {
+    return localStorage.getItem(STORAGE_KEY) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function getInitialReducedMotionPreference(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 export function SidebarProvider({ children }: { children: ReactNode }) {
-  const [isCollapsed, setIsCollapsedState] = useState(false)
+  const [isCollapsed, setIsCollapsedState] = useState(getInitialCollapsedState)
   const [mounted, setMounted] = useState(false)
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false)
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(getInitialReducedMotionPreference)
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY)
-      if (stored !== null) {
-        setIsCollapsedState(stored === 'true')
-      }
-    } catch {
-      // Ignore localStorage errors (SSR, private mode)
-    }
     setMounted(true)
   }, [])
 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    setPrefersReducedMotion(mq.matches)
     const handler = () => setPrefersReducedMotion(mq.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)

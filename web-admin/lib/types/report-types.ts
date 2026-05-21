@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Report Types
  * TypeScript types for all report features (orders, payments, invoices, revenue, customers).

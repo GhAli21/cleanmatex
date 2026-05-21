@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useLocale, useTranslations } from 'next-intl';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';

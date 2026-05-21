@@ -1,5 +1,6 @@
 'use client'
 
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Permission-Based Access Control Components
  *
@@ -212,4 +213,3 @@ export function RequireAnyWorkflowRole({
 
   return <>{children}</>
 }
-

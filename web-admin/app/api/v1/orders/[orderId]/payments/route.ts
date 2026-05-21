@@ -18,11 +18,17 @@ const schema = z.object({
 /**
  * Canonical Batch 0 payment collection endpoint for existing orders.
  * Delegates to the same transaction path as the legacy collect-payment route.
+ *
+ * @param request incoming authenticated request
+ * @param root0 route params wrapper containing the order identifier
+ * @param root0.params route params promise containing the order identifier
+ * @returns standardized Order Fin collection response
  */
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
 ) {
+  // Guard against cross-site request forgery on privileged financial writes.
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 

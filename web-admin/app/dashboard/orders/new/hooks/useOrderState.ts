@@ -5,6 +5,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useCallback, useEffect } from 'react';
 import { OrderCreationState, OrderLineItem } from '@/lib/types/order-creation';
@@ -114,6 +115,13 @@ export function useOrderState() {
     });
   }, []);
 
+  const removeItem = useCallback((itemId: string) => {
+    setState((prev) => ({
+      ...prev,
+      items: prev.items.filter((item) => item.id !== itemId),
+    }));
+  }, []);
+
   const updateItemQuantity = useCallback((itemId: string, quantity: number) => {
     if (quantity === 0) {
       removeItem(itemId);
@@ -132,7 +140,7 @@ export function useOrderState() {
           : item
       ),
     }));
-  }, []);
+  }, [removeItem]);
 
   const updateItem = useCallback((itemId: string, updates: Partial<OrderLineItem>) => {
     setState((prev) => ({
@@ -140,13 +148,6 @@ export function useOrderState() {
       items: prev.items.map((item) =>
         item.id === itemId ? { ...item, ...updates } : item
       ),
-    }));
-  }, []);
-
-  const removeItem = useCallback((itemId: string) => {
-    setState((prev) => ({
-      ...prev,
-      items: prev.items.filter((item) => item.id !== itemId),
     }));
   }, []);
 

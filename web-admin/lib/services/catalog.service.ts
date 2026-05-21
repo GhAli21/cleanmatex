@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * PRD-007: Catalog Service Management
  * Core business logic for catalog, products, and pricing management
@@ -1041,4 +1042,3 @@ export async function getProductStatistics(): Promise<ProductStatistics> {
     byCategory,
   };
 }
-

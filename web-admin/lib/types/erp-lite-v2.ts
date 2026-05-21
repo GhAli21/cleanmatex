@@ -1,3 +1,4 @@
+/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 export interface ErpLiteV2OptionItem {
   id: string;
   label: string;

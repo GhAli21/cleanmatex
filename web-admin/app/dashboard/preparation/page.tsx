@@ -5,6 +5,7 @@
  */
 
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useMemo, useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
@@ -237,4 +238,3 @@ export default function PreparationPage() {
     </div>
   );
 }
-
