@@ -3953,7 +3953,10 @@
         "invoice": "فاتورة",
         "payOnCollection": "دفع عند الاستلام",
         "bankTransfer": "تحويل بنكي",
-        "mobilePayment": "دفع عبر الجوال"
+        "mobilePayment": "دفع عبر الجوال",
+        "hyperpay": "هايبر باي",
+        "paytabs": "باي تابز",
+        "stripe": "سترايب"
       },
       "checkNumber": {
         "label": "رقم الشيك",

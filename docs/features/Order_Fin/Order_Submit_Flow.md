@@ -1,272 +1,588 @@
-Your proposed flow is close, but one key point must be corrected:
+# Refined Submit Order Flow — Final Production Model
 
-```text
-Do not let both "create voucher" and "order settlement service" independently create payment/settlement effects.
-```
-
-Otherwise you will duplicate:
-
-```text
-org_order_payments_dtl
-org_cash_drawer_movements_dtl
-wallet/advance/gift-card transactions
-invoice/payment projections
-```
-
-The approved wiring model says voucher transaction lines are the source document, while operational tables are effects/projections linked back to voucher lines. 
-
-# Correct decision
-
-Use this model:
+This is the suggested clean model after all decisions:
 
 ```text
 Submit Order API
-→ creates order + order financial snapshot
-→ prepares settlement plan
-→ creates/posts voucher for actual payment/credit/advance/gift-card legs
-→ voucher wiring creates operational effects
-→ outstanding amount remains on order
-→ invoice is created only if the selected payment plan is CREDIT_INVOICE / B2B invoice
+→ validates request
+→ calculates order financials
+→ saves operational order details
+→ projects all financial add-ons into org_order_charges_dtl
+→ builds settlement plan
+→ creates Business Voucher lines for immediate real-payment and credit-application legs
+→ posts voucher with wiring
+→ voucher wiring creates org_order_payments_dtl and org_order_credit_apps_dtl
+→ recalculates order financial snapshot
+→ creates full AR invoice only for CREDIT_INVOICE
+→ writes history/audit/reconciliation
 ```
 
-Do **not** automatically create a formal invoice for every pending retail pay-on-collection amount.
-
-For retail `PAY_ON_COLLECTION`, the pending amount should remain:
+Critical rule:
 
 ```text
-order.outstanding_amount
-order.payment_status = PENDING_COLLECTION or PARTIALLY_PAID
-payment_type_code = PAY_ON_COLLECTION
+org_order_payments_dtl and org_order_credit_apps_dtl are real order financial effect tables.
+
+But when Business Voucher wiring is active, Submit Order must not write them directly as independent steps.
+
+Submit Order creates settlement legs and voucher lines.
+Voucher wiring creates:
+- org_order_payments_dtl
+- org_order_credit_apps_dtl
+- cash drawer movements
 ```
-
-If you need a printable customer document, call it:
-
-```text
-order receipt
-order bill
-pickup payment slip
-proforma / pending payment note
-```
-
-but not an accounting invoice unless you intentionally want AR/customer credit behavior.
 
 ---
 
-# 1. Correct Submit Order API execution flow
+# 1. Order table responsibility map
 
-## 1.1 Submit Order API endpoint
+| Table                             | Responsibility in Submit Order                                                      | Writer                  |
+| --------------------------------- | ----------------------------------------------------------------------------------- | ----------------------- |
+| `org_orders_mst`                  | Order header + financial snapshot                                                   | Submit Order            |
+| `org_order_items_dtl`             | Main service/item lines                                                             | Submit Order            |
+| `org_order_item_pieces_dtl`       | Physical pieces under items                                                         | Submit Order            |
+| `org_order_preferences_dtl`       | Selected preferences/add-ons                                                        | Submit Order            |
+| `org_order_charges_dtl`           | Financial charges: delivery, express, piece extra, preference extra, manual charges | Submit Order            |
+| `org_order_discounts_dtl`         | Commercial discounts only                                                           | Submit Order            |
+| `org_order_taxes_dtl`             | Tax facts                                                                           | Submit Order            |
+| `org_order_payments_dtl`          | Real payment effects                                                                | Voucher wiring          |
+| `org_order_credit_apps_dtl`       | Gift card/wallet/advance/credit-note applications                                   | Voucher wiring          |
+| `org_order_refunds_dtl`           | Refund effects                                                                      | Refund voucher wiring   |
+| `org_order_adjustments_dtl`       | Post-submit/manual financial adjustments                                            | Adjustment service      |
+| `org_order_history`               | General order audit/history                                                         | Submit Order / workflow |
+| `org_order_status_history`        | Status transition history                                                           | Submit Order / workflow |
+| `org_order_edit_history`          | Edit audit after submit                                                             | Edit service            |
+| `org_order_edit_locks`            | Concurrent edit locking                                                             | Edit service            |
+| `org_order_item_issues`           | Item defects/issues/rework                                                          | Operations/QA           |
+| `org_order_item_processing_steps` | Production workflow                                                                 | Operations              |
+| `org_order_piece_hist_tr`         | Piece-level movement/history                                                        | Operations              |
+| `org_order_status_history_legacy` | Legacy only                                                                         | Do not expand           |
 
-Recommended endpoint:
+---
+
+# 2. Main endpoint
 
 ```http
 POST /api/v1/orders/submit
 ```
 
-or if order already exists as draft:
+For draft order:
 
 ```http
 POST /api/v1/orders/{orderId}/submit
 ```
 
-Main orchestrator:
+Main service:
 
 ```text
-order-submit.service.ts
+order-submit-orchestrator.service.ts
 ```
 
-Recommended internal services:
+Supporting services:
 
 ```text
+order-validation.service.ts
 order-calculation.service.ts
+order-piece-pricing.service.ts
+order-preference-pricing.service.ts
+order-charge-projection.service.ts
 order-financial-snapshot.service.ts
 order-settlement-planner.service.ts
 voucher-create.service.ts
+voucher-line.service.ts
 voucher-posting-orchestrator.service.ts
-order-invoice.service.ts
+ar-invoice-from-order.service.ts
 order-reconciliation.service.ts
+order-history.service.ts
 ```
 
 ---
 
-# 2. Submit Order high-level flow
+# 3. Submit Order transaction flow
+
+## Step 1 — Start transaction and idempotency
 
 ```text
-1. Validate request.
-2. Validate tenant, branch, customer, cashier, permissions.
-3. Resolve currency.
-4. Calculate order financials.
-5. Save order and order details.
-6. Build settlement plan from payment legs and credit legs.
-7. Validate payment/credit legs.
-8. Create business voucher for immediate financial legs.
-9. Post voucher with wiring enabled.
-10. Voucher wiring creates order payments, cash movements, stored-value ledger effects.
-11. Recalculate order financial snapshot.
-12. Handle pending/outstanding amount.
-13. Create AR invoice only if CREDIT_INVOICE / invoice selected.
-14. Write audit/outbox.
-15. Return order + voucher + settlement result.
+BEGIN TRANSACTION
 ```
-
----
-
-# 3. Detailed execution steps
-
-## Step 1 — Validate request
 
 Validate:
 
 ```text
-tenant_org_id
-branch_id
-customer_id if required
-order items
-service/category/item pricing
-payment_type_code
-payment legs
-credit/stored-value legs
-discounts
-tax context
-cash drawer session if cash payment exists
-idempotency key
+idempotency_key is required
+same key + same payload returns previous result
+same key + different payload is rejected
 ```
 
-Required validation:
+Errors:
 
 ```text
-order has at least one item/service
-currency_code resolved, no hardcoded DB default
-amounts >= 0
-payment legs total <= order total unless overpayment allowed
-credit legs total <= available balances
-cash tendered >= cash retained amount
-gateway leg has gateway/provider config
+IDEMPOTENCY_KEY_REQUIRED
+IDEMPOTENCY_CONFLICT
 ```
 
 ---
 
-## Step 2 — Resolve currency
+## Step 2 — Validate tenant, branch, user, customer
 
-Currency must be resolved before insert:
-
-```text
-branch currency override
-→ tenant default currency
-→ customer/order-specific currency if allowed
-```
-
-Never rely on:
-
-```sql
-currency_code default 'OMR'
-```
-
-Approved behavior:
+Validate:
 
 ```text
-currency_code is required.
+tenant exists
+branch exists and belongs to tenant
+current user belongs to tenant
+customer exists if provided
+customer is required if CREDIT_INVOICE is selected
+branch accepts orders
+cash drawer session exists if cash leg exists
+payment methods are enabled for tenant/channel
+```
+
+Permissions:
+
+```text
+orders:create
+orders:submit
+orders:payments:create
+orders:credits:apply
+finance:vouchers:create
+finance:vouchers:post
+```
+
+If invoice is selected:
+
+```text
+ar:invoices:create
+```
+
+If manual discount exists:
+
+```text
+orders:discounts:apply
+```
+
+If approval threshold exceeded:
+
+```text
+orders:discounts:approve
 ```
 
 ---
 
-## Step 3 — Calculate order financials
+## Step 3 — Resolve currency
+
+Resolution order:
+
+```text
+1. order-specific currency if allowed
+2. branch currency
+3. tenant default currency
+```
+
+Rules:
+
+```text
+currency_code is required
+currency_code has no hardcoded DB default
+currency_ex_rate > 0
+currency must be allowed for tenant/branch
+```
+
+Errors:
+
+```text
+ORDER_CURRENCY_REQUIRED
+ORDER_CURRENCY_NOT_ALLOWED
+ORDER_CURRENCY_EX_RATE_INVALID
+```
+
+---
+
+# 4. Validate operational order details
+
+## Step 4.1 — Validate order items
+
+For each item:
+
+```text
+item/service exists
+service is active
+service is available in branch
+quantity > 0
+unit_price >= 0
+service category is valid
+pricing policy is valid
+```
+
+Errors:
+
+```text
+ORDER_EMPTY
+ORDER_ITEM_INVALID
+ORDER_ITEM_QUANTITY_INVALID
+ORDER_ITEM_PRICE_INVALID
+SERVICE_NOT_AVAILABLE
+```
+
+---
+
+## Step 4.2 — Validate pieces
+
+For each piece in `org_order_item_pieces_dtl`:
+
+```text
+piece belongs to order item
+piece quantity/count is valid
+extra_price >= 0
+extra_price reason is valid if required
+taxability is resolved
+discount eligibility is resolved
+```
+
+Errors:
+
+```text
+ORDER_PIECE_INVALID
+PIECE_EXTRA_PRICE_NEGATIVE
+PIECE_EXTRA_PRICE_REASON_REQUIRED
+PIECE_EXTRA_PRICE_TAX_POLICY_REQUIRED
+PIECE_EXTRA_PRICE_DISCOUNT_POLICY_REQUIRED
+```
+
+Approved rule:
+
+```text
+piece extra_price is not payment and not discount.
+It is a charge component.
+```
+
+---
+
+## Step 4.3 — Validate preferences
+
+For each selected preference in `org_order_preferences_dtl`:
+
+```text
+preference exists
+preference is active
+preference is allowed for service/category/item/piece
+quantity > 0
+extra_price >= 0
+taxability is resolved
+discount eligibility is resolved
+```
+
+Errors:
+
+```text
+ORDER_PREFERENCE_INVALID
+ORDER_PREFERENCE_NOT_ALLOWED
+ORDER_PREFERENCE_QUANTITY_INVALID
+PREFERENCE_EXTRA_PRICE_NEGATIVE
+PREFERENCE_EXTRA_PRICE_TAX_POLICY_REQUIRED
+PREFERENCE_EXTRA_PRICE_DISCOUNT_POLICY_REQUIRED
+```
+
+Approved rule:
+
+```text
+preference extra_price is not payment and not discount.
+It is a charge component.
+```
+
+---
+
+# 5. Calculate order financials
 
 Call:
 
 ```text
-order-calculation.service.calculateOrderTotals()
+order-calculation.service.calculate()
 ```
 
-Calculate:
+calculation model:
 
 ```text
-subtotal
-charges
-express charge
-delivery charge
-service charge
-discounts
-taxable amount
-tax amount
-rounding
-total amount
+items_base_amount
+= sum(org_order_items_dtl.quantity * unit_price)
+
+pieces_extra_price_amount
+= sum(org_order_item_pieces_dtl.extra_price)
+
+preferences_extra_price_amount
+= sum(org_order_preferences_dtl.extra_price * quantity)
+
+total_charges_amount
+= pieces_extra_price_amount
++ preferences_extra_price_amount
++ service_charge_amount
++ delivery_charge_amount
++ express_charge_amount
++ other_charge_amount
+
+gross_amount
+= items_base_amount + total_charges_amount
+
+net_amount
+= gross_amount - commercial_discount_amount
+
+total_amount
+= net_amount + tax_amount + rounding_amount
 ```
 
-Important classification:
+Use:
 
 ```text
-gift card ≠ discount
-wallet ≠ discount
-advance ≠ discount
-credit note ≠ discount
+express
 ```
 
-These are credit/stored-value applications.
+not:
+
+```text
+rush
+```
 
 ---
 
-## Step 4 — Save order master and details
+# 6. Create operational order rows
 
-Create/update:
+Save in this order:
+
+```text
+1. org_orders_mst
+2. org_order_items_dtl
+3. org_order_item_pieces_dtl
+4. org_order_preferences_dtl
+```
+
+At this point, you have operational detail, but not the full financial projection yet.
+
+---
+
+# 7. Create financial projection charge rows
+
+`org_order_charges_dtl` is the unified financial charge bridge.
+
+Create charge rows for:
+
+```text
+SERVICE_CHARGE
+DELIVERY_CHARGE
+EXPRESS_CHARGE
+PIECE_EXTRA_PRICE
+PREFERENCE_EXTRA_PRICE
+MANUAL_CHARGE
+ROUNDING_CHARGE
+OTHER_CHARGE
+```
+
+## 7.1 Piece extra price projection
+
+From:
+
+```text
+org_order_item_pieces_dtl
+```
+
+Create:
+
+```text
+org_order_charges_dtl
+charge_type = PIECE_EXTRA_PRICE
+source_type = ORDER_ITEM_PIECES
+source_order_item_id = org_order_items_dtl.id
+amount = sum(piece.extra_price)
+```
+
+Recommended: aggregate per order item.
+
+## 7.2 Preference extra price projection
+
+From:
+
+```text
+org_order_preferences_dtl
+```
+
+Create:
+
+```text
+org_order_charges_dtl
+charge_type = PREFERENCE_EXTRA_PRICE
+source_type = ORDER_PREFERENCE
+source_order_preference_id = org_order_preferences_dtl.id
+amount = preference.extra_price * quantity
+```
+
+## 7.3 Duplicate prevention
+
+If extra price is already included in item price, do not create a charge row.
+
+Pricing modes:
+
+```text
+INCLUDED_IN_ITEM_PRICE
+SEPARATE_CHARGE
+FREE
+```
+
+Recommended default:
+
+```text
+SEPARATE_CHARGE
+```
+
+Errors:
+
+```text
+PIECE_EXTRA_PRICE_DUPLICATED
+PREFERENCE_EXTRA_PRICE_DUPLICATED
+```
+
+---
+
+# 8. Create discounts and taxes
+
+## Discounts
+
+Save commercial discounts only:
+
+```text
+org_order_discounts_dtl
+```
+
+Discounts include:
+
+```text
+manual discount
+promotion discount
+coupon discount
+campaign discount
+```
+
+Not discounts:
+
+```text
+gift card
+wallet
+customer advance
+credit note
+customer credit
+```
+
+## Taxes
+
+Save tax rows:
+
+```text
+org_order_taxes_dtl
+```
+
+Tax base:
+
+```text
+taxable_amount =
+  taxable item/service amount
++ taxable piece extra price
++ taxable preference extra price
++ taxable charges
+- taxable discounts
+```
+
+---
+
+# 9. Create initial order financial snapshot
+
+Update:
 
 ```text
 org_orders_mst
-org_order_items_dtl
-org_order_charges_dtl
-org_order_discounts_dtl
-org_order_taxes_dtl
-org_order_adjustments_dtl if needed
 ```
 
-At this point, order exists but payment effects are not yet created.
-
-Initial order snapshot:
+Snapshot fields conceptually:
 
 ```text
-total_amount = calculated total
-total_paid_amount = 0 or existing confirmed amount
+subtotal_amount
+total_charges_amount
+discount_amount
+tax_amount
+rounding_amount
+total_amount
+total_paid_amount = 0
 total_credit_applied_amount = 0
 outstanding_amount = total_amount
-payment_status = UNPAID or PENDING_COLLECTION depending flow
+payment_status
+payment_type_code
+pay_on_collection_amount
+invoice_amount
+currency_code
+financial_version
+```
+
+Use existing live schema names where already present.
+
+Initial status:
+
+```text
+if no payment and PAY_ON_COLLECTION:
+  payment_status = PENDING_COLLECTION
+
+else:
+  payment_status = UNPAID
 ```
 
 ---
 
-# 4. Settlement planner flow
-
-## Step 5 — Build settlement plan
+# 10. Build settlement plan
 
 Call:
 
 ```text
-order-settlement-planner.service.buildSettlementPlan()
+order-settlement-planner.service.buildPlan()
 ```
 
-This service should **not directly create final operational payment rows**.
+Important:
 
-It should produce a plan:
+```text
+Settlement planner does not create payments.
+Settlement planner does not create credit applications.
+Settlement planner does not create cash movements.
+It only validates and builds settlement instructions.
+```
+
+Output:
 
 ```ts
 type SettlementPlan = {
   orderId: string;
   totalAmount: Decimal;
+
   realPaymentLegs: RealPaymentLeg[];
   creditApplicationLegs: CreditApplicationLeg[];
+
+  realPaymentAmount: Decimal;
+  creditAppliedAmount: Decimal;
+  immediateSettlementAmount: Decimal;
+
   outstandingAmount: Decimal;
-  outstandingPolicy: 'PAY_ON_COLLECTION' | 'CREDIT_INVOICE' | 'PAY_ON_DELIVERY';
+
+  outstandingPolicy:
+    | 'NONE'
+    | 'PAY_ON_COLLECTION'
+    | 'CREDIT_INVOICE'
+    | 'PAY_ON_DELIVERY';
+
+  shouldCreateReceiptVoucher: boolean;
   shouldCreateArInvoice: boolean;
-}
+};
 ```
 
 ---
 
-## Step 6 — Split payment legs correctly
+# 11. Classify settlement legs
 
-### A. Real payment legs
+## 11.1 Real payment legs
 
-These become voucher lines with `line_role = ORDER_PAYMENT`.
-
-Examples:
+Real money received:
 
 ```text
 CASH
@@ -279,11 +595,26 @@ STRIPE
 MOBILE_PAYMENT
 ```
 
-### B. Credit/stored-value legs
+These must become:
 
-These become credit application effects, not real payment rows.
+```text
+org_order_payments_dtl
+```
 
-Examples:
+But through this chain:
+
+```text
+realPaymentLeg
+→ ORDER_PAYMENT voucher line
+→ voucher wiring
+→ org_order_payments_dtl
+```
+
+Not direct independent write from Submit Order.
+
+## 11.2 Credit application legs
+
+Stored-value / customer credit used:
 
 ```text
 GIFT_CARD
@@ -291,19 +622,37 @@ WALLET
 CUSTOMER_ADVANCE
 CREDIT_NOTE
 CUSTOMER_CREDIT
+LOYALTY_VALUE
 ```
 
-### C. Pending amount
+These must become:
 
-Pending amount is not a payment leg.
+```text
+org_order_credit_apps_dtl
+```
 
-It is:
+But through this chain:
+
+```text
+creditApplicationLeg
+→ ORDER_CREDIT_APPLICATION voucher line
+→ voucher wiring
+→ org_order_credit_apps_dtl
+```
+
+Not direct independent write from Submit Order.
+
+## 11.3 Pending amount
+
+Pending amount is not a leg.
+
+It remains:
 
 ```text
 outstanding_amount
 ```
 
-with policy:
+Then classified as:
 
 ```text
 PAY_ON_COLLECTION
@@ -313,14 +662,60 @@ PAY_ON_DELIVERY later
 
 ---
 
-# 5. Voucher creation flow
+# 12. Validate settlement plan
 
-## Step 7 — Create receipt voucher for immediate legs
+Rules:
 
-If there are any real payment or credit/stored-value legs to apply now, create:
+```text
+real_payment_total >= 0
+credit_application_total >= 0
+immediate_settlement_amount <= order total unless overpayment is allowed
+credit source balance is sufficient
+cash tendered >= cash retained amount
+cash drawer session is open if cash
+gateway config exists if gateway
+bank/check reference exists if required
+partial later collection is allowed by default
+tenant setting can override partial later collection
+```
+
+Errors:
+
+```text
+SETTLEMENT_AMOUNT_INVALID
+SETTLEMENT_EXCEEDS_ORDER_TOTAL
+CASH_TENDERED_LESS_THAN_AMOUNT
+CASH_DRAWER_SESSION_REQUIRED
+CASH_DRAWER_SESSION_CLOSED
+GATEWAY_NOT_CONFIGURED
+PAYMENT_REFERENCE_REQUIRED
+CREDIT_BALANCE_INSUFFICIENT
+GIFT_CARD_INVALID_OR_INSUFFICIENT
+WALLET_BALANCE_INSUFFICIENT
+ADVANCE_BALANCE_INSUFFICIENT
+CREDIT_NOTE_BALANCE_INSUFFICIENT
+```
+
+---
+
+# 13. Create receipt voucher for immediate settlement
+
+If:
+
+```text
+realPaymentLegs.length > 0
+or creditApplicationLegs.length > 0
+```
+
+create:
 
 ```text
 org_fin_vouchers_mst
+```
+
+Header:
+
+```text
 voucher_type = RECEIPT_VOUCHER
 direction = IN
 party_type = CUSTOMER
@@ -328,37 +723,42 @@ customer_id = order.customer_id
 source_module = ORDERS
 source_ref_type = ORDER
 source_ref_id = order_id
+currency_code = order.currency_code
+total_amount = immediateSettlementAmount
+voucher_status = DRAFT
+posting_status = NOT_POSTED
 ```
 
-Voucher total should usually equal the amount being settled now:
+Important:
 
 ```text
-voucher.total_amount = sum(immediate settlement legs)
+voucher total = immediate settlement amount
 ```
 
-Not necessarily the full order total if partial payment.
+not always full order total.
 
 ---
 
-## Step 8 — Create voucher lines from legs
+# 14. Create voucher lines
 
-### Real payment leg → voucher line
+## 14.1 Real payment leg → `ORDER_PAYMENT`
 
-For each real payment leg:
+Create:
 
 ```text
+org_fin_voucher_trx_lines_dtl
 line_role = ORDER_PAYMENT
 line_type = RECEIPT
 direction = IN
 target_type = ORDER
 order_id = order_id
 customer_id = customer_id
-payment_method_code = CASH/CARD/BANK_TRANSFER/GATEWAY/etc.
+payment_method_code = leg.paymentMethodCode
 amount = leg.amount
 currency_code = order.currency_code
 ```
 
-Cash line includes:
+Cash fields:
 
 ```text
 cash_drawer_session_id
@@ -366,96 +766,81 @@ tendered_amount
 change_returned_amount
 ```
 
-Gateway line includes:
+Gateway fields:
 
 ```text
 gateway_code
 gateway_reference
-gateway_transaction_id if already available
+gateway_transaction_id
 payment_status = PENDING or PROCESSING
 ```
 
-### Stored-value / credit leg → voucher line
-
-There are two acceptable designs. I recommend **Design A**.
-
-## Design A — Voucher line records credit application to order
-
-For gift card/wallet/advance/credit note used against an order:
+Bank/check fields:
 
 ```text
+bank_reference
+check_number
+check_bank
+check_date
+```
+
+---
+
+## 14.2 Credit application leg → `ORDER_CREDIT_APPLICATION`
+
+Create:
+
+```text
+org_fin_voucher_trx_lines_dtl
 line_role = ORDER_CREDIT_APPLICATION
-line_type = ADJUSTMENT or CREDIT_APPLICATION
+line_type = CREDIT_APPLICATION
 direction = NEUTRAL
 target_type = ORDER
 order_id = order_id
 customer_id = customer_id
 amount = leg.amount
-source_table = gift_card/wallet/advance/credit_note
-source_id = source ledger/card/id
+source_table = leg.sourceTable
+source_id = leg.sourceId
+metadata.credit_type = GIFT_CARD / WALLET / CUSTOMER_ADVANCE / CREDIT_NOTE / CUSTOMER_CREDIT
 ```
-
-Then wiring creates:
-
-```text
-org_order_credit_apps_dtl
-```
-
-This is clean because no new cash is received.
-
-## Design B — No voucher line for credit application
-
-Let Order Fin directly create `org_order_credit_apps_dtl`.
-
-This is simpler but weaker audit-wise.
-
-My recommendation: use **Design A** once voucher wiring is active.
 
 ---
 
-# 6. Voucher posting / wiring flow
-
-## Step 9 — Post voucher with wiring enabled
+# 15. Post voucher with operational wiring
 
 Call:
 
-```text
-voucher-posting-orchestrator.postVoucher({
+```ts
+voucherPostingOrchestrator.postVoucher({
   voucherId,
   mode: 'WIRE_OPERATIONAL_EFFECTS',
   idempotencyKey
-})
+});
 ```
 
-Posting does:
+Voucher posting does:
 
 ```text
 1. Lock voucher.
-2. Validate voucher header and lines.
-3. Set voucher status = POSTED.
-4. Set line status = POSTED.
-5. Dispatch each line to wiring handlers.
-6. Create operational effects.
-7. Mark wiring_status = WIRED / FAILED.
-8. Run reconciliation.
-9. Commit transaction.
+2. Validate voucher status is DRAFT.
+3. Validate voucher lines.
+4. Set voucher_status = POSTED.
+5. Set voucher line_status = POSTED.
+6. Dispatch wiring handlers.
+7. Create operational effects.
+8. Update line wiring_status = WIRED.
+9. Run reconciliation.
 ```
 
 ---
 
-# 7. Order settlement wiring details
+# 16. Voucher wiring outputs
 
-## 7.1 ORDER_PAYMENT voucher line creates order payment row
+## 16.1 `ORDER_PAYMENT` wiring creates `org_order_payments_dtl`
 
-For each `ORDER_PAYMENT` line:
+This is where real payment legs are saved.
 
-Create:
-
-```text
-org_order_payments_dtl
-```
-
-Map:
+Fields:
 
 ```text
 order_id
@@ -467,22 +852,21 @@ payment_status
 cash_drawer_session_id
 gateway_reference
 bank_reference
-check_number
 fin_voucher_id
 fin_voucher_trx_line_id
 ```
 
-### Payment status rules
+Payment status rules:
 
 ```text
-CASH → COMPLETED
-CARD terminal → COMPLETED only if terminal confirms
-BANK_TRANSFER → PENDING unless manually verified
-CHECK → PENDING or RECEIVED/COMPLETED based on policy
-GATEWAY → PENDING / PROCESSING until provider confirms
+CASH = COMPLETED
+CARD = COMPLETED only if terminal/provider confirms
+BANK_TRANSFER = PENDING unless manually verified
+CHECK = PENDING unless policy says confirmed
+GATEWAY = PENDING or PROCESSING until provider confirms
 ```
 
-Only `COMPLETED` real payments increase:
+Only `COMPLETED` rows increase:
 
 ```text
 total_paid_amount
@@ -490,64 +874,48 @@ total_paid_amount
 
 ---
 
-## 7.2 Cash voucher line creates cash drawer movement
+## 16.2 Cash `ORDER_PAYMENT` also creates cash drawer movement
 
 If:
 
 ```text
 payment_method_code = CASH
-cash_drawer_session_id is not null
 ```
 
-Create:
+create:
 
 ```text
 org_cash_drawer_movements_dtl
 ```
 
-Rule:
+Rules:
 
 ```text
-cash drawer movement amount = voucher line amount
-```
-
-Not:
-
-```text
-tendered_amount
-```
-
-Example:
-
-```text
-order due = 7.500
-customer gives = 10.000
-change = 2.500
-
-voucher line amount = 7.500
-cash drawer movement = 7.500
+cash drawer session must be open
+movement amount = voucher line amount
+movement amount != tendered_amount
+change_returned_amount is not retained cash
 ```
 
 ---
 
-## 7.3 Credit application voucher line creates order credit application
+## 16.3 `ORDER_CREDIT_APPLICATION` wiring creates `org_order_credit_apps_dtl`
 
-For each credit/stored-value leg:
+This is where stored-value/credit legs are saved.
 
-Create:
-
-```text
-org_order_credit_apps_dtl
-```
-
-Examples:
+Fields:
 
 ```text
-GIFT_CARD
-WALLET
-CUSTOMER_ADVANCE
-CREDIT_NOTE
-CUSTOMER_CREDIT
+order_id
+customer_id
+credit_type
+source_table
+source_id
+amount
+currency_code
+application_status = APPLIED
+fin_voucher_id
+fin_voucher_trx_line_id
 ```
 
 Rules:
@@ -557,467 +925,294 @@ does not create org_order_payments_dtl
 does not increase total_paid_amount
 does increase total_credit_applied_amount
 does reduce outstanding_amount
-does not appear in discounts
+does not appear as discount
 ```
 
 ---
 
-# 8. Order recalculation after voucher posting
+# 17. Recalculate order financial snapshot
 
-## Step 10 — Recalculate order financial snapshot
-
-After voucher wiring:
+After voucher wiring, recalculate from actual effect tables:
 
 ```text
-completed_real_paid = sum(org_order_payments_dtl where payment_status = COMPLETED)
-credit_applied = sum(org_order_credit_apps_dtl)
-refunds = sum(org_order_refunds_dtl completed)
-```
+total_paid_amount =
+  sum(org_order_payments_dtl.amount where payment_status = COMPLETED)
 
-Calculate:
+total_credit_applied_amount =
+  sum(org_order_credit_apps_dtl.amount where application_status = APPLIED)
 
-```text
 outstanding_amount =
   total_amount
 - total_paid_amount
 - total_credit_applied_amount
 ```
 
-Use:
-
-```text
-max(outstanding_amount, 0)
-```
-
-unless overpayment handling is enabled.
-
 Set:
 
 ```text
-total_paid_amount
-total_credit_applied_amount
-outstanding_amount
+payment_status
 pay_on_collection_amount
 invoice_amount
-payment_status
+last_payment_at
+financial_version
+financial_last_calculated_at
+```
+
+Status rules:
+
+```text
+if outstanding_amount = 0:
+  payment_status = PAID
+
+if paid/credit applied > 0 and outstanding_amount > 0:
+  payment_status = PARTIALLY_PAID
+
+if paid/credit applied = 0 and payment_type_code = PAY_ON_COLLECTION:
+  payment_status = PENDING_COLLECTION
+```
+
+Gateway pending rule:
+
+```text
+gateway pending does not count as paid until confirmed
 ```
 
 ---
 
-# 9. Pending / outstanding amount decision
+# 18. Handle outstanding amount
 
-Your proposed step says:
-
-> if there pending/outstanding amount then if not invoice selected so it is pay on collection and in both situation create invoice for that customer_id and order_id for that pending amount.
-
-I would change it.
-
-## Correct rule
+## 18.1 If fully settled
 
 ```text
-If pending amount exists and invoice is NOT selected:
-  classify it as PAY_ON_COLLECTION.
-  Do not create formal AR invoice.
-```
-
-```text
-If pending amount exists and CREDIT_INVOICE is selected:
-  create customer invoice / AR invoice for the pending amount.
-```
-
-## Why not create invoice in both cases?
-
-Because `PAY_ON_COLLECTION` is an operational pending collection, not customer credit.
-
-If you create invoices for every retail pending order:
-
-```text
-you turn every pickup payment into accounts receivable
-you complicate customer statements
-you distort invoice reports
-you confuse retail cashiers
-you create unnecessary invoice lifecycle
-```
-
-Better:
-
-```text
-Retail pending = order outstanding due at collection.
-B2B/credit pending = invoice/AR.
-```
-
----
-
-# 10. Pending amount handling flow
-
-## Case A — Full paid
-
-```text
-order.total = 10
-paid = 10
-outstanding = 0
+outstanding_amount = 0
 payment_status = PAID
-payment_type_code = PAY_IN_ADVANCE or PAID_NOW
 no invoice
 ```
 
-## Case B — No payment, retail pickup
+## 18.2 If PAY_ON_COLLECTION
 
 ```text
-order.total = 10
-paid = 0
-outstanding = 10
+outstanding_amount > 0
 payment_type_code = PAY_ON_COLLECTION
-payment_status = PENDING_COLLECTION
-pay_on_collection_amount = 10
-no AR invoice
+pay_on_collection_amount = outstanding_amount
+do not create AR invoice
 ```
 
-## Case C — Partial payment, retail pickup
+## 18.3 If CREDIT_INVOICE
 
 ```text
-order.total = 20
-cash paid = 5
-outstanding = 15
-payment_type_code = PAY_ON_COLLECTION
-payment_status = PARTIALLY_PAID or PENDING_COLLECTION
-pay_on_collection_amount = 15
-no AR invoice
-```
-
-## Case D — Credit/invoice customer
-
-```text
-order.total = 100
-paid = 0 or partial
-outstanding = 100 or remaining
+outstanding_amount > 0
 payment_type_code = CREDIT_INVOICE
-payment_status = PARTIALLY_PAID or PENDING_INVOICE
-invoice_amount = outstanding
-create AR invoice
+create full AR invoice
 ```
 
-## Case E — Mixed payment + invoice
+Create:
 
 ```text
-order.total = 100
-cash = 30
-invoice selected for remaining = 70
-payment_status = PARTIALLY_PAID
-invoice_amount = 70
-create AR invoice for 70
+org_invoice_mst
+org_invoice_lines_dtl
+org_invoice_orders_dtl
+org_customer_ar_ledger_dtl
+org_invoice_status_history_dtl
+```
+
+Default allocation policy:
+
+```text
+REMAINING_ONLY
 ```
 
 ---
 
-# 11. Invoice creation rules
+# 19. AR invoice line generation
 
-## Create invoice only when
-
-```text
-payment_type_code = CREDIT_INVOICE
-or customer/account policy requires invoice
-or B2B contract flow is selected
-or user explicitly selects "Invoice to Account"
-```
-
-## Do not create AR invoice when
+If `CREDIT_INVOICE`, generate invoice lines from financial order sources:
 
 ```text
-payment_type_code = PAY_ON_COLLECTION
-retail customer simply pays later at pickup
-temporary pending amount exists
-gateway payment is pending
-cashier skipped payment for pickup
+org_order_items_dtl
+org_order_charges_dtl
+org_order_discounts_dtl
+org_order_taxes_dtl
 ```
 
-## Optional document for pay-on-collection
+Recommended mappings:
 
-You may generate:
+| Source                                                | Invoice line       |
+| ----------------------------------------------------- | ------------------ |
+| `org_order_items_dtl`                                 | `SERVICE` / `ITEM` |
+| `org_order_charges_dtl` with `PIECE_EXTRA_PRICE`      | `CHARGE`           |
+| `org_order_charges_dtl` with `PREFERENCE_EXTRA_PRICE` | `CHARGE`           |
+| `org_order_discounts_dtl`                             | `DISCOUNT`         |
+| `org_order_taxes_dtl`                                 | `TAX`              |
+
+For single-order invoice:
 
 ```text
-order bill
-pickup receipt
-pending payment slip
+lineMode = ORDER_DETAIL
 ```
 
-but not AR invoice.
+For B2B/monthly summary:
+
+```text
+lineMode = ORDER_SUMMARY
+```
 
 ---
 
-# 12. Full recommended submit order procedure
+# 20. History, status, audit
+
+Create:
 
 ```text
-BEGIN TRANSACTION
+org_order_history
+org_order_status_history
+```
 
-1. Validate submit request and idempotency key.
+Examples:
 
-2. Resolve tenant, branch, cashier, customer, currency.
+```text
+ORDER_CREATED
+ORDER_SUBMITTED
+FINANCIAL_CALCULATED
+PIECE_EXTRA_PRICE_APPLIED
+PREFERENCE_EXTRA_PRICE_APPLIED
+PAYMENT_VOUCHER_POSTED
+CREDIT_APPLICATION_APPLIED
+INVOICE_CREATED
+```
 
-3. Calculate order totals:
-   - subtotal
-   - charges
-   - express charge
-   - discounts
-   - tax
-   - total
+Do not expand:
 
-4. Persist order:
-   - org_orders_mst
-   - org_order_items_dtl
-   - org_order_charges_dtl
-   - org_order_discounts_dtl
-   - org_order_taxes_dtl
+```text
+org_order_status_history_legacy
+```
 
-5. Build settlement plan:
-   - real payment legs
-   - credit/stored-value application legs
-   - outstanding amount
-   - outstanding policy
+---
 
-6. Validate settlement plan:
-   - payment total <= order total unless overpayment allowed
-   - credit sources have available balance
-   - cash drawer is open if cash
-   - gateway method has valid config
-   - partial later collection policy is respected
+# 21. Reconciliation checks
 
-7. If immediate legs exist:
-   7.1 Create RECEIPT_VOUCHER.
-   7.2 Create voucher lines:
-       - ORDER_PAYMENT for real payment legs
-       - ORDER_CREDIT_APPLICATION for stored-value/credit legs
-   7.3 Post voucher with WIRE_OPERATIONAL_EFFECTS.
-   7.4 Voucher wiring creates:
-       - org_order_payments_dtl for real payments
-       - org_order_credit_apps_dtl for credit applications
-       - org_cash_drawer_movements_dtl for cash movements
-       - gateway pending records where applicable
+Run:
 
-8. Recalculate order financial snapshot:
-   - total_paid_amount
-   - total_credit_applied_amount
-   - outstanding_amount
-   - pay_on_collection_amount
-   - invoice_amount
-   - payment_status
+```text
+order-reconciliation.service.reconcile(orderId)
+```
 
-9. If outstanding_amount > 0:
-   if payment_type_code = CREDIT_INVOICE:
-      create AR/customer invoice for outstanding amount
-      set invoice_amount = outstanding_amount
-   else:
-      set payment_type_code = PAY_ON_COLLECTION
-      set pay_on_collection_amount = outstanding_amount
-      do not create AR invoice
+Checks:
 
-10. Write audit/outbox events.
+```text
+ORDER_TOTAL_MATCHES_COMPONENTS
+ORDER_CHARGES_MATCH_SNAPSHOT
+PIECE_EXTRA_PRICE_INCLUDED_ONCE
+PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE
+ORDER_PIECES_MATCH_CHARGES
+ORDER_PREFERENCES_MATCH_CHARGES
+VOUCHER_TOTAL_MISMATCH
+ORDER_PAYMENT_LINK_MISSING
+ORDER_CREDIT_APPLICATION_LINK_MISSING
+CASH_MOVEMENT_AMOUNT_MISMATCH
+INVOICE_TOTAL_MISMATCH
+AR_LEDGER_MISMATCH
+```
 
-11. Run reconciliation:
-   - voucher total = lines
-   - order payment amount = voucher payment lines
-   - cash movement = retained cash
-   - credit applications = credit voucher lines
-   - outstanding is correct
+Formulas:
 
-COMMIT
+```text
+sum(org_order_item_pieces_dtl.extra_price)
+=
+sum(org_order_charges_dtl.amount where charge_type = PIECE_EXTRA_PRICE)
+```
+
+```text
+sum(org_order_preferences_dtl.extra_price * quantity)
+=
+sum(org_order_charges_dtl.amount where charge_type = PREFERENCE_EXTRA_PRICE)
+```
+
+```text
+sum(org_order_payments_dtl.amount where payment_status = COMPLETED)
+=
+order.total_paid_amount
+```
+
+```text
+sum(org_order_credit_apps_dtl.amount where application_status = APPLIED)
+=
+order.total_credit_applied_amount
+```
+
+---
+
+# 22. Final response
 
 Return:
-- order
-- financial summary
-- voucher id
-- voucher lines
-- payment rows
-- credit application rows
-- invoice id if created
-- outstanding amount
-- warnings
+
+```ts
+type SubmitOrderResponse = {
+  order: {
+    id: string;
+    orderNo: string;
+    totalAmount: string;
+    totalChargesAmount: string;
+    pieceExtraPriceAmount: string;
+    preferenceExtraPriceAmount: string;
+    totalPaidAmount: string;
+    totalCreditAppliedAmount: string;
+    outstandingAmount: string;
+    paymentStatus: string;
+    paymentTypeCode: string;
+  };
+
+  voucher?: {
+    id: string;
+    voucherNo: string;
+    status: 'POSTED';
+    wiringStatus: 'WIRED' | 'PARTIALLY_WIRED';
+  };
+
+  invoice?: {
+    id: string;
+    invoiceNo: string;
+    status: 'OPEN';
+    total: string;
+    outstandingAmount: string;
+    dueDate: string;
+  };
+
+  effects: {
+    orderPayments: any[];
+    creditApplications: any[];
+    cashMovements: any[];
+    invoiceLines?: any[];
+  };
+
+  warnings: string[];
+};
 ```
 
 ---
 
-# 13. What `order settlement service` should do now
-
-Do **not** let it independently create everything after voucher creation.
-
-Refactor/define it as one of these:
-
-## Option A — Settlement planner only
-
-Best clean design:
+# 23. suggested refined rule
 
 ```text
-order-settlement.service
-= validates and builds settlement plan
+org_order_items_dtl, org_order_item_pieces_dtl, and org_order_preferences_dtl are operational order details.
+
+org_order_charges_dtl is the financial charge projection table.
+
+org_order_payments_dtl is the real-payment operational effect table.
+
+org_order_credit_apps_dtl is the credit/stored-value application operational effect table.
+
+When Business Voucher wiring is active:
+- Submit Order creates settlement legs and voucher lines.
+- Voucher ORDER_PAYMENT wiring creates org_order_payments_dtl.
+- Voucher ORDER_CREDIT_APPLICATION wiring creates org_order_credit_apps_dtl.
+
+PAY_ON_COLLECTION:
+- no invoice
+- outstanding remains on order
+
+CREDIT_INVOICE:
+- create full AR invoice
 ```
 
-Voucher posting/wiring creates the actual operational effects.
-
-## Option B — Settlement effect service called by voucher wiring
-
-Also acceptable:
-
-```text
-voucher-order-payment-wiring-handler
-→ calls order-settlement.service.createOrderPaymentEffect()
-```
-
-But this method must be called only from voucher wiring and must require:
-
-```text
-fin_voucher_id
-fin_voucher_trx_line_id
-```
-
-## Avoid Option C
-
-Bad design:
-
-```text
-submit order creates voucher
-then settlement service creates payments separately
-then voucher wiring also creates payments
-```
-
-This causes duplicates.
-
----
-
-# 14. Recommended API/service structure
-
-## Submit Order API
-
-```text
-POST /api/v1/orders/submit
-```
-
-Calls:
-
-```text
-order-submit-orchestrator.submit()
-```
-
-## Order submit orchestrator
-
-```text
-validate request
-calculate order
-save order
-build settlement plan
-create/post voucher
-recalculate order financials
-handle invoice/pay-on-collection
-return response
-```
-
-## Settlement planner
-
-```text
-order-settlement-planner.buildPlan()
-order-settlement-planner.validatePlan()
-```
-
-## Voucher services
-
-```text
-voucher.service.createReceiptVoucher()
-voucher-line.service.createLinesFromSettlementPlan()
-voucher-posting-orchestrator.postWithOperationalWiring()
-```
-
-## Wiring handlers
-
-```text
-voucher-order-payment-wiring.handler
-voucher-cash-drawer-wiring.handler
-voucher-order-credit-application-wiring.handler
-voucher-gateway-wiring.handler
-```
-
-## Invoice service
-
-```text
-order-invoice.service.createInvoiceForOutstanding()
-```
-
-Only called when:
-
-```text
-payment_type_code = CREDIT_INVOICE
-```
-
----
-
-# 15. Final filled flow based on your numbering
-
-```text
-1. Submit Order API starts transaction.
-
-1.1. Validate order request, customer, branch, currency, items, payment legs, and idempotency.
-
-1.2. Calculate and persist order financial snapshot and detail rows.
-
-1.3. Build settlement plan:
-     - real payment legs
-     - credit/stored-value legs
-     - pending/outstanding amount
-     - selected pending policy
-
-1.4. If immediate settlement legs exist:
-     1.4.1. Create RECEIPT_VOUCHER.
-     1.4.2. Create voucher lines from order payment legs:
-            - ORDER_PAYMENT for real payment legs
-            - ORDER_CREDIT_APPLICATION for stored-value/credit legs
-     1.4.3. Post voucher with WIRE_OPERATIONAL_EFFECTS.
-
-1.5. Voucher posting/wiring executes:
-     1.5.1. ORDER_PAYMENT → org_order_payments_dtl.
-     1.5.2. CASH → org_cash_drawer_movements_dtl.
-     1.5.3. CREDIT/STORED_VALUE → org_order_credit_apps_dtl.
-     1.5.4. GATEWAY → pending/processing until provider confirmation.
-     1.5.5. Mark voucher lines WIRED.
-     1.5.6. Run reconciliation.
-
-1.6. Recalculate order financial snapshot:
-     - total_paid_amount
-     - total_credit_applied_amount
-     - outstanding_amount
-     - payment_status
-     - pay_on_collection_amount
-     - invoice_amount
-
-1.7. If outstanding_amount > 0:
-     if user selected CREDIT_INVOICE or customer policy is invoice:
-        create AR/customer invoice for outstanding amount.
-        set payment_type_code = CREDIT_INVOICE.
-        set invoice_amount = outstanding_amount.
-     else:
-        set payment_type_code = PAY_ON_COLLECTION.
-        set pay_on_collection_amount = outstanding_amount.
-        do not create AR invoice.
-
-1.8. Write audit/outbox events.
-
-1.9. Commit transaction.
-
-1.10. Return order financial summary, voucher info, payment/credit effects, invoice info if created, and outstanding amount.
-```
-
----
-
-# Final recommendation
-
-Your direction is correct, but change this part:
-
-```text
-"in both situation create invoice"
-```
-
-to:
-
-```text
-Create invoice only for CREDIT_INVOICE / B2B / invoice-to-account.
-For PAY_ON_COLLECTION, keep outstanding amount on the order and collect it later.
-```
-
-That is the clean retail + finance model.
+This is the suggested clean execution model.

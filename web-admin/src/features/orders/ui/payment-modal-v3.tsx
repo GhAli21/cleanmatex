@@ -878,6 +878,11 @@ export function PaymentModalV3({
       case PAYMENT_METHODS.PAY_ON_COLLECTION: return t('methods.payOnCollection');
       case PAYMENT_METHODS.CHECK:             return t('methods.check');
       case PAYMENT_METHODS.INVOICE:           return t('methods.invoice');
+      case PAYMENT_METHODS.BANK_TRANSFER:     return t('methods.bankTransfer');
+      case PAYMENT_METHODS.MOBILE_PAYMENT:    return t('methods.mobilePayment');
+      case PAYMENT_METHODS.HYPERPAY:          return t('methods.hyperpay');
+      case PAYMENT_METHODS.PAYTABS:           return t('methods.paytabs');
+      case PAYMENT_METHODS.STRIPE:            return t('methods.stripe');
       default:                                return id;
     }
   };

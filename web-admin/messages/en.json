@@ -3953,7 +3953,10 @@
         "invoice": "Invoice",
         "payOnCollection": "Pay on Collection",
         "bankTransfer": "Bank Transfer",
-        "mobilePayment": "Mobile Payment"
+        "mobilePayment": "Mobile Payment",
+        "hyperpay": "HyperPay",
+        "paytabs": "PayTabs",
+        "stripe": "Stripe"
       },
       "checkNumber": {
         "label": "Check Number",
