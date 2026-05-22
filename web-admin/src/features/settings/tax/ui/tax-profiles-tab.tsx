@@ -3,7 +3,8 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
-import { Plus, Star } from 'lucide-react';
+import { Plus, Star, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { CmxButton, CmxSkeletonTable, CmxCard, CmxCardContent } from '@ui/primitives';
 import { CmxDataTable, CmxEmptyState } from '@ui/data-display';
 import { Badge } from '@ui/primitives/badge';
@@ -28,11 +29,17 @@ import {
   createTaxProfileAction,
   setDefaultTaxProfileAction,
   deactivateTaxProfileAction,
+  activateTaxProfileAction,
+  softDeleteTaxProfileAction,
   type TaxProfile,
   type CreateTaxProfileInput,
 } from '@/app/actions/settings/tax-actions';
 
 const TAX_TYPES = ['VAT', 'GST', 'CUSTOM'] as const;
+
+function isSoftDeleted(p: TaxProfile) {
+  return p.rec_status === 0;
+}
 
 export function TaxProfilesTab() {
   const t = useTranslations('settings.tax');
@@ -41,6 +48,7 @@ export function TaxProfilesTab() {
   const [profiles, setProfiles] = useState<TaxProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<TaxProfile | null>(null);
 
   // Form state
   const [formName, setFormName] = useState('');
@@ -128,6 +136,33 @@ export function TaxProfilesTab() {
     });
   };
 
+  const handleActivate = (profile: TaxProfile) => {
+    startTransition(async () => {
+      const result = await activateTaxProfileAction(profile.id);
+      if (result.success) {
+        cmxMessage.success(t('activated'));
+        loadProfiles();
+      } else {
+        cmxMessage.error(result.error ?? t('empty'));
+      }
+    });
+  };
+
+  const handleSoftDelete = () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
+    startTransition(async () => {
+      const result = await softDeleteTaxProfileAction(id);
+      if (result.success) {
+        cmxMessage.success(t('deactivated'));
+        loadProfiles();
+      } else {
+        cmxMessage.error(result.error ?? t('empty'));
+      }
+    });
+  };
+
   const typeBadgeVariant = (type: string) => {
     if (type === 'VAT') return 'default' as const;
     if (type === 'GST') return 'secondary' as const;
@@ -183,46 +218,76 @@ export function TaxProfilesTab() {
     {
       key: 'status',
       header: t('active'),
-      render: (p: TaxProfile) => (
-        <div className="flex items-center gap-1">
-          {p.is_default && (
-            <Badge variant="default" className="gap-1">
-              <Star className="h-3 w-3" />
-              {t('default')}
-            </Badge>
-          )}
-          <Badge variant={p.is_active ? 'secondary' : 'outline'}>
-            {p.is_active ? t('active') : t('inactive')}
-          </Badge>
-        </div>
-      ),
+      render: (p: TaxProfile) => {
+        const deleted = isSoftDeleted(p);
+        return (
+          <div className="flex items-center gap-1">
+            {p.is_default && !deleted && (
+              <Badge variant="default" className="gap-1">
+                <Star className="h-3 w-3" />
+                {t('default')}
+              </Badge>
+            )}
+            {deleted ? (
+              <Badge variant="destructive">{t('softDeleted')}</Badge>
+            ) : (
+              <Badge variant={p.is_active ? 'secondary' : 'outline'}>
+                {p.is_active ? t('active') : t('inactive')}
+              </Badge>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'actions',
       header: '',
-      render: (p: TaxProfile) => (
-        <div className="flex gap-2 justify-end">
-          {!p.is_default && (
+      render: (p: TaxProfile) => {
+        if (isSoftDeleted(p)) return null;
+        return (
+          <div className="flex gap-2 justify-end">
+            {!p.is_default && p.is_active && (
+              <CmxButton
+                variant="outline"
+                size="sm"
+                onClick={() => handleSetDefault(p)}
+                disabled={isPending}
+              >
+                {t('setDefault')}
+              </CmxButton>
+            )}
+            {p.is_active ? (
+              <CmxButton
+                variant="ghost"
+                size="sm"
+                onClick={() => handleDeactivate(p)}
+                disabled={isPending}
+              >
+                {t('deactivate')}
+              </CmxButton>
+            ) : (
+              <CmxButton
+                variant="ghost"
+                size="sm"
+                onClick={() => handleActivate(p)}
+                disabled={isPending}
+              >
+                {t('activate')}
+              </CmxButton>
+            )}
             <CmxButton
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => handleSetDefault(p)}
+              className="text-destructive hover:text-destructive"
+              onClick={() => setDeleteTarget(p)}
               disabled={isPending}
+              aria-label={t('delete')}
             >
-              {t('setDefault')}
+              <Trash2 className="h-4 w-4" />
             </CmxButton>
-          )}
-          <CmxButton
-            variant="ghost"
-            size="sm"
-            className="text-destructive"
-            onClick={() => handleDeactivate(p)}
-            disabled={isPending}
-          >
-            {t('deactivate')}
-          </CmxButton>
-        </div>
-      ),
+          </div>
+        );
+      },
     },
   ];
 
@@ -240,9 +305,18 @@ export function TaxProfilesTab() {
       ) : profiles.length === 0 ? (
         <CmxEmptyState title={t('empty')} />
       ) : (
-        <CmxDataTable columns={columns} data={profiles} />
+        <CmxDataTable
+          columns={columns}
+          data={profiles}
+          getRowClassName={(p) =>
+            isSoftDeleted(p)
+              ? 'bg-red-50 text-red-700 hover:bg-red-100 opacity-75'
+              : undefined
+          }
+        />
       )}
 
+      {/* Add Profile Dialog */}
       <CmxDialog open={showDialog} onOpenChange={(v) => { if (!v) { setShowDialog(false); resetForm(); } }}>
         <CmxDialogContent className="max-w-md">
           <CmxDialogHeader>
@@ -346,6 +420,26 @@ export function TaxProfilesTab() {
               disabled={isPending || !formName.trim() || !formRate}
             >
               {isPending ? 'Saving...' : t('addProfile')}
+            </CmxButton>
+          </CmxDialogFooter>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      {/* Soft-delete confirm dialog */}
+      <CmxDialog open={!!deleteTarget} onOpenChange={(v) => { if (!v) setDeleteTarget(null); }}>
+        <CmxDialogContent className="max-w-sm">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('delete')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <p className="py-2 text-sm text-muted-foreground">
+            {t('deleteConfirm', { name: deleteTarget?.name ?? '' })}
+          </p>
+          <CmxDialogFooter>
+            <CmxButton variant="outline" onClick={() => setDeleteTarget(null)} disabled={isPending}>
+              Cancel
+            </CmxButton>
+            <CmxButton variant="destructive" onClick={handleSoftDelete} disabled={isPending}>
+              {t('delete')}
             </CmxButton>
           </CmxDialogFooter>
         </CmxDialogContent>

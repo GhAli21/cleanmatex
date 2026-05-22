@@ -522,6 +522,7 @@ model org_customers_mst {
   org_tenants_mst              org_tenants_mst            @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_cust_tenant")
   org_fin_vouchers_mst         org_fin_vouchers_mst[]
   org_invoice_mst              org_invoice_mst[]
+  org_customer_ar_ledger_dtl   org_customer_ar_ledger_dtl[]
   org_orders_mst               org_orders_mst[]
   org_payments_dtl_tr          org_payments_dtl_tr[]
   gc_issued_to                 org_gift_cards_mst[]       @relation("gc_issued_to")
@@ -602,14 +603,14 @@ model org_invoice_mst {
   order_id                  String?                @db.Uuid
   tenant_org_id             String                 @db.Uuid
   invoice_no                String
-  subtotal                  Decimal?               @default(0) @db.Decimal(10, 3)
-  discount                  Decimal?               @default(0) @db.Decimal(10, 3)
-  tax                       Decimal?               @default(0) @db.Decimal(10, 3)
-  total                     Decimal?               @default(0) @db.Decimal(10, 3)
-  status                    String?                @default("pending")
+  subtotal                  Decimal?               @default(0) @db.Decimal(19, 4)
+  discount                  Decimal?               @default(0) @db.Decimal(19, 4)
+  tax                       Decimal?               @default(0) @db.Decimal(19, 4)
+  total                     Decimal?               @default(0) @db.Decimal(19, 4)
+  status                    String?                @default("OPEN")
   due_date                  DateTime?              @db.Date
   payment_method_code       String?                @db.VarChar(50)
-  paid_amount               Decimal?               @default(0) @db.Decimal(10, 3)
+  paid_amount               Decimal?               @default(0) @db.Decimal(19, 4)
   paid_at                   DateTime?              @db.Timestamp(6)
   paid_by                   String?                @db.VarChar(255)
   metadata                  Json?
@@ -620,7 +621,7 @@ model org_invoice_mst {
   updated_at                DateTime?              @db.Timestamp(6)
   updated_by                String?                @db.VarChar(120)
   updated_info              String?
-  currency_code             String?                @db.VarChar(3)
+  currency_code             String                 @db.VarChar(3)
   currency_ex_rate          Decimal                @default(1.000000) @db.Decimal(10, 6)
   vat_rate                  Decimal?               @default(0) @db.Decimal(5, 2)
   vat_amount                Decimal?               @default(0) @db.Decimal(19, 4)
@@ -652,13 +653,34 @@ model org_invoice_mst {
   statement_id              String?                @db.Uuid
   cost_center_code          String?                @db.VarChar(50)
   po_number                 String?                @db.VarChar(100)
+  approval_required         Boolean                @default(false)
+  approval_action_cd        String?                @db.VarChar(40)
+  approved_at               DateTime?              @db.Timestamptz(6)
+  approved_by               String?                @db.VarChar(120)
+  approval_notes            String?
+  due_date_source_cd        String?                @db.VarChar(30)
+  due_terms_days            Int?
+  numbering_doc_type_cd     String                 @default("AR_INV") @db.VarChar(40)
+  numbering_seq_no          BigInt?
+  issued_at                 DateTime?              @db.Timestamptz(6)
+  issued_by                 String?                @db.VarChar(120)
+  voided_at                 DateTime?              @db.Timestamptz(6)
+  voided_by                 String?                @db.VarChar(120)
+  void_reason               String?
+  outstanding_amount        Decimal?               @db.Decimal(19, 4)
   org_fin_vouchers_mst      org_fin_vouchers_mst[]
+  org_invoice_adjustments_dtl org_invoice_adjustments_dtl[]
+  org_invoice_lines_dtl     org_invoice_lines_dtl[]
+  org_invoice_orders_dtl    org_invoice_orders_dtl[]
+  org_invoice_payments_dtl  org_invoice_payments_dtl[]
+  org_invoice_status_history_dtl org_invoice_status_history_dtl[]
+  org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
   org_promotions_mst        org_promotions_mst?    @relation(fields: [promo_code_id], references: [id], onUpdate: NoAction, map: "fk_invoice_promo_code")
   org_branches_mst          org_branches_mst?      @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_org_invoice_branch")
   org_customers_mst         org_customers_mst?     @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_org_invoice_customer")
   org_gift_cards_mst        org_gift_cards_mst?    @relation(fields: [gift_card_id], references: [id], onUpdate: NoAction, map: "fk_org_invoice_gift_card")
   org_users_mst_handed_to   org_users_mst?         @relation("invoice_handed_to_user", fields: [handed_to_by_user], references: [id], onUpdate: NoAction, map: "fk_org_invoice_handed_to_user")
-  org_orders_mst            org_orders_mst?        @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
+  org_orders_mst            org_orders_mst?        @relation("org_invoice_order_header", fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_order")
   sys_payment_method_cd     sys_payment_method_cd? @relation(fields: [payment_method_code], references: [payment_method_code], onDelete: Restrict, onUpdate: NoAction, map: "fk_org_invoice_payment_method")
   org_tenants_mst           org_tenants_mst        @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_org_invoice_tenant")
   org_payments_dtl_tr       org_payments_dtl_tr[]
@@ -669,6 +691,9 @@ model org_invoice_mst {
   @@index([tenant_org_id, invoice_no], map: "idx_org_invoice_tenant_no")
   @@index([tenant_org_id, customer_id], map: "idx_org_invoice_customer")
   @@index([tenant_org_id, branch_id], map: "idx_org_invoice_branch")
+  @@index([tenant_org_id, status], map: "idx_oim_t_stat")
+  @@index([tenant_org_id, invoice_type_cd], map: "idx_oim_t_type")
+  @@index([tenant_org_id, due_date], map: "idx_oim_t_due")
   @@schema("public")
 }
 
@@ -980,7 +1005,9 @@ model org_orders_mst {
   org_asm_tasks_mst               org_asm_tasks_mst?
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_fin_vouchers_mst            org_fin_vouchers_mst[]
-  org_invoice_mst                 org_invoice_mst[]
+  org_invoice_mst                 org_invoice_mst[]                  @relation("org_invoice_order_header")
+  org_invoice_lines_dtl           org_invoice_lines_dtl[]            @relation("org_invoice_line_source_order")
+  org_invoice_orders_dtl          org_invoice_orders_dtl[]           @relation("org_invoice_linked_order")
   org_ord_transition_events       org_ord_transition_events[]
   org_order_edit_history          org_order_edit_history[]
   org_order_edit_locks            org_order_edit_locks?
@@ -1134,6 +1161,7 @@ model org_payments_dtl_tr {
   // Relations
   org_payment_audit_log          org_payment_audit_log[]
   org_cash_drawer_movements_dtl  org_cash_drawer_movements_dtl[]
+  org_invoice_payments_dtl       org_invoice_payments_dtl[]
   // org_order_refunds_dtl FK was moved to org_order_payments_dtl in migration 0283
   org_payment_methods_cf_rel     org_payment_methods_cf?         @relation("PaymentMethodConfig", fields: [org_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
   org_branch_pay_methods_cf_rel  org_branch_payment_methods_cf?  @relation("BranchPaymentMethodConfig", fields: [branch_payment_method_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
@@ -1240,6 +1268,8 @@ model org_fin_vouchers_mst {
   updated_by                 String?                     @db.VarChar(120)
   updated_info               String?
   org_fin_voucher_audit_log      org_fin_voucher_audit_log[]
+  org_invoice_payments_dtl       org_invoice_payments_dtl[]
+  org_customer_ar_ledger_dtl     org_customer_ar_ledger_dtl[]
   org_fin_voucher_trx_lines_dtl  org_fin_voucher_trx_lines_dtl[]
   org_branches_mst           org_branches_mst?           @relation(fields: [branch_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_fin_voucher_branch")
   org_customers_mst          org_customers_mst?          @relation(fields: [customer_id], references: [id], onUpdate: NoAction, map: "fk_fin_voucher_customer")
@@ -6287,6 +6317,224 @@ model org_payment_terminals_cf {
   @@schema("public")
 }
 
+/// AR invoice lines: immutable commercial lines stored per invoice header.
+model org_invoice_lines_dtl {
+  id                String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String           @db.Uuid
+  invoice_id        String           @db.Uuid
+  line_no           Int
+  line_type         String           @default("SERVICE") @db.VarChar(30)
+  source_type       String?          @db.VarChar(30)
+  source_order_id   String?          @db.Uuid
+  source_order_item_id String?       @db.Uuid
+  description       String
+  description2      String?
+  quantity          Decimal          @default(1) @db.Decimal(19, 4)
+  unit_price        Decimal          @default(0) @db.Decimal(19, 4)
+  subtotal_amount   Decimal          @default(0) @db.Decimal(19, 4)
+  discount_amount   Decimal          @default(0) @db.Decimal(19, 4)
+  taxable_amount    Decimal          @default(0) @db.Decimal(19, 4)
+  tax_rate          Decimal?         @db.Decimal(9, 4)
+  tax_amount        Decimal          @default(0) @db.Decimal(19, 4)
+  total_amount      Decimal          @default(0) @db.Decimal(19, 4)
+  currency_code     String           @db.VarChar(3)
+  currency_ex_rate  Decimal          @default(1.000000) @db.Decimal(18, 6)
+  metadata          Json             @default("{}")
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  created_by        String?          @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime?        @db.Timestamptz(6)
+  updated_by        String?          @db.VarChar(120)
+  updated_info      String?
+  rec_status        Int              @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?          @db.VarChar(200)
+  is_active         Boolean          @default(true)
+  org_invoice_mst   org_invoice_mst  @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oil_inv")
+  org_orders_mst    org_orders_mst?  @relation("org_invoice_line_source_order", fields: [source_order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oil_ord")
+
+  @@id([id, tenant_org_id], map: "pk_oil")
+  @@unique([tenant_org_id, invoice_id, line_no], map: "uq_oil_no")
+  @@index([tenant_org_id, invoice_id], map: "idx_oil_inv")
+  @@index([tenant_org_id, source_order_id], map: "idx_oil_ord")
+  @@schema("public")
+}
+
+/// Links one AR invoice to one or more orders while preserving remaining-balance allocation policy.
+model org_invoice_orders_dtl {
+  id                 String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id      String           @db.Uuid
+  invoice_id         String           @db.Uuid
+  order_id           String           @db.Uuid
+  order_total_amount Decimal          @default(0) @db.Decimal(19, 4)
+  invoiced_amount    Decimal          @default(0) @db.Decimal(19, 4)
+  paid_before_amount Decimal          @default(0) @db.Decimal(19, 4)
+  credit_before_amount Decimal        @default(0) @db.Decimal(19, 4)
+  outstanding_amount Decimal          @default(0) @db.Decimal(19, 4)
+  allocation_policy  String           @default("REMAINING_ONLY") @db.VarChar(30)
+  metadata           Json             @default("{}")
+  created_at         DateTime         @default(now()) @db.Timestamptz(6)
+  created_by         String?          @db.VarChar(120)
+  created_info       String?
+  updated_at         DateTime?        @db.Timestamptz(6)
+  updated_by         String?          @db.VarChar(120)
+  updated_info       String?
+  rec_status         Int              @default(1) @db.SmallInt
+  rec_order          Int?
+  rec_notes          String?          @db.VarChar(200)
+  is_active          Boolean          @default(true)
+  org_invoice_mst    org_invoice_mst  @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oio_inv")
+  org_orders_mst     org_orders_mst   @relation("org_invoice_linked_order", fields: [order_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_oio_ord")
+
+  @@id([id, tenant_org_id], map: "pk_oio")
+  @@unique([tenant_org_id, invoice_id, order_id], map: "uq_oio_ref")
+  @@index([tenant_org_id, invoice_id], map: "idx_oio_inv")
+  @@index([tenant_org_id, order_id], map: "idx_oio_ord")
+  @@schema("public")
+}
+
+/// Payment allocations connect invoices to source payment/voucher movements without mutating the original receipt.
+model org_invoice_payments_dtl {
+  id                     String                   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                   @db.Uuid
+  invoice_id             String                   @db.Uuid
+  payment_id             String?                  @db.Uuid
+  voucher_id             String?                  @db.Uuid
+  allocation_no          Int                      @default(1)
+  allocation_outcome     String                   @default("APPLIED") @db.VarChar(30)
+  allocated_amount       Decimal                  @default(0) @db.Decimal(19, 4)
+  unapplied_credit_amount Decimal                 @default(0) @db.Decimal(19, 4)
+  applied_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  reversed_at            DateTime?                @db.Timestamptz(6)
+  reversed_by            String?                  @db.VarChar(120)
+  reversal_reason        String?
+  metadata               Json                     @default("{}")
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by             String?                  @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?                @db.Timestamptz(6)
+  updated_by             String?                  @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int                      @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                  @db.VarChar(200)
+  is_active              Boolean                  @default(true)
+  org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
+  org_invoice_mst        org_invoice_mst          @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oip_inv")
+  org_payments_dtl_tr    org_payments_dtl_tr?     @relation(fields: [payment_id], references: [id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oip_pay")
+  org_fin_vouchers_mst   org_fin_vouchers_mst?    @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_oip_vch")
+
+  @@id([id, tenant_org_id], map: "pk_oip")
+  @@unique([tenant_org_id, invoice_id, allocation_no], map: "uq_oip_no")
+  @@index([tenant_org_id, invoice_id], map: "idx_oip_inv")
+  @@index([tenant_org_id, payment_id], map: "idx_oip_pay")
+  @@index([tenant_org_id, voucher_id], map: "idx_oip_vch")
+  @@schema("public")
+}
+
+/// Invoice adjustments track non-payment AR balance changes such as write-offs, finance charges, and corrections.
+model org_invoice_adjustments_dtl {
+  id                     String                   @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                   @db.Uuid
+  invoice_id             String                   @db.Uuid
+  adjustment_no          Int                      @default(1)
+  adjustment_type_cd     String                   @db.VarChar(30)
+  adjustment_amount      Decimal                  @default(0) @db.Decimal(19, 4)
+  status_cd              String                   @default("POSTED") @db.VarChar(20)
+  approval_action_cd     String?                  @db.VarChar(40)
+  approved_at            DateTime?                @db.Timestamptz(6)
+  approved_by            String?                  @db.VarChar(120)
+  reason                 String?
+  metadata               Json                     @default("{}")
+  created_at             DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by             String?                  @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?                @db.Timestamptz(6)
+  updated_by             String?                  @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int                      @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                  @db.VarChar(200)
+  is_active              Boolean                  @default(true)
+  org_customer_ar_ledger_dtl org_customer_ar_ledger_dtl[]
+  org_invoice_mst        org_invoice_mst          @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oia_inv")
+
+  @@id([id, tenant_org_id], map: "pk_oia")
+  @@unique([tenant_org_id, invoice_id, adjustment_no], map: "uq_oia_no")
+  @@index([tenant_org_id, invoice_id], map: "idx_oia_inv")
+  @@index([tenant_org_id, adjustment_type_cd], map: "idx_oia_typ")
+  @@schema("public")
+}
+
+/// Status history is append-only and captures every invoice state transition for audit and dunning workflows.
+model org_invoice_status_history_dtl {
+  id                String           @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id     String           @db.Uuid
+  invoice_id        String           @db.Uuid
+  from_status       String?          @db.VarChar(30)
+  to_status         String           @db.VarChar(30)
+  action_cd         String?          @db.VarChar(40)
+  reason            String?
+  metadata          Json             @default("{}")
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  created_by        String?          @db.VarChar(120)
+  created_info      String?
+  updated_at        DateTime?        @db.Timestamptz(6)
+  updated_by        String?          @db.VarChar(120)
+  updated_info      String?
+  rec_status        Int              @default(1) @db.SmallInt
+  rec_order         Int?
+  rec_notes         String?          @db.VarChar(200)
+  is_active         Boolean          @default(true)
+  org_invoice_mst   org_invoice_mst  @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_oish_inv")
+
+  @@id([id, tenant_org_id], map: "pk_oish")
+  @@index([tenant_org_id, invoice_id, created_at(sort: Desc)], map: "idx_oish_inv")
+  @@schema("public")
+}
+
+/// Customer AR ledger provides the tenant-scoped receivable subledger and running customer balance.
+model org_customer_ar_ledger_dtl {
+  id                     String                      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id          String                      @db.Uuid
+  customer_id            String                      @db.Uuid
+  invoice_id             String?                     @db.Uuid
+  payment_alloc_id       String?                     @db.Uuid
+  adjustment_id          String?                     @db.Uuid
+  voucher_id             String?                     @db.Uuid
+  entry_no               Int                         @default(1)
+  movement_cd            String                      @db.VarChar(30)
+  entry_side             String                      @db.VarChar(10)
+  amount                 Decimal                     @default(0) @db.Decimal(19, 4)
+  running_balance        Decimal                     @default(0) @db.Decimal(19, 4)
+  currency_code          String                      @db.VarChar(3)
+  event_at               DateTime                    @default(now()) @db.Timestamptz(6)
+  ref_doc_no             String?                     @db.VarChar(100)
+  metadata               Json                        @default("{}")
+  created_at             DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by             String?                     @db.VarChar(120)
+  created_info           String?
+  updated_at             DateTime?                   @db.Timestamptz(6)
+  updated_by             String?                     @db.VarChar(120)
+  updated_info           String?
+  rec_status             Int                         @default(1) @db.SmallInt
+  rec_order              Int?
+  rec_notes              String?                     @db.VarChar(200)
+  is_active              Boolean                     @default(true)
+  org_customers_mst      org_customers_mst           @relation(fields: [customer_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "fk_ocal_cus")
+  org_invoice_mst        org_invoice_mst?            @relation(fields: [invoice_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ocal_inv")
+  org_invoice_payments_dtl org_invoice_payments_dtl? @relation(fields: [payment_alloc_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ocal_pay")
+  org_invoice_adjustments_dtl org_invoice_adjustments_dtl? @relation(fields: [adjustment_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ocal_adj")
+  org_fin_vouchers_mst   org_fin_vouchers_mst?       @relation(fields: [voucher_id, tenant_org_id], references: [id, tenant_org_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_ocal_vch")
+
+  @@id([id, tenant_org_id], map: "pk_ocal")
+  @@unique([tenant_org_id, customer_id, entry_no], map: "uq_ocal_no")
+  @@index([tenant_org_id, customer_id, event_at(sort: Desc)], map: "idx_ocal_cus")
+  @@index([tenant_org_id, invoice_id], map: "idx_ocal_inv")
+  @@index([tenant_org_id, voucher_id], map: "idx_ocal_vch")
+  @@schema("public")
+}
+
 model org_card_brand_cf {
   id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tenant_org_id    String            @db.Uuid
@@ -6456,15 +6704,19 @@ model org_order_credit_apps_dtl {
   updated_at       DateTime?       @db.Timestamptz(6)
   updated_by       String?
   updated_info     String?
-  rec_status       Int             @default(1) @db.SmallInt
-  rec_order        Int?
-  rec_notes        String?
-  is_active        Boolean         @default(true)
-  org_tenants_mst  org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  rec_status               Int             @default(1) @db.SmallInt
+  rec_order                Int?
+  rec_notes                String?
+  is_active                Boolean         @default(true)
+  // BVM back-links — populated by wiring service (migration 0318)
+  fin_voucher_id           String?         @db.Uuid
+  fin_voucher_trx_line_id  String?         @unique(map: "uq_credit_app_vch_line") @db.Uuid
+  org_tenants_mst          org_tenants_mst @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_credit_app_idempotency")
   @@index([tenant_org_id], map: "idx_org_order_credit_apps_tenant")
   @@index([tenant_org_id, order_id, is_active], map: "idx_org_order_credit_apps_order")
+  @@index([fin_voucher_id], map: "idx_credit_app_fin_voucher")
   @@schema("public")
 }
 
@@ -7242,6 +7494,9 @@ model org_fin_voucher_trx_lines_dtl {
   wiring_status           String                @default("NOT_WIRED")
   order_payment_id        String?               @db.Uuid
   cash_drawer_mvt_id      String?               @db.Uuid
+  credit_application_type String?
+  org_payment_method_id   String?               @db.Uuid
+  payment_terminal_id     String?               @db.Uuid
   reversed_line_id        String?               @db.Uuid
   idempotency_key         String?
   rec_status              Int                   @default(1) @db.SmallInt

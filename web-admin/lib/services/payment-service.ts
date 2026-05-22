@@ -12,9 +12,18 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext, getTenantIdFromSession } from '../db/tenant-context';
+import { Prisma } from '@prisma/client';
+import {
+  AR_DUE_DATE_SOURCES,
+  AR_INVOICE_DOC_TYPES,
+  AR_INVOICE_STATUSES,
+  AR_INVOICE_TYPES,
+  deriveArInvoiceStatus,
+} from '@/lib/constants/ar-invoice';
 
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
 import { createClient } from '@/lib/supabase/server';
 import { createTenantSettingsService } from './tenant-settings.service';
 import { recordPaymentAudit, paymentSnapshot } from './payment-audit.service';
@@ -22,6 +31,11 @@ import { createReceiptVoucherForPayment } from './voucher-service';
 import { createRefundVoucherForPayment } from './refund-voucher-service';
 import { ErpLiteAutoPostService } from './erp-lite-auto-post.service';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
+import {
+  allocateArPaymentTx,
+  ensureCanonicalArInvoiceArtifactsTx,
+  reverseArPaymentAllocationTx,
+} from '@/lib/services/ar-invoice.service';
 import type {
   PaymentMethod,
   PaymentMethodCode,
@@ -280,7 +294,7 @@ export async function processPayment(
             id: inv.id,
             total: Number(inv.total),
             paid_amount: Number(inv.paid_amount),
-            remaining: Math.max(0, Number(inv.total) - Number(inv.paid_amount)),
+            remaining: getInvoiceOutstandingAmount(inv),
           }))
           .filter((inv) => inv.remaining > 0);
 
@@ -358,24 +372,22 @@ export async function processPayment(
                 dbTx
               );
 
-              const newPaid = inv.paid_amount + apply;
-              const newStatus = newPaid >= inv.total ? 'paid' : 'partial';
-              await dbTx.org_invoice_mst.update({
-                where: {
-                  id_tenant_org_id: {
-                    id: inv.id,
-                    tenant_org_id: tenantId,
-                  },
+              await allocateArPaymentTx(
+                dbTx,
+                inv.id,
+                {
+                  payment_id: txn.id,
+                  voucher_id: txn.voucher_id,
+                  allocated_amount: apply,
+                  unapplied_credit_amount: 0,
+                  applied_at: new Date().toISOString(),
+                  notes: input.notes,
                 },
-                data: {
-                  paid_amount: newPaid,
-                  status: newStatus,
-                  paid_at: newStatus === 'paid' ? new Date() : undefined,
-                  paid_by: input.processed_by,
-                  updated_at: new Date(),
-                  updated_by: input.processed_by,
-                },
-              });
+                {
+                  tenantId,
+                  userId: input.processed_by,
+                }
+              );
 
               await runBlockingPaymentAutoPost({
                 tx: dbTx,
@@ -513,7 +525,7 @@ export async function processPayment(
           throw new Error('Invoice not found');
         }
 
-        const remainingBalance = Number(invoice.total) - Number(invoice.paid_amount);
+        const remainingBalance = getInvoiceOutstandingAmount(invoice);
         if (amountToPay > remainingBalance) {
           throw new Error('Payment amount exceeds remaining balance');
         }
@@ -559,39 +571,22 @@ export async function processPayment(
           dbTx
         );
 
-        const updatedPaidAmount = Number(invoice.paid_amount) + amountToPay;
-        const newStatus = updatedPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
-
-        const existingInvoiceMetadata =
-          invoice.metadata && typeof invoice.metadata === 'object'
-            ? (invoice.metadata as Record<string, unknown>)
-            : {};
-        const paymentMetadata = {
-          ...existingInvoiceMetadata,
-          last_payment_transaction_id: txn.id,
-          last_payment_at: new Date().toISOString(),
-          last_payment_method: input.payment_method_code,
-          last_payment_amount: amountToPay,
-        };
-
-        await dbTx.org_invoice_mst.update({
-          where: {
-            id_tenant_org_id: {
-              id: invoiceId,
-              tenant_org_id: tenantId,
-            },
+        await allocateArPaymentTx(
+          dbTx,
+          effectiveInvoiceId,
+          {
+            payment_id: txn.id,
+            voucher_id: txn.voucher_id,
+            allocated_amount: amountToPay,
+            unapplied_credit_amount: 0,
+            applied_at: new Date().toISOString(),
+            notes: input.notes,
           },
-          data: {
-            paid_amount: updatedPaidAmount,
-            status: newStatus,
-            paid_at: newStatus === 'paid' ? new Date() : undefined,
-            paid_by: input.processed_by,
-            payment_method_code: input.payment_method_code,
-            updated_at: new Date(),
-            updated_by: input.processed_by,
-            metadata: paymentMetadata as object,
-          },
-        });
+          {
+            tenantId,
+            userId: input.processed_by,
+          }
+        );
 
         if (input.order_id) {
           const orderRow = await dbTx.org_orders_mst.findUnique({
@@ -653,16 +648,18 @@ export async function processPayment(
       });
 
       const updatedPaidAmount = Number(transaction.invoice.paid_amount) + amountToPay;
-      const newStatus =
-        updatedPaidAmount >= Number(transaction.invoice.total) ? 'paid' : 'partial';
+      const newStatus = deriveInvoicePaymentStatus(transaction.invoice, updatedPaidAmount);
 
       return {
         success: true,
         invoice_id: transaction.invoiceId,
         transaction_id: transaction.txn.id,
-        payment_status: newStatus === 'paid' ? 'completed' : 'completed',
+        payment_status: newStatus === AR_INVOICE_STATUSES.PAID ? 'completed' : 'completed',
         amount_paid: amountToPay,
-        remaining_balance: Number(transaction.invoice.total) - updatedPaidAmount,
+        remaining_balance: calculateInvoiceOutstandingAmount(
+          Number(transaction.invoice.total ?? 0),
+          updatedPaidAmount
+        ),
         payment_kind: 'invoice',
         metadata: {
           transaction_id: transaction.txn.id,
@@ -1308,75 +1305,75 @@ export async function applyPaymentToInvoice(
   }
 
   return withTenantContext(tenantId, async () => {
-    const payment = await prisma.org_payments_dtl_tr.findFirst({
-      where: { id: paymentId },
-    });
-    if (!payment) {
-      return { success: false, error: 'Payment not found' };
-    }
-    if (payment.invoice_id != null) {
-      return { success: false, error: 'Payment is already applied to an invoice' };
-    }
-    const amount = Number(payment.paid_amount);
-    if (amount <= 0) {
-      return { success: false, error: 'Payment amount must be positive' };
-    }
-
-    const invoice = await prisma.org_invoice_mst.findFirst({
-      where: { id: invoiceId, tenant_org_id: tenantId },
-    });
-    if (!invoice) {
-      return { success: false, error: 'Invoice not found' };
-    }
-
-    await prisma.org_payments_dtl_tr.update({
-      where: { id: paymentId },
-      data: {
-        invoice_id: invoiceId,
-        updated_at: new Date(),
-        updated_by: updatedBy ?? undefined,
-      },
-    });
-
-    const newPaidAmount = Number(invoice.paid_amount) + amount;
-    const newStatus = newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
-    await prisma.org_invoice_mst.update({
-      where: {
-        id_tenant_org_id: {
-          id: invoiceId,
-          tenant_org_id: tenantId,
-        },
-      },
-      data: {
-        paid_amount: newPaidAmount,
-        status: newStatus,
-        paid_at: newStatus === 'paid' ? new Date() : undefined,
-        paid_by: updatedBy ?? undefined,
-        payment_method_code: payment.payment_method_code ?? undefined,
-        updated_at: new Date(),
-        updated_by: updatedBy ?? undefined,
-      },
-    });
-
-    if (payment.order_id) {
-      const order = await prisma.org_orders_mst.findUnique({
-        where: { id: payment.order_id },
+    await prisma.$transaction(async (tx) => {
+      const payment = await tx.org_payments_dtl_tr.findFirst({
+        where: { id: paymentId, tenant_org_id: tenantId },
       });
-      if (order) {
-        const orderPaid = Number(order.paid_amount ?? 0) + amount;
-        const orderTotal = Number(order.total ?? 0);
-        await prisma.org_orders_mst.update({
-          where: { id: payment.order_id },
-          data: {
-            paid_amount: orderPaid,
-            payment_status: orderPaid >= orderTotal ? 'paid' : 'partial',
-            paid_at: orderPaid >= orderTotal ? new Date() : undefined,
-            updated_at: new Date(),
-            updated_by: updatedBy ?? undefined,
-          },
-        });
+      if (!payment) {
+        throw new Error('Payment not found');
       }
-    }
+      if (payment.invoice_id != null) {
+        throw new Error('Payment is already applied to an invoice');
+      }
+
+      const amount = Number(payment.paid_amount);
+      if (amount <= 0) {
+        throw new Error('Payment amount must be positive');
+      }
+
+      const invoice = await tx.org_invoice_mst.findFirst({
+        where: { id: invoiceId, tenant_org_id: tenantId },
+      });
+      if (!invoice) {
+        throw new Error('Invoice not found');
+      }
+
+      await tx.org_payments_dtl_tr.update({
+        where: { id: paymentId },
+        data: {
+          invoice_id: invoiceId,
+          updated_at: new Date(),
+          updated_by: updatedBy ?? undefined,
+        },
+      });
+
+      await allocateArPaymentTx(
+        tx,
+        invoiceId,
+        {
+          payment_id: paymentId,
+          voucher_id: payment.voucher_id ?? undefined,
+          allocated_amount: amount,
+          unapplied_credit_amount: 0,
+          applied_at: new Date().toISOString(),
+          notes: payment.rec_notes ?? undefined,
+        },
+        {
+          tenantId,
+          userId: updatedBy ?? null,
+        }
+      );
+
+      if (payment.order_id) {
+        const order = await tx.org_orders_mst.findUnique({
+          where: { id: payment.order_id },
+        });
+        if (order) {
+          const orderPaid = Number(order.paid_amount ?? 0) + amount;
+          const orderTotal = Number(order.total ?? 0);
+          await tx.org_orders_mst.update({
+            where: { id: payment.order_id },
+            data: {
+              paid_amount: orderPaid,
+              payment_status: orderPaid >= orderTotal ? 'paid' : 'partial',
+              paid_at: orderPaid >= orderTotal ? new Date() : undefined,
+              updated_at: new Date(),
+              updated_by: updatedBy ?? undefined,
+            },
+          });
+        }
+      }
+    });
 
     return { success: true };
   });
@@ -1750,33 +1747,64 @@ export async function refundPayment(
         });
         
         if (transaction.invoice_id) {
-          const invoice = await tx.org_invoice_mst.findUnique({
+          const allocations = await tx.org_invoice_payments_dtl.findMany({
             where: {
-              id_tenant_org_id: {
-                id: transaction.invoice_id,
-                tenant_org_id: tenantId,
-              },
+              tenant_org_id: tenantId,
+              invoice_id: transaction.invoice_id,
+              payment_id: transaction.id,
+              reversed_at: null,
             },
+            orderBy: { allocation_no: 'desc' },
+            select: { id: true },
           });
-          if (invoice) {
-            const newPaidAmount = Math.max(0, Number(invoice.paid_amount) - input.amount);
-            const invoiceTotal = Number(invoice.total);
-            const newStatus =
-              newPaidAmount <= 0 ? 'pending' : newPaidAmount >= invoiceTotal ? 'paid' : 'partial';
-            await tx.org_invoice_mst.update({
+
+          if (allocations.length > 0) {
+            for (const allocation of allocations) {
+              await reverseArPaymentAllocationTx(
+                tx,
+                transaction.invoice_id,
+                allocation.id,
+                {
+                  reason: input.reason,
+                  reversed_at: new Date().toISOString(),
+                },
+                {
+                  tenantId,
+                  userId: input.processed_by ?? null,
+                }
+              );
+            }
+          } else {
+            const invoice = await tx.org_invoice_mst.findUnique({
               where: {
                 id_tenant_org_id: {
-                  id: invoice.id,
+                  id: transaction.invoice_id,
                   tenant_org_id: tenantId,
                 },
               },
-              data: {
-                paid_amount: newPaidAmount,
-                status: newStatus,
-                updated_at: new Date(),
-                updated_by: input.processed_by ?? undefined,
-              },
             });
+            if (invoice) {
+              const newPaidAmount = Math.max(0, Number(invoice.paid_amount) - input.amount);
+              const newStatus = deriveInvoicePaymentStatus(invoice, newPaidAmount);
+              await tx.org_invoice_mst.update({
+                where: {
+                  id_tenant_org_id: {
+                    id: invoice.id,
+                    tenant_org_id: tenantId,
+                  },
+                },
+                data: {
+                  paid_amount: newPaidAmount,
+                  outstanding_amount: calculateInvoiceOutstandingAmount(
+                    Number(invoice.total ?? 0),
+                    newPaidAmount
+                  ),
+                  status: newStatus,
+                  updated_at: new Date(),
+                  updated_by: input.processed_by ?? undefined,
+                },
+              });
+            }
           }
         }
 
@@ -2428,43 +2456,69 @@ export async function cancelPayment(
 
         const paidAmount = Number(payment.paid_amount);
 
-        // 2. Reverse invoice paid_amount if linked
+        // 2. Reverse canonical AR allocations when present, with a legacy
+        // fallback for older payment rows created before allocation tracking.
         if (payment.invoice_id) {
-          const invoice = await tx.org_invoice_mst.findUnique({
+          const allocations = await tx.org_invoice_payments_dtl.findMany({
             where: {
-              id_tenant_org_id: {
-                id: payment.invoice_id,
-                tenant_org_id: tenantId,
-              },
+              tenant_org_id: tenantId,
+              invoice_id: payment.invoice_id,
+              payment_id: payment.id,
+              reversed_at: null,
             },
+            orderBy: { allocation_no: 'desc' },
+            select: { id: true },
           });
 
-          if (invoice) {
-            const newPaidAmount = Math.max(0, Number(invoice.paid_amount) - paidAmount);
-            const invoiceTotal = Number(invoice.total);
-            let newStatus: string;
-            if (newPaidAmount <= 0) {
-              newStatus = 'pending';
-            } else if (newPaidAmount >= invoiceTotal) {
-              newStatus = 'paid';
-            } else {
-              newStatus = 'partial';
+          if (allocations.length > 0) {
+            for (const allocation of allocations) {
+              await reverseArPaymentAllocationTx(
+                tx,
+                payment.invoice_id,
+                allocation.id,
+                {
+                  reason,
+                  reversed_at: new Date().toISOString(),
+                },
+                {
+                  tenantId,
+                  userId: cancelledBy,
+                }
+              );
             }
-
-            await tx.org_invoice_mst.update({
+          } else {
+            const invoice = await tx.org_invoice_mst.findUnique({
               where: {
                 id_tenant_org_id: {
                   id: payment.invoice_id,
                   tenant_org_id: tenantId,
                 },
               },
-              data: {
-                paid_amount: newPaidAmount,
-                status: newStatus,
-                updated_at: new Date(),
-                updated_by: cancelledBy,
-              },
             });
+
+            if (invoice) {
+              const newPaidAmount = Math.max(0, Number(invoice.paid_amount) - paidAmount);
+              const newStatus = deriveInvoicePaymentStatus(invoice, newPaidAmount);
+
+              await tx.org_invoice_mst.update({
+                where: {
+                  id_tenant_org_id: {
+                    id: payment.invoice_id,
+                    tenant_org_id: tenantId,
+                  },
+                },
+                data: {
+                  paid_amount: newPaidAmount,
+                  outstanding_amount: calculateInvoiceOutstandingAmount(
+                    Number(invoice.total ?? 0),
+                    newPaidAmount
+                  ),
+                  status: newStatus,
+                  updated_at: new Date(),
+                  updated_by: cancelledBy,
+                },
+              });
+            }
           }
         }
 
@@ -2558,21 +2612,38 @@ async function createInvoiceForOrder(
     const currencyExRate = Number(order.currency_ex_rate ?? 1);
 
     const now = new Date();
+    const dueDate = order.payment_due_date ?? now;
+    const initialStatus = deriveArInvoiceStatus({
+      currentStatus: AR_INVOICE_STATUSES.OPEN,
+      totalAmount: total,
+      paidAmount: 0,
+      dueDate,
+    });
     const invoice = await db.org_invoice_mst.create({
       data: {
         order_id: orderId,
         customer_id: order.customer_id,
         tenant_org_id: order.tenant_org_id,
         branch_id: order.branch_id ?? undefined,
-        invoice_no: await generateInvoiceNumber(order.tenant_org_id),
+        invoice_no: await generateInvoiceNumber(order.tenant_org_id, db),
         invoice_date: now,
         subtotal,
         discount,
         tax,
         total,
+        outstanding_amount: total,
         currency_code: currencyCode,
         currency_ex_rate: currencyExRate,
+        status: initialStatus,
+        due_date: dueDate,
+        due_date_source_cd: order.b2b_contract_id ? AR_DUE_DATE_SOURCES.B2B_CONTRACT : AR_DUE_DATE_SOURCES.INVOICE_DATE,
         payment_terms: order.payment_terms ?? undefined,
+        issued_at: now,
+        numbering_doc_type_cd: AR_INVOICE_DOC_TYPES.AR_INV,
+        invoice_type_cd: order.b2b_contract_id ? AR_INVOICE_TYPES.B2B_ORDER : AR_INVOICE_TYPES.ORDER_CREDIT,
+        b2b_contract_id: order.b2b_contract_id ?? undefined,
+        cost_center_code: order.cost_center_code ?? undefined,
+        po_number: order.po_number ?? undefined,
         service_charge: order.service_charge ?? undefined,
         service_charge_type: order.service_charge_type ?? undefined,
         gift_card_id: order.gift_card_id ?? undefined,
@@ -2580,7 +2651,6 @@ async function createInvoiceForOrder(
         tax_rate: order.tax_rate ?? undefined,
         vat_rate: breakdown?.vat_rate ?? order.vat_rate ?? undefined,
         vat_amount: breakdown?.vat_amount ?? order.vat_amount ?? undefined,
-        status: 'pending',
         paid_amount: 0,
         created_at: now,
       },
@@ -2620,6 +2690,24 @@ async function createInvoiceForOrder(
 
     assertBlockingAutoPostSucceeded(invoiceDispatchResult, 'invoice');
 
+    await ensureCanonicalArInvoiceArtifactsTx(db as PrismaTx, {
+      tenantId: order.tenant_org_id,
+      invoiceId: invoice.id,
+      orderId,
+      customerId: order.customer_id,
+      branchId: order.branch_id ?? null,
+      invoiceNo: invoice.invoice_no,
+      currencyCode: invoice.currency_code,
+      currencyExRate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
+      invoiceDate: invoice.invoice_date,
+      dueDate: invoice.due_date,
+      status: invoice.status,
+      totalAmount: Number(invoice.total ?? 0),
+      paidAmount: Number(invoice.paid_amount ?? 0),
+      outstandingAmount: Number(invoice.outstanding_amount ?? 0),
+      userId: null,
+    });
+
     return { id: invoice.id };
   } catch (error) {
     console.error('Error creating invoice:', error);
@@ -2630,20 +2718,53 @@ async function createInvoiceForOrder(
 /**
  * Generate unique invoice number
  */
-async function generateInvoiceNumber(tenantOrgId: string): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
+async function generateInvoiceNumber(
+  tenantOrgId: string,
+  db: PrismaSqlExecutor = prisma
+): Promise<string> {
+  const rows = await db.$queryRaw<Array<{ doc_no: string | null }>>(Prisma.sql`
+    SELECT fn_next_fin_doc_no(${tenantOrgId}::uuid, ${AR_INVOICE_DOC_TYPES.AR_INV}) AS doc_no
+  `);
 
-  // Get count of invoices this month
-  const count = await prisma.org_invoice_mst.count({
-    where: {
-      tenant_org_id: tenantOrgId,
-      invoice_no: {
-        startsWith: `INV-${year}${month}`,
-      },
-    },
+  const invoiceNo = rows[0]?.doc_no;
+  if (!invoiceNo) {
+    throw new Error('Failed to generate AR invoice number from fn_next_fin_doc_no.');
+  }
+
+  return invoiceNo;
+}
+
+function calculateInvoiceOutstandingAmount(totalAmount: number, paidAmount: number): number {
+  return Math.max(0, totalAmount - paidAmount);
+}
+
+function getInvoiceOutstandingAmount(invoice: {
+  total?: unknown;
+  paid_amount?: unknown;
+  outstanding_amount?: unknown;
+}): number {
+  if (invoice.outstanding_amount != null) {
+    return Math.max(0, Number(invoice.outstanding_amount));
+  }
+
+  return calculateInvoiceOutstandingAmount(
+    Number(invoice.total ?? 0),
+    Number(invoice.paid_amount ?? 0)
+  );
+}
+
+function deriveInvoicePaymentStatus(
+  invoice: {
+    status?: unknown;
+    total?: unknown;
+    due_date?: Date | string | null;
+  },
+  paidAmount: number
+): string {
+  return deriveArInvoiceStatus({
+    currentStatus: typeof invoice.status === 'string' ? invoice.status : null,
+    totalAmount: Number(invoice.total ?? 0),
+    paidAmount,
+    dueDate: invoice.due_date ?? null,
   });
-
-  return `INV-${year}${month}-${String(count + 1).padStart(5, '0')}`;
 }

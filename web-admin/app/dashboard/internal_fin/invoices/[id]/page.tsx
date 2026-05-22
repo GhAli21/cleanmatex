@@ -1,329 +1,129 @@
-/**
- * Invoice Detail Page
- *
- * Shows invoice summary, payment history, and a small form
- * to record additional cash / POS payments.
- * Route: /dashboard/internal_fin/invoices/[id]
- */
-
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
-import { FileText, Receipt, History, Package, Banknote, Printer } from 'lucide-react';
+import { Badge } from '@ui/primitives/badge';
+import { CmxButton } from '@ui/primitives';
+import {
+  CmxCard,
+  CmxCardContent,
+  CmxCardHeader,
+  CmxCardTitle,
+} from '@ui/primitives/cmx-card';
+import { CmxKpiStatCard } from '@ui/data-display';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { getInvoice } from '@/lib/services/invoice-service';
-import { getPaymentHistory } from '@/lib/services/payment-service';
-import { getOrder } from '@/app/actions/orders/get-order';
-import { processPayment } from '@/app/actions/payments/process-payment';
-import { RecordPaymentClient } from './record-payment-client';
-import { createClient } from '@/lib/supabase/server';
-import { createTenantSettingsService } from '@/lib/services/tenant-settings.service';
-import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { AR_STATUS_TRANSLATION_KEYS, AR_STATUS_BADGE_TONES } from '@/lib/constants/ar-invoice';
+import { getArInvoiceDetail } from '@/lib/services/ar-invoice.service';
+import { ArInvoiceDetailActions } from '@features/ar/ui/ar-invoice-detail-actions';
+import { ArInvoiceDetailTabs } from '@features/ar/ui/ar-invoice-detail-tabs';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-export default async function InvoiceDetailPage({ params }: PageProps) {
+function formatCurrency(amount: number, currencyCode: string) {
+  return new Intl.NumberFormat('en-OM', {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(amount);
+}
+
+export default async function ArInvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
   const t = await getTranslations('invoices');
-  const tCommon = await getTranslations('common');
-  const tOrders = await getTranslations('orders.detail');
-  const tPayments = await getTranslations('payments');
+  const tAr = await getTranslations('invoices.ar');
 
   const auth = await getAuthContext();
-  const tenantOrgId = auth.tenantId;
-  const userId = auth.userId;
+  const detail = await getArInvoiceDetail(id, { tenantId: auth.tenantId });
 
-  const invoice = await getInvoice(id);
-  if (!invoice) {
+  if (!detail) {
     notFound();
   }
 
-  const supabase = await createClient();
-  const moneyCfg = await createTenantSettingsService(supabase).getCurrencyConfig(
-    tenantOrgId,
-    undefined,
-    userId
-  );
-  const invoiceCurrency =
-    (typeof invoice.currency_code === 'string' && invoice.currency_code.trim()) ||
-    moneyCfg.currencyCode;
-  const fmtInv = (amount: number) =>
-    formatMoneyAmountWithCode(amount, {
-      currencyCode: invoiceCurrency,
-      decimalPlaces: moneyCfg.decimalPlaces,
-      locale: 'en',
-    });
-
-  const [paymentHistoryResult, orderResult] = await Promise.all([
-    getPaymentHistory(id),
-    invoice.order_id ? getOrder(tenantOrgId, invoice.order_id) : Promise.resolve(null),
-  ]);
-
-  const payments = paymentHistoryResult ?? [];
-  const remainingBalance =
-    Number(invoice.total) - Number(invoice.paid_amount || 0);
+  const invoice = detail.invoice;
+  const statusKey = AR_STATUS_TRANSLATION_KEYS[invoice.status];
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header - Hero style with accent */}
-      <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-800 text-white">
-            <FileText className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50 p-6 lg:flex-row lg:items-start lg:justify-between">
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rtl:flex-row-reverse">
+            <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
               {t('detail.title', { invoiceNo: invoice.invoice_no })}
             </h1>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
-              {invoice.order_id ? (
-                <Link
-                  href={`/dashboard/orders/${invoice.order_id}`}
-                  className="inline-flex items-center gap-1.5 font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  <Receipt className="h-4 w-4" />
-                  {t('detail.forOrder', { orderId: invoice.order_no || invoice.order_id })}
+            <Badge className={AR_STATUS_BADGE_TONES[invoice.status]}>
+              {t(`statuses.${statusKey}`)}
+            </Badge>
+          </div>
+          <p className="text-sm text-slate-600">
+            {invoice.customer_name ?? invoice.customer_name2 ?? tAr('detail.noCustomer')}
+          </p>
+          <div className="flex flex-wrap gap-2 rtl:flex-row-reverse">
+            {invoice.order_id ? (
+              <CmxButton asChild size="sm" variant="outline">
+                <Link href={`/dashboard/orders/${invoice.order_id}`}>
+                  {t('detail.forOrder', { orderId: invoice.order_no ?? invoice.order_id })}
                 </Link>
-              ) : (
-                <span>{t('detail.noOrder')}</span>
-              )}
-              {invoice.customer_id && invoice.customerName && (
-                <Link
-                  href={`/dashboard/customers/${invoice.customer_id}`}
-                  className="inline-flex items-center gap-1.5 font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                >
-                  <Package className="h-4 w-4" />
-                  {invoice.customerName}
+              </CmxButton>
+            ) : null}
+            {invoice.customer_id ? (
+              <CmxButton asChild size="sm" variant="ghost">
+                <Link href={`/dashboard/internal_fin/ar/ledger?customerId=${invoice.customer_id}`}>
+                  {tAr('detail.openLedger')}
                 </Link>
-              )}
-            </div>
+              </CmxButton>
+            ) : null}
           </div>
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
-        {/* Invoice summary - Blue accent card */}
-        <div className="space-y-4 md:col-span-2">
-          <div className="overflow-hidden rounded-xl border border-blue-100 bg-white shadow-sm ring-1 ring-blue-50">
-            <div className="border-b border-blue-100 bg-blue-50/50 px-5 py-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800">
-                <Receipt className="h-5 w-5 text-blue-600" />
-                {t('detail.summary')}
-              </h2>
-            </div>
-            <dl className="grid grid-cols-2 gap-4 p-5 text-sm">
-              <div>
-                <dt className="text-gray-500">{tOrders('subtotal')}</dt>
-                <dd className="font-medium text-gray-900">
-                  {fmtInv(Number(invoice.subtotal))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{tOrders('discount')}</dt>
-                <dd className="font-medium text-red-600">
-                  {fmtInv(Number(invoice.discount))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{tOrders('tax')}</dt>
-                <dd className="font-medium text-gray-900">
-                  {fmtInv(Number(invoice.tax))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{tOrders('total')}</dt>
-                <dd className="font-semibold text-gray-900">
-                  {fmtInv(Number(invoice.total))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{tOrders('paidAmount')}</dt>
-                <dd className="font-medium text-green-700">
-                  {fmtInv(Number(invoice.paid_amount))}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{tOrders('balance')}</dt>
-                <dd className="font-medium text-orange-700">
-                  {fmtInv(remainingBalance)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-gray-500">{t('detail.status')}</dt>
-                <dd className="font-medium text-gray-900">
-                  {t(`statuses.${invoice.status}`)}
-                </dd>
-              </div>
-              {invoice.payment_method_code && (
-                <div>
-                  <dt className="text-gray-500">
-                    {tOrders('paymentMethod')}
-                  </dt>
-                  <dd className="font-medium text-gray-900">
-                    {invoice.payment_method_code}
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </div>
-
-          {/* Payment history - Amber/warm card */}
-          <div className="overflow-hidden rounded-xl border border-amber-100 bg-white shadow-sm ring-1 ring-amber-50">
-            <div className="border-b border-amber-100 bg-amber-50/50 px-5 py-3">
-              <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-800">
-                <History className="h-5 w-5 text-amber-600" />
-                {t('detail.paymentHistory')}
-              </h2>
-            </div>
-            <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-amber-100/50 text-sm">
-                <thead className="bg-amber-50/70">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium text-amber-900/80">
-                      {t('history.date')}
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-amber-900/80">
-                      {t('history.amount')}
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-amber-900/80">
-                      {t('history.method')}
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-amber-900/80">
-                      {t('history.status')}
-                    </th>
-                    <th className="px-4 py-3 text-left font-medium text-amber-900/80">
-                      {tCommon('actions')}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-amber-100/50 bg-white">
-                  {payments.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-slate-500"
-                      >
-                        {t('history.empty')}
-                      </td>
-                    </tr>
-                  ) : (
-                    payments.map((p) => (
-                      <tr key={p.id} className="hover:bg-amber-50/30 transition-colors">
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-700">
-                          {p.paid_at
-                            ? new Date(p.paid_at).toLocaleString()
-                            : ''}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
-                          {fmtInv(Number(p.paid_amount))}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                          {p.payment_method_code}
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <span
-                            className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                              p.status === 'completed' ? 'bg-green-100 text-green-800' :
-                              p.status === 'cancelled' ? 'bg-slate-100 text-slate-600' :
-                              p.status === 'failed' ? 'bg-red-100 text-red-800' :
-                              'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {p.status ? tPayments(`statuses.${p.status}`) : 'â€”'}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href={`/dashboard/internal_fin/payments/${p.id}?from=invoice&invoiceId=${invoice.id}`}
-                              className="inline-flex items-center font-medium text-blue-600 hover:text-blue-700 hover:underline"
-                            >
-                              {tCommon('view')}
-                            </Link>
-                            {p.status === 'completed' && Number(p.paid_amount) > 0 && (
-                              <Link
-                                href={`/dashboard/internal_fin/payments/${p.id}/print/receipt-voucher`}
-                                target="_blank"
-                                className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
-                                title={t('printReceiptVoucher')}
-                              >
-                                <Printer className="h-3.5 w-3.5" />
-                              </Link>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right sidebar - Order summary + Record payment */}
-        <div className="space-y-4">
-          {invoice.order_id && orderResult?.success && orderResult.data && (
-            <div className="overflow-hidden rounded-xl border border-indigo-100 bg-white shadow-sm ring-1 ring-indigo-50">
-              <div className="border-b border-indigo-100 bg-indigo-50/50 px-4 py-3">
-                <h2 className="flex items-center gap-2 text-base font-semibold text-slate-800">
-                  <Package className="h-5 w-5 text-indigo-600" />
-                  {t('detail.orderSummary')}
-                </h2>
-              </div>
-              <div className="space-y-3 p-4 text-sm text-slate-700">
-                <div className="flex justify-between">
-                  <span className="font-medium text-slate-600">{tOrders('orderItems')}</span>
-                  <span className="font-semibold">{orderResult.data.total_items}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="font-medium text-slate-600">{tOrders('totalAmount')}</span>
-                  <span className="font-semibold">{fmtInv(Number(orderResult.data.total))}</span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <RecordPaymentClient
-            tenantOrgId={tenantOrgId}
-            userId={userId}
-            invoiceId={invoice.id}
-            orderId={invoice.order_id ?? undefined}
-            customerId={invoice.customer_id ?? undefined}
-            paymentKind="invoice"
-            paymentTypeCode={orderResult?.success && orderResult.data?.payment_type_code ? orderResult.data.payment_type_code : undefined}
-            currencyCode={invoice.currency_code ?? undefined}
-            currencyExRate={invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : undefined}
-            branchId={orderResult?.success && orderResult.data?.branch_id ? orderResult.data.branch_id : undefined}
-            /*
-            subtotal={invoice.subtotal != null ? Number(invoice.subtotal) : undefined}
-            discountAmount={invoice.discount != null ? Number(invoice.discount) : undefined}
-            vatRate={invoice.vat_rate != null ? Number(invoice.vat_rate) : undefined}
-            vatAmount={invoice.vat_amount != null ? Number(invoice.vat_amount) : undefined}
-            taxAmount={invoice.tax != null ? Number(invoice.tax) : undefined}
-            finalTotal={invoice.total != null ? Number(invoice.total) : undefined}
-            */
-            remainingBalance={remainingBalance}
-            processPaymentAction={processPayment}
-            t={{
-              recordPayment: t('recordPayment.title'),
-              amount: t('recordPayment.amount'),
-              paymentMethod: t('recordPayment.paymentMethod'),
-              notes: t('recordPayment.notes'),
-              remaining: t('recordPayment.remaining'),
-              cash: t('recordPayment.cash'),
-              card: t('recordPayment.card'),
-              submit: t('recordPayment.submit'),
-              cancelling: t('recordPayment.processing'),
-              cancel: t('recordPayment.cancel'),
-              success: t('recordPayment.success'),
-              error: t('recordPayment.error'),
-            }}
-          />
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <CmxKpiStatCard
+          title={tAr('detail.kpis.total')}
+          value={formatCurrency(invoice.total, invoice.currency_code)}
+        />
+        <CmxKpiStatCard
+          title={tAr('detail.kpis.paid')}
+          value={formatCurrency(invoice.paid_amount, invoice.currency_code)}
+        />
+        <CmxKpiStatCard
+          title={tAr('detail.kpis.outstanding')}
+          value={formatCurrency(invoice.outstanding_amount, invoice.currency_code)}
+        />
+        <CmxKpiStatCard
+          title={tAr('detail.kpis.dueDate')}
+          value={invoice.due_date ?? '—'}
+        />
       </div>
+
+      <CmxCard>
+        <CmxCardHeader>
+          <CmxCardTitle>{tAr('detail.summaryTitle')}</CmxCardTitle>
+        </CmxCardHeader>
+        <CmxCardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.invoiceType')}</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.invoice_type_cd ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.issueDate')}</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.issued_at ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.approval')}</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.approval_action_cd ?? '—'}</p>
+          </div>
+          <div>
+            <p className="text-xs uppercase tracking-wide text-slate-500">{tAr('detail.fields.paymentTerms')}</p>
+            <p className="mt-1 text-sm font-medium text-slate-900">{invoice.payment_terms ?? '—'}</p>
+          </div>
+        </CmxCardContent>
+      </CmxCard>
+
+      <ArInvoiceDetailActions detail={detail} />
+
+      <ArInvoiceDetailTabs detail={detail} />
     </div>
   );
 }

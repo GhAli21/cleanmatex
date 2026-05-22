@@ -10,7 +10,8 @@ import {
   listBizVouchers,
   cancelBizVoucher,
 } from '@/lib/services/voucher-biz.service';
-import { postBizVoucher } from '@/lib/services/voucher-posting.service';
+import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
+import type { PostAndWireResult, LinkedEffectsResult } from '@/lib/types/voucher-wiring';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import {
   createBizVoucherSchema,
@@ -68,13 +69,13 @@ export async function updateBizVoucherAction(
 export async function postBizVoucherAction(
   voucherId: string,
   idempotencyKey?: string
-): Promise<{ success: boolean; data?: { voucherId: string; voucher_no: string; voucher_status: string; fromCache: boolean }; error?: string }> {
+): Promise<{ success: boolean; data?: PostAndWireResult; error?: string }> {
   try {
     const auth = await getAuthContext();
     const hasPerm = await hasPermissionServer('fin_vouchers:post');
     if (!hasPerm) return { success: false, error: 'Permission denied: fin_vouchers:post' };
 
-    const result = await postBizVoucher(auth.tenantId, voucherId, auth.userId, idempotencyKey);
+    const result = await postAndWireBizVoucher(auth.tenantId, voucherId, auth.userId, idempotencyKey);
 
     revalidatePath('/dashboard/internal_fin/vouchers');
     revalidatePath(`/dashboard/internal_fin/vouchers/${voucherId}`);
@@ -138,6 +139,21 @@ export async function getBizVoucherDetailAction(
     return { success: true, data };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to load voucher' };
+  }
+}
+
+export async function getVoucherLinkedEffectsAction(
+  voucherId: string
+): Promise<{ success: boolean; data?: LinkedEffectsResult; error?: string }> {
+  try {
+    const auth = await getAuthContext();
+    const hasPerm = await hasPermissionServer('fin_vouchers:view_effects');
+    if (!hasPerm) return { success: false, error: 'Permission denied: fin_vouchers:view_effects' };
+
+    const data = await getVoucherLinkedEffects(auth.tenantId, voucherId);
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Failed to load linked effects' };
   }
 }
 

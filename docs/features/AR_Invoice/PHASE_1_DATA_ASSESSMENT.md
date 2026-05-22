@@ -2,8 +2,8 @@
 
 **Status:** Completed  
 **Assessment Date:** 2026-05-22  
-**Assessment Source:** Repository code, migrations, Prisma schema, and feature docs  
-**Live DB Query Status:** Not executed by assistant
+**Assessment Source:** Repository code, migrations, Prisma schema, feature docs, and post-migration read-only DB validation  
+**Live DB Query Status:** Read-only local verification executed on 2026-05-22 after user applied `0313`–`0316`
 
 ## Objective
 
@@ -92,3 +92,9 @@ This file should be refreshed after:
 - cleanup migration authoring as `0313_ar_invoice_cleanup.sql`
 - schema migration authoring as `0314_ar_invoice_schema.sql`
 - service-layer integration of canonical AR statuses and numbering
+
+## Post-Apply Validation Notes
+
+- applied migrations normalized existing invoice rows to canonical uppercase statuses
+- current sample invoice numbers are legacy `INV-*` values, so seeded `AR_INV` sequence prefix `ARI-` does not immediately collide in the local data set
+- live `org_invoice_mst.status` default remained `'pending'` after `0314`; additive follow-up migration `0317_ar_invoice_header_defaults_fix.sql` was created to align new inserts with the canonical `OPEN` status

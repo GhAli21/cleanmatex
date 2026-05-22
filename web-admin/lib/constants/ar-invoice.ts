@@ -131,6 +131,73 @@ export const AR_DUE_DATE_SOURCES = {
 export type ArDueDateSource =
   (typeof AR_DUE_DATE_SOURCES)[keyof typeof AR_DUE_DATE_SOURCES];
 
+export const AR_CREDIT_ALLOCATION_STATUSES = {
+  APPLIED: 'APPLIED',
+  REVERSED: 'REVERSED',
+} as const;
+
+export type ArCreditAllocationStatus =
+  (typeof AR_CREDIT_ALLOCATION_STATUSES)[keyof typeof AR_CREDIT_ALLOCATION_STATUSES];
+
+export const AR_DISPUTE_STATUSES = {
+  OPEN: 'OPEN',
+  UNDER_REVIEW: 'UNDER_REVIEW',
+  RESOLVED: 'RESOLVED',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED',
+} as const;
+
+export type ArDisputeStatus =
+  (typeof AR_DISPUTE_STATUSES)[keyof typeof AR_DISPUTE_STATUSES];
+
+export const AR_DUNNING_STAGES = {
+  REMINDER_1: 'REMINDER_1',
+  REMINDER_2: 'REMINDER_2',
+  FINAL_NOTICE: 'FINAL_NOTICE',
+  CREDIT_HOLD: 'CREDIT_HOLD',
+} as const;
+
+export type ArDunningStage =
+  (typeof AR_DUNNING_STAGES)[keyof typeof AR_DUNNING_STAGES];
+
+export const AR_DUNNING_ACTIONS = {
+  EMAIL: 'EMAIL',
+  SMS: 'SMS',
+  HOLD: 'HOLD',
+  NOTE: 'NOTE',
+} as const;
+
+export type ArDunningAction =
+  (typeof AR_DUNNING_ACTIONS)[keyof typeof AR_DUNNING_ACTIONS];
+
+export const AR_DUNNING_RUN_STATUSES = {
+  PENDING: 'PENDING',
+  SENT: 'SENT',
+  SKIPPED: 'SKIPPED',
+  FAILED: 'FAILED',
+} as const;
+
+export type ArDunningRunStatus =
+  (typeof AR_DUNNING_RUN_STATUSES)[keyof typeof AR_DUNNING_RUN_STATUSES];
+
+export const AR_STATEMENT_CADENCES = {
+  WEEKLY: 'WEEKLY',
+  BIWEEKLY: 'BIWEEKLY',
+  MONTHLY: 'MONTHLY',
+  CUSTOM: 'CUSTOM',
+} as const;
+
+export type ArStatementCadence =
+  (typeof AR_STATEMENT_CADENCES)[keyof typeof AR_STATEMENT_CADENCES];
+
+export const AR_STATEMENT_CUSTOMER_SCOPES = {
+  ALL_B2B: 'ALL_B2B',
+  CUSTOM_LIST: 'CUSTOM_LIST',
+} as const;
+
+export type ArStatementCustomerScope =
+  (typeof AR_STATEMENT_CUSTOMER_SCOPES)[keyof typeof AR_STATEMENT_CUSTOMER_SCOPES];
+
 export const AR_STATUS_TRANSLATION_KEYS: Record<ArInvoiceStatus, string> = {
   DRAFT: 'draft',
   OPEN: 'pending',
@@ -254,4 +321,3 @@ export function deriveArInvoiceStatus(params: {
 
   return isPastDue ? AR_INVOICE_STATUSES.OVERDUE : AR_INVOICE_STATUSES.OPEN;
 }
-

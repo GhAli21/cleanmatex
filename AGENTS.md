@@ -1,4 +1,22 @@
-# AGENTS.md — CleanMateX Tenant App · F:\jhapp\cleanmatex\CLAUDE.md
+# ⛔ HARD STOP — READ BEFORE ANYTHING ELSE
+
+**Before writing ANY code, SQL, migration, component, route, or translation — apply the mandatory rules below. No exceptions.**
+
+| Writing... | Mandatory rule |
+|---|---|
+| SQL / migration / function | Apply **Database Quick Rules** (see below) |
+| Frontend / component / JSX | **Use Cmx components ONLY** — see **UI Component Rules** (see below) |
+| i18n / translation | Add key to `messages/en.json` AND `messages/ar.json` |
+| API route / service / backend | Use service layer, always filter by `tenant_org_id` |
+| Any `org_*` table query | Filter by `tenant_org_id` — NO EXCEPTIONS |
+| New navigation entry | Dual-write: `navigation.ts` + `sys_components_cd` DB migration |
+| New permission code | Seed into DB via migration — see CRITICAL RULE #11 |
+
+**Skipping these rules = build failure and rejected PR.**
+
+---
+
+# AGENTS.md — CleanMateX Tenant App · F:\jhapp\cleanmatex
 
 **Project:** CleanMateX — Multi-Tenant Laundry SaaS Platform (GCC-first, EN/AR bilingual)
 **Last Update:** 22-03-2026
@@ -20,6 +38,7 @@
 10. **Navigation changes are DUAL-WRITE** — any add/modify to navigation MUST update BOTH `web-admin/config/navigation.ts` (frontend sidebar) AND generate a DB migration for `sys_components_cd`. Neither alone is complete.
 11. **New permissions MUST have a migration** — every new permission code requires a corresponding DB migration file that seeds it into the permissions table. Never define a permission only in TypeScript without the DB migration.
 12. **Constants MUST mirror DB names** — when a constant value already exists as a column value, status code, or enum in the database, the TypeScript constant MUST use the exact same string (case, spelling, separator). Drift between DB values and TS constants causes silent bugs.
+13. **Permission codes MUST follow `resource:action` format** — every permission code must match `^[a-z0-9_]+:([a-z0-9_]+|\*)$|^\*:\*$`. Lowercase letters, digits, and underscores only. Wildcard actions (`orders:*`) and global wildcard (`*:*`) are the only allowed `*` forms. Examples: `orders:read` ✅  `customers:*` ✅  `Orders:Read` ❌  `orders.read` ❌
 
 ---
 
@@ -45,26 +64,21 @@ This project owns **all database migrations**. cleanmatexsaas never creates migr
 
 ---
 
-## Mandatory Skill Loading Before Writing Code
+## Mandatory Rules Before Writing Code
 
-Before writing ANY code, ALWAYS load the relevant skill(s) first. No exceptions.
+Before writing ANY code, ALWAYS apply the relevant domain rules first. No exceptions.
 
-| Task type | Load skill first |
+| Task type | Rule to apply |
 |---|---|
-| Any SQL, migration, table, index, function | `/database` |
-| Any frontend component, page, hook, JSX | `/frontend` |
-| Any i18n key, translation, bilingual text | `/i18n` |
-| Any API route, service, backend logic | `/backend` |
-| Any query touching `org_*` tables | `/multitenancy` |
-| Any new feature implementation | `/implementation` |
-| Any inline comment, JSDoc, SQL comment, config annotation | `/code-documentation` |
-| Any `.stories.tsx` file, new Cmx component | `/storybook` |
-| Any navigation add/modify (sidebar, routes, menu items) | `/navigation` |
-
-**How to enforce:**
-- Plan mode: load skills during Phase 1 exploration, before Phase 2 design
-- Execution mode: load skills before writing the first line of code for that domain
-- If a skill was not loaded and you wrote code — stop, load the skill, verify compliance, fix if needed
+| Any SQL, migration, table, index, function | **Database Quick Rules** below |
+| Any frontend component, page, hook, JSX | **UI Component Rules** below — Cmx only |
+| Any i18n key, translation, bilingual text | Add to `messages/en.json` + `messages/ar.json` |
+| Any API route, service, backend logic | Service layer, tenant_org_id filter mandatory |
+| Any query touching `org_*` tables | Filter by `tenant_org_id` — NO EXCEPTIONS |
+| Any new feature implementation | Follow all CRITICAL RULES |
+| Any inline comment, JSDoc, SQL comment, config annotation | Comment the WHY not the WHAT — English only |
+| Any `.stories.tsx` file, new Cmx component | Follow Storybook patterns in `src/ui/` |
+| Any navigation add/modify (sidebar, routes, menu items) | Dual-write: `navigation.ts` + `sys_components_cd` migration |
 
 ---
 
@@ -106,11 +120,10 @@ npm run build                      # Build (run after changes)
 - Bilingual: `name/name2`, `description/description2`
 - Soft delete: `is_active=false`, `rec_status=0`
 - Money fields: `DECIMAL(19, 4)`
+- String columns: **always `TEXT`**, never `VARCHAR`
 - No default value for `currency_code`, `country`, `city`, `timezone`, or any locale-related field
 - **Permissions require a migration** — every new permission code must be seeded into the DB permissions table via a migration file. A permission that exists only in TypeScript/code but not in the DB is incomplete. Include ALL new permissions for a feature in a single dedicated migration.
 - **Navigation requires a migration** — every new or modified navigation entry must have a corresponding `sys_components_cd` migration. See CRITICAL RULE #10.
-
-**See:** `/database` skill for complete rules
 
 ---
 
@@ -130,9 +143,6 @@ npm run build                      # Build (run after changes)
 - In `web-admin`, use the centralized tenant-context utilities where the implementation requires them
 - In `cmx-api`, pass tenant context explicitly through guards/request context and service boundaries
 
-**See:** `/implementation` skill for coding standards
-**See:** `/code-documentation` skill for JSDoc patterns, SQL migration comments, Tailwind annotations, and config file documentation rules
-
 **Feature docs:** When implementing any feature, document: permissions, navigation tree/screen, tenant settings, feature flags, plan limits, i18n keys, API routes, migrations, RBAC changes, env vars. See `.claude/skills/implementation/prd-rules.md`.
 
 ---
@@ -151,41 +161,83 @@ npm run build                      # Build (run after changes)
 
 ## UI Quick Rules
 
-- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`. Do **not** use `@ui/compat` (removed). Use exact import lines from **`web-admin/.clauderc`** → `ui_components`
-- **web-admin TS/UI (tsc):** Follow `.cursor/rules/web-admin-typecheck-patterns.mdc` (discriminated unions, `CmxButton`/`Badge`/`CmxSummaryMessage`/`CmxDialog`, RHF+Zod `Resolver`, Recharts `Legend` wrapper, `useState` widening, ARIA booleans)
+- **web-admin UI:** Use **Cmx components only**. Import from `@ui/primitives`, `@ui/feedback`, `@ui/overlays`, `@ui/forms`, `@ui/data-display`, `@ui/navigation`, `@ui/patterns`. Do **not** use `@ui/compat` (removed).
+- **Do NOT use raw `<button>`, `<input>`, `<select>`, `<form>`, `<dialog>`, `<table>`** in feature code — always use the Cmx wrapper.
+- **Do NOT import from `@/components/ui` or `@ui/compat`** — ESLint will fail the build.
 - Search existing message keys before adding new ones; reuse `common.*` keys for shared UI
-- Use `cmxMessages` when applicable
 - Run `npm run check:i18n` after translation changes
 - Reports naming: `{feature-name}-{report-name}-rprt.tsx` (e.g. `orders-payments-print-rprt.tsx`)
 
-**See:** `/i18n` skill · `/frontend` skill · `.claude/docs/web-admin-ui-imports.md` · `docs/dev/ui-migration-guide.md`
-
 ---
 
-## Skills Reference
+## UI Component Rules (Inline — Always Apply)
 
-### Core Development (Auto-invoked)
-- `/multitenancy` — **CRITICAL** — Tenant isolation, RLS policies
-- `/database` — Schema conventions, migrations, naming
-- `/frontend` — Next.js 16, React 19, Cmx Design System
-- `/backend` — API routes, service layer, Supabase patterns
-- `/i18n` — Bilingual support (EN/AR), RTL layout
+> **Use Cmx design system components ONLY.** Never use raw HTML elements or shadcn/radix imports directly in feature code. When in doubt, check `web-admin/src/ui/` for the Cmx wrapper before using anything else.
 
-### Architecture & Planning
-- `/architecture` — System design, tech stack, data access
-- `/business-logic` — Order workflows, pricing, quality gates
+### Mandatory Imports (copy exact lines)
 
-### Development Workflow
-- `/implementation` — Feature development, coding standards
-- `/dev-commands` — CLI commands reference
-- `/testing` — Testing strategy, patterns
-- `/debugging` — Troubleshooting, build fixes
-- `/documentation` — Documentation standards
+```typescript
+// ── Primitives ──────────────────────────────────────────────────
+import { CmxButton } from '@ui/primitives'
+import { CmxInput } from '@ui/primitives'
+import { CmxTextarea } from '@ui/primitives'
+import { CmxSelect } from '@ui/primitives'
+import { CmxCheckbox } from '@ui/primitives'
+import { CmxSwitch } from '@ui/primitives'
+import { CmxSkeleton, CmxSkeletonTable } from '@ui/primitives'
+import { CmxSpinner } from '@ui/primitives'
+import { LoadingButton } from '@ui/primitives'
+import { Label } from '@ui/primitives'
+import { Badge } from '@ui/primitives/badge'
+import { Alert, AlertDescription } from '@ui/primitives'
+import { Separator } from '@ui/primitives'
+import { Tooltip } from '@ui/primitives'
+import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'
 
-### Utility
-- `/explain-code` — Code explanations with diagrams
-- `/codebase-visualizer` — Interactive codebase tree
-- `/storybook` — Story generation for Cmx components (RTL, a11y, variants)
+// ── Forms ────────────────────────────────────────────────────────
+import { CmxForm, CmxFormField, CmxFormSection, CmxFormActions, CmxFormSkeleton, CmxFormStatusBanner } from '@ui/forms'
+import { CmxFieldShell } from '@ui/forms'
+import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'
+import { CmxCheckboxGroup } from '@ui/forms'
+import { CmxHexColorField } from '@ui/forms'
+
+// ── Overlays ─────────────────────────────────────────────────────
+import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'
+
+// ── Feedback ─────────────────────────────────────────────────────
+import { CmxProgressBar } from '@ui/feedback'
+import { CmxSummaryMessage } from '@ui/feedback'
+import { CmxProgressIndicator } from '@ui/feedback'
+import { CmxStatusBadge } from '@ui/feedback'
+import { CmxConfirmDialog } from '@ui/feedback'
+
+// ── Data Display ─────────────────────────────────────────────────
+import { CmxDataTable } from '@ui/data-display'
+import { CmxEmptyState } from '@ui/data-display'
+import { CmxKpiStatCard } from '@ui/data-display'
+
+// ── Navigation ───────────────────────────────────────────────────
+import { CmxTabsPanel } from '@ui/navigation'
+import { CmxPagination } from '@ui/navigation'
+import { CmxProgressSteps } from '@ui/navigation'
+
+// ── Page-level Patterns ──────────────────────────────────────────
+import { CmxCrudPageShell } from '@ui/patterns'
+import { CmxCardWithHeader } from '@ui/patterns'
+
+// ── Toast (imperative) ───────────────────────────────────────────
+import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'
+```
+
+### Banned Imports (ESLint will fail the build)
+
+```typescript
+❌ import { Button } from '@/components/ui/button'   // shadcn raw — use CmxButton
+❌ import { Input } from '@/components/ui/input'     // shadcn raw — use CmxInput
+❌ import anything from '@ui/compat'                 // removed
+❌ import anything from '@/components/ui'            // does not exist
+❌ <button>, <input>, <select>, <form>, <dialog>     // raw HTML in feature code — use Cmx wrapper
+```
 
 ---
 
@@ -223,24 +275,16 @@ docs/         # All documentation
 - **Performance:** Indexes, avoid N+1 queries, paginate results
 - **Testing:** Cover business logic and tenant isolation
 - **Validation:** Validate all inputs at system boundaries
-- **Documentation:** For every feature — permissions, navigation tree, settings, feature flags, plan limits, i18n keys, API routes, migrations, constants/types, env vars (see `/documentation` skill)
+- **Documentation:** For every feature — permissions, navigation tree, settings, feature flags, plan limits, i18n keys, API routes, migrations, constants/types, env vars
 
 ---
 
-## How to Make Cursor/Claude Follow the Rules
+## Enforcement Summary
 
-1. **Always-applied rules (Cursor):** `.cursor/rules/*.mdc` with `alwaysApply: true` loaded automatically. Keep critical, short rules there.
-   **→ Claude equivalent:** Same rules embedded in `.claude/skills/frontend/SKILL.md`, `.claude/skills/frontend/uiux-rules.md`, `.claude/docs/web-admin-ui-imports.md`
-
-2. **CLAUDE.md (Claude):** Always in context — primary source for CRITICAL RULES.
-
-3. **Skills (Claude):** Use `/frontend`, `/i18n`, `/database`, etc. CLAUDE.md points to the right skill per topic.
-
-4. **Enforcement at build time:** ESLint (`no-restricted-imports`) forbids `@ui/compat` and `@/components/ui`. `npm run build` catches all violations.
-
-5. **web-admin/.clauderc:** Authoritative import snippets for Cmx components. Update when adding/changing shared UI.
-
-6. **Explicit prompts:** When you want a rule followed, say it ("Use Cmx components only and import from .clauderc").
+1. **Build-time:** ESLint `no-restricted-imports` forbids `@ui/compat` and `@/components/ui`. `npm run build` catches all violations.
+2. **`web-admin/.clauderc`:** Authoritative import snippets for Cmx components — always use these exact lines.
+3. **UI Component Rules above:** The complete list of allowed imports. If a component you need isn't listed, check `web-admin/src/ui/` — a Cmx wrapper likely exists.
+4. **Explicit in your prompt:** When asking for UI changes, always say "Use Cmx components only, import from .clauderc".
 
 ---
 
@@ -252,7 +296,7 @@ docs/         # All documentation
 - MCP allowed for **read-only discovery queries only** (e.g. finding affected objects before DROP CASCADE)
 - **DROP ... CASCADE is BANNED by default** — use `DROP ... RESTRICT`. If CASCADE is unavoidable: STOP, get user confirmation, run discovery queries via MCP to produce the dependency manifest, then include recreate statements in the same migration. See `docs/dev/drop-cascade-migration-workflow.md`
 
-# CleanMateX Repository Additional Rules - from chatgpt
+# CleanMateX Repository Additional Rules
 
 ## Mission
 - Maintain production-grade quality.
@@ -303,4 +347,3 @@ docs/         # All documentation
   2. files changed
   3. validation results
   4. risks / follow-ups
-

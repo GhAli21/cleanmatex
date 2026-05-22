@@ -1,8 +1,13 @@
 import { z } from 'zod';
 import {
   AR_ADJUSTMENT_TYPES,
+  AR_DISPUTE_STATUSES,
+  AR_DUNNING_ACTIONS,
+  AR_DUNNING_STAGES,
   AR_INVOICE_STATUSES,
   AR_INVOICE_TYPES,
+  AR_STATEMENT_CADENCES,
+  AR_STATEMENT_CUSTOMER_SCOPES,
   AR_SENSITIVE_APPROVAL_ACTIONS,
 } from '@/lib/constants/ar-invoice';
 
@@ -69,6 +74,7 @@ export const createArInvoiceSchema = z.object({
   tax: moneySchema.default(0),
   total: moneySchema,
   rec_notes: z.string().max(1000).optional(),
+  idempotency_key: z.string().max(120).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   lines: z.array(arInvoiceLineInputSchema).min(1),
 });
@@ -81,6 +87,7 @@ export const createArInvoiceFromOrdersSchema = z.object({
   allocation_policy: z.enum(['FULL_ORDER', 'REMAINING_ONLY', 'CUSTOM_AMOUNT']).default('REMAINING_ONLY'),
   currency_code: z.string().length(3).optional(),
   rec_notes: z.string().max(1000).optional(),
+  idempotency_key: z.string().max(120).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -129,6 +136,12 @@ export const allocateArPaymentSchema = z.object({
 }).refine((value) => !!value.payment_id || !!value.voucher_id, {
   message: 'payment_id or voucher_id is required',
   path: ['payment_id'],
+});
+
+export const reverseArPaymentAllocationSchema = z.object({
+  reason: z.string().min(1).max(2000),
+  reversed_at: dateStringSchema,
+  idempotency_key: z.string().max(120).optional(),
 });
 
 export const createCreditNoteSchema = z.object({
@@ -190,6 +203,121 @@ export const arAgingQuerySchema = z.object({
   search: z.string().optional(),
 });
 
+export const arCreditsQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  customer_id: uuidSchema.optional(),
+  search: z.string().optional(),
+});
+
+export const applyArCreditSchema = z.object({
+  customer_id: uuidSchema,
+  invoice_id: uuidSchema,
+  source_ledger_id: uuidSchema,
+  applied_amount: moneySchema,
+  notes: z.string().max(1000).optional(),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const reverseArCreditApplicationSchema = z.object({
+  reason: z.string().min(1).max(2000),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const arDisputesQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  status_cd: z.string().optional(),
+  customer_id: uuidSchema.optional(),
+  invoice_id: uuidSchema.optional(),
+  search: z.string().optional(),
+});
+
+export const createArDisputeSchema = z.object({
+  invoice_id: uuidSchema,
+  customer_id: uuidSchema,
+  reason_cd: z.string().min(1).max(30),
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(4000),
+  description2: z.string().max(4000).optional(),
+  disputed_amount: moneySchema,
+  due_by_at: dateStringSchema,
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const resolveArDisputeSchema = z.object({
+  status_cd: z.enum([
+    AR_DISPUTE_STATUSES.RESOLVED,
+    AR_DISPUTE_STATUSES.REJECTED,
+    AR_DISPUTE_STATUSES.CANCELLED,
+  ]),
+  resolution_summary: z.string().min(1).max(4000),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const arDunningQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  customer_id: uuidSchema.optional(),
+  invoice_id: uuidSchema.optional(),
+  status_cd: z.string().optional(),
+});
+
+export const runArDunningSchema = z.object({
+  customer_id: uuidSchema,
+  invoice_id: uuidSchema.optional(),
+  stage_cd: z.enum([
+    AR_DUNNING_STAGES.REMINDER_1,
+    AR_DUNNING_STAGES.REMINDER_2,
+    AR_DUNNING_STAGES.FINAL_NOTICE,
+    AR_DUNNING_STAGES.CREDIT_HOLD,
+  ]),
+  action_cd: z.enum([
+    AR_DUNNING_ACTIONS.EMAIL,
+    AR_DUNNING_ACTIONS.SMS,
+    AR_DUNNING_ACTIONS.HOLD,
+    AR_DUNNING_ACTIONS.NOTE,
+  ]),
+  notes: z.string().max(2000).optional(),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const arStatementCyclesQuerySchema = z.object({
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().positive().max(100).default(20),
+  is_active: z.coerce.boolean().optional(),
+  search: z.string().optional(),
+});
+
+export const createArStatementCycleSchema = z.object({
+  cycle_code: z.string().min(1).max(50),
+  cycle_name: z.string().min(1).max(150),
+  cycle_name2: z.string().max(150).optional(),
+  cadence_cd: z.enum([
+    AR_STATEMENT_CADENCES.WEEKLY,
+    AR_STATEMENT_CADENCES.BIWEEKLY,
+    AR_STATEMENT_CADENCES.MONTHLY,
+    AR_STATEMENT_CADENCES.CUSTOM,
+  ]),
+  customer_scope_cd: z.enum([
+    AR_STATEMENT_CUSTOMER_SCOPES.ALL_B2B,
+    AR_STATEMENT_CUSTOMER_SCOPES.CUSTOM_LIST,
+  ]),
+  day_of_month: z.number().int().min(1).max(31).optional(),
+  day_of_week: z.number().int().min(0).max(6).optional(),
+  issue_day_offset: z.number().int().min(0).max(31).default(0),
+  due_terms_days: z.number().int().min(0).max(365).default(0),
+  customer_ids: z.array(uuidSchema).optional(),
+  is_active: z.boolean().default(true),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  idempotency_key: z.string().max(120).optional(),
+});
+
+export const previewArStatementCycleSchema = z.object({
+  as_of_date: z.string().date().optional(),
+});
+
 export type CreateArInvoiceInput = z.infer<typeof createArInvoiceSchema>;
 export type CreateArInvoiceFromOrdersInput = z.infer<typeof createArInvoiceFromOrdersSchema>;
 export type UpdateArInvoiceInput = z.infer<typeof updateArInvoiceSchema>;
@@ -197,6 +325,7 @@ export type IssueArInvoiceInput = z.infer<typeof issueArInvoiceSchema>;
 export type ApproveSensitiveArInvoiceInput = z.infer<typeof approveSensitiveArInvoiceSchema>;
 export type VoidArInvoiceInput = z.infer<typeof voidArInvoiceSchema>;
 export type AllocateArPaymentInput = z.infer<typeof allocateArPaymentSchema>;
+export type ReverseArPaymentAllocationInput = z.infer<typeof reverseArPaymentAllocationSchema>;
 export type CreateCreditNoteInput = z.infer<typeof createCreditNoteSchema>;
 export type CreateDebitNoteInput = z.infer<typeof createDebitNoteSchema>;
 export type WriteOffArInvoiceInput = z.infer<typeof writeOffArInvoiceSchema>;
@@ -204,3 +333,14 @@ export type ArInvoiceListQuery = z.infer<typeof arInvoiceListQuerySchema>;
 export type ArLedgerQuery = z.infer<typeof arLedgerQuerySchema>;
 export type ArStatementQuery = z.infer<typeof arStatementQuerySchema>;
 export type ArAgingQuery = z.infer<typeof arAgingQuerySchema>;
+export type ArCreditsQuery = z.infer<typeof arCreditsQuerySchema>;
+export type ApplyArCreditInput = z.infer<typeof applyArCreditSchema>;
+export type ReverseArCreditApplicationInput = z.infer<typeof reverseArCreditApplicationSchema>;
+export type ArDisputesQuery = z.infer<typeof arDisputesQuerySchema>;
+export type CreateArDisputeInput = z.infer<typeof createArDisputeSchema>;
+export type ResolveArDisputeInput = z.infer<typeof resolveArDisputeSchema>;
+export type ArDunningQuery = z.infer<typeof arDunningQuerySchema>;
+export type RunArDunningInput = z.infer<typeof runArDunningSchema>;
+export type ArStatementCyclesQuery = z.infer<typeof arStatementCyclesQuerySchema>;
+export type CreateArStatementCycleInput = z.infer<typeof createArStatementCycleSchema>;
+export type PreviewArStatementCycleInput = z.infer<typeof previewArStatementCycleSchema>;

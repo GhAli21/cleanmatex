@@ -41,6 +41,37 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | GET | `/api/v1/b2b-statements/[id]/print` | `b2b_statements:view` | Statement print |
 | API | GET | `/api/v1/b2b/overdue-statements` | `b2b_statements:view` | Dunning overview |
 | API | POST | `/api/v1/b2b/run-dunning-actions` | `b2b_statements:create` | Dunning action execution |
+| API | GET | `/api/v1/ar/invoices` | `invoices:view` | AR invoice hub list |
+| API | POST | `/api/v1/ar/invoices` | `invoices:create` | Manual AR invoice creation |
+| API | POST | `/api/v1/ar/invoices/from-orders` | `invoices:create` | Create AR invoice from eligible orders |
+| API | GET | `/api/v1/ar/invoices/[id]` | `invoices:view` | AR invoice detail |
+| API | PATCH | `/api/v1/ar/invoices/[id]` | `invoices:update` | Update editable AR invoice fields |
+| API | GET | `/api/v1/ar/invoices/export` | `invoices:export` | Export canonical AR invoice hub results |
+| API | POST | `/api/v1/ar/invoices/[id]/issue` | `invoices:issue` | Issue draft AR invoice |
+| API | POST | `/api/v1/ar/invoices/[id]/approve-sensitive` | `invoices:approve_sensitive` | Approve sensitive AR document action |
+| API | POST | `/api/v1/ar/invoices/[id]/void` | `invoices:void` | Void AR invoice after approval |
+| API | POST | `/api/v1/ar/invoices/[id]/allocations` | `invoices:allocate_payment` | Allocate payment or overpayment credit |
+| API | POST | `/api/v1/ar/invoices/[id]/allocations/[allocationId]/reverse` | `invoices:allocate_payment` | Reverse AR payment allocation with audit trail |
+| API | POST | `/api/v1/ar/invoices/[id]/credit-note` | `invoices:credit_note` | Create AR credit note adjustment |
+| API | POST | `/api/v1/ar/invoices/[id]/debit-note` | `invoices:debit_note` | Create AR debit note adjustment |
+| API | POST | `/api/v1/ar/invoices/[id]/write-off` | `invoices:write_off` | Create AR write-off adjustment |
+| API | GET | `/api/v1/ar/invoices/[id]/print` | `invoices:print` | AR invoice printable payload |
+| API | GET | `/api/v1/ar/customers/[customerId]/balance` | `ar_ledger:view` | Customer AR balance snapshot |
+| API | GET | `/api/v1/ar/customers/[customerId]/ledger` | `ar_ledger:view` | Customer AR ledger entries |
+| API | GET | `/api/v1/ar/customers/[customerId]/statements` | `customer_statements:view` | Customer AR statement lines |
+| API | GET | `/api/v1/ar/customers/[customerId]/statements/print` | `customer_statements:view` | Customer statement printable payload |
+| API | GET | `/api/v1/ar/reports/aging` | `ar_aging:view` | AR aging report |
+| API | GET | `/api/v1/ar/credits` | `ar_credits:view` | Customer unapplied AR credit sources |
+| API | POST | `/api/v1/ar/credits/applications` | `ar_credits:apply` | Apply AR credit against an open invoice |
+| API | POST | `/api/v1/ar/credits/applications/[id]/reverse` | `ar_credits:reverse` | Reverse a prior AR credit application |
+| API | GET | `/api/v1/ar/disputes` | `ar_disputes:view` | Dispute register for AR invoices |
+| API | POST | `/api/v1/ar/disputes` | `ar_disputes:create` | Open a new AR dispute and mark invoice disputed |
+| API | POST | `/api/v1/ar/disputes/[id]/resolve` | `ar_disputes:resolve` | Resolve, reject, or cancel an AR dispute |
+| API | GET | `/api/v1/ar/dunning` | `ar_dunning:view` | Dunning activity register |
+| API | POST | `/api/v1/ar/dunning/run` | `ar_dunning:run` | Run a reminder, SMS, note, or hold action |
+| API | GET | `/api/v1/ar/statement-cycles` | `ar_stmt_cycles:view` | List B2B AR statement cycles |
+| API | POST | `/api/v1/ar/statement-cycles` | `ar_stmt_cycles:manage` | Create a B2B AR statement cycle |
+| API | GET | `/api/v1/ar/statement-cycles/[id]/preview` | `ar_stmt_cycles:view` | Preview customers included in a statement cycle |
 | API | GET | `/api/v1/b2b-contacts` | `b2b_contacts:view` | Contacts list |
 | API | POST | `/api/v1/b2b-contacts` | `b2b_contacts:create` | Create contact |
 | API | GET | `/api/v1/b2b-contacts/[id]` | `b2b_contacts:view` | Contact details |

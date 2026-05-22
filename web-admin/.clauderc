@@ -104,54 +104,91 @@ commands:
   lint: "npm run lint"
   test: "npm run test"
 
-# Component Templates
+# Component Templates — always use Cmx components, never raw HTML elements
 templates:
   page_component: |
+    import { CmxCrudPageShell } from '@ui/patterns';
+    import { CmxDataTable } from '@ui/data-display';
+    import { CmxEmptyState } from '@ui/data-display';
+
     export default function OrdersPage() {
       return (
-        <div className="container mx-auto py-6">
-          <h1 className="text-2xl font-bold">Orders</h1>
-          {/* Content */}
-        </div>
+        <CmxCrudPageShell>
+          <CmxDataTable columns={[]} data={[]} emptyState={<CmxEmptyState />} />
+        </CmxCrudPageShell>
       );
     }
-  
+
   client_component: |
     'use client';
-    
-    import { useState } from 'react';
-    
+
+    import { CmxForm, CmxFormField, CmxFormSection, CmxFormActions } from '@ui/forms';
+    import { CmxInput } from '@ui/primitives';
+    import { CmxButton } from '@ui/primitives';
+
     export function OrderForm() {
-      const [isLoading, setIsLoading] = useState(false);
-      
       return (
-        <form>
-          {/* Form fields */}
-        </form>
+        <CmxForm layout="stacked">
+          <CmxFormSection>
+            <CmxFormField label="Name">
+              <CmxInput />
+            </CmxFormField>
+          </CmxFormSection>
+          <CmxFormActions>
+            <CmxButton type="submit">Submit</CmxButton>
+          </CmxFormActions>
+        </CmxForm>
       );
     }
 
 # UI Components (@ui design system - Cmx components)
-# Keep in sync with web-admin/src/ui. Used by AI for import suggestions. Do not use @ui/compat (removed).
+# Keep in sync with web-admin/src/ui. Used by AI for import suggestions.
+# RULE: Use Cmx components ONLY. Do NOT use @ui/compat (removed), @/components/ui, or raw HTML elements.
 # See docs/dev/ui-migration-guide.md and docs/dev/compat-to-cmx-migration-notes.md
 ui_components:
+  # ── Primitives ──────────────────────────────────────────────────
   button: "import { CmxButton } from '@ui/primitives'"
+  loading_button: "import { LoadingButton } from '@ui/primitives'"
   input: "import { CmxInput } from '@ui/primitives'"
   textarea: "import { CmxTextarea } from '@ui/primitives'"
   select: "import { CmxSelect } from '@ui/primitives'"
   checkbox: "import { CmxCheckbox } from '@ui/primitives'"
-  hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
   switch: "import { CmxSwitch } from '@ui/primitives'"
+  skeleton: "import { CmxSkeleton, CmxSkeletonTable } from '@ui/primitives'"
+  spinner: "import { CmxSpinner } from '@ui/primitives'"
   label: "import { Label } from '@ui/primitives'"
-  card: "import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'"
   badge: "import { Badge } from '@ui/primitives/badge'"
   alert: "import { Alert, AlertDescription } from '@ui/primitives'"
-  dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"
-  tabs: "import { CmxTabsPanel } from '@ui/navigation'"
-  progress: "import { CmxProgressBar } from '@ui/feedback'"
-  summary_message: "import { CmxSummaryMessage } from '@ui/feedback'"
+  separator: "import { Separator } from '@ui/primitives'"
+  tooltip: "import { Tooltip } from '@ui/primitives'"
+  card: "import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent, CmxCardFooter } from '@ui/primitives/cmx-card'"
+  # ── Forms ────────────────────────────────────────────────────────
+  form: "import { CmxForm, CmxFormField, CmxFormSection, CmxFormActions, CmxFormSkeleton, CmxFormStatusBanner } from '@ui/forms'"
+  field_shell: "import { CmxFieldShell } from '@ui/forms'"
   select_dropdown: "import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms'"
+  checkbox_group: "import { CmxCheckboxGroup } from '@ui/forms'"
+  hex_color_field: "import { CmxHexColorField } from '@ui/forms'"
+  # ── Overlays ─────────────────────────────────────────────────────
+  dialog: "import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays'"
+  # ── Feedback ─────────────────────────────────────────────────────
+  progress: "import { CmxProgressBar } from '@ui/feedback'"
+  progress_indicator: "import { CmxProgressIndicator } from '@ui/feedback'"
+  summary_message: "import { CmxSummaryMessage } from '@ui/feedback'"
+  status_badge: "import { CmxStatusBadge } from '@ui/feedback'"
+  confirm_dialog: "import { CmxConfirmDialog } from '@ui/feedback'"
+  # ── Data Display ─────────────────────────────────────────────────
   data_table: "import { CmxDataTable } from '@ui/data-display'"
+  empty_state: "import { CmxEmptyState } from '@ui/data-display'"
+  kpi_stat_card: "import { CmxKpiStatCard } from '@ui/data-display'"
+  # ── Navigation ───────────────────────────────────────────────────
+  tabs: "import { CmxTabsPanel } from '@ui/navigation'"
+  pagination: "import { CmxPagination } from '@ui/navigation'"
+  progress_steps: "import { CmxProgressSteps } from '@ui/navigation'"
+  # ── Page-level Patterns ──────────────────────────────────────────
+  crud_page_shell: "import { CmxCrudPageShell } from '@ui/patterns'"
+  card_with_header: "import { CmxCardWithHeader } from '@ui/patterns'"
+  # ── Toast (imperative) ───────────────────────────────────────────
+  toast: "import { showSuccessToast, showErrorToast, showInfoToast } from '@ui/components/cmx-toast'"
 
 # Best Practices 
 best_practices:

@@ -127,8 +127,9 @@ export const LINE_ROLE = {
   INVOICE_REFUND:           'INVOICE_REFUND',
   PETTY_CASH_RETURN:        'PETTY_CASH_RETURN',
   WALLET_REFUND:            'WALLET_REFUND',
-  GIFT_CARD_REFUND:         'GIFT_CARD_REFUND',
-  INTERNAL_TRANSFER:        'INTERNAL_TRANSFER',
+  GIFT_CARD_REFUND:             'GIFT_CARD_REFUND',
+  INTERNAL_TRANSFER:            'INTERNAL_TRANSFER',
+  ORDER_CREDIT_APPLICATION:     'ORDER_CREDIT_APPLICATION',
 } as const;
 
 export type LineRole = (typeof LINE_ROLE)[keyof typeof LINE_ROLE];
@@ -187,6 +188,7 @@ export const CASHIER_ALLOWED_VOUCHER_TYPES = [VOUCHER_TYPE.RECEIPT] as const;
 
 export const CASHIER_ALLOWED_LINE_ROLES = [
   LINE_ROLE.ORDER_PAYMENT,
+  LINE_ROLE.ORDER_CREDIT_APPLICATION,
   LINE_ROLE.CUSTOMER_ADVANCE_RECEIPT,
   LINE_ROLE.WALLET_TOPUP,
   LINE_ROLE.GIFT_CARD_SALE,
@@ -217,4 +219,5 @@ export const LINE_ROLE_REQUIREMENTS: Record<string, { targetTypes: string[]; req
   [LINE_ROLE.WALLET_REFUND]:            { targetTypes: [TARGET_TYPE.WALLET],      requiredFields: ['customer_id'] },
   [LINE_ROLE.GIFT_CARD_REFUND]:         { targetTypes: [TARGET_TYPE.GIFT_CARD],   requiredFields: [] },
   [LINE_ROLE.INTERNAL_TRANSFER]:        { targetTypes: [TARGET_TYPE.CASH_DRAWER], requiredFields: [] },
+  [LINE_ROLE.ORDER_CREDIT_APPLICATION]: { targetTypes: [TARGET_TYPE.ORDER],       requiredFields: ['order_id'] },
 };

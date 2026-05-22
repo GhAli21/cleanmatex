@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import type { VoucherLineData } from '@/lib/types/voucher';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
+import { WiringStatusBadge } from './wiring-status-badge';
 
 interface VoucherLineTableProps {
   lines: VoucherLineData[];
@@ -33,6 +34,7 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
             <th className="px-4 py-3 text-end text-xs font-medium uppercase tracking-wide text-gray-500">{t('amount')}</th>
             <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">{t('description')}</th>
             <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">{tCommon('status')}</th>
+            <th className="px-4 py-3 text-start text-xs font-medium uppercase tracking-wide text-gray-500">{t('wiringStatus')}</th>
             {isDraft && <th className="w-12 px-4 py-3" />}
           </tr>
         </thead>
@@ -56,6 +58,9 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
                   {line.line_status}
                 </span>
               </td>
+              <td className="px-4 py-3">
+                <WiringStatusBadge status={line.wiring_status} />
+              </td>
               {isDraft && (
                 <td className="px-4 py-3">
                   {onDeleteLine && (
@@ -75,11 +80,11 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
         </tbody>
         <tfoot className="bg-gray-50">
           <tr>
-            <td colSpan={isDraft ? 4 : 4} className="px-4 py-3" />
+            <td colSpan={4} className="px-4 py-3" />
             <td className="px-4 py-3 text-end font-mono font-semibold text-gray-900">
               {total.toLocaleString(isRtl ? 'ar' : 'en', { minimumFractionDigits: 2 })}
             </td>
-            <td colSpan={isDraft ? 3 : 2} className="px-4 py-3" />
+            <td colSpan={isDraft ? 4 : 3} className="px-4 py-3" />
           </tr>
         </tfoot>
       </table>

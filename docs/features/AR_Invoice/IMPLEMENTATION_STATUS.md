@@ -1,15 +1,15 @@
-# AR Invoice v1 — Implementation Status
+# AR Invoice v1 / v1.5 / v2 — Implementation Status
 
-**Feature:** AR Invoice v1  
+**Feature:** AR Invoice  
 **Location:** `cleanmatex` only  
 **Primary UI area:** `web-admin/app/dashboard/internal_fin/invoices` + `web-admin/app/dashboard/internal_fin/ar/*`  
 **Canonical header table:** `public.org_invoice_mst`  
-**Status:** In Progress  
+**Status:** Completed  
 **Last Updated:** 2026-05-22
 
 ## Summary
 
-This tracker records implementation progress for the AR Invoice v1 rollout. It is the operational companion to the approved docs pack in [CleanMateX_Full_AR_Invoice_Docs_Pack](./CleanMateX_Full_AR_Invoice_Docs_Pack).
+This tracker records implementation progress for the AR Invoice rollout through v1, the v1.5 canonical cleanup bridge, and the V2 AR operations layer. It is the operational companion to the approved docs pack in [CleanMateX_Full_AR_Invoice_Docs_Pack](./CleanMateX_Full_AR_Invoice_Docs_Pack).
 
 Implementation rules:
 
@@ -25,14 +25,17 @@ Implementation rules:
 | Phase | Scope | Status | Notes | Updated |
 |---|---|---|---|---|
 | 1 | Data assessment and rollout design | Completed | Repo-derived current-state assessment documented in `PHASE_1_DATA_ASSESSMENT.md` and rollout decisions captured | 2026-05-22 |
-| 2 | Schema, permissions, and navigation migrations | In Progress | Sequential migrations drafted as `0313`–`0316`; pending review and downstream implementation alignment | 2026-05-22 |
-| 3 | Constants, types, and validation | Not Started | Canonical AR statuses/types/actions, DTOs, Zod schemas, report models | — |
-| 4 | Service layer | Not Started | AR invoice, allocation, adjustment, ledger, aging, and statement services | — |
-| 5 | API layer | Not Started | `/api/v1/ar/*` routes with explicit permission checks | — |
-| 6 | UI and access contracts | Not Started | Expanded invoice hub, AR screens, nav updates, i18n, access contracts | — |
-| 7 | Reports, statements, and notifications | Not Started | Aging, customer statement, outbox events, reminder-ready hooks | — |
-| 8 | Validation and hardening | Not Started | Tests, i18n check, build, tenant isolation review, permission review | — |
-| 9 | Documentation closure | Not Started | Final docs sweep using documentation standards | — |
+| 2 | Schema, permissions, and navigation migrations | Completed | User applied `0313`–`0316`; post-apply validation identified a legacy invoice status default mismatch and additive safety migration `0317_ar_invoice_header_defaults_fix.sql` was drafted; follow-up nav seed `0320_ar_invoice_ledger_navigation.sql` added for the dedicated AR ledger route | 2026-05-22 |
+| 3 | Constants, types, and validation | Completed | Canonical AR constants, DTO/read-model types, Zod schemas, create idempotency fields, and Prisma schema sync are live in `web-admin` | 2026-05-22 |
+| 4 | Service layer | Completed | AR invoice, allocation, adjustment, customer balance, ledger, statement, and aging services now run with tenant context, idempotency storage, audit history, and outbox events | 2026-05-22 |
+| 5 | API layer | Completed | `/api/v1/ar/*` routes added with explicit permission checks and Zod validation | 2026-05-22 |
+| 6 | UI and access contracts | Completed | Canonical invoice hub, multi-step create wizard, detail action dialogs, print routes, updated navigation, updated access contracts, and EN/AR keys added | 2026-05-22 |
+| 7 | Reports, statements, and notifications | Completed | Aging, statements, invoice/statement print payloads, and AR outbox event emission are wired; notification delivery remains downstream-worker territory | 2026-05-22 |
+| 8 | Validation and hardening | Completed | `npm run typecheck`, targeted AR tests, `npm run check:i18n`, and `npm run build` passed after the AR rollout | 2026-05-22 |
+| 9 | Documentation closure | Completed | Permissions docs, API contracts, UI flow docs, release notes, test matrix, and feature tracker refreshed in-repo | 2026-05-22 |
+| 10 | V1.5 cleanup bridge | Completed | Legacy invoice creation, payment allocation, refund, cancel, and checkout settlement paths now bridge into canonical AR artifacts where applicable | 2026-05-22 |
+| 11 | V2 AR operations | Completed | Credits, disputes, dunning, and statement-cycle migrations, APIs, UI routes, navigation, access contracts, and docs are implemented | 2026-05-22 |
+| 12 | Operational closeout pack | Completed | Production-readiness audit, UAT/runbook, finance cleanup roadmap, and test guide added for rollout and post-release support | 2026-05-22 |
 
 ## Current Decisions
 
@@ -52,18 +55,27 @@ Implementation rules:
 - [x] Supporting AR tables migration created
 - [x] Permission seed migration created
 - [x] Navigation seed migration created
-- [ ] AR constants/types/Zod added
-- [ ] AR services added
-- [ ] AR API routes added
-- [ ] AR UI routes/screens added
-- [ ] Access contracts updated
-- [ ] Permissions docs updated
-- [ ] EN/AR messages updated
-- [ ] Validation commands green
+- [x] AR constants/types/Zod added
+- [x] Prisma schema synced to applied AR tables and header fields
+- [x] Post-apply default fix migration drafted as `0317_ar_invoice_header_defaults_fix.sql`
+- [x] AR services added
+- [x] AR API routes added
+- [x] AR UI routes/screens added
+- [x] Access contracts updated
+- [x] Permissions docs updated
+- [x] EN/AR messages updated
+- [x] Print/export routes and screens added
+- [x] Targeted AR validation/service/tenant-isolation tests added
+- [x] V2 credits/disputes/dunning/statement-cycle UI routes added
+- [x] V2 navigation and contract docs updated
+- [x] Legacy invoice and payment flows bridged into canonical AR artifacts
+- [x] Production readiness audit added
+- [x] UAT and rollout runbook added
+- [x] Finance cleanup roadmap added
+- [x] Test guide added
+- [x] Validation commands green
 
 ## Risks And Watchpoints
 
-- existing invoice flows still use lowercase legacy statuses in code; AR v1 must avoid breaking them during migration
-- current invoice numbering is count-based in legacy services and must be isolated from new sequence-based issuance
-- `web-admin/messages/en.json` and `web-admin/messages/ar.json` already contain local edits and need careful merge-safe updates
-- invoice pages currently have weak page-level access contracts and require explicit hardening during AR rollout
+- current invoice numbering is count-based in some legacy non-AR services and must remain isolated from the sequence-based AR issuance path
+- future changes to AR codes must keep DB strings, constants, Zod enums, and docs aligned

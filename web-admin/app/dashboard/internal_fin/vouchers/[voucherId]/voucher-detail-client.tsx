@@ -12,19 +12,23 @@ import { VoucherLineTable } from '@features/finance/vouchers/ui/voucher-line-tab
 import { VoucherCancelDialog } from '@features/finance/vouchers/ui/voucher-cancel-dialog';
 import { VoucherReversalDialog } from '@features/finance/vouchers/ui/voucher-reversal-dialog';
 import { AddLineDialog } from '@features/finance/vouchers/ui/add-line-dialog';
+import { VoucherPostPreviewDialog } from '@features/finance/vouchers/ui/voucher-post-preview-dialog';
+import { VoucherLinkedEffectsPanel } from '@features/finance/vouchers/ui/voucher-linked-effects-panel';
 import { hasVoucherPermission } from '@features/finance/vouchers/access/vouchers-access';
-import { cancelBizVoucherAction, postBizVoucherAction, reverseBizVoucherAction } from '@/app/actions/finance/voucher-actions';
+import { cancelBizVoucherAction, reverseBizVoucherAction } from '@/app/actions/finance/voucher-actions';
 import { addVoucherLineAction, deleteDraftVoucherLineAction } from '@/app/actions/finance/voucher-line-actions';
 import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { useMessage } from '@ui/feedback/useMessage';
 import type { BizVoucherDetailData, CreateVoucherLineInput } from '@/lib/types/voucher';
+import type { LinkedEffectsResult } from '@/lib/types/voucher-wiring';
 
 interface VoucherDetailClientProps {
   voucher: BizVoucherDetailData;
   userRole: string;
+  linkedEffects?: LinkedEffectsResult | null;
 }
 
-export function VoucherDetailClient({ voucher, userRole }: VoucherDetailClientProps) {
+export function VoucherDetailClient({ voucher, userRole, linkedEffects }: VoucherDetailClientProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const router = useRouter();
@@ -33,22 +37,16 @@ export function VoucherDetailClient({ voucher, userRole }: VoucherDetailClientPr
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reversalOpen, setReversalOpen] = useState(false);
   const [addLineOpen, setAddLineOpen] = useState(false);
+  const [postPreviewOpen, setPostPreviewOpen] = useState(false);
 
   const canPost      = hasVoucherPermission(userRole, 'fin_vouchers:post')            && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
   const canCancel    = hasVoucherPermission(userRole, 'fin_vouchers:cancel')          && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
   const canReverse   = hasVoucherPermission(userRole, 'fin_vouchers:reverse')         && voucher.voucher_status === VOUCHER_STATUS.POSTED;
   const canAddLine   = hasVoucherPermission(userRole, 'fin_voucher_lines:create')     && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
 
-  const handlePost = () => {
-    startTransition(async () => {
-      const result = await postBizVoucherAction(voucher.id);
-      if (result.success) {
-        showSuccess(t('postSuccess'));
-        router.refresh();
-      } else {
-        showError(result.error ?? tCommon('error'));
-      }
-    });
+  const handlePostSuccess = () => {
+    showSuccess(t('postAndWireSuccess'));
+    router.refresh();
   };
 
   const handleCancel = async (reason: string) => {
@@ -101,7 +99,7 @@ export function VoucherDetailClient({ voucher, userRole }: VoucherDetailClientPr
             <CmxCardTitle>{t('voucherSummary')}</CmxCardTitle>
             <div className="flex items-center gap-2 rtl:flex-row-reverse">
               {canPost && (
-                <CmxButton onClick={handlePost} disabled={isPending}>
+                <CmxButton onClick={() => setPostPreviewOpen(true)} disabled={isPending}>
                   {t('actions.post')}
                 </CmxButton>
               )}
@@ -306,10 +304,27 @@ export function VoucherDetailClient({ voucher, userRole }: VoucherDetailClientPr
             />
           </CmxCardContent>
         </CmxCard>
+
+        {/* Linked effects panel — shown once voucher is posted and wired */}
+        {voucher.voucher_status === VOUCHER_STATUS.POSTED && linkedEffects && (
+          <div>
+            <h2 className="mb-3 text-base font-semibold text-gray-800">
+              {t('linkedEffects.title')}
+            </h2>
+            <VoucherLinkedEffectsPanel effects={linkedEffects} />
+          </div>
+        )}
       </div>
 
       <VoucherCancelDialog open={cancelOpen} onClose={() => setCancelOpen(false)} onConfirm={handleCancel} />
       <VoucherReversalDialog open={reversalOpen} onClose={() => setReversalOpen(false)} onConfirm={handleReverse} />
+      <VoucherPostPreviewDialog
+        open={postPreviewOpen}
+        onClose={() => setPostPreviewOpen(false)}
+        onSuccess={handlePostSuccess}
+        voucherId={voucher.id}
+        lines={voucher.lines}
+      />
       {canAddLine && (
         <AddLineDialog
           open={addLineOpen}

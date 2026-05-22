@@ -73,8 +73,19 @@ Legend:
 
 | Route | Page Label | Page Gate | Feature Flags | Workflow Roles | Action Gates | Notes |
 |---|---|---|---|---|---|---|
-| `/dashboard/internal_fin/invoices` | Invoices | None | None | None | `Filter B2B invoices` Ã¢â€ â€™ Flag: `b2b_contracts` | Open page with gated filter behavior |
-| `/dashboard/internal_fin/invoices/[id]` | Invoice Details | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/invoices` | Invoices | `invoices:view` | None | None | `Create manual AR invoice` -> `invoices:create`; `Export AR invoices` -> `invoices:export`; `Filter B2B invoices` -> Flag: `b2b_contracts` | Canonical AR invoice hub route with export-ready list coverage |
+| `/dashboard/internal_fin/invoices/[id]` | Invoice Details | `invoices:view` | None | None | `Edit invoice summary` -> `invoices:update`; `Issue AR invoice` -> `invoices:issue`; `Approve sensitive AR action` -> `invoices:approve_sensitive`; `Allocate or reverse invoice payment` -> `invoices:allocate_payment`; `Create AR credit memo` -> `invoices:credit_note`; `Create AR debit note` -> `invoices:debit_note`; `Write off AR invoice` -> `invoices:write_off`; `Void AR invoice` -> `invoices:void`; `Print AR invoice` -> `invoices:print` | Detail tabs show lines, allocations, adjustments, history, ledger impact, and print/action dialogs |
+| `/dashboard/internal_fin/invoices/[id]/print` | Print AR Invoice | `invoices:print` | None | None | None | Printable AR invoice route |
+| `/dashboard/internal_fin/invoices/new` | New AR Invoice | `invoices:create` | None | None | None | Manual AR invoice wizard route |
+| `/dashboard/internal_fin/ar/aging` | AR Aging | `ar_aging:view` | None | None | None | Internal finance AR aging report |
+| `/dashboard/internal_fin/ar/customers` | AR Customers | `ar_ledger:view` | None | None | None | Customer AR balances hub |
+| `/dashboard/internal_fin/ar/ledger` | AR Ledger | `ar_ledger:view` | None | None | None | Customer-specific AR subledger view |
+| `/dashboard/internal_fin/ar/statements` | Customer Statements | `customer_statements:view` | None | None | `Print customer statement` -> `customer_statements:view` | Customer statement viewer with period filters and print access |
+| `/dashboard/internal_fin/ar/statements/print` | Print Customer Statement | `customer_statements:view` | None | None | None | Printable customer statement route |
+| `/dashboard/internal_fin/ar/credits` | AR Credits | `ar_credits:view` | None | None | `Apply AR credit` -> `ar_credits:apply`; `Reverse AR credit application` -> `ar_credits:reverse` | Customer unapplied-credit workspace built on canonical AR ledger credit |
+| `/dashboard/internal_fin/ar/disputes` | AR Disputes | `ar_disputes:view` | None | None | `Create AR dispute` -> `ar_disputes:create`; `Resolve AR dispute` -> `ar_disputes:resolve` | Dispute register and resolution panel for receivable exceptions |
+| `/dashboard/internal_fin/ar/dunning` | AR Dunning | `ar_dunning:view` | None | None | `Run AR dunning action` -> `ar_dunning:run` | Reminder, escalation, and hold action register |
+| `/dashboard/internal_fin/ar/cycles` | AR Statement Cycles | `ar_stmt_cycles:view` | None | None | `Create AR statement cycle` -> `ar_stmt_cycles:manage`; `Preview AR statement cycle` -> `ar_stmt_cycles:view` | B2B consolidated statement cycle planning and preview |
 | `/dashboard/internal_fin/payments` | Payments | None | None | None | `Cancel payment` Ã¢â€ â€™ `payments:cancel`; `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page with gated row actions |
 | `/dashboard/internal_fin/payments/new` | New Payment | None | None | None | None | No explicit page gate |
 | `/dashboard/internal_fin/payments/[id]` | Payment Details | None | None | None | `Cancel payment` Ã¢â€ â€™ `payments:cancel`; `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page with gated detail actions |

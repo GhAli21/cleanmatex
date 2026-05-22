@@ -250,6 +250,19 @@ export function VoucherEditDialog({ open, voucher, onClose }: VoucherEditDialogP
         wiring_status:         'NOT_WIRED',
         reversed_line_id:      null,
         created_at:            new Date(),
+        credit_application_type: input.credit_application_type ?? null,
+        order_payment_id:        null,
+        cash_drawer_mvt_id:      null,
+        org_payment_method_id:   input.org_payment_method_id ?? null,
+        payment_terminal_id:     input.payment_terminal_id ?? null,
+        cash_drawer_session_id:  input.cash_drawer_session_id ?? null,
+        card_brand_code:         input.card_brand_code ?? null,
+        card_last4:              input.card_last4 ?? null,
+        gateway_code:            input.gateway_code ?? null,
+        gateway_reference:       input.gateway_reference ?? null,
+        bank_reference:          input.bank_reference ?? null,
+        check_number:            input.check_number ?? null,
+        branch_id:               input.branch_id ?? null,
       };
       setLines((prev) => [...prev, optimisticLine]);
     } finally {

@@ -57,6 +57,12 @@ export interface SettlementParams {
   settlementLegs: ResolvedSettlementLeg[];
   cashDrawerSessionId?: string;
   settledBy?: string;
+  /**
+   * When true the BVM wiring service is responsible for writing
+   * org_order_payments_dtl and org_order_credit_apps_dtl rows.
+   * Skip the direct writes here to avoid double-write. Default: false.
+   */
+  wiringMode?: boolean;
 }
 
 /**
@@ -92,6 +98,7 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
     settlementLegs,
     cashDrawerSessionId,
     settledBy,
+    wiringMode = false,
   } = params;
   const currencyCode = breakdown.currencyCode;
 
@@ -164,28 +171,31 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
         const paymentStatus = option.gatewayCode ? 'PENDING' : 'COMPLETED';
         changeReturned += change;
 
-        await tx.org_order_payments_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            order_id: orderId,
-            org_payment_method_id: option.id,
-            payment_method_code: option.paymentMethodCode,
-            currency_code: currencyCode,
-            payment_nature_snapshot: 'REAL_PAYMENT',
-            amount,
-            payment_terminal_id: terminalId ?? null,
-            tendered_amount: cashTendered ?? null,
-            change_returned_amount: change > 0 ? change : null,
-            cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
-            gateway_code: option.gatewayCode ?? null,
-            gateway_reference: leg.reference ?? null,
-            payment_status: paymentStatus,
-            paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
-            is_active: true,
-            rec_status: 1,
-            received_by: settledBy ?? null,
-          },
-        });
+        // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write
+        if (!wiringMode) {
+          await tx.org_order_payments_dtl.create({
+            data: {
+              tenant_org_id: tenantId,
+              order_id: orderId,
+              org_payment_method_id: option.id,
+              payment_method_code: option.paymentMethodCode,
+              currency_code: currencyCode,
+              payment_nature_snapshot: 'REAL_PAYMENT',
+              amount,
+              payment_terminal_id: terminalId ?? null,
+              tendered_amount: cashTendered ?? null,
+              change_returned_amount: change > 0 ? change : null,
+              cash_drawer_session_id: option.requiresCashDrawer ? (cashDrawerSessionId ?? null) : null,
+              gateway_code: option.gatewayCode ?? null,
+              gateway_reference: leg.reference ?? null,
+              payment_status: paymentStatus,
+              paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
+              is_active: true,
+              rec_status: 1,
+              received_by: settledBy ?? null,
+            },
+          });
+        }
         continue;
       }
 
@@ -225,20 +235,23 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
         // Gift card debit happens earlier in create-with-payment to preserve
         // the legacy two-transaction order create flow. The settlement step
         // records only the order-level credit application fact.
-        await tx.org_order_credit_apps_dtl.create({
-          data: {
-            tenant_org_id: tenantId,
-            order_id: orderId,
-            currency_code: currencyCode,
-            credit_type: creditType,
-            credit_source_id: creditReferenceId ?? null,
-            applied_amount: amount,
-            reference_no: leg.reference ?? null,
-            applied_by: settledBy ?? null,
-            is_active: true,
-            rec_status: 1,
-          },
-        });
+        // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write.
+        if (!wiringMode) {
+          await tx.org_order_credit_apps_dtl.create({
+            data: {
+              tenant_org_id: tenantId,
+              order_id: orderId,
+              currency_code: currencyCode,
+              credit_type: creditType,
+              credit_source_id: creditReferenceId ?? null,
+              applied_amount: amount,
+              reference_no: leg.reference ?? null,
+              applied_by: settledBy ?? null,
+              is_active: true,
+              rec_status: 1,
+            },
+          });
+        }
       }
     }
 

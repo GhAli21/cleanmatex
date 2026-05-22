@@ -79,6 +79,15 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: MARKETING_NOTES,
   },
   {
+    routePattern: '/dashboard/marketing/gift-cards/liability',
+    label: 'Gift Card Liability',
+    page: {
+      permissions: ['gift_cards:read'],
+      requireAllPermissions: true,
+    },
+    notes: MARKETING_NOTES,
+  },
+  {
     routePattern: '/dashboard/marketing/discount-rules',
     label: 'Discount Rules',
     page: {
@@ -109,5 +118,23 @@ export const MARKETING_ACCESS_CONTRACTS: PageAccessContract[] = [
       },
     },
     notes: MARKETING_NOTES,
+  },
+  {
+    routePattern: '/dashboard/marketing/loyalty',
+    label: 'Loyalty Program',
+    page: {
+      permissions: ['loyalty:view_config'],
+      requireAllPermissions: true,
+    },
+    notes: ['Loyalty configuration route with explicit navigation-aligned permission gate.'],
+  },
+  {
+    routePattern: '/dashboard/marketing/promotions',
+    label: 'Promotions',
+    page: {
+      permissions: ['promotions:view'],
+      requireAllPermissions: true,
+    },
+    notes: ['Promotions route distinct from promo-code management.'],
   },
 ];

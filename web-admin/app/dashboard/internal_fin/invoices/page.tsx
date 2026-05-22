@@ -1,141 +1,120 @@
-/**
- * Invoices List Page
- *
- * Displays a paginated, filterable list of invoices for the current tenant.
- * Uses Prisma-based invoice service with strict tenant isolation.
- * Route: /dashboard/internal_fin/invoices
- */
-
-import { Suspense } from 'react';
+import Link from 'next/link';
+import type { SortingState } from '@tanstack/react-table';
 import { getTranslations } from 'next-intl/server';
+import { CmxButton } from '@ui/primitives';
+import { CmxKpiStatCard } from '@ui/data-display';
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { listInvoices, getInvoiceStats } from '@/lib/services/invoice-service';
-import InvoiceFiltersBar from '@features/billing/ui/invoice-filters-bar';
-import InvoicesTable from '@features/billing/ui/invoices-table';
+import {
+  getArInvoiceHubStats,
+  listArInvoices,
+} from '@/lib/services/ar-invoice.service';
+import { ArInvoiceHubFilters } from '@features/ar/ui/ar-invoice-hub-filters';
+import { ArInvoicesHubTable } from '@features/ar/ui/ar-invoices-hub-table';
 
-type InvoicesSearchParams = {
+interface InvoicesSearchParams {
   page?: string;
+  limit?: string;
+  search?: string;
   status?: string;
   invoiceType?: string;
+  invoice_type_cd?: string;
   fromDate?: string;
   toDate?: string;
-  search?: string;
+  date_from?: string;
+  date_to?: string;
   sortBy?: string;
   sortOrder?: string;
-};
+  sort_by?: string;
+  sort_order?: string;
+}
 
 interface PageProps {
   searchParams?: Promise<InvoicesSearchParams>;
 }
 
+function normalizePositiveInt(value: string | undefined, fallback: number) {
+  const parsed = Number(value ?? '');
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export default async function InvoicesPage({ searchParams }: PageProps) {
   const t = await getTranslations('invoices');
-  const tCommon = await getTranslations('common');
+  const tHub = await getTranslations('invoices.ar.hub');
+  const auth = await getAuthContext();
+  const resolved = (await searchParams) ?? {};
+  const page = normalizePositiveInt(resolved.page, 1);
+  const limit = normalizePositiveInt(resolved.limit, 20);
+  const status = resolved.status?.trim() || undefined;
+  const invoiceType = resolved.invoice_type_cd?.trim() || resolved.invoiceType?.trim() || undefined;
+  const dateFrom = resolved.date_from?.trim() || resolved.fromDate?.trim() || undefined;
+  const dateTo = resolved.date_to?.trim() || resolved.toDate?.trim() || undefined;
+  const sortBy = resolved.sort_by?.trim() || resolved.sortBy?.trim() || 'created_at';
+  const sortOrder = resolved.sort_order === 'asc' || resolved.sortOrder === 'asc' ? 'asc' : 'desc';
 
-  const resolvedSearchParams = await searchParams;
-  const params: InvoicesSearchParams = resolvedSearchParams ?? {};
-
-  let tenantOrgId: string;
-  try {
-    const authContext = await getAuthContext();
-    tenantOrgId = authContext.tenantId;
-  } catch (error) {
-    console.error('[InvoicesPage] Auth error:', error);
-    return (
-      <div className="space-y-6 p-6">
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-          {error instanceof Error ? error.message : t('errors.authFailed')}
-        </div>
-      </div>
-    );
-  }
-
-  const page =
-    params.page && !Number.isNaN(Number.parseInt(params.page, 10))
-      ? Number.parseInt(params.page, 10)
-      : 1;
-
-  const parseDate = (value?: string) => {
-    if (!value) return undefined;
-    const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-  };
-
-  const filters = {
-    tenantOrgId,
-    status: params.status as any,
-    invoiceTypeCd: params.invoiceType?.trim() || undefined,
-    dateFrom: parseDate(params.fromDate),
-    dateTo: parseDate(params.toDate),
-    searchQuery: params.search?.trim(),
-    sortBy: params.sortBy,
-    sortOrder: (params.sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc',
-    limit: 20,
-    offset: (page - 1) * 20,
-  };
-
-  const [invoicesResult, stats] = await Promise.all([
-    listInvoices(filters),
-    getInvoiceStats(tenantOrgId),
+  const [stats, invoices] = await Promise.all([
+    getArInvoiceHubStats({ tenantId: auth.tenantId }),
+    listArInvoices(
+      {
+        page,
+        limit,
+        status,
+        invoice_type_cd: invoiceType,
+        search: resolved.search?.trim() || undefined,
+        date_from: dateFrom,
+        date_to: dateTo,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      },
+      { tenantId: auth.tenantId }
+    ),
   ]);
 
-  const pagination = {
-    page,
-    limit: 20,
-    totalCount: invoicesResult.total,
-    totalPages: invoicesResult.totalPages ?? Math.ceil((invoicesResult.total || 0) / 20),
-  };
+  const sorting: SortingState = sortBy
+    ? [{ id: sortBy, desc: sortOrder === 'desc' }]
+    : [];
+  const exportParams = new URLSearchParams();
+  if (resolved.search?.trim()) exportParams.set('search', resolved.search.trim());
+  if (status) exportParams.set('status', status);
+  if (invoiceType) exportParams.set('invoice_type_cd', invoiceType);
+  if (dateFrom) exportParams.set('date_from', dateFrom);
+  if (dateTo) exportParams.set('date_to', dateTo);
+  if (sortBy) exportParams.set('sort_by', sortBy);
+  if (sortOrder) exportParams.set('sort_order', sortOrder);
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">{t('title')}</h1>
-          <p className="mt-1 text-gray-600">{t('subtitle')}</p>
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-sky-50 p-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{t('title')}</h1>
+          <p className="max-w-3xl text-sm text-slate-600">{tHub('subtitle')}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 rtl:flex-row-reverse">
+          <CmxButton asChild variant="outline">
+            <Link href={`/api/v1/ar/invoices/export?${exportParams.toString()}`}>{tHub('actions.export')}</Link>
+          </CmxButton>
+          <CmxButton asChild>
+            <Link href="/dashboard/internal_fin/invoices/new">{t('ar.create.actions.create')}</Link>
+          </CmxButton>
         </div>
       </div>
 
-      {/* Simple stats */}
-      {stats && (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div className="rounded-lg border border-gray-200 bg-white p-4">
-            <div className="text-sm text-gray-500">{t('stats.total')}</div>
-            <div className="mt-1 text-2xl font-bold">
-              {stats.total_invoices}
-            </div>
-          </div>
-          <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-            <div className="text-sm text-gray-600">{t('stats.paid')}</div>
-            <div className="mt-1 text-2xl font-bold text-green-700">
-              {stats.paid_invoices}
-            </div>
-          </div>
-          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-            <div className="text-sm text-gray-600">{t('stats.pending')}</div>
-            <div className="mt-1 text-2xl font-bold text-yellow-700">
-              {stats.pending_invoices}
-            </div>
-          </div>
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <div className="text-sm text-gray-600">{t('stats.overdue')}</div>
-            <div className="mt-1 text-2xl font-bold text-red-700">
-              {stats.overdue_invoices}
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <CmxKpiStatCard title={t('stats.total')} value={stats.total_invoices} />
+        <CmxKpiStatCard title={tHub('kpis.draft')} value={stats.draft_invoices} />
+        <CmxKpiStatCard title={tHub('kpis.open')} value={stats.open_invoices} />
+        <CmxKpiStatCard title={t('stats.paid')} value={stats.paid_invoices} />
+        <CmxKpiStatCard title={tHub('kpis.outstanding')} value={stats.total_outstanding_amount.toFixed(4)} />
+      </div>
 
-      <InvoiceFiltersBar />
+      <ArInvoiceHubFilters />
 
-      <Suspense fallback={<div>{tCommon('loading')}</div>}>
-        <InvoicesTable
-          invoices={invoicesResult.invoices}
-          pagination={pagination}
-          sortBy={params.sortBy || 'created_at'}
-          sortOrder={params.sortOrder === 'asc' ? 'asc' : 'desc'}
-        />
-      </Suspense>
+      <ArInvoicesHubTable
+        invoices={invoices.data}
+        page={invoices.page}
+        limit={invoices.limit}
+        total={invoices.total}
+        sorting={sorting}
+      />
     </div>
   );
 }

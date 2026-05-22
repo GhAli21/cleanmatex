@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requirePermission } from '@/lib/middleware/require-permission';
-import { postBizVoucher } from '@/lib/services/voucher-posting.service';
+import { postAndWireBizVoucher } from '@/lib/services/voucher-wiring.service';
 
 export async function POST(
   request: NextRequest,
@@ -13,7 +13,7 @@ export async function POST(
 
   try {
     const body = await request.json().catch(() => ({})) as { idempotency_key?: string };
-    const result = await postBizVoucher(tenantId, voucherId, userId, body?.idempotency_key);
+    const result = await postAndWireBizVoucher(tenantId, voucherId, userId, body?.idempotency_key);
     return NextResponse.json({ success: true, data: result });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to post voucher';

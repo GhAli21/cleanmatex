@@ -1,6 +1,44 @@
-# Refined Submit Order Flow — Final Production Model
+# CleanMateX — suggested Refined Submit Order Flow
 
-This is the suggested clean model after all decisions:
+**Document Type:** Implementation Flow Specification  
+**Module:** Submit Order / Order Fin / Business Voucher / Full AR Invoice  
+**Version:** v1.1  
+**Status:** Ready for Engineering Review  
+**Scope:** Final production-grade Submit Order execution model using the current order tables, Business Voucher wiring, Order Fin, Full AR Invoice, piece `extra_price`, preference `extra_price`, real payment legs, and credit application legs.
+
+---
+
+# Table of Contents
+
+- [1. Final Production Model](#1-final-production-model)
+- [2. Critical Non-Duplication Rule](#2-critical-non-duplication-rule)
+- [3. Order Table Responsibility Map](#3-order-table-responsibility-map)
+- [4. Main Endpoint and Services](#4-main-endpoint-and-services)
+- [5. Submit Order Transaction Flow](#5-submit-order-transaction-flow)
+- [6. Validate Operational Order Details](#6-validate-operational-order-details)
+- [7. Calculate Order Financials](#7-calculate-order-financials)
+- [8. Create Operational Order Rows](#8-create-operational-order-rows)
+- [9. Create Financial Projection Charge Rows](#9-create-financial-projection-charge-rows)
+- [10. Create Discounts and Taxes](#10-create-discounts-and-taxes)
+- [11. Create Initial Order Financial Snapshot](#11-create-initial-order-financial-snapshot)
+- [12. Build Settlement Plan](#12-build-settlement-plan)
+- [13. Classify Settlement Legs](#13-classify-settlement-legs)
+- [14. Validate Settlement Plan](#14-validate-settlement-plan)
+- [15. Create Receipt Voucher for Immediate Settlement](#15-create-receipt-voucher-for-immediate-settlement)
+- [16. Create Voucher Lines](#16-create-voucher-lines)
+- [17. Post Voucher with Operational Wiring](#17-post-voucher-with-operational-wiring)
+- [18. Voucher Wiring Outputs](#18-voucher-wiring-outputs)
+- [19. Recalculate Order Financial Snapshot](#19-recalculate-order-financial-snapshot)
+- [20. Handle Outstanding Amount](#20-handle-outstanding-amount)
+- [21. AR Invoice Line Generation](#21-ar-invoice-line-generation)
+- [22. History, Status, Audit](#22-history-status-audit)
+- [23. Reconciliation Checks](#23-reconciliation-checks)
+- [24. Final Response Contract](#24-final-response-contract)
+- [25. Final Refined Rule](#25-final-refined-rule)
+
+---
+
+# 1. Final Production Model
 
 ```text
 Submit Order API
@@ -17,49 +55,82 @@ Submit Order API
 → writes history/audit/reconciliation
 ```
 
-Critical rule:
+This flow is designed to prevent double posting, hidden pricing gaps, and inconsistent order financial snapshots.
+
+---
+
+# 2. Critical Non-Duplication Rule
 
 ```text
 org_order_payments_dtl and org_order_credit_apps_dtl are real order financial effect tables.
+```
 
-But when Business Voucher wiring is active, Submit Order must not write them directly as independent steps.
+However:
 
-Submit Order creates settlement legs and voucher lines.
-Voucher wiring creates:
-- org_order_payments_dtl
-- org_order_credit_apps_dtl
-- cash drawer movements
+```text
+When Business Voucher wiring is active, Submit Order must not write them directly as independent steps.
+```
+
+Correct chain:
+
+```text
+Submit Order
+→ settlement legs
+→ voucher lines
+→ voucher posting/wiring
+→ operational effect rows
+```
+
+Wrong chain:
+
+```text
+Submit Order
+→ writes org_order_payments_dtl directly
+→ also creates voucher lines
+→ voucher wiring writes org_order_payments_dtl again
+```
+
+That causes:
+
+```text
+duplicate payments
+wrong paid amount
+wrong outstanding amount
+cash drawer mismatch
+voucher reconciliation failure
 ```
 
 ---
 
-# 1. Order table responsibility map
+# 3. Order Table Responsibility Map
 
-| Table                             | Responsibility in Submit Order                                                      | Writer                  |
-| --------------------------------- | ----------------------------------------------------------------------------------- | ----------------------- |
-| `org_orders_mst`                  | Order header + financial snapshot                                                   | Submit Order            |
-| `org_order_items_dtl`             | Main service/item lines                                                             | Submit Order            |
-| `org_order_item_pieces_dtl`       | Physical pieces under items                                                         | Submit Order            |
-| `org_order_preferences_dtl`       | Selected preferences/add-ons                                                        | Submit Order            |
-| `org_order_charges_dtl`           | Financial charges: delivery, express, piece extra, preference extra, manual charges | Submit Order            |
-| `org_order_discounts_dtl`         | Commercial discounts only                                                           | Submit Order            |
-| `org_order_taxes_dtl`             | Tax facts                                                                           | Submit Order            |
-| `org_order_payments_dtl`          | Real payment effects                                                                | Voucher wiring          |
-| `org_order_credit_apps_dtl`       | Gift card/wallet/advance/credit-note applications                                   | Voucher wiring          |
-| `org_order_refunds_dtl`           | Refund effects                                                                      | Refund voucher wiring   |
-| `org_order_adjustments_dtl`       | Post-submit/manual financial adjustments                                            | Adjustment service      |
-| `org_order_history`               | General order audit/history                                                         | Submit Order / workflow |
-| `org_order_status_history`        | Status transition history                                                           | Submit Order / workflow |
-| `org_order_edit_history`          | Edit audit after submit                                                             | Edit service            |
-| `org_order_edit_locks`            | Concurrent edit locking                                                             | Edit service            |
-| `org_order_item_issues`           | Item defects/issues/rework                                                          | Operations/QA           |
-| `org_order_item_processing_steps` | Production workflow                                                                 | Operations              |
-| `org_order_piece_hist_tr`         | Piece-level movement/history                                                        | Operations              |
-| `org_order_status_history_legacy` | Legacy only                                                                         | Do not expand           |
+| Table | Responsibility in Submit Order | Writer |
+|---|---|---|
+| `org_orders_mst` | Order header + financial snapshot | Submit Order |
+| `org_order_items_dtl` | Main service/item lines | Submit Order |
+| `org_order_item_pieces_dtl` | Physical pieces under items | Submit Order |
+| `org_order_preferences_dtl` | Selected preferences/add-ons | Submit Order |
+| `org_order_charges_dtl` | Financial charges: delivery, express, piece extra, preference extra, manual charges | Submit Order |
+| `org_order_discounts_dtl` | Commercial discounts only | Submit Order |
+| `org_order_taxes_dtl` | Tax facts | Submit Order |
+| `org_order_payments_dtl` | Real payment effects | Voucher wiring |
+| `org_order_credit_apps_dtl` | Gift card/wallet/advance/credit-note applications | Voucher wiring |
+| `org_order_refunds_dtl` | Refund effects | Refund voucher wiring |
+| `org_order_adjustments_dtl` | Post-submit/manual financial adjustments | Adjustment service |
+| `org_order_history` | General order audit/history | Submit Order / workflow |
+| `org_order_status_history` | Status transition history | Submit Order / workflow |
+| `org_order_edit_history` | Edit audit after submit | Edit service |
+| `org_order_edit_locks` | Concurrent edit locking | Edit service |
+| `org_order_item_issues` | Item defects/issues/rework | Operations / QA |
+| `org_order_item_processing_steps` | Production workflow | Operations |
+| `org_order_piece_hist_tr` | Piece-level movement/history | Operations |
+| `org_order_status_history_legacy` | Legacy only | Do not expand |
 
 ---
 
-# 2. Main endpoint
+# 4. Main Endpoint and Services
+
+## 4.1 Endpoint
 
 ```http
 POST /api/v1/orders/submit
@@ -71,13 +142,13 @@ For draft order:
 POST /api/v1/orders/{orderId}/submit
 ```
 
-Main service:
+## 4.2 Main Service
 
 ```text
 order-submit-orchestrator.service.ts
 ```
 
-Supporting services:
+## 4.3 Supporting Services
 
 ```text
 order-validation.service.ts
@@ -97,9 +168,9 @@ order-history.service.ts
 
 ---
 
-# 3. Submit Order transaction flow
+# 5. Submit Order Transaction Flow
 
-## Step 1 — Start transaction and idempotency
+## Step 1 — Start Transaction and Idempotency
 
 ```text
 BEGIN TRANSACTION
@@ -120,9 +191,7 @@ IDEMPOTENCY_KEY_REQUIRED
 IDEMPOTENCY_CONFLICT
 ```
 
----
-
-## Step 2 — Validate tenant, branch, user, customer
+## Step 2 — Validate Tenant, Branch, User, Customer
 
 Validate:
 
@@ -166,9 +235,7 @@ If approval threshold exceeded:
 orders:discounts:approve
 ```
 
----
-
-## Step 3 — Resolve currency
+## Step 3 — Resolve Currency
 
 Resolution order:
 
@@ -197,9 +264,9 @@ ORDER_CURRENCY_EX_RATE_INVALID
 
 ---
 
-# 4. Validate operational order details
+# 6. Validate Operational Order Details
 
-## Step 4.1 — Validate order items
+## 6.1 Validate Order Items
 
 For each item:
 
@@ -223,49 +290,36 @@ ORDER_ITEM_PRICE_INVALID
 SERVICE_NOT_AVAILABLE
 ```
 
----
-
-## Step 4.2 — Validate pieces
+## 6.2 Validate Pieces
 
 For each piece in `org_order_item_pieces_dtl`:
 
 ```text
 piece belongs to order item
 piece quantity/count is valid
-extra_price >= 0
-extra_price reason is valid if required
-taxability is resolved
-discount eligibility is resolved
+
 ```
 
 Errors:
 
 ```text
 ORDER_PIECE_INVALID
-PIECE_EXTRA_PRICE_NEGATIVE
-PIECE_EXTRA_PRICE_REASON_REQUIRED
-PIECE_EXTRA_PRICE_TAX_POLICY_REQUIRED
-PIECE_EXTRA_PRICE_DISCOUNT_POLICY_REQUIRED
 ```
 
 Approved rule:
 
 ```text
-piece extra_price is not payment and not discount.
-It is a charge component.
+piece exists
 ```
 
----
-
-## Step 4.3 — Validate preferences
+## 6.3 Validate Preferences
 
 For each selected preference in `org_order_preferences_dtl`:
 
 ```text
 preference exists
 preference is active
-preference is allowed for service/category/item/piece
-quantity > 0
+preference is allowed for order/item/piece
 extra_price >= 0
 taxability is resolved
 discount eligibility is resolved
@@ -276,7 +330,6 @@ Errors:
 ```text
 ORDER_PREFERENCE_INVALID
 ORDER_PREFERENCE_NOT_ALLOWED
-ORDER_PREFERENCE_QUANTITY_INVALID
 PREFERENCE_EXTRA_PRICE_NEGATIVE
 PREFERENCE_EXTRA_PRICE_TAX_POLICY_REQUIRED
 PREFERENCE_EXTRA_PRICE_DISCOUNT_POLICY_REQUIRED
@@ -291,7 +344,7 @@ It is a charge component.
 
 ---
 
-# 5. Calculate order financials
+# 7. Calculate Order Financials
 
 Call:
 
@@ -299,24 +352,18 @@ Call:
 order-calculation.service.calculate()
 ```
 
-calculation model:
+Final calculation model:
 
 ```text
 items_base_amount
 = sum(org_order_items_dtl.quantity * unit_price)
 
-pieces_extra_price_amount
-= sum(org_order_item_pieces_dtl.extra_price)
-
 preferences_extra_price_amount
-= sum(org_order_preferences_dtl.extra_price * quantity)
+= sum(org_order_preferences_dtl.extra_price)
 
 total_charges_amount
-= pieces_extra_price_amount
-+ preferences_extra_price_amount
-+ service_charge_amount
-+ delivery_charge_amount
-+ express_charge_amount
+= preferences_extra_price_amount
+[+ express_charge_amount] if not included in item price 
 + other_charge_amount
 
 gross_amount
@@ -343,7 +390,7 @@ rush
 
 ---
 
-# 6. Create operational order rows
+# 8. Create Operational Order Rows
 
 Save in this order:
 
@@ -354,11 +401,11 @@ Save in this order:
 4. org_order_preferences_dtl
 ```
 
-At this point, you have operational detail, but not the full financial projection yet.
+At this point, the system has the operational details, but the full financial projection is not complete until charge, discount, and tax rows are created.
 
 ---
 
-# 7. Create financial projection charge rows
+# 9. Create Financial Projection Charge Rows
 
 `org_order_charges_dtl` is the unified financial charge bridge.
 
@@ -375,27 +422,10 @@ ROUNDING_CHARGE
 OTHER_CHARGE
 ```
 
-## 7.1 Piece extra price projection
+## 9.1 Piece Extra Price Projection
 
-From:
-
-```text
-org_order_item_pieces_dtl
-```
-
-Create:
-
-```text
-org_order_charges_dtl
-charge_type = PIECE_EXTRA_PRICE
-source_type = ORDER_ITEM_PIECES
-source_order_item_id = org_order_items_dtl.id
-amount = sum(piece.extra_price)
-```
-
-Recommended: aggregate per order item.
-
-## 7.2 Preference extra price projection
+no extra price in piece 
+## 9.2 Preference Extra Price Projection
 
 From:
 
@@ -413,7 +443,7 @@ source_order_preference_id = org_order_preferences_dtl.id
 amount = preference.extra_price * quantity
 ```
 
-## 7.3 Duplicate prevention
+## 9.3 Duplicate Prevention
 
 If extra price is already included in item price, do not create a charge row.
 
@@ -440,9 +470,9 @@ PREFERENCE_EXTRA_PRICE_DUPLICATED
 
 ---
 
-# 8. Create discounts and taxes
+# 10. Create Discounts and Taxes
 
-## Discounts
+## 10.1 Discounts
 
 Save commercial discounts only:
 
@@ -469,7 +499,7 @@ credit note
 customer credit
 ```
 
-## Taxes
+## 10.2 Taxes
 
 Save tax rows:
 
@@ -482,7 +512,7 @@ Tax base:
 ```text
 taxable_amount =
   taxable item/service amount
-+ taxable piece extra price
++ [taxable piece extra price]
 + taxable preference extra price
 + taxable charges
 - taxable discounts
@@ -490,7 +520,7 @@ taxable_amount =
 
 ---
 
-# 9. Create initial order financial snapshot
+# 11. Create Initial Order Financial Snapshot
 
 Update:
 
@@ -532,7 +562,7 @@ else:
 
 ---
 
-# 10. Build settlement plan
+# 12. Build Settlement Plan
 
 Call:
 
@@ -578,9 +608,9 @@ type SettlementPlan = {
 
 ---
 
-# 11. Classify settlement legs
+# 13. Classify Settlement Legs
 
-## 11.1 Real payment legs
+## 13.1 Real Payment Legs
 
 Real money received:
 
@@ -612,7 +642,7 @@ realPaymentLeg
 
 Not direct independent write from Submit Order.
 
-## 11.2 Credit application legs
+## 13.2 Credit Application Legs
 
 Stored-value / customer credit used:
 
@@ -642,7 +672,7 @@ creditApplicationLeg
 
 Not direct independent write from Submit Order.
 
-## 11.3 Pending amount
+## 13.3 Pending Amount
 
 Pending amount is not a leg.
 
@@ -662,7 +692,7 @@ PAY_ON_DELIVERY later
 
 ---
 
-# 12. Validate settlement plan
+# 14. Validate Settlement Plan
 
 Rules:
 
@@ -698,7 +728,7 @@ CREDIT_NOTE_BALANCE_INSUFFICIENT
 
 ---
 
-# 13. Create receipt voucher for immediate settlement
+# 15. Create Receipt Voucher for Immediate Settlement
 
 If:
 
@@ -739,9 +769,9 @@ not always full order total.
 
 ---
 
-# 14. Create voucher lines
+# 16. Create Voucher Lines
 
-## 14.1 Real payment leg → `ORDER_PAYMENT`
+## 16.1 Real Payment Leg → `ORDER_PAYMENT`
 
 Create:
 
@@ -784,9 +814,7 @@ check_bank
 check_date
 ```
 
----
-
-## 14.2 Credit application leg → `ORDER_CREDIT_APPLICATION`
+## 16.2 Credit Application Leg → `ORDER_CREDIT_APPLICATION`
 
 Create:
 
@@ -806,7 +834,7 @@ metadata.credit_type = GIFT_CARD / WALLET / CUSTOMER_ADVANCE / CREDIT_NOTE / CUS
 
 ---
 
-# 15. Post voucher with operational wiring
+# 17. Post Voucher with Operational Wiring
 
 Call:
 
@@ -834,9 +862,9 @@ Voucher posting does:
 
 ---
 
-# 16. Voucher wiring outputs
+# 18. Voucher Wiring Outputs
 
-## 16.1 `ORDER_PAYMENT` wiring creates `org_order_payments_dtl`
+## 18.1 `ORDER_PAYMENT` Wiring Creates `org_order_payments_dtl`
 
 This is where real payment legs are saved.
 
@@ -872,9 +900,7 @@ Only `COMPLETED` rows increase:
 total_paid_amount
 ```
 
----
-
-## 16.2 Cash `ORDER_PAYMENT` also creates cash drawer movement
+## 18.2 Cash `ORDER_PAYMENT` Also Creates Cash Drawer Movement
 
 If:
 
@@ -897,9 +923,7 @@ movement amount != tendered_amount
 change_returned_amount is not retained cash
 ```
 
----
-
-## 16.3 `ORDER_CREDIT_APPLICATION` wiring creates `org_order_credit_apps_dtl`
+## 18.3 `ORDER_CREDIT_APPLICATION` Wiring Creates `org_order_credit_apps_dtl`
 
 This is where stored-value/credit legs are saved.
 
@@ -930,7 +954,7 @@ does not appear as discount
 
 ---
 
-# 17. Recalculate order financial snapshot
+# 19. Recalculate Order Financial Snapshot
 
 After voucher wiring, recalculate from actual effect tables:
 
@@ -979,9 +1003,9 @@ gateway pending does not count as paid until confirmed
 
 ---
 
-# 18. Handle outstanding amount
+# 20. Handle Outstanding Amount
 
-## 18.1 If fully settled
+## 20.1 If Fully Settled
 
 ```text
 outstanding_amount = 0
@@ -989,7 +1013,7 @@ payment_status = PAID
 no invoice
 ```
 
-## 18.2 If PAY_ON_COLLECTION
+## 20.2 If PAY_ON_COLLECTION
 
 ```text
 outstanding_amount > 0
@@ -998,7 +1022,7 @@ pay_on_collection_amount = outstanding_amount
 do not create AR invoice
 ```
 
-## 18.3 If CREDIT_INVOICE
+## 20.3 If CREDIT_INVOICE
 
 ```text
 outstanding_amount > 0
@@ -1024,7 +1048,7 @@ REMAINING_ONLY
 
 ---
 
-# 19. AR invoice line generation
+# 21. AR Invoice Line Generation
 
 If `CREDIT_INVOICE`, generate invoice lines from financial order sources:
 
@@ -1037,13 +1061,13 @@ org_order_taxes_dtl
 
 Recommended mappings:
 
-| Source                                                | Invoice line       |
-| ----------------------------------------------------- | ------------------ |
-| `org_order_items_dtl`                                 | `SERVICE` / `ITEM` |
-| `org_order_charges_dtl` with `PIECE_EXTRA_PRICE`      | `CHARGE`           |
-| `org_order_charges_dtl` with `PREFERENCE_EXTRA_PRICE` | `CHARGE`           |
-| `org_order_discounts_dtl`                             | `DISCOUNT`         |
-| `org_order_taxes_dtl`                                 | `TAX`              |
+| Source | Invoice line |
+|---|---|
+| `org_order_items_dtl` | `SERVICE` / `ITEM` |
+| `org_order_charges_dtl` with `PIECE_EXTRA_PRICE` | `CHARGE` |
+| `org_order_charges_dtl` with `PREFERENCE_EXTRA_PRICE` | `CHARGE` |
+| `org_order_discounts_dtl` | `DISCOUNT` |
+| `org_order_taxes_dtl` | `TAX` |
 
 For single-order invoice:
 
@@ -1059,7 +1083,7 @@ lineMode = ORDER_SUMMARY
 
 ---
 
-# 20. History, status, audit
+# 22. History, Status, Audit
 
 Create:
 
@@ -1089,7 +1113,7 @@ org_order_status_history_legacy
 
 ---
 
-# 21. Reconciliation checks
+# 23. Reconciliation Checks
 
 Run:
 
@@ -1142,7 +1166,7 @@ order.total_credit_applied_amount
 
 ---
 
-# 22. Final response
+# 24. Final Response Contract
 
 Return:
 
@@ -1191,7 +1215,7 @@ type SubmitOrderResponse = {
 
 ---
 
-# 23. suggested refined rule
+# 25. Final Refined Rule
 
 ```text
 org_order_items_dtl, org_order_item_pieces_dtl, and org_order_preferences_dtl are operational order details.

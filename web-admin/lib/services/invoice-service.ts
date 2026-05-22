@@ -12,11 +12,22 @@
 import { prisma } from '@/lib/db/prisma';
 import { ErpLiteAutoPostService } from '@/lib/services/erp-lite-auto-post.service';
 import { ERP_LITE_BLOCKING_MODES } from '@/lib/constants/erp-lite-posting';
+import { Prisma } from '@prisma/client';
+import {
+  AR_DUE_DATE_SOURCES,
+  AR_INVOICE_DOC_TYPES,
+  AR_INVOICE_STATUSES,
+  AR_INVOICE_TYPES,
+  deriveArInvoiceStatus,
+  normalizeArInvoiceStatus,
+} from '@/lib/constants/ar-invoice';
 
 /** Transaction client for use inside prisma.$transaction */
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
 import { withTenantContext, getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
+import { ensureCanonicalArInvoiceArtifactsTx } from '@/lib/services/ar-invoice.service';
 import type {
   Invoice,
   InvoiceStatus,
@@ -76,6 +87,13 @@ export async function createInvoice(
         vatAmount,
         additionalTax,
       });
+      const dueDate = input.due_date ? new Date(input.due_date) : undefined;
+      const initialStatus = deriveArInvoiceStatus({
+        currentStatus: AR_INVOICE_STATUSES.OPEN,
+        totalAmount: total,
+        paidAmount: 0,
+        dueDate,
+      });
 
       const orderWithB2B = order as {
         b2b_contract_id?: string | null;
@@ -99,22 +117,27 @@ export async function createInvoice(
           tax_rate: order.tax_rate ?? undefined,
           vat_amount: vatAmount,
           total,
-          currency_code: order.currency_code ?? undefined,
-          currency_ex_rate: order.currency_ex_rate ?? undefined,
-          status: 'pending',
-          due_date: input.due_date ? new Date(input.due_date) : undefined,
+          outstanding_amount: total,
+          currency_code: order.currency_code ?? ORDER_DEFAULTS.CURRENCY,
+          currency_ex_rate: order.currency_ex_rate ?? 1,
+          status: initialStatus,
+          due_date: dueDate,
+          due_date_source_cd: dueDate ? AR_DUE_DATE_SOURCES.MANUAL_OVERRIDE : AR_DUE_DATE_SOURCES.INVOICE_DATE,
           payment_method_code: input.payment_method_code,
           payment_terms: order.payment_terms ?? undefined,
           paid_amount: 0,
+          issued_at: now,
+          issued_by: input.metadata?.created_by ?? null,
+          numbering_doc_type_cd: AR_INVOICE_DOC_TYPES.AR_INV,
           service_charge: order.service_charge ?? undefined,
           service_charge_type: order.service_charge_type ?? undefined,
           gift_card_id: order.gift_card_id ?? undefined,
           gift_card_applied_amount: input.gift_card_applied_amount ?? (order as unknown as { gift_card_applied_amount?: number }).gift_card_applied_amount ?? undefined,
           vat_rate: order.vat_rate ?? undefined,
-          metadata: input.metadata ? JSON.stringify(input.metadata) : undefined,
+          metadata: input.metadata as Prisma.InputJsonValue | undefined,
           rec_notes: input.rec_notes,
           created_at: now,
-          invoice_type_cd: isB2B ? 'B2B' : null,
+          invoice_type_cd: isB2B ? AR_INVOICE_TYPES.B2B_ORDER : AR_INVOICE_TYPES.ORDER_CREDIT,
           b2b_contract_id: orderWithB2B.b2b_contract_id ?? null,
           cost_center_code: orderWithB2B.cost_center_code ?? null,
           po_number: orderWithB2B.po_number ?? null,
@@ -139,6 +162,24 @@ export async function createInvoice(
         })
       );
 
+      await ensureCanonicalArInvoiceArtifactsTx(db, {
+        tenantId: order.tenant_org_id,
+        invoiceId: invoice.id,
+        orderId: input.order_id,
+        customerId: order.customer_id,
+        branchId: order.branch_id,
+        invoiceNo: invoice.invoice_no,
+        currencyCode: invoice.currency_code,
+        currencyExRate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : 1,
+        invoiceDate: invoice.invoice_date,
+        dueDate: invoice.due_date,
+        status: invoice.status,
+        totalAmount: Number(invoice.total ?? 0),
+        paidAmount: Number(invoice.paid_amount ?? 0),
+        outstandingAmount: Number(invoice.outstanding_amount ?? 0),
+        userId: input.metadata?.created_by ?? null,
+      });
+
       return mapInvoiceToType(invoice);
     };
 
@@ -155,24 +196,18 @@ export async function createInvoice(
  */
 async function generateInvoiceNumber(
   tenantOrgId: string,
-  db: typeof prisma | PrismaTx = prisma
+  db: PrismaSqlExecutor = prisma
 ): Promise<string> {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const prefix = `INV-${year}${month}`;
+  const rows = await db.$queryRaw<Array<{ doc_no: string | null }>>(Prisma.sql`
+    SELECT fn_next_fin_doc_no(${tenantOrgId}::uuid, ${AR_INVOICE_DOC_TYPES.AR_INV}) AS doc_no
+  `);
 
-  const count = await db.org_invoice_mst.count({
-    where: {
-      tenant_org_id: tenantOrgId, // Explicit filter for clarity (middleware also adds it)
-      invoice_no: {
-        startsWith: prefix,
-      },
-    },
-  });
+  const invoiceNo = rows[0]?.doc_no;
+  if (!invoiceNo) {
+    throw new Error('Failed to generate AR invoice number from fn_next_fin_doc_no.');
+  }
 
-  const sequence = String(count + 1).padStart(5, '0');
-  return `${prefix}-${sequence}`;
+  return invoiceNo;
 }
 
 // ============================================================================
@@ -397,13 +432,21 @@ export async function updateInvoice(
 
   // Wrap with tenant context - middleware automatically adds tenant_org_id
   return withTenantContext(tenantId, async () => {
+    const currentInvoice = await prisma.org_invoice_mst.findUnique({
+      where: tenantInvoiceWhere(tenantId, invoiceId),
+    });
+
+    if (!currentInvoice) {
+      throw new Error('Invoice not found');
+    }
+
     const updateData: any = {
       updated_at: new Date(),
       updated_by: input.paid_by,
     };
 
     if (input.status !== undefined) {
-      updateData.status = input.status;
+      updateData.status = normalizeArInvoiceStatus(input.status);
     }
 
     if (input.payment_method_code !== undefined) {
@@ -428,6 +471,24 @@ export async function updateInvoice(
 
     if (input.rec_notes !== undefined) {
       updateData.rec_notes = input.rec_notes;
+    }
+
+    const effectivePaidAmount = input.paid_amount !== undefined
+      ? input.paid_amount
+      : Number(currentInvoice.paid_amount ?? 0);
+
+    updateData.outstanding_amount = calculateOutstandingAmount(
+      Number(currentInvoice.total ?? 0),
+      effectivePaidAmount
+    );
+
+    if (input.status === undefined && input.paid_amount !== undefined) {
+      updateData.status = deriveArInvoiceStatus({
+        currentStatus: currentInvoice.status,
+        totalAmount: Number(currentInvoice.total ?? 0),
+        paidAmount: effectivePaidAmount,
+        dueDate: currentInvoice.due_date,
+      });
     }
 
     const invoice = await prisma.org_invoice_mst.update({
@@ -458,7 +519,7 @@ export async function updateInvoiceStatus(
     const invoice = await prisma.org_invoice_mst.update({
       where: tenantInvoiceWhere(tenantId, invoiceId),
       data: {
-        status,
+        status: normalizeArInvoiceStatus(status),
         updated_at: new Date(),
         updated_by: updatedBy,
       },
@@ -493,13 +554,18 @@ export async function markInvoiceAsPaid(
     }
 
     const newPaidAmount = Number(invoice.paid_amount) + paidAmount;
-    const newStatus: InvoiceStatus =
-      newPaidAmount >= Number(invoice.total) ? 'paid' : 'partial';
+    const newStatus = deriveArInvoiceStatus({
+      currentStatus: invoice.status,
+      totalAmount: Number(invoice.total ?? 0),
+      paidAmount: newPaidAmount,
+      dueDate: invoice.due_date,
+    }) as InvoiceStatus;
 
     return updateInvoice(invoiceId, {
       status: newStatus,
       paid_amount: newPaidAmount,
-      paid_at: newStatus === 'paid' ? new Date().toISOString() : undefined,
+      rec_notes: invoice.rec_notes ?? undefined,
+      paid_at: newStatus === AR_INVOICE_STATUSES.PAID ? new Date().toISOString() : undefined,
       paid_by: paidBy,
     });
   });
@@ -678,8 +744,10 @@ export async function isInvoiceOverdue(invoiceId: string): Promise<boolean> {
 
     return (
       now > dueDate &&
-      invoice.status !== 'paid' &&
-      invoice.status !== 'cancelled'
+      normalizeArInvoiceStatus(invoice.status) !== AR_INVOICE_STATUSES.PAID &&
+      normalizeArInvoiceStatus(invoice.status) !== AR_INVOICE_STATUSES.CANCELLED &&
+      normalizeArInvoiceStatus(invoice.status) !== AR_INVOICE_STATUSES.VOID &&
+      normalizeArInvoiceStatus(invoice.status) !== AR_INVOICE_STATUSES.REFUNDED
     );
   });
 }
@@ -704,7 +772,10 @@ export async function getInvoiceBalance(invoiceId: string): Promise<number> {
       throw new Error('Invoice not found');
     }
 
-    return Number(invoice.total) - Number(invoice.paid_amount);
+    return Number(
+      invoice.outstanding_amount ??
+      calculateOutstandingAmount(Number(invoice.total ?? 0), Number(invoice.paid_amount ?? 0))
+    );
   });
 }
 
@@ -735,18 +806,27 @@ export async function getInvoiceStats(tenantOrgId: string): Promise<{
 
     const stats = invoices.reduce(
       (acc, invoice) => {
+        const normalizedStatus = normalizeArInvoiceStatus(invoice.status);
+        const outstandingAmount = Number(
+          invoice.outstanding_amount ??
+          calculateOutstandingAmount(Number(invoice.total ?? 0), Number(invoice.paid_amount ?? 0))
+        );
+
         acc.total_invoices++;
 
-        if (invoice.status === 'paid') {
+        if (normalizedStatus === AR_INVOICE_STATUSES.PAID) {
           acc.paid_invoices++;
           acc.total_revenue += Number(invoice.total);
-        } else if (invoice.status === 'pending' || invoice.status === 'partial') {
+        } else if (
+          normalizedStatus === AR_INVOICE_STATUSES.OPEN ||
+          normalizedStatus === AR_INVOICE_STATUSES.PARTIALLY_PAID ||
+          normalizedStatus === AR_INVOICE_STATUSES.OVERDUE
+        ) {
           acc.pending_invoices++;
-          const remaining = Number(invoice.total) - Number(invoice.paid_amount);
-          acc.outstanding_amount += remaining;
+          acc.outstanding_amount += outstandingAmount;
 
           // Check if overdue
-          if (invoice.due_date && new Date(invoice.due_date) < now) {
+          if (normalizedStatus === AR_INVOICE_STATUSES.OVERDUE) {
             acc.overdue_invoices++;
           }
         }
@@ -839,11 +919,30 @@ function mapInvoiceToType(invoice: any): Invoice {
     service_charge_type: invoice.service_charge_type ?? undefined,
     promo_discount_amount: invoice.promo_discount_amount != null ? Number(invoice.promo_discount_amount) : undefined,
     gift_card_applied_amount: invoice.gift_card_applied_amount != null ? Number(invoice.gift_card_applied_amount) : undefined,
-    status: invoice.status as InvoiceStatus,
+    status: normalizeArInvoiceStatus(invoice.status) as InvoiceStatus,
     due_date: invoice.due_date?.toISOString?.()?.slice(0, 10),
     payment_terms: invoice.payment_terms ?? undefined,
     payment_method_code: invoice.payment_method_code,
     paid_amount: Number(invoice.paid_amount ?? 0),
+    outstanding_amount: Number(
+      invoice.outstanding_amount ??
+      calculateOutstandingAmount(Number(invoice.total ?? 0), Number(invoice.paid_amount ?? 0))
+    ),
+    invoice_type_cd: invoice.invoice_type_cd ?? undefined,
+    due_date_source_cd: invoice.due_date_source_cd ?? undefined,
+    due_terms_days: invoice.due_terms_days ?? undefined,
+    numbering_doc_type_cd: invoice.numbering_doc_type_cd ?? undefined,
+    numbering_seq_no: invoice.numbering_seq_no != null ? Number(invoice.numbering_seq_no) : undefined,
+    approval_required: invoice.approval_required ?? false,
+    approval_action_cd: invoice.approval_action_cd ?? undefined,
+    approved_at: invoice.approved_at?.toISOString?.(),
+    approved_by: invoice.approved_by ?? undefined,
+    approval_notes: invoice.approval_notes ?? undefined,
+    issued_at: invoice.issued_at?.toISOString?.(),
+    issued_by: invoice.issued_by ?? undefined,
+    voided_at: invoice.voided_at?.toISOString?.(),
+    voided_by: invoice.voided_by ?? undefined,
+    void_reason: invoice.void_reason ?? undefined,
     paid_at: invoice.paid_at?.toISOString(),
     paid_by: invoice.paid_by ?? undefined,
     paid_by_name: invoice.paid_by_name ?? undefined,
@@ -855,7 +954,7 @@ function mapInvoiceToType(invoice: any): Invoice {
     customer_reference: invoice.customer_reference ?? undefined,
     metadata: parseInvoiceMetadata(invoice.metadata),
     rec_notes: invoice.rec_notes ?? undefined,
-    currency_code: invoice.currency_code ?? undefined,
+    currency_code: invoice.currency_code ?? ORDER_DEFAULTS.CURRENCY,
     currency_ex_rate: invoice.currency_ex_rate != null ? Number(invoice.currency_ex_rate) : undefined,
     created_at: invoice.created_at?.toISOString?.() ?? new Date().toISOString(),
     created_by: invoice.created_by ?? undefined,
@@ -887,6 +986,10 @@ export async function updateInvoiceWithFinancialSnapshot(
       tax:         breakdown.taxTotal,
       total:       breakdown.grandTotal,
       paid_amount: breakdown.paymentLegsTotal,
+      outstanding_amount: calculateOutstandingAmount(
+        breakdown.grandTotal,
+        breakdown.paymentLegsTotal
+      ),
       updated_at:      new Date(),
     },
   });
@@ -910,4 +1013,8 @@ export async function getInvoiceWithBreakdown(tenantId: string, invoiceId: strin
       },
     })
   );
+}
+
+function calculateOutstandingAmount(totalAmount: number, paidAmount: number): number {
+  return Math.max(0, totalAmount - paidAmount);
 }

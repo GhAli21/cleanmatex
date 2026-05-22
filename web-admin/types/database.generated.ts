@@ -1581,6 +1581,506 @@ export type Database = {
           },
         ]
       }
+      org_ar_appr_policies_cf: {
+        Row: {
+          action_cd: string
+          approvals_required: number
+          approver_role_code: string
+          branch_id: string | null
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_id: string | null
+          id: string
+          is_active: boolean
+          max_amount: number | null
+          metadata: Json
+          min_amount: number | null
+          policy_code: string
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          action_cd: string
+          approvals_required?: number
+          approver_role_code: string
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          metadata?: Json
+          min_amount?: number | null
+          policy_code: string
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          action_cd?: string
+          approvals_required?: number
+          approver_role_code?: string
+          branch_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string | null
+          id?: string
+          is_active?: boolean
+          max_amount?: number | null
+          metadata?: Json
+          min_amount?: number | null
+          policy_code?: string
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oaapp_bra"
+            columns: ["branch_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_branches_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oaapp_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_ar_credit_allocs_dtl: {
+        Row: {
+          allocation_no: number
+          allocation_status_cd: string
+          applied_amount: number
+          applied_at: string
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_id: string
+          id: string
+          invoice_alloc_id: string | null
+          invoice_id: string
+          metadata: Json
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          source_ledger_id: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          allocation_no: number
+          allocation_status_cd?: string
+          applied_amount: number
+          applied_at?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id: string
+          id?: string
+          invoice_alloc_id?: string | null
+          invoice_id: string
+          metadata?: Json
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          source_ledger_id: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          allocation_no?: number
+          allocation_status_cd?: string
+          applied_amount?: number
+          applied_at?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string
+          id?: string
+          invoice_alloc_id?: string | null
+          invoice_id?: string
+          metadata?: Json
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          source_ledger_id?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oacred_alloc"
+            columns: ["invoice_alloc_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_payments_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oacred_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oacred_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oacred_led"
+            columns: ["source_ledger_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_customer_ar_ledger_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_ar_disputes_mst: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_id: string
+          description: string
+          description2: string | null
+          dispute_no: string
+          disputed_amount: number
+          due_by_at: string | null
+          id: string
+          invoice_id: string
+          metadata: Json
+          opened_at: string
+          opened_by: string | null
+          reason_cd: string
+          resolution_summary: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status_cd: string
+          tenant_org_id: string
+          title: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id: string
+          description: string
+          description2?: string | null
+          dispute_no: string
+          disputed_amount: number
+          due_by_at?: string | null
+          id?: string
+          invoice_id: string
+          metadata?: Json
+          opened_at?: string
+          opened_by?: string | null
+          reason_cd: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status_cd?: string
+          tenant_org_id: string
+          title: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string
+          description?: string
+          description2?: string | null
+          dispute_no?: string
+          disputed_amount?: number
+          due_by_at?: string | null
+          id?: string
+          invoice_id?: string
+          metadata?: Json
+          opened_at?: string
+          opened_by?: string | null
+          reason_cd?: string
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status_cd?: string
+          tenant_org_id?: string
+          title?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oadisp_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oadisp_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_ar_dunning_runs_mst: {
+        Row: {
+          action_cd: string
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_id: string
+          executed_at: string | null
+          id: string
+          invoice_id: string | null
+          metadata: Json
+          response_message: string | null
+          run_no: number
+          scheduled_for: string | null
+          stage_cd: string
+          status_cd: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          action_cd: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id: string
+          executed_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          response_message?: string | null
+          run_no: number
+          scheduled_for?: string | null
+          stage_cd: string
+          status_cd?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          action_cd?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string
+          executed_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          metadata?: Json
+          response_message?: string | null
+          run_no?: number
+          scheduled_for?: string | null
+          stage_cd?: string
+          status_cd?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oadrun_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oadrun_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_ar_stmt_cycle_cust_dtl: {
+        Row: {
+          b2b_contract_id: string | null
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_id: string
+          cycle_id: string
+          id: string
+          is_active: boolean
+          metadata: Json
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          b2b_contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id: string
+          cycle_id: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          b2b_contract_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_id?: string
+          cycle_id?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oastcc_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oastcc_cyc"
+            columns: ["cycle_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_ar_stmt_cycles_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_ar_stmt_cycles_mst: {
+        Row: {
+          cadence_cd: string
+          created_at: string
+          created_by: string | null
+          created_by_info: string | null
+          customer_scope_cd: string
+          cycle_code: string
+          cycle_name: string
+          cycle_name2: string | null
+          day_of_month: number | null
+          day_of_week: number | null
+          due_terms_days: number
+          id: string
+          is_active: boolean
+          issue_day_offset: number
+          last_run_at: string | null
+          metadata: Json
+          next_run_at: string | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_by_info: string | null
+        }
+        Insert: {
+          cadence_cd: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_scope_cd?: string
+          cycle_code: string
+          cycle_name: string
+          cycle_name2?: string | null
+          day_of_month?: number | null
+          day_of_week?: number | null
+          due_terms_days?: number
+          id?: string
+          is_active?: boolean
+          issue_day_offset?: number
+          last_run_at?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Update: {
+          cadence_cd?: string
+          created_at?: string
+          created_by?: string | null
+          created_by_info?: string | null
+          customer_scope_cd?: string
+          cycle_code?: string
+          cycle_name?: string
+          cycle_name2?: string | null
+          day_of_month?: number | null
+          day_of_week?: number | null
+          due_terms_days?: number
+          id?: string
+          is_active?: boolean
+          issue_day_offset?: number
+          last_run_at?: string | null
+          metadata?: Json
+          next_run_at?: string | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_by_info?: string | null
+        }
+        Relationships: []
+      }
       org_asm_exceptions_tr: {
         Row: {
           branch_id: string | null
@@ -10022,6 +10522,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_info: string | null
+          credit_application_type: string | null
           currency_code: string | null
           currency_ex_rate: number | null
           customer_id: string | null
@@ -10081,6 +10582,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
+          credit_application_type?: string | null
           currency_code?: string | null
           currency_ex_rate?: number | null
           customer_id?: string | null
@@ -10140,6 +10642,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_info?: string | null
+          credit_application_type?: string | null
           currency_code?: string | null
           currency_ex_rate?: number | null
           customer_id?: string | null
@@ -12438,6 +12941,8 @@ export type Database = {
           credit_source_id: string | null
           credit_type: string
           currency_code: string
+          fin_voucher_id: string | null
+          fin_voucher_trx_line_id: string | null
           id: string
           idempotency_key: string | null
           is_active: boolean
@@ -12465,6 +12970,8 @@ export type Database = {
           credit_source_id?: string | null
           credit_type: string
           currency_code: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           id?: string
           idempotency_key?: string | null
           is_active?: boolean
@@ -12492,6 +12999,8 @@ export type Database = {
           credit_source_id?: string | null
           credit_type?: string
           currency_code?: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           id?: string
           idempotency_key?: string | null
           is_active?: boolean

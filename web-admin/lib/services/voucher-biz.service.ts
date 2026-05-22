@@ -197,6 +197,19 @@ export async function getBizVoucherById(
       wiring_status:          l.wiring_status,
       reversed_line_id:       l.reversed_line_id,
       created_at:             l.created_at,
+      credit_application_type: null,
+      order_payment_id:        l.order_payment_id ?? null,
+      cash_drawer_mvt_id:      l.cash_drawer_mvt_id ?? null,
+      org_payment_method_id:   null,
+      payment_terminal_id:     null,
+      cash_drawer_session_id:  l.cash_drawer_session_id ?? null,
+      card_brand_code:         l.card_brand_code ?? null,
+      card_last4:              l.card_last4 ?? null,
+      gateway_code:            l.gateway_code ?? null,
+      gateway_reference:       l.gateway_reference ?? null,
+      bank_reference:          l.bank_reference ?? null,
+      check_number:            l.check_number ?? null,
+      branch_id:               l.branch_id ?? null,
     }));
 
     return detail;

@@ -197,6 +197,15 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: CORE_NOTES,
   },
   {
+    routePattern: '/dashboard/customers/stored-value',
+    label: 'Stored Value',
+    page: {
+      permissions: ['stored_value:view_balances'],
+      requireAllPermissions: true,
+    },
+    notes: ['Stored value balances route requires the dedicated stored value viewer permission from navigation.'],
+  },
+  {
     routePattern: '/dashboard/users',
     label: 'Users',
     page: {},
@@ -315,6 +324,14 @@ export const CORE_ACCESS_CONTRACTS: PageAccessContract[] = [
   {
     routePattern: '/dashboard/reports/revenue',
     label: 'Revenue Report',
+    page: {
+      featureFlags: ['advanced_analytics'],
+      requireAllFeatureFlags: true,
+    },
+  },
+  {
+    routePattern: '/dashboard/reports/financial',
+    label: 'Financial Report',
     page: {
       featureFlags: ['advanced_analytics'],
       requireAllFeatureFlags: true,

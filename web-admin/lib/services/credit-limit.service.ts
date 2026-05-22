@@ -6,6 +6,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { getTenantIdFromSession } from '@/lib/db/tenant-context';
 import { logger } from '@/lib/utils/logger';
+import { AR_INVOICE_STATUSES } from '@/lib/constants/ar-invoice';
 
 export interface CreditLimitResult {
   allowed: boolean;
@@ -81,7 +82,12 @@ export async function checkCreditLimit(
     .select('total, paid_amount')
     .eq('tenant_org_id', tenantId)
     .eq('customer_id', customerId)
-    .in('status', ['pending', 'partial', 'issued']);
+    .in('status', [
+      AR_INVOICE_STATUSES.OPEN,
+      AR_INVOICE_STATUSES.PARTIALLY_PAID,
+      AR_INVOICE_STATUSES.OVERDUE,
+      AR_INVOICE_STATUSES.DISPUTED,
+    ]);
 
   const currentBalance =
     invoices?.reduce((sum, inv) => {

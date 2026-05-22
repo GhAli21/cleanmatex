@@ -36,6 +36,19 @@ function mapLineRow(row: Record<string, unknown>): VoucherLineData {
     wiring_status:          row.wiring_status as string,
     reversed_line_id:       (row.reversed_line_id as string) ?? null,
     created_at:             row.created_at as Date,
+    credit_application_type:(row.credit_application_type as string) ?? null,
+    order_payment_id:       (row.order_payment_id as string) ?? null,
+    cash_drawer_mvt_id:     (row.cash_drawer_mvt_id as string) ?? null,
+    org_payment_method_id:  (row.org_payment_method_id as string) ?? null,
+    payment_terminal_id:    (row.payment_terminal_id as string) ?? null,
+    cash_drawer_session_id: (row.cash_drawer_session_id as string) ?? null,
+    card_brand_code:        (row.card_brand_code as string) ?? null,
+    card_last4:             (row.card_last4 as string) ?? null,
+    gateway_code:           (row.gateway_code as string) ?? null,
+    gateway_reference:      (row.gateway_reference as string) ?? null,
+    bank_reference:         (row.bank_reference as string) ?? null,
+    check_number:           (row.check_number as string) ?? null,
+    branch_id:              (row.branch_id as string) ?? null,
   };
 }
 

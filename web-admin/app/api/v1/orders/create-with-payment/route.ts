@@ -14,9 +14,11 @@ import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
 import { createInvoice } from '@/lib/services/invoice-service';
+import { allocateArPaymentTx } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
 import { settleOrder } from '@/lib/services/order-settlement.service';
+import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { requirePermission } from '@/lib/middleware/require-permission';
 import { validateCSRF } from '@/lib/middleware/csrf';
 import {
@@ -601,22 +603,57 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    // Update invoice status to reflect settlement outcome
+    // Canonical AR settlement for checkout payments: create payment rows,
+    // anchor them to receipt vouchers, then allocate through the shared AR
+    // ledger/history service so checkout and finance screens stay consistent.
     if (hasImmediatePayment && amountToCharge > 0) {
-      const isFullyPaid      = amountToCharge >= serverTotals.finalTotal - creditsTotal - TOLERANCE;
-      const primaryMethodCode = resolvedLegs.filter((l) => !DEFERRED_METHODS.has(l.method))[0]?.method as PaymentMethodCode ?? 'CASH';
-      await prisma.org_invoice_mst.update({
-        where: { id_tenant_org_id: { id: result.invoiceId, tenant_org_id: tenantId } },
-        data: {
-          paid_amount:          amountToCharge,
-          status:               isFullyPaid ? 'paid' : 'partial',
-          paid_at:              new Date(),
-          paid_by:              userId,
-          payment_method_code:  primaryMethodCode,
-          updated_at:           new Date(),
-          updated_by:           userId,
-        },
-      });
+      const immediateLegs = resolvedLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method));
+
+      await withTenantContext(tenantId, async () =>
+        prisma.$transaction(async (tx) => {
+          for (const leg of immediateLegs) {
+            const payment = await recordPaymentTransaction(
+              {
+                invoice_id: result.invoiceId,
+                order_id: result.orderId,
+                customer_id: input.customerId,
+                paid_amount: leg.amount,
+                payment_method_code: leg.method as PaymentMethodCode,
+                payment_type_code: getPaymentTypeFromMethod(leg.method),
+                paid_by: userId,
+                branch_id: branchId,
+                currency_code: serverTotals.currencyCode,
+                currency_ex_rate: 1,
+                check_number: leg.checkNumber,
+                check_bank: leg.checkBank,
+                check_date: leg.checkDate ? new Date(leg.checkDate) : undefined,
+                rec_notes: input.paymentNotes,
+                trans_desc: input.paymentNotes,
+                payment_channel: 'web_admin_checkout',
+              },
+              tx
+            );
+
+            await allocateArPaymentTx(
+              tx,
+              result.invoiceId,
+              {
+                payment_id: payment.id,
+                voucher_id: payment.voucher_id,
+                allocated_amount: leg.amount,
+                unapplied_credit_amount: 0,
+                applied_at: new Date().toISOString(),
+                notes: input.paymentNotes,
+              },
+              {
+                tenantId,
+                userId,
+                userName,
+              }
+            );
+          }
+        })
+      );
     }
 
     return NextResponse.json({

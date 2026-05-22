@@ -25,6 +25,7 @@ export interface TaxProfile {
   effective_to: Date | null;
   is_default: boolean;
   is_active: boolean;
+  rec_status: number;
   created_at: Date;
 }
 
@@ -89,7 +90,7 @@ export interface UpdateTaxExemptionInput {
 // Actions
 // ---------------------------------------------------------------------------
 
-/** Fetch all active tax profiles for the tenant */
+/** Fetch all tax profiles for the tenant (active, inactive, and soft-deleted) */
 export async function getTaxProfilesAction(): Promise<{
   success: boolean;
   data?: TaxProfile[];
@@ -99,7 +100,7 @@ export async function getTaxProfilesAction(): Promise<{
     const { tenantId } = await getAuthContext();
     return withTenantContext(tenantId, async () => {
       const profiles = await prisma.org_tax_profiles_cf.findMany({
-        where: { tenant_org_id: tenantId, rec_status: 1 },
+        where: { tenant_org_id: tenantId },
         orderBy: { created_at: 'asc' },
       });
       return { success: true, data: profiles as unknown as TaxProfile[] };
@@ -183,8 +184,54 @@ export async function setDefaultTaxProfileAction(id: string): Promise<{
   }
 }
 
-/** Soft-deactivate a tax profile */
+/** Toggle a tax profile to inactive (is_active=false, rec_status unchanged) */
 export async function deactivateTaxProfileAction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { tenantId, userId } = await getAuthContext();
+    return withTenantContext(tenantId, async () => {
+      await prisma.org_tax_profiles_cf.update({
+        where: { id },
+        data: { is_active: false, updated_by: userId, updated_at: new Date() },
+      });
+      revalidatePath(REVALIDATE_PATH);
+      return { success: true };
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to deactivate tax profile',
+    };
+  }
+}
+
+/** Toggle a tax profile back to active */
+export async function activateTaxProfileAction(id: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const { tenantId, userId } = await getAuthContext();
+    return withTenantContext(tenantId, async () => {
+      await prisma.org_tax_profiles_cf.update({
+        where: { id },
+        data: { is_active: true, rec_status: 1, updated_by: userId, updated_at: new Date() },
+      });
+      revalidatePath(REVALIDATE_PATH);
+      return { success: true };
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to activate tax profile',
+    };
+  }
+}
+
+/** Soft-delete a tax profile (is_active=false, rec_status=0 — shown in red, no further edits) */
+export async function softDeleteTaxProfileAction(id: string): Promise<{
   success: boolean;
   error?: string;
 }> {
@@ -201,7 +248,7 @@ export async function deactivateTaxProfileAction(id: string): Promise<{
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to deactivate tax profile',
+      error: error instanceof Error ? error.message : 'Failed to delete tax profile',
     };
   }
 }

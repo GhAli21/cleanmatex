@@ -20,7 +20,7 @@ function collectPageRoutes(baseDir: string): string[] {
       if (entry.isFile() && entry.name === 'page.tsx') {
         const route = fullPath
           .replace(path.join(baseDir, 'app'), '')
-          .replace(/\/page\.tsx$/, '')
+          .replace(/[\\/]page\.tsx$/, '')
           .replace(/\\/g, '/')
 
         routes.push(route || '/')

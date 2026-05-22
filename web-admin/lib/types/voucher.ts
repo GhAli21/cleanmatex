@@ -188,6 +188,10 @@ export interface CreateVoucherLineInput {
   notes?: string;
   reversed_line_id?: string;
   idempotency_key?: string;
+  /** For ORDER_CREDIT_APPLICATION lines: WALLET, GIFT_CARD, CUSTOMER_ADVANCE, CREDIT_NOTE, LOYALTY_CREDIT */
+  credit_application_type?: string;
+  org_payment_method_id?: string;
+  payment_terminal_id?: string;
 }
 
 export type UpdateVoucherLineInput = Partial<Omit<CreateVoucherLineInput, 'idempotency_key'>>;
@@ -216,6 +220,19 @@ export interface VoucherLineData {
   wiring_status: string;
   reversed_line_id: string | null;
   created_at: Date;
+  credit_application_type: string | null;
+  order_payment_id: string | null;
+  cash_drawer_mvt_id: string | null;
+  org_payment_method_id: string | null;
+  payment_terminal_id: string | null;
+  cash_drawer_session_id: string | null;
+  card_brand_code: string | null;
+  card_last4: string | null;
+  gateway_code: string | null;
+  gateway_reference: string | null;
+  bank_reference: string | null;
+  check_number: string | null;
+  branch_id: string | null;
 }
 
 export interface BizVoucherDetailData {

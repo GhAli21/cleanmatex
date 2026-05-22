@@ -94,6 +94,8 @@ interface CmxDataTableProps<TData> {
    * `always` shows rows-per-page + range (and page controls when multiple pages).
    */
   paginationFooter?: CmxDataTablePaginationFooter
+  /** Optional class(es) applied to each `<tr>`. Return undefined to apply no extra class. */
+  getRowClassName?: (row: TData, index: number) => string | undefined
 }
 
 function isSimpleColumn<TData>(
@@ -183,6 +185,7 @@ export function CmxDataTable<TData>({
   rowNumberHeader = '#',
   rowNumberOffset: rowNumberOffsetProp,
   paginationFooter = 'auto',
+  getRowClassName,
 }: CmxDataTableProps<TData>) {
   const effectiveLoading = loading ?? isLoading ?? false
   const effectiveTotal = total ?? totalCount ?? 0
@@ -348,6 +351,7 @@ export function CmxDataTable<TData>({
                     className={cn(
                       'border-t border-[rgb(var(--cmx-border-subtle-rgb,226_232_240))] transition-colors hover:bg-[rgb(var(--cmx-table-row-hover-bg-rgb,248_250_252))]',
                       enableZebraStriping && index % 2 === 1 && 'bg-[rgb(var(--cmx-muted-rgb,241_245_249))]',
+                      getRowClassName?.(row.original, index),
                     )}
                   >
                     {row.getVisibleCells().map((cell) => {
