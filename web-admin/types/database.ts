@@ -3736,6 +3736,129 @@ export type Database = {
           },
         ]
       }
+      org_customer_ar_ledger_dtl: {
+        Row: {
+          adjustment_id: string | null
+          amount: number
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          customer_id: string
+          entry_no: number
+          entry_side: string
+          event_at: string
+          id: string
+          invoice_id: string | null
+          is_active: boolean
+          metadata: Json
+          movement_cd: string
+          payment_alloc_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          ref_doc_no: string | null
+          running_balance: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          voucher_id: string | null
+        }
+        Insert: {
+          adjustment_id?: string | null
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          customer_id: string
+          entry_no?: number
+          entry_side: string
+          event_at?: string
+          id?: string
+          invoice_id?: string | null
+          is_active?: boolean
+          metadata?: Json
+          movement_cd: string
+          payment_alloc_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          ref_doc_no?: string | null
+          running_balance?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+        }
+        Update: {
+          adjustment_id?: string | null
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          customer_id?: string
+          entry_no?: number
+          entry_side?: string
+          event_at?: string
+          id?: string
+          invoice_id?: string | null
+          is_active?: boolean
+          metadata?: Json
+          movement_cd?: string
+          payment_alloc_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          ref_doc_no?: string | null
+          running_balance?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_ocal_adj"
+            columns: ["adjustment_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_adjustments_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocal_cus"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "org_customers_mst"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_ocal_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocal_pay"
+            columns: ["payment_alloc_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_payments_dtl"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_ocal_vch"
+            columns: ["voucher_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_customer_category_cf: {
         Row: {
           code: string
@@ -10890,15 +11013,220 @@ export type Database = {
           },
         ]
       }
+      org_invoice_adjustments_dtl: {
+        Row: {
+          adjustment_amount: number
+          adjustment_no: number
+          adjustment_type_cd: string
+          approval_action_cd: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          invoice_id: string
+          is_active: boolean
+          metadata: Json
+          reason: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          status_cd: string
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          adjustment_amount?: number
+          adjustment_no?: number
+          adjustment_type_cd: string
+          approval_action_cd?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          invoice_id: string
+          is_active?: boolean
+          metadata?: Json
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          status_cd?: string
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          adjustment_amount?: number
+          adjustment_no?: number
+          adjustment_type_cd?: string
+          approval_action_cd?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          invoice_id?: string
+          is_active?: boolean
+          metadata?: Json
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          status_cd?: string
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oia_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_invoice_lines_dtl: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          currency_code: string
+          currency_ex_rate: number
+          description: string
+          description2: string | null
+          discount_amount: number
+          id: string
+          invoice_id: string
+          is_active: boolean
+          line_no: number
+          line_type: string
+          metadata: Json
+          quantity: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          source_order_id: string | null
+          source_order_item_id: string | null
+          source_type: string | null
+          subtotal_amount: number
+          tax_amount: number
+          tax_rate: number | null
+          taxable_amount: number
+          tenant_org_id: string
+          total_amount: number
+          unit_price: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code: string
+          currency_ex_rate?: number
+          description: string
+          description2?: string | null
+          discount_amount?: number
+          id?: string
+          invoice_id: string
+          is_active?: boolean
+          line_no: number
+          line_type?: string
+          metadata?: Json
+          quantity?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_order_id?: string | null
+          source_order_item_id?: string | null
+          source_type?: string | null
+          subtotal_amount?: number
+          tax_amount?: number
+          tax_rate?: number | null
+          taxable_amount?: number
+          tenant_org_id: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          currency_code?: string
+          currency_ex_rate?: number
+          description?: string
+          description2?: string | null
+          discount_amount?: number
+          id?: string
+          invoice_id?: string
+          is_active?: boolean
+          line_no?: number
+          line_type?: string
+          metadata?: Json
+          quantity?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          source_order_id?: string | null
+          source_order_item_id?: string | null
+          source_type?: string | null
+          subtotal_amount?: number
+          tax_amount?: number
+          tax_rate?: number | null
+          taxable_amount?: number
+          tenant_org_id?: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oil_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oil_ord"
+            columns: ["source_order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
       org_invoice_mst: {
         Row: {
+          approval_action_cd: string | null
+          approval_notes: string | null
+          approval_required: boolean
+          approved_at: string | null
+          approved_by: string | null
           b2b_contract_id: string | null
           branch_id: string | null
           cost_center_code: string | null
           created_at: string
           created_by: string | null
           created_info: string | null
-          currency_code: string | null
+          currency_code: string
           currency_ex_rate: number
           customer_id: string | null
           customer_reference: string | null
@@ -10906,6 +11234,8 @@ export type Database = {
           discount_rate: number | null
           discount_type: string | null
           due_date: string | null
+          due_date_source_cd: string | null
+          due_terms_days: number | null
           gift_card_applied_amount: number | null
           gift_card_id: string | null
           handed_to_by_user: string | null
@@ -10917,8 +11247,13 @@ export type Database = {
           invoice_no: string
           invoice_type_cd: string | null
           is_active: boolean | null
+          issued_at: string | null
+          issued_by: string | null
           metadata: Json | null
+          numbering_doc_type_cd: string
+          numbering_seq_no: number | null
           order_id: string | null
+          outstanding_amount: number | null
           paid_amount: number | null
           paid_at: string | null
           paid_by: string | null
@@ -10945,15 +11280,23 @@ export type Database = {
           updated_info: string | null
           vat_amount: number | null
           vat_rate: number | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
         }
         Insert: {
+          approval_action_cd?: string | null
+          approval_notes?: string | null
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           b2b_contract_id?: string | null
           branch_id?: string | null
           cost_center_code?: string | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
-          currency_code?: string | null
+          currency_code: string
           currency_ex_rate?: number
           customer_id?: string | null
           customer_reference?: string | null
@@ -10961,6 +11304,8 @@ export type Database = {
           discount_rate?: number | null
           discount_type?: string | null
           due_date?: string | null
+          due_date_source_cd?: string | null
+          due_terms_days?: number | null
           gift_card_applied_amount?: number | null
           gift_card_id?: string | null
           handed_to_by_user?: string | null
@@ -10972,8 +11317,13 @@ export type Database = {
           invoice_no: string
           invoice_type_cd?: string | null
           is_active?: boolean | null
+          issued_at?: string | null
+          issued_by?: string | null
           metadata?: Json | null
+          numbering_doc_type_cd?: string
+          numbering_seq_no?: number | null
           order_id?: string | null
+          outstanding_amount?: number | null
           paid_amount?: number | null
           paid_at?: string | null
           paid_by?: string | null
@@ -11000,15 +11350,23 @@ export type Database = {
           updated_info?: string | null
           vat_amount?: number | null
           vat_rate?: number | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Update: {
+          approval_action_cd?: string | null
+          approval_notes?: string | null
+          approval_required?: boolean
+          approved_at?: string | null
+          approved_by?: string | null
           b2b_contract_id?: string | null
           branch_id?: string | null
           cost_center_code?: string | null
           created_at?: string
           created_by?: string | null
           created_info?: string | null
-          currency_code?: string | null
+          currency_code?: string
           currency_ex_rate?: number
           customer_id?: string | null
           customer_reference?: string | null
@@ -11016,6 +11374,8 @@ export type Database = {
           discount_rate?: number | null
           discount_type?: string | null
           due_date?: string | null
+          due_date_source_cd?: string | null
+          due_terms_days?: number | null
           gift_card_applied_amount?: number | null
           gift_card_id?: string | null
           handed_to_by_user?: string | null
@@ -11027,8 +11387,13 @@ export type Database = {
           invoice_no?: string
           invoice_type_cd?: string | null
           is_active?: boolean | null
+          issued_at?: string | null
+          issued_by?: string | null
           metadata?: Json | null
+          numbering_doc_type_cd?: string
+          numbering_seq_no?: number | null
           order_id?: string | null
+          outstanding_amount?: number | null
           paid_amount?: number | null
           paid_at?: string | null
           paid_by?: string | null
@@ -11055,6 +11420,9 @@ export type Database = {
           updated_info?: string | null
           vat_amount?: number | null
           vat_rate?: number | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
         }
         Relationships: [
           {
@@ -11140,6 +11508,267 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_fin_tenant_readiness"
             referencedColumns: ["tenant_org_id"]
+          },
+        ]
+      }
+      org_invoice_orders_dtl: {
+        Row: {
+          allocation_policy: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          credit_before_amount: number
+          id: string
+          invoice_id: string
+          invoiced_amount: number
+          is_active: boolean
+          metadata: Json
+          order_id: string
+          order_total_amount: number
+          outstanding_amount: number
+          paid_before_amount: number
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          allocation_policy?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          credit_before_amount?: number
+          id?: string
+          invoice_id: string
+          invoiced_amount?: number
+          is_active?: boolean
+          metadata?: Json
+          order_id: string
+          order_total_amount?: number
+          outstanding_amount?: number
+          paid_before_amount?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          allocation_policy?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          credit_before_amount?: number
+          id?: string
+          invoice_id?: string
+          invoiced_amount?: number
+          is_active?: boolean
+          metadata?: Json
+          order_id?: string
+          order_total_amount?: number
+          outstanding_amount?: number
+          paid_before_amount?: number
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oio_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oio_ord"
+            columns: ["order_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_orders_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_invoice_payments_dtl: {
+        Row: {
+          allocated_amount: number
+          allocation_no: number
+          allocation_outcome: string
+          applied_at: string
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          id: string
+          invoice_id: string
+          is_active: boolean
+          metadata: Json
+          payment_id: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          reversal_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          tenant_org_id: string
+          unapplied_credit_amount: number
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+          voucher_id: string | null
+        }
+        Insert: {
+          allocated_amount?: number
+          allocation_no?: number
+          allocation_outcome?: string
+          applied_at?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          invoice_id: string
+          is_active?: boolean
+          metadata?: Json
+          payment_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          tenant_org_id: string
+          unapplied_credit_amount?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+        }
+        Update: {
+          allocated_amount?: number
+          allocation_no?: number
+          allocation_outcome?: string
+          applied_at?: string
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          id?: string
+          invoice_id?: string
+          is_active?: boolean
+          metadata?: Json
+          payment_id?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          reversal_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          tenant_org_id?: string
+          unapplied_credit_amount?: number
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+          voucher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oip_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+          {
+            foreignKeyName: "fk_oip_pay"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "org_payments_dtl_tr"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_oip_vch"
+            columns: ["voucher_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["id", "tenant_org_id"]
+          },
+        ]
+      }
+      org_invoice_status_history_dtl: {
+        Row: {
+          action_cd: string | null
+          created_at: string
+          created_by: string | null
+          created_info: string | null
+          from_status: string | null
+          id: string
+          invoice_id: string
+          is_active: boolean
+          metadata: Json
+          reason: string | null
+          rec_notes: string | null
+          rec_order: number | null
+          rec_status: number
+          tenant_org_id: string
+          to_status: string
+          updated_at: string | null
+          updated_by: string | null
+          updated_info: string | null
+        }
+        Insert: {
+          action_cd?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_status?: string | null
+          id?: string
+          invoice_id: string
+          is_active?: boolean
+          metadata?: Json
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id: string
+          to_status: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Update: {
+          action_cd?: string | null
+          created_at?: string
+          created_by?: string | null
+          created_info?: string | null
+          from_status?: string | null
+          id?: string
+          invoice_id?: string
+          is_active?: boolean
+          metadata?: Json
+          reason?: string | null
+          rec_notes?: string | null
+          rec_order?: number | null
+          rec_status?: number
+          tenant_org_id?: string
+          to_status?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          updated_info?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_oish_inv"
+            columns: ["invoice_id", "tenant_org_id"]
+            isOneToOne: false
+            referencedRelation: "org_invoice_mst"
+            referencedColumns: ["id", "tenant_org_id"]
           },
         ]
       }

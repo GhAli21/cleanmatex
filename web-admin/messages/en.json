@@ -4177,6 +4177,11 @@
         "email": "Email Receipt",
         "whatsapp": "Send via WhatsApp"
       },
+      "tax": {
+        "panelTitle": "Additional Tax",
+        "noProfiles": "No default tax profiles configured",
+        "totalTax": "Total Tax"
+      },
       "splitPayment": {
         "title": "Payment Legs",
         "addMethod": "+ Add payment method",

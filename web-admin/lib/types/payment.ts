@@ -23,6 +23,12 @@ import {
   PAYMENT_GATEWAYS,
   getPaymentTypeFromMethod,
 } from "../constants/payment";
+import type {
+  ArDueDateSource,
+  ArInvoiceDocType,
+  ArInvoiceType,
+  ArSensitiveApprovalAction,
+} from '@/lib/types/ar-invoice';
 
 import {
   type GiftCardStatus,
@@ -108,6 +114,7 @@ export interface Invoice {
   branch_id?: string;
   invoice_no: string;
   invoice_date?: string;
+  invoice_type_cd?: ArInvoiceType;
 
   // Amounts
   subtotal: number;
@@ -115,6 +122,7 @@ export interface Invoice {
   tax: number;
   tax_rate?: number;
   total: number;
+  outstanding_amount?: number;
   vat_rate?: number;
   vat_amount?: number;
   discount_rate?: number;
@@ -127,6 +135,8 @@ export interface Invoice {
   // Payment info
   status: InvoiceStatus;
   due_date?: string;
+  due_date_source_cd?: ArDueDateSource;
+  due_terms_days?: number;
   payment_terms?: string;
   payment_method_code?: PaymentMethodCode;
   paid_amount: number;
@@ -147,6 +157,18 @@ export interface Invoice {
   rec_notes?: string;
   currency_code?: string;
   currency_ex_rate?: number;
+  numbering_doc_type_cd?: ArInvoiceDocType;
+  numbering_seq_no?: number;
+  approval_required?: boolean;
+  approval_action_cd?: ArSensitiveApprovalAction;
+  approved_at?: string;
+  approved_by?: string;
+  approval_notes?: string;
+  issued_at?: string;
+  issued_by?: string;
+  voided_at?: string;
+  voided_by?: string;
+  void_reason?: string;
 
   // Audit fields
   created_at: string;

@@ -9,6 +9,11 @@
 
 export { LOYALTY_TXN_TYPES } from '@/lib/constants/order-financial';
 export type { LoyaltyTxnType } from '@/lib/constants/order-financial';
+import {
+  AR_INVOICE_STATUSES,
+  type ArInvoiceStatus,
+  type LegacyInvoiceStatus,
+} from '@/lib/constants/ar-invoice';
 
 /**
  * Payment Kind IDs (invoice, deposit, advance, pos, normal)
@@ -56,19 +61,21 @@ export const PAYMENT_TYPE_IDS = {
 export type PaymentTypeId = (typeof PAYMENT_TYPE_IDS)[keyof typeof PAYMENT_TYPE_IDS];
 
 /**
- * Invoice status values
+ * Invoice status values.
+ *
+ * The uppercase values are the canonical AR Invoice v1 DB codes.
+ * `PENDING` and `PARTIAL` remain as compatibility aliases for older callers.
  */
 export const INVOICE_STATUSES = {
-  DRAFT: 'draft',
-  PENDING: 'pending',
-  PARTIAL: 'partial',
-  PAID: 'paid',
-  OVERDUE: 'overdue',
-  CANCELLED: 'cancelled',
-  REFUNDED: 'refunded',
+  ...AR_INVOICE_STATUSES,
+  PENDING: AR_INVOICE_STATUSES.OPEN,
+  PARTIAL: AR_INVOICE_STATUSES.PARTIALLY_PAID,
 } as const;
 
-export type InvoiceStatus = (typeof INVOICE_STATUSES)[keyof typeof INVOICE_STATUSES];
+export type InvoiceStatus =
+  | (typeof INVOICE_STATUSES)[keyof typeof INVOICE_STATUSES]
+  | LegacyInvoiceStatus
+  | ArInvoiceStatus;
 
 /**
  * Payment transaction status (per-transaction lifecycle)

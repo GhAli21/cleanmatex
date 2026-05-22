@@ -23,6 +23,7 @@ import { useCSRFToken, getCSRFHeader } from '@/lib/hooks/use-csrf-token';
 import { validatePromoCodeAction } from '@/app/actions/payments/validate-promo';
 import { validateGiftCardAction } from '@/app/actions/payments/validate-gift-card';
 import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
+import { getTaxProfilesAction } from '@/app/actions/settings/tax-actions';
 import type { ValidatePromoCodeResult, ValidateGiftCardResult, OrgCardBrandConfig } from '@/lib/types/payment';
 import { getPaymentFormSchema, type PaymentFormData } from '@features/orders/model/payment-form-schema';
 import { taxService } from '@/lib/services/tax.service';
@@ -286,9 +287,10 @@ export function PaymentModalV3({
   const [taxPanelOpen, setTaxPanelOpen] = useState(true);
 
   // Tax state
-  const [taxRate, setTaxRate]               = useState<number>(0.06);
-  const [orderTaxRate, setOrderTaxRate]     = useState<number>(0);
-  const [orderTaxAmount, setOrderTaxAmount] = useState<number>(0);
+  const [taxRate, setTaxRate] = useState<number>(0.06);
+
+  type TaxProfileEntry = { id: string; name: string; name2: string | null; tax_type: string; rate: number; enabled: boolean };
+  const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
 
   const isImmediatePayment =
     paymentMethod === PAYMENT_METHODS.CASH ||
@@ -330,6 +332,7 @@ export function PaymentModalV3({
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
+  const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
   const [currencyConfig, setCurrencyConfig] = useState<{
@@ -349,7 +352,7 @@ export function PaymentModalV3({
     staleTime: 5 * 60 * 1000,
   });
 
-  // Load tax rate + currency on open
+  // Load tax rate, currency, and default tax profiles on open
   useEffect(() => {
     if (open && tenantOrgId) {
       taxService.getTaxRate(tenantOrgId, branchId).then(rate => {
@@ -361,6 +364,23 @@ export function PaymentModalV3({
         setCurrencyConfig(config);
       }).catch(() => {
         setCurrencyConfig({ currencyCode: ORDER_DEFAULTS.CURRENCY, decimalPlaces: 3, currencyExRate: 1 });
+      });
+      getTaxProfilesAction().then(res => {
+        if (res.success && res.data) {
+          const defaultActive = res.data
+            .filter(p => p.is_default && p.is_active)
+            .sort((a, b) => a.tax_type.localeCompare(b.tax_type));
+          setTaxProfileEntries(defaultActive.map(p => ({
+            id: p.id,
+            name: p.name,
+            name2: p.name2,
+            tax_type: p.tax_type,
+            rate: Number(p.rate),
+            enabled: true,
+          })));
+        }
+      }).catch(() => {
+        setTaxProfileEntries([]);
       });
     }
   }, [open, tenantOrgId, branchId, userId]);
@@ -485,6 +505,7 @@ export function PaymentModalV3({
       setAmountDiscountDraft('');
       const initialMethod = (isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION) as PaymentMethodCode;
       setPaymentLegs([{ method: initialMethod, amount: 0 }]);
+      setTaxProfileEntries([]);
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
 
@@ -503,39 +524,26 @@ export function PaymentModalV3({
     return Math.max(0, subtotal - manualDiscount - promoDiscount);
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode]);
 
-  const handleOrderTaxRateChange = useCallback(
-    (newRate: number) => {
-      setOrderTaxRate(newRate);
-      const amount = parseFloat((afterDiscountsForTax * (newRate / 100)).toFixed(decimalPlaces));
-      setOrderTaxAmount(amount);
-    },
-    [afterDiscountsForTax, decimalPlaces]
-  );
-
-  const handleOrderTaxAmountChange = useCallback(
-    (newAmount: number) => {
-      setOrderTaxAmount(newAmount);
-      if (afterDiscountsForTax > 0) {
-        const rate = parseFloat(((newAmount / afterDiscountsForTax) * 100).toFixed(2));
-        setOrderTaxRate(rate);
-      }
-    },
-    [afterDiscountsForTax]
+  const profilesTaxAmount = useMemo(
+    () => parseFloat(
+      taxProfileEntries
+        .filter(e => e.enabled)
+        .reduce((sum, e) => sum + afterDiscountsForTax * (e.rate / 100), 0)
+        .toFixed(decimalPlaces)
+    ),
+    [taxProfileEntries, afterDiscountsForTax, decimalPlaces]
   );
 
   const totals = useMemo(() => {
     if (serverTotals) {
-      const additionalTaxAmount =
-        orderTaxAmount > 0
-          ? orderTaxAmount
-          : parseFloat((afterDiscountsForTax * (orderTaxRate / 100)).toFixed(decimalPlaces));
+      const additionalTaxAmount = profilesTaxAmount;
       const clientGiftCard  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
       const serverGiftCard  = serverTotals.giftCardApplied || 0;
       const pendingGiftCard = Math.max(0, clientGiftCard - serverGiftCard);
       const finalTotalWithExtra = Math.max(0, serverTotals.finalTotal + additionalTaxAmount - pendingGiftCard);
       return {
         ...serverTotals,
-        taxRate: orderTaxRate,
+        taxRate: 0,
         taxAmount: additionalTaxAmount,
         giftCardApplied: serverGiftCard + pendingGiftCard,
         finalTotal: finalTotalWithExtra,
@@ -549,7 +557,7 @@ export function PaymentModalV3({
         : Math.min(amountDiscount, subtotal);
     const promoDiscount  = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedPromoCode?.discount || 0);
     const afterDiscounts = Math.max(0, subtotal - manualDiscount - promoDiscount);
-    const taxAmount      = orderTaxAmount > 0 ? orderTaxAmount : parseFloat((afterDiscounts * (orderTaxRate / 100)).toFixed(decimalPlaces));
+    const taxAmount      = profilesTaxAmount;
     const afterTax       = afterDiscounts + taxAmount;
     const vatValue       = parseFloat((afterTax * taxRate).toFixed(decimalPlaces));
     const giftCardApplied = NEW_ORDER_PROMO_GIFT_DISABLED ? 0 : (appliedGiftCard?.amount || 0);
@@ -560,7 +568,7 @@ export function PaymentModalV3({
       autoRuleDiscount: 0,
       promoDiscount,
       afterDiscounts,
-      taxRate: orderTaxRate,
+      taxRate: 0,
       taxAmount,
       vatTaxPercent: taxRate * 100,
       vatValue,
@@ -568,7 +576,7 @@ export function PaymentModalV3({
       finalTotal,
       totalSavings: subtotal + taxAmount + vatValue - finalTotal,
     };
-  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, orderTaxRate, orderTaxAmount, afterDiscountsForTax, decimalPlaces]);
+  }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces]);
 
   const effectiveAmountToCharge = useMemo(() => {
     if (!payPartial || !isImmediatePayment) return totals.finalTotal;
@@ -629,7 +637,8 @@ export function PaymentModalV3({
       }
       setPaymentLegs((prev) => {
         if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
-          return [{ ...prev[0], method: code }];
+          // First leg placeholder — fill it with the full outstanding amount
+          return [{ ...prev[0], method: code, amount: totals.finalTotal }];
         }
         const currentSum = prev.reduce((s, l) => s + (l.amount || 0), 0);
         const remaining = parseFloat(
@@ -637,6 +646,8 @@ export function PaymentModalV3({
         );
         return [...prev, { method: code, amount: remaining }];
       });
+      // Scroll to the payment legs section
+      setTimeout(() => legsCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
     },
     [setValue, totals.finalTotal, decimalPlaces, IMMEDIATE_METHOD_CODES]
   );
@@ -952,6 +963,19 @@ export function PaymentModalV3({
                         <span className="text-xs font-semibold text-green-600">
                           {t('savings')} {currencyCode} {formatAmount(totals.totalSavings)}
                         </span>
+                      </div>
+                    )}
+                    {/* Outstanding / fully allocated indicator — visible from first load for immediate methods */}
+                    {isImmediatePayment && legRemaining > 0.001 && (
+                      <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-100 border border-amber-200">
+                        <span className="text-sm font-semibold text-amber-700">
+                          {t('splitPayment.outstanding')}: {currencyCode} {formatAmount(legRemaining)}
+                        </span>
+                      </div>
+                    )}
+                    {isImmediatePayment && legsValid && legSum > 0.001 && (
+                      <div className="mt-2">
+                        <span className="text-xs font-medium text-green-600">✓ {t('splitPayment.allocated')}</span>
                       </div>
                     )}
                   </>
@@ -1296,6 +1320,7 @@ export function PaymentModalV3({
 
             {/* ── H: Split Payment Legs Card ───────────────────────── */}
             {isImmediatePayment && (
+              <div ref={legsCardRef}>
               <CmxCard className="border-blue-200">
                 <CmxCardHeader className="pb-2">
                   <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
@@ -1523,6 +1548,7 @@ export function PaymentModalV3({
                   </CmxButton>
                 </CmxCardContent>
               </CmxCard>
+              </div>
             )}
 
             {/* ── I: Promotions & Gift Card (collapsible) ──────────── */}
@@ -1782,7 +1808,7 @@ export function PaymentModalV3({
               </CmxCard>
             )}
 
-            {/* ── J: Advanced Tax (collapsible) ────────────────────── */}
+            {/* ── J: Tax Profiles Panel (collapsible) ─────────────── */}
             <CmxCard>
               <button
                 type="button"
@@ -1790,41 +1816,63 @@ export function PaymentModalV3({
                 aria-expanded={taxPanelOpen}
                 className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-t-lg transition-colors ${isRTL ? 'flex-row-reverse' : ''}`}
               >
-                <span>{t('summary.taxRate')} / {t('summary.taxAmount')}</span>
+                <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  {t('tax.panelTitle')}
+                  {profilesTaxAmount > 0 && (
+                    <Badge variant="secondary" className="text-xs tabular-nums">
+                      {currencyCode} {formatAmount(profilesTaxAmount)}
+                    </Badge>
+                  )}
+                </span>
                 {taxPanelOpen ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
               </button>
               {taxPanelOpen && (
-                <CmxCardContent className="border-t grid grid-cols-2 gap-3">
-                  <div>
-                    <label className={`block text-xs font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : ''}`}>
-                      {t('summary.taxRate')} (%)
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={orderTaxRate}
-                      onChange={(e) => handleOrderTaxRateChange(parseFloat(e.target.value) || 0)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-right"
-                      dir="ltr"
-                    />
-                  </div>
-                  <div>
-                    <label className={`block text-xs font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : ''}`}>
-                      {t('summary.taxAmount')} ({currencyCode})
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      step={0.001}
-                      value={orderTaxAmount > 0 ? orderTaxAmount : ''}
-                      onChange={(e) => handleOrderTaxAmountChange(parseFloat(e.target.value) || 0)}
-                      placeholder={formatAmount(totals.taxAmount ?? 0)}
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-right"
-                      dir="ltr"
-                    />
-                  </div>
+                <CmxCardContent className="border-t space-y-2">
+                  {taxProfileEntries.length === 0 ? (
+                    <p className={`text-xs text-gray-500 ${isRTL ? 'text-right' : ''}`}>{t('tax.noProfiles')}</p>
+                  ) : (
+                    <>
+                      {taxProfileEntries.map((entry, i) => (
+                        <div key={entry.id} className={`flex items-center gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                          <div className="flex-1 min-w-0">
+                            <p className={`text-xs font-medium text-gray-700 truncate ${isRTL ? 'text-right' : ''}`}>
+                              {isRTL ? (entry.name2 || entry.name) : entry.name}
+                            </p>
+                            <p className="text-xs text-gray-400">{entry.tax_type}</p>
+                          </div>
+                          <div className={`flex items-center border border-gray-300 rounded-lg overflow-hidden bg-white ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <input
+                              type="number"
+                              min={0}
+                              max={100}
+                              step={0.01}
+                              value={entry.rate}
+                              onChange={(e) => {
+                                const newRate = parseFloat(e.target.value) || 0;
+                                setTaxProfileEntries(prev => {
+                                  const updated = [...prev];
+                                  updated[i] = { ...updated[i], rate: newRate };
+                                  return updated;
+                                });
+                              }}
+                              dir="ltr"
+                              className="w-16 px-2 py-1.5 text-sm border-0 focus:ring-0 outline-none text-right"
+                            />
+                            <span className={`px-1.5 text-gray-400 text-xs bg-gray-50 flex items-center self-stretch ${isRTL ? 'border-r' : 'border-l'}`}>%</span>
+                          </div>
+                          <span className="text-sm font-medium text-gray-700 tabular-nums min-w-[72px] text-right" dir="ltr">
+                            {currencyCode} {formatAmount(parseFloat((afterDiscountsForTax * (entry.rate / 100)).toFixed(decimalPlaces)))}
+                          </span>
+                        </div>
+                      ))}
+                      <div className={`flex justify-between items-center border-t pt-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <span className={`text-xs font-medium text-gray-700 ${isRTL ? 'text-right' : ''}`}>{t('tax.totalTax')}</span>
+                        <span className="text-sm font-bold text-gray-900 tabular-nums" dir="ltr">
+                          {currencyCode} {formatAmount(profilesTaxAmount)}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </CmxCardContent>
               )}
             </CmxCard>
