@@ -77,6 +77,15 @@ export async function addVoucherLine(
   validateVoucherLine(input, userRole);
 
   return withTenantContext(tenantOrgId, async () => {
+    // Idempotency: return existing line if a prior attempt already created it.
+    if (input.idempotency_key) {
+      const existing = await prisma.org_fin_voucher_trx_lines_dtl.findFirst({
+        where:  { tenant_org_id: tenantOrgId, idempotency_key: input.idempotency_key },
+        select: { id: true, line_no: true },
+      });
+      if (existing) return { id: existing.id, line_no: existing.line_no };
+    }
+
     const voucher = await prisma.org_fin_vouchers_mst.findFirst({
       where: { id: voucherId, tenant_org_id: tenantOrgId },
       select: { voucher_status: true },

@@ -322,7 +322,114 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       throw new Error('CHECK_NUMBER_REQUIRED');
   }
 
-  // ── 3. tx1 — create order + invoice + promo/gift (idempotency-unaware) ────────
+  // ── 3. Resolve payment method config + build + validate settlement plan ─────────
+  // Must happen BEFORE tx1 so infrastructure errors (drawer closed, gateway missing,
+  // payment method not configured) abort before any DB writes are committed.
+  type RawMethodRow = {
+    id: string;
+    payment_method_code: string;
+    payment_nature: string;
+    gateway_code: string | null;
+    display_name: string;
+    display_name2: string | null;
+    settlement_type_code: string | null;
+    credit_application_type: string | null;
+    requires_cash_drawer: boolean;
+    requires_terminal: boolean;
+    min_amount: Decimal | null;
+    max_amount: Decimal | null;
+    min_order_amount: Decimal | null;
+    max_order_amount: Decimal | null;
+    is_platform_disabled: boolean;
+    eff_default_creation_status: string;
+    eff_allow_status_override: boolean;
+    eff_requires_reference: boolean;
+    eff_is_user_id_required: boolean;
+    allowed_in_pos: boolean;
+  };
+
+  const methodCodes = [...new Set(paymentLegs.map((l) => l.method))];
+  const methodRows = await withTenantContext(tenantId, () =>
+    prisma.$queryRaw<RawMethodRow[]>`
+      SELECT
+        o.id, o.payment_method_code, o.payment_nature, o.gateway_code,
+        o.display_name, o.display_name2, o.settlement_type_code, o.credit_application_type,
+        o.requires_cash_drawer, o.requires_terminal,
+        o.min_amount, o.max_amount, o.min_order_amount, o.max_order_amount,
+        o.is_platform_disabled, o.allowed_in_pos,
+        COALESCE(o.default_creation_status, s.default_creation_status) AS eff_default_creation_status,
+        COALESCE(o.allow_status_override,   s.allow_status_override)   AS eff_allow_status_override,
+        COALESCE(o.requires_reference,      s.requires_reference)      AS eff_requires_reference,
+        COALESCE(o.is_user_id_required,     s.is_user_id_required)     AS eff_is_user_id_required
+      FROM org_payment_methods_cf o
+      JOIN sys_payment_method_cd s ON s.payment_method_code = o.payment_method_code
+      WHERE o.tenant_org_id = ${tenantId}::uuid
+        AND o.payment_method_code = ANY(${methodCodes}::text[])
+        AND o.is_active  = true
+        AND o.rec_status = 1
+    `
+  );
+
+  const settlementLegs: ResolvedSettlementLeg[] = paymentLegs.map((leg) => {
+    const row = methodRows.find((r) => r.payment_method_code === leg.method);
+    if (!row) throw new Error(`Payment method config not found for code: ${leg.method}`);
+
+    const settlementOption: SettlementOption = {
+      id:                    row.id,
+      paymentMethodCode:     row.payment_method_code,
+      paymentNature:         row.payment_nature as SettlementOption['paymentNature'],
+      gatewayCode:           row.gateway_code,
+      displayName:           row.display_name,
+      displayName2:          row.display_name2,
+      settlementTypeCode:    row.settlement_type_code as SettlementOption['settlementTypeCode'],
+      creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
+      requiresCashDrawer:    row.requires_cash_drawer,
+      requiresTerminal:      row.requires_terminal,
+      minAmount:             row.min_amount != null ? toNum(row.min_amount) : null,
+      maxAmount:             row.max_amount != null ? toNum(row.max_amount) : null,
+      minOrderAmount:        row.min_order_amount != null ? toNum(row.min_order_amount) : null,
+      maxOrderAmount:        row.max_order_amount != null ? toNum(row.max_order_amount) : null,
+      isPlatformDisabled:    row.is_platform_disabled,
+      isGloballyDisabled:    false,
+      defaultCreationStatus: row.eff_default_creation_status ?? 'PENDING',
+      allowStatusOverride:   row.eff_allow_status_override ?? false,
+      requiresReference:     row.eff_requires_reference ?? false,
+      isUserIdRequired:      row.eff_is_user_id_required ?? false,
+      allowedInPos:          row.allowed_in_pos ?? true,
+    };
+
+    return {
+      settlementOption,
+      amount:           leg.amount,
+      cashTendered:     leg.cashTendered,
+      reference:        leg.bank_reference ?? leg.gateway_reference,
+      terminalId:       undefined,
+      creditReferenceId: undefined,
+    };
+  });
+
+  // orderId placeholder — plan is built before tx1 so we use '' here;
+  // voucher lines use result.orderId directly after tx1.
+  const plan = buildSettlementPlan(
+    '',
+    serverTotals.finalTotal,
+    serverTotals.currencyCode,
+    settlementLegs,
+    paymentLegs,
+    getPaymentTypeFromMethod(input.paymentMethod),
+    input.cashDrawerSessionId ?? undefined
+  );
+
+  await validateSettlementPlan(plan, tenantId);
+
+  const warnings: string[] = [];
+  for (const leg of plan.realPaymentLegs) {
+    if (leg.resolvedPaymentStatus === 'PENDING')    warnings.push(`${leg.paymentMethodCode}_PENDING_CONFIRMATION`);
+    if (leg.resolvedPaymentStatus === 'PROCESSING') warnings.push('GATEWAY_PAYMENT_PROCESSING');
+  }
+
+  // ── 4. tx1 — create order + invoice + promo/gift (idempotency-unaware) ────────
+  // All pre-flight checks above passed — safe to commit order rows now.
   const createOrderParams = {
     tenantId,
     userId,
@@ -454,110 +561,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     })
   );
 
-  // ── 4. Resolve org_payment_methods_cf with D9 COALESCE config ────────────────
-  type RawMethodRow = {
-    id: string;
-    payment_method_code: string;
-    payment_nature: string;
-    gateway_code: string | null;
-    display_name: string;
-    display_name2: string | null;
-    settlement_type_code: string | null;
-    credit_application_type: string | null;
-    requires_cash_drawer: boolean;
-    requires_terminal: boolean;
-    min_amount: Decimal | null;
-    max_amount: Decimal | null;
-    min_order_amount: Decimal | null;
-    max_order_amount: Decimal | null;
-    is_platform_disabled: boolean;
-    eff_default_creation_status: string;
-    eff_allow_status_override: boolean;
-    eff_requires_reference: boolean;
-    eff_is_user_id_required: boolean;
-    allowed_in_pos: boolean;
-  };
-
-  const methodCodes = [...new Set(paymentLegs.map((l) => l.method))];
-  const methodRows = await withTenantContext(tenantId, () =>
-    prisma.$queryRaw<RawMethodRow[]>`
-      SELECT
-        o.id, o.payment_method_code, o.payment_nature, o.gateway_code,
-        o.display_name, o.display_name2, o.settlement_type_code, o.credit_application_type,
-        o.requires_cash_drawer, o.requires_terminal,
-        o.min_amount, o.max_amount, o.min_order_amount, o.max_order_amount,
-        o.is_platform_disabled, o.allowed_in_pos,
-        COALESCE(o.default_creation_status, s.default_creation_status) AS eff_default_creation_status,
-        COALESCE(o.allow_status_override,   s.allow_status_override)   AS eff_allow_status_override,
-        COALESCE(o.requires_reference,      s.requires_reference)      AS eff_requires_reference,
-        COALESCE(o.is_user_id_required,     s.is_user_id_required)     AS eff_is_user_id_required
-      FROM org_payment_methods_cf o
-      JOIN sys_payment_method_cd s ON s.payment_method_code = o.payment_method_code
-      WHERE o.tenant_org_id = ${tenantId}::uuid
-        AND o.payment_method_code = ANY(${methodCodes}::text[])
-        AND o.is_active  = true
-        AND o.rec_status = 1
-    `
-  );
-
-  const settlementLegs: ResolvedSettlementLeg[] = paymentLegs.map((leg) => {
-    const row = methodRows.find((r) => r.payment_method_code === leg.method);
-    if (!row) throw new Error(`Payment method config not found for code: ${leg.method}`);
-
-    const settlementOption: SettlementOption = {
-      id:                    row.id,
-      paymentMethodCode:     row.payment_method_code,
-      paymentNature:         row.payment_nature as SettlementOption['paymentNature'],
-      gatewayCode:           row.gateway_code,
-      displayName:           row.display_name,
-      displayName2:          row.display_name2,
-      settlementTypeCode:    row.settlement_type_code as SettlementOption['settlementTypeCode'],
-      creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
-      requiresCashDrawer:    row.requires_cash_drawer,
-      requiresTerminal:      row.requires_terminal,
-      minAmount:             row.min_amount != null ? toNum(row.min_amount) : null,
-      maxAmount:             row.max_amount != null ? toNum(row.max_amount) : null,
-      minOrderAmount:        row.min_order_amount != null ? toNum(row.min_order_amount) : null,
-      maxOrderAmount:        row.max_order_amount != null ? toNum(row.max_order_amount) : null,
-      isPlatformDisabled:    row.is_platform_disabled,
-      isGloballyDisabled:    false,
-      defaultCreationStatus: row.eff_default_creation_status ?? 'PENDING',
-      allowStatusOverride:   row.eff_allow_status_override ?? false,
-      requiresReference:     row.eff_requires_reference ?? false,
-      isUserIdRequired:      row.eff_is_user_id_required ?? false,
-      allowedInPos:          row.allowed_in_pos ?? true,
-    };
-
-    return {
-      settlementOption,
-      amount:           leg.amount,
-      cashTendered:     leg.cashTendered,
-      reference:        leg.bank_reference ?? leg.gateway_reference,
-      terminalId:       undefined,
-      creditReferenceId: undefined,
-    };
-  });
-
-  // ── 5. Build + validate settlement plan ──────────────────────────────────────
-  const plan = buildSettlementPlan(
-    result.orderId,
-    serverTotals.finalTotal,
-    serverTotals.currencyCode,
-    settlementLegs,
-    paymentLegs,
-    getPaymentTypeFromMethod(input.paymentMethod),
-    input.cashDrawerSessionId ?? undefined
-  );
-
-  await validateSettlementPlan(plan, tenantId);
-
-  const warnings: string[] = [];
-  for (const leg of plan.realPaymentLegs) {
-    if (leg.resolvedPaymentStatus === 'PENDING')    warnings.push(`${leg.paymentMethodCode}_PENDING_CONFIRMATION`);
-    if (leg.resolvedPaymentStatus === 'PROCESSING') warnings.push('GATEWAY_PAYMENT_PROCESSING');
-  }
-
-  // ── 6. Voucher creation + wiring (only when real/credit-app legs exist) ───────
+  // ── 5. Voucher creation + wiring (only when real/credit-app legs exist) ───────
   let voucherPostResult: PostAndWireResult | null = null;
 
   if (plan.shouldCreateReceiptVoucher) {
@@ -567,6 +571,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         direction:       'IN',
         party_type:      'CUSTOMER',
         customer_id:     input.customerId ?? undefined,
+        order_id:        result.orderId,
         source_module:   'ORDERS',
         source_ref_type: 'ORDER',
         source_ref_id:   result.orderId,

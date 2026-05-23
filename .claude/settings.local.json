@@ -178,7 +178,9 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
       "Bash(xargs grep -l \"wiring_status.*WIRED\\\\|wireVoucher\\\\|wireLines\")",
       "Bash(awk '{print $NF}')",
-      "Bash(npx supabase *)"
+      "Bash(npx supabase *)",
+      "Bash(node -e \"const m = require\\('./messages/en.json'\\); console.log\\('common.total:', m.common?.total\\);\")",
+      "Bash(node -e \"const m = require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(m.common\\).slice\\(0,5\\)\\)\\);\")"
     ],
     "deny": [
       "Read(node_modules)",

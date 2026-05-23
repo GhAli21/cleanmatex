@@ -48,6 +48,7 @@ const LINE_SELECT = {
   line_no:                 true,
   line_role:               true,
   line_status:             true,
+  is_active:               true,
   wiring_status:           true,
   direction:               true,
   payment_method_code:     true,

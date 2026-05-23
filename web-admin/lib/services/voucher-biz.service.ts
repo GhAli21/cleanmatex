@@ -68,6 +68,15 @@ export async function createBizVoucher(
   userId: string
 ): Promise<{ id: string; voucher_no: string }> {
   return withTenantContext(tenantOrgId, async () => {
+    // Idempotency: if a voucher with this key already exists (prior failed attempt), return it.
+    if (input.idempotency_key) {
+      const existing = await prisma.org_fin_vouchers_mst.findFirst({
+        where:  { tenant_org_id: tenantOrgId, idempotency_key: input.idempotency_key },
+        select: { id: true, voucher_no: true },
+      });
+      if (existing) return { id: existing.id, voucher_no: existing.voucher_no };
+    }
+
     return prisma.$transaction(async (tx) => {
       const voucher_no = await generateBizVoucherNo(tenantOrgId, input.voucher_type, tx);
 

@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -10547,9 +10547,11 @@ export type Database = {
           notes: string | null
           order_id: string | null
           order_payment_id: string | null
+          org_payment_method_id: string | null
           party_name: string | null
           payment_method_code: string | null
           payment_status: string | null
+          payment_terminal_id: string | null
           rec_notes: string | null
           rec_order: number | null
           rec_status: number | null
@@ -10607,9 +10609,11 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_payment_id?: string | null
+          org_payment_method_id?: string | null
           party_name?: string | null
           payment_method_code?: string | null
           payment_status?: string | null
+          payment_terminal_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
@@ -10667,9 +10671,11 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           order_payment_id?: string | null
+          org_payment_method_id?: string | null
           party_name?: string | null
           payment_method_code?: string | null
           payment_status?: string | null
+          payment_terminal_id?: string | null
           rec_notes?: string | null
           rec_order?: number | null
           rec_status?: number | null
