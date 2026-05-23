@@ -1002,6 +1002,7 @@ model org_orders_mst {
   change_returned_amount          Decimal?                          @default(0) @db.Decimal(19, 4)
   outstanding_amount              Decimal?                          @db.Decimal(19, 4)
   financial_engine_version        Int?                              @default(1) @db.SmallInt
+  idempotency_key                 String?
   org_asm_tasks_mst               org_asm_tasks_mst?
   org_dlv_stops_dtl               org_dlv_stops_dtl[]
   org_fin_vouchers_mst            org_fin_vouchers_mst[]

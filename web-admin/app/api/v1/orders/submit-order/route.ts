@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
   // Route owns idempotency; orchestrator is deliberately unaware.
   // Same key + prior success → return cached order shape without re-running
   // any business logic, settlement, or voucher writes.
-  const existing = await prisma.$queryRaw<{ id: string; order_no: string; order_status: string }[]>`
-    SELECT id, order_no, order_status
+  const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+    SELECT id, order_no, current_status
     FROM org_orders_mst
     WHERE tenant_org_id    = ${tenantId}::uuid
       AND idempotency_key  = ${input.idempotencyKey}
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         order: {
           id:            existing[0].id,
           orderNo:       existing[0].order_no,
-          currentStatus: existing[0].order_status,
+          currentStatus: existing[0].current_status,
         },
         fromCache: true,
       },

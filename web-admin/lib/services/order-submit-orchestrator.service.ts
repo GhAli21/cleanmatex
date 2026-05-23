@@ -765,8 +765,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     prisma.org_orders_mst.findFirstOrThrow({
       where:  { id: result.orderId, tenant_org_id: tenantId },
       select: {
-        id: true, order_no: true, order_status: true,
-        total_amount: true, total_paid_amount: true,
+        id: true, order_no: true, current_status: true,
+        total: true, total_paid_amount: true,
         total_credit_applied_amount: true, outstanding_amount: true,
         payment_status: true, payment_type_code: true,
       },
@@ -787,8 +787,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     order: {
       id:                       finalOrder.id,
       orderNo:                  finalOrder.order_no,
-      currentStatus:            finalOrder.order_status,
-      totalAmount:              String(finalOrder.total_amount ?? 0),
+      currentStatus:            finalOrder.current_status,
+      totalAmount:              String(finalOrder.total ?? 0),
       totalPaidAmount:          String(finalOrder.total_paid_amount ?? 0),
       totalCreditAppliedAmount: String(finalOrder.total_credit_applied_amount ?? 0),
       outstandingAmount:        String(finalOrder.outstanding_amount ?? 0),
