@@ -207,16 +207,16 @@ export async function validateSettlementPlan(
       if (leg.cashDrawerSessionId) {
         const session = await prisma.org_cash_drawer_sessions_mst.findFirst({
           where:  { id: leg.cashDrawerSessionId, tenant_org_id: tenantOrgId },
-          select: { session_status: true },
+          select: { status: true },
         });
         if (!session) throw new Error('CASH_DRAWER_SESSION_REQUIRED');
-        if (session.session_status !== 'OPEN') throw new Error('CASH_DRAWER_SESSION_CLOSED');
+        if (session.status !== 'OPEN') throw new Error('CASH_DRAWER_SESSION_CLOSED');
       }
 
       if (leg.gatewayCode) {
-        const gwConfig = await prisma.org_payment_gateway_cf.findFirst({
-          where:  { tenant_org_id: tenantOrgId, gateway_code: leg.gatewayCode, is_active: true },
-          select: { id: true },
+        const gwConfig = await prisma.sys_payment_gateway_cd.findFirst({
+          where:  { code: leg.gatewayCode, is_active: true },
+          select: { code: true },
         });
         if (!gwConfig) throw new Error('GATEWAY_NOT_CONFIGURED');
       }

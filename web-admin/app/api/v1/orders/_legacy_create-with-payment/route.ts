@@ -525,6 +525,11 @@ export async function POST(request: NextRequest) {
         maxOrderAmount:        row.max_order_amount != null ? toNum(row.max_order_amount) : null,
         isPlatformDisabled:    row.is_platform_disabled,
         isGloballyDisabled:    false,
+        defaultCreationStatus: 'COMPLETED',
+        allowStatusOverride:   false,
+        requiresReference:     false,
+        isUserIdRequired:      false,
+        allowedInPos:          true,
       };
       return {
         settlementOption,

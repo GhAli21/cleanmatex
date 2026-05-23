@@ -593,7 +593,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           currency_code:          leg.currencyCode,
           cash_drawer_session_id: leg.cashDrawerSessionId,
           tendered_amount:        leg.tenderedAmount,
-          payment_status:         leg.resolvedPaymentStatus,
           gateway_code:           leg.gatewayCode,
           gateway_transaction_id: leg.gatewayTransactionId,
           gateway_reference:      leg.gatewayReference,
@@ -806,9 +805,22 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       },
     }),
     effects: {
-      orderPayments:      (linkedEffects?.orderPayments ?? []) as SubmitOrderResult['effects']['orderPayments'],
-      creditApplications: (linkedEffects?.creditApplications ?? []) as SubmitOrderResult['effects']['creditApplications'],
-      cashMovements:      (linkedEffects?.cashMovements ?? []) as SubmitOrderResult['effects']['cashMovements'],
+      orderPayments: (linkedEffects?.orderPayments ?? []).map((p) => ({
+        id:                p.id,
+        amount:            p.amount,
+        paymentMethodCode: p.payment_method_code ?? '',
+        paymentStatus:     p.payment_status ?? '',
+      })),
+      creditApplications: (linkedEffects?.creditApplications ?? []).map((c) => ({
+        id:         c.id,
+        amount:     c.amount,
+        creditType: c.credit_type ?? '',
+      })),
+      cashMovements: (linkedEffects?.cashDrawerMovements ?? []).map((m) => ({
+        id:        m.id,
+        amount:    m.amount,
+        sessionId: m.session_id,
+      })),
     },
     warnings,
   };
