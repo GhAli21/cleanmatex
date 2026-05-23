@@ -2129,7 +2129,9 @@
         "stock": "حركات المخزون",
         "receipts": "إرسال الإيصالات",
         "preferences": "التفضيلات",
-        "financial": "المالية"
+        "financial": "المالية",
+        "customer": "العميل",
+        "notes": "الملاحظات"
       },
       "editHistory": {
         "empty": "لا يوجد سجل تعديلات لهذا الطلب",

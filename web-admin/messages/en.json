@@ -2128,7 +2128,9 @@
         "stock": "Stock Transactions",
         "receipts": "Receipt Sending",
         "preferences": "Preferences",
-        "financial": "Financial"
+        "financial": "Financial",
+        "customer": "Customer",
+        "notes": "Notes"
       },
       "editHistory": {
         "empty": "No edit history for this order",

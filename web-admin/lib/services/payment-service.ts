@@ -995,39 +995,43 @@ export async function recordPaymentTransaction(
       }
     }
 
-    // Create receipt voucher first (Enhanced: voucher is parent of payment row)
-    const { voucher_id } = await createReceiptVoucherForPayment(
-      {
-        tenant_org_id: tenantId,
-        branch_id: input.branch_id,
-        invoice_id: input.invoice_id ?? undefined,
-        order_id: input.order_id ?? undefined,
-        customer_id: input.customer_id ?? undefined,
-        total_amount: input.paid_amount,
-        currency_code: currencyCode,
-        issued_at: new Date(),
-        created_by: input.paid_by ?? undefined,
-        auto_issue: true,
-        metadata: {
-          source_flow: 'payment_capture',
-          source_table: 'org_payments_dtl_tr',
-          branch_id: input.branch_id ?? null,
-          order_id: input.order_id ?? null,
-          invoice_id: input.invoice_id ?? null,
-          customer_id: input.customer_id ?? null,
-          payment_method_code: input.payment_method_code,
-          payment_type_code: input.payment_type_code ?? null,
-          payment_channel: input.payment_channel ?? 'web_admin',
-          gateway: input.gateway ?? null,
-          transaction_id: input.transaction_id ?? null,
-          check_number: input.check_number ?? null,
-          check_bank: input.check_bank ?? null,
-          check_date: input.check_date instanceof Date ? input.check_date.toISOString().slice(0, 10) : null,
-          check_status: input.payment_method_code === 'CHECK' ? 'received' : null,
+    // BVM wiring path: voucher already created via postAndWireBizVoucher — skip legacy voucher.
+    let voucher_id: string | undefined;
+    if (!input.skipReceiptVoucher) {
+      const result = await createReceiptVoucherForPayment(
+        {
+          tenant_org_id: tenantId,
+          branch_id: input.branch_id,
+          invoice_id: input.invoice_id ?? undefined,
+          order_id: input.order_id ?? undefined,
+          customer_id: input.customer_id ?? undefined,
+          total_amount: input.paid_amount,
+          currency_code: currencyCode,
+          issued_at: new Date(),
+          created_by: input.paid_by ?? undefined,
+          auto_issue: true,
+          metadata: {
+            source_flow: 'payment_capture',
+            source_table: 'org_payments_dtl_tr',
+            branch_id: input.branch_id ?? null,
+            order_id: input.order_id ?? null,
+            invoice_id: input.invoice_id ?? null,
+            customer_id: input.customer_id ?? null,
+            payment_method_code: input.payment_method_code,
+            payment_type_code: input.payment_type_code ?? null,
+            payment_channel: input.payment_channel ?? 'web_admin',
+            gateway: input.gateway ?? null,
+            transaction_id: input.transaction_id ?? null,
+            check_number: input.check_number ?? null,
+            check_bank: input.check_bank ?? null,
+            check_date: input.check_date instanceof Date ? input.check_date.toISOString().slice(0, 10) : null,
+            check_status: input.payment_method_code === 'CHECK' ? 'received' : null,
+          },
         },
-      },
-      db
-    );
+        db
+      );
+      voucher_id = result.voucher_id;
+    }
 
     const transaction = await db.org_payments_dtl_tr.create({
       data: {

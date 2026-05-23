@@ -34,8 +34,11 @@ export type TaxLineItem = {
   label:      string;
   label2:     string | null;
   rate:       number;
+  isCompound: boolean;
   baseAmount: number;
   taxAmount:  number;
+  /** FK to org_tax_profiles_cf — populated when the line originates from a profile row. */
+  profileId?: string;
 };
 
 // ── Charge line ───────────────────────────────────────────────────────────────

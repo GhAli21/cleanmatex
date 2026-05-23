@@ -65,17 +65,16 @@ export async function calculateTax(params: TaxCalcParams): Promise<TaxLineItem[]
 
   const lines: TaxLineItem[] = [
     {
-      taxType:   (profile.tax_type ?? TAX_TYPES.VAT) as TaxType,
-      label:     profile.name ?? 'Tax',
-      label2:    profile.name2 ?? null,
+      taxType:    (profile.tax_type ?? TAX_TYPES.VAT) as TaxType,
+      label:      profile.name ?? 'Tax',
+      label2:     profile.name2 ?? null,
       rate,
+      isCompound: isCompound,
       baseAmount,
-      taxAmount: Number(primaryTaxAmount.toFixed(4)),
+      taxAmount:  Number(primaryTaxAmount.toFixed(4)),
+      profileId:  profile.id,
     },
   ];
-
-  // org_tax_profiles_cf is a flat model without secondary rate fields; compound logic reserved for future.
-  void isCompound;
 
   return lines;
 }

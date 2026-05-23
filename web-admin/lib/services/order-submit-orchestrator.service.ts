@@ -26,6 +26,7 @@ import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
+import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { TAX_TYPES } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
@@ -562,25 +563,25 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   );
 
   // ── 5. Voucher creation + wiring (only when real/credit-app legs exist) ───────
-  let voucherPostResult: PostAndWireResult | null = null;
+    let voucherPostResult: PostAndWireResult | null = null;
 
-  if (plan.shouldCreateReceiptVoucher) {
-    const voucher = await withTenantContext(tenantId, () =>
-      createBizVoucher(tenantId, {
-        voucher_type:    VOUCHER_TYPE.RECEIPT,
-        direction:       'IN',
-        party_type:      'CUSTOMER',
-        customer_id:     input.customerId ?? undefined,
-        order_id:        result.orderId,
-        source_module:   'ORDERS',
-        source_ref_type: 'ORDER',
-        source_ref_id:   result.orderId,
-        currency_code:   serverTotals.currencyCode,
-        total_amount:    plan.immediateSettlementAmount,
-        branch_id:       branchId,
-        idempotency_key: `${input.idempotencyKey}_vch`,
-      }, userId)
-    );
+      if (plan.shouldCreateReceiptVoucher) {
+          const voucher = await withTenantContext(tenantId, () =>
+                createBizVoucher(tenantId, {
+                        voucher_type:    VOUCHER_TYPE.RECEIPT,
+                                direction:       'IN',
+                                        party_type:      'CUSTOMER',
+                                                customer_id:     input.customerId ?? undefined,
+                                                        order_id:        result.orderId,
+                                                                source_module:   'ORDERS',
+                                                                        source_ref_type: 'ORDER',
+                                                                                source_ref_id:   result.orderId,
+                                                                                        currency_code:   serverTotals.currencyCode,
+                                                                                                total_amount:    plan.immediateSettlementAmount,
+                                                                                                        branch_id:       branchId,
+                                                                                                                idempotency_key: `${input.idempotencyKey}_vch`,
+                                                                                                                      }, userId)
+                                                                                                                          );
 
     for (const leg of plan.realPaymentLegs) {
       await withTenantContext(tenantId, () =>
@@ -650,15 +651,25 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   const discountTotal = serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount;
   const taxTotal      = serverTotals.vatValue + (serverTotals.additionalTaxAmount ?? 0);
 
+  // calculateTax() is the single source of truth for all tax line fields.
+  // It reads org_tax_profiles_cf directly, so label, label2, rate, taxAmount,
+  // and profileId are all internally consistent (rate × baseAmount = taxAmount).
+  const profileLines = await withTenantContext(tenantId, () =>
+    calculateTax({ tenantId, branchId, baseAmount: serverTotals.afterDiscounts, customerId: input.customerId ?? undefined })
+  );
+
   const taxLines: TaxLineItem[] = [];
   if (serverTotals.vatValue > 0) {
+    const profileLine = profileLines[0];
     taxLines.push({
-      taxType:    TAX_TYPES.VAT,
-      label:      'VAT',
-      label2:     'ضريبة القيمة المضافة',
-      rate:       serverTotals.vatTaxPercent,
+      taxType:    profileLine?.taxType   ?? TAX_TYPES.VAT,
+      label:      profileLine?.label     ?? 'VAT',
+      label2:     profileLine?.label2    ?? 'ضريبة القيمة المضافة',
+      profileId:  profileLine?.profileId,
+      rate:       profileLine?.rate      ?? serverTotals.vatTaxPercent,
       baseAmount: serverTotals.afterDiscounts,
-      taxAmount:  serverTotals.vatValue,
+      // Use profile-computed amount — consistent with stored rate and taxable_amount.
+      taxAmount:  profileLine?.taxAmount ?? serverTotals.vatValue,
     });
   }
   if ((serverTotals.additionalTaxAmount ?? 0) > 0) {
@@ -667,6 +678,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       label:      'Additional Tax',
       label2:     'ضريبة إضافية',
       rate:       input.additionalTaxRate ?? 0,
+      isCompound: false,
       baseAmount: serverTotals.afterDiscounts,
       taxAmount:  serverTotals.additionalTaxAmount!,
     });
@@ -742,6 +754,8 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
               rec_notes:           input.paymentNotes,
               trans_desc:          input.paymentNotes,
               payment_channel:     'web_admin_checkout',
+              // BVM wiring already created the receipt voucher (RV-*) — skip the legacy VCR-RCP-* voucher
+              skipReceiptVoucher:  plan.shouldCreateReceiptVoucher,
             },
             tx
           );

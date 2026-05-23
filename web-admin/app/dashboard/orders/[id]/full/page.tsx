@@ -247,6 +247,8 @@ async function OrderDetailsFullContent({
         tabsPreferences: tFull('tabs.preferences'),
         tabsActions: tFull('tabs.actions'),
         tabsFinancial: tFull('tabs.financial'),
+        tabsCustomer: tFull('tabs.customer'),
+        tabsNotes: tFull('tabs.notes'),
         orderSummary: tFull('orderSummary'),
         viewPayments: tFull('viewPayments'),
         viewReceiptVouchers: tFull('viewReceiptVouchers'),

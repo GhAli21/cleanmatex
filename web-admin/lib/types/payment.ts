@@ -319,6 +319,12 @@ export interface CreatePaymentTransactionInput {
   branch_id?: string;
   /** Short description/reference for the transaction */
   trans_desc?: string;
+  /**
+   * When true, skips createReceiptVoucherForPayment.
+   * Set by the BVM orchestrator when a receipt voucher was already created and wired
+   * via postAndWireBizVoucher — prevents the legacy VCR-RCP-* ghost voucher.
+   */
+  skipReceiptVoucher?: boolean;
 }
 
 // ============================================================================

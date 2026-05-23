@@ -121,19 +121,23 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
     }
 
     // ── 2. Taxes ──────────────────────────────────────────────────────────────
-    for (const tax of taxLines) {
+    for (let taxSeq = 0; taxSeq < taxLines.length; taxSeq++) {
+      const tax = taxLines[taxSeq];
       await tx.org_order_taxes_dtl.create({
         data: {
-          tenant_org_id: tenantId,
-          order_id: orderId,
-          tax_type: tax.taxType,
-          label: tax.label,
-          label2: tax.label2 ?? null,
-          rate: tax.rate,
+          tenant_org_id:  tenantId,
+          order_id:       orderId,
+          tax_profile_id: tax.profileId ?? null,
+          tax_type:       tax.taxType,
+          label:          tax.label,
+          label2:         tax.label2 ?? null,
+          rate:           tax.rate,
+          is_compound:    tax.isCompound,
           taxable_amount: tax.baseAmount,
-          tax_amount: tax.taxAmount,
-          currency_code: currencyCode,
-          rec_status: 1,
+          tax_amount:     tax.taxAmount,
+          currency_code:  currencyCode,
+          applied_seq:    taxSeq + 1,
+          rec_status:     1,
         },
       });
     }

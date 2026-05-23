@@ -18,6 +18,9 @@ import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
 import { CmxTabsPanel } from '@ui/navigation/cmx-tabs-panel';
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives/cmx-button';
+import { CmxInput } from '@ui/primitives/cmx-input';
+import { CmxTextarea } from '@ui/primitives/cmx-textarea';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
@@ -51,7 +54,7 @@ import type { OrderStatus } from '@/lib/types/workflow';
 import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
 
-const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial'] as const;
+const TAB_IDS = ['master', 'items', 'preferences', 'history', 'edit_history', 'invoices', 'vouchers', 'payments', 'actions', 'stock', 'receipts', 'financial', 'customer', 'notes'] as const;
 
 interface OrderDetailsFullClientProps {
   order: Record<string, unknown>;
@@ -796,6 +799,64 @@ export function OrderDetailsFullClient({
               </div>
             </div>
 
+            {/* Zone 4: Payment Status & Settlement */}
+            {(() => {
+              const outstandingAmount = Number(o.outstanding_amount ?? 0);
+              const totalCreditApplied = Number(o.total_credit_applied_amount ?? 0);
+              const payOnCollectionAmount = Number(o.pay_on_collection_amount ?? 0);
+              const paymentTypeCode = typeof o.payment_type_code === 'string' ? o.payment_type_code : null;
+              const paymentStatus = typeof o.payment_status === 'string' ? o.payment_status : null;
+              const paymentTerms = typeof o.payment_terms === 'string' ? o.payment_terms : null;
+              const paymentDueDate = typeof o.payment_due_date === 'string' ? o.payment_due_date : null;
+              const hasSettlementData = outstandingAmount !== 0 || totalCreditApplied !== 0 || payOnCollectionAmount !== 0 || paymentTypeCode || paymentStatus;
+              if (!hasSettlementData) return null;
+              return (
+                <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-4">
+                  <p className={`text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3 ${isRTL ? 'text-right' : ''}`}>
+                    {t.paymentSettlement ?? 'Payment & Settlement'}
+                  </p>
+                  <div className="space-y-0">
+                    {paymentStatus && (
+                      <WRow label={t.masterField_payment_status ?? 'Payment Status'} value={paymentStatus} />
+                    )}
+                    {paymentTypeCode && (
+                      <WRow label={t.masterField_payment_type_code ?? 'Payment Type'} value={paymentTypeCode} />
+                    )}
+                    {paymentTerms && (
+                      <WRow label={t.paymentTerms ?? 'Payment Terms'} value={paymentTerms} />
+                    )}
+                    {paymentDueDate && (
+                      <WRow label={t.paymentDueDate ?? 'Payment Due Date'} value={
+                        (() => { try { return new Date(paymentDueDate).toLocaleDateString(locale === 'ar' ? 'ar-OM' : 'en-OM'); } catch { return paymentDueDate; } })()
+                      } />
+                    )}
+                    {totalCreditApplied > 0 && (
+                      <WRow
+                        label={t.totalCreditApplied ?? 'Credit Applied'}
+                        value={`− ${fmtOrderMoney(totalCreditApplied)}`}
+                        isDeduction
+                      />
+                    )}
+                    {outstandingAmount !== 0 && (
+                      <WRow
+                        label={t.outstandingAmount ?? 'Outstanding Amount'}
+                        value={fmtOrderMoney(Math.abs(outstandingAmount))}
+                        isBold
+                        valueColor={outstandingAmount > 0 ? 'text-orange-600' : 'text-green-700'}
+                      />
+                    )}
+                    {payOnCollectionAmount > 0 && (
+                      <WRow
+                        label={t.payOnCollectionAmount ?? 'Pay on Collection'}
+                        value={fmtOrderMoney(payOnCollectionAmount)}
+                        valueColor="text-amber-600"
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
           </div>
         </CmxCardContent>
       </CmxCard>
@@ -846,7 +907,7 @@ export function OrderDetailsFullClient({
             {renderMasterSection('notes', t.masterSectionNotes ?? 'Notes', MASTER_CATEGORIES[6].keys)}
             {renderMasterSection('other', t.masterSectionOther ?? 'Other', MASTER_CATEGORIES[7].keys)}
           </div>
-          {/* Customer data (nested object) */}
+          {/* Customer data (nested object) — structured display */}
           {order.org_customers_mst != null && (
             <CmxCard>
               <CmxCardHeader>
@@ -855,9 +916,27 @@ export function OrderDetailsFullClient({
                 </CmxCardTitle>
               </CmxCardHeader>
               <CmxCardContent className="pt-0">
-                <pre className="text-xs bg-gray-50 rounded-lg p-4 overflow-x-auto max-h-48 overflow-y-auto border border-gray-100">
-                  {JSON.stringify(order.org_customers_mst, null, 2)}
-                </pre>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
+                  {[
+                    { label: t.customerFirstName ?? 'First Name', value: (customer as Record<string, unknown>).first_name },
+                    { label: t.customerLastName ?? 'Last Name', value: (customer as Record<string, unknown>).last_name },
+                    { label: t.customerPhone ?? 'Phone', value: (customer as Record<string, unknown>).phone },
+                    { label: t.customerEmail ?? 'Email', value: (customer as Record<string, unknown>).email },
+                    { label: t.customerAddress ?? 'Address', value: (customer as Record<string, unknown>).address },
+                    {
+                      label: t.customerLoyaltyPoints ?? 'Loyalty Points',
+                      value: (order.org_customers_mst as Record<string, unknown>).loyalty_points,
+                    },
+                    { label: t.masterField_customer_id ?? 'Customer ID', value: order.customer_id },
+                  ]
+                    .filter((row) => row.value != null && row.value !== '')
+                    .map((row) => (
+                      <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
+                        <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{row.label}</dt>
+                        <dd className="text-sm text-gray-900 break-all">{String(row.value)}</dd>
+                      </div>
+                    ))}
+                </dl>
               </CmxCardContent>
             </CmxCard>
           )}
@@ -1072,17 +1151,18 @@ export function OrderDetailsFullClient({
                       <li key={p.id} className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border bg-gray-50 px-3 py-2 text-sm`}>
                         <span className="font-medium">{fmtOrderMoney(Number(p.paid_amount))}</span>
                         <span className="text-gray-600">{p.payment_method_code}</span>
-                        <button
+                        <CmxButton
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             setApplyModalPaymentId(p.id);
                             setApplyModalInvoiceId('');
                             setApplyError(null);
                           }}
-                          className="text-blue-600 hover:text-blue-700 font-medium"
                         >
                           {t.applyToInvoice}
-                        </button>
+                        </CmxButton>
                       </li>
                     ))}
                   </ul>
@@ -1093,81 +1173,80 @@ export function OrderDetailsFullClient({
                   {t.recordDepositPos}
                 </h3>
                 <form onSubmit={handleRecordDepositPos} className="space-y-4">
+                  <CmxInput
+                    type="number"
+                    label={t.recordPaymentAmount}
+                    step={10 ** -decimalPlaces}
+                    min={0}
+                    value={depositAmount || ''}
+                    onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
+                  />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">{t.recordPaymentAmount}</label>
-                    <input
-                      type="number"
-                      step={10 ** -decimalPlaces}
-                      min={0}
-                      value={depositAmount || ''}
-                      onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">{t.recordPaymentMethod}</label>
-                    <div className="mt-2 flex gap-2">
-                      <button
+                    <p className="text-sm font-medium text-gray-700 mb-2">{t.recordPaymentMethod}</p>
+                    <div className="flex gap-2">
+                      <CmxButton
                         type="button"
+                        variant={depositMethod === 'CASH' ? 'primary' : 'outline'}
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setDepositMethod('CASH')}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                          depositMethod === 'CASH' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                        }`}
                       >
                         {t.recordPaymentCash}
-                      </button>
-                      <button
+                      </CmxButton>
+                      <CmxButton
                         type="button"
+                        variant={depositMethod === 'CARD' ? 'primary' : 'outline'}
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setDepositMethod('CARD')}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                          depositMethod === 'CARD' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                        }`}
                       >
                         {t.recordPaymentCard}
-                      </button>
+                      </CmxButton>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">{t.paymentKind}</label>
-                    <div className="mt-2 flex gap-2">
-                      <button
+                    <p className="text-sm font-medium text-gray-700 mb-2">{t.paymentKind}</p>
+                    <div className="flex gap-2">
+                      <CmxButton
                         type="button"
+                        variant={depositKind === 'deposit' ? 'primary' : 'outline'}
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setDepositKind('deposit')}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                          depositKind === 'deposit' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                        }`}
                       >
                         {t.kindDeposit}
-                      </button>
-                      <button
+                      </CmxButton>
+                      <CmxButton
                         type="button"
+                        variant={depositKind === 'pos' ? 'primary' : 'outline'}
+                        size="sm"
+                        className="flex-1"
                         onClick={() => setDepositKind('pos')}
-                        className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                          depositKind === 'pos' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                        }`}
                       >
                         {t.kindPos}
-                      </button>
+                      </CmxButton>
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">{t.notes}</label>
-                    <textarea
+                    <p className="text-sm font-medium text-gray-700 mb-1">{t.notes}</p>
+                    <CmxTextarea
                       value={depositNotes}
                       onChange={(e) => setDepositNotes(e.target.value)}
                       rows={2}
-                      className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                     />
                   </div>
                   {depositError && <p className="text-sm text-red-600">{depositError}</p>}
                   {depositSuccess && <p className="text-sm text-green-600">{depositSuccess}</p>}
-                  <button
+                  <CmxButton
                     type="submit"
+                    variant="primary"
+                    size="md"
+                    className="w-full"
                     disabled={depositPending || depositAmount <= 0}
-                    className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    loading={depositPending}
                   >
                     {depositPending ? t.recordPaymentProcessing : t.recordPaymentSubmit}
-                  </button>
+                  </CmxButton>
                 </form>
               </div>
             </>
@@ -1233,6 +1312,195 @@ export function OrderDetailsFullClient({
           voucherReferences={financialData?.voucherReferences ?? []}
           auditTimeline={financialData?.auditTimeline ?? []}
         />
+      ),
+    },
+    {
+      id: 'customer',
+      label: t.tabsCustomer ?? 'Customer',
+      content: (
+        <div className="space-y-6">
+          {/* Customer identity card */}
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.customerProfile ?? 'Customer Profile'}
+              </CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent className="pt-0">
+              {order.org_customers_mst == null && !order.customer_id ? (
+                <p className="text-sm text-gray-500">{t.noCustomerData ?? 'No customer linked to this order'}</p>
+              ) : (
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  {[
+                    { label: t.customerFirstName ?? 'First Name', value: (customer as Record<string, unknown>).first_name },
+                    { label: t.customerLastName ?? 'Last Name', value: (customer as Record<string, unknown>).last_name },
+                    { label: t.customerPhone ?? 'Phone', value: (customer as Record<string, unknown>).phone },
+                    { label: t.customerEmail ?? 'Email', value: (customer as Record<string, unknown>).email },
+                    { label: t.customerAddress ?? 'Address', value: (customer as Record<string, unknown>).address },
+                    { label: t.masterField_customer_id ?? 'Customer ID', value: order.customer_id },
+                  ]
+                    .filter((row) => row.value != null && row.value !== '')
+                    .map((row) => (
+                      <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-3 last:border-0`}>
+                        <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">{row.label}</dt>
+                        <dd className="text-sm text-gray-900 break-all">{String(row.value)}</dd>
+                      </div>
+                    ))}
+                </dl>
+              )}
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* Loyalty & membership */}
+          {(order.org_customers_mst as Record<string, unknown> | null)?.loyalty_points != null && (
+            <CmxCard>
+              <CmxCardHeader>
+                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.customerLoyalty ?? 'Loyalty & Membership'}
+                </CmxCardTitle>
+              </CmxCardHeader>
+              <CmxCardContent className="pt-0">
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+                  <div className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-3 last:border-0`}>
+                    <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">
+                      {t.customerLoyaltyPoints ?? 'Loyalty Points'}
+                    </dt>
+                    <dd className="text-sm text-gray-900">
+                      {String((order.org_customers_mst as Record<string, unknown>).loyalty_points ?? 0)}
+                    </dd>
+                  </div>
+                </dl>
+              </CmxCardContent>
+            </CmxCard>
+          )}
+
+          {/* Order-level customer notes visible here too */}
+          {(order.customer_notes || order.payment_notes) && (
+            <CmxCard>
+              <CmxCardHeader>
+                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.masterSectionNotes ?? 'Notes'}
+                </CmxCardTitle>
+              </CmxCardHeader>
+              <CmxCardContent className="pt-0 space-y-3">
+                {order.customer_notes && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      {t.masterField_customer_notes ?? 'Customer Notes'}
+                    </p>
+                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {String(order.customer_notes)}
+                    </p>
+                  </div>
+                )}
+                {order.payment_notes && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      {t.masterField_payment_notes ?? 'Payment Notes'}
+                    </p>
+                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {String(order.payment_notes)}
+                    </p>
+                  </div>
+                )}
+              </CmxCardContent>
+            </CmxCard>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: 'notes',
+      label: t.tabsNotes ?? 'Notes',
+      content: (
+        <div className="space-y-6">
+          {/* Customer notes */}
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.masterField_customer_notes ?? 'Customer Notes'}
+              </CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent className="pt-0">
+              {order.customer_notes ? (
+                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {String(order.customer_notes)}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">{t.noNotes ?? 'No customer notes'}</p>
+              )}
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* Internal notes */}
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.masterField_internal_notes ?? 'Internal Notes'}
+              </CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent className="pt-0">
+              {order.internal_notes ? (
+                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {String(order.internal_notes)}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">{t.noInternalNotes ?? 'No internal notes'}</p>
+              )}
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* Payment notes */}
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t.masterField_payment_notes ?? 'Payment Notes'}
+              </CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent className="pt-0">
+              {order.payment_notes ? (
+                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {String(order.payment_notes)}
+                </p>
+              ) : (
+                <p className="text-sm text-gray-400 italic">{t.noPaymentNotes ?? 'No payment notes'}</p>
+              )}
+            </CmxCardContent>
+          </CmxCard>
+
+          {/* Cancellation / return reason */}
+          {(order.cancelled_note || order.return_reason) && (
+            <CmxCard>
+              <CmxCardHeader>
+                <CmxCardTitle className={`text-base font-semibold ${isRTL ? 'text-right' : 'text-left'}`}>
+                  {t.masterSectionCancellationReturn ?? 'Cancellation / Return'}
+                </CmxCardTitle>
+              </CmxCardHeader>
+              <CmxCardContent className="pt-0 space-y-3">
+                {order.cancelled_note && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      {t.masterField_cancelled_note ?? 'Cancellation Note'}
+                    </p>
+                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {String(order.cancelled_note)}
+                    </p>
+                  </div>
+                )}
+                {order.return_reason && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      {t.masterField_return_reason ?? 'Return Reason'}
+                    </p>
+                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
+                      {String(order.return_reason)}
+                    </p>
+                  </div>
+                )}
+              </CmxCardContent>
+            </CmxCard>
+          )}
+        </div>
       ),
     },
   ];

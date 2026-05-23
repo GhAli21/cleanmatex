@@ -1,0 +1,27 @@
+{
+  "mcpServers": {
+    "supabase_remote_with_token": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_266a2fde84f49a466df4d6f8c05f9d388791f3c8",
+        "--project-ref",
+        "ndjjycdgtponhosvztdg"
+      ]
+    },
+    "supabase_remote": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+    },
+    "supabase_local": {
+      "type": "http",
+      "url": "http://localhost:54321/mcp"
+    },
+    "supabase_remote_db": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=ndjjycdgtponhosvztdg"
+    }
+  }
+}
