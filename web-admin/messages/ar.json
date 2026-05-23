@@ -4695,6 +4695,12 @@
         },
         "success": "تم تطبيق بطاقة الهدية! الرصيد: {balance} ريال عماني"
       },
+      "warnings": {
+        "BANK_TRANSFER_PENDING_CONFIRMATION": "تم استلام الدفعة. في انتظار تأكيد التحويل البنكي.",
+        "CHECK_PENDING_CONFIRMATION": "تم استلام الدفعة. في انتظار مقاصة الشيك.",
+        "GATEWAY_PAYMENT_PROCESSING": "الدفع الإلكتروني قيد المعالجة. سيتم تحديث الطلب تلقائياً."
+      },
+      "voucherCreated": "تم إنشاء سند القبض {voucherNo}",
       "b2b": {
         "title": "تفاصيل عملاء B2B",
         "contract": "العقد",

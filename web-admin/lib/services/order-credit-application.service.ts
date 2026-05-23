@@ -112,14 +112,14 @@ async function applyStoredValueDebitTx(
       orderId,
       idempotencyKey,
     });
-  } else if (creditType === CREDIT_APPLICATION_TYPES.ADVANCE) {
+  } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE) {
     await redeemAdvanceTx(tx, {
       tenantId,
       customerId,
       amount,
       orderId,
     });
-  } else if (creditType === CREDIT_APPLICATION_TYPES.CREDIT_NOTE) {
+  } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT) {
     if (!creditReferenceId) {
       throw new Error('Credit note applications require creditReferenceId');
     }
@@ -130,7 +130,7 @@ async function applyStoredValueDebitTx(
       amount,
       orderId,
     });
-  } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_POINTS) {
+  } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
     const loyaltyConfig = await getLoyaltyConfig(tenantId);
     const redeemRate = toNumber(loyaltyConfig?.redeem_rate_per_point);
     if (!loyaltyConfig || redeemRate <= 0) {

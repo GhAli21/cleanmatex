@@ -60,4 +60,16 @@ describe('page access registry coverage', () => {
       '/dashboard/ready/[id]/print/[type]'
     )
   })
+
+  it('resolves canonical finance governance routes', () => {
+    expect(getPageAccessContractByPath('/dashboard/internal_fin/vouchers')?.routePattern).toBe(
+      '/dashboard/internal_fin/vouchers'
+    )
+    expect(getPageAccessContractByPath('/dashboard/internal_fin/vouchers/abc')?.routePattern).toBe(
+      '/dashboard/internal_fin/vouchers/[voucherId]'
+    )
+    expect(getPageAccessContractByPath('/dashboard/settings/payments')?.routePattern).toBe(
+      '/dashboard/settings/payments'
+    )
+  })
 })

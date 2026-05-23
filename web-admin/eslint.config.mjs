@@ -43,7 +43,13 @@ const eslintConfig = [...nextVitals, {
 }, {
   rules: {
     // Migrated: prefer @ui/* over legacy @/components (Phase 6)
-    'no-restricted-imports': ['warn', {
+    'no-restricted-imports': ['error', {
+      paths: [
+        {
+          name: '@/lib/services/invoice-service',
+          message: 'Use @/lib/services/ar-invoice.service for new AR work. invoice-service.ts is a legacy compatibility adapter only.',
+        },
+      ],
       patterns: [
         {
           group: ['@/components/ui', '@/components/ui/*', '@/components/auth/*', '@/components/layout/*', '@/components/dashboard/*', '@/components/orders/*', '@/components/settings/*'],
@@ -52,6 +58,10 @@ const eslintConfig = [...nextVitals, {
         {
           group: ['@ui/compat', '**/ui/compat', '**/ui/compat/*'],
           message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
+        },
+        {
+          group: ['**/api/v1/orders/create-with-payment/**', '**/api/v1/orders/_legacy_create-with-payment/**'],
+          message: 'Legacy order route is frozen. Use /api/v1/orders/submit-order and the submitOrder() orchestrator instead.',
         },
       ],
     }],
@@ -69,6 +79,18 @@ const eslintConfig = [...nextVitals, {
     "no-unused-vars": "off",
     "react-hooks/exhaustive-deps": "off",
     "@next/next/no-img-element": "off",
+  },
+}, {
+  files: [
+    'app/actions/payments/invoice-actions.ts',
+    'app/actions/payments/invoice-list-actions.ts',
+    'app/actions/orders/ready-order-actions.ts',
+    'app/api/v1/orders/_legacy_create-with-payment/route.ts',
+    'app/api/v1/orders/**/report/invoices-payments-rprt/route.ts',
+    '__tests__/services/invoice-service.test.ts',
+  ],
+  rules: {
+    'no-restricted-imports': 'off',
   },
 }, ...storybook.configs["flat/recommended"]];
 

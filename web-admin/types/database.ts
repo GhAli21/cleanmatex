@@ -15441,6 +15441,8 @@ export type Database = {
       }
       org_payment_methods_cf: {
         Row: {
+          allow_outside_integration: boolean | null
+          allow_status_override: boolean | null
           allowed_for_invoice_payment: boolean
           allowed_for_pay_now: boolean
           allowed_for_pay_on_collection: boolean
@@ -15454,6 +15456,7 @@ export type Database = {
           created_info: string | null
           credit_application_type: string | null
           currency_code: string | null
+          default_creation_status: string | null
           description: string | null
           description2: string | null
           display_name: string
@@ -15468,6 +15471,7 @@ export type Database = {
           is_active: boolean
           is_enabled: boolean
           is_platform_disabled: boolean
+          is_user_id_required: boolean | null
           max_amount: number | null
           max_order_amount: number | null
           metadata: Json
@@ -15497,6 +15501,8 @@ export type Database = {
           validation_rules: Json
         }
         Insert: {
+          allow_outside_integration?: boolean | null
+          allow_status_override?: boolean | null
           allowed_for_invoice_payment?: boolean
           allowed_for_pay_now?: boolean
           allowed_for_pay_on_collection?: boolean
@@ -15510,6 +15516,7 @@ export type Database = {
           created_info?: string | null
           credit_application_type?: string | null
           currency_code?: string | null
+          default_creation_status?: string | null
           description?: string | null
           description2?: string | null
           display_name: string
@@ -15524,6 +15531,7 @@ export type Database = {
           is_active?: boolean
           is_enabled?: boolean
           is_platform_disabled?: boolean
+          is_user_id_required?: boolean | null
           max_amount?: number | null
           max_order_amount?: number | null
           metadata?: Json
@@ -15553,6 +15561,8 @@ export type Database = {
           validation_rules?: Json
         }
         Update: {
+          allow_outside_integration?: boolean | null
+          allow_status_override?: boolean | null
           allowed_for_invoice_payment?: boolean
           allowed_for_pay_now?: boolean
           allowed_for_pay_on_collection?: boolean
@@ -15566,6 +15576,7 @@ export type Database = {
           created_info?: string | null
           credit_application_type?: string | null
           currency_code?: string | null
+          default_creation_status?: string | null
           description?: string | null
           description2?: string | null
           display_name?: string
@@ -15580,6 +15591,7 @@ export type Database = {
           is_active?: boolean
           is_enabled?: boolean
           is_platform_disabled?: boolean
+          is_user_id_required?: boolean | null
           max_amount?: number | null
           max_order_amount?: number | null
           metadata?: Json
@@ -26457,9 +26469,12 @@ export type Database = {
       }
       sys_payment_method_cd: {
         Row: {
+          allow_outside_integration: boolean
+          allow_status_override: boolean
           created_at: string | null
           created_by: string | null
           created_info: string | null
+          default_creation_status: string
           gateway_code: string | null
           globally_disabled_at: string | null
           globally_disabled_by: string | null
@@ -26468,6 +26483,7 @@ export type Database = {
           is_deprecated: boolean
           is_enabled: boolean
           is_globally_disabled: boolean
+          is_user_id_required: boolean
           method_category: string | null
           payment_method_code: string
           payment_method_color1: string | null
@@ -26482,14 +26498,19 @@ export type Database = {
           rec_order: number | null
           rec_status: number | null
           replacement_code: string | null
+          requires_cash_drawer: boolean
+          requires_reference: boolean
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
         }
         Insert: {
+          allow_outside_integration?: boolean
+          allow_status_override?: boolean
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          default_creation_status?: string
           gateway_code?: string | null
           globally_disabled_at?: string | null
           globally_disabled_by?: string | null
@@ -26498,6 +26519,7 @@ export type Database = {
           is_deprecated?: boolean
           is_enabled?: boolean
           is_globally_disabled?: boolean
+          is_user_id_required?: boolean
           method_category?: string | null
           payment_method_code: string
           payment_method_color1?: string | null
@@ -26512,14 +26534,19 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number | null
           replacement_code?: string | null
+          requires_cash_drawer?: boolean
+          requires_reference?: boolean
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
         }
         Update: {
+          allow_outside_integration?: boolean
+          allow_status_override?: boolean
           created_at?: string | null
           created_by?: string | null
           created_info?: string | null
+          default_creation_status?: string
           gateway_code?: string | null
           globally_disabled_at?: string | null
           globally_disabled_by?: string | null
@@ -26528,6 +26555,7 @@ export type Database = {
           is_deprecated?: boolean
           is_enabled?: boolean
           is_globally_disabled?: boolean
+          is_user_id_required?: boolean
           method_category?: string | null
           payment_method_code?: string
           payment_method_color1?: string | null
@@ -26542,6 +26570,8 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number | null
           replacement_code?: string | null
+          requires_cash_drawer?: boolean
+          requires_reference?: boolean
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null

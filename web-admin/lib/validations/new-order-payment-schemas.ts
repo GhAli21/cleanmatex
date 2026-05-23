@@ -267,6 +267,42 @@ export type CreateWithPaymentRequest = z.infer<typeof createWithPaymentRequestSc
 export type ClientTotals = z.infer<typeof clientTotalsSchema>;
 
 // ---------------------------------------------------------------------------
+// Submit Order API input — canonical replacement for create-with-payment
+// ---------------------------------------------------------------------------
+
+/**
+ * Input schema for POST /api/v1/orders/submit-order — the canonical order
+ * submission path (Phase 1B+).
+ *
+ * Extends createWithPaymentRequestSchema with one key difference:
+ * `idempotencyKey` is REQUIRED here (min length 1), whereas the base schema
+ * treats it as optional. This is intentional — the submit-order route owns
+ * the full idempotency lifecycle (D11 design) and must always receive a
+ * client-generated key to enable safe retry semantics.
+ *
+ * All other fields are inherited from createWithPaymentRequestSchema without
+ * modification — this schema must remain a strict superset so callers that
+ * already build a CreateWithPaymentRequest only need to add the key.
+ *
+ * @example
+ * const result = submitOrderRequestSchema.safeParse({
+ *   ...createWithPaymentPayload,
+ *   idempotencyKey: crypto.randomUUID(),
+ * });
+ */
+export const submitOrderRequestSchema = createWithPaymentRequestSchema.extend({
+  idempotencyKey: z.string().min(1, 'idempotencyKey is required on submit-order'),
+});
+
+/**
+ * TypeScript type derived from submitOrderRequestSchema.
+ * Use this type for the `input` parameter in the orchestrator and the route handler.
+ * The only guarantee over CreateWithPaymentRequest is that `idempotencyKey` is
+ * `string` (never `undefined`).
+ */
+export type SubmitOrderRequest = z.infer<typeof submitOrderRequestSchema>;
+
+// ---------------------------------------------------------------------------
 // createInvoiceAction input
 // ---------------------------------------------------------------------------
 

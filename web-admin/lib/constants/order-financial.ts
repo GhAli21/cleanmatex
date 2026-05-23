@@ -34,11 +34,11 @@ export type TaxType = (typeof TAX_TYPES)[keyof typeof TAX_TYPES];
  * real payment legs.
  */
 export const CREDIT_APPLICATION_TYPES = {
-  GIFT_CARD: 'GIFT_CARD',
-  WALLET: 'WALLET',
-  ADVANCE: 'ADVANCE',
-  CREDIT_NOTE: 'CREDIT_NOTE',
-  LOYALTY_POINTS: 'LOYALTY_POINTS',
+  GIFT_CARD:        'GIFT_CARD',
+  WALLET:           'WALLET',
+  CUSTOMER_CREDIT:  'CUSTOMER_CREDIT',
+  CUSTOMER_ADVANCE: 'CUSTOMER_ADVANCE',
+  LOYALTY_CREDIT:   'LOYALTY_CREDIT',
 } as const;
 /** Derived union for stored-value application codes. */
 export type CreditApplicationType =

@@ -2,6 +2,10 @@
  * Server Action: Invoice Management
  *
  * Actions for creating, retrieving, and managing invoices.
+ *
+ * @deprecated New AR invoice UI and APIs should use the canonical `/api/v1/ar/*`
+ * surface and `ar-invoice.service.ts`. These actions stay only for route
+ * compatibility while older order screens are still being bridged.
  */
 
 'use server';
@@ -29,6 +33,7 @@ import { createInvoiceInputSchema } from '@/lib/validations/new-order-payment-sc
  * @param tenantOrgId - Tenant organization ID
  * @param input - Invoice creation input
  * @returns Created invoice or error
+ * @deprecated Prefer canonical AR invoice creation routes for new work.
  */
 export async function createInvoiceAction(
   tenantOrgId: string,
@@ -68,6 +73,7 @@ export async function createInvoiceAction(
  *
  * @param invoiceId - Invoice ID
  * @returns Invoice data or null
+ * @deprecated Prefer canonical AR invoice detail APIs for new work.
  */
 export async function getInvoiceAction(invoiceId: string) {
   try {
@@ -98,6 +104,7 @@ export async function getInvoiceAction(invoiceId: string) {
  *
  * @param orderId - Order ID
  * @returns Array of invoices
+ * @deprecated Order screens still rely on this compatibility action.
  */
 export async function getOrderInvoices(orderId: string) {
   try {
@@ -122,6 +129,7 @@ export async function getOrderInvoices(orderId: string) {
  * @param invoiceId - Invoice ID
  * @param input - Update data
  * @returns Updated invoice or error
+ * @deprecated Prefer canonical AR invoice update APIs for new work.
  */
 export async function updateInvoiceAction(
   invoiceId: string,
@@ -154,6 +162,7 @@ export async function updateInvoiceAction(
  * @param paidAmount - Amount paid
  * @param paidBy - User ID who recorded payment
  * @returns Updated invoice or error
+ * @deprecated Prefer canonical AR allocation flows for new work.
  */
 export async function markAsPaidAction(
   invoiceId: string,
@@ -187,6 +196,7 @@ export async function markAsPaidAction(
  * @param discountAmount - Discount amount
  * @param reason - Reason for discount
  * @returns Updated invoice or error
+ * @deprecated Prefer canonical AR adjustment flows for new work.
  */
 export async function applyDiscountAction(
   invoiceId: string,
@@ -222,6 +232,7 @@ export async function applyDiscountAction(
  *
  * @param tenantOrgId - Tenant organization ID
  * @returns Invoice statistics
+ * @deprecated Prefer canonical AR hub stats for new work.
  */
 export async function getInvoiceStatsAction(tenantOrgId: string) {
   try {

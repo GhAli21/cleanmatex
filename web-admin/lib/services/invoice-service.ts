@@ -2,6 +2,10 @@
 /**
  * Invoice Service for CleanMateX
  *
+ * @deprecated Use `ar-invoice.service.ts` for all new AR invoice screens, APIs,
+ * and reporting flows. This file remains as a compatibility adapter for older
+ * order-centric flows that still expect the legacy `Invoice` shape.
+ *
  * Handles all invoice-related operations including:
  * - Invoice creation and management
  * - Invoice calculation (totals, discounts, taxes)

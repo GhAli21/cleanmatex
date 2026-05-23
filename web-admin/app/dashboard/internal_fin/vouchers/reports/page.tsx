@@ -5,6 +5,7 @@
 
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import Link from 'next/link';
 
 export default async function VoucherReportsPage() {
@@ -18,6 +19,17 @@ export default async function VoucherReportsPage() {
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error instanceof Error ? error.message : tCommon('error')}
+        </div>
+      </div>
+    );
+  }
+
+  const canViewReports = await hasPermissionServer('fin_vouchers:reports');
+  if (!canViewReports) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {tCommon('error')}
         </div>
       </div>
     );

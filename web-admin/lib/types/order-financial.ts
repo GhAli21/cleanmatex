@@ -83,7 +83,16 @@ export type FinancialBreakdownSnapshot = {
   decimalPlaces:           number;
 };
 
-// ── Checkout settlement option ────────────────────────────────────────────────
+/**
+ * A single payment / credit-application / deferred-settlement option available
+ * at checkout for the current tenant.
+ *
+ * Returned by checkout-config.service.ts → getCheckoutOptions() and also
+ * constructed inline inside order-submit-orchestrator.service.ts from a raw
+ * SQL query that performs COALESCE(org.column, sys.column) for the five D9
+ * config fields below. The COALESCE ensures org-level overrides take precedence
+ * while system defaults apply when the org has not configured the method.
+ */
 // Returned by checkout-config.service.ts → getCheckoutOptions()
 export type SettlementOption = {
   id:                    string;
@@ -103,6 +112,38 @@ export type SettlementOption = {
   isPlatformDisabled:    boolean;
   isGloballyDisabled:    boolean;
   availableBalance?:     number;
+  // ── D9 config fields — resolved via COALESCE(org.column, sys.column) at query time ──
+  /**
+   * Payment creation status written to the voucher line on submission.
+   * Gateway methods default to PROCESSING; CASH and CARD to COMPLETED;
+   * everything else to PENDING. Org-level override wins when set.
+   * Valid values: COMPLETED | PENDING | PROCESSING.
+   */
+  defaultCreationStatus: string;
+  /**
+   * When true, the request may supply a paymentStatus override that replaces
+   * defaultCreationStatus on the voucher line (Phase 2 capability; not yet
+   * wired through PaymentLeg).
+   */
+  allowStatusOverride:   boolean;
+  /**
+   * When true, the payment leg must carry at least one of: gatewayReference,
+   * gatewayTransactionId, bankReference, or checkNumber. Enforced by
+   * validateSettlementPlan(). Applies to BANK_TRANSFER, CHECK, and configured
+   * gateway methods.
+   */
+  requiresReference:     boolean;
+  /**
+   * When true, the cashier user ID must be recorded on the payment fact row
+   * (audit requirement for high-value cash methods in some GCC jurisdictions).
+   */
+  isUserIdRequired:      boolean;
+  /**
+   * When true, this method appears in the POS order creation form.
+   * Maps to org_payment_methods_cf.allowed_in_pos. Methods with false are
+   * available only in back-office payment flows, not at the POS counter.
+   */
+  allowedInPos:          boolean;
 };
 
 // ── Grouped checkout settlement options ───────────────────────────────────────

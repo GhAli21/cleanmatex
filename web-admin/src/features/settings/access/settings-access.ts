@@ -170,32 +170,6 @@ export const SETTINGS_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: SETTINGS_NOTES,
   },
   {
-    routePattern: '/dashboard/settings/payments',
-    label: 'Payment Setup',
-    page: {},
-    apiDependencies: [
-      {
-        label: 'Payment methods',
-        method: 'GET',
-        path: '/api/v1/settings/payments/methods',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-      {
-        label: 'Payment terminals',
-        method: 'GET',
-        path: '/api/v1/settings/payments/terminals',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-      {
-        label: 'Payment card brands',
-        method: 'GET',
-        path: '/api/v1/settings/payments/card-brands',
-        notes: ['Auth-only local route; explicit permission requirement not recorded in local API inventory.'],
-      },
-    ],
-    notes: SETTINGS_NOTES,
-  },
-  {
     routePattern: '/dashboard/settings/navigation',
     label: 'Navigation Settings',
     page: {},

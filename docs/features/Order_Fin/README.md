@@ -8,6 +8,41 @@ This feature owns the entire financial layer of an order from totals calculation
 
 ## Architecture
 
+### Phase 1B — Submit Order via BVM Wiring (current)
+
+```
+POST /api/v1/orders/submit-order
+       │
+       ▼
+submit-order/route.ts  (thin shell — CSRF, auth, parse, idempotency)
+       │
+       ▼
+order-submit-orchestrator.service.ts
+  ├── tx1: createOrder + invoice + promo + gift card
+  ├── Checkout Config (COALESCE D9 from sys+org payment method tables)
+  ├── buildSettlementPlan()   ← pure classification, no DB writes
+  ├── validateSettlementPlan() ← drawer open, tendered ≥ amount, gateway config, reference
+  ├── [if shouldCreateReceiptVoucher]
+  │     ├── createBizVoucher()
+  │     ├── addVoucherLine() × N  (REAL_PAYMENT + CREDIT_APPLICATION legs)
+  │     └── postAndWireBizVoucher()
+  │           └── wiring handlers → org_order_payments_dtl, org_order_credit_apps_dtl,
+  │                                  org_cash_drawer_movements_dtl
+  ├── settleOrder(wiringMode: true)
+  │     ├── Writes: org_order_charges_dtl, org_order_taxes_dtl, org_order_discounts_dtl
+  │     ├── Debits: wallet, advance, credit-note, loyalty (stored value)
+  │     ├── SKIPS: org_order_payments_dtl create (wiring already did it)
+  │     ├── SKIPS: org_order_credit_apps_dtl create (wiring already did it)
+  │     └── Updates: org_orders_mst snapshot
+  └── Returns: SubmitOrderResult { order, voucher?, effects, warnings }
+```
+
+### Legacy path (frozen — not served)
+```
+POST /api/v1/orders/_legacy_create-with-payment  ← Next.js does NOT route _-prefixed folders
+```
+
+### Pre-Phase 1B (reference only)
 ```
 Order Calculation Service
        │
@@ -36,6 +71,9 @@ Order Settlement Service (prisma.$transaction)
 | Unified payment config | org_payment_methods_cf (not per-branch tables) | Branch overrides via JSONB column, not separate rows |
 | Outbox pattern | Append-only table + worker | Decouples event consumers; survives downstream failures |
 | SELECT FOR UPDATE | Raw SQL on stored-value mutation paths | Prevents TOCTOU double-debit on concurrent requests |
+| Canonical order submission path (Phase 1B) | `submit-order` only; `create-with-payment` frozen | One path to maintain; orchestrator reusable by any caller |
+| Idempotency ownership (Phase 1B D11) | Route owns full lifecycle; orchestrator is stateless | Orchestrator stays pure/testable; route guards against replay |
+| D9 payment status config (Phase 1B) | COALESCE(org.col, sys.col) — sys defaults, org overrides | Config-driven status without code changes; tenant overrides possible |
 
 ## Directory Structure
 

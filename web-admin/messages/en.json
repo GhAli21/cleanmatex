@@ -4695,6 +4695,12 @@
         },
         "success": "Gift card applied! Balance: OMR {balance}"
       },
+      "warnings": {
+        "BANK_TRANSFER_PENDING_CONFIRMATION": "Payment received. Bank transfer confirmation pending.",
+        "CHECK_PENDING_CONFIRMATION": "Payment received. Cheque clearance pending.",
+        "GATEWAY_PAYMENT_PROCESSING": "Online payment is processing. Order will update automatically."
+      },
+      "voucherCreated": "Receipt Voucher {voucherNo} created",
       "b2b": {
         "title": "B2B Customers Details",
         "contract": "Contract",

@@ -3,7 +3,7 @@
 **Document Type:** Product Requirements Document (PRD)  
 **Module:** Business Voucher Wiring / Operational Integration Layer  
 **Version:** v2.1  
-**Status:** Phase 1A Complete — Phases 2–5 Pending  
+**Status:** Phase 1A + 1B Complete — Phases 2–5 Pending  
 **Project:** CleanMateX Business / SaaS Platform  
 **Primary Scope:** Wire Business Voucher transaction lines into Order Fin, order payments, order credit applications, cash drawer, stored-value ledgers, full AR invoice payments, refunds, expenses, reconciliation, and linked-effects UI.  
 **Core Source Document Tables:** `org_fin_vouchers_mst`, `org_fin_voucher_trx_lines_dtl`  

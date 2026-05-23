@@ -90,8 +90,10 @@ Legend:
 | `/dashboard/internal_fin/payments/new` | New Payment | None | None | None | None | No explicit page gate |
 | `/dashboard/internal_fin/payments/[id]` | Payment Details | None | None | None | `Cancel payment` Ã¢â€ â€™ `payments:cancel`; `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page with gated detail actions |
 | `/dashboard/internal_fin/payments/[id]/print/receipt-voucher` | Print Receipt Voucher | None | None | None | None | No explicit page gate |
-| `/dashboard/internal_fin/vouchers` | Receipt Vouchers | None | None | None | None | No explicit page gate |
-| `/dashboard/internal_fin/vouchers/new` | New Receipt Voucher | None | None | None | None | No explicit page gate |
+| `/dashboard/internal_fin/vouchers` | Business Vouchers | `fin_vouchers:view` | None | None | `Create voucher` -> `fin_vouchers:create`; `Post voucher` -> `fin_vouchers:post`; `Cancel voucher` -> `fin_vouchers:cancel`; `Reverse voucher` -> `fin_vouchers:reverse` | Canonical voucher hub route |
+| `/dashboard/internal_fin/vouchers/[voucherId]` | Voucher Detail | `fin_vouchers:view` | None | None | `Update voucher draft` -> `fin_vouchers:update`; `Post voucher` -> `fin_vouchers:post`; `Cancel voucher` -> `fin_vouchers:cancel`; `View voucher linked effects` -> `fin_vouchers:view_effects` | Canonical voucher detail and linked-effects review route |
+| `/dashboard/internal_fin/vouchers/new` | New Business Voucher | `fin_vouchers:create` | None | None | None | Draft voucher creation route |
+| `/dashboard/internal_fin/vouchers/reports` | Voucher Reports | `fin_vouchers:reports` | None | None | None | Voucher reporting route |
 | `/dashboard/internal_fin/cashup` | Cash Up | None | None | None | None | No explicit page gate |
 
 ## Catalog
@@ -145,6 +147,7 @@ Legend:
 | `/dashboard/settings/branding` | Branding Settings | None | None | None | None | No explicit page gate |
 | `/dashboard/settings/subscription` | Settings Subscription | None | None | None | None | No explicit page gate |
 | `/dashboard/settings/finance` | Finance Settings | None | None | None | None | No explicit page gate |
+| `/dashboard/settings/payments` | Payment Setup | `payment_config:view` | None | None | `Update payment method configuration` -> `payment_config:manage`; `Create or update payment terminals` -> `payment_config:manage`; `Update card brand configuration` -> `payment_config:manage`; `View cash drawers` -> `cash_drawer:view`; `Open cash drawer session` -> `cash_drawer:open_session` | Canonical payment configuration route |
 | `/dashboard/settings/navigation` | Navigation Settings | None | None | None | None | No explicit page gate |
 | `/dashboard/settings/preferences` | Settings Preferences | None | None | None | None | No explicit page gate |
 | `/dashboard/settings/branches/[id]` | Branch Settings | None | None | None | None | No explicit page gate |

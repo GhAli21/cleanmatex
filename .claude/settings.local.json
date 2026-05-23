@@ -177,7 +177,8 @@
       "Bash(npx next *)",
       "Bash(grep -E \"\\\\.\\(ts|tsx|js\\)$\")",
       "Bash(xargs grep -l \"wiring_status.*WIRED\\\\|wireVoucher\\\\|wireLines\")",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(npx supabase *)"
     ],
     "deny": [
       "Read(node_modules)",

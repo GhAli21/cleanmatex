@@ -72,6 +72,14 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | GET | `/api/v1/ar/statement-cycles` | `ar_stmt_cycles:view` | List B2B AR statement cycles |
 | API | POST | `/api/v1/ar/statement-cycles` | `ar_stmt_cycles:manage` | Create a B2B AR statement cycle |
 | API | GET | `/api/v1/ar/statement-cycles/[id]/preview` | `ar_stmt_cycles:view` | Preview customers included in a statement cycle |
+| API | GET | `/api/v1/finance/vouchers` | `fin_vouchers:view` | Canonical voucher list |
+| API | POST | `/api/v1/finance/vouchers` | `fin_vouchers:create` | Create voucher draft |
+| API | GET | `/api/v1/finance/vouchers/[voucherId]` | `fin_vouchers:view` | Voucher detail |
+| API | PATCH | `/api/v1/finance/vouchers/[voucherId]` | `fin_vouchers:update` | Update voucher draft |
+| API | POST | `/api/v1/finance/vouchers/[voucherId]/post` | `fin_vouchers:post` | Post and wire voucher effects |
+| API | POST | `/api/v1/finance/vouchers/[voucherId]/cancel` | `fin_vouchers:cancel` | Cancel posted or draft voucher |
+| API | GET | `/api/v1/finance/vouchers/[voucherId]/linked-effects` | `fin_vouchers:view_effects` | Voucher-level linked operational effects |
+| API | GET | `/api/v1/finance/voucher-lines/[lineId]/linked-effects` | `fin_vouchers:view_effects` | Voucher line linked operational effects |
 | API | GET | `/api/v1/b2b-contacts` | `b2b_contacts:view` | Contacts list |
 | API | POST | `/api/v1/b2b-contacts` | `b2b_contacts:create` | Create contact |
 | API | GET | `/api/v1/b2b-contacts/[id]` | `b2b_contacts:view` | Contact details |
@@ -138,6 +146,14 @@ Frontend page contracts may link to these APIs through `PageAccessContract.apiDe
 | API | GET | `/api/v1/customers/[id]/service-prefs` | `customers:read` | Customer preferences read |
 | API | POST | `/api/v1/customers/[id]/service-prefs` | `customers:update` | Customer preferences mutate |
 | API | PATCH | `/api/v1/customers/[id]/service-prefs` | `customers:update` | Customer preferences mutate |
+| API | GET | `/api/v1/settings/payments/methods` | `payment_config:view` | Payment method configuration list |
+| API | PATCH | `/api/v1/settings/payments/methods/[methodId]` | `payment_config:manage` | Update tenant payment method configuration |
+| API | GET | `/api/v1/settings/payments/terminals` | `payment_config:view` | Payment terminal list |
+| API | POST | `/api/v1/settings/payments/terminals` | `payment_config:manage` | Create payment terminal |
+| API | GET | `/api/v1/settings/payments/card-brands` | `payment_config:view` | Card brand configuration list |
+| API | PATCH | `/api/v1/settings/payments/card-brands/[brandId]` | `payment_config:manage` | Update tenant card brand configuration |
+| API | GET | `/api/v1/cash-drawers` | `cash_drawer:view` | Cash drawer list for finance setup and operations |
+| API | POST | `/api/v1/cash-drawers/[drawerId]/open-session` | `cash_drawer:open_session` | Open drawer session from the payment setup workbench |
 | ACTION | POST | `app/actions/payments/payment-crud-actions.cancelPaymentAction` | `payments:cancel` | Permission checked with `hasPermissionServer(...)` |
 | ACTION | POST | `app/actions/payments/payment-crud-actions.refundPaymentAction` | `payments:refund` | Permission checked with `hasPermissionServer(...)` |
 | ACTION | POST | `app/actions/erp-lite/v2-actions.createErpLiteSupplierAction` | `erp_lite_ap:view` | ERP-Lite supplier master create action |

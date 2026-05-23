@@ -1,11 +1,15 @@
 /**
- * Create Order With Payment API - Single transaction flow
- * Replaces sequential create order → create invoice → process payment.
- * On amount mismatch: returns AMOUNT_MISMATCH, creates nothing.
+ * @deprecated FROZEN — do not modify, do not add callers.
  *
- * P9.1 — settlement writes go through order-settlement.service (fact tables).
- * Order creation + promo/gift redemption in a first transaction; fact-table
- * settlement in a second transaction via settleOrder().
+ * This route has been superseded by POST /api/v1/orders/submit-order.
+ * It is preserved for reference only and is NOT served by Next.js
+ * (folder prefix `_legacy_` prevents routing).
+ *
+ * Canonical path: app/api/v1/orders/submit-order/route.ts
+ * Orchestrator:   lib/services/order-submit-orchestrator.service.ts
+ *
+ * Any new order submission logic MUST go into the orchestrator, not here.
+ * See: docs/features/Order_Fin/ADR_submit_order_canonical_path.md
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -75,6 +79,7 @@ function buildDifferences(
 }
 
 /**
+ * @deprecated Use submitOrder() orchestrator via /api/v1/orders/submit-order instead.
  * POST /api/v1/orders/create-with-payment
  */
 export async function POST(request: NextRequest) {

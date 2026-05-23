@@ -1,6 +1,6 @@
 # Order Financial Platform — Implementation Status
 
-Last updated: 2026-05-22
+Last updated: 2026-05-23
 
 ## Phase Completion
 
@@ -28,6 +28,7 @@ Last updated: 2026-05-22
 | P19 | Documentation | ✅ Done |
 
 | BVM-1A | BVM Wiring Phase 1A — order payment, credit application, cash drawer wiring | ✅ Done (2026-05-22) |
+| BVM-1B | BVM Wiring Phase 1B — submit-order canonical path + orchestrator integration | ✅ Done (2026-05-23) |
 
 ## BVM Wiring Phase 1A — What Was Done
 
@@ -68,5 +69,5 @@ Implemented the full wiring layer that connects posted voucher lines to their op
 - Reconciliation STORED_VALUE_LEDGER check: currently raises as BLOCKER — will refine threshold in first post-launch sprint
 - Gift card CURRENCY_MISMATCH enforcement: future phase to support multi-currency redemption
 - Outbox worker retry fanout to external webhooks: stub only — connect to event bus in Phase 20
-- BVM Wiring Phase 1B: Wire `create-with-payment` through BVM path (`wiringMode: true` in `settleOrder()`) — resolves double-write gap for order submission flow
+- BVM Wiring Phase 1B: ✅ Complete — `submit-order` canonical path, orchestrator, settlement planner, D9 config columns, ESLint governance (2026-05-23)
 - BVM Wiring Phase 2–5: Stored value ledger, invoice collection, expense/outgoing projections, legacy backfill

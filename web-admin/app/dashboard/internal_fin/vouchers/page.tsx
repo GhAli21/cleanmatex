@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import { listBizVouchersAction } from '@/app/actions/finance/voucher-actions';
 import { VouchersListClient } from '@features/finance/vouchers/ui/vouchers-list-client';
 import type { VoucherListFilters } from '@/lib/types/voucher';
@@ -28,6 +29,17 @@ export default async function VouchersPage({ searchParams }: PageProps) {
       <div className="space-y-6 p-6">
         <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           {error instanceof Error ? error.message : tCommon('error')}
+        </div>
+      </div>
+    );
+  }
+
+  const canView = await hasPermissionServer('fin_vouchers:view');
+  if (!canView) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {tCommon('error')}
         </div>
       </div>
     );

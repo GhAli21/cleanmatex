@@ -381,7 +381,7 @@ export function useOrderSubmission() {
                         body: JSON.stringify(updateBody),
                     });
                 } else {
-                    res = await fetch('/api/v1/orders/create-with-payment', {
+                    res = await fetch('/api/v1/orders/submit-order', {
                         method: 'POST',
                         headers,
                         credentials: 'include',
@@ -519,7 +519,13 @@ export function useOrderSubmission() {
                     return;
                 }
 
+                // submit-order returns { order: {...}, voucher?, effects, warnings }
+                // update-order returns flat { id, orderId, currentStatus, ... }
                 const data = json.data as {
+                    order?: { id: string; orderNo: string; currentStatus: string };
+                    voucher?: { id: string; voucherNo: string; status: string; wiringStatus: string };
+                    warnings?: string[];
+                    // edit-mode update-order flat shape
                     id?: string;
                     orderId?: string;
                     currentStatus?: string;
@@ -527,16 +533,22 @@ export function useOrderSubmission() {
                     orderNo?: string;
                     order_no?: string;
                 };
-                const orderId = data?.id || data?.orderId;
-                const orderStatus = data?.currentStatus || data?.status;
+                const orderId = data?.order?.id || data?.id || data?.orderId;
+                const orderStatus = data?.order?.currentStatus || data?.currentStatus || data?.status;
 
-                // Order + invoice + payment created atomically by create-with-payment API
                 // Success - close payment modal, show success, reset
                 state.closeModal('payment');
                 if (orderId) {
                     state.setCreatedOrder(orderId, orderStatus || null);
                 }
-                const orderNo = data?.orderNo || data?.order_no || state.state.editingOrderNo || '';
+                const orderNo = data?.order?.orderNo || data?.orderNo || data?.order_no || state.state.editingOrderNo || '';
+
+                // Show payment-status warnings from submit-order (PENDING/PROCESSING legs)
+                if (!isEditMode && data?.warnings && data.warnings.length > 0) {
+                    for (const warning of data.warnings) {
+                        cmxMessage.info(t(`payment.warnings.${warning}` as Parameters<typeof t>[0], { default: warning }));
+                    }
+                }
 
                 if (isEditMode) {
                     cmxMessage.success(
@@ -550,6 +562,11 @@ export function useOrderSubmission() {
                         t('success.orderCreated', { orderNo }) ||
                         `Order ${orderNo} created successfully`
                     );
+                    if (data?.voucher) {
+                        cmxMessage.info(
+                            t('payment.voucherCreated', { voucherNo: data.voucher.voucherNo, default: `Receipt Voucher ${data.voucher.voucherNo} created` })
+                        );
+                    }
                     idempotencyKeyRef.current = crypto.randomUUID();
                     state.resetOrder();
                 }

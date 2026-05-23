@@ -764,36 +764,6 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     notes: ['Refund workbench route using the same page gate exposed in navigation.'],
   },
   {
-    routePattern: '/dashboard/internal_fin/vouchers',
-    label: 'Receipt Vouchers',
-    page: {},
-    notes: BILLING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/internal_fin/vouchers/[voucherId]',
-    label: 'Voucher Details',
-    page: {
-      permissions: ['fin_vouchers:view'],
-      requireAllPermissions: true,
-    },
-    notes: ['Business voucher detail route.'],
-  },
-  {
-    routePattern: '/dashboard/internal_fin/vouchers/new',
-    label: 'New Receipt Voucher',
-    page: {},
-    notes: BILLING_NOTES,
-  },
-  {
-    routePattern: '/dashboard/internal_fin/vouchers/reports',
-    label: 'Voucher Reports',
-    page: {
-      permissions: ['fin_vouchers:reports'],
-      requireAllPermissions: true,
-    },
-    notes: ['Voucher reports route with explicit report permission gate.'],
-  },
-  {
     routePattern: '/dashboard/internal_fin/cashup',
     label: 'Cash Up',
     page: {},

@@ -1,180 +1,29 @@
-'use client';
-/* eslint-disable react-hooks/set-state-in-effect */
+/**
+ * Payment settings route shell.
+ *
+ * The route stays server-rendered so the page contract's `payment_config:view`
+ * requirement is enforced before the client admin tabs begin loading data.
+ */
+import { getTranslations } from 'next-intl/server';
+import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
+import { PaymentSettingsPage } from '@features/payment-config/ui/payment-settings-page';
 
-import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
-import { CreditCard } from 'lucide-react';
-import { CmxTabsPanel } from '@ui/navigation';
-import { CmxSkeletonTable } from '@ui/primitives';
-import { cmxMessage } from '@ui/feedback';
-import { PaymentMethodsTab } from '@features/payment-config/ui/payment-methods-tab';
-import { CardBrandsTab } from '@features/payment-config/ui/card-brands-tab';
-import { BranchOverridesTab } from '@features/payment-config/ui/branch-overrides-tab';
-import { TerminalsTab } from '@features/payment-config/ui/terminals-tab';
-import { CashDrawersTab } from '@features/payment-config/ui/cash-drawers-tab';
-import { getCardBrandConfigs } from '@/app/actions/payment-config/card-brands-actions';
-import { getPaymentMethodConfigs } from '@/app/actions/payment-config/payment-methods-actions';
-import { getTerminals } from '@/app/actions/payment-config/terminals-actions';
-import { getCashDrawers } from '@/app/actions/payment-config/cash-drawers-actions';
-import { getBranchesAction } from '@/app/actions/inventory/inventory-actions';
-import { useEffect } from 'react';
-import type {
-  OrgCardBrandConfig,
-  OrgPaymentMethodConfig,
-  OrgPaymentTerminal,
-} from '@/lib/types/payment';
+export default async function PaymentSettingsRoutePage() {
+  const tCommon = await getTranslations('common');
 
-interface Branch {
-  id: string;
-  branch_name: string;
-}
+  await getAuthContext();
+  const canView = await hasPermissionServer('payment_config:view');
 
-export default function PaymentSettingsPage() {
-  const t = useTranslations('paymentConfig');
-  const [, startTransition] = useTransition();
-
-  const [methods, setMethods] = useState<OrgPaymentMethodConfig[]>([]);
-  const [cardBrands, setCardBrands] = useState<OrgCardBrandConfig[]>([]);
-  const [terminals, setTerminals] = useState<OrgPaymentTerminal[]>([]);
-  const [drawers, setDrawers] = useState<Parameters<typeof CashDrawersTab>[0]['drawers']>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-
-  const [methodsLoading, setMethodsLoading] = useState(true);
-  const [cardBrandsLoading, setCardBrandsLoading] = useState(true);
-  const [terminalsLoading, setTerminalsLoading] = useState(true);
-  const [drawersLoading, setDrawersLoading] = useState(true);
-  const [branchesLoading, setBranchesLoading] = useState(true);
-
-  const loadMethods = () => {
-    setMethodsLoading(true);
-    startTransition(async () => {
-      const result = await getPaymentMethodConfigs();
-      setMethodsLoading(false);
-      if (result.success && result.data) setMethods(result.data);
-      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
-    });
-  };
-
-  const loadCardBrands = () => {
-    setCardBrandsLoading(true);
-    startTransition(async () => {
-      const result = await getCardBrandConfigs();
-      setCardBrandsLoading(false);
-      if (result.success && result.data) setCardBrands(result.data);
-      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
-    });
-  };
-
-  const loadTerminals = () => {
-    setTerminalsLoading(true);
-    startTransition(async () => {
-      const result = await getTerminals();
-      setTerminalsLoading(false);
-      if (result.success && result.data) setTerminals(result.data);
-      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
-    });
-  };
-
-  const loadDrawers = () => {
-    setDrawersLoading(true);
-    startTransition(async () => {
-      const result = await getCashDrawers();
-      setDrawersLoading(false);
-      if (result.success && result.data) setDrawers(result.data as Parameters<typeof CashDrawersTab>[0]['drawers']);
-      else if (!result.success) cmxMessage.error(result.error ?? t('common.error'));
-    });
-  };
-
-  const loadBranches = () => {
-    setBranchesLoading(true);
-    startTransition(async () => {
-      const result = await getBranchesAction();
-      setBranchesLoading(false);
-      if (result.success && result.data) {
-        setBranches(
-          (result.data as Array<{ id: string; name?: string; branch_name?: string }>).map((b) => ({
-            id: b.id,
-            branch_name: b.name ?? b.branch_name ?? 'Branch',
-          }))
-        );
-      }
-    });
-  };
-
-  useEffect(() => {
-    loadMethods();
-    loadCardBrands();
-    loadTerminals();
-    loadDrawers();
-    loadBranches();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const tabs = [
-    {
-      id: 'methods',
-      label: t('tabs.methods'),
-      content: (
-        <PaymentMethodsTab
-          methods={methods}
-          isLoading={methodsLoading}
-          onRefresh={loadMethods}
-        />
-      ),
-    },
-    {
-      id: 'cardBrands',
-      label: t('tabs.cardBrands'),
-      content: (
-        <CardBrandsTab
-          brands={cardBrands}
-          isLoading={cardBrandsLoading}
-          onRefresh={loadCardBrands}
-        />
-      ),
-    },
-    {
-      id: 'branches',
-      label: t('tabs.branches'),
-      content: branchesLoading ? (
-        <CmxSkeletonTable rows={3} columns={4} showHeader />
-      ) : (
-        <BranchOverridesTab branches={branches} />
-      ),
-    },
-    {
-      id: 'terminals',
-      label: t('tabs.terminals'),
-      content: (
-        <TerminalsTab
-          terminals={terminals}
-          isLoading={terminalsLoading}
-          onRefresh={loadTerminals}
-        />
-      ),
-    },
-    {
-      id: 'cashDrawers',
-      label: t('tabs.cashDrawers'),
-      content: (
-        <CashDrawersTab
-          drawers={drawers}
-          isLoading={drawersLoading}
-          onRefresh={loadDrawers}
-        />
-      ),
-    },
-  ];
-
-  return (
-    <div className="space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <CreditCard className="h-6 w-6 text-muted-foreground" />
-        <div>
-          <h1 className="text-xl font-semibold">{t('title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
+  if (!canView) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {tCommon('error')}
         </div>
       </div>
-      <CmxTabsPanel tabs={tabs} />
-    </div>
-  );
+    );
+  }
+
+  return <PaymentSettingsPage />;
 }

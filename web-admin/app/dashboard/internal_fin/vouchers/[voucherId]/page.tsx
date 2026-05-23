@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { getAuthContext } from '@/lib/auth/server-auth';
+import { hasPermissionServer } from '@/lib/services/permission-service-server';
 import {
   getBizVoucherDetailAction,
   getVoucherLinkedEffectsAction,
@@ -15,8 +16,19 @@ interface PageProps {
 export default async function VoucherDetailPage({ params }: PageProps) {
   const { voucherId } = await params;
   const t = await getTranslations('finance.vouchers');
+  const tCommon = await getTranslations('common');
 
   const auth = await getAuthContext();
+  const canView = await hasPermissionServer('fin_vouchers:view');
+  if (!canView) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          {tCommon('error')}
+        </div>
+      </div>
+    );
+  }
 
   const result = await getBizVoucherDetailAction(voucherId);
   if (!result.success || !result.data) {

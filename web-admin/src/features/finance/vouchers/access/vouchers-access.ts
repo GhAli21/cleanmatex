@@ -1,3 +1,7 @@
+/**
+ * Voucher route contracts live beside the voucher feature so the canonical
+ * posting/wiring permissions stay close to the UI that uses them.
+ */
 import type { PageAccessContract } from '@/lib/auth/access-contracts';
 import { CASHIER_ALLOWED_VOUCHER_TYPES, CASHIER_ALLOWED_LINE_ROLES } from '@/lib/constants/voucher';
 
@@ -61,7 +65,14 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
         path: '/api/v1/finance/vouchers',
         requirement: { permissions: ['fin_vouchers:view'], requireAllPermissions: true },
       },
+      {
+        label: 'Create voucher',
+        method: 'POST',
+        path: '/api/v1/finance/vouchers',
+        requirement: { permissions: ['fin_vouchers:create'], requireAllPermissions: true },
+      },
     ],
+    notes: ['Canonical voucher hub route. Linked effects, posting, and cancellation stay on voucher service boundaries.'],
   },
   {
     routePattern: '/dashboard/internal_fin/vouchers/new',
@@ -75,10 +86,74 @@ export const VOUCHER_ACCESS_CONTRACTS: PageAccessContract[] = [
         requirement: { permissions: ['fin_vouchers:create'], requireAllPermissions: true },
       },
     ],
+    notes: ['Draft voucher creation route for the canonical voucher stack.'],
   },
   {
     routePattern: '/dashboard/internal_fin/vouchers/[voucherId]',
     label: 'Voucher Detail',
     page: { permissions: ['fin_vouchers:view'], requireAllPermissions: true },
+    actions: {
+      updateVoucher: {
+        label: 'Update voucher draft',
+        requirement: { permissions: ['fin_vouchers:update'], requireAllPermissions: true },
+      },
+      postVoucher: {
+        label: 'Post voucher',
+        requirement: { permissions: ['fin_vouchers:post'], requireAllPermissions: true },
+      },
+      cancelVoucher: {
+        label: 'Cancel voucher',
+        requirement: { permissions: ['fin_vouchers:cancel'], requireAllPermissions: true },
+      },
+      viewLinkedEffects: {
+        label: 'View voucher linked effects',
+        requirement: { permissions: ['fin_vouchers:view_effects'], requireAllPermissions: true },
+      },
+    },
+    apiDependencies: [
+      {
+        label: 'Get voucher detail',
+        method: 'GET',
+        path: '/api/v1/finance/vouchers/[voucherId]',
+        requirement: { permissions: ['fin_vouchers:view'], requireAllPermissions: true },
+      },
+      {
+        label: 'Update voucher draft',
+        method: 'PATCH',
+        path: '/api/v1/finance/vouchers/[voucherId]',
+        requirement: { permissions: ['fin_vouchers:update'], requireAllPermissions: true },
+      },
+      {
+        label: 'Post voucher',
+        method: 'POST',
+        path: '/api/v1/finance/vouchers/[voucherId]/post',
+        requirement: { permissions: ['fin_vouchers:post'], requireAllPermissions: true },
+      },
+      {
+        label: 'Cancel voucher',
+        method: 'POST',
+        path: '/api/v1/finance/vouchers/[voucherId]/cancel',
+        requirement: { permissions: ['fin_vouchers:cancel'], requireAllPermissions: true },
+      },
+      {
+        label: 'Get voucher linked effects',
+        method: 'GET',
+        path: '/api/v1/finance/vouchers/[voucherId]/linked-effects',
+        requirement: { permissions: ['fin_vouchers:view_effects'], requireAllPermissions: true },
+      },
+      {
+        label: 'Get voucher line linked effects',
+        method: 'GET',
+        path: '/api/v1/finance/voucher-lines/[lineId]/linked-effects',
+        requirement: { permissions: ['fin_vouchers:view_effects'], requireAllPermissions: true },
+      },
+    ],
+    notes: ['Voucher detail route is the canonical place to review posting results and operational linked effects.'],
+  },
+  {
+    routePattern: '/dashboard/internal_fin/vouchers/reports',
+    label: 'Voucher Reports',
+    page: { permissions: ['fin_vouchers:reports'], requireAllPermissions: true },
+    notes: ['Reporting route for posted voucher analysis.'],
   },
 ];

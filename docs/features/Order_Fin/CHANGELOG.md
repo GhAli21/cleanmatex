@@ -1,5 +1,43 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-23
+
+### BVM Wiring Phase 1B — Submit Order Canonical Path
+
+**Migrations applied:** `0324_bvm_wiring_phase1b_line_type.sql`, `0325_payment_method_config_enrichment.sql`
+
+**New files:**
+- `lib/types/settlement-plan.ts` — `RealPaymentLeg`, `CreditApplicationLeg`, `SettlementPlan` interfaces
+- `lib/services/order-settlement-planner.service.ts` — pure `buildSettlementPlan()` + async `validateSettlementPlan()`
+- `lib/services/order-submit-orchestrator.service.ts` — `submitOrder()` orchestrator + `resolveOrderBranch()`
+- `app/api/v1/orders/submit-order/route.ts` — canonical order submission endpoint
+- `docs/features/Order_Fin/ADR_submit_order_canonical_path.md` — ADR for canonical path decision
+- `docs/features/Order_Fin/bvm_wiring_phase1b_implementation.md` — full feature implementation doc
+
+**Modified files:**
+- `lib/types/order-financial.ts` — D9 config fields added to `SettlementOption`
+- `lib/validations/new-order-payment-schemas.ts` — `submitOrderRequestSchema` + `SubmitOrderRequest` type
+- `lib/constants/order-financial.ts` — `CREDIT_APPLICATION_TYPES` fixed to exact DB constraint values
+- `lib/constants/voucher.ts` — `LINE_TYPE.CREDIT_APPLICATION` added
+- `lib/services/checkout-config.service.ts` — COALESCE JOIN for D9 fields from `sys_payment_method_cd`
+- `lib/services/order-credit-application.service.ts` — constant key fixes (CUSTOMER_ADVANCE, CUSTOMER_CREDIT, LOYALTY_CREDIT)
+- `lib/services/order-settlement.service.ts` — same constant key fixes
+- `app/api/v1/orders/_legacy_create-with-payment/route.ts` — folder renamed, `@deprecated FROZEN` added
+- `eslint.config.mjs` — `no-restricted-imports` barricade for legacy path
+- `src/features/orders/hooks/use-order-submission.ts` — switched to `submit-order`, updated response parsing, warning toasts + voucher badge
+- `messages/en.json` + `ar.json` — 4 new i18n keys (payment warnings + voucherCreated)
+- `prisma/schema.prisma` — updated for D9 columns on both payment method tables
+
+**Architecture change:** `POST /api/v1/orders/submit-order` is now the single canonical path. The orchestrator follows the sequence: settlement plan → validate → create voucher + lines → post + wire → `settleOrder(wiringMode: true)`. `settleOrder` skips the `org_order_payments_dtl` / `org_order_credit_apps_dtl` direct writes when wiring has already created them.
+
+## 2026-05-22
+
+### BVM Wiring Phase 1A — Order Payment + Credit Application + Cash Drawer Wiring
+- Implemented wiring layer: `postAndWireBizVoucher()`, handler services, `getVoucherLinkedEffects()`
+- Added `fin_vouchers:wire` and `fin_vouchers:view_effects` permissions
+- Added wiring status UI to vouchers page
+- Migrations: `0318_bvm_wiring_phase1a_schema.sql`, `0319_bvm_wiring_phase1a_permissions.sql`
+
 ## 2026-05-18
 
 ### Documentation

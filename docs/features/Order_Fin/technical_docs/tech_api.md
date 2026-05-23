@@ -2,6 +2,120 @@
 
 All routes are under `/api/v1/` and require a valid session cookie (Supabase auth). Tenant ID is resolved from the session. All responses are JSON.
 
+---
+
+## Order Submission (Phase 1B — Canonical Path)
+
+### `POST /api/v1/orders/submit-order` ← **Canonical**
+
+Single entry point for all order creation with payment settlement. All business logic lives in `lib/services/order-submit-orchestrator.service.ts`.
+
+**Permission:** `orders:create`
+
+**Idempotency:** Required. `idempotencyKey` must be a non-empty string. Same key + same request → returns cached result (200). Same key already exists → returns cached order.
+
+**Request:**
+```json
+{
+  "customerId": "uuid",
+  "items": [
+    { "productId": "uuid", "quantity": 2, "pricePerUnit": 10.000, "totalPrice": 20.000, "serviceCategoryCode": "DRY_CLEANING" }
+  ],
+  "paymentMethod": "CASH",
+  "idempotencyKey": "client-generated-unique-key",
+  "cashDrawerSessionId": "uuid",
+  "clientTotals": {
+    "subtotal": 20.000,
+    "manualDiscount": 0,
+    "promoDiscount": 0,
+    "vatValue": 1.000,
+    "finalTotal": 21.000
+  },
+  "amountToCharge": 21.000,
+  "paymentLegs": [
+    { "method": "CASH", "amount": 21.000, "tenderedAmount": 25.000 }
+  ]
+}
+```
+
+**Response 200 — new order:**
+```json
+{
+  "success": true,
+  "data": {
+    "order": {
+      "id": "uuid",
+      "orderNo": "ORD-001",
+      "currentStatus": "RECEIVED",
+      "totalAmount": "21.000",
+      "totalPaidAmount": "21.000",
+      "totalCreditAppliedAmount": "0.000",
+      "outstandingAmount": "0.000",
+      "paymentStatus": "PAID",
+      "paymentTypeCode": "CASH"
+    },
+    "voucher": {
+      "id": "uuid",
+      "voucherNo": "RV-001",
+      "status": "POSTED",
+      "wiringStatus": "WIRED"
+    },
+    "effects": {
+      "orderPayments": [
+        { "id": "uuid", "amount": "21.000", "paymentMethodCode": "CASH", "paymentStatus": "COMPLETED" }
+      ],
+      "creditApplications": [],
+      "cashMovements": [
+        { "id": "uuid", "amount": "21.000", "sessionId": "uuid" }
+      ]
+    },
+    "warnings": []
+  }
+}
+```
+
+**Response 200 — cached (idempotent retry):**
+```json
+{ "success": true, "data": { "order": { "id": "uuid", "orderNo": "ORD-001", "currentStatus": "RECEIVED" }, "fromCache": true } }
+```
+
+**Response 400:**
+| Error Code | Cause |
+|---|---|
+| `AMOUNT_MISMATCH` | Server-computed total differs from `clientTotals.finalTotal` |
+| `B2B_CREDIT_HOLD` | B2B customer account is on credit hold |
+| `B2B_CREDIT_EXCEEDED` | Order total exceeds available B2B credit limit |
+| `SPLIT_AMOUNT_MISMATCH` | Sum of `paymentLegs[].amount` ≠ order total |
+| `DEFERRED_LEG_NOT_ALONE` | A deferred method (PAY_ON_COLLECTION) mixed with immediate legs |
+| `CHECK_NUMBER_REQUIRED` | Check payment submitted without `checkNumber` |
+| `PRODUCT_NOT_FOUND` | A product ID in `items[]` does not exist in this tenant |
+
+**Response 422:**
+| Error Code | Cause |
+|---|---|
+| `CASH_DRAWER_SESSION_REQUIRED` | CASH leg provided but `cashDrawerSessionId` missing |
+| `CASH_DRAWER_SESSION_CLOSED` | Referenced cash drawer session is not OPEN |
+| `CASH_TENDERED_LESS_THAN_AMOUNT` | `tenderedAmount` < leg amount |
+| `GATEWAY_NOT_CONFIGURED` | Gateway code used but no active gateway config found |
+| `PAYMENT_REFERENCE_REQUIRED` | BANK_TRANSFER / CHECK leg missing reference number |
+
+**Warning codes in `data.warnings[]`** (informational — order was created successfully):
+| Code | Meaning |
+|---|---|
+| `BANK_TRANSFER_PENDING_CONFIRMATION` | Bank transfer leg has `PENDING` status — awaiting bank confirmation |
+| `CHECK_PENDING_CONFIRMATION` | Check leg has `PENDING` status — awaiting clearance |
+| `GATEWAY_PAYMENT_PROCESSING` | Gateway leg has `PROCESSING` status — async confirmation pending |
+
+---
+
+### `POST /api/v1/orders/create-with-payment` ← **FROZEN / NOT SERVED**
+
+This route is **not served by Next.js**. The route folder is prefixed with `_legacy_` which Next.js does not route. Preserved in source at `app/api/v1/orders/_legacy_create-with-payment/route.ts` for reference only.
+
+All callers must use `submit-order` instead. An ESLint `no-restricted-imports` rule prevents any new import of this path.
+
+---
+
 ## Cash Drawers
 
 ### `GET /api/v1/cash-drawers`

@@ -209,9 +209,9 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
 
         if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
           await redeemWalletTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.ADVANCE) {
+        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE) {
           await redeemAdvanceTx(tx, { tenantId, customerId, amount, orderId });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.CREDIT_NOTE && creditReferenceId) {
+        } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT && creditReferenceId) {
           await redeemCreditNoteTx(tx, {
             tenantId,
             customerId,
@@ -219,7 +219,7 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
             amount,
             orderId,
           });
-        } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_POINTS) {
+        } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
           const idempotencyKey = `loyalty-redeem-${orderId}-${Date.now()}`;
           const pointsToRedeem = Math.ceil(amount / (option.minAmount ?? 1));
           await redeemPointsTx(tx, {

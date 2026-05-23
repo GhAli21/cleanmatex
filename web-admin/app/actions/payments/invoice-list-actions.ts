@@ -2,16 +2,22 @@
  * Server Action: Invoice List Management
  *
  * Actions for listing invoices with filtering, search, and pagination.
+ *
+ * @deprecated Canonical AR invoice list screens should read from
+ * `ar-invoice.service.ts` or `/api/v1/ar/invoices`. This action remains only as
+ * a compatibility bridge for older consumers.
  */
 
 'use server';
 
 import { getAuthContext } from '@/lib/auth/server-auth';
-import { listInvoices } from '@/lib/services/invoice-service';
+import { listArInvoices } from '@/lib/services/ar-invoice.service';
 import type { InvoiceStatus } from '@/lib/types/payment';
 
 /**
  * List all invoices with filtering and pagination
+ *
+ * @deprecated Prefer canonical AR list APIs for new work.
  */
 export async function listInvoicesAction(params: {
   page?: number;
@@ -35,22 +41,24 @@ export async function listInvoicesAction(params: {
     const page = params.page ?? 1;
     const limit = params.limit ?? 20;
 
-    const result = await listInvoices({
-      tenantOrgId: auth.tenantId,
-      status: params.status as InvoiceStatus | undefined,
-      dateFrom: params.fromDate,
-      dateTo: params.toDate,
-      searchQuery: params.search,
-      sortBy: params.sortBy,
-      sortOrder: params.sortOrder,
-      limit,
-      offset: (page - 1) * limit,
-    });
+    const result = await listArInvoices(
+      {
+        page,
+        limit,
+        status: params.status as InvoiceStatus | undefined,
+        date_from: params.fromDate,
+        date_to: params.toDate,
+        search: params.search,
+        sort_by: params.sortBy,
+        sort_order: params.sortOrder ?? 'desc',
+      },
+      { tenantId: auth.tenantId }
+    );
 
     return {
       success: true,
       data: {
-        invoices: result.invoices,
+        invoices: result.data,
         pagination: {
           page,
           limit,

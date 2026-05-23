@@ -29,6 +29,12 @@ function mapToSettlementOption(row: {
   max_order_amount: Decimal | null;
   is_platform_disabled: boolean;
   sys_globally_disabled?: boolean;
+  // D9 config fields — resolved via COALESCE(org, sys) in the query
+  eff_default_creation_status?: string | null;
+  eff_allow_status_override?: boolean | null;
+  eff_requires_reference?: boolean | null;
+  eff_is_user_id_required?: boolean | null;
+  allowed_in_pos?: boolean | null;
 }): SettlementOption {
   return {
     id:                    row.id,
@@ -47,6 +53,11 @@ function mapToSettlementOption(row: {
     maxOrderAmount:        row.max_order_amount ? toNumber(row.max_order_amount) : null,
     isPlatformDisabled:    row.is_platform_disabled,
     isGloballyDisabled:    row.sys_globally_disabled ?? false,
+    defaultCreationStatus: row.eff_default_creation_status ?? 'PENDING',
+    allowStatusOverride:   row.eff_allow_status_override ?? false,
+    requiresReference:     row.eff_requires_reference ?? false,
+    isUserIdRequired:      row.eff_is_user_id_required ?? false,
+    allowedInPos:          row.allowed_in_pos ?? true,
   };
 }
 
@@ -66,8 +77,12 @@ export async function getCheckoutOptions(
   const rows = await withTenantContext(tenantId, async () => {
     return prisma.$queryRaw<RawRow[]>`
       SELECT o.*,
-             s.is_globally_disabled AS sys_globally_disabled,
-             g.is_globally_disabled AS gw_globally_disabled
+             s.is_globally_disabled                                               AS sys_globally_disabled,
+             g.is_globally_disabled                                               AS gw_globally_disabled,
+             COALESCE(o.default_creation_status, s.default_creation_status)       AS eff_default_creation_status,
+             COALESCE(o.allow_status_override,   s.allow_status_override)         AS eff_allow_status_override,
+             COALESCE(o.requires_reference,      s.requires_reference)            AS eff_requires_reference,
+             COALESCE(o.is_user_id_required,     s.is_user_id_required)           AS eff_is_user_id_required
       FROM org_payment_methods_cf o
       JOIN sys_payment_method_cd s ON s.payment_method_code = o.payment_method_code
       LEFT JOIN sys_payment_gateway_cd g ON g.code = o.gateway_code
@@ -134,11 +149,11 @@ export async function getCheckoutOptions(
         switch (option.creditApplicationType) {
           case CREDIT_APPLICATION_TYPES.WALLET:
             option.availableBalance = walletBalance; break;
-          case CREDIT_APPLICATION_TYPES.ADVANCE:
+          case CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE:
             option.availableBalance = advanceBalance; break;
-          case CREDIT_APPLICATION_TYPES.CREDIT_NOTE:
+          case CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT:
             option.availableBalance = creditNotesTotal; break;
-          case CREDIT_APPLICATION_TYPES.LOYALTY_POINTS:
+          case CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT:
             option.availableBalance = loyaltyPointsValue; break;
           // GIFT_CARD: balance looked up at redemption time by card code
         }

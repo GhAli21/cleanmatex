@@ -49,6 +49,8 @@ Page-linked backend permissions are documented separately in:
 | `/dashboard/catalog/preferences` | any of `orders:service_prefs_view`, `orders:read`, `config:preferences_manage` | manage preferences actions Ã¢â€ â€™ `config:preferences_manage` | Page gate allows viewers; actions stay admin-only |
 | `/dashboard/catalog/customer-categories` | `config:preferences_manage` | manage categories Ã¢â€ â€™ `config:preferences_manage` | Page and actions aligned |
 | `/dashboard/internal_fin/payments` | no explicit page permission | `Cancel payment` Ã¢â€ â€™ `payments:cancel`, `Refund payment` Ã¢â€ â€™ `payments:refund` | Open page, gated row actions |
+| `/dashboard/internal_fin/vouchers` | `fin_vouchers:view` | `Create voucher` Ã¢â€ â€™ `fin_vouchers:create`, `Post voucher` Ã¢â€ â€™ `fin_vouchers:post`, `Cancel voucher` Ã¢â€ â€™ `fin_vouchers:cancel`, `Reverse voucher` Ã¢â€ â€™ `fin_vouchers:reverse` | Canonical voucher hub with explicit UI gate |
+| `/dashboard/settings/payments` | `payment_config:view` | payment-config mutations Ã¢â€ â€™ `payment_config:manage`; cash-drawer actions Ã¢â€ â€™ `cash_drawer:view` / `cash_drawer:open_session` | Canonical payment setup route |
 | `/dashboard/settings/workflow-roles` | `settings:workflow_roles:view` | none | Explicit page gate |
 | `/dashboard/settings/roles` | wildcard/settings/role-prefix/tenant-role contract | none | Page gate is declarative in the contract |
 | `/dashboard/settings/permissions` | wildcard/settings/permission-prefix/tenant-role contract | none | Page gate is declarative in the contract |

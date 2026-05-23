@@ -96,15 +96,16 @@ export const VOUCHER_DIRECTION = {
 export type VoucherDirection = (typeof VOUCHER_DIRECTION)[keyof typeof VOUCHER_DIRECTION];
 
 export const LINE_TYPE = {
-  RECEIPT:    'RECEIPT',
-  PAYMENT:    'PAYMENT',
-  REFUND:     'REFUND',
-  EXPENSE:    'EXPENSE',
-  ADVANCE:    'ADVANCE',
-  TRANSFER:   'TRANSFER',
-  ADJUSTMENT: 'ADJUSTMENT',
-  FEE:        'FEE',
-  ROUNDING:   'ROUNDING',
+  RECEIPT:             'RECEIPT',
+  PAYMENT:             'PAYMENT',
+  REFUND:              'REFUND',
+  EXPENSE:             'EXPENSE',
+  ADVANCE:             'ADVANCE',
+  TRANSFER:            'TRANSFER',
+  ADJUSTMENT:          'ADJUSTMENT',
+  FEE:                 'FEE',
+  ROUNDING:            'ROUNDING',
+  CREDIT_APPLICATION:  'CREDIT_APPLICATION',
 } as const;
 
 export type LineType = (typeof LINE_TYPE)[keyof typeof LINE_TYPE];
