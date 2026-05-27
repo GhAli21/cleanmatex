@@ -4602,7 +4602,9 @@
         "mobilePayment": "دفع عبر الجوال",
         "hyperpay": "هايبر باي",
         "paytabs": "باي تابز",
-        "stripe": "سترايب"
+        "stripe": "سترايب",
+        "touchHintImmediate": "تسوية فورية",
+        "touchHintCashDrawer": "درج نقد / تحصيل فوري"
       },
       "checkNumber": {
         "label": "رقم الشيك",
@@ -4669,6 +4671,8 @@
         "placeholder": "رقم البطاقة أو الرقم السري",
         "pinLabel": "الرقم السري للبطاقة",
         "pinPlaceholder": "أدخل الرقم السري",
+        "showPin": "إظهار الرقم السري",
+        "hidePin": "إخفاء الرقم السري",
         "pinPrompt": "هذه البطاقة محمية برقم سري. أدخل الرقم السري للمتابعة.",
         "pinPendingError": "أدخل الرقم السري للبطاقة للمتابعة، أو احذف البطاقة.",
         "apply": "تطبيق",
@@ -4777,6 +4781,27 @@
         "deferredInvoice": "فاتورة (إجمالي الطلب)",
         "notPaidBalance": "غير المدفوع بعد هذا الدفع"
       },
+      "workspace": {
+        "remaining": "المتبقي",
+        "change": "الباقي",
+        "totalDue": "إجمالي المستحق",
+        "noImmediateTitle": "لا يوجد مبلغ للتحصيل الآن",
+        "noImmediateDescription": "سيتم إرسال هذا الطلب بالكامل كتسوية مؤجلة باستخدام سياسة الرصيد المتبقي المحددة.",
+        "editingAmount": "تعديل المبلغ",
+        "keypadHint": "استخدم لوحة الأرقام للإدخال السريع باللمس، أو اكتب المبلغ مباشرة.",
+        "addSplitHint": "اختر طريقة دفع فورية لبدء تحصيل المبلغ."
+      },
+      "remainder": {
+        "title": "سياسة الرصيد المتبقي",
+        "fullPayment": "سداد كامل",
+        "payOnCollection": "الدفع عند الاستلام",
+        "invoiceOutstanding": "فوترة المتبقي",
+        "deferredHint": "تسوية مؤجلة",
+        "help": "عندما يكون المبلغ المحصل الآن أقل من الإجمالي، اختر كيف يجب التعامل مع الرصيد المتبقي.",
+        "validation": {
+          "required": "اختر كيف يجب التعامل مع الرصيد المتبقي."
+        }
+      },
       "actions": {
         "submit": "تأكيد",
         "submitChargeOnly": "{submit} — {currency} {amount}",
@@ -4813,6 +4838,7 @@
         "amountExceedsTotal": "مبلغ الدفع يتجاوز إجمالي الطلب",
         "confirmSubmit": "تأكيد إرسال الدفع؟",
         "paymentMethodNote": "طريقة الدفع: {method}",
+        "discardChanges": "لديك تغييرات دفع غير محفوظة. هل تريد إغلاق هذه النافذة والتخلص منها؟",
         "readyToSubmit": "جاهز للإرسال",
         "validationErrors": "يرجى إصلاح الأخطاء التالية"
       },
@@ -4852,6 +4878,7 @@
         "gatewayCode": "كود البوابة",
         "gatewayTransactionId": "معرف المعاملة",
         "gatewayReference": "مرجع البوابة",
+        "currentLeg": "تفاصيل القسط الحالي",
         "outstanding": "المتبقي",
         "allocated": "تم التوزيع الكامل",
         "over": "تجاوز المبلغ",

@@ -25,6 +25,13 @@ import {
 } from '@/lib/services/order-submit-orchestrator.service';
 import { getRequestAuditContext } from '@/lib/utils/request-audit';
 import { logger } from '@/lib/utils/logger';
+import {
+  hashPayload,
+  findIdempotencyHash,
+  storeIdempotencyHash,
+} from '@/lib/utils/idempotency';
+
+const IDEMPOTENCY_RESOURCE = 'submit_order';
 
 /**
  * POST /api/v1/orders/submit-order
@@ -74,10 +81,57 @@ export async function POST(request: NextRequest) {
 
   const input = parsed.data;
 
-  // ─── Idempotency fast-path (D11) ──────────────────────────────────────────
+  // ─── Idempotency fast-path + payload-hash conflict detection (D11 + S2) ───
   // Route owns idempotency; orchestrator is deliberately unaware.
-  // Same key + prior success → return cached order shape without re-running
-  // any business logic, settlement, or voucher writes.
+  //
+  // 1. Compute SHA-256 of the canonicalized request body
+  // 2. Look up org_idempotency_keys by (tenant, key, resource_type='submit_order')
+  //    - hash matches → return cached order (200)
+  //    - hash differs → 409 IDEMPOTENCY_CONFLICT
+  //    - no row (legacy path) → fall through to order-level fast-path
+  // 3. After a fresh successful submit, store hash + resource_id for future retries.
+  const currentHash = hashPayload(input);
+  const idempotencyRecord = await findIdempotencyHash(
+    tenantId,
+    input.idempotencyKey,
+    IDEMPOTENCY_RESOURCE
+  );
+
+  if (idempotencyRecord) {
+    if (idempotencyRecord.hash && idempotencyRecord.hash !== currentHash) {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'IDEMPOTENCY_CONFLICT',
+          error: 'Same idempotency key used with a different payload. Use a new key or restore the original payload.',
+        },
+        { status: 409 }
+      );
+    }
+    // Hash match (or legacy row without hash) → safe to return cached order.
+    if (idempotencyRecord.resourceId) {
+      const cached = await prisma.org_orders_mst.findFirst({
+        where:  { id: idempotencyRecord.resourceId, tenant_org_id: tenantId },
+        select: { id: true, order_no: true, current_status: true },
+      });
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            order: {
+              id:            cached.id,
+              orderNo:       cached.order_no,
+              currentStatus: cached.current_status,
+            },
+            fromCache: true,
+          },
+        });
+      }
+    }
+  }
+
+  // Legacy path: prior submits may have written only org_orders_mst.idempotency_key
+  // (before S2 introduced the hash record). Honor those rows as match-by-key only.
   const existing = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
     SELECT id, order_no, current_status
     FROM org_orders_mst
@@ -121,6 +175,22 @@ export async function POST(request: NextRequest) {
         AND tenant_org_id = ${tenantId}::uuid
     `.catch(() => {/* non-fatal — idempotency key store failure does not fail the request */});
 
+    // Store payload hash + resource_id for future S2 conflict detection.
+    // Failure here is non-fatal — the order succeeded; future retries will fall
+    // through to the legacy match-by-key path until this row appears.
+    await storeIdempotencyHash(
+      tenantId,
+      input.idempotencyKey,
+      IDEMPOTENCY_RESOURCE,
+      currentHash,
+      result.order.id
+    ).catch((err: unknown) => {
+      logger.warn?.('[submit-order] failed to store idempotency hash', {
+        feature: 'orders', action: 'submit-order',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    });
+
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -163,6 +233,17 @@ export async function POST(request: NextRequest) {
     if (message === 'DEFERRED_LEG_NOT_ALONE') {
       return NextResponse.json(
         { success: false, errorCode: 'DEFERRED_LEG_NOT_ALONE', error: 'A deferred payment method must be the only payment leg.' },
+        { status: 400 }
+      );
+    }
+
+    if (message === 'OUTSTANDING_POLICY_REQUIRED') {
+      return NextResponse.json(
+        {
+          success: false,
+          errorCode: 'OUTSTANDING_POLICY_REQUIRED',
+          error: 'Choose how the remaining balance should be handled.',
+        },
         { status: 400 }
       );
     }

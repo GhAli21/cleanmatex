@@ -15,6 +15,7 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
+// eslint-disable-next-line no-restricted-imports -- Order submit still bridges the legacy order-centric invoice shape until the AR service exposes a drop-in create API for this workflow.
 import { createInvoice } from '@/lib/services/invoice-service';
 import { allocateArPaymentTx } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
@@ -28,12 +29,18 @@ import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/v
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
 import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
+import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
 import { TAX_TYPES } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
 import { logger } from '@/lib/utils/logger';
+import { sumMoney } from '@/lib/utils/money';
 import { Decimal } from '@prisma/client/runtime/library';
 import type { AmountMismatchDifferences, PaymentMethodCode } from '@/lib/types/payment';
-import type { PaymentLeg, SubmitOrderRequest } from '@/lib/validations/new-order-payment-schemas';
+import type {
+  OutstandingPolicy,
+  PaymentLeg,
+  SubmitOrderRequest,
+} from '@/lib/validations/new-order-payment-schemas';
 import type {
   FinancialBreakdownSnapshot,
   ResolvedSettlementLeg,
@@ -70,6 +77,26 @@ function buildDifferences(
   if (!withinTolerance(client.finalTotal, server.finalTotal))
     diff.finalTotal = { client: client.finalTotal, server: server.finalTotal };
   return diff;
+}
+
+function normalizeOutstandingPolicy(
+  inputPolicy: OutstandingPolicy | undefined,
+  unpaidAmount: number,
+  fallbackMethod: string
+): OutstandingPolicy {
+  if (unpaidAmount <= TOLERANCE) {
+    return 'NONE';
+  }
+
+  if (inputPolicy && inputPolicy !== 'NONE') {
+    return inputPolicy;
+  }
+
+  if (fallbackMethod === PAYMENT_METHODS.INVOICE) {
+    return 'CREDIT_INVOICE';
+  }
+
+  return 'PAY_ON_COLLECTION';
 }
 
 // ── Public types ──────────────────────────────────────────────────────────────
@@ -280,10 +307,30 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         },
       ];
 
-  const isInvoiceOnly = paymentLegs.every((leg) => DEFERRED_METHODS.has(leg.method));
+  const isDeferredOnly = paymentLegs.every((leg) => DEFERRED_METHODS.has(leg.method));
+  const hasDeferredLeg = paymentLegs.some((leg) => DEFERRED_METHODS.has(leg.method));
+  const hasImmediatePayment = paymentLegs.some((leg) => !DEFERRED_METHODS.has(leg.method));
   const creditLimitOverride = input.creditLimitOverride === true;
+  // sumMoney avoids float drift across multi-leg totals (e.g. CASH 33.333 + CARD 66.667).
+  const amountToCharge = sumMoney(
+    paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method)).map((leg) => leg.amount)
+  ).toNumber();
+  const unpaidBalance = Math.max(0, serverTotals.finalTotal - amountToCharge);
 
-  if (isInvoiceOnly) {
+  if (input.outstandingPolicy === 'NONE' && unpaidBalance > TOLERANCE) {
+    throw new Error('OUTSTANDING_POLICY_REQUIRED');
+  }
+
+  const effectiveOutstandingPolicy = normalizeOutstandingPolicy(
+    input.outstandingPolicy,
+    unpaidBalance,
+    input.paymentMethod
+  );
+  const paymentTypeCodeForOrder = getPaymentTypeFromOutstandingPolicy(
+    effectiveOutstandingPolicy
+  );
+
+  if (effectiveOutstandingPolicy === 'CREDIT_INVOICE') {
     const creditCheck = await checkCreditLimit(input.customerId, serverTotals.finalTotal);
     if (creditCheck.isCreditHold) {
       const err = new Error('B2B_CREDIT_HOLD'); throw err;
@@ -299,24 +346,25 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }
   }
 
-  const hasImmediatePayment = !isInvoiceOnly;
-  const amountToCharge = paymentLegs
-    .filter((leg) => !DEFERRED_METHODS.has(leg.method))
-    .reduce((sum, leg) => sum + leg.amount, 0);
-
   if (!Number.isFinite(amountToCharge) || amountToCharge < 0 || amountToCharge > serverTotals.finalTotal + TOLERANCE)
     throw new Error('AMOUNT_OUT_OF_RANGE');
   if (hasImmediatePayment && amountToCharge <= 0)
     throw new Error('AMOUNT_OUT_OF_RANGE');
 
   if (paymentLegs.length > 1) {
-    const legSum = paymentLegs.reduce((s, l) => s + l.amount, 0);
-    if (Math.abs(legSum - serverTotals.finalTotal) > TOLERANCE)
+    // Split validation: sum legs via sumMoney so 33.333 + 33.333 + 33.334 = 100.000 exactly.
+    const legSum = sumMoney(paymentLegs.map((l) => l.amount)).toNumber();
+    const expectedLegSum = input.amountToCharge ?? amountToCharge;
+    if (Math.abs(legSum - expectedLegSum) > TOLERANCE)
       throw new Error('SPLIT_AMOUNT_MISMATCH');
   }
 
-  if (paymentLegs.length > 1 && paymentLegs.some((leg) => DEFERRED_METHODS.has(leg.method)))
+  if (paymentLegs.length > 1 && hasDeferredLeg)
     throw new Error('DEFERRED_LEG_NOT_ALONE');
+
+  if (isDeferredOnly && input.outstandingPolicy === 'NONE') {
+    throw new Error('OUTSTANDING_POLICY_REQUIRED');
+  }
 
   for (const leg of paymentLegs) {
     if (leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim())
@@ -417,7 +465,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     serverTotals.currencyCode,
     settlementLegs,
     paymentLegs,
-    getPaymentTypeFromMethod(input.paymentMethod),
+    paymentTypeCodeForOrder,
     input.cashDrawerSessionId ?? undefined
   );
 
@@ -466,7 +514,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     giftCardId:             input.giftCardId,
     promoDiscountAmount:    serverTotals.promoDiscount,
     giftCardDiscountAmount: serverTotals.giftCardApplied,
-    paymentTypeCode:        getPaymentTypeFromMethod(input.paymentMethod),
+    paymentTypeCode:        paymentTypeCodeForOrder ?? getPaymentTypeFromMethod(input.paymentMethod),
     currencyCode:           serverTotals.currencyCode,
     orderSourceCode:        'pos',
     useOldWfCodeOrNew:      false,
@@ -492,6 +540,13 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }),
   };
 
+  // ADR_ar_invoice_is_receivable_only.md — `org_invoice_mst` rows represent
+  // AR receivables only. Fully-paid cash/card/gateway orders and PAY_ON_COLLECTION
+  // orders do NOT produce an AR invoice row at submit time. CREDIT_INVOICE / B2B
+  // orders DO. The voucher receipt print serves as the cash-sale fiscal artifact
+  // (Tax Documents Module replaces this dual role in a future feature).
+  const shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE';
+
   const result = await withTenantContext(tenantId, async () =>
     prisma.$transaction(async (tx) => {
       const orderResult = await OrderService.createOrderInTransaction(tx, createOrderParams);
@@ -500,26 +555,30 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
       const { id: orderId, orderNo, currentStatus } = orderResult.order;
 
-      const invoice = await createInvoice(
-        {
-          order_id:               orderId,
-          subtotal:               serverTotals.subtotal,
-          discount:               serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
-          total:                  serverTotals.finalTotal,
-          promo_discount_amount:  serverTotals.promoDiscount,
-          gift_card_applied_amount: serverTotals.giftCardApplied,
-          vatAmount:              serverTotals.vatValue,
-          tax:                    serverTotals.additionalTaxAmount ?? 0,
-          payment_method_code:    input.paymentMethod as PaymentMethodCode,
-        },
-        tx
-      );
+      let invoiceId: string | null = null;
+      if (shouldCreateArInvoice) {
+        const invoice = await createInvoice(
+          {
+            order_id:               orderId,
+            subtotal:               serverTotals.subtotal,
+            discount:               serverTotals.manualDiscount + serverTotals.autoRuleDiscount + serverTotals.promoDiscount,
+            total:                  serverTotals.finalTotal,
+            promo_discount_amount:  serverTotals.promoDiscount,
+            gift_card_applied_amount: serverTotals.giftCardApplied,
+            vatAmount:              serverTotals.vatValue,
+            tax:                    serverTotals.additionalTaxAmount ?? 0,
+            payment_method_code:    input.paymentMethod as PaymentMethodCode,
+          },
+          tx
+        );
+        invoiceId = invoice.id;
+      }
 
       if (input.promoCodeId && serverTotals.promoDiscount > 0) {
         await applyPromoCodeTx(tx, {
           promoCodeId:       input.promoCodeId,
           orderId,
-          invoiceId:         invoice.id,
+          invoiceId:         invoiceId ?? undefined,
           tenantOrgId:       tenantId,
           customerId:        input.customerId ?? undefined,
           discountAmount:    serverTotals.promoDiscount,
@@ -533,7 +592,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           giftCardId:        input.giftCardId,
           amount:            serverTotals.giftCardApplied,
           orderId,
-          invoiceId:         invoice.id,
+          invoiceId:         invoiceId ?? undefined,
           branchId,
           processedBy:       userId,
           tenantOrgId:       tenantId,
@@ -549,7 +608,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             giftCardId:     legacyCard.id,
             amount:         serverTotals.giftCardApplied,
             orderId,
-            invoiceId:      invoice.id,
+            invoiceId:      invoiceId ?? undefined,
             branchId,
             processedBy:    userId,
             tenantOrgId:    tenantId,
@@ -558,7 +617,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         }
       }
 
-      return { orderId, orderNo, invoiceId: invoice.id, currentStatus };
+      return { orderId, orderNo, invoiceId, currentStatus };
     })
   );
 
@@ -662,14 +721,17 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   if (serverTotals.vatValue > 0) {
     const profileLine = profileLines[0];
     taxLines.push({
-      taxType:    profileLine?.taxType   ?? TAX_TYPES.VAT,
-      label:      profileLine?.label     ?? 'VAT',
-      label2:     profileLine?.label2    ?? 'ضريبة القيمة المضافة',
+      taxType:    profileLine?.taxType    ?? TAX_TYPES.VAT,
+      label:      profileLine?.label      ?? 'VAT',
+      label2:     profileLine?.label2     ?? 'ضريبة القيمة المضافة',
       profileId:  profileLine?.profileId,
-      rate:       profileLine?.rate      ?? serverTotals.vatTaxPercent,
+      rate:       profileLine?.rate       ?? serverTotals.vatTaxPercent,
+      // isCompound comes from org_tax_profiles_cf.is_compound; default FALSE matches DB default
+      // when no profile is configured (additive VAT is the safe assumption).
+      isCompound: profileLine?.isCompound ?? false,
       baseAmount: serverTotals.afterDiscounts,
       // Use profile-computed amount — consistent with stored rate and taxable_amount.
-      taxAmount:  profileLine?.taxAmount ?? serverTotals.vatValue,
+      taxAmount:  profileLine?.taxAmount  ?? serverTotals.vatValue,
     });
   }
   if ((serverTotals.additionalTaxAmount ?? 0) > 0) {
@@ -697,9 +759,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     netReceivable:    serverTotals.finalTotal - serverTotals.giftCardApplied,
     paymentLegsTotal: amountToCharge,
     changeReturned:   0,
-    outstanding:      isInvoiceOnly
-      ? serverTotals.finalTotal
-      : Math.max(0, serverTotals.finalTotal - serverTotals.giftCardApplied - amountToCharge),
+    outstanding:      Math.max(0, serverTotals.finalTotal - serverTotals.giftCardApplied - amountToCharge),
     currencyCode:     serverTotals.currencyCode,
     decimalPlaces:    serverTotals.decimalPlaces,
   };
@@ -730,7 +790,13 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   );
 
   // ── 8. AR payment tracking (writes to AR tables, not org_order_payments_dtl) ──
-  if (hasImmediatePayment && amountToCharge > 0) {
+  // ADR_ar_invoice_is_receivable_only.md — AR allocation only makes sense when
+  // an AR invoice row exists (CREDIT_INVOICE / B2B). For fully-paid cash/card
+  // sales, BVM wiring's voucher + org_order_payments_dtl IS the canonical
+  // record of payment; the legacy AR tracking block would only add duplicate
+  // rows in org_payments_dtl_tr and try to allocate against a null invoice.
+  if (result.invoiceId && hasImmediatePayment && amountToCharge > 0) {
+    const invoiceIdForAr = result.invoiceId;
     const immediateLegs = paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method));
 
     await withTenantContext(tenantId, async () =>
@@ -738,7 +804,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         for (const leg of immediateLegs) {
           const payment = await recordPaymentTransaction(
             {
-              invoice_id:          result.invoiceId,
+              invoice_id:          invoiceIdForAr,
               order_id:            result.orderId,
               customer_id:         input.customerId,
               paid_amount:         leg.amount,
@@ -762,7 +828,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
 
           await allocateArPaymentTx(
             tx,
-            result.invoiceId,
+            invoiceIdForAr,
             {
               payment_id:              payment.id,
               voucher_id:              payment.voucher_id,

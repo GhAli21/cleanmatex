@@ -2,6 +2,7 @@ import { Prisma, type org_invoice_mst } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { getTenantIdFromSession, withTenantContext } from '@/lib/db/tenant-context';
 import { emitEventTx } from '@/lib/services/outbox.service';
+import { addMoney, subMoney } from '@/lib/utils/money';
 import {
   AR_ADJUSTMENT_STATUSES,
   AR_ADJUSTMENT_TYPES,
@@ -396,6 +397,10 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
             total: true,
             paid_amount: true,
             outstanding_amount: true,
+            // Selected for defense-in-depth: cash-paid orders must not produce
+            // an INVOICE_ISSUED AR ledger debit even if a caller creates an
+            // org_invoice_mst row for them (ADR_ar_invoice_is_receivable_only.md).
+            payment_type_code: true,
           },
         })
       : Promise.resolve(null),
@@ -472,11 +477,22 @@ export async function ensureCanonicalArInvoiceArtifactsTx(
     });
   }
 
+  // Defense-in-depth: AR ledger INVOICE_ISSUED debit only fires when the order
+  // is genuinely a receivable. Cash/card/gateway orders with no outstanding
+  // amount must never debit AR ledger, even if a legacy caller still creates
+  // an org_invoice_mst row for them. See ADR_ar_invoice_is_receivable_only.md.
+  const isReceivableInvoice =
+    !input.orderId || // manual AR invoice (no source order) → always treat as receivable
+    outstandingAmount > 0 ||
+    order?.payment_type_code === SETTLEMENT_TYPE_CODES.CREDIT_INVOICE ||
+    order?.payment_type_code === SETTLEMENT_TYPE_CODES.PAY_ON_COLLECTION;
+
   if (
     input.customerId &&
     !ledgerEntry &&
     normalizedStatus !== AR_INVOICE_STATUSES.DRAFT &&
-    input.totalAmount > 0
+    input.totalAmount > 0 &&
+    isReceivableInvoice
   ) {
     await appendLedgerEntryTx(tx, {
       tenantId: input.tenantId,
@@ -522,9 +538,11 @@ export async function allocateArPaymentTx(
         invoice.outstanding_amount ??
           calculateOutstandingAmount(toNumber(invoice.total), toNumber(invoice.paid_amount))
       );
+      // Allocation math via Decimal helpers — avoids 0.0001 drift on partial
+      // allocations and overpayment splits.
       const appliedToInvoice = Math.min(currentOutstanding, input.allocated_amount);
-      const unappliedCreditAmount = Math.max(0, input.allocated_amount - appliedToInvoice);
-      const updatedPaidAmount = toNumber(invoice.paid_amount) + appliedToInvoice;
+      const unappliedCreditAmount = Math.max(0, subMoney(input.allocated_amount, appliedToInvoice).toNumber());
+      const updatedPaidAmount = addMoney(toNumber(invoice.paid_amount), appliedToInvoice).toNumber();
       const allocationNo = await nextScopedSequence(tx, 'org_invoice_payments_dtl', tenantId, {
         invoiceId,
       });

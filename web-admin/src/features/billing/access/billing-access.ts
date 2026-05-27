@@ -9,7 +9,7 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
     routePattern: '/dashboard/internal_fin/invoices',
     label: 'Invoices',
     page: {
-      permissions: ['invoices:view'],
+      permissions: ['invoices:read'],
       requireAllPermissions: true,
     },
     actions: {
@@ -41,7 +41,7 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/ar/invoices',
         requirement: {
-          permissions: ['invoices:view'],
+          permissions: ['invoices:read'],
           requireAllPermissions: true,
         },
       },
@@ -76,13 +76,13 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         notes: ['Used by the canonical AR invoice hub export control.'],
       },
     ],
-    notes: ['Sidebar navigation also requires `invoices:view`.', ...BILLING_NOTES],
+    notes: ['Sidebar navigation also requires `invoices:read`.', ...BILLING_NOTES],
   },
   {
     routePattern: '/dashboard/internal_fin/invoices/[id]',
     label: 'Invoice Details',
     page: {
-      permissions: ['invoices:view'],
+      permissions: ['invoices:read'],
       requireAllPermissions: true,
     },
     actions: {
@@ -156,7 +156,7 @@ export const BILLING_ACCESS_CONTRACTS: PageAccessContract[] = [
         method: 'GET',
         path: '/api/v1/ar/invoices/[id]',
         requirement: {
-          permissions: ['invoices:view'],
+          permissions: ['invoices:read'],
           requireAllPermissions: true,
         },
       },

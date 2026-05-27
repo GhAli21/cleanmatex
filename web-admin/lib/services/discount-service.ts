@@ -227,13 +227,17 @@ function calculatePromoDiscount(
  *
  * Uses SELECT FOR UPDATE to prevent TOCTOU race conditions on max_uses.
  * Must be called from within a prisma.$transaction callback.
+ *
+ * invoiceId is optional — cash sales do not produce an org_invoice_mst row
+ * (ADR_ar_invoice_is_receivable_only.md). The DB column
+ * org_promotion_usage_dtl.invoice_id is already nullable.
  */
 export async function applyPromoCodeTx(
   tx: PrismaTransactionClient,
   params: {
     promoCodeId: string;
     orderId: string;
-    invoiceId: string;
+    invoiceId?: string;
     tenantOrgId: string;
     customerId?: string;
     discountAmount: number;
@@ -278,7 +282,7 @@ export async function applyPromoCodeTx(
       promo_code_id: promoCodeId,
       customer_id: customerId,
       order_id: orderId,
-      invoice_id: invoiceId,
+      invoice_id: invoiceId ?? null,
       discount_amount: discountAmount,
       order_total_before: orderTotalBefore,
       order_total_after: orderTotalBefore - discountAmount,
@@ -308,7 +312,7 @@ export async function applyPromoCodeTx(
 export async function applyPromoCode(
   promoCodeId: string,
   orderId: string,
-  invoiceId: string,
+  invoiceId: string | undefined,
   tenantOrgId: string,
   customerId: string | undefined,
   discountAmount: number,

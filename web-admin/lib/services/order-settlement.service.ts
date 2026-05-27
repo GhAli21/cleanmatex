@@ -19,13 +19,9 @@ import { queueEarnPoints, redeemPointsTx } from './loyalty.service';
 import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { redeemAdvanceTx, redeemCreditNoteTx, redeemWalletTx } from './stored-value.service';
 import { createTenantSettingsService } from './tenant-settings.service';
-import { Decimal } from '@prisma/client/runtime/library';
+import { addMoney, subMoney, sumMoney } from '@/lib/utils/money';
 
 type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
-
-function toNumber(d: Decimal | null | undefined): number {
-  return d ? Number(d) : 0;
-}
 
 async function getPartialLaterCollectionPolicy(tenantId: string): Promise<{
   allowPartialLaterCollection: boolean;
@@ -171,7 +167,8 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
       const { settlementOption: option, amount, terminalId, cashTendered, creditReferenceId } = leg;
 
       if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
-        const change = cashTendered && cashTendered > amount ? cashTendered - amount : 0;
+        // Use subMoney to avoid float drift on 3-decimal currencies (OMR/BHD/KWD).
+        const change = cashTendered && cashTendered > amount ? subMoney(cashTendered, amount).toNumber() : 0;
         const paymentStatus = option.gatewayCode ? 'PENDING' : 'COMPLETED';
         changeReturned += change;
 
@@ -204,7 +201,12 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
       }
 
       if (option.paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION) {
-        const creditType = option.creditApplicationType ?? CREDIT_APPLICATION_TYPES.GIFT_CARD;
+        // Throw rather than fall back: matches the planner's contract — every
+        // CREDIT_APPLICATION leg must have a known credit_application_type.
+        if (!option.creditApplicationType) {
+          throw new Error('CREDIT_APPLICATION_TYPE_REQUIRED');
+        }
+        const creditType = option.creditApplicationType;
         const order = await tx.org_orders_mst.findFirstOrThrow({
           where: { id: orderId, tenant_org_id: tenantId },
           select: { customer_id: true },
@@ -224,7 +226,12 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
             orderId,
           });
         } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
-          const idempotencyKey = `loyalty-redeem-${orderId}-${Date.now()}`;
+          // F21 — Deterministic idempotency key. Previously included Date.now()
+          // which produced a fresh key on every retry, defeating the unique
+          // constraint on org_loyalty_txn_dtl(tenant_org_id, idempotency_key)
+          // and silently double-debiting loyalty points if the orchestrator
+          // retried mid-flight. Stable key = single ledger row per order.
+          const idempotencyKey = `loyalty-redeem-${orderId}`;
           const pointsToRedeem = Math.ceil(amount / (option.minAmount ?? 1));
           await redeemPointsTx(tx, {
             tenantId,
@@ -285,7 +292,8 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
     return {
       orderId,
       paymentStatus: snapshot.paymentStatus,
-      totalPaid: snapshot.totalPaidAmount + snapshot.totalCreditAppliedAmount,
+      // addMoney avoids float drift across multi-leg accumulation.
+      totalPaid: addMoney(snapshot.totalPaidAmount, snapshot.totalCreditAppliedAmount).toNumber(),
       outstanding: snapshot.outstandingAmount,
       changeReturned,
     };
@@ -295,6 +303,11 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
 /**
  * Later collection request on an existing `PAY_ON_COLLECTION` order.
  */
+/**
+ * Later-collection leg shape. `checkNumber` / `checkBank` / `checkDate` carry
+ * proof-of-receipt metadata for CHECK payments so PAY_ON_COLLECTION orders do
+ * not lose this when collection is recorded after order creation.
+ */
 export interface CollectPaymentParams {
   orderId: string;
   tenantId: string;
@@ -303,6 +316,9 @@ export interface CollectPaymentParams {
     amount: number;
     reference?: string;
     cashTendered?: number;
+    checkNumber?: string;
+    checkBank?: string;
+    checkDate?: string;
   }>;
   cashDrawerSessionId?: string;
   collectedBy: string;
@@ -387,6 +403,14 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
           cash_drawer_session_id: method.requires_cash_drawer ? (cashDrawerSessionId ?? null) : null,
           gateway_code: method.gateway_code ?? null,
           gateway_reference: leg.reference ?? null,
+          // CHECK payment metadata — preserved on later collection so a paid order
+          // retains the same fact-row shape as one paid at submit time via BVM wiring.
+          // Column names follow the org_order_payments_dtl schema (check_no /
+          // check_bank_name / check_due_date) rather than the newer voucher-line
+          // naming (check_number / check_bank / check_date).
+          check_no: leg.checkNumber ?? null,
+          check_bank_name: leg.checkBank ?? null,
+          check_due_date: leg.checkDate ? new Date(leg.checkDate) : null,
           payment_status: paymentStatus,
           paid_at: paymentStatus === 'COMPLETED' ? new Date() : null,
           is_active: true,
@@ -407,7 +431,8 @@ export async function collectPaymentTx(params: CollectPaymentParams): Promise<Se
     return {
       orderId,
       paymentStatus: snapshot.paymentStatus,
-      totalPaid: snapshot.totalPaidAmount + snapshot.totalCreditAppliedAmount,
+      // addMoney avoids float drift across multi-leg accumulation.
+      totalPaid: addMoney(snapshot.totalPaidAmount, snapshot.totalCreditAppliedAmount).toNumber(),
       outstanding: snapshot.outstandingAmount,
       changeReturned,
     };

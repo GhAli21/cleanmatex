@@ -340,7 +340,7 @@ export const NAVIGATION_SECTIONS: NavigationSection[] = [
         label: 'Invoices',
         path: '/dashboard/internal_fin/invoices',
         roles: ['super_admin', 'tenant_admin', 'admin', 'operator'],
-        permissions: ['invoices:view'],
+        permissions: ['invoices:read'],
       },
       {
         key: 'billing_invoices_new',

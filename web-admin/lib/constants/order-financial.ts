@@ -145,6 +145,9 @@ export const OUTBOX_EVENT_TYPES = {
   AR_DEBIT_NOTE_POSTED: 'AR_DEBIT_NOTE_POSTED',
   AR_WRITE_OFF_POSTED: 'AR_WRITE_OFF_POSTED',
   AR_INVOICE_VOIDED: 'AR_INVOICE_VOIDED',
+  // BVM Wiring — Phase 1A. Emitted by postAndWireBizVoucher() after voucher
+  // header POST + all line-wiring side effects commit atomically.
+  VOUCHER_POSTED_AND_WIRED: 'VOUCHER_POSTED_AND_WIRED',
 } as const;
 /** Derived union for emitted Order Fin outbox events. */
 export type OutboxEventType =

@@ -21,6 +21,9 @@ import {
   WIRING_STATUS,
   LINE_STATUS,
 } from '@/lib/constants/voucher';
+import { OUTBOX_EVENT_TYPES } from '@/lib/constants/order-financial';
+import { emitEventTx } from './outbox.service';
+import { recalculateOrderFinancialSnapshotTx } from './order-financial-write.service';
 import { validateStatusTransition, validateVoucherForPosting } from './voucher-validation.service';
 import { orderPaymentWiringHandler } from './wiring/order-payment-wiring.handler';
 import { orderCreditApplicationWiringHandler } from './wiring/order-credit-application-wiring.handler';
@@ -209,26 +212,28 @@ export async function postAndWireBizVoucher(
         }
       }
 
-      // 10. Write domain event
-      await db.org_domain_events_outbox.create({
-        data: {
-          tenant_org_id:  tenantOrgId,
-          event_type:     'VOUCHER_POSTED_AND_WIRED',
-          aggregate_type: 'fin_voucher',
-          aggregate_id:   voucherId,
-          payload: {
-            voucher_id:     voucherId,
-            voucher_no:     voucher.voucher_no,
-            voucher_status: VOUCHER_STATUS.POSTED,
-            total_amount:   recalcTotal,
-            posted_by:      userId,
-            posted_at:      now.toISOString(),
-            lines_wired:    linesWired,
-            lines_skipped:  linesSkipped,
-            lines_failed:   linesFailed,
-          },
-        },
-      });
+      // 10. Write domain event via the typed helper so the event-type string
+      // is validated against OUTBOX_EVENT_TYPES (no drift) and audit columns
+      // (`aggregate_type`, processing fields) follow the same shape as every
+      // other outbox emit in Order Fin.
+      await emitEventTx(
+        db,
+        tenantOrgId,
+        OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED,
+        'fin_voucher',
+        voucherId,
+        {
+          voucher_id:     voucherId,
+          voucher_no:     voucher.voucher_no,
+          voucher_status: VOUCHER_STATUS.POSTED,
+          total_amount:   recalcTotal,
+          posted_by:      userId,
+          posted_at:      now.toISOString(),
+          lines_wired:    linesWired,
+          lines_skipped:  linesSkipped,
+          lines_failed:   linesFailed,
+        }
+      );
 
       // 11. Audit log
       await db.org_fin_voucher_audit_log.create({
@@ -290,6 +295,58 @@ export async function postAndWireBizVoucher(
       }
 
       return result;
+    });
+  });
+}
+
+/**
+ * Refresh the linked order's financial snapshot AFTER a voucher post completes.
+ *
+ * Why this exists as a separate post-commit step (not inside postAndWireBizVoucher):
+ * postAndWireBizVoucher serves vouchers from any source_module (ORDERS,
+ * CUSTOMER_REFUND, SUPPLIER_PAYMENT, …). Calling the order snapshot recalc
+ * inside the voucher tx would couple voucher writes to the orders domain and
+ * fail or no-op for non-order vouchers.
+ *
+ * The orchestrator (submit-order) already recalcs via settleOrder. This helper
+ * exists so manual voucher posts from the Finance UI also refresh the linked
+ * order — fixing the silent-drift bug (X5) where the order header stayed
+ * UNPAID after a manual POST.
+ *
+ * Reads voucher.source_module + voucher.order_id, and only runs recalc if
+ * source_module === 'ORDERS' and order_id is set. Returns the new snapshot or
+ * null (non-order voucher → no recalc).
+ */
+export async function recalcOrderSnapshotIfLinked(
+  tenantOrgId: string,
+  voucherId: string
+): Promise<{
+  orderId: string;
+  totalPaidAmount: number;
+  totalCreditAppliedAmount: number;
+  outstandingAmount: number;
+  paymentStatus: string;
+} | null> {
+  return withTenantContext(tenantOrgId, async () => {
+    const voucher = await prisma.org_fin_vouchers_mst.findFirst({
+      where:  { id: voucherId, tenant_org_id: tenantOrgId },
+      select: { source_module: true, order_id: true },
+    });
+
+    if (!voucher || voucher.source_module !== 'ORDERS' || !voucher.order_id) {
+      return null;
+    }
+
+    const orderId = voucher.order_id;
+    return prisma.$transaction(async (tx) => {
+      const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantOrgId, orderId);
+      return {
+        orderId,
+        totalPaidAmount:          snapshot.totalPaidAmount,
+        totalCreditAppliedAmount: snapshot.totalCreditAppliedAmount,
+        outstandingAmount:        snapshot.outstandingAmount,
+        paymentStatus:            snapshot.paymentStatus,
+      };
     });
   });
 }

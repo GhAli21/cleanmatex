@@ -10,7 +10,11 @@ import {
   listBizVouchers,
   cancelBizVoucher,
 } from '@/lib/services/voucher-biz.service';
-import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
+import {
+  postAndWireBizVoucher,
+  getVoucherLinkedEffects,
+  recalcOrderSnapshotIfLinked,
+} from '@/lib/services/voucher-wiring.service';
 import type { PostAndWireResult, LinkedEffectsResult } from '@/lib/types/voucher-wiring';
 import { reverseBizVoucher } from '@/lib/services/voucher-reversal.service';
 import {
@@ -77,8 +81,17 @@ export async function postBizVoucherAction(
 
     const result = await postAndWireBizVoucher(auth.tenantId, voucherId, auth.userId, idempotencyKey);
 
+    // X5 fix — refresh the linked order's snapshot after a manual voucher post.
+    // recalcOrderSnapshotIfLinked is a no-op for non-order vouchers.
+    const orderSnapshot = await recalcOrderSnapshotIfLinked(auth.tenantId, voucherId);
+
     revalidatePath('/dashboard/internal_fin/vouchers');
     revalidatePath(`/dashboard/internal_fin/vouchers/${voucherId}`);
+    // Revalidate the linked order page too so the UI reflects the new snapshot.
+    if (orderSnapshot?.orderId) {
+      revalidatePath(`/dashboard/orders/${orderSnapshot.orderId}`);
+      revalidatePath(`/dashboard/orders/${orderSnapshot.orderId}/full`);
+    }
     return { success: true, data: result };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to post voucher' };

@@ -217,3 +217,17 @@ export function getPaymentTypeFromMethod(method: string): PaymentTypeId | undefi
       return undefined;
   }
 }
+
+/** Map explicit outstanding-policy selection to order payment_type_code. */
+export function getPaymentTypeFromOutstandingPolicy(
+  policy: 'NONE' | 'PAY_ON_COLLECTION' | 'CREDIT_INVOICE'
+): PaymentTypeId | undefined {
+  switch (policy) {
+    case 'PAY_ON_COLLECTION':
+      return PAYMENT_TYPE_IDS.PAY_ON_COLLECTION;
+    case 'CREDIT_INVOICE':
+      return PAYMENT_TYPE_IDS.CREDIT_INVOICE;
+    default:
+      return PAYMENT_TYPE_IDS.PAY_IN_ADVANCE;
+  }
+}

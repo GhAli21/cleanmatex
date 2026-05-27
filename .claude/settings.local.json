@@ -182,7 +182,11 @@
       "Bash(node -e \"const m = require\\('./messages/en.json'\\); console.log\\('common.total:', m.common?.total\\);\")",
       "Bash(node -e \"const m = require\\('./messages/en.json'\\); console.log\\(JSON.stringify\\(Object.keys\\(m.common\\).slice\\(0,5\\)\\)\\);\")",
       "mcp__supabase_remote_with_token__execute_sql",
-      "Bash(node -e \"const p = require\\('./node_modules/@prisma/client/package.json'\\); console.log\\(p.version\\)\")"
+      "Bash(node -e \"const p = require\\('./node_modules/@prisma/client/package.json'\\); console.log\\(p.version\\)\")",
+      "Bash(more)",
+      "Bash(xargs grep -l \"applyPromoCodeTx\\\\|redeemGiftCardTx\")",
+      "Bash(xargs grep -l \"org_audit_logs\\\\|org_order_history\\\\|org_order_status_history\\\\|org_fin_voucher_history\\\\|org_invoice_status_history\")",
+      "Bash(xargs wc -l)"
     ],
     "deny": [
       "Read(node_modules)",

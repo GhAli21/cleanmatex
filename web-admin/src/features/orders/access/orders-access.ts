@@ -53,9 +53,9 @@ export const ORDERS_ACCESS_CONTRACTS: PageAccessContract[] = [
         },
       },
       {
-        label: 'Create order with payment',
+        label: 'Submit order with payment',
         method: 'POST',
-        path: '/api/v1/orders/create-with-payment',
+        path: '/api/v1/orders/submit-order',
         requirement: {
           permissions: ['orders:create'],
           requireAllPermissions: true,

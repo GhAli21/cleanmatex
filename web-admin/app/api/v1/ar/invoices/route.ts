@@ -11,7 +11,7 @@ import {
 import { jsonApiError, jsonValidationError, parseSearchParams } from '@/app/api/v1/ar/_shared';
 
 export async function GET(request: NextRequest) {
-  const auth = await requirePermission('invoices:view')(request);
+  const auth = await requirePermission('invoices:read')(request);
   if (auth instanceof NextResponse) return auth;
 
   const parsed = arInvoiceListQuerySchema.safeParse(parseSearchParams(request.nextUrl.searchParams));

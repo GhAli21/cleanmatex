@@ -46,7 +46,10 @@ jest.mock('@/lib/utils/logger', () => ({
 // Helpers + test logic
 // ---------------------------------------------------------------------------
 
-import { paymentLegSchema } from '@/lib/validations/new-order-payment-schemas';
+import {
+  newOrderPaymentPayloadSchema,
+  paymentLegSchema,
+} from '@/lib/validations/new-order-payment-schemas';
 
 describe('checkout multi-leg payment — validation layer', () => {
   describe('sum parity check (server-side logic simulation)', () => {
@@ -120,6 +123,42 @@ describe('checkout multi-leg payment — validation layer', () => {
 
     it('rejects leg with negative amount', () => {
       expect(paymentLegSchema.safeParse({ method: 'CASH', amount: -1 }).success).toBe(false);
+    });
+  });
+
+  describe('partial payment outstanding policy payload', () => {
+    it('accepts partial payment with pay-on-collection remainder', () => {
+      const result = newOrderPaymentPayloadSchema.safeParse({
+        amountToCharge: 40,
+        outstandingPolicy: 'PAY_ON_COLLECTION',
+        totals: {
+          subtotal: 100,
+          manualDiscount: 0,
+          promoDiscount: 0,
+          vatValue: 0,
+          finalTotal: 100,
+        },
+        paymentLegs: [{ method: 'CASH', amount: 40 }],
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it('accepts partial payment with invoice remainder', () => {
+      const result = newOrderPaymentPayloadSchema.safeParse({
+        amountToCharge: 25,
+        outstandingPolicy: 'CREDIT_INVOICE',
+        totals: {
+          subtotal: 100,
+          manualDiscount: 0,
+          promoDiscount: 0,
+          vatValue: 0,
+          finalTotal: 100,
+        },
+        paymentLegs: [{ method: 'CARD', amount: 25 }],
+      });
+
+      expect(result.success).toBe(true);
     });
   });
 });

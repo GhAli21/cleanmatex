@@ -253,8 +253,36 @@ Resolved at query time via `COALESCE(org.column, sys.column)` in `checkout-confi
 - [x] Step 4 — `submit-order/route.ts` (thin shell, idempotency at route level)
 - [x] Step 5 — Deprecation governance (`_legacy_create-with-payment`, ESLint barricade, ADR)
 - [x] Step 6 — Frontend: endpoint switched to `submit-order`, response parsing updated, warning toasts + voucher badge added, i18n keys added
-- [x] Step 7 — Build green, i18n parity check green
+- [x] Step 7 — Build green ✅ — **Originally marked done on 2026-05-23 but was FALSE; build had 3 TS errors from missing `isCompound` field on `taxLines.push`. Truly green as of 2026-05-28 stabilization (see `IMPLEMENTATION_STATUS.md`).**
 - [ ] Step 8 — Manual smoke tests (10 scenarios — pending manual QA)
 - [x] Step 9 — Implementation doc created (this file)
 - [ ] Step 10 — PRD updated
 - [ ] Step 11 — `/documentation` skill
+
+---
+
+## 2026-05-28 Stabilization Pass
+
+Phase 1B was claimed complete on 2026-05-23 but the audit on 2026-05-28 surfaced one build-breaking bug, three live production bugs, one architectural defect (AR ledger pollution for cash sales), and multiple hardening gaps. All were resolved in the stabilization session:
+
+| Issue | Resolution |
+|---|---|
+| TS build broken on `taxLines.push` (3 sites) | `isCompound` threaded from `org_tax_profiles_cf` via `calculateTax()`; legacy route `@ts-expect-error` |
+| `invoices:view` permission referenced but never seeded | Renamed to `invoices:read` across 5 sites |
+| Manual voucher post left order snapshot stale | `recalcOrderSnapshotIfLinked()` helper called by route + action |
+| `collectPaymentTx` lost check_no/check_bank_name/check_due_date | Persisted on `org_order_payments_dtl` |
+| Cash sales produced AR ledger debits | `createInvoice()` gated on `shouldCreateArInvoice`; defense-in-depth in `ensureCanonicalArInvoiceArtifactsTx` |
+| Outbox raw insert bypassed `emitEventTx`/`OUTBOX_EVENT_TYPES` | Switched to typed helper; constant added |
+| Idempotency conflict promise never enforced | SHA-256 payload-hash check via new `lib/utils/idempotency.ts` |
+| Money math drift on 3-decimal currencies | `lib/utils/money.ts` (Decimal-backed) applied at known sites |
+| `redeemPointsTx` key included `Date.now()` (defeated idempotency) | Now `loyalty-redeem-${orderId}` |
+| CREDIT_APPLICATION fallback drift (WALLET vs GIFT_CARD) | Both sites now throw `CREDIT_APPLICATION_TYPE_REQUIRED` |
+| Prisma schema missing D9 columns | 6 added to `sys_payment_method_cd`, 4 to `org_payment_methods_cf` |
+| Pre-existing: `payment-modal-v4.tsx` use-before-declaration | Variable hoisted |
+| Pre-existing: `discount-service.test.ts` stale mock table names | Updated to current schema |
+
+**ADR added:** `docs/features/AR_Invoice/ADR_ar_invoice_is_receivable_only.md` documents the new contract.
+
+**Tests added:** 34 new tests across `money.test.ts`, `idempotency.test.ts`, `order-settlement-planner.service.test.ts` — all pass. Full orchestrator + wiring + concurrency tests deferred to Phase 2 entry per scope.
+
+See `IMPLEMENTATION_STATUS.md` for the full stabilization record and `BVM_PHASE_2_ENTRY_PLAN.md` for the next phase entry plan.

@@ -2574,6 +2574,13 @@ model sys_payment_method_cd {
   globally_disabled_reason       String?
   globally_disabled_at           DateTime?                        @db.Timestamptz(6)
   globally_disabled_by           String?
+  // BVM Phase 1B D9 payment-status config (migration 0325) — global defaults; org_payment_methods_cf overrides per tenant
+  default_creation_status        String                           @default("PENDING")
+  allow_status_override          Boolean                          @default(false)
+  requires_reference             Boolean                          @default(false)
+  requires_cash_drawer           Boolean                          @default(false)
+  is_user_id_required            Boolean                          @default(false)
+  allow_outside_integration      Boolean                          @default(false)
   org_invoice_mst                org_invoice_mst[]
   org_orders_mst                 org_orders_mst[]
   org_payment_reconciliation_log org_payment_reconciliation_log[]
@@ -6227,6 +6234,11 @@ model org_payment_methods_cf {
   requires_terminal             Boolean                         @default(false)
   min_order_amount              Decimal?                        @db.Decimal(19, 4)
   max_order_amount              Decimal?                        @db.Decimal(19, 4)
+  // BVM Phase 1B D9 tenant override columns (migration 0325) — NULL = inherit from sys_payment_method_cd
+  default_creation_status       String?
+  allow_status_override         Boolean?
+  is_user_id_required           Boolean?
+  allow_outside_integration     Boolean?
   org_tenants_mst               org_tenants_mst                 @relation(fields: [tenant_org_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   sys_payment_method_cd         sys_payment_method_cd           @relation(fields: [payment_method_code], references: [payment_method_code], onUpdate: NoAction)
   sys_payment_gateway_cd        sys_payment_gateway_cd?         @relation(fields: [gateway_code], references: [code], onUpdate: NoAction)

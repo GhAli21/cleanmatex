@@ -4602,7 +4602,9 @@
         "mobilePayment": "Mobile Payment",
         "hyperpay": "HyperPay",
         "paytabs": "PayTabs",
-        "stripe": "Stripe"
+        "stripe": "Stripe",
+        "touchHintImmediate": "Immediate settlement",
+        "touchHintCashDrawer": "Cash drawer / immediate collection"
       },
       "checkNumber": {
         "label": "Check Number",
@@ -4669,6 +4671,8 @@
         "placeholder": "GIFT CARD NUMBER OR PIN",
         "pinLabel": "Card PIN",
         "pinPlaceholder": "Enter PIN",
+        "showPin": "Show PIN",
+        "hidePin": "Hide PIN",
         "pinPrompt": "This card is PIN-protected. Enter the PIN to continue.",
         "pinPendingError": "Enter the gift card PIN to continue, or remove the card.",
         "apply": "Apply",
@@ -4777,6 +4781,27 @@
         "deferredInvoice": "Invoice (order total)",
         "notPaidBalance": "Not paid after this payment"
       },
+      "workspace": {
+        "remaining": "Remaining",
+        "change": "Change",
+        "totalDue": "Total Due",
+        "noImmediateTitle": "No pay-now amount selected",
+        "noImmediateDescription": "This order will be submitted entirely as deferred settlement using the selected remaining-balance policy.",
+        "editingAmount": "Editing amount",
+        "keypadHint": "Use the keypad for fast touch entry, or type directly into the amount field.",
+        "addSplitHint": "Select an immediate method to start collecting payment."
+      },
+      "remainder": {
+        "title": "Remaining balance policy",
+        "fullPayment": "Full Payment",
+        "payOnCollection": "Pay on Collection",
+        "invoiceOutstanding": "Invoice Outstanding",
+        "deferredHint": "Deferred settlement",
+        "help": "When the pay-now amount is less than the total, choose how the remaining balance should be handled.",
+        "validation": {
+          "required": "Choose how the remaining balance should be handled."
+        }
+      },
       "actions": {
         "submit": "Submit",
         "submitChargeOnly": "{submit} — {currency} {amount}",
@@ -4813,6 +4838,7 @@
         "amountExceedsTotal": "Payment amount exceeds order total",
         "confirmSubmit": "Confirm payment submission?",
         "paymentMethodNote": "Payment method: {method}",
+        "discardChanges": "You have unsaved payment changes. Close this modal and discard them?",
         "readyToSubmit": "Ready to submit",
         "validationErrors": "Please fix the following errors"
       },
@@ -4852,6 +4878,7 @@
         "gatewayCode": "Gateway Code",
         "gatewayTransactionId": "Transaction ID",
         "gatewayReference": "Gateway Reference",
+        "currentLeg": "Current leg details",
         "outstanding": "Outstanding",
         "allocated": "Fully Allocated",
         "over": "Over-allocated",

@@ -289,6 +289,9 @@ export function useOrderSubmission() {
                         finalTotal: payload.totals.finalTotal,
                     },
                     amountToCharge: payload.amountToCharge,
+                    ...(payload.outstandingPolicy && {
+                        outstandingPolicy: payload.outstandingPolicy,
+                    }),
                     ...(paymentData.b2bContractId && { b2bContractId: paymentData.b2bContractId }),
                     ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),
                     ...(paymentData.poNumber?.trim() && { poNumber: paymentData.poNumber.trim() }),
@@ -770,4 +773,3 @@ export function useOrderSubmission() {
         setAmountMismatch,
     };
 }
-

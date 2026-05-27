@@ -118,9 +118,15 @@ export function buildSettlementPlan(
     }
 
     if (option.paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION) {
+      // Throw rather than fall back: org_payment_methods_cf rows tagged
+      // CREDIT_APPLICATION MUST have credit_application_type set. Silent fallback
+      // historically masked data drift between this planner and order-settlement.
+      if (!option.creditApplicationType) {
+        throw new Error('CREDIT_APPLICATION_TYPE_REQUIRED');
+      }
       creditApplicationLegs.push({
         legIndex:          i,
-        creditType:        option.creditApplicationType ?? CREDIT_APPLICATION_TYPES.WALLET,
+        creditType:        option.creditApplicationType,
         amount,
         currencyCode,
         creditReferenceId: leg.creditReferenceId ?? undefined,

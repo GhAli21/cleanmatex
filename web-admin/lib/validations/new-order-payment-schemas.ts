@@ -6,6 +6,21 @@
 
 import { z } from 'zod';
 
+export const OUTSTANDING_POLICIES = {
+  NONE: 'NONE',
+  PAY_ON_COLLECTION: 'PAY_ON_COLLECTION',
+  CREDIT_INVOICE: 'CREDIT_INVOICE',
+} as const;
+
+export type OutstandingPolicy =
+  (typeof OUTSTANDING_POLICIES)[keyof typeof OUTSTANDING_POLICIES];
+
+export const outstandingPolicySchema = z.enum([
+  OUTSTANDING_POLICIES.NONE,
+  OUTSTANDING_POLICIES.PAY_ON_COLLECTION,
+  OUTSTANDING_POLICIES.CREDIT_INVOICE,
+]);
+
 /**
  * Coerces optional UUID JSON fields to undefined when absent, blank, non-string,
  * or not a valid UUID (avoids Zod "Invalid uuid" / "Invalid input" on unused promo/gift fields).
@@ -98,6 +113,7 @@ export const newOrderPaymentPayloadSchema = z
   .object({
     amountToCharge: z.number().min(0),
     totals: newOrderPaymentTotalsSchema,
+    outstandingPolicy: outstandingPolicySchema.optional(),
     currencyCode: z.string().length(3).optional(),
     currencyExRate: z.number().min(0).optional(),
     /** B2B: When true, admin overrides credit limit (warn mode). Passed to create-with-payment. */
@@ -256,6 +272,12 @@ export const createWithPaymentRequestSchema = z.object({
   clientTotals: clientTotalsSchema,
   /** Amount to charge now (for partial payment). Defaults to clientTotals.finalTotal. Must be <= finalTotal. */
   amountToCharge: z.number().min(0).optional(),
+  /**
+   * Explicit outstanding balance disposition for any unpaid remainder after
+   * immediate settlement. Deferred remainder is modeled here instead of being
+   * mixed into paymentLegs.
+   */
+  outstandingPolicy: outstandingPolicySchema.optional(),
   /**
    * Split-payment legs. When provided and non-empty, the route processes each leg individually.
    * Omit (or pass undefined) for single-leg behaviour (backward-compatible).

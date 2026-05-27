@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
+import { OUTSTANDING_POLICIES, outstandingPolicySchema } from '@/lib/validations/new-order-payment-schemas';
 
 /**
  * Payment method schema
@@ -53,6 +54,7 @@ const paymentFormBaseSchema = z.object({
   giftCardId: z.string().uuid().optional().or(z.literal('')),
   payAllOrders: z.boolean().default(false),
   paymentNotes: z.string().max(1000).optional(),
+  outstandingPolicy: outstandingPolicySchema.default(OUTSTANDING_POLICIES.PAY_ON_COLLECTION),
   /** B2B: Contract, cost center, PO (when customer is B2B) */
   b2bContractId: z.string().uuid().optional().or(z.literal('')),
   costCenterCode: z.string().max(50).optional().or(z.literal('')),

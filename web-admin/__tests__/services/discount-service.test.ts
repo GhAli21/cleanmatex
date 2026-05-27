@@ -58,10 +58,12 @@ describe('discount-service', () => {
   // -------------------------------------------------------------------------
 
   describe('applyPromoCodeTx', () => {
+    // Mock keys match the actual table names used by discount-service.ts:
+    // org_promotion_usage_dtl (was org_promo_usage_log) and org_promotions_mst (was org_promo_codes_mst).
     const buildTxClient = (locked: object[]) => ({
       $queryRaw: jest.fn().mockResolvedValue(locked),
-      org_promo_usage_log: { create: jest.fn().mockResolvedValue({}) },
-      org_promo_codes_mst: { update: jest.fn().mockResolvedValue({}) },
+      org_promotion_usage_dtl: { create: jest.fn().mockResolvedValue({}) },
+      org_promotions_mst: { update: jest.fn().mockResolvedValue({}) },
     });
 
     it('throws PROMO_NOT_FOUND when row lock returns empty', async () => {
@@ -102,8 +104,8 @@ describe('discount-service', () => {
         discountAmount: 10,
         orderTotalBefore: 100,
       });
-      expect((tx.org_promo_usage_log.create as jest.Mock).mock.calls[0][0].data.discount_amount).toBe(10);
-      expect((tx.org_promo_codes_mst.update as jest.Mock).mock.calls[0][0].data.current_uses).toEqual({ increment: 1 });
+      expect((tx.org_promotion_usage_dtl.create as jest.Mock).mock.calls[0][0].data.discount_amount).toBe(10);
+      expect((tx.org_promotions_mst.update as jest.Mock).mock.calls[0][0].data.current_uses).toEqual({ increment: 1 });
     });
 
     it('allows unlimited uses when max_uses is null', async () => {

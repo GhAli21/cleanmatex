@@ -94,6 +94,16 @@ describe('createWithPaymentRequestSchema — paymentLegs', () => {
     expect(result.success).toBe(true);
   });
 
+  it('accepts partial settlement with explicit outstanding policy', () => {
+    const result = createWithPaymentRequestSchema.safeParse({
+      ...minimalOrder,
+      amountToCharge: 40,
+      outstandingPolicy: 'PAY_ON_COLLECTION',
+      paymentLegs: [{ method: 'CASH', amount: 40 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
   it('rejects paymentLegs with empty array (min 1)', () => {
     const result = createWithPaymentRequestSchema.safeParse({
       ...minimalOrder,
@@ -156,6 +166,16 @@ describe('newOrderPaymentPayloadSchema', () => {
     const result = newOrderPaymentPayloadSchema.safeParse({
       amountToCharge: 50,
       totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      outstandingPolicy: 'PAY_ON_COLLECTION',
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts explicit credit-invoice remainder policy', () => {
+    const result = newOrderPaymentPayloadSchema.safeParse({
+      amountToCharge: 25,
+      totals: { subtotal: 100, vatValue: 0, finalTotal: 100 },
+      outstandingPolicy: 'CREDIT_INVOICE',
     });
     expect(result.success).toBe(true);
   });
