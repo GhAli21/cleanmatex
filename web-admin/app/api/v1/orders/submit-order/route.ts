@@ -29,9 +29,38 @@ import {
   hashPayload,
   findIdempotencyHash,
   storeIdempotencyHash,
+  deleteIdempotencyHash,
 } from '@/lib/utils/idempotency';
 
 const IDEMPOTENCY_RESOURCE = 'submit_order';
+
+/**
+ * Errors thrown by the orchestrator BEFORE any DB write (totals validation,
+ * credit checks, settlement-plan validation, product lookup). A throw with one
+ * of these codes means no order row exists, no voucher row exists, no orphan
+ * state — so the idempotency placeholder must be deleted to let the caller
+ * fix the input and retry with the SAME key.
+ *
+ * If you add a new pre-tx1 throw in the orchestrator, add its code here too.
+ * Anything not in this set is treated as post-mutation and keeps the
+ * placeholder so the next retry surfaces PRIOR_ATTEMPT_FAILED.
+ */
+const PRE_MUTATION_ERROR_CODES = new Set([
+  'AMOUNT_MISMATCH',
+  'B2B_CREDIT_HOLD',
+  'B2B_CREDIT_EXCEEDED',
+  'SPLIT_AMOUNT_MISMATCH',
+  'DEFERRED_LEG_NOT_ALONE',
+  'OUTSTANDING_POLICY_REQUIRED',
+  'CHECK_NUMBER_REQUIRED',
+  'CASH_DRAWER_SESSION_REQUIRED',
+  'CASH_DRAWER_SESSION_CLOSED',
+  'CASH_TENDERED_LESS_THAN_AMOUNT',
+  'GATEWAY_NOT_CONFIGURED',
+  'PAYMENT_REFERENCE_REQUIRED',
+  'CREDIT_APPLICATION_TYPE_REQUIRED',
+  'PRODUCT_NOT_FOUND',
+]);
 
 /**
  * POST /api/v1/orders/submit-order
@@ -258,6 +287,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
+    // Pre-mutation errors (validation / pre-flight) → unstake the placeholder
+    // so the caller can fix the input and retry with the SAME idempotency key.
+    // Anything outside this set is treated as potentially post-mutation
+    // (orphan state possible) and the placeholder stays.
+    const errorCode = message.startsWith('Product not found:') ? 'PRODUCT_NOT_FOUND' : message;
+    if (PRE_MUTATION_ERROR_CODES.has(errorCode)) {
+      await deleteIdempotencyHash(tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE)
+        .catch((err: unknown) => {
+          logger.warn?.('[submit-order] failed to unstake idempotency placeholder after pre-mutation error', {
+            feature: 'orders', action: 'submit-order',
+            errorCode, error: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }
 
     if (message === 'AMOUNT_MISMATCH') {
       return NextResponse.json(

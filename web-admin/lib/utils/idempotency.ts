@@ -96,6 +96,27 @@ export async function findIdempotencyHash(
  * @param ttlDays - Time-to-live in days (default 7). After expiry the row is
  *                  eligible for cleanup but the unique constraint stays active.
  */
+/**
+ * Delete the idempotency record for (tenant, key, resourceType).
+ *
+ * Used by submit-order route to "unstake" a placeholder when the orchestrator
+ * fails BEFORE any DB write (validation / pre-flight errors). The placeholder
+ * exists only to block retries that could produce orphan state — a pure
+ * validation failure means there is no orphan state and the same key should
+ * be reusable.
+ *
+ * Idempotent: missing row is treated as success.
+ */
+export async function deleteIdempotencyHash(
+  tenantId: string,
+  key: string,
+  resourceType: string
+): Promise<void> {
+  await prisma.org_idempotency_keys.deleteMany({
+    where: { tenant_org_id: tenantId, key, resource_type: resourceType },
+  });
+}
+
 export async function storeIdempotencyHash(
   tenantId: string,
   key: string,

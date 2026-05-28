@@ -370,6 +370,13 @@ export function PaymentModalV4({
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const amountDiscountInputRef = useRef<HTMLInputElement | null>(null);
+  const percentDiscountInputRef = useRef<HTMLInputElement | null>(null);
+  const checkNumberInputRef = useRef<HTMLInputElement | null>(null);
+  const payOnCollectionPolicyButtonRef = useRef<HTMLButtonElement | null>(null);
+  const creditLimitCardRef = useRef<HTMLDivElement | null>(null);
+  const creditLimitOverrideRef = useRef<HTMLInputElement | null>(null);
+  const couponCardRef = useRef<HTMLDivElement | null>(null);
   const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
@@ -1097,21 +1104,6 @@ export function PaymentModalV4({
     onSubmit(submissionData, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
   };
 
-  const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
-    const firstFieldError = Object.values(formErrors).find((value) => value?.message);
-    if (firstFieldError?.message) {
-      cmxMessage.error(String(firstFieldError.message));
-      return;
-    }
-
-    if (paymentMethod === PAYMENT_METHODS.CHECK) {
-      cmxMessage.error(t('checkNumber.required'));
-      return;
-    }
-
-    cmxMessage.error(t('messages.validationErrors'));
-  }, [paymentMethod, t]);
-
   // Payment icon helper
   const getPaymentIcon = (id: string) => {
     const cls = 'w-5 h-5';
@@ -1238,6 +1230,25 @@ export function PaymentModalV4({
     focusAmountEditor();
   }, [focusAmountEditor, settlementLegEntries]);
 
+  const scrollAndFocusTarget = useCallback(
+    (
+      target: HTMLElement | null,
+      options?: {
+        selectText?: boolean;
+      }
+    ) => {
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      window.setTimeout(() => {
+        target.focus();
+        if (options?.selectText && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+          target.select();
+        }
+      }, 90);
+    },
+    []
+  );
+
   const validationItems = useMemo(() => {
     const items: string[] = [];
 
@@ -1249,6 +1260,12 @@ export function PaymentModalV4({
     }
     if (errors.checkNumber?.message) {
       items.push(String(errors.checkNumber.message));
+    }
+    if (errors.amountDiscount?.message) {
+      items.push(String(errors.amountDiscount.message));
+    }
+    if (errors.percentDiscount?.message) {
+      items.push(String(errors.percentDiscount.message));
     }
     if (pinRequired) {
       items.push(t('giftCard.pinPendingError'));
@@ -1275,8 +1292,10 @@ export function PaymentModalV4({
     return [...new Set(items)];
   }, [
     creditLimitOverride,
+    errors.amountDiscount?.message,
     effectiveOutstandingPolicy,
     errors.checkNumber?.message,
+    errors.percentDiscount?.message,
     giftCardValidating,
     hasCheckLegWithoutNumber,
     paymentMethod,
@@ -1289,12 +1308,116 @@ export function PaymentModalV4({
     t,
   ]);
 
-  const submitDisabled =
-    loading ||
-    totalsLoading ||
-    promoCodeValidating ||
-    giftCardValidating ||
-    validationItems.length > 0;
+  const submitBusy = loading || totalsLoading;
+  const submitHasBlockingIssues = validationItems.length > 0;
+
+  const focusFirstBlockingIssue = useCallback(() => {
+    if (promoCodeValidating || giftCardValidating || pinRequired) {
+      setCouponOpen(true);
+      if (pinRequired && !giftCardPin.trim()) {
+        setPinFieldError(t('giftCard.pinPendingError'));
+      }
+      window.setTimeout(() => {
+        if (pinRequired && !giftCardPin.trim()) {
+          scrollAndFocusTarget(pinInputRef.current, { selectText: true });
+          return;
+        }
+        scrollAndFocusTarget(couponCardRef.current);
+      }, 90);
+      return;
+    }
+
+    if (errors.amountDiscount?.message) {
+      scrollAndFocusTarget(amountDiscountInputRef.current, { selectText: true });
+      return;
+    }
+
+    if (errors.percentDiscount?.message) {
+      scrollAndFocusTarget(percentDiscountInputRef.current, { selectText: true });
+      return;
+    }
+
+    if (
+      paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
+      paymentMethod !== PAYMENT_METHODS.INVOICE &&
+      settledNowAmount <= 0
+    ) {
+      focusAmountEditor();
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
+    if (hasCheckLegWithoutNumber) {
+      const checkLegIndex = paymentLegs.findIndex(
+        (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
+      );
+      if (checkLegIndex >= 0) {
+        setActiveLegIndex(checkLegIndex);
+        setValue('paymentMethod', PAYMENT_METHODS.CHECK, { shouldDirty: true });
+      }
+      window.setTimeout(() => {
+        scrollAndFocusTarget(checkNumberInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
+    if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
+      scrollAndFocusTarget(payOnCollectionPolicyButtonRef.current);
+      return;
+    }
+
+    if (serverTotals?.creditLimit?.wouldExceed) {
+      if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
+        scrollAndFocusTarget(creditLimitOverrideRef.current);
+        return;
+      }
+      scrollAndFocusTarget(creditLimitCardRef.current);
+    }
+  }, [
+    creditLimitOverride,
+    errors.amountDiscount?.message,
+    errors.percentDiscount?.message,
+    effectiveOutstandingPolicy,
+    focusAmountEditor,
+    giftCardPin,
+    giftCardValidating,
+    hasCheckLegWithoutNumber,
+    paymentLegs,
+    paymentMethod,
+    pinRequired,
+    promoCodeValidating,
+    remainingBalance,
+    scrollAndFocusTarget,
+    serverTotals?.creditLimit?.mode,
+    serverTotals?.creditLimit?.wouldExceed,
+    settledNowAmount,
+    setValue,
+    t,
+  ]);
+
+  const handleBlockedSubmitAttempt = useCallback(() => {
+    focusFirstBlockingIssue();
+    cmxMessage.error(validationItems[0] ?? t('messages.validationErrors'));
+  }, [focusFirstBlockingIssue, t, validationItems]);
+
+  const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
+    focusFirstBlockingIssue();
+
+    const firstFieldError = Object.values(formErrors).find((value) => value?.message);
+    if (firstFieldError?.message) {
+      cmxMessage.error(String(firstFieldError.message));
+      return;
+    }
+
+    if (paymentMethod === PAYMENT_METHODS.CHECK) {
+      cmxMessage.error(t('checkNumber.required'));
+      return;
+    }
+
+    cmxMessage.error(t('messages.validationErrors'));
+  }, [focusFirstBlockingIssue, paymentMethod, t]);
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -1752,6 +1875,7 @@ export function PaymentModalV4({
                             {activeLeg.method === PAYMENT_METHODS.CHECK && (
                               <div className="grid gap-3 md:grid-cols-3">
                                 <CmxInput
+                                  ref={checkNumberInputRef}
                                   label={`${t('splitPayment.checkNumber')} *`}
                                   value={activeLeg.checkNumber ?? ''}
                                   dir="ltr"
@@ -1873,6 +1997,7 @@ export function PaymentModalV4({
                         ] as Array<[OutstandingPolicy, string]>).map(([policy, label]) => (
                           <CmxButton
                             key={policy}
+                            ref={policy === 'PAY_ON_COLLECTION' ? payOnCollectionPolicyButtonRef : undefined}
                             type="button"
                             variant="outline"
                             onClick={() => handleOutstandingPolicyChange(policy)}
@@ -1906,6 +2031,7 @@ export function PaymentModalV4({
                           control={control}
                           render={({ field }) => (
                             <CmxInput
+                              ref={amountDiscountInputRef}
                               label={t('manualDiscount.amount')}
                               value={amountDiscountFocused ? amountDiscountDraft : formatDecimalDraft(field.value ?? 0, decimalPlaces)}
                               dir="ltr"
@@ -1937,6 +2063,7 @@ export function PaymentModalV4({
                           control={control}
                           render={({ field }) => (
                             <CmxInput
+                              ref={percentDiscountInputRef}
                               label={t('manualDiscount.percent')}
                               value={field.value ? String(field.value) : ''}
                               dir="ltr"
@@ -1959,7 +2086,7 @@ export function PaymentModalV4({
                   </CmxCard>
 
                   {!NEW_ORDER_PROMO_GIFT_DISABLED && (
-                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCard ref={couponCardRef} className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                       <CmxButton
                         type="button"
                         variant="ghost"
@@ -2154,7 +2281,7 @@ export function PaymentModalV4({
                           />
                         </div>
                         {serverTotals?.creditLimit?.creditLimit && serverTotals.creditLimit.creditLimit > 0 && (
-                          <div className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
+                          <div ref={creditLimitCardRef} className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
                             <p className={`text-sm font-medium text-slate-900 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
                               <CircleAlert className="h-4 w-4 text-amber-600" />
                               {t('b2b.creditLimit') || 'Credit Limit'}
@@ -2165,6 +2292,7 @@ export function PaymentModalV4({
                             {serverTotals.creditLimit.wouldExceed && serverTotals.creditLimit.mode === 'warn' && (
                               <div className="mt-2">
                                 <CmxCheckbox
+                                  ref={creditLimitOverrideRef}
                                   checked={creditLimitOverride}
                                   onChange={(event) => setCreditLimitOverride(event.target.checked)}
                                   label={t('b2b.creditOverrideConfirm') || 'I confirm override of credit limit'}
@@ -2255,9 +2383,10 @@ export function PaymentModalV4({
                     {tCommon('cancel')}
                   </CmxButton>
                   <CmxButton
-                    type="submit"
+                    type={submitHasBlockingIssues ? 'button' : 'submit'}
                     loading={loading}
-                    disabled={submitDisabled}
+                    disabled={submitBusy}
+                    onClick={submitHasBlockingIssues ? handleBlockedSubmitAttempt : undefined}
                     className="flex-1 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 font-bold shadow-sm"
                     size="lg"
                   >
