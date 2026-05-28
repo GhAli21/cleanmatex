@@ -8,9 +8,9 @@
 
 | Route | Purpose | Primary Permission |
 |---|---|---|
-| `/dashboard/internal_fin/invoices` | Canonical AR invoice hub | `invoices:view` |
+| `/dashboard/internal_fin/invoices` | Canonical AR invoice hub | `invoices:read` |
 | `/dashboard/internal_fin/invoices/new` | AR invoice issuance wizard | `invoices:create` |
-| `/dashboard/internal_fin/invoices/[id]` | AR invoice detail and actions | `invoices:view` |
+| `/dashboard/internal_fin/invoices/[id]` | AR invoice detail and actions | `invoices:read` |
 | `/dashboard/internal_fin/invoices/[id]/print` | Printable AR invoice | `invoices:print` |
 | `/dashboard/internal_fin/ar/customers` | Customer AR balance hub | `ar_ledger:view` |
 | `/dashboard/internal_fin/ar/ledger` | Customer AR ledger view | `ar_ledger:view` |

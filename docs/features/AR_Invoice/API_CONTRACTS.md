@@ -19,11 +19,11 @@ All endpoints are:
 
 | Method | Route | Permission | Purpose | Notes |
 |---|---|---|---|---|
-| `GET` | `/api/v1/ar/invoices` | `invoices:view` | List canonical AR invoices | Supports page, limit, search, status, invoice type, date range, sort |
+| `GET` | `/api/v1/ar/invoices` | `invoices:read` | List canonical AR invoices | Supports page, limit, search, status, invoice type, date range, sort |
 | `POST` | `/api/v1/ar/invoices` | `invoices:create` | Create manual AR invoice | Requires at least one invoice line |
 | `POST` | `/api/v1/ar/invoices/from-orders` | `invoices:create` | Create AR invoice from one or more eligible orders | Rejects `PAY_ON_COLLECTION` orders |
 | `GET` | `/api/v1/ar/invoices/export` | `invoices:export` | Export the filtered invoice hub result as CSV | Uses canonical invoice list query |
-| `GET` | `/api/v1/ar/invoices/[id]` | `invoices:view` | Load AR invoice detail | Includes lines, linked orders, allocations, adjustments, history, ledger |
+| `GET` | `/api/v1/ar/invoices/[id]` | `invoices:read` | Load AR invoice detail | Includes lines, linked orders, allocations, adjustments, history, ledger |
 | `PATCH` | `/api/v1/ar/invoices/[id]` | `invoices:update` | Update editable summary fields | Limited to due date, payment terms, payment method, notes, metadata |
 | `POST` | `/api/v1/ar/invoices/[id]/issue` | `invoices:issue` | Issue draft AR invoice | Writes status history and AR ledger |
 | `POST` | `/api/v1/ar/invoices/[id]/approve-sensitive` | `invoices:approve_sensitive` | Approve pending sensitive AR action | Used before void, credit memo, debit note, write-off |

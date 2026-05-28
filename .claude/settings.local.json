@@ -186,7 +186,10 @@
       "Bash(more)",
       "Bash(xargs grep -l \"applyPromoCodeTx\\\\|redeemGiftCardTx\")",
       "Bash(xargs grep -l \"org_audit_logs\\\\|org_order_history\\\\|org_order_status_history\\\\|org_fin_voucher_history\\\\|org_invoice_status_history\")",
-      "Bash(xargs wc -l)"
+      "Bash(xargs wc -l)",
+      "Bash(head -40 ../docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md 2>&1)",
+      "Read(//f/jhapp/docs/features/AR_Invoice/**)",
+      "Bash(grep -B2 -A2 \"Read\\(//f/jhapp\" \"F:/jhapp/cleanmatex/.claude/settings.local.json\")"
     ],
     "deny": [
       "Read(node_modules)",

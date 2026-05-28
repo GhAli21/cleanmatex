@@ -12,9 +12,10 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
 import { useForm, useWatch } from 'react-hook-form'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateLoginForm } from '@/lib/auth/validation'
+import { setLocale as persistLocale, type Locale } from '@/lib/utils/locale.client'
 import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
 import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
 import { CmxForm, CmxFormField } from '@ui/forms'
@@ -31,6 +32,55 @@ function getLoginErrorMessage(error: unknown, fallbackMessage: string): string {
   }
 
   return fallbackMessage
+}
+
+function LoginLanguageSwitcher() {
+  const locale = useLocale() as Locale
+  const t = useTranslations('auth.login')
+
+  const handleLanguageChange = (nextLocale: Locale) => {
+    if (nextLocale === locale) {
+      return
+    }
+
+    persistLocale(nextLocale)
+    window.dispatchEvent(new CustomEvent('localeChange', { detail: nextLocale }))
+  }
+
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-white/70 bg-white/72 p-1 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur-md">
+      <CmxButton
+        type="button"
+        size="sm"
+        variant={locale === 'en' ? 'primary' : 'ghost'}
+        className={`h-9 rounded-full px-4 text-xs font-semibold tracking-[0.18em] ${
+          locale === 'en'
+            ? 'bg-slate-900 text-white hover:bg-slate-800'
+            : 'text-slate-600 hover:bg-white/80'
+        }`}
+        aria-label={t('languageEnglish')}
+        aria-pressed={locale === 'en'}
+        onClick={() => handleLanguageChange('en')}
+      >
+        EN
+      </CmxButton>
+      <CmxButton
+        type="button"
+        size="sm"
+        variant={locale === 'ar' ? 'primary' : 'ghost'}
+        className={`h-9 rounded-full px-4 text-xs font-semibold ${
+          locale === 'ar'
+            ? 'bg-slate-900 text-white hover:bg-slate-800'
+            : 'text-slate-600 hover:bg-white/80'
+        }`}
+        aria-label={t('languageArabic')}
+        aria-pressed={locale === 'ar'}
+        onClick={() => handleLanguageChange('ar')}
+      >
+        عربي
+      </CmxButton>
+    </div>
+  )
 }
 
 /**
@@ -132,13 +182,56 @@ export default function LoginPage() {
       </div>
 
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
-        <CmxCard className="relative w-full max-w-[31rem] overflow-hidden border-white/70 bg-white/82 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+        <div className="w-full max-w-6xl">
+          <div className="mb-6 flex justify-end">
+            <LoginLanguageSwitcher />
+          </div>
+
+          <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_31rem] xl:gap-12">
+            <div className="hidden lg:flex lg:flex-col lg:items-start lg:justify-center lg:gap-6 lg:px-4">
+              <div className="relative h-[28rem] w-full max-w-[28rem]">
+                <div className="absolute inset-0 rounded-full bg-white/40 blur-3xl" />
+                <Image
+                  src="/brand/cleanmatex-login-mascot.png"
+                  alt={t('login.mascotAlt')}
+                  fill
+                  className="relative object-contain drop-shadow-[0_30px_40px_rgba(15,23,42,0.14)]"
+                  priority
+                />
+              </div>
+
+              <div className="max-w-md space-y-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+                  {t('login.eyebrow')}
+                </p>
+                <h2 className="text-4xl font-semibold tracking-tight text-slate-900">
+                  {t('login.tagline')}
+                </h2>
+                <p className="text-base leading-7 text-slate-600">
+                  {t('login.subtitle')}
+                </p>
+              </div>
+            </div>
+
+            <CmxCard className="relative w-full overflow-hidden border-white/70 bg-white/82 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl">
           <div
             aria-hidden="true"
             className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
           />
 
           <CmxCardHeader className="space-y-6 px-6 pb-6 pt-8 text-center sm:px-8">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-white/80 bg-white/75 shadow-[0_12px_30px_rgba(15,23,42,0.08)] lg:hidden">
+              <div className="relative h-20 w-20">
+                <Image
+                  src="/brand/cleanmatex-login-mascot.png"
+                  alt={t('login.mascotAlt')}
+                  fill
+                  className="object-contain"
+                  priority
+                />
+              </div>
+            </div>
+
             <div className="mx-auto w-full max-w-[17rem]">
               <Image
                 src="/brand/cleanmatex-wordmark.png"
@@ -298,7 +391,9 @@ export default function LoginPage() {
               </div>
             </CmxForm>
           </CmxCardContent>
-        </CmxCard>
+            </CmxCard>
+          </div>
+        </div>
       </div>
     </div>
   )

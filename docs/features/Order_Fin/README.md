@@ -79,14 +79,19 @@ Order Settlement Service (prisma.$transaction)
 
 ```
 docs/features/Order_Fin/
-├── README.md                ← this file
-├── developer_guide.md       ← service graph, flow walkthroughs, patterns
-├── current_status.md        ← phase implementation status
-├── progress_summary.md      ← session-by-session log
-├── CHANGELOG.md             ← chronological changes
+├── README.md                            ← this file
+├── developer_guide.md                   ← service graph, flow walkthroughs, patterns
+├── IMPLEMENTATION_STATUS.md             ← canonical phase + stabilization status (supersedes current_status.md)
+├── current_status.md                    ← legacy; mirrored into IMPLEMENTATION_STATUS.md
+├── progress_summary.md                  ← session-by-session log
+├── CHANGELOG.md                         ← chronological changes
+├── ADR_submit_order_canonical_path.md   ← Phase 1B canonical orchestrator decision
+├── bvm_wiring_phase1a_implementation.md ← Phase 1A outcomes
+├── bvm_wiring_phase1b_implementation.md ← Phase 1B outcomes (+ 2026-05-28 stabilization addendum)
+├── BVM_PHASE_2_ENTRY_PLAN.md            ← next phase entry plan
 ├── technical_docs/
-│   ├── tech_api.md          ← full API contract for all new routes
-│   └── tech_data_model.md   ← ER diagram, table descriptions, migration list
+│   ├── tech_api.md                      ← full API contract for all new routes
+│   └── tech_data_model.md               ← ER diagram, table descriptions, migration list
 └── Order_Fin_Docs/
     ├── ORDER_FINANCIAL_PLATFORM.md
     ├── STORED_VALUE_GUIDE.md
@@ -98,10 +103,16 @@ docs/features/Order_Fin/
     └── OUTBOX_PATTERN_GUIDE.md
 ```
 
+Related ADRs in sibling features:
+- `docs/features/AR_Invoice/ADR_ar_invoice_is_receivable_only.md` — `org_invoice_mst` is a receivable-only document; cash sales no longer produce AR ledger debits. Cross-references this folder's submit-order orchestrator gate.
+
 ## Quick Links
 
 - [Developer Guide](developer_guide.md)
 - [API Reference](technical_docs/tech_api.md)
 - [Data Model](technical_docs/tech_data_model.md)
-- [Current Status](current_status.md)
+- [Implementation Status](IMPLEMENTATION_STATUS.md)
+- [BVM Phase 2 Entry Plan](BVM_PHASE_2_ENTRY_PLAN.md)
+- [ADR — Canonical Submit Path](ADR_submit_order_canonical_path.md)
+- [ADR — AR Invoice Receivable-Only](../AR_Invoice/ADR_ar_invoice_is_receivable_only.md)
 - [Changelog](CHANGELOG.md)

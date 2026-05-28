@@ -1,5 +1,48 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-28
+
+### BVM Wiring Phase 1B — Pre-Phase-2 Stabilization Session
+
+Session plan: `C:\Users\JHNLP\.claude\plans\sleepy-zooming-goose.md` (13 stages, all complete)
+Status doc: `IMPLEMENTATION_STATUS.md`
+
+**Audit findings resolved:**
+- **B1** (build-blocking): `taxLines.push` missing `isCompound` field — threaded from `org_tax_profiles_cf.is_compound` via `calculateTax()`. Build GREEN for the first time in Phase 1B.
+- **B2** (live 403 for non-admin): permission code `invoices:view` renamed to `invoices:read` (the actually-seeded code) across 5 sites.
+- **B3** (AR ledger pollution): `createInvoice()` gated on `effectiveOutstandingPolicy === 'CREDIT_INVOICE'`. Cash sales no longer produce AR invoice rows or AR ledger debits. See new ADR: `docs/features/AR_Invoice/ADR_ar_invoice_is_receivable_only.md`.
+- **X1** (drift risk): raw outbox insert in `voucher-wiring.service.ts` replaced with typed `emitEventTx()`; `OUTBOX_EVENT_TYPES.VOUCHER_POSTED_AND_WIRED` added to constants.
+- **X5** (live silent drift): manual voucher post via Finance UI now refreshes linked order snapshot via new `recalcOrderSnapshotIfLinked()` helper.
+- **Y3** (live data loss): `collectPaymentTx` now persists `check_no`/`check_bank_name`/`check_due_date`.
+- **Y4** (log noise): `Jh65`/`Jh66` debug logs deleted from permission service.
+- **S1** (Prisma drift): D9 columns added to `sys_payment_method_cd` (6) and `org_payment_methods_cf` (4) Prisma models; Step 0h debt closed.
+- **S2** (silent retry inconsistency): SHA-256 payload-hash conflict detection added via new `lib/utils/idempotency.ts`. Submit-order route returns 409 IDEMPOTENCY_CONFLICT on payload mismatch.
+- **S3** (fallback drift): planner + settlement both `throw 'CREDIT_APPLICATION_TYPE_REQUIRED'` instead of silent fallback.
+- **S4**: `orders-access.ts:58` updated from `/create-with-payment` to `/submit-order`.
+- **S6** (float drift): new `lib/utils/money.ts` (Decimal-backed) applied at known drift sites in orchestrator, settlement, and AR invoice services.
+- **F21**: `redeemPointsTx` idempotency key is now deterministic (`loyalty-redeem-${orderId}` — was `${orderId}-points-redeem-${Date.now()}`).
+
+**Also fixed (pre-existing, surfaced during stabilization):**
+- `payment-modal-v4.tsx` use-before-declaration (`payNowAmount`/`remainingBalance` hoisted).
+- `discount-service.test.ts` stale mock table names updated to current schema.
+
+**New files:**
+- `lib/utils/money.ts` (Decimal helpers)
+- `lib/utils/idempotency.ts` (canonicalize + SHA-256 hash + store/find)
+- `__tests__/utils/money.test.ts` (13 tests, all pass)
+- `__tests__/utils/idempotency.test.ts` (11 tests, all pass)
+- `__tests__/services/order-settlement-planner.service.test.ts` (10 tests, all pass)
+- `docs/features/AR_Invoice/ADR_ar_invoice_is_receivable_only.md`
+- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md` (new canonical name, supersedes `current_status.md`)
+- `docs/features/Order_Fin/BVM_PHASE_2_ENTRY_PLAN.md`
+
+**Verification:**
+- `npx tsc --noEmit` — 0 errors
+- 34 new tests + existing discount-service tests all green
+- No new migrations (all changes are code + Prisma schema sync)
+
+---
+
 ## 2026-05-23
 
 ### BVM Wiring Phase 1B — Submit Order Canonical Path

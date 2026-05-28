@@ -65,7 +65,7 @@ INSERT INTO sys_payment_method_cd
 VALUES
   ('GIFT_CARD',       'Gift Card',          'بطاقة هدية',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
   ('WALLET',          'Wallet',             'المحفظة',            'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
-  ('ADVANCE',         'Customer Advance',   'سلفة العميل',        'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
+  ('ADVANCE',         'Customer Advance',   'مقدم من العميل',        'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
   ('CREDIT_NOTE',     'Credit Note',        'إشعار دائن',         'CREDIT_APPLICATION',  'STORED_VALUE', true,  true, 1, false, NULL),
   ('LOYALTY_POINTS',  'Loyalty Points',     'نقاط الولاء',        'CREDIT_APPLICATION',  'LOYALTY',      true,  true, 1, false, NULL),
   ('PAYMENT_GATEWAY', 'Payment Gateway',    'بوابة الدفع',        'REAL_PAYMENT',        'GATEWAY',      true,  true, 1, false, NULL),

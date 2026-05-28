@@ -27,6 +27,7 @@ import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
+import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
 import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
@@ -53,10 +54,23 @@ import type { RequestAuditContext } from '@/lib/utils/request-audit';
 
 const TOLERANCE = 0.001;
 
+/**
+ * Compares two monetary values using the orchestrator tolerance to avoid false mismatches.
+ *
+ * @param a First amount to compare.
+ * @param b Second amount to compare.
+ * @returns `true` when the values are close enough to be treated as equal.
+ */
 function withinTolerance(a: number, b: number): boolean {
   return Math.abs(a - b) <= TOLERANCE;
 }
 
+/**
+ * Normalizes nullable Prisma decimals into plain numbers for calculation helpers.
+ *
+ * @param d Prisma decimal value from persistence.
+ * @returns Numeric amount or zero when the value is absent.
+ */
 function toNum(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
@@ -101,6 +115,9 @@ function normalizeOutstandingPolicy(
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
+/**
+ * Input contract for the canonical order submission orchestrator.
+ */
 export interface SubmitOrderParams {
   tenantId:     string;
   userId:       string;
@@ -110,6 +127,9 @@ export interface SubmitOrderParams {
   requestAudit: RequestAuditContext;
 }
 
+/**
+ * Output contract returned after order creation, settlement, and optional voucher wiring.
+ */
 export interface SubmitOrderResult {
   order: {
     id:                       string;
@@ -207,12 +227,7 @@ export async function resolveOrderBranch(
  *  8. AR payment tracking via recordPaymentTransaction + allocateArPaymentTx
  *  9. Return SubmitOrderResult (order snapshot + voucher + effects + warnings)
  *
- * @param params.tenantId      Tenant organisation ID — all DB calls scoped to this tenant.
- * @param params.userId        Authenticated user ID — written to audit and created_by fields.
- * @param params.userName      Display name for audit trail (falls back to 'User' at call site).
- * @param params.branchId      Resolved branch UUID (from resolveOrderBranch); may be undefined.
- * @param params.input         Validated SubmitOrderRequest — idempotencyKey is guaranteed non-empty.
- * @param params.requestAudit  IP and user-agent captured at the route boundary for stock deduction audit.
+ * @param params Submission context containing tenant scope, actor identity, input payload, and request audit data.
  * @returns SubmitOrderResult containing order snapshot, optional voucher summary,
  *          linked BVM effects, and non-fatal warnings (e.g. GATEWAY_PAYMENT_PROCESSING).
  * @throws Error('AMOUNT_MISMATCH')               — server totals differ from client totals.
@@ -374,50 +389,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // ── 3. Resolve payment method config + build + validate settlement plan ─────────
   // Must happen BEFORE tx1 so infrastructure errors (drawer closed, gateway missing,
   // payment method not configured) abort before any DB writes are committed.
-  type RawMethodRow = {
-    id: string;
-    payment_method_code: string;
-    payment_nature: string;
-    gateway_code: string | null;
-    display_name: string;
-    display_name2: string | null;
-    settlement_type_code: string | null;
-    credit_application_type: string | null;
-    requires_cash_drawer: boolean;
-    requires_terminal: boolean;
-    min_amount: Decimal | null;
-    max_amount: Decimal | null;
-    min_order_amount: Decimal | null;
-    max_order_amount: Decimal | null;
-    is_platform_disabled: boolean;
-    eff_default_creation_status: string;
-    eff_allow_status_override: boolean;
-    eff_requires_reference: boolean;
-    eff_is_user_id_required: boolean;
-    allowed_in_pos: boolean;
-  };
-
   const methodCodes = [...new Set(paymentLegs.map((l) => l.method))];
-  const methodRows = await withTenantContext(tenantId, () =>
-    prisma.$queryRaw<RawMethodRow[]>`
-      SELECT
-        o.id, o.payment_method_code, o.payment_nature, o.gateway_code,
-        o.display_name, o.display_name2, o.settlement_type_code, o.credit_application_type,
-        o.requires_cash_drawer, o.requires_terminal,
-        o.min_amount, o.max_amount, o.min_order_amount, o.max_order_amount,
-        o.is_platform_disabled, o.allowed_in_pos,
-        COALESCE(o.default_creation_status, s.default_creation_status) AS eff_default_creation_status,
-        COALESCE(o.allow_status_override,   s.allow_status_override)   AS eff_allow_status_override,
-        COALESCE(o.requires_reference,      s.requires_reference)      AS eff_requires_reference,
-        COALESCE(o.is_user_id_required,     s.is_user_id_required)     AS eff_is_user_id_required
-      FROM org_payment_methods_cf o
-      JOIN sys_payment_method_cd s ON s.payment_method_code = o.payment_method_code
-      WHERE o.tenant_org_id = ${tenantId}::uuid
-        AND o.payment_method_code = ANY(${methodCodes}::text[])
-        AND o.is_active  = true
-        AND o.rec_status = 1
-    `
-  );
+  const methodRows = await listEffectivePaymentMethodConfigs({
+    tenantId,
+    branchId,
+    methodCodes,
+  });
 
   const settlementLegs: ResolvedSettlementLeg[] = paymentLegs.map((leg) => {
     const row = methodRows.find((r) => r.payment_method_code === leg.method);
@@ -434,16 +411,16 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       creditApplicationType: row.credit_application_type as SettlementOption['creditApplicationType'],
       requiresCashDrawer:    row.requires_cash_drawer,
       requiresTerminal:      row.requires_terminal,
-      minAmount:             row.min_amount != null ? toNum(row.min_amount) : null,
-      maxAmount:             row.max_amount != null ? toNum(row.max_amount) : null,
-      minOrderAmount:        row.min_order_amount != null ? toNum(row.min_order_amount) : null,
-      maxOrderAmount:        row.max_order_amount != null ? toNum(row.max_order_amount) : null,
+      minAmount:             row.min_amount,
+      maxAmount:             row.max_amount,
+      minOrderAmount:        row.min_order_amount,
+      maxOrderAmount:        row.max_order_amount,
       isPlatformDisabled:    row.is_platform_disabled,
-      isGloballyDisabled:    false,
-      defaultCreationStatus: row.eff_default_creation_status ?? 'PENDING',
-      allowStatusOverride:   row.eff_allow_status_override ?? false,
-      requiresReference:     row.eff_requires_reference ?? false,
-      isUserIdRequired:      row.eff_is_user_id_required ?? false,
+      isGloballyDisabled:    row.is_globally_disabled,
+      defaultCreationStatus: row.default_creation_status ?? 'PENDING',
+      allowStatusOverride:   row.allow_status_override ?? false,
+      requiresReference:     row.requires_reference ?? false,
+      isUserIdRequired:      row.is_user_id_required ?? false,
       allowedInPos:          row.allowed_in_pos ?? true,
     };
 

@@ -341,7 +341,7 @@ Current
 Permissions:
 
 ```text
-ar:invoices:view
+invoices:read
 ar:invoices:create
 ar:invoices:update
 ar:invoices:issue

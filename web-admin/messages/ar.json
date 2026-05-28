@@ -4597,7 +4597,15 @@
       "grandTotal": "الإجمالي الكلي",
       "savings": "وفّر",
       "haveCoupon": "لديك قسيمة؟",
+      "paymentNotesDialogTitle": "تحرير ملاحظات الدفع",
+      "coupons": {
+        "title": "هل لديك قسيمة - بطاقة هدية أو كود ترويجي؟"
+      },
       "promoOrGiftCard": "كود خصم أو بطاقة هدية",
+      "customerCard": {
+        "walkInCustomer": "العميل",
+        "noReference": "مرجع العميل غير متوفر"
+      },
       "methods": {
         "title": "اختر طريقة الدفع",
         "cash": "نقداً",
@@ -4611,7 +4619,20 @@
         "paytabs": "باي تابز",
         "stripe": "سترايب",
         "touchHintImmediate": "تسوية فورية",
-        "touchHintCashDrawer": "درج نقد / تحصيل فوري"
+        "touchHintCashDrawer": "درج نقد / تحصيل فوري",
+        "noMethods": "لا توجد طرق دفع فعلية مهيأة لنقطة البيع.",
+        "defaultBadge": "افتراضي"
+      },
+      "customerCredits": {
+        "title": "أرصدة العميل",
+        "wallet": "المحفظة",
+        "customerAdvance": "دفعة مقدمة للعميل",
+        "customerCredit": "رصيد عميل",
+        "loyaltyCredit": "رصيد الولاء",
+        "available": "المتاح: {amount}",
+        "applied": "يمكن تعديل هذا الرصيد من محرر المبلغ ولوحة الأرقام.",
+        "empty": "لا توجد أرصدة متاحة لهذا العميل.",
+        "referenceSelectionHint": "هذا الرصيد يحتاج إلى اختيار المصدر المحدد قبل تطبيقه."
       },
       "checkNumber": {
         "label": "رقم الشيك",
@@ -4778,6 +4799,7 @@
         "totalSavings": "إجمالي التوفير",
         "amountDue": "المبلغ المستحق",
         "paidAmount": "المبلغ المدفوع",
+        "settledNow": "المسوّى الآن",
         "remainingBalance": "الرصيد المتبقي",
         "rulesDiscount": "خصم القواعد",
         "settlementSection": "التسوية",
@@ -4795,8 +4817,13 @@
         "noImmediateTitle": "لا يوجد مبلغ للتحصيل الآن",
         "noImmediateDescription": "سيتم إرسال هذا الطلب بالكامل كتسوية مؤجلة باستخدام سياسة الرصيد المتبقي المحددة.",
         "editingAmount": "تعديل المبلغ",
+        "forMethod": "لـ",
         "keypadHint": "استخدم لوحة الأرقام للإدخال السريع باللمس، أو اكتب المبلغ مباشرة.",
-        "addSplitHint": "اختر طريقة دفع فورية لبدء تحصيل المبلغ."
+        "addSplitHint": "اختر طريقة دفع فورية لبدء تحصيل المبلغ.",
+        "enter": "إدخال"
+      },
+      "security": {
+        "cardPayment": "الدفع بالبطاقة آمن. البيانات مشفرة ومتوافقة مع PCI."
       },
       "remainder": {
         "title": "سياسة الرصيد المتبقي",
@@ -4864,6 +4891,8 @@
       },
       "tax": {
         "panelTitle": "ضريبة إضافية",
+        "listTitle": "قائمة الضرائب",
+        "rate": "النسبة",
         "noProfiles": "لا توجد ملفات ضريبية افتراضية",
         "totalTax": "إجمالي الضريبة"
       },
@@ -4886,6 +4915,7 @@
         "gatewayTransactionId": "معرف المعاملة",
         "gatewayReference": "مرجع البوابة",
         "currentLeg": "تفاصيل القسط الحالي",
+        "switchLeg": "تبديل القسط",
         "outstanding": "المتبقي",
         "allocated": "تم التوزيع الكامل",
         "over": "تجاوز المبلغ",

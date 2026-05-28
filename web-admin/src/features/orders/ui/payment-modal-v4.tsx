@@ -13,7 +13,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
   Tag, Loader2, ChevronDown, ChevronUp,
-  Eye, EyeOff, Trash2,
+  Eye, EyeOff, Maximize2, Trash2, Wallet, UserRound,
+  ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -42,7 +43,6 @@ import {
   deriveOutstandingPolicy,
   formatDecimalDraft,
   parseDecimalDraft,
-  sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
   type PaymentKeypadKey,
@@ -53,6 +53,7 @@ import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialog
 import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primitives/cmx-card';
 import { CmxButton, CmxCheckbox } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
+import { CmxMoneyField } from '@ui/primitives';
 import { CmxTextarea } from '@ui/primitives';
 import { CmxSwitch } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
@@ -136,13 +137,15 @@ function B2BContractsSelect({
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
-type CheckoutMethodOption = {
+type CheckoutSettlementOption = {
   id: string;
   payment_method_code: string;
   payment_nature: string;
   gateway_code: string | null;
   display_name: string;
   display_name2: string | null;
+  description: string | null;
+  description2: string | null;
   requires_cash_drawer: boolean;
   requires_terminal: boolean;
   requires_reference: boolean;
@@ -150,7 +153,15 @@ type CheckoutMethodOption = {
   allowed_for_pay_now?: boolean | null;
   allowed_for_pay_on_collection?: boolean | null;
   allowed_for_invoice_payment?: boolean | null;
+  credit_application_type?: string | null;
+  available_balance?: number | null;
+  requires_credit_reference_selection?: boolean;
   display_order?: number | null;
+};
+
+type CheckoutOptionsResponse = {
+  paymentMethods: CheckoutSettlementOption[];
+  customerCredits: CheckoutSettlementOption[];
 };
 
 interface PaymentModalProps {
@@ -163,6 +174,8 @@ interface PaymentModalProps {
   tenantOrgId: string;
   customerId?: string;
   customerType?: string;
+  customerDisplayName?: string;
+  customerPhone?: string;
   serviceCategories?: string[];
   branchId?: string;
   userId?: string;
@@ -214,6 +227,8 @@ export function PaymentModalV4({
   tenantOrgId,
   customerId,
   customerType,
+  customerDisplayName,
+  customerPhone,
   serviceCategories,
   branchId,
   userId,
@@ -315,8 +330,9 @@ export function PaymentModalV4({
   const [amountDiscountDraft, setAmountDiscountDraft] = useState('');
 
   // Collapsible panel state
-  const [couponOpen, setCouponOpen]     = useState(true);
+  const [couponOpen, setCouponOpen]     = useState(false);
   const [taxPanelOpen, setTaxPanelOpen] = useState(true);
+  const [paymentNotesDialogOpen, setPaymentNotesDialogOpen] = useState(false);
 
   // Tax state
   const [taxRate, setTaxRate] = useState<number>(0.06);
@@ -324,21 +340,12 @@ export function PaymentModalV4({
   type TaxProfileEntry = { id: string; name: string; name2: string | null; tax_type: string; rate: number; enabled: boolean };
   const [taxProfileEntries, setTaxProfileEntries] = useState<TaxProfileEntry[]>([]);
 
-  const isImmediatePayment =
-    paymentMethod === PAYMENT_METHODS.CASH ||
-    paymentMethod === PAYMENT_METHODS.CARD ||
-    paymentMethod === PAYMENT_METHODS.CHECK ||
-    paymentMethod === PAYMENT_METHODS.BANK_TRANSFER ||
-    paymentMethod === PAYMENT_METHODS.MOBILE_PAYMENT;
-
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
   const [activeLegIndex, setActiveLegIndex] = useState(0);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
-  const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([
-    { method: PAYMENT_METHODS.CASH as PaymentMethodCode, amount: 0 },
-  ]);
+  const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
 
   const [serverTotals, setServerTotals] = useState<{
     subtotal: number;
@@ -362,6 +369,8 @@ export function PaymentModalV4({
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
 
@@ -378,24 +387,28 @@ export function PaymentModalV4({
       const json = await res.json();
       return ((json.data ?? []) as OrgCardBrandConfig[]).filter((b) => b.is_active);
     },
-    enabled: open && isImmediatePayment,
+    enabled: open,
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: checkoutMethods = [], isLoading: checkoutMethodsLoading } = useQuery<CheckoutMethodOption[]>({
-    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', total],
+  const { data: checkoutOptions, isLoading: checkoutMethodsLoading } = useQuery<CheckoutOptionsResponse>({
+    queryKey: ['checkout-options', tenantOrgId, branchId ?? '', customerId ?? '', total],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (branchId) params.set('branchId', branchId);
+      if (customerId) params.set('customerId', customerId);
       params.set('amount', String(total));
       const res = await fetch(`/api/v1/orders/checkout-options?${params.toString()}`);
-      if (!res.ok) return [];
+      if (!res.ok) return { paymentMethods: [], customerCredits: [] };
       const json = await res.json();
-      return (json.data ?? []) as CheckoutMethodOption[];
+      return (json.data ?? { paymentMethods: [], customerCredits: [] }) as CheckoutOptionsResponse;
     },
     enabled: open,
     staleTime: 60_000,
   });
+
+  const checkoutMethods = checkoutOptions?.paymentMethods ?? [];
+  const customerCreditOptions = checkoutOptions?.customerCredits ?? [];
 
   // Load tax rate, currency, and default tax profiles on open
   useEffect(() => {
@@ -440,6 +453,14 @@ export function PaymentModalV4({
       setValue('giftCardId', '');
     }
   }, [giftCardNumber, giftCardDetails, appliedGiftCard, setValue]);
+
+  useEffect(() => {
+    if (!open || !pinRequired) return;
+    window.setTimeout(() => {
+      pinInputRef.current?.focus();
+      pinInputRef.current?.select();
+    }, 60);
+  }, [open, pinRequired]);
 
   // Preview-payment fetch (debounced 300ms)
   const fetchPreview = useCallback(async () => {
@@ -549,16 +570,16 @@ export function PaymentModalV4({
       setPinRequired(false);
       setPinVisible(false);
       setPinFieldError(null);
-      setCouponOpen(true);
+      setCouponOpen(false);
       setTaxPanelOpen(true);
+      setPaymentNotesDialogOpen(false);
       setCreditLimitOverride(false);
       setActiveLegIndex(0);
       setAmountDiscountFocused(false);
       setAmountDiscountDraft('');
       setIsDirtySinceOpen(false);
       setConfirmCloseOpen(false);
-      const initialMethod = (isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION) as PaymentMethodCode;
-      setPaymentLegs([{ method: initialMethod, amount: 0 }]);
+      setPaymentLegs([]);
       setTaxProfileEntries([]);
     }
   }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
@@ -632,11 +653,6 @@ export function PaymentModalV4({
     };
   }, [serverTotals, total, percentDiscount, amountDiscount, appliedPromoCode, appliedGiftCard, taxRate, profilesTaxAmount, decimalPlaces]);
 
-  const legSum = useMemo(
-    () => paymentLegs.reduce((s, l) => s + (l.amount || 0), 0),
-    [paymentLegs]
-  );
-
   const IMMEDIATE_METHOD_CODES = [
     PAYMENT_METHODS.CASH,
     PAYMENT_METHODS.CARD,
@@ -653,74 +669,163 @@ export function PaymentModalV4({
     PAYMENT_METHODS.PAYTABS,
     PAYMENT_METHODS.STRIPE,
   ];
-
-  const fallbackMethodCodes = useMemo(
-    () => [
-      PAYMENT_METHODS.PAY_ON_COLLECTION,
-      PAYMENT_METHODS.CASH,
-      PAYMENT_METHODS.CARD,
-      PAYMENT_METHODS.CHECK,
-      PAYMENT_METHODS.BANK_TRANSFER,
-      PAYMENT_METHODS.MOBILE_PAYMENT,
-      PAYMENT_METHODS.INVOICE,
-    ],
-    []
+  const realPaymentOptions = useMemo(
+    () =>
+      checkoutMethods
+        .filter((method) => method.payment_nature === 'REAL_PAYMENT' && method.allowed_in_pos)
+        .filter((method) => !isRetailOnlyOrder || method.payment_method_code !== PAYMENT_METHODS.INVOICE)
+        .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)),
+    [checkoutMethods, isRetailOnlyOrder]
   );
 
-  const visibleMethodCodes = useMemo(() => {
-    const codes = checkoutMethods.length === 0
-      ? fallbackMethodCodes
-      : checkoutMethods.map((method) => method.payment_method_code as PaymentMethodCode);
+  const creditMethodCodes = useMemo(
+    () => customerCreditOptions.map((option) => option.payment_method_code),
+    [customerCreditOptions]
+  );
 
-    return codes.filter((code) => {
-      if (!isRetailOnlyOrder) return true;
-      return code !== PAYMENT_METHODS.PAY_ON_COLLECTION && code !== PAYMENT_METHODS.INVOICE;
+  const optionByMethodKey = useMemo(() => {
+    const allOptions = [...realPaymentOptions, ...customerCreditOptions];
+    return new Map(
+      allOptions.map((option) => [`${option.payment_method_code}::${option.gateway_code ?? ''}`, option])
+    );
+  }, [customerCreditOptions, realPaymentOptions]);
+
+  const getMethodOption = useCallback(
+    (methodCode: string, gatewayCode?: string | null) =>
+      optionByMethodKey.get(`${methodCode}::${gatewayCode ?? ''}`) ??
+      optionByMethodKey.get(`${methodCode}::`),
+    [optionByMethodKey]
+  );
+
+  const getOptionDisplayName = (option: CheckoutSettlementOption | undefined, fallbackMethodCode?: string) => {
+    if (option) {
+      return isRTL ? (option.display_name2 || option.display_name) : option.display_name;
+    }
+    return fallbackMethodCode ? getPaymentLabel(fallbackMethodCode) : '';
+  };
+
+  const getMethodHint = (option: CheckoutSettlementOption) => {
+    const description = isRTL ? (option.description2 || option.description) : (option.description || option.description2);
+    return description
+      ? `${option.payment_method_code} • ${description}`
+      : option.payment_method_code;
+  };
+
+  const focusAmountEditor = useCallback(() => {
+    window.setTimeout(() => {
+      amountInputRef.current?.focus();
+      amountInputRef.current?.select();
+    }, 50);
+  }, []);
+
+  const removeLegAt = useCallback((idx: number) => {
+    setIsDirtySinceOpen(true);
+    setPaymentLegs((prev) => {
+      const next = prev.filter((_, currentIdx) => currentIdx !== idx);
+      return next;
     });
-  }, [checkoutMethods, fallbackMethodCodes, isRetailOnlyOrder]);
-
-  // Method button handler — deferred methods clear legs; immediate methods ADD a new leg
-  // pre-filled with the remaining outstanding amount (or update the first zero-amount placeholder).
-  const handleMethodSelect = useCallback(
-    (code: PaymentMethodCode) => {
-      setIsDirtySinceOpen(true);
-      setValue('paymentMethod', code);
-      const isImmediate = (IMMEDIATE_METHOD_CODES as readonly string[]).includes(code);
-      if (!isImmediate) {
-        setValue(
-          'outstandingPolicy',
-          code === PAYMENT_METHODS.INVOICE ? 'CREDIT_INVOICE' : 'PAY_ON_COLLECTION',
-          { shouldDirty: true }
-        );
-        setPaymentLegs([{ method: code, amount: 0 }]);
-        setActiveLegIndex(0);
-        return;
-      }
-      setPaymentLegs((prev) => {
-        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
-          // First leg placeholder — fill it with the full outstanding amount
-          return [{ ...prev[0], method: code, amount: totals.finalTotal }];
-        }
-        const currentSum = prev.reduce((s, l) => s + (l.amount || 0), 0);
-        const remaining = parseFloat(
-          Math.max(0, totals.finalTotal - currentSum).toFixed(decimalPlaces)
-        );
-        return [...prev, { method: code, amount: remaining }];
-      });
-      setActiveLegIndex((prev) => Math.max(prev, paymentLegs.length === 0 ? 0 : paymentLegs.length));
-      // Scroll to the payment legs section
-      setTimeout(() => legsCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
-    },
-    [setValue, totals.finalTotal, decimalPlaces, IMMEDIATE_METHOD_CODES, paymentLegs.length]
-  );
+    setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
+  }, []);
 
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
     setIsDirtySinceOpen(true);
     setPaymentLegs((prev) => {
+      const target = prev[idx];
+      if (!target) return prev;
+      if (key === 'amount' && (!value || Number(value) <= 0)) {
+        return prev.filter((_, currentIdx) => currentIdx !== idx);
+      }
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [key]: value };
       return updated;
     });
+    if (key === 'amount' && (!value || Number(value) <= 0)) {
+      setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
+    }
   }, []);
+
+  const upsertSettlementLeg = useCallback(
+    (option: CheckoutSettlementOption, defaultAmount: number) => {
+      const nextAmount = Number.parseFloat(
+        Math.max(0, Math.min(totals.finalTotal, defaultAmount)).toFixed(decimalPlaces)
+      );
+      setIsDirtySinceOpen(true);
+      setPaymentLegs((prev) => {
+        const existingIndex = prev.findIndex(
+          (leg) =>
+            leg.method === option.payment_method_code &&
+            (leg.gateway_code ?? '') === (option.gateway_code ?? '')
+        );
+        const nextLeg: PaymentLeg = {
+          method: option.payment_method_code as PaymentLeg['method'],
+          amount: nextAmount,
+          ...(GATEWAY_METHOD_CODES.includes(option.payment_method_code)
+            ? { gateway_code: option.gateway_code ?? undefined }
+            : {}),
+        };
+
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...updated[existingIndex],
+            ...nextLeg,
+            amount: updated[existingIndex].amount > 0 ? updated[existingIndex].amount : nextAmount,
+          };
+          setActiveLegIndex(existingIndex);
+          return updated;
+        }
+
+        if (prev.length === 1 && (prev[0].amount ?? 0) === 0) {
+          setActiveLegIndex(0);
+          return [{ ...prev[0], ...nextLeg }];
+        }
+
+        setActiveLegIndex(prev.length);
+        return [...prev, nextLeg];
+      });
+      focusAmountEditor();
+    },
+    [GATEWAY_METHOD_CODES, decimalPlaces, focusAmountEditor, totals.finalTotal]
+  );
+
+  const handleMethodSelect = useCallback(
+    (option: CheckoutSettlementOption) => {
+      setValue('paymentMethod', option.payment_method_code as PaymentMethodCode, { shouldDirty: true });
+      const alreadyApplied = paymentLegs.some(
+        (leg) =>
+          leg.method === option.payment_method_code &&
+          (leg.gateway_code ?? '') === (option.gateway_code ?? '')
+      );
+      const currentSettled = paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
+      const suggestedAmount = alreadyApplied
+        ? getMethodOption(option.payment_method_code, option.gateway_code)
+          ? paymentLegs.find(
+              (leg) =>
+                leg.method === option.payment_method_code &&
+                (leg.gateway_code ?? '') === (option.gateway_code ?? '')
+            )?.amount ?? 0
+          : 0
+        : Math.max(0, totals.finalTotal - currentSettled);
+      upsertSettlementLeg(option, suggestedAmount);
+    },
+    [getMethodOption, paymentLegs, setValue, totals.finalTotal, upsertSettlementLeg]
+  );
+
+  const handleCustomerCreditSelect = useCallback(
+    (option: CheckoutSettlementOption) => {
+      if (option.requires_credit_reference_selection) {
+        cmxMessage.info(t('customerCredits.referenceSelectionHint'));
+        return;
+      }
+      const currentSettled = paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
+      const suggestedAmount = Math.min(
+        option.available_balance ?? 0,
+        Math.max(0, totals.finalTotal - currentSettled)
+      );
+      upsertSettlementLeg(option, suggestedAmount);
+    },
+    [paymentLegs, t, totals.finalTotal, upsertSettlementLeg]
+  );
 
   const sanitizeAmountDiscountDraft = useCallback(
     (raw: string): string => {
@@ -739,14 +844,44 @@ export function PaymentModalV4({
     [decimalPlaces]
   );
 
-  // Derived totals — declared once here so `submitButtonLabel` (just below)
-  // and the JSX render block (further down) reference the same values without
-  // duplicate-and-drift, and without `const`/`let` use-before-declaration.
-  const immediateLegs = paymentLegs.filter((leg) =>
-    (IMMEDIATE_METHOD_CODES as readonly string[]).includes(leg.method)
+  const settlementLegEntries = useMemo(
+    () =>
+      paymentLegs
+        .map((leg, index) => ({ leg, index }))
+        .filter(({ leg }) => (leg.amount ?? 0) > 0),
+    [paymentLegs]
   );
-  const payNowAmount = immediateLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
-  const remainingBalance = Math.max(0, totals.finalTotal - payNowAmount);
+
+  const realPaymentEntries = useMemo(
+    () =>
+      settlementLegEntries.filter(({ leg }) =>
+        (IMMEDIATE_METHOD_CODES as readonly string[]).includes(leg.method)
+      ),
+    [IMMEDIATE_METHOD_CODES, settlementLegEntries]
+  );
+
+  const customerCreditEntries = useMemo(
+    () => settlementLegEntries.filter(({ leg }) => creditMethodCodes.includes(leg.method)),
+    [creditMethodCodes, settlementLegEntries]
+  );
+
+  const payNowAmount = useMemo(
+    () => realPaymentEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
+    [realPaymentEntries]
+  );
+
+  const customerCreditAmount = useMemo(
+    () => customerCreditEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0),
+    [customerCreditEntries]
+  );
+
+  const settledNowAmount = useMemo(
+    () => payNowAmount + customerCreditAmount,
+    [customerCreditAmount, payNowAmount]
+  );
+
+  const remainingBalance = Math.max(0, totals.finalTotal - settledNowAmount);
+  const changeAmount = Math.max(0, settledNowAmount - totals.finalTotal);
 
   // Promo handlers
   const handleValidatePromoCode = async () => {
@@ -878,7 +1013,7 @@ export function PaymentModalV4({
       giftCardId: appliedGiftCard ? giftCardDetails?.id : undefined,
     } as PaymentFormData;
 
-    for (const leg of immediateLegs) {
+    for (const { leg } of settlementLegEntries) {
       if (!leg.amount || leg.amount <= 0) {
         cmxMessage.error(t('splitPayment.validation.amountMustBePositive'));
         return;
@@ -895,7 +1030,7 @@ export function PaymentModalV4({
     }
 
     const payload = {
-      amountToCharge: payNowAmount,
+      amountToCharge: settledNowAmount,
       totals: {
         subtotal: totals.subtotal,
         manualDiscount: totals.manualDiscount,
@@ -914,7 +1049,9 @@ export function PaymentModalV4({
       }),
       outstandingPolicy: effectiveOutstandingPolicy,
       creditLimitOverride: creditLimitOverride || undefined,
-      ...(immediateLegs.length > 0 && { paymentLegs: immediateLegs }),
+      ...(settlementLegEntries.length > 0 && {
+        paymentLegs: settlementLegEntries.map(({ leg }) => leg),
+      }),
     };
     const parsed = newOrderPaymentPayloadSchema.safeParse(payload);
     if (!parsed.success) {
@@ -922,7 +1059,11 @@ export function PaymentModalV4({
       cmxMessage.error(first ? `${first.path.join('.')}: ${first.message}` : t('errors.invalidAmount'));
       return;
     }
-    if (isImmediatePayment && payNowAmount <= 0 && !showDeferredExplanation) {
+    if (
+      paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
+      paymentMethod !== PAYMENT_METHODS.INVOICE &&
+      settledNowAmount <= 0
+    ) {
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
@@ -943,6 +1084,10 @@ export function PaymentModalV4({
       case PAYMENT_METHODS.HYPERPAY:          return <CreditCard className={cls} />;
       case PAYMENT_METHODS.PAYTABS:           return <CreditCard className={cls} />;
       case PAYMENT_METHODS.STRIPE:            return <CreditCard className={cls} />;
+      case 'WALLET':                          return <Wallet className={cls} />;
+      case 'CUSTOMER_ADVANCE':                return <Wallet className={cls} />;
+      case 'CUSTOMER_CREDIT':                 return <Wallet className={cls} />;
+      case 'LOYALTY_CREDIT':                  return <Wallet className={cls} />;
       default:                                return <Banknote className={cls} />;
     }
   };
@@ -959,7 +1104,56 @@ export function PaymentModalV4({
       case PAYMENT_METHODS.HYPERPAY:          return t('methods.hyperpay');
       case PAYMENT_METHODS.PAYTABS:           return t('methods.paytabs');
       case PAYMENT_METHODS.STRIPE:            return t('methods.stripe');
+      case 'WALLET':                          return t('customerCredits.wallet');
+      case 'CUSTOMER_ADVANCE':                return t('customerCredits.customerAdvance');
+      case 'CUSTOMER_CREDIT':                 return t('customerCredits.customerCredit');
+      case 'LOYALTY_CREDIT':                  return t('customerCredits.loyaltyCredit');
       default:                                return id;
+    }
+  };
+
+  const getMethodToneClasses = (id: string) => {
+    switch (id) {
+      case PAYMENT_METHODS.PAY_ON_COLLECTION:
+        return {
+          iconWrap: 'bg-teal-100 text-teal-700 border-teal-200',
+          selected: 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.CASH:
+        return {
+          iconWrap: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+          selected: 'border-emerald-500 bg-gradient-to-r from-emerald-50 to-white text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.CARD:
+        return {
+          iconWrap: 'bg-blue-100 text-blue-700 border-blue-200',
+          selected: 'border-sky-500 bg-gradient-to-r from-sky-50 to-cyan-50 text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.CHECK:
+        return {
+          iconWrap: 'bg-amber-100 text-amber-700 border-amber-200',
+          selected: 'border-amber-500 bg-gradient-to-r from-amber-50 to-white text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.BANK_TRANSFER:
+        return {
+          iconWrap: 'bg-indigo-100 text-indigo-700 border-indigo-200',
+          selected: 'border-indigo-500 bg-gradient-to-r from-indigo-50 to-white text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.MOBILE_PAYMENT:
+        return {
+          iconWrap: 'bg-violet-100 text-violet-700 border-violet-200',
+          selected: 'border-violet-500 bg-gradient-to-r from-violet-50 to-white text-slate-900 shadow-sm',
+        };
+      case PAYMENT_METHODS.INVOICE:
+        return {
+          iconWrap: 'bg-cyan-100 text-cyan-700 border-cyan-200',
+          selected: 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm',
+        };
+      default:
+        return {
+          iconWrap: 'bg-slate-100 text-slate-700 border-slate-200',
+          selected: 'border-slate-400 bg-gradient-to-r from-slate-50 to-white text-slate-900 shadow-sm',
+        };
     }
   };
 
@@ -969,16 +1163,35 @@ export function PaymentModalV4({
 
   const appliedBadgeCount = (appliedPromoCode ? 1 : 0) + (appliedGiftCard ? 1 : 0);
   const activeLeg = paymentLegs[activeLegIndex] ?? null;
-  // immediateLegs / payNowAmount / remainingBalance are declared above (near
-  // submitButtonLabel) to fix use-before-declaration. Do not redeclare here.
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
-    payNowAmount,
+    settledNowAmount,
     totals.finalTotal,
     (outstandingPolicy as OutstandingPolicy | undefined) ?? 'PAY_ON_COLLECTION'
   );
-  const isDeferredOnlySelection =
-    paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE;
-  const showDeferredExplanation = isDeferredOnlySelection && payNowAmount <= 0;
+  const showDeferredExplanation =
+    settlementLegEntries.length === 0 &&
+    (paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE);
+  const activeLegOption = activeLeg
+    ? getMethodOption(activeLeg.method, activeLeg.gateway_code)
+    : undefined;
+  const summaryMethodLabel = activeLeg
+    ? getOptionDisplayName(activeLegOption, activeLeg.method)
+    : getPaymentLabel(paymentMethod || PAYMENT_METHODS.PAY_ON_COLLECTION);
+  const paymentLegsTotal = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
+  const customerHeaderName = customerDisplayName?.trim() || t('customerCard.walkInCustomer');
+  const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
+
+  const cycleActiveLeg = useCallback(() => {
+    if (settlementLegEntries.length <= 1) return;
+    setActiveLegIndex((prev) => {
+      const currentPosition = settlementLegEntries.findIndex((entry) => entry.index === prev);
+      const nextPosition = currentPosition >= 0
+        ? (currentPosition + 1) % settlementLegEntries.length
+        : 0;
+      return settlementLegEntries[nextPosition]?.index ?? prev;
+    });
+    focusAmountEditor();
+  }, [focusAmountEditor, settlementLegEntries]);
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -986,7 +1199,7 @@ export function PaymentModalV4({
       return t('actions.submitWithUnpaid', {
         submit: t('actions.submit'),
         currency: currencyCode,
-        payNow: formatAmount(payNowAmount),
+        payNow: formatAmount(settledNowAmount),
         unpaid: t('summary.notPaidBalance'),
         remaining: formatAmount(remainingBalance),
       });
@@ -994,9 +1207,9 @@ export function PaymentModalV4({
     return t('actions.submitChargeOnly', {
       submit: t('actions.submit'),
       currency: currencyCode,
-      amount: formatAmount(payNowAmount > 0 ? payNowAmount : totals.finalTotal),
+      amount: formatAmount(settledNowAmount > 0 ? settledNowAmount : totals.finalTotal),
     });
-  }, [t, currencyCode, decimalPlaces, remainingBalance, payNowAmount, totals.finalTotal]);
+  }, [t, currencyCode, decimalPlaces, remainingBalance, settledNowAmount, totals.finalTotal]);
 
   const handleOutstandingPolicyChange = useCallback((policy: OutstandingPolicy) => {
     setIsDirtySinceOpen(true);
@@ -1012,7 +1225,7 @@ export function PaymentModalV4({
   }, [paymentMethod, setValue]);
 
   const handleKeypadPress = useCallback((key: PaymentKeypadKey) => {
-    if (!activeLeg || !isImmediatePayment) return;
+    if (!activeLeg) return;
     const nextDraft = applyKeypadInput(
       formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces),
       key,
@@ -1020,7 +1233,7 @@ export function PaymentModalV4({
     );
     const nextAmount = parseDecimalDraft(nextDraft);
     updateLeg(activeLegIndex, 'amount', Math.max(0, Math.min(totals.finalTotal, nextAmount)));
-  }, [activeLeg, activeLegIndex, decimalPlaces, isImmediatePayment, totals.finalTotal, updateLeg]);
+  }, [activeLeg, activeLegIndex, decimalPlaces, totals.finalTotal, updateLeg]);
 
   const closeWithGuard = useCallback(() => {
     if (!isDirtySinceOpen) {
@@ -1039,7 +1252,7 @@ export function PaymentModalV4({
     <>
       <CmxDialog open={open} onOpenChange={(nextOpen) => !nextOpen && closeWithGuard()}>
         <CmxDialogContent
-          className="mx-4 h-[92vh] w-[calc(100vw-2rem)] max-w-[1380px] overflow-hidden rounded-2xl p-0"
+          className="mx-4 h-[92vh] w-[calc(100vw-2rem)] max-w-[1500px] overflow-hidden rounded-[28px] border border-slate-200/80 p-0 shadow-2xl"
           bodyPadding="none"
         >
           <div
@@ -1061,9 +1274,13 @@ export function PaymentModalV4({
               <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
               <div className="grid min-h-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
                 <div className="space-y-4">
-                  <CmxCard className="h-full">
-                    <CmxCardHeader className="pb-3">
-                      <CmxCardTitle className="text-sm">{t('methods.title')}</CmxCardTitle>
+                  <div ref={methodsAnchorRef}>
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-3">
+                      <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        {t('methods.title')}
+                        <Info className="h-3.5 w-3.5 text-slate-400" />
+                      </CmxCardTitle>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3">
                       {checkoutMethodsLoading ? (
@@ -1072,30 +1289,96 @@ export function PaymentModalV4({
                           <CmxSkeleton className="h-14 w-full" />
                           <CmxSkeleton className="h-14 w-full" />
                         </div>
+                      ) : realPaymentOptions.length === 0 ? (
+                        <p className="text-xs text-slate-500">{t('methods.noMethods')}</p>
                       ) : (
-                        visibleMethodCodes.map((code) => {
-                          const option = checkoutMethods.find((item) => item.payment_method_code === code);
-                          const selected = paymentMethod === code;
-                          const isDeferred = code === PAYMENT_METHODS.PAY_ON_COLLECTION || code === PAYMENT_METHODS.INVOICE;
+                        realPaymentOptions.map((option) => {
+                          const optionLabel = getOptionDisplayName(option, option.payment_method_code);
+                          const methodKey = `${option.payment_method_code}::${option.gateway_code ?? ''}`;
+                          const selected = !!paymentLegs.find(
+                            (leg) =>
+                              `${leg.method}::${leg.gateway_code ?? ''}` === methodKey
+                          );
+                          const tone = getMethodToneClasses(option.payment_method_code);
+                          const description = isRTL
+                            ? (option.description2 || option.description)
+                            : (option.description || option.description2);
                           return (
                             <CmxButton
-                              key={code}
+                              key={methodKey}
                               type="button"
-                              variant={selected ? 'primary' : 'outline'}
+                              variant="outline"
                               size="lg"
-                              onClick={() => handleMethodSelect(code)}
-                              className={`h-auto w-full justify-start rounded-2xl px-4 py-4 ${selected ? '' : 'bg-white'} ${isRTL ? 'flex-row-reverse' : ''}`}
+                              onClick={() => handleMethodSelect(option)}
+                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? tone.selected : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${isRTL ? 'flex-row-reverse' : ''}`}
                             >
                               <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
-                                <span className="mt-0.5">{getPaymentIcon(code)}</span>
+                                <span className={`mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border ${tone.iconWrap}`}>
+                                  {getPaymentIcon(option.payment_method_code)}
+                                </span>
                                 <span className="flex min-w-0 flex-1 flex-col">
-                                  <span className="text-sm font-semibold">{getPaymentLabel(code)}</span>
-                                  <span className={`text-xs ${selected ? 'text-white/90' : 'text-slate-500'}`}>
-                                    {isDeferred
-                                      ? (t('remainder.deferredHint') || 'Deferred settlement')
-                                      : option?.requires_cash_drawer
-                                        ? (t('methods.touchHintCashDrawer') || 'Cash drawer / immediate collection')
-                                        : (t('methods.touchHintImmediate') || 'Immediate settlement')}
+                                  <span className="flex items-start justify-between gap-2">
+                                    <span className="text-[15px] font-semibold leading-5 text-slate-900">{optionLabel}</span>
+                                    {option.payment_method_code === PAYMENT_METHODS.PAY_ON_COLLECTION && (
+                                      <Badge variant="secondary" className="rounded-full bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                                        {t('methods.defaultBadge')}
+                                      </Badge>
+                                    )}
+                                  </span>
+                                  <span className="mt-1 text-sm text-slate-600">
+                                    {description || (option.requires_cash_drawer
+                                      ? (t('methods.touchHintCashDrawer') || 'Cash drawer / immediate collection')
+                                      : (t('methods.touchHintImmediate') || 'Immediate settlement'))}
+                                  </span>
+                                  <span className="mt-1 text-xs font-medium text-slate-400">
+                                    {getMethodHint(option)}
+                                  </span>
+                                </span>
+                              </span>
+                            </CmxButton>
+                          );
+                        })
+                      )}
+                    </CmxCardContent>
+                  </CmxCard>
+                  </div>
+
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-2">
+                      <CmxCardTitle className={`text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <Wallet className="h-4 w-4" />
+                        {t('customerCredits.title')}
+                      </CmxCardTitle>
+                    </CmxCardHeader>
+                    <CmxCardContent className="space-y-2">
+                      {customerCreditOptions.length === 0 ? (
+                        <p className="text-xs text-slate-500">{t('customerCredits.empty')}</p>
+                      ) : (
+                        customerCreditOptions.map((option) => {
+                          const optionLabel = getOptionDisplayName(option, option.payment_method_code);
+                          const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
+                          const disabled = option.requires_credit_reference_selection;
+                          return (
+                            <CmxButton
+                              key={option.id}
+                              type="button"
+                              variant="outline"
+                              size="lg"
+                              onClick={() => handleCustomerCreditSelect(option)}
+                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                            >
+                              <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
+                                <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
+                                  <Wallet className="h-5 w-5" />
+                                </span>
+                                <span className="flex min-w-0 flex-1 flex-col">
+                                  <span className="text-sm font-semibold">{optionLabel}</span>
+                                  <span className="mt-1 text-xs font-medium text-slate-500">
+                                    {disabled
+                                      ? t('customerCredits.referenceSelectionHint')
+                                      : t('customerCredits.available', {
+                                          amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
+                                        })}
                                   </span>
                                 </span>
                               </span>
@@ -1106,44 +1389,80 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
 
-                  <CmxCard ref={legsCardRef}>
-                    <CmxCardHeader className="pb-2">
-                      <CmxCardTitle className="text-sm">{t('splitPayment.title')}</CmxCardTitle>
+                  <CmxCard ref={legsCardRef} className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-2">
+                      <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        <CmxCardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                          {t('splitPayment.title')}
+                          {settlementLegEntries.length > 0 && (
+                            <Badge variant="secondary" className="ms-2 rounded-full bg-slate-100 text-slate-600">
+                              {settlementLegEntries.length}
+                            </Badge>
+                          )}
+                        </CmxCardTitle>
+                        {settlementLegEntries.length > 0 && (
+                          <span className="text-xs font-semibold text-cyan-700">
+                            {t('splitPayment.legSum')}: {currencyCode} {formatAmount(paymentLegsTotal)}
+                          </span>
+                        )}
+                      </div>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-2">
-                      {immediateLegs.length === 0 ? (
+                      {settlementLegEntries.length === 0 ? (
                         <p className="text-xs text-slate-500">{t('workspace.addSplitHint') || 'Select an immediate method to start collecting payment.'}</p>
                       ) : (
-                        immediateLegs.map((leg, idx) => (
+                        settlementLegEntries.map(({ leg, index }) => {
+                          const option = getMethodOption(leg.method, leg.gateway_code);
+                          const label = getOptionDisplayName(option, leg.method);
+                          return (
                           <CmxButton
-                            key={`payment-leg-summary-${idx}`}
+                            key={`payment-leg-summary-${index}`}
                             type="button"
                             variant="ghost"
-                            onClick={() => setActiveLegIndex(idx)}
+                            onClick={() => {
+                              setActiveLegIndex(index);
+                              focusAmountEditor();
+                            }}
                             className={`h-auto w-full justify-between rounded-2xl border px-3 py-3 text-sm transition ${
-                              activeLegIndex === idx
-                                ? 'border-cyan-500 bg-cyan-50 text-cyan-900'
+                              activeLegIndex === index
+                                ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-cyan-900 shadow-sm'
                                 : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300'
                             }`}
                           >
                             <span className="flex items-center gap-2">
-                              {getPaymentIcon(leg.method)}
-                              <span className="font-medium">{getPaymentLabel(leg.method)}</span>
+                              <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-bold text-slate-500">
+                                {index + 1}
+                              </span>
+                              <span className={`flex h-8 w-8 items-center justify-center rounded-lg border ${getMethodToneClasses(leg.method).iconWrap}`}>
+                                {getPaymentIcon(leg.method)}
+                              </span>
+                              <span className="font-medium">{label}</span>
                             </span>
-                            <span className="tabular-nums font-semibold">{currencyCode} {formatAmount(leg.amount || 0)}</span>
+                            <span className="flex items-center gap-2">
+                              <span className="tabular-nums font-semibold">{currencyCode} {formatAmount(leg.amount || 0)}</span>
+                              <EllipsisVertical className="h-4 w-4 text-slate-300" />
+                            </span>
                           </CmxButton>
-                        ))
+                        );
+                        })
                       )}
-                      {immediateLegs.length > 1 && activeLegIndex < immediateLegs.length && (
+                      <CmxButton
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          methodsAnchorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                        className="w-full justify-center rounded-2xl border-dashed border-slate-300 bg-white text-slate-600 hover:border-cyan-400 hover:text-cyan-700"
+                      >
+                        <Plus className="me-2 h-4 w-4" />
+                        {t('splitPayment.addMethod')}
+                      </CmxButton>
+                      {activeLeg && (
                         <CmxButton
                           type="button"
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
-                            setIsDirtySinceOpen(true);
-                            setPaymentLegs((prev) => prev.filter((_, idx) => idx !== activeLegIndex));
-                            setActiveLegIndex((prev) => Math.max(0, prev - 1));
-                          }}
+                          onClick={() => removeLegAt(activeLegIndex)}
                           className="w-full justify-center text-red-600"
                         >
                           <Trash2 className="mr-1 h-4 w-4" />
@@ -1155,24 +1474,24 @@ export function PaymentModalV4({
                 </div>
 
                 <div className="space-y-4">
-                  <CmxCard className="border-cyan-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50">
+                  <CmxCard className="border-cyan-100 bg-gradient-to-br from-slate-50 via-white to-cyan-50 shadow-sm">
                     <CmxCardContent className="pt-5">
                       <div className="grid gap-3 md:grid-cols-3">
-                        <div>
+                        <div className="md:border-e md:border-slate-200 md:pe-6">
                           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.remaining') || 'Remaining'}</p>
-                          <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(remainingBalance)}</p>
+                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-amber-600">{currencyCode} {formatAmount(remainingBalance)}</p>
                         </div>
-                        <div>
+                        <div className="md:border-e md:border-slate-200 md:px-6">
                           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.change') || 'Change'}</p>
-                          <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{currencyCode} 0.000</p>
+                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-emerald-600">{currencyCode} {formatAmount(changeAmount)}</p>
                         </div>
-                        <div>
+                        <div className="md:ps-6">
                           <p className="text-xs uppercase tracking-[0.18em] text-slate-500">{t('workspace.totalDue') || 'Total Due'}</p>
-                          <p className="mt-1 text-3xl font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(totals.finalTotal)}</p>
+                          <p className="mt-2 text-[2rem] font-bold tabular-nums text-slate-900">{currencyCode} {formatAmount(totals.finalTotal)}</p>
                         </div>
                       </div>
-                      <div className="mt-4 flex items-center gap-2">
-                        <Badge variant="secondary" className={remainingBalance > 0.001 ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'}>
+                      <div className="mt-5 flex items-center justify-center gap-2">
+                        <Badge variant="secondary" className={`rounded-full px-4 py-2 text-sm font-semibold ${remainingBalance > 0.001 ? 'border border-amber-300 bg-amber-50 text-amber-700' : 'border border-emerald-300 bg-emerald-50 text-emerald-700'}`}>
                           {remainingBalance > 0.001
                             ? `${t('splitPayment.outstanding')}: ${currencyCode} ${formatAmount(remainingBalance)}`
                             : `✓ ${t('splitPayment.allocated')}`}
@@ -1190,54 +1509,96 @@ export function PaymentModalV4({
                     </CmxCard>
                   ) : (
                     <>
-                      <CmxCard>
-                        <CmxCardHeader className="pb-2">
-                          <CmxCardTitle className="text-sm">
-                            {t('workspace.editingAmount') || 'Editing amount'}
-                            {activeLeg ? ` • ${getPaymentLabel(activeLeg.method)}` : ''}
-                          </CmxCardTitle>
+                      <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
+                        <CmxCardHeader className="border-b border-slate-100 pb-2">
+                          <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <CmxCardTitle className={`text-sm text-slate-700 ${isRTL ? 'text-right' : 'text-left'}`}>
+                              {t('workspace.editingAmount') || 'Editing amount'}
+                              {activeLeg ? ` ${t('workspace.forMethod')} ` : ' '}
+                              {activeLeg ? getOptionDisplayName(activeLegOption, activeLeg.method) : ''}
+                            </CmxCardTitle>
+                            {settlementLegEntries.length > 1 && (
+                              <CmxButton
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={cycleActiveLeg}
+                                className="rounded-xl border-slate-200 text-slate-700"
+                              >
+                                <ArrowRightLeft className="me-1 h-4 w-4" />
+                                {t('splitPayment.switchLeg')}
+                              </CmxButton>
+                            )}
+                          </div>
                         </CmxCardHeader>
-                        <CmxCardContent className="space-y-3">
-                          <CmxInput
-                            label={t('splitPayment.amount')}
-                            value={activeLeg ? formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces) : ''}
-                            dir="ltr"
-                            onChange={(event) => {
-                              if (!activeLeg) return;
-                              const nextDraft = sanitizeDecimalDraft(event.target.value, decimalPlaces);
-                              updateLeg(activeLegIndex, 'amount', parseDecimalDraft(nextDraft));
-                            }}
-                            placeholder={formatAmount(0)}
-                          />
+                        <CmxCardContent className="space-y-4 pt-4">
+                          <div className="flex items-stretch rounded-2xl border border-slate-200 bg-white shadow-inner">
+                            <div className="flex min-w-[104px] items-center justify-center rounded-s-2xl border-e border-slate-200 bg-slate-100 px-4 text-xl font-semibold text-cyan-700">
+                              {currencyCode}
+                            </div>
+                            <div className="min-w-0 flex-1 px-3">
+                              <CmxMoneyField
+                                ref={amountInputRef}
+                                value={activeLeg?.amount ?? null}
+                                decimalPlaces={decimalPlaces}
+                                showZero
+                                dir="ltr"
+                                onValueChange={(value) => {
+                                  if (!activeLeg) return;
+                                  updateLeg(activeLegIndex, 'amount', value);
+                                }}
+                                placeholder={formatAmount(0)}
+                                disabled={!activeLeg}
+                                className="h-16 border-0 bg-transparent px-0 text-[2.65rem] font-bold tracking-tight text-slate-900 shadow-none focus-visible:ring-0"
+                              />
+                            </div>
+                          </div>
                           <p className="text-xs text-slate-500">{t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}</p>
                         </CmxCardContent>
                       </CmxCard>
 
-                      <CmxCard>
+                      <CmxCard className="border-slate-200 shadow-sm">
                         <CmxCardContent className="pt-4">
                           <div className="grid grid-cols-4 gap-2">
                             {(['1', '2', '3', '+10', '4', '5', '6', '+20', '7', '8', '9', '+50', '.', '0', 'backspace'] as PaymentKeypadKey[]).map((key) => (
                               <CmxButton
                                 key={key}
                                 type="button"
-                                variant={key.startsWith('+') ? 'secondary' : key === 'backspace' ? 'outline' : 'outline'}
+                                variant={key.startsWith('+') ? 'secondary' : 'outline'}
                                 size="lg"
                                 onClick={() => handleKeypadPress(key)}
-                                className={`h-20 rounded-2xl text-2xl font-semibold ${key === 'backspace' ? 'col-span-2' : ''}`}
+                                className={`h-20 rounded-2xl border-slate-200 text-2xl font-semibold text-slate-800 shadow-sm ${key.startsWith('+') ? 'bg-slate-50 text-cyan-700' : 'bg-white'} ${key === 'backspace' ? 'col-span-1' : ''}`}
                               >
                                 {key === 'backspace' ? '⌫' : key}
                               </CmxButton>
                             ))}
+                            <CmxButton
+                              type="button"
+                              variant="primary"
+                              size="lg"
+                              onClick={focusAmountEditor}
+                              className="h-20 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 text-2xl font-semibold shadow-sm"
+                            >
+                              {t('workspace.enter') || 'Enter'}
+                            </CmxButton>
                           </div>
                         </CmxCardContent>
                       </CmxCard>
 
                       {activeLeg && (
-                        <CmxCard>
-                          <CmxCardHeader className="pb-2">
-                            <CmxCardTitle className="text-sm">{t('splitPayment.currentLeg') || 'Current leg details'}</CmxCardTitle>
+                        <CmxCard className="overflow-hidden border-slate-200 shadow-sm">
+                          <CmxCardHeader className="border-b border-slate-100 pb-2">
+                            <CmxCardTitle className={`text-sm text-slate-700 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              {getPaymentIcon(activeLeg.method)}
+                              {t('splitPayment.currentLeg') || 'Current leg details'}
+                            </CmxCardTitle>
                           </CmxCardHeader>
-                          <CmxCardContent className="space-y-3">
+                          <CmxCardContent className="space-y-4 pt-4">
+                            {creditMethodCodes.includes(activeLeg.method) && (
+                              <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-3 py-3 text-sm text-cyan-900">
+                                {t('customerCredits.applied')}
+                              </div>
+                            )}
                             {activeLeg.method === PAYMENT_METHODS.CARD && (
                               <div className="grid gap-3 md:grid-cols-3">
                                 <div>
@@ -1345,6 +1706,12 @@ export function PaymentModalV4({
                                 />
                               </div>
                             )}
+                            {activeLeg.method === PAYMENT_METHODS.CARD && (
+                              <div className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <ShieldCheck className="h-4 w-4 text-cyan-700" />
+                                {t('security.cardPayment')}
+                              </div>
+                            )}
                           </CmxCardContent>
                         </CmxCard>
                       )}
@@ -1353,9 +1720,33 @@ export function PaymentModalV4({
                 </div>
 
                 <div className="space-y-4">
-                  <CmxCard>
-                    <CmxCardHeader className="pb-2">
-                      <CmxCardTitle className="text-sm">{t('remainder.title') || 'Remaining balance policy'}</CmxCardTitle>
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardContent className="pt-5">
+                      <div className={`flex items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : ''}`}>
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-700">
+                          <UserRound className="h-6 w-6" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <p className="truncate text-xl font-semibold text-slate-900">{customerHeaderName}</p>
+                            {customerType === 'b2b' && (
+                              <Badge variant="secondary" className="rounded-full bg-slate-100 text-slate-700">
+                                B2B
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="mt-1 truncate text-sm text-slate-500">{customerHeaderMeta}</p>
+                        </div>
+                      </div>
+                    </CmxCardContent>
+                  </CmxCard>
+
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-2">
+                      <CmxCardTitle className={`text-sm flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                        {t('remainder.title') || 'Remaining balance policy'}
+                        <Info className="h-4 w-4 text-slate-400" />
+                      </CmxCardTitle>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-3">
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -1367,10 +1758,14 @@ export function PaymentModalV4({
                           <CmxButton
                             key={policy}
                             type="button"
-                            variant={effectiveOutstandingPolicy === policy ? 'primary' : 'outline'}
+                            variant="outline"
                             onClick={() => handleOutstandingPolicyChange(policy)}
                             disabled={policy === 'NONE' && remainingBalance > 0.001}
-                            className="h-auto min-h-[64px] flex-col gap-1 rounded-2xl px-3 py-3 text-center"
+                            className={`h-auto min-h-[72px] flex-col gap-1 rounded-2xl border px-3 py-3 text-center ${
+                              effectiveOutstandingPolicy === policy
+                                ? 'border-teal-500 bg-gradient-to-r from-teal-50 to-cyan-50 text-slate-900 shadow-sm'
+                                : 'border-slate-200 bg-white text-slate-700'
+                            }`}
                           >
                             <span className="text-sm font-semibold">{label}</span>
                             {policy !== 'NONE' && <span className="text-[11px] opacity-80">{t('remainder.deferredHint') || 'Deferred settlement'}</span>}
@@ -1381,8 +1776,8 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
 
-                  <CmxCard>
-                    <CmxCardHeader className="pb-2">
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-2">
                       <CmxCardTitle className={`text-sm flex items-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <Tag className="h-4 w-4" />
                         {t('discount')}
@@ -1448,7 +1843,7 @@ export function PaymentModalV4({
                   </CmxCard>
 
                   {!NEW_ORDER_PROMO_GIFT_DISABLED && (
-                    <CmxCard>
+                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                       <CmxButton
                         type="button"
                         variant="ghost"
@@ -1457,7 +1852,7 @@ export function PaymentModalV4({
                         className={`h-auto w-full justify-between rounded-none px-4 py-3 text-sm font-medium text-slate-900 ${isRTL ? 'flex-row-reverse' : ''}`}
                       >
                         <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                          {t('haveCoupon')}
+                          {t('coupons.title')}
                           {appliedBadgeCount > 0 && <Badge variant="secondary" className="text-xs">{appliedBadgeCount}</Badge>}
                         </span>
                         {showCouponContent ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
@@ -1522,9 +1917,16 @@ export function PaymentModalV4({
                                     type={pinVisible ? 'text' : 'password'}
                                     dir="ltr"
                                     error={pinFieldError ?? undefined}
+                                    className={pinRequired && !giftCardPin.trim() ? 'ring-1 ring-red-400' : undefined}
                                     onChange={(event) => {
                                       setGiftCardPin(event.target.value);
                                       setPinFieldError(null);
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') {
+                                        event.preventDefault();
+                                        void handleFetchGiftCardDetails();
+                                      }
                                     }}
                                   />
                                   <CmxButton
@@ -1554,6 +1956,7 @@ export function PaymentModalV4({
                                         value={field.value ?? ''}
                                         dir="ltr"
                                         placeholder={t('giftCard.amountPlaceholder')}
+                                        onChange={(event) => field.onChange(Number.parseFloat(event.target.value) || 0)}
                                       />
                                     )}
                                   />
@@ -1574,7 +1977,7 @@ export function PaymentModalV4({
                     </CmxCard>
                   )}
 
-                  <CmxCard>
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxButton
                       type="button"
                       variant="ghost"
@@ -1583,7 +1986,7 @@ export function PaymentModalV4({
                       className={`h-auto w-full justify-between rounded-none px-4 py-3 text-sm font-medium text-slate-700 ${isRTL ? 'flex-row-reverse' : ''}`}
                     >
                       <span className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                        {t('tax.panelTitle')}
+                        {t('tax.listTitle')}
                         {profilesTaxAmount > 0 && <Badge variant="secondary" className="text-xs">{currencyCode} {formatAmount(profilesTaxAmount)}</Badge>}
                       </span>
                       {taxPanelOpen ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
@@ -1593,26 +1996,17 @@ export function PaymentModalV4({
                         {taxProfileEntries.length === 0 ? (
                           <p className="text-xs text-slate-500">{t('tax.noProfiles')}</p>
                         ) : (
-                          taxProfileEntries.map((entry, index) => (
-                            <div key={entry.id} className="flex items-center gap-3">
+                          taxProfileEntries.map((entry) => (
+                            <div key={entry.id} className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-medium text-slate-700">{isRTL ? (entry.name2 || entry.name) : entry.name}</p>
-                                <p className="text-xs text-slate-400">{entry.tax_type}</p>
+                                <p className="text-xs text-slate-400">
+                                  {t('tax.rate')}: {entry.rate.toFixed(2)}%
+                                </p>
                               </div>
-                              <CmxInput
-                                type="number"
-                                value={entry.rate}
-                                dir="ltr"
-                                className="w-20"
-                                onChange={(event) => {
-                                  const nextRate = Number.parseFloat(event.target.value) || 0;
-                                  setTaxProfileEntries((prev) => {
-                                    const next = [...prev];
-                                    next[index] = { ...next[index], rate: nextRate };
-                                    return next;
-                                  });
-                                }}
-                              />
+                              <span className="text-sm font-semibold tabular-nums text-slate-900">
+                                {currencyCode} {formatAmount(afterDiscountsForTax * (entry.rate / 100))}
+                              </span>
                             </div>
                           ))
                         )}
@@ -1621,8 +2015,8 @@ export function PaymentModalV4({
                   </CmxCard>
 
                   {customerType === 'b2b' && customerId && (
-                    <CmxCard>
-                      <CmxCardHeader className="pb-2">
+                    <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                      <CmxCardHeader className="border-b border-slate-100 pb-2">
                         <CmxCardTitle className="text-sm">{t('b2b.title') || 'B2B Details'}</CmxCardTitle>
                       </CmxCardHeader>
                       <CmxCardContent className="space-y-3">
@@ -1645,7 +2039,10 @@ export function PaymentModalV4({
                         </div>
                         {serverTotals?.creditLimit?.creditLimit && serverTotals.creditLimit.creditLimit > 0 && (
                           <div className={`rounded-xl border p-3 ${serverTotals.creditLimit.wouldExceed ? 'border-amber-200 bg-amber-50' : 'border-green-200 bg-green-50'}`}>
-                            <p className="text-sm font-medium text-slate-900">{t('b2b.creditLimit') || 'Credit Limit'}</p>
+                            <p className={`text-sm font-medium text-slate-900 flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                              <CircleAlert className="h-4 w-4 text-amber-600" />
+                              {t('b2b.creditLimit') || 'Credit Limit'}
+                            </p>
                             <p className="mt-1 text-xs text-slate-600">
                               {t('b2b.creditUsed') || 'Used'}: {currencyCode} {formatAmount(serverTotals.creditLimit.currentBalance)} • {t('b2b.creditAvailable') || 'Available'}: {currencyCode} {formatAmount(serverTotals.creditLimit.available)}
                             </p>
@@ -1665,9 +2062,19 @@ export function PaymentModalV4({
                   )}
 
                   <div className="space-y-1">
-                    <label htmlFor="v4-payment-notes" className="block text-sm font-medium text-slate-900">
-                      {t('paymentNotes') || 'Payment notes'}
-                    </label>
+                    <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                      <label htmlFor="v4-payment-notes" className="block text-sm font-medium text-slate-900">
+                        {t('paymentNotes') || 'Payment notes'}
+                      </label>
+                      <CmxButton
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setPaymentNotesDialogOpen(true)}
+                      >
+                        <Maximize2 className="h-4 w-4" />
+                      </CmxButton>
+                    </div>
                     <Controller
                       name="paymentNotes"
                       control={control}
@@ -1677,16 +2084,18 @@ export function PaymentModalV4({
                           id="v4-payment-notes"
                           value={field.value ?? ''}
                           onChange={(event) => field.onChange(event.target.value)}
+                          onDoubleClick={() => setPaymentNotesDialogOpen(true)}
                           dir={isRTL ? 'rtl' : 'ltr'}
-                          rows={3}
+                          rows={1}
+                          className="min-h-10 resize-none"
                           placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
                         />
                       )}
                     />
                   </div>
 
-                  <CmxCard>
-                    <CmxCardHeader className="pb-2">
+                  <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                    <CmxCardHeader className="border-b border-slate-100 pb-2">
                       <CmxCardTitle className="text-sm">{t('summary.title')}</CmxCardTitle>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-1">
@@ -1698,17 +2107,27 @@ export function PaymentModalV4({
                       {(totals.taxAmount ?? 0) > 0 && <SummaryRow label={t('summary.taxAmount')} value={`${currencyCode} ${formatAmount(totals.taxAmount ?? 0)}`} loading={totalsLoading} />}
                       {totals.giftCardApplied > 0 && <SummaryRow label={t('summary.giftCardApplied')} value={`−${currencyCode} ${formatAmount(totals.giftCardApplied)}`} loading={totalsLoading} negative />}
                       <SummaryRow label={t('summary.totalAmount')} value={`${currencyCode} ${formatAmount(totals.finalTotal)}`} loading={totalsLoading} bold />
-                      <SummaryRow label={t('summary.paidAmount') || 'Pay now'} value={`${currencyCode} ${formatAmount(payNowAmount)}`} />
-                      <SummaryRow label={t('summary.remainingBalance') || 'Remaining balance'} value={`${currencyCode} ${formatAmount(remainingBalance)}`} negative={remainingBalance > 0} />
+                      <div className="mt-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
+                        <SummaryRow label={t('summary.paidAmount') || 'Pay now'} value={`${currencyCode} ${formatAmount(payNowAmount)}`} />
+                      </div>
+                      {customerCreditAmount > 0 && (
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
+                          <SummaryRow label={t('customerCredits.title')} value={`${currencyCode} ${formatAmount(customerCreditAmount)}`} />
+                        </div>
+                      )}
+                      {settledNowAmount > 0 && <SummaryRow label={t('summary.settledNow')} value={`${currencyCode} ${formatAmount(settledNowAmount)}`} />}
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2">
+                        <SummaryRow label={t('summary.remainingBalance') || 'Remaining balance'} value={`${currencyCode} ${formatAmount(remainingBalance)}`} negative={remainingBalance > 0} />
+                      </div>
                     </CmxCardContent>
                   </CmxCard>
                 </div>
               </div>
             </div>
 
-              <CmxDialogFooter className="flex-col items-stretch gap-2 border-t bg-white">
+              <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
                 <div className={`flex w-full gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1">
+                  <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
                     {tCommon('cancel')}
                   </CmxButton>
                   <CmxButton
@@ -1720,21 +2139,48 @@ export function PaymentModalV4({
                       promoCodeValidating ||
                       giftCardValidating ||
                       (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') ||
-                      (showDeferredExplanation ? effectiveOutstandingPolicy === 'NONE' : isImmediatePayment && payNowAmount <= 0) ||
+                      ((paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION && paymentMethod !== PAYMENT_METHODS.INVOICE) && settledNowAmount <= 0) ||
                       (serverTotals?.creditLimit?.wouldExceed && (serverTotals.creditLimit.mode !== 'warn' || !creditLimitOverride))
                     }
-                    className="flex-1 font-bold"
+                    className="flex-1 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 font-bold shadow-sm"
                     size="lg"
                   >
                     {submitButtonLabel}
                   </CmxButton>
                 </div>
                 <p className={`w-full text-xs text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {t('messages.paymentMethodNote', { method: getPaymentLabel(paymentMethod || PAYMENT_METHODS.PAY_ON_COLLECTION) })}
+                  {t('messages.paymentMethodNote', { method: summaryMethodLabel })}
                 </p>
               </CmxDialogFooter>
             </form>
           </div>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog open={paymentNotesDialogOpen} onOpenChange={setPaymentNotesDialogOpen}>
+        <CmxDialogContent className="max-w-xl">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('paymentNotesDialogTitle')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <Controller
+            name="paymentNotes"
+            control={control}
+            render={({ field }) => (
+              <CmxTextarea
+                {...field}
+                value={field.value ?? ''}
+                onChange={(event) => field.onChange(event.target.value)}
+                dir={isRTL ? 'rtl' : 'ltr'}
+                rows={8}
+                placeholder={t('paymentNotesPlaceholder') || 'Optional payment-related notes...'}
+              />
+            )}
+          />
+          <CmxDialogFooter>
+            <CmxButton type="button" onClick={() => setPaymentNotesDialogOpen(false)}>
+              {tCommon('close')}
+            </CmxButton>
+          </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
 

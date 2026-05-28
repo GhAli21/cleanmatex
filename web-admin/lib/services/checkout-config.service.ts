@@ -1,12 +1,14 @@
 import 'server-only';
 
-import { prisma } from '@/lib/db/prisma';
-import { withTenantContext } from '../db/tenant-context';
 import { PAYMENT_NATURE, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
 import type { SettlementOption, CheckoutSettlementOptions } from '@/lib/types/order-financial';
 import { getWalletBalance, getAdvanceBalance, getCreditNotes } from './stored-value.service';
 import { getLoyaltyAccount, getLoyaltyConfig } from './loyalty.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import {
+  listCheckoutEligiblePaymentMethodConfigs,
+  listEffectivePaymentMethodConfigs,
+} from './payment-config.service';
 
 function toNumber(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
@@ -64,48 +66,23 @@ function mapToSettlementOption(row: {
 /**
  * Load all active checkout settlement options for a tenant, filtered by order amount.
  * Enriches CREDIT_APPLICATION rows with live balance data when customerId is provided.
+ *
+ * @param tenantId Tenant identifier used to resolve configured payment methods and balances.
+ * @param orderContext Checkout context containing amount, customer, and optional branch scope.
+ * @param orderContext.amount Order total used for amount-based payment method eligibility filters.
+ * @param orderContext.customerId Optional customer identifier used to enrich stored-value balances.
+ * @param orderContext.branchId Optional branch identifier used to apply branch-specific payment overrides.
+ * @returns Payment, credit, deferred, and AR settlement options ready for checkout orchestration.
  */
 export async function getCheckoutOptions(
   tenantId: string,
-  orderContext: { amount: number; customerId?: string }
+  orderContext: { amount: number; customerId?: string; branchId?: string }
 ): Promise<CheckoutSettlementOptions> {
-  type RawRow = Awaited<ReturnType<typeof prisma.org_payment_methods_cf.findMany>>[number] & {
-    sys_globally_disabled?: boolean;
-    gw_globally_disabled?: boolean;
-  };
-
-  const rows = await withTenantContext(tenantId, async () => {
-    return prisma.$queryRaw<RawRow[]>`
-      SELECT o.*,
-             s.is_globally_disabled                                               AS sys_globally_disabled,
-             g.is_globally_disabled                                               AS gw_globally_disabled,
-             COALESCE(o.default_creation_status, s.default_creation_status)       AS eff_default_creation_status,
-             COALESCE(o.allow_status_override,   s.allow_status_override)         AS eff_allow_status_override,
-             COALESCE(o.requires_reference,      s.requires_reference)            AS eff_requires_reference,
-             COALESCE(o.is_user_id_required,     s.is_user_id_required)           AS eff_is_user_id_required
-      FROM org_payment_methods_cf o
-      JOIN sys_payment_method_cd s ON s.payment_method_code = o.payment_method_code
-      LEFT JOIN sys_payment_gateway_cd g ON g.code = o.gateway_code
-      WHERE o.tenant_org_id      = ${tenantId}::uuid
-        AND o.is_enabled         = true
-        AND o.is_active          = true
-        AND o.rec_status         = 1
-        AND o.is_platform_disabled = false
-        AND s.is_globally_disabled = false
-        AND (s.is_deprecated IS NULL OR s.is_deprecated = false)
-        AND (o.gateway_code IS NULL OR g.is_globally_disabled = false)
-      ORDER BY o.display_order ASC`;
-  });
-
   const { amount, customerId } = orderContext;
-
-  // Filter by order amount eligibility
-  const eligible = rows.filter((r) => {
-    const min = r.min_order_amount ? Number(r.min_order_amount) : null;
-    const max = r.max_order_amount ? Number(r.max_order_amount) : null;
-    if (min !== null && amount < min) return false;
-    if (max !== null && amount > max) return false;
-    return true;
+  const eligible = await listCheckoutEligiblePaymentMethodConfigs({
+    tenantId,
+    branchId: orderContext.branchId,
+    amount,
   });
 
   const result: CheckoutSettlementOptions = {
@@ -140,7 +117,29 @@ export async function getCheckoutOptions(
   }
 
   for (const row of eligible) {
-    const option = mapToSettlementOption(row as Parameters<typeof mapToSettlementOption>[0]);
+    const option = mapToSettlementOption({
+      id: row.id,
+      payment_method_code: row.payment_method_code,
+      payment_nature: row.payment_nature,
+      gateway_code: row.gateway_code,
+      display_name: row.display_name,
+      display_name2: row.display_name2,
+      settlement_type_code: row.settlement_type_code,
+      credit_application_type: row.credit_application_type,
+      requires_cash_drawer: row.requires_cash_drawer,
+      requires_terminal: row.requires_terminal,
+      min_amount: row.min_amount != null ? new Decimal(row.min_amount) : null,
+      max_amount: row.max_amount != null ? new Decimal(row.max_amount) : null,
+      min_order_amount: row.min_order_amount != null ? new Decimal(row.min_order_amount) : null,
+      max_order_amount: row.max_order_amount != null ? new Decimal(row.max_order_amount) : null,
+      is_platform_disabled: row.is_platform_disabled,
+      sys_globally_disabled: row.is_globally_disabled,
+      eff_default_creation_status: row.default_creation_status,
+      eff_allow_status_override: row.allow_status_override,
+      eff_requires_reference: row.requires_reference,
+      eff_is_user_id_required: row.is_user_id_required,
+      allowed_in_pos: row.allowed_in_pos,
+    });
 
     if (option.paymentNature === PAYMENT_NATURE.REAL_PAYMENT) {
       result.paymentMethods.push(option);
@@ -173,35 +172,53 @@ export async function getCheckoutOptions(
 /**
  * Load a single SettlementOption row by paymentMethodCode + gatewayCode.
  * Used by order-settlement.service.ts to resolve a leg before routing.
+ *
+ * @param tenantId Tenant identifier used to scope payment method resolution.
+ * @param paymentMethodCode Payment method code selected for the settlement leg.
+ * @param gatewayCode Optional gateway code when multiple gateway-backed variants share the same method code.
+ * @returns Canonical settlement option metadata for the requested payment leg.
  */
 export async function resolveSettlementLeg(
   tenantId:          string,
   paymentMethodCode: string,
   gatewayCode:       string | null
 ): Promise<SettlementOption> {
-  const row = await withTenantContext(tenantId, () =>
-    prisma.org_payment_methods_cf.findFirstOrThrow({
-      where: {
-        tenant_org_id:       tenantId,
-        payment_method_code: paymentMethodCode,
-        gateway_code:        gatewayCode ?? null,
-        is_enabled:          true,
-        is_active:           true,
-        is_platform_disabled: false,
-      },
-    })
-  );
-
-  const [sysMethod, gateway] = await Promise.all([
-    prisma.sys_payment_method_cd.findUnique({ where: { payment_method_code: paymentMethodCode } }),
-    gatewayCode ? prisma.sys_payment_gateway_cd.findUnique({ where: { code: gatewayCode } }) : Promise.resolve(null),
-  ]);
-
-  if (sysMethod?.is_globally_disabled) throw new Error(`Payment method ${paymentMethodCode} is globally disabled`);
-  if (gateway?.is_globally_disabled) throw new Error(`Gateway ${gatewayCode} is globally disabled`);
+  const rows = await listEffectivePaymentMethodConfigs({
+    tenantId,
+    methodCodes: [paymentMethodCode],
+  });
+  const row = rows.find((method) => method.gateway_code === (gatewayCode ?? null));
+  if (!row) {
+    throw new Error(`Payment method ${paymentMethodCode} is not configured for this tenant`);
+  }
+  if (row.is_globally_disabled) {
+    throw new Error(`Payment method ${paymentMethodCode} is globally disabled`);
+  }
+  if (row.gateway_globally_disabled) {
+    throw new Error(`Gateway ${gatewayCode} is globally disabled`);
+  }
 
   return mapToSettlementOption({
-    ...row,
-    sys_globally_disabled: sysMethod?.is_globally_disabled ?? false,
+    id: row.id,
+    payment_method_code: row.payment_method_code,
+    payment_nature: row.payment_nature,
+    gateway_code: row.gateway_code,
+    display_name: row.display_name,
+    display_name2: row.display_name2,
+    settlement_type_code: row.settlement_type_code,
+    credit_application_type: row.credit_application_type,
+    requires_cash_drawer: row.requires_cash_drawer,
+    requires_terminal: row.requires_terminal,
+    min_amount: row.min_amount != null ? new Decimal(row.min_amount) : null,
+    max_amount: row.max_amount != null ? new Decimal(row.max_amount) : null,
+    min_order_amount: row.min_order_amount != null ? new Decimal(row.min_order_amount) : null,
+    max_order_amount: row.max_order_amount != null ? new Decimal(row.max_order_amount) : null,
+    is_platform_disabled: row.is_platform_disabled,
+    sys_globally_disabled: row.is_globally_disabled,
+    eff_default_creation_status: row.default_creation_status,
+    eff_allow_status_override: row.allow_status_override,
+    eff_requires_reference: row.requires_reference,
+    eff_is_user_id_required: row.is_user_id_required,
+    allowed_in_pos: row.allowed_in_pos,
   });
 }

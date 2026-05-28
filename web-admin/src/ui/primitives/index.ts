@@ -6,6 +6,7 @@
 // ===== Cmx Primitives (Blueprint-compliant) =====
 export * from './cmx-button'
 export * from './cmx-input'
+export * from './cmx-money-field'
 export * from './cmx-textarea'
 export * from './cmx-card'
 export * from './cmx-spinner'

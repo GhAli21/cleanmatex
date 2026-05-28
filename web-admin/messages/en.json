@@ -4597,7 +4597,15 @@
       "grandTotal": "Grand Total",
       "savings": "Save",
       "haveCoupon": "Have a coupon?",
+      "paymentNotesDialogTitle": "Edit payment notes",
+      "coupons": {
+        "title": "Have coupon - Gift Card Or Promotion Code ?"
+      },
       "promoOrGiftCard": "Promo code or gift card",
+      "customerCard": {
+        "walkInCustomer": "Customer",
+        "noReference": "Customer reference unavailable"
+      },
       "methods": {
         "title": "Select Payment Method",
         "cash": "Cash",
@@ -4611,7 +4619,20 @@
         "paytabs": "PayTabs",
         "stripe": "Stripe",
         "touchHintImmediate": "Immediate settlement",
-        "touchHintCashDrawer": "Cash drawer / immediate collection"
+        "touchHintCashDrawer": "Cash drawer / immediate collection",
+        "noMethods": "No POS-ready real payment methods are configured.",
+        "defaultBadge": "Default"
+      },
+      "customerCredits": {
+        "title": "Customer Credits",
+        "wallet": "Wallet",
+        "customerAdvance": "Customer Advance",
+        "customerCredit": "Customer Credit",
+        "loyaltyCredit": "Loyalty Credit",
+        "available": "Available: {amount}",
+        "applied": "This stored-value leg can be adjusted from the amount editor and keypad.",
+        "empty": "No customer credits are available for this customer.",
+        "referenceSelectionHint": "This credit needs a specific source selection before it can be applied."
       },
       "checkNumber": {
         "label": "Check Number",
@@ -4778,6 +4799,7 @@
         "totalSavings": "Total Savings",
         "amountDue": "Amount Due",
         "paidAmount": "Paid Amount",
+        "settledNow": "Settled Now",
         "remainingBalance": "Remaining Balance",
         "rulesDiscount": "Rules discount",
         "settlementSection": "Settlement",
@@ -4795,8 +4817,13 @@
         "noImmediateTitle": "No pay-now amount selected",
         "noImmediateDescription": "This order will be submitted entirely as deferred settlement using the selected remaining-balance policy.",
         "editingAmount": "Editing amount",
+        "forMethod": "for",
         "keypadHint": "Use the keypad for fast touch entry, or type directly into the amount field.",
-        "addSplitHint": "Select an immediate method to start collecting payment."
+        "addSplitHint": "Select an immediate method to start collecting payment.",
+        "enter": "Enter"
+      },
+      "security": {
+        "cardPayment": "Secure card payment. Data is encrypted and PCI compliant."
       },
       "remainder": {
         "title": "Remaining balance policy",
@@ -4864,6 +4891,8 @@
       },
       "tax": {
         "panelTitle": "Additional Tax",
+        "listTitle": "Tax List",
+        "rate": "Rate",
         "noProfiles": "No default tax profiles configured",
         "totalTax": "Total Tax"
       },
@@ -4886,6 +4915,7 @@
         "gatewayTransactionId": "Transaction ID",
         "gatewayReference": "Gateway Reference",
         "currentLeg": "Current leg details",
+        "switchLeg": "Switch Leg",
         "outstanding": "Outstanding",
         "allocated": "Fully Allocated",
         "over": "Over-allocated",

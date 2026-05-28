@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS public.sys_credit_app_types_cd (
 INSERT INTO public.sys_credit_app_types_cd (credit_app_type, name, name2, sort_order) VALUES
   ('GIFT_CARD',      'Gift Card',        'بطاقة هدية',  1),
   ('WALLET',         'Wallet',           'المحفظة',     2),
-  ('ADVANCE',        'Customer Advance', 'سلفة العميل', 3),
+  ('ADVANCE',        'Customer Advance', 'مقدم من العميل', 3),
   ('CREDIT_NOTE',    'Credit Note',      'إشعار دائن',  4),
   ('LOYALTY_POINTS', 'Loyalty Points',   'نقاط الولاء', 5)
 ON CONFLICT (credit_app_type) DO UPDATE SET

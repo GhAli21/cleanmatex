@@ -43,6 +43,8 @@ type PaymentModalComponentProps = {
   tenantOrgId: string;
   customerId?: string;
   customerType?: string;
+  customerDisplayName?: string;
+  customerPhone?: string;
   serviceCategories?: string[];
   branchId?: string;
   userId?: string;
@@ -393,6 +395,17 @@ export function NewOrderModals() {
           tenantOrgId={currentTenant.tenant_id}
           customerId={state.state.customer?.id || ''}
           customerType={state.state.customer?.type}
+          customerDisplayName={
+            state.state.customerSnapshotOverride?.name ??
+            state.state.customerNameSnapshot ??
+            state.state.customerName
+          }
+          customerPhone={
+            state.state.customerSnapshotOverride?.phone ??
+            state.state.customerMobile ??
+            state.state.customer?.phone ??
+            ''
+          }
           branchId={state.state.branchId ?? undefined}
           userId={user?.id}
           serviceCategories={serviceCategories}

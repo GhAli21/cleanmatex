@@ -1,10 +1,14 @@
 'use server';
-/* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
+/* eslint-disable jsdoc/require-param, jsdoc/require-returns */
 
 import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
+import {
+  getTenantPaymentMethodConfigById,
+  listTenantPaymentMethodConfigs,
+} from '@/lib/services/payment-config.service';
 import type {
   OrgPaymentMethodConfig,
   CreatePaymentMethodConfigInput,
@@ -69,13 +73,8 @@ export async function getPaymentMethodConfigs(): Promise<{
 }> {
   try {
     const { tenantId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const rows = await prisma.org_payment_methods_cf.findMany({
-        where: { tenant_org_id: tenantId, is_active: true, rec_status: 1 },
-        orderBy: [{ display_order: 'asc' }, { created_at: 'asc' }],
-      });
-      return { success: true, data: rows.map((r) => maskMethodConfig(r as unknown as OrgPaymentMethodConfig)) };
-    });
+    const rows = await listTenantPaymentMethodConfigs(tenantId);
+    return { success: true, data: rows.map(maskMethodConfig) };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch payment methods' };
   }
@@ -87,13 +86,9 @@ export async function getPaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId } = await getAuthContext();
-    return withTenantContext(tenantId, async () => {
-      const row = await prisma.org_payment_methods_cf.findFirst({
-        where: { id, tenant_org_id: tenantId, is_active: true },
-      });
-      if (!row) return { success: false, error: 'Payment method config not found' };
-      return { success: true, data: maskMethodConfig(row as unknown as OrgPaymentMethodConfig) };
-    });
+    const row = await getTenantPaymentMethodConfigById(tenantId, id);
+    if (!row) return { success: false, error: 'Payment method config not found' };
+    return { success: true, data: maskMethodConfig(row) };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : 'Failed to fetch payment method config' };
   }

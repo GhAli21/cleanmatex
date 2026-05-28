@@ -49,6 +49,10 @@ const paymentMethodCodeSchema = z.enum([
   'STRIPE',
   'BANK_TRANSFER',
   'MOBILE_PAYMENT',
+  'WALLET',
+  'CUSTOMER_CREDIT',
+  'CUSTOMER_ADVANCE',
+  'LOYALTY_CREDIT',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -56,8 +60,8 @@ const paymentMethodCodeSchema = z.enum([
 // ---------------------------------------------------------------------------
 
 /**
- * A single payment leg in a split-payment flow.
- * Only immediate methods are allowed as legs (deferred methods must be the sole leg).
+ * A single settlement leg in the order payment flow.
+ * Real-payment and customer-credit legs can be mixed, but deferred methods must remain isolated.
  */
 export const paymentLegSchema = z.object({
   /** Payment method code for this leg (must match paymentMethodCodeSchema) */
@@ -86,6 +90,8 @@ export const paymentLegSchema = z.object({
   gateway_transaction_id: z.string().optional(),
   /** Gateway reference string */
   gateway_reference: z.string().optional(),
+  /** Credit-note / source reference for stored-value legs that require a specific document. */
+  creditReferenceId: z.string().uuid().optional(),
 });
 
 export type PaymentLeg = z.infer<typeof paymentLegSchema>;

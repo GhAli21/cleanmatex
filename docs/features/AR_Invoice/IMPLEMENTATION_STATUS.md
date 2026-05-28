@@ -1,5 +1,19 @@
 # AR Invoice v1 / v1.5 / v2 — Implementation Status
 
+## 2026-05-28 — Phase 1B Stabilization Session Impact
+
+A pre-Phase-2 audit (session: `C:\Users\JHNLP\.claude\plans\sleepy-zooming-goose.md`) surfaced three AR-Invoice-related issues, all fixed:
+
+1. **Permission rename** — `invoices:view` (referenced in 5 sites but never seeded) renamed to `invoices:read` (the actual seeded permission). Non-admin roles can now access AR invoice screens. Sites updated: `app/api/v1/ar/invoices/route.ts`, `app/api/v1/ar/invoices/[id]/route.ts`, `config/navigation.ts`, `src/features/billing/access/billing-access.ts` (5 lines).
+
+2. **AR receivable-only contract** — see new ADR: [`ADR_ar_invoice_is_receivable_only.md`](ADR_ar_invoice_is_receivable_only.md). `org_invoice_mst` rows now represent AR receivables only — fully-paid cash/card/gateway orders no longer produce AR ledger debits. This fixes PRD acceptance criterion #11 which was previously claimed complete but was actually never working correctly.
+
+3. **Defense-in-depth guard** — `ensureCanonicalArInvoiceArtifactsTx` now refuses to write `INVOICE_ISSUED` AR ledger debits when `outstanding_amount === 0` AND `payment_type_code` is neither `INVOICE` nor `CREDIT_INVOICE` nor `PAY_ON_COLLECTION`. This protects against any future caller that creates an AR invoice row for a cash-paid order.
+
+**Related:**
+- Order Financial side of the session: see `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md` and `docs/features/Order_Fin/BVM_PHASE_2_ENTRY_PLAN.md`.
+- Canonical ADR: [`ADR_ar_invoice_is_receivable_only.md`](ADR_ar_invoice_is_receivable_only.md)
+
 **Feature:** AR Invoice  
 **Location:** `cleanmatex` only  
 **Primary UI area:** `web-admin/app/dashboard/internal_fin/invoices` + `web-admin/app/dashboard/internal_fin/ar/*`  
