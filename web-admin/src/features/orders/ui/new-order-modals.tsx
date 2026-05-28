@@ -14,6 +14,10 @@ import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantPreferenceSettings } from '../hooks/use-tenant-preference-settings';
 import { usePreferenceCatalog } from '../hooks/use-preference-catalog';
+import {
+  PAYMENT_MODAL_VERSIONS,
+  usePaymentModalVersion,
+} from '../hooks/use-payment-modal-version';
 import { useHasAnyPermission } from '@/lib/hooks/usePermissions';
 import { useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
@@ -28,6 +32,24 @@ import { ReadyDatePickerModal } from './ready-date-picker-modal';
 import type { PaymentFormData } from '../model/payment-form-schema';
 import type { NewOrderPaymentPayload } from '@/lib/validations/new-order-payment-schemas';
 import { NEW_ORDER_ACCESS } from '@features/orders/access/orders-access';
+
+type PaymentModalComponentProps = {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (paymentData: PaymentFormData, payload: NewOrderPaymentPayload) => void;
+  total: number;
+  items: { productId: string; quantity: number; servicePrefCharge?: number; packingPrefCharge?: number }[];
+  isExpress?: boolean;
+  tenantOrgId: string;
+  customerId?: string;
+  customerType?: string;
+  serviceCategories?: string[];
+  branchId?: string;
+  userId?: string;
+  isRetailOnlyOrder?: boolean;
+  loading?: boolean;
+  initialPaymentNotes?: string;
+};
 
 // Lazy load heavy modals for code splitting
 const CustomerPickerModal = dynamic(
@@ -46,7 +68,23 @@ const CustomerEditModal = dynamic(
   }
 );
 
-const PaymentModalEnhanced02 = dynamic(
+const PaymentModalEnhanced02 = dynamic<PaymentModalComponentProps>(
+  () => import('@features/orders/ui/payment-modal-enhanced-02').then(mod => ({ default: mod.PaymentModalEnhanced02 })),
+  {
+    ssr: false,
+    loading: () => null
+  }
+);
+
+const PaymentModalV3 = dynamic<PaymentModalComponentProps>(
+  () => import('@features/orders/ui/payment-modal-v3').then(mod => ({ default: mod.PaymentModalV3 })),
+  {
+    ssr: false,
+    loading: () => null
+  }
+);
+
+const PaymentModalV4 = dynamic<PaymentModalComponentProps>(
   () => import('@features/orders/ui/payment-modal-v4').then(mod => ({ default: mod.PaymentModalV4 })),
   {
     ssr: false,
@@ -66,12 +104,15 @@ import type { OrderItem } from '../model/new-order-types';
 
 /**
  * New Order Modals Component
+ *
+ * @returns All modal surfaces used by the new-order screen, including the selected payment modal variant.
  */
 export function NewOrderModals() {
   const { currentTenant, user } = useAuth();
   const state = useNewOrderStateWithDispatch();
   const totals = useOrderTotals();
   const { submitOrder, amountMismatch, setAmountMismatch } = useOrderSubmission();
+  const { paymentModalVersion } = usePaymentModalVersion(currentTenant);
   const { trackByPiece } = useTenantSettingsWithDefaults(
     currentTenant?.tenant_id || ''
   );
@@ -299,6 +340,16 @@ export function NewOrderModals() {
     };
   }, [state.state.priceOverrideItemId, state.state.items]);
 
+  const ActivePaymentModal = useMemo(() => {
+    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V02_ENHANCED) {
+      return PaymentModalEnhanced02;
+    }
+    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V3) {
+      return PaymentModalV3;
+    }
+    return PaymentModalV4;
+  }, [paymentModalVersion]);
+
   // Expose function to open price override modal (for use in other components)
   // We'll use a ref or context to expose this, but for now let's use a simpler approach
   // by storing the itemId in the modal state when opening
@@ -332,7 +383,7 @@ export function NewOrderModals() {
 
       {/* Payment Modal */}
       {currentTenant && (
-        <PaymentModalEnhanced02
+        <ActivePaymentModal
           open={state.state.modals.payment}
           onClose={() => state.closeModal('payment')}
           onSubmit={handlePaymentSubmit}

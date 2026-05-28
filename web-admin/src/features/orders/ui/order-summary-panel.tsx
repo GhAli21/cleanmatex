@@ -12,8 +12,19 @@ import { useRTL } from '@/lib/hooks/useRTL';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import {
+  PAYMENT_MODAL_VERSIONS,
+  type PaymentModalVersion,
+} from '../hooks/use-payment-modal-version';
 import { ItemCartList } from './item-cart-list';
 import { Calendar, Calculator, AlertCircle, Clock, User, Pencil, X } from 'lucide-react';
+import {
+  CmxSelectDropdown,
+  CmxSelectDropdownContent,
+  CmxSelectDropdownItem,
+  CmxSelectDropdownTrigger,
+  CmxSelectDropdownValue,
+} from '@ui/forms';
 import type { PreSubmissionPiece } from './pre-submission-pieces-manager';
 
 interface CartItem {
@@ -90,6 +101,9 @@ interface OrderSummaryPanelProps {
   onBagsChange?: (count: number) => void;
   // Edit item notes (navigates to pieces tab)
   onEditItemNotes?: (itemId: string) => void;
+  showPaymentModalVersionSelector?: boolean;
+  paymentModalVersion?: PaymentModalVersion;
+  onPaymentModalVersionChange?: (value: PaymentModalVersion) => void;
 }
 
 function OrderSummaryPanelComponent({
@@ -135,6 +149,9 @@ function OrderSummaryPanelComponent({
   bags = 0,
   onBagsChange,
   onEditItemNotes,
+  showPaymentModalVersionSelector = false,
+  paymentModalVersion = PAYMENT_MODAL_VERSIONS.V4,
+  onPaymentModalVersionChange,
 }: OrderSummaryPanelProps) {
   const t = useTranslations('newOrder.orderSummary');
   const tNewOrder = useTranslations('newOrder');
@@ -152,6 +169,15 @@ function OrderSummaryPanelComponent({
     });
   const [isCalculating, setIsCalculating] = useState(false);
   const [showNotes, setShowNotes] = useState(false);
+  const paymentModalVersionLabel = useMemo(() => {
+    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V02_ENHANCED) {
+      return t('paymentModalVersionOptions.v02Enhanced');
+    }
+    if (paymentModalVersion === PAYMENT_MODAL_VERSIONS.V3) {
+      return t('paymentModalVersionOptions.v3');
+    }
+    return t('paymentModalVersionOptions.v4');
+  }, [paymentModalVersion, t]);
 
   const readyByValidation = useMemo(() => {
     if (!readyByAt) {
@@ -456,6 +482,45 @@ function OrderSummaryPanelComponent({
             </div>
           </div>
         </div>
+
+        {showPaymentModalVersionSelector && onPaymentModalVersionChange && (
+          <div className="px-3 pt-3">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3">
+              <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                    {t('paymentModalVersionLabel')}
+                  </p>
+                  <p className="text-[11px] text-sky-700/90">
+                    {t('paymentModalVersionHint')}
+                  </p>
+                </div>
+                <CmxSelectDropdown
+                  value={paymentModalVersion}
+                  onValueChange={(value) => onPaymentModalVersionChange(value as PaymentModalVersion)}
+                >
+                  <CmxSelectDropdownTrigger className="h-11 bg-white" dir={isRTL ? 'rtl' : 'ltr'}>
+                    <CmxSelectDropdownValue
+                      displayValue={paymentModalVersionLabel}
+                      placeholder={paymentModalVersionLabel}
+                    />
+                  </CmxSelectDropdownTrigger>
+                  <CmxSelectDropdownContent>
+                    <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V02_ENHANCED}>
+                      {t('paymentModalVersionOptions.v02Enhanced')}
+                    </CmxSelectDropdownItem>
+                    <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V3}>
+                      {t('paymentModalVersionOptions.v3')}
+                    </CmxSelectDropdownItem>
+                    <CmxSelectDropdownItem value={PAYMENT_MODAL_VERSIONS.V4}>
+                      {t('paymentModalVersionOptions.v4')}
+                    </CmxSelectDropdownItem>
+                  </CmxSelectDropdownContent>
+                </CmxSelectDropdown>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Submit Button */}
         <div className="p-3 bg-white border-t border-gray-200">

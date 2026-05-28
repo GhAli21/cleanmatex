@@ -4508,7 +4508,14 @@
       "notSet": "Not set",
       "viewCart": "View cart",
       "bags": "Bags",
-      "pieces": "Pieces"
+      "pieces": "Pieces",
+      "paymentModalVersionLabel": "Payment modal version",
+      "paymentModalVersionHint": "Demo tenants can switch between payment modal variants for comparison testing.",
+      "paymentModalVersionOptions": {
+        "v02Enhanced": "V02 Enhanced",
+        "v3": "V3",
+        "v4": "V4 (Default)"
+      }
     },
     "schedule": {
       "title": "Ready / Delivery date",
@@ -4985,6 +4992,25 @@
     "sessionExpired": "Your session has expired. Please sign in again.",
     "accountInactive": "Your account has been deactivated. Please contact your administrator.",
     "rememberMe": "Remember me",
+    "login": {
+      "brandAlt": "CleanMateX wordmark",
+      "eyebrow": "Laundry operations platform",
+      "title": "Sign in to CleanMateX",
+      "subtitle": "Welcome back. Enter your credentials to access your tenant workspace.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "admin@demo-laundry.example",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "forgotPassword": "Forgot your password?",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "tagline": "Smart. Fast. Spotless.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "invalidCredentials": "Invalid email or password. Please try again."
+    },
     "logout": {
       "signingOut": "Signing out...",
       "pleaseWait": "Please wait while we sign you out",

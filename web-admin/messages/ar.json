@@ -4508,7 +4508,14 @@
       "notSet": "غير محدد",
       "viewCart": "عرض السلة",
       "bags": "أكياس",
-      "pieces": "قطع"
+      "pieces": "قطع",
+      "paymentModalVersionLabel": "إصدار نافذة الدفع",
+      "paymentModalVersionHint": "يمكن للمستأجرين التجريبيين التبديل بين إصدارات نافذة الدفع للمقارنة والاختبار.",
+      "paymentModalVersionOptions": {
+        "v02Enhanced": "V02 المحسن",
+        "v3": "V3",
+        "v4": "V4 (الافتراضي)"
+      }
     },
     "schedule": {
       "title": "تاريخ الجاهزية / التوصيل",
@@ -4985,6 +4992,25 @@
     "sessionExpired": "انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.",
     "accountInactive": "تم تعطيل حسابك. يرجى التواصل مع مسؤول النظام.",
     "rememberMe": "تذكرني",
+    "login": {
+      "brandAlt": "شعار CleanMateX النصي",
+      "eyebrow": "منصة تشغيل المغاسل",
+      "title": "سجل الدخول إلى CleanMateX",
+      "subtitle": "مرحباً بعودتك. أدخل بياناتك للوصول إلى مساحة العمل الخاصة بالمستأجر.",
+      "emailLabel": "البريد الإلكتروني",
+      "emailPlaceholder": "admin@demo-laundry.example",
+      "passwordLabel": "كلمة المرور",
+      "passwordPlaceholder": "أدخل كلمة المرور",
+      "forgotPassword": "هل نسيت كلمة المرور؟",
+      "submit": "تسجيل الدخول",
+      "submitting": "جارٍ تسجيل الدخول...",
+      "noAccount": "ليس لديك حساب؟",
+      "signUp": "إنشاء حساب",
+      "tagline": "ذكي. سريع. بلا شوائب.",
+      "showPassword": "إظهار كلمة المرور",
+      "hidePassword": "إخفاء كلمة المرور",
+      "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة. حاول مرة أخرى."
+    },
     "logout": {
       "signingOut": "جاري تسجيل الخروج...",
       "pleaseWait": "يرجى الانتظار أثناء تسجيل الخروج",

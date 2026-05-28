@@ -22,6 +22,7 @@ import { useOrderEditDirty } from '../hooks/use-order-edit-dirty';
 import { useOrderEditCancel } from '../hooks/use-order-edit-cancel';
 import { useOrderWarnings } from '../hooks/use-order-warnings';
 import { useUnsavedChanges } from '../hooks/use-unsaved-changes';
+import { usePaymentModalVersion } from '../hooks/use-payment-modal-version';
 import { useKeyboardNavigation } from '@/lib/hooks/use-keyboard-navigation';
 import { useOrderPerformance } from '../hooks/use-order-performance';
 import { useRouter } from 'next/navigation';
@@ -53,6 +54,8 @@ import { useBilingual } from '@/lib/utils/bilingual';
 
 /**
  * New Order Content Component
+ *
+ * @returns Tenant-aware new order workspace with the payment modal selector for demo tenants.
  */
 export function NewOrderContent() {
     const t = useTranslations('newOrder');
@@ -110,7 +113,7 @@ export function NewOrderContent() {
         return m;
     }, [servicePrefs, packingPrefs, conditionCatalog, getBilingual]);
     const { trackItemAddition, trackModalOpen, resetMetrics } = useOrderPerformance();
-    const [activeTab, setActiveTab] = useState<'select' | 'details' | 'piecePreferences' | 'pieces' | 'customer'>('select');
+    const [requestedActiveTab, setRequestedActiveTab] = useState<'select' | 'details' | 'piecePreferences' | 'pieces' | 'customer'>('select');
     const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
     const [focusItemId, setFocusItemId] = useState<string | null>(null);
     const { isDesktop } = useBreakpoint();
@@ -122,6 +125,11 @@ export function NewOrderContent() {
     const { submitOrder: _submitOrder, saveOrderUpdate, isSubmitting } = useOrderSubmission();
     const { isDirty } = useOrderEditDirty();
     const { cancelEditOrder, isCancelling } = useOrderEditCancel(state.state.editingOrderId);
+    const {
+        paymentModalVersion,
+        setPaymentModalVersion,
+        showPaymentModalVersionSelector,
+    } = usePaymentModalVersion(currentTenant);
     const totals = useOrderTotals();
     const { warnings, hasErrors } = useOrderWarnings({ hasBranches: branches.length > 0 });
     const { calculateReadyBy } = useReadyByEstimation();
@@ -143,14 +151,15 @@ export function NewOrderContent() {
             : (t('warnings.unsavedChanges') || 'You have unsaved changes. Are you sure you want to leave?')
     );
 
-    useEffect(() => {
-        if (state.state.items.length === 0 && (activeTab === 'details' || activeTab === 'piecePreferences' || activeTab === 'pieces' || activeTab === 'customer')) {
-            setActiveTab('select');
+    const activeTab = useMemo(() => {
+        if (state.state.items.length === 0 && (requestedActiveTab === 'details' || requestedActiveTab === 'piecePreferences' || requestedActiveTab === 'pieces' || requestedActiveTab === 'customer')) {
+            return 'select';
         }
-        if (state.state.customer === null && activeTab === 'customer') {
-            setActiveTab('select');
+        if (state.state.customer === null && requestedActiveTab === 'customer') {
+            return 'select';
         }
-    }, [state.state.items.length, state.state.customer, activeTab]);
+        return requestedActiveTab;
+    }, [requestedActiveTab, state.state.items.length, state.state.customer]);
 
     const isRetailOnlyOrder = useMemo(
         () =>
@@ -173,7 +182,6 @@ export function NewOrderContent() {
                 if (r.data.length === 1) state.setBranchId(r.data[0].id);
             }
         }).finally(() => setBranchesLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -487,15 +495,15 @@ export function NewOrderContent() {
                 return;
             }
             if (event.altKey && !event.ctrlKey && !event.metaKey) {
-                if (key === '1') { event.preventDefault(); setActiveTab('select'); return; }
-                if (key === '2') { event.preventDefault(); setActiveTab('details'); return; }
+                if (key === '1') { event.preventDefault(); setRequestedActiveTab('select'); return; }
+                if (key === '2') { event.preventDefault(); setRequestedActiveTab('details'); return; }
                 if (trackByPiece && state.state.items.length > 0) {
-                    if (key === '3') { event.preventDefault(); setActiveTab('piecePreferences'); return; }
-                    if (key === '4') { event.preventDefault(); setActiveTab('pieces'); return; }
-                    if (key === '5' && state.state.customer !== null) { event.preventDefault(); setActiveTab('customer'); return; }
+                    if (key === '3') { event.preventDefault(); setRequestedActiveTab('piecePreferences'); return; }
+                    if (key === '4') { event.preventDefault(); setRequestedActiveTab('pieces'); return; }
+                    if (key === '5' && state.state.customer !== null) { event.preventDefault(); setRequestedActiveTab('customer'); return; }
                 } else if (key === '3' && state.state.customer !== null) {
                     event.preventDefault();
-                    setActiveTab('customer');
+                    setRequestedActiveTab('customer');
                     return;
                 }
             }
@@ -559,8 +567,11 @@ export function NewOrderContent() {
         // Edit item notes — navigate to pieces tab and focus the item
         onEditItemNotes: (itemId: string) => {
             setFocusItemId(itemId);
-            setActiveTab('pieces');
+            setRequestedActiveTab('pieces');
         },
+        showPaymentModalVersionSelector,
+        paymentModalVersion,
+        onPaymentModalVersionChange: setPaymentModalVersion,
     };
 
     return (
@@ -632,7 +643,7 @@ export function NewOrderContent() {
                                     role="tab"
                                     aria-selected={activeTab === 'select'}
                                     tabIndex={activeTab === 'select' ? 0 : -1}
-                                    onClick={() => setActiveTab('select')}
+                                    onClick={() => setRequestedActiveTab('select')}
                                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'select' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                 >
                                     1) {t('itemsGrid.selectItems') || 'Select Items'}
@@ -642,7 +653,7 @@ export function NewOrderContent() {
                                     role="tab"
                                     aria-selected={activeTab === 'details'}
                                     tabIndex={activeTab === 'details' ? 0 : -1}
-                                    onClick={() => setActiveTab('details')}
+                                    onClick={() => setRequestedActiveTab('details')}
                                     className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'details' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                 >
                                     {state.state.items.length > 0 && <Check className="w-4 h-4 shrink-0" aria-hidden="true" />}
@@ -655,7 +666,7 @@ export function NewOrderContent() {
                                             role="tab"
                                             aria-selected={activeTab === 'piecePreferences'}
                                             tabIndex={activeTab === 'piecePreferences' ? 0 : -1}
-                                            onClick={() => setActiveTab('piecePreferences')}
+                                            onClick={() => setRequestedActiveTab('piecePreferences')}
                                             className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'piecePreferences' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                         >
                                             3) {t('pieces.editItemPreferences')} ({totalPieces})
@@ -665,7 +676,7 @@ export function NewOrderContent() {
                                             role="tab"
                                             aria-selected={activeTab === 'pieces'}
                                             tabIndex={activeTab === 'pieces' ? 0 : -1}
-                                            onClick={() => setActiveTab('pieces')}
+                                            onClick={() => setRequestedActiveTab('pieces')}
                                             className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${activeTab === 'pieces' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                         >
                                             4) {t('pieces.editItemNotes') || 'Edit Item Notes'} ({totalPieces})
@@ -678,7 +689,7 @@ export function NewOrderContent() {
                                         role="tab"
                                         aria-selected={activeTab === 'customer'}
                                         tabIndex={activeTab === 'customer' ? 0 : -1}
-                                        onClick={() => setActiveTab('customer')}
+                                        onClick={() => setRequestedActiveTab('customer')}
                                         className={`flex-1 px-4 py-2 rounded-lg text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center gap-1.5 ${isRTL ? 'flex-row-reverse' : ''} ${activeTab === 'customer' ? 'bg-blue-600 text-white shadow-md' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                                     >
                                         <Check className="w-4 h-4 shrink-0" aria-hidden="true" />

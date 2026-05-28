@@ -3,252 +3,302 @@
 /**
  * Login Page
  *
- * User authentication with email and password
+ * Brand-led authentication entry point for tenant users.
  */
 
-import { useState, FormEvent } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
+import { Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react'
+import { useForm, useWatch } from 'react-hook-form'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/lib/auth/auth-context'
 import { validateLoginForm } from '@/lib/auth/validation'
-import type { FormErrors } from '@/types/auth'
+import { CmxCard, CmxCardContent, CmxCardHeader } from '@ui/primitives/cmx-card'
+import { Alert, AlertDescription, CmxButton, CmxCheckbox, CmxInput } from '@ui/primitives'
+import { CmxForm, CmxFormField } from '@ui/forms'
 
+interface LoginFormValues {
+  email: string
+  password: string
+  rememberMe: boolean
+}
+
+function getLoginErrorMessage(error: unknown, fallbackMessage: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallbackMessage
+}
+
+/**
+ * Render the redesigned tenant login screen with CleanMateX brand assets.
+ *
+ * @returns Full-screen login experience.
+ */
 export default function LoginPage() {
   const searchParams = useSearchParams()
   const { signIn, isLoading } = useAuth()
   const t = useTranslations('auth')
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState<FormErrors>({})
+  const form = useForm<LoginFormValues>({
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  })
+
   const [showPassword, setShowPassword] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
+  const [generalError, setGeneralError] = useState<string | null>(null)
 
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
   const isSessionExpired = searchParams.get('reason') === 'session_expired'
+  const rememberMe = useWatch({
+    control: form.control,
+    name: 'rememberMe',
+  })
+  const isSubmitting = form.formState.isSubmitting || isLoading
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (values: LoginFormValues) => {
+    setGeneralError(null)
+    form.clearErrors()
 
-    // Prevent multiple submissions
-    if (isSubmitting || isLoading) {
-      return
+    const validationErrors = validateLoginForm(values.email, values.password)
+
+    if (validationErrors.email) {
+      form.setError('email', {
+        type: 'manual',
+        message: validationErrors.email,
+      })
     }
 
-    // Validate form
-    const validationErrors = validateLoginForm(email, password)
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors)
-      return
+    if (validationErrors.password) {
+      form.setError('password', {
+        type: 'manual',
+        message: validationErrors.password,
+      })
     }
 
-    setErrors({})
-    setIsSubmitting(true)
+    if (validationErrors.email || validationErrors.password) {
+      return
+    }
 
     try {
-      await signIn(email, password, rememberMe)
-      // AuthContext handles redirect to dashboard
-      // Don't reset isSubmitting here - let redirect happen
-    } catch (error: any) {
-      console.error('Login error:', error)
-      setErrors({
-        general: error.message || 'Invalid email or password. Please try again.',
-      })
-      setIsSubmitting(false) // Reset only on error
+      await signIn(values.email, values.password, values.rememberMe)
+    } catch (error: unknown) {
+      setGeneralError(getLoginErrorMessage(error, t('login.invalidCredentials')))
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-            Sign in to CleanMateX
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Welcome back! Please enter your credentials.
-          </p>
-        </div>
+    <div className="relative min-h-screen overflow-hidden bg-[rgb(var(--cmx-background-rgb,255_255_255))]">
+      <div className="absolute inset-0 bg-gradient-to-br from-stone-100 via-amber-50 to-slate-100" />
+      <div className="absolute -left-20 top-10 h-72 w-72 rounded-full bg-[rgb(var(--cmx-primary-rgb,14_165_233))]/12 blur-3xl" />
+      <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-slate-900/8 blur-3xl" />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 opacity-70"
+        style={{
+          backgroundImage:
+            'linear-gradient(115deg, rgba(255,255,255,0.82) 0%, transparent 24%, rgba(255,255,255,0.3) 42%, transparent 62%, rgba(255,255,255,0.26) 100%)',
+        }}
+      />
 
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Session expired notice */}
-          {isSessionExpired && (
-            <div className="rounded-md bg-amber-50 p-4 border border-amber-200">
-              <p className="text-sm font-medium text-amber-800">
-                {t('sessionExpired')}
+      <div
+        aria-hidden="true"
+        className="absolute left-[-7rem] top-[8%] hidden h-[28rem] w-[28rem] rotate-[-10deg] opacity-12 lg:block"
+      >
+        <Image
+          src="/brand/cleanmatex-x-mark.png"
+          alt=""
+          fill
+          className="object-contain"
+          priority
+        />
+      </div>
+
+      <div
+        aria-hidden="true"
+        className="absolute bottom-[8%] right-[4%] hidden h-20 w-20 opacity-30 sm:block"
+      >
+        <Image
+          src="/brand/cleanmatex-x-mark.png"
+          alt=""
+          fill
+          className="object-contain"
+        />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <CmxCard className="relative w-full max-w-[31rem] overflow-hidden border-white/70 bg-white/82 shadow-[0_30px_80px_rgba(15,23,42,0.18)] backdrop-blur-xl">
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+          />
+
+          <CmxCardHeader className="space-y-6 px-6 pb-6 pt-8 text-center sm:px-8">
+            <div className="mx-auto w-full max-w-[17rem]">
+              <Image
+                src="/brand/cleanmatex-wordmark.png"
+                alt={t('login.brandAlt')}
+                width={920}
+                height={320}
+                className="h-auto w-full"
+                priority
+              />
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[rgb(var(--cmx-primary-rgb,14_165_233))]">
+                {t('login.eyebrow')}
+              </p>
+              <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                {t('login.title')}
+              </h1>
+              <p className="mx-auto max-w-sm text-sm leading-6 text-slate-600">
+                {t('login.subtitle')}
               </p>
             </div>
-          )}
-          {/* General Error */}
-          {errors.general && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg
-                    className="h-5 w-5 text-red-400"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-red-800">{errors.general}</p>
-                </div>
-              </div>
-            </div>
-          )}
+          </CmxCardHeader>
 
-          <div className="space-y-4 rounded-md shadow-sm">
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`appearance-none relative block w-full px-3 py-2 border ${
-                  errors.email ? 'border-red-300' : 'border-gray-300'
-                } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                placeholder="you@example.com"
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className={`appearance-none relative block w-full px-3 py-2 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm`}
-                  placeholder="Enter your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-              )}
-            </div>
-          </div>
-
-          {/* Remember me & Forgot password */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                {t('rememberMe')}
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <Link
-                href="/forgot-password"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Forgot your password?
-              </Link>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading || isSubmitting}
-              className="group relative flex w-full justify-center rounded-md border border-transparent bg-blue-600 py-2 px-4 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          <CmxCardContent className="px-6 pb-8 sm:px-8">
+            <CmxForm
+              form={form}
+              onSubmit={handleSubmit}
+              className="space-y-5"
             >
-              {(isLoading || isSubmitting) ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </div>
+              {isSessionExpired ? (
+                <Alert variant="warning" className="border-amber-200/80 bg-amber-50/90">
+                  <AlertDescription>{t('sessionExpired')}</AlertDescription>
+                </Alert>
+              ) : null}
 
-          {/* Sign up link */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link
-                href="/register"
-                className="font-medium text-blue-600 hover:text-blue-500"
+              {generalError ? (
+                <Alert variant="error" className="border-red-200/80 bg-red-50/90">
+                  <AlertDescription>{generalError}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              <CmxFormField<LoginFormValues>
+                name="email"
+                label={t('login.emailLabel')}
+                required
               >
-                Sign up
-              </Link>
-            </p>
-          </div>
-        </form>
+                {({ id, value, onBlur, onChange, invalid, describedBy }) => (
+                  <CmxInput
+                    id={id}
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    value={value ?? ''}
+                    onBlur={onBlur}
+                    onChange={(event) => {
+                      if (generalError) {
+                        setGeneralError(null)
+                      }
+                      onChange(event)
+                    }}
+                    aria-invalid={invalid}
+                    aria-describedby={describedBy}
+                    placeholder={t('login.emailPlaceholder')}
+                    leftIcon={<Mail className="h-4 w-4" />}
+                    className="h-12 rounded-xl border-white/70 bg-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                  />
+                )}
+              </CmxFormField>
+
+              <CmxFormField<LoginFormValues>
+                name="password"
+                label={t('login.passwordLabel')}
+                required
+              >
+                {({ id, value, onBlur, onChange, invalid, describedBy }) => (
+                  <div className="relative">
+                    <CmxInput
+                      id={id}
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={value ?? ''}
+                      onBlur={onBlur}
+                      onChange={(event) => {
+                        if (generalError) {
+                          setGeneralError(null)
+                        }
+                        onChange(event)
+                      }}
+                      aria-invalid={invalid}
+                      aria-describedby={describedBy}
+                      placeholder={t('login.passwordPlaceholder')}
+                      leftIcon={<LockKeyhole className="h-4 w-4" />}
+                      className="h-12 rounded-xl border-white/70 bg-white/78 pr-12 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
+                    />
+                    <CmxButton
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-2 top-[2.55rem] h-8 px-2 text-slate-500 hover:bg-white/70 hover:text-slate-700 rtl:left-2 rtl:right-auto"
+                      onClick={() => setShowPassword((current) => !current)}
+                      aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </CmxButton>
+                  </div>
+                )}
+              </CmxFormField>
+
+              <div className="flex items-center justify-between gap-4 text-sm">
+                <CmxCheckbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onChange={(event) =>
+                    form.setValue('rememberMe', event.target.checked, {
+                      shouldDirty: true,
+                    })
+                  }
+                  label={t('rememberMe')}
+                />
+
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-[rgb(var(--cmx-primary-rgb,14_165_233))] transition-colors hover:text-slate-900"
+                >
+                  {t('login.forgotPassword')}
+                </Link>
+              </div>
+
+              <CmxButton
+                type="submit"
+                disabled={isSubmitting}
+                loading={isSubmitting}
+                className="h-12 w-full rounded-xl bg-slate-900 text-base font-semibold text-white shadow-[0_18px_32px_rgba(15,23,42,0.18)] hover:bg-slate-800"
+              >
+                {isSubmitting ? t('login.submitting') : t('login.submit')}
+              </CmxButton>
+
+              <div className="space-y-2 pt-1 text-center">
+                <p className="text-sm text-slate-600">
+                  {t('login.noAccount')}{' '}
+                  <Link
+                    href="/register"
+                    className="font-semibold text-[rgb(var(--cmx-primary-rgb,14_165_233))] transition-colors hover:text-slate-900"
+                  >
+                    {t('login.signUp')}
+                  </Link>
+                </p>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">
+                  {t('login.tagline')}
+                </p>
+              </div>
+            </CmxForm>
+          </CmxCardContent>
+        </CmxCard>
       </div>
     </div>
   )
