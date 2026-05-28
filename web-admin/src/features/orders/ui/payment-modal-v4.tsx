@@ -14,7 +14,7 @@ import {
   X, CreditCard, Banknote, Package, FileText, CheckSquare,
   Tag, Loader2, ChevronDown, ChevronUp,
   Eye, EyeOff, Maximize2, Trash2, Wallet, UserRound,
-  ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info,
+  ArrowRightLeft, ShieldCheck, CircleAlert, EllipsisVertical, Plus, Info, RefreshCw,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRTL } from '@/lib/hooks/useRTL';
@@ -42,6 +42,9 @@ import {
   applyKeypadInput,
   deriveOutstandingPolicy,
   formatDecimalDraft,
+  getSuggestedStoredValueAmount,
+  getWalletLegMaxAmount,
+  walletLegExceedsBalance,
   parseDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
@@ -162,6 +165,25 @@ type CheckoutSettlementOption = {
 type CheckoutOptionsResponse = {
   paymentMethods: CheckoutSettlementOption[];
   customerCredits: CheckoutSettlementOption[];
+};
+
+type StoredValueSummaryResponse = {
+  wallet: {
+    walletId: string | null;
+    balance: number;
+    currencyCode: string | null;
+  };
+  advance: {
+    advanceId: string | null;
+    balance: number;
+    currencyCode: string | null;
+  };
+  creditNoteTotal: number;
+  creditNotes: Array<{
+    id: string;
+    remaining_balance: number;
+    currency_code: string;
+  }>;
 };
 
 interface PaymentModalProps {
@@ -416,6 +438,31 @@ export function PaymentModalV4({
 
   const checkoutMethods = checkoutOptions?.paymentMethods ?? [];
   const customerCreditOptions = checkoutOptions?.customerCredits ?? [];
+  const walletCreditOption = customerCreditOptions.find(
+    (option) =>
+      option.credit_application_type === 'WALLET' ||
+      option.payment_method_code === 'WALLET'
+  );
+
+  const {
+    data: storedValueSummary,
+    isLoading: storedValueLoading,
+    isFetching: storedValueFetching,
+    refetch: refetchStoredValueSummary,
+  } = useQuery<StoredValueSummaryResponse | null>({
+    queryKey: ['customer-stored-value-summary', tenantOrgId, customerId ?? ''],
+    queryFn: async () => {
+      if (!customerId) return null;
+      const res = await fetch(`/api/v1/customers/${customerId}/stored-value`);
+      if (!res.ok) {
+        throw new Error('FAILED_TO_FETCH_STORED_VALUE_SUMMARY');
+      }
+      const json = await res.json();
+      return (json.data ?? null) as StoredValueSummaryResponse | null;
+    },
+    enabled: open && !!customerId,
+    staleTime: 15_000,
+  });
 
   // Load tax rate, currency, and default tax profiles on open
   useEffect(() => {
@@ -716,6 +763,15 @@ export function PaymentModalV4({
     () => customerCreditOptions.map((option) => option.payment_method_code),
     [customerCreditOptions]
   );
+  const liveWalletBalance = walletCreditOption
+    ? storedValueSummary?.wallet.balance ?? walletCreditOption.available_balance ?? 0
+    : 0;
+  const liveWalletCurrencyCode =
+    storedValueSummary?.wallet.currencyCode ??
+    currencyCode;
+  const walletBalanceLoaded = !!walletCreditOption && !storedValueLoading;
+  const walletHasAvailableBalance = liveWalletBalance > 0.001;
+  const liveWalletBalanceDisplay = `${liveWalletCurrencyCode} ${formatAmount(liveWalletBalance)}`;
 
   const optionByMethodKey = useMemo(() => {
     const allOptions = [...realPaymentOptions, ...customerCreditOptions];
@@ -762,21 +818,31 @@ export function PaymentModalV4({
   }, []);
 
   const updateLeg = useCallback(<K extends keyof PaymentLeg>(idx: number, key: K, value: PaymentLeg[K]) => {
+    const currentLeg = paymentLegs[idx];
+    const normalizedValue =
+      key === 'amount' && typeof value === 'number' && currentLeg?.method === 'WALLET'
+        ? (Math.min(
+            value,
+            getWalletLegMaxAmount(liveWalletBalance, paymentLegs, idx, totals.finalTotal, decimalPlaces)
+          ) as PaymentLeg[K])
+        : value;
+    const shouldRemove = key === 'amount' && (!normalizedValue || Number(normalizedValue) <= 0);
+
     setIsDirtySinceOpen(true);
     setPaymentLegs((prev) => {
       const target = prev[idx];
       if (!target) return prev;
-      if (key === 'amount' && (!value || Number(value) <= 0)) {
+      if (shouldRemove) {
         return prev.filter((_, currentIdx) => currentIdx !== idx);
       }
       const updated = [...prev];
-      updated[idx] = { ...updated[idx], [key]: value };
+      updated[idx] = { ...updated[idx], [key]: normalizedValue };
       return updated;
     });
-    if (key === 'amount' && (!value || Number(value) <= 0)) {
+    if (shouldRemove) {
       setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
     }
-  }, []);
+  }, [decimalPlaces, liveWalletBalance, paymentLegs, totals.finalTotal]);
 
   const upsertSettlementLeg = useCallback(
     (option: CheckoutSettlementOption, defaultAmount: number) => {
@@ -851,14 +917,20 @@ export function PaymentModalV4({
         cmxMessage.info(t('customerCredits.referenceSelectionHint'));
         return;
       }
+      const availableBalance =
+        option.credit_application_type === 'WALLET'
+          ? liveWalletBalance
+          : option.available_balance ?? 0;
       const currentSettled = paymentLegs.reduce((sum, leg) => sum + (leg.amount || 0), 0);
-      const suggestedAmount = Math.min(
-        option.available_balance ?? 0,
-        Math.max(0, totals.finalTotal - currentSettled)
+      const suggestedAmount = getSuggestedStoredValueAmount(
+        availableBalance,
+        currentSettled,
+        totals.finalTotal,
+        decimalPlaces
       );
       upsertSettlementLeg(option, suggestedAmount);
     },
-    [paymentLegs, t, totals.finalTotal, upsertSettlementLeg]
+    [decimalPlaces, liveWalletBalance, paymentLegs, t, totals.finalTotal, upsertSettlementLeg]
   );
 
   const sanitizeAmountDiscountDraft = useCallback(
@@ -913,6 +985,12 @@ export function PaymentModalV4({
     () => payNowAmount + customerCreditAmount,
     [customerCreditAmount, payNowAmount]
   );
+  const walletLegEntry = useMemo(
+    () => settlementLegEntries.find(({ leg }) => leg.method === 'WALLET') ?? null,
+    [settlementLegEntries]
+  );
+  const walletLegExceedsLiveBalance = !!walletLegEntry &&
+    walletLegExceedsBalance(walletLegEntry.leg.amount || 0, liveWalletBalance);
 
   const remainingBalance = Math.max(0, totals.finalTotal - settledNowAmount);
   const changeAmount = Math.max(0, settledNowAmount - totals.finalTotal);
@@ -1056,6 +1134,15 @@ export function PaymentModalV4({
         cmxMessage.error(t('splitPayment.validation.checkNumberRequired'));
         return;
       }
+    }
+
+    if (walletLegExceedsLiveBalance) {
+      cmxMessage.error(
+        t('customerCredits.walletBalanceExceeded', {
+          amount: liveWalletBalanceDisplay,
+        })
+      );
+      return;
     }
 
     if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
@@ -1273,6 +1360,13 @@ export function PaymentModalV4({
     if (hasCheckLegWithoutNumber) {
       items.push(t('splitPayment.validation.checkNumberRequired'));
     }
+    if (walletLegExceedsLiveBalance) {
+      items.push(
+        t('customerCredits.walletBalanceExceeded', {
+          amount: liveWalletBalanceDisplay,
+        })
+      );
+    }
     if (paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
         paymentMethod !== PAYMENT_METHODS.INVOICE &&
         settledNowAmount <= 0) {
@@ -1298,6 +1392,7 @@ export function PaymentModalV4({
     errors.percentDiscount?.message,
     giftCardValidating,
     hasCheckLegWithoutNumber,
+    liveWalletBalanceDisplay,
     paymentMethod,
     pinRequired,
     promoCodeValidating,
@@ -1306,6 +1401,7 @@ export function PaymentModalV4({
     serverTotals?.creditLimit?.wouldExceed,
     settledNowAmount,
     t,
+    walletLegExceedsLiveBalance,
   ]);
 
   const submitBusy = loading || totalsLoading;
@@ -1363,6 +1459,17 @@ export function PaymentModalV4({
       return;
     }
 
+    if (walletLegExceedsLiveBalance) {
+      const walletLegIndex = paymentLegs.findIndex((leg) => leg.method === 'WALLET');
+      if (walletLegIndex >= 0) {
+        setActiveLegIndex(walletLegIndex);
+      }
+      window.setTimeout(() => {
+        scrollAndFocusTarget(amountInputRef.current, { selectText: true });
+      }, 90);
+      return;
+    }
+
     if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
       scrollAndFocusTarget(payOnCollectionPolicyButtonRef.current);
       return;
@@ -1384,6 +1491,7 @@ export function PaymentModalV4({
     giftCardPin,
     giftCardValidating,
     hasCheckLegWithoutNumber,
+    walletLegExceedsLiveBalance,
     paymentLegs,
     paymentMethod,
     pinRequired,
@@ -1583,32 +1691,91 @@ export function PaymentModalV4({
                         customerCreditOptions.map((option) => {
                           const optionLabel = getOptionDisplayName(option, option.payment_method_code);
                           const selected = !!paymentLegs.find((leg) => leg.method === option.payment_method_code);
-                          const disabled = option.requires_credit_reference_selection;
+                          const isWalletOption =
+                            option.credit_application_type === 'WALLET' ||
+                            option.payment_method_code === 'WALLET';
+                          const disabled = option.requires_credit_reference_selection ||
+                            (isWalletOption && (storedValueLoading || (walletBalanceLoaded && !walletHasAvailableBalance)));
+                          const balanceLabel = isWalletOption
+                            ? storedValueLoading
+                              ? t('customerCredits.loadingBalance')
+                              : walletHasAvailableBalance
+                                ? t('customerCredits.available', {
+                                    amount: liveWalletBalanceDisplay,
+                                  })
+                                : t('customerCredits.noWalletBalance')
+                            : disabled
+                              ? t('customerCredits.referenceSelectionHint')
+                              : t('customerCredits.available', {
+                                  amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
+                                });
                           return (
-                            <CmxButton
-                              key={option.id}
-                              type="button"
-                              variant="outline"
-                              size="lg"
-                              onClick={() => handleCustomerCreditSelect(option)}
-                              className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
-                            >
-                              <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
-                                <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
-                                  <Wallet className="h-5 w-5" />
-                                </span>
-                                <span className="flex min-w-0 flex-1 flex-col">
-                                  <span className="text-sm font-semibold">{optionLabel}</span>
-                                  <span className="mt-1 text-xs font-medium text-slate-500">
-                                    {disabled
-                                      ? t('customerCredits.referenceSelectionHint')
-                                      : t('customerCredits.available', {
-                                          amount: `${currencyCode} ${formatAmount(option.available_balance ?? 0)}`,
+                            <div key={option.id} className="space-y-2">
+                              {isWalletOption && (
+                                <div className={`flex items-center justify-between gap-2 px-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                  <Badge variant="secondary" className="rounded-full bg-cyan-50 text-cyan-700">
+                                    {t('customerCredits.liveBadge')}
+                                  </Badge>
+                                  <CmxButton
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => void refetchStoredValueSummary()}
+                                    disabled={storedValueFetching}
+                                    aria-label={t('customerCredits.refreshBalance')}
+                                    className="h-8 rounded-xl px-2 text-slate-500"
+                                  >
+                                    {storedValueFetching ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <RefreshCw className="h-4 w-4" />
+                                    )}
+                                  </CmxButton>
+                                </div>
+                              )}
+                              <CmxButton
+                                type="button"
+                                variant="outline"
+                                size="lg"
+                                disabled={disabled}
+                                onClick={() => handleCustomerCreditSelect(option)}
+                                className={`h-auto w-full justify-start rounded-2xl border px-4 py-4 ${selected ? 'border-cyan-500 bg-gradient-to-r from-cyan-50 to-white text-slate-900 shadow-sm' : 'border-slate-200 bg-white text-slate-900 hover:border-slate-300'} ${disabled ? 'opacity-75' : ''} ${isRTL ? 'flex-row-reverse' : ''}`}
+                              >
+                                <span className={`flex w-full items-start gap-3 ${isRTL ? 'flex-row-reverse text-right' : 'text-left'}`}>
+                                  <span className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200 bg-cyan-50 text-cyan-700">
+                                    <Wallet className="h-5 w-5" />
+                                  </span>
+                                  <span className="flex min-w-0 flex-1 flex-col">
+                                    <span className="text-sm font-semibold">{optionLabel}</span>
+                                    {isWalletOption && storedValueLoading ? (
+                                      <CmxSkeleton className="mt-2 h-4 w-40" />
+                                    ) : (
+                                      <span
+                                        className={`mt-1 text-xs font-medium ${
+                                          isWalletOption && !walletHasAvailableBalance && walletBalanceLoaded
+                                            ? 'text-amber-700'
+                                            : 'text-slate-500'
+                                        }`}
+                                      >
+                                        {balanceLabel}
+                                      </span>
+                                    )}
+                                    {isWalletOption && selected && !walletLegExceedsLiveBalance && (
+                                      <span className="mt-1 text-xs font-medium text-cyan-700">
+                                        {t('customerCredits.applied')}
+                                      </span>
+                                    )}
+                                    {isWalletOption && walletLegExceedsLiveBalance && (
+                                      <span className="mt-1 text-xs font-medium text-red-600">
+                                        {t('customerCredits.walletBalanceExceeded', {
+                                          amount: liveWalletBalanceDisplay,
                                         })}
+                                      </span>
+                                    )}
                                   </span>
                                 </span>
-                              </span>
-                            </CmxButton>
+                              </CmxButton>
+                            </div>
                           );
                         })
                       )}
@@ -1768,6 +1935,7 @@ export function PaymentModalV4({
                                 value={activeLeg?.amount ?? null}
                                 decimalPlaces={decimalPlaces}
                                 showZero
+                                aria-label={t('workspace.editingAmount') || 'Editing amount'}
                                 dir="ltr"
                                 onValueChange={(value) => {
                                   if (!activeLeg) return;
@@ -1779,6 +1947,21 @@ export function PaymentModalV4({
                               />
                             </div>
                           </div>
+                          {activeLeg?.method === 'WALLET' && (
+                            <div className={`rounded-xl border px-3 py-2 text-xs ${
+                              walletLegExceedsLiveBalance
+                                ? 'border-red-200 bg-red-50 text-red-700'
+                                : 'border-cyan-200 bg-cyan-50 text-cyan-800'
+                            }`}>
+                              {walletLegExceedsLiveBalance
+                                ? t('customerCredits.walletBalanceExceeded', {
+                                    amount: liveWalletBalanceDisplay,
+                                  })
+                                : t('customerCredits.available', {
+                                    amount: liveWalletBalanceDisplay,
+                                  })}
+                            </div>
+                          )}
                           <p className="text-xs text-slate-500">{t('workspace.keypadHint') || 'Use the keypad for fast touch entry, or type directly into the amount field.'}</p>
                         </CmxCardContent>
                       </CmxCard>

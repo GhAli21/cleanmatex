@@ -4661,7 +4661,12 @@
         "customerAdvance": "دفعة مقدمة للعميل",
         "customerCredit": "رصيد عميل",
         "loyaltyCredit": "رصيد الولاء",
+        "liveBadge": "مباشر",
+        "refreshBalance": "تحديث رصيد المحفظة",
+        "loadingBalance": "جارٍ تحميل رصيد المحفظة...",
+        "noWalletBalance": "لا يوجد رصيد محفظة متاح لهذا العميل.",
         "available": "المتاح: {amount}",
+        "walletBalanceExceeded": "مبلغ المحفظة يتجاوز الرصيد المتاح وقدره {amount}.",
         "applied": "يمكن تعديل هذا الرصيد من محرر المبلغ ولوحة الأرقام.",
         "empty": "لا توجد أرصدة متاحة لهذا العميل.",
         "referenceSelectionHint": "هذا الرصيد يحتاج إلى اختيار المصدر المحدد قبل تطبيقه."

@@ -6,7 +6,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requirePermission('stored_value:view')(request);
+  const auth = await requirePermission('stored_value:view_balances')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId } = auth;
 

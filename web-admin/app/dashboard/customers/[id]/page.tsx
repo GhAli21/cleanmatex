@@ -25,6 +25,7 @@ import type { PaymentMethodCode } from '@/lib/types/payment'
 import { CustomerOrdersSection } from '@features/customers/ui/customer-orders-section'
 import { CustomerAddressesSection } from '@features/customers/ui/customer-addresses-section'
 import { CustomerPreferencesTab } from '@features/customers/ui/customer-preferences-tab'
+import { CustomerStoredValueTab } from '@features/customers/ui/customer-stored-value-tab'
 import {
   CustomerB2BContactsTab,
   CustomerB2BContractsTab,
@@ -34,7 +35,7 @@ import UpgradeProfileModal from '@features/customers/ui/upgrade-profile-modal'
 import { CustomerEditModal } from '@features/orders/ui/customer-edit-modal'
 
 // Tab definitions
-type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
+type TabId = 'profile' | 'addresses' | 'orders' | 'loyalty' | 'preferences' | 'stored_value' | 'b2b_contacts' | 'b2b_contracts' | 'b2b_statements'
 
 interface Tab {
   id: TabId
@@ -71,6 +72,7 @@ export default function CustomerDetailPage() {
     { id: 'addresses', label: t('addresses'), icon: '📍' },
     { id: 'orders', label: t('orderHistory'), icon: '📦' },
     { id: 'preferences', label: t('preferences'), icon: '⚙️' },
+    { id: 'stored_value', label: t('storedValue.title'), icon: '💳' },
     { id: 'loyalty', label: t('loyalty'), icon: '⭐' },
   ]
 
@@ -464,6 +466,12 @@ export default function CustomerDetailPage() {
                 customerId={customer.id}
                 returnToCustomerUrl={`/dashboard/customers/${customer.id}`}
                 returnToCustomerLabel={[customer.firstName, customer.lastName].filter(Boolean).join(' ').trim() ? `Back to ${[customer.firstName, customer.lastName].filter(Boolean).join(' ')}` : undefined}
+              />
+            )}
+            {activeTab === 'stored_value' && currentTenant?.tenant_id && (
+              <CustomerStoredValueTab
+                customerId={customer.id}
+                tenantId={currentTenant.tenant_id}
               />
             )}
             {activeTab === 'loyalty' && (

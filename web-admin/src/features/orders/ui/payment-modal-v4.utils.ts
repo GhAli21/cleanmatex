@@ -89,3 +89,47 @@ export function deriveOutstandingPolicy(
   if (amountToCharge >= finalTotal - 0.001) return 'NONE';
   return preferred;
 }
+
+export function getLegOrderCap(
+  paymentLegs: Array<{ amount?: number }>,
+  idx: number,
+  finalTotal: number
+): number {
+  const otherLegsTotal = paymentLegs.reduce(
+    (sum, leg, legIdx) => sum + (legIdx === idx ? 0 : (leg.amount || 0)),
+    0
+  );
+
+  return Math.max(0, finalTotal - otherLegsTotal);
+}
+
+export function getSuggestedStoredValueAmount(
+  availableBalance: number,
+  currentSettled: number,
+  finalTotal: number,
+  decimalPlaces: number
+): number {
+  return Number.parseFloat(
+    Math.max(0, Math.min(availableBalance, finalTotal - currentSettled)).toFixed(decimalPlaces)
+  );
+}
+
+export function getWalletLegMaxAmount(
+  walletBalance: number,
+  paymentLegs: Array<{ amount?: number }>,
+  idx: number,
+  finalTotal: number,
+  decimalPlaces: number
+): number {
+  return Number.parseFloat(
+    Math.max(0, Math.min(walletBalance, getLegOrderCap(paymentLegs, idx, finalTotal))).toFixed(decimalPlaces)
+  );
+}
+
+export function walletLegExceedsBalance(
+  appliedAmount: number,
+  availableBalance: number,
+  epsilon = 0.001
+): boolean {
+  return appliedAmount - availableBalance > epsilon;
+}

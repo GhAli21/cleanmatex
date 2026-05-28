@@ -1,9 +1,12 @@
 import {
   applyKeypadInput,
   deriveOutstandingPolicy,
+  getSuggestedStoredValueAmount,
+  getWalletLegMaxAmount,
   sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
+  walletLegExceedsBalance,
 } from '@features/orders/ui/payment-modal-v4.utils';
 
 describe('payment-modal-v4 utils', () => {
@@ -39,5 +42,21 @@ describe('payment-modal-v4 utils', () => {
 
   it('syncs manual discount percent from amount', () => {
     expect(syncDiscountPercentFromAmount(200, 10)).toBe(5);
+  });
+
+  it('suggests a wallet leg amount capped by live balance and remaining due', () => {
+    expect(getSuggestedStoredValueAmount(40, 20, 100, 3)).toBe(40);
+    expect(getSuggestedStoredValueAmount(80, 40, 100, 3)).toBe(60);
+  });
+
+  it('caps wallet editing to the remaining order allocation for that leg', () => {
+    const paymentLegs = [{ amount: 60 }, { amount: 40 }];
+    expect(getWalletLegMaxAmount(50, paymentLegs, 1, 100, 3)).toBe(40);
+    expect(getWalletLegMaxAmount(50, paymentLegs, 0, 100, 3)).toBe(50);
+  });
+
+  it('detects when a live wallet refresh makes the applied leg invalid', () => {
+    expect(walletLegExceedsBalance(40, 20)).toBe(true);
+    expect(walletLegExceedsBalance(40, 40)).toBe(false);
   });
 });

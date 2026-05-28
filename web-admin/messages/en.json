@@ -4661,7 +4661,12 @@
         "customerAdvance": "Customer Advance",
         "customerCredit": "Customer Credit",
         "loyaltyCredit": "Loyalty Credit",
+        "liveBadge": "Live",
+        "refreshBalance": "Refresh wallet balance",
+        "loadingBalance": "Loading wallet balance...",
+        "noWalletBalance": "No wallet balance is available for this customer.",
         "available": "Available: {amount}",
+        "walletBalanceExceeded": "Wallet amount exceeds the available balance of {amount}.",
         "applied": "This stored-value leg can be adjusted from the amount editor and keypad.",
         "empty": "No customer credits are available for this customer.",
         "referenceSelectionHint": "This credit needs a specific source selection before it can be applied."
