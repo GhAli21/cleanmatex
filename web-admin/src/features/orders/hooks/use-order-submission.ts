@@ -292,6 +292,9 @@ export function useOrderSubmission() {
                     ...(payload.outstandingPolicy && {
                         outstandingPolicy: payload.outstandingPolicy,
                     }),
+                    ...(payload.cashDrawerSessionId && {
+                        cashDrawerSessionId: payload.cashDrawerSessionId,
+                    }),
                     ...(paymentData.b2bContractId && { b2bContractId: paymentData.b2bContractId }),
                     ...(paymentData.costCenterCode?.trim() && { costCenterCode: paymentData.costCenterCode.trim() }),
                     ...(paymentData.poNumber?.trim() && { poNumber: paymentData.poNumber.trim() }),
@@ -442,6 +445,7 @@ export function useOrderSubmission() {
                     // Determine error type
                     const isPermissionError = res.status === 403;
                     const isValidationError = res.status === 400;
+                    const isInfrastructureError = res.status === 422;
                     const isServerError = res.status >= 500;
 
                     // Format error messages
@@ -478,6 +482,23 @@ export function useOrderSubmission() {
                             errorMessage =
                                 t('errors.orderCreationFailed') + ' - Validation failed';
                         }
+                    } else if (isInfrastructureError) {
+                        const errorCode = typeof json.errorCode === 'string' ? json.errorCode : '';
+                        const infrastructureMessages: Record<string, string> = {
+                            CASH_DRAWER_SESSION_REQUIRED: t('payment.cashDrawer.messages.sessionRequired'),
+                            CASH_DRAWER_SESSION_SELECTION_REQUIRED: t('payment.cashDrawer.messages.selectionRequired'),
+                            CASH_DRAWER_SESSION_CLOSED: t('payment.cashDrawer.messages.sessionClosed'),
+                            CASH_TENDERED_LESS_THAN_AMOUNT: t('payment.messages.invalidAmount'),
+                            PAYMENT_REFERENCE_REQUIRED: t('payment.messages.validationErrors'),
+                            GATEWAY_NOT_CONFIGURED: t('errors.serverError', {
+                                default: 'A payment service configuration issue prevented this order from being submitted.',
+                            }),
+                        };
+
+                        errorMessage =
+                            infrastructureMessages[errorCode] ||
+                            errorMessage ||
+                            t('errors.orderCreationFailed');
                     } else if (isServerError) {
                         errorMessage = t('errors.serverError', {
                             default:

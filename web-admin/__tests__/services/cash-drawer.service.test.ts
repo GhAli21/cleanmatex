@@ -16,6 +16,7 @@
 const mockDrawerFindMany          = jest.fn();
 const mockDrawerFindFirstOrThrow  = jest.fn();
 const mockSessionFindFirst        = jest.fn();
+const mockSessionFindMany         = jest.fn();
 const mockSessionFindFirstOrThrow = jest.fn();
 const mockSessionCreate           = jest.fn();
 const mockSessionUpdate           = jest.fn();
@@ -31,6 +32,7 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     org_cash_drawer_sessions_mst: {
       findFirst:         (...a: unknown[]) => mockSessionFindFirst(...a),
+      findMany:          (...a: unknown[]) => mockSessionFindMany(...a),
       findFirstOrThrow:  (...a: unknown[]) => mockSessionFindFirstOrThrow(...a),
       create:            (...a: unknown[]) => mockSessionCreate(...a),
       update:            (...a: unknown[]) => mockSessionUpdate(...a),
@@ -57,7 +59,14 @@ jest.mock('@/lib/supabase/server', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import { getDrawers, openSession, closeSession, recordMovement } from '@/lib/services/cash-drawer.service';
+import {
+  getDrawers,
+  getDrawersWithCurrentSession,
+  openSession,
+  closeSession,
+  recordMovement,
+  resolveCashDrawerSessionId,
+} from '@/lib/services/cash-drawer.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // ---------------------------------------------------------------------------
@@ -105,6 +114,33 @@ describe('cash-drawer.service — getDrawers', () => {
     expect(mockDrawerFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ branch_id: 'branch-99' }) })
     );
+  });
+});
+
+describe('cash-drawer.service — getDrawersWithCurrentSession', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('attaches the current OPEN session snapshot to matching drawers', async () => {
+    mockDrawerFindMany.mockResolvedValue([makeDrawer()]);
+    mockSessionFindMany.mockResolvedValue([
+      {
+        id: SESSION,
+        cash_drawer_id: DRAWER,
+        session_no: 'SES-000001',
+        opened_at: new Date('2026-05-29T10:00:00.000Z'),
+        opening_float_amount: new Decimal('25'),
+      },
+    ]);
+
+    const result = await getDrawersWithCurrentSession(TENANT, 'branch-1');
+
+    expect(result).toHaveLength(1);
+    expect(result[0].currentSession).toEqual({
+      id: SESSION,
+      session_no: 'SES-000001',
+      opened_at: '2026-05-29T10:00:00.000Z',
+      opening_float_amount: 25,
+    });
   });
 });
 
@@ -207,5 +243,45 @@ describe('cash-drawer.service — recordMovement', () => {
     await expect(
       recordMovement(TENANT, DRAWER, { movementType: 'CASH_OUT', amount: 10, reason: 'x', performedBy: USER })
     ).rejects.toThrow(/No open session/i);
+  });
+});
+
+describe('cash-drawer.service — resolveCashDrawerSessionId', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns the explicitly requested session unchanged', async () => {
+    await expect(resolveCashDrawerSessionId(TENANT, 'branch-1', SESSION)).resolves.toBe(SESSION);
+    expect(mockSessionFindMany).not.toHaveBeenCalled();
+  });
+
+  it('auto-resolves when exactly one OPEN session exists in scope', async () => {
+    mockSessionFindMany.mockResolvedValue([{ id: SESSION }]);
+
+    await expect(resolveCashDrawerSessionId(TENANT, 'branch-1')).resolves.toBe(SESSION);
+    expect(mockSessionFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenant_org_id: TENANT,
+          branch_id: 'branch-1',
+          status: 'OPEN',
+        }),
+      })
+    );
+  });
+
+  it('throws when no OPEN session exists in scope', async () => {
+    mockSessionFindMany.mockResolvedValue([]);
+
+    await expect(resolveCashDrawerSessionId(TENANT, 'branch-1'))
+      .rejects
+      .toThrow('CASH_DRAWER_SESSION_REQUIRED');
+  });
+
+  it('throws when multiple OPEN sessions require cashier selection', async () => {
+    mockSessionFindMany.mockResolvedValue([{ id: 'session-1' }, { id: 'session-2' }]);
+
+    await expect(resolveCashDrawerSessionId(TENANT, 'branch-1'))
+      .rejects
+      .toThrow('CASH_DRAWER_SESSION_SELECTION_REQUIRED');
   });
 });

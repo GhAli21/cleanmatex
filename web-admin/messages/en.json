@@ -4655,6 +4655,35 @@
         "noMethods": "No POS-ready real payment methods are configured.",
         "defaultBadge": "Default"
       },
+      "cashDrawer": {
+        "title": "Cash Drawer",
+        "subtitle": "Cash payments must be attached to an open drawer session so the opening float and collected cash reconcile correctly.",
+        "selectLabel": "Active session",
+        "selectPlaceholder": "Select an open cash drawer session",
+        "selectedBadge": "Selected",
+        "openedAt": "Opened at",
+        "openingBalance": "Opening balance",
+        "refresh": "Refresh",
+        "openSession": "Open Session",
+        "dialogTitle": "Open Cash Drawer Session",
+        "dialogDescription": "Choose the drawer that will receive this cash collection and record its opening balance before submitting the order.",
+        "drawerLabel": "Cash drawer",
+        "drawerPlaceholder": "Select a cash drawer",
+        "openingBalanceLabel": "Opening balance",
+        "openingAction": "Opening...",
+        "messages": {
+          "loading": "Checking cash drawer sessions...",
+          "loadFailed": "The cash drawer list could not be loaded right now. Refresh and try again.",
+          "noDrawersConfigured": "No cash drawers are configured for this branch yet.",
+          "noOpenSession": "Open a cash drawer session before taking cash for this order.",
+          "sessionRequired": "Select the cash drawer session that should receive this payment.",
+          "selectionRequired": "More than one cash drawer session is open. Choose the correct session before submitting.",
+          "sessionClosed": "The selected cash drawer session is no longer open. Refresh and choose another session.",
+          "sessionOpened": "Cash drawer session opened successfully.",
+          "openFailed": "The cash drawer session could not be opened. Try again.",
+          "selectDrawer": "Select the cash drawer that should be opened."
+        }
+      },
       "customerCredits": {
         "title": "Customer Credits",
         "wallet": "Wallet",

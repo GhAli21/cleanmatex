@@ -1,5 +1,5 @@
 /**
- * Payment Detail Page â€” Server Component
+ * Payment Detail Page Server Component
  *
  * Fetches a single payment and passes it to the client component.
  * Route: /dashboard/internal_fin/payments/[id]

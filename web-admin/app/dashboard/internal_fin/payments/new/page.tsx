@@ -1,5 +1,5 @@
 /**
- * Create New Payment Page â€” Server Component
+ * Create New Payment Page Server Component
  *
  * Fetches available payment methods, payment types, and tenant currency;
  * renders the create form.

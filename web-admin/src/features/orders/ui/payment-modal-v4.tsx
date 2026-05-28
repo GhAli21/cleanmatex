@@ -167,6 +167,25 @@ type CheckoutOptionsResponse = {
   customerCredits: CheckoutSettlementOption[];
 };
 
+type CashDrawerSessionOption = {
+  id: string;
+  session_no: string;
+  opened_at: string | null;
+  opening_float_amount: number;
+};
+
+type CashDrawerOption = {
+  id: string;
+  branch_id: string | null;
+  drawer_name: string;
+  drawer_name2: string | null;
+  drawer_type: string;
+  currency_code: string;
+  requires_session: boolean;
+  opening_float_required: boolean;
+  currentSession: CashDrawerSessionOption | null;
+};
+
 type StoredValueSummaryResponse = {
   wallet: {
     walletId: string | null;
@@ -366,6 +385,12 @@ export function PaymentModalV4({
   const [activeLegIndex, setActiveLegIndex] = useState(0);
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+  const [selectedCashDrawerSessionId, setSelectedCashDrawerSessionId] = useState('');
+  const [cashDrawerDialogOpen, setCashDrawerDialogOpen] = useState(false);
+  const [cashDrawerToOpenId, setCashDrawerToOpenId] = useState('');
+  const [openingBalanceValue, setOpeningBalanceValue] = useState(0);
+  const [openingDrawerSession, setOpeningDrawerSession] = useState(false);
+  const [cashDrawerRequestError, setCashDrawerRequestError] = useState<string | null>(null);
 
   const [paymentLegs, setPaymentLegs] = useState<PaymentLeg[]>([]);
 
@@ -399,6 +424,7 @@ export function PaymentModalV4({
   const creditLimitCardRef = useRef<HTMLDivElement | null>(null);
   const creditLimitOverrideRef = useRef<HTMLInputElement | null>(null);
   const couponCardRef = useRef<HTMLDivElement | null>(null);
+  const cashDrawerCardRef = useRef<HTMLDivElement | null>(null);
   const methodsAnchorRef = useRef<HTMLDivElement | null>(null);
   const legsCardRef  = useRef<HTMLDivElement | null>(null);
   const focusTrapRef = useFocusTrap(open, { returnFocus: true });
@@ -434,6 +460,35 @@ export function PaymentModalV4({
     },
     enabled: open,
     staleTime: 60_000,
+  });
+
+  const {
+    data: cashDrawers = [],
+    isLoading: cashDrawersLoading,
+    isFetching: cashDrawersFetching,
+    error: cashDrawersError,
+    refetch: refetchCashDrawers,
+  } = useQuery<CashDrawerOption[]>({
+    queryKey: ['cash-drawers-checkout', tenantOrgId, branchId ?? ''],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (branchId) params.set('branchId', branchId);
+
+      const res = await fetch(`/api/v1/cash-drawers?${params.toString()}`);
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        throw new Error(
+          typeof json.error === 'string' && json.error.trim().length > 0
+            ? json.error
+            : 'FAILED_TO_LOAD_CASH_DRAWERS'
+        );
+      }
+
+      return (json.data ?? []) as CashDrawerOption[];
+    },
+    enabled: open,
+    staleTime: 30_000,
   });
 
   const checkoutMethods = checkoutOptions?.paymentMethods ?? [];
@@ -654,6 +709,12 @@ export function PaymentModalV4({
       setCouponOpen(false);
       setTaxPanelOpen(true);
       setPaymentNotesDialogOpen(false);
+      setSelectedCashDrawerSessionId('');
+      setCashDrawerDialogOpen(false);
+      setCashDrawerToOpenId('');
+      setOpeningBalanceValue(0);
+      setOpeningDrawerSession(false);
+      setCashDrawerRequestError(null);
       setCreditLimitOverride(false);
       setActiveLegIndex(0);
       setAmountDiscountFocused(false);
@@ -779,6 +840,26 @@ export function PaymentModalV4({
       allOptions.map((option) => [`${option.payment_method_code}::${option.gateway_code ?? ''}`, option])
     );
   }, [customerCreditOptions, realPaymentOptions]);
+
+  const getDrawerDisplayName = useCallback(
+    (drawer: CashDrawerOption) => isRTL ? (drawer.drawer_name2 || drawer.drawer_name) : drawer.drawer_name,
+    [isRTL]
+  );
+
+  const cashDrawerSessionChoices = useMemo(
+    () =>
+      cashDrawers.flatMap((drawer) =>
+        drawer.currentSession
+          ? [{ drawer, session: drawer.currentSession }]
+          : []
+      ),
+    [cashDrawers]
+  );
+
+  const canOpenNewCashDrawerSession = useMemo(
+    () => cashDrawers.some((drawer) => !drawer.currentSession),
+    [cashDrawers]
+  );
 
   const getMethodOption = useCallback(
     (methodCode: string, gatewayCode?: string | null) =>
@@ -994,6 +1075,157 @@ export function PaymentModalV4({
 
   const remainingBalance = Math.max(0, totals.finalTotal - settledNowAmount);
   const changeAmount = Math.max(0, settledNowAmount - totals.finalTotal);
+  const primaryMethodOption = getMethodOption(paymentMethod);
+  const cashDrawerRequired = useMemo(() => {
+    const selectedLegRequiresDrawer = settlementLegEntries.some(({ leg }) => {
+      const option = getMethodOption(leg.method, leg.gateway_code);
+      return !!option?.requires_cash_drawer;
+    });
+
+    if (selectedLegRequiresDrawer) {
+      return true;
+    }
+
+    return paymentLegs.length === 0 && !!primaryMethodOption?.requires_cash_drawer;
+  }, [getMethodOption, paymentLegs.length, primaryMethodOption, settlementLegEntries]);
+
+  const selectedCashDrawerChoice = useMemo(
+    () =>
+      cashDrawerSessionChoices.find(
+        ({ session }) => session.id === selectedCashDrawerSessionId
+      ) ?? null,
+    [cashDrawerSessionChoices, selectedCashDrawerSessionId]
+  );
+
+  const cashDrawerBlockingMessage = useMemo(() => {
+    if (!cashDrawerRequired) {
+      return null;
+    }
+
+    if (cashDrawersLoading || cashDrawersFetching) {
+      return t('cashDrawer.messages.loading');
+    }
+
+    if (cashDrawerRequestError) {
+      return cashDrawerRequestError;
+    }
+
+    if (cashDrawersError instanceof Error) {
+      return cashDrawersError.message || t('cashDrawer.messages.loadFailed');
+    }
+
+    if (cashDrawers.length === 0) {
+      return t('cashDrawer.messages.noDrawersConfigured');
+    }
+
+    if (cashDrawerSessionChoices.length === 0) {
+      return t('cashDrawer.messages.noOpenSession');
+    }
+
+    if (!selectedCashDrawerSessionId) {
+      return t('cashDrawer.messages.sessionRequired');
+    }
+
+    return null;
+  }, [
+    cashDrawerRequired,
+    cashDrawersLoading,
+    cashDrawersFetching,
+    cashDrawerRequestError,
+    cashDrawersError,
+    cashDrawers.length,
+    cashDrawerSessionChoices.length,
+    selectedCashDrawerSessionId,
+    t,
+  ]);
+
+  useEffect(() => {
+    if (!cashDrawerRequired) {
+      if (selectedCashDrawerSessionId) {
+        setSelectedCashDrawerSessionId('');
+      }
+      return;
+    }
+
+    if (selectedCashDrawerSessionId) {
+      const selectedStillExists = cashDrawerSessionChoices.some(
+        ({ session }) => session.id === selectedCashDrawerSessionId
+      );
+      if (!selectedStillExists) {
+        setSelectedCashDrawerSessionId('');
+      }
+      return;
+    }
+
+    if (cashDrawerSessionChoices.length === 1) {
+      setSelectedCashDrawerSessionId(cashDrawerSessionChoices[0].session.id);
+    }
+  }, [cashDrawerRequired, cashDrawerSessionChoices, selectedCashDrawerSessionId]);
+
+  const handleOpenCashDrawerDialog = useCallback(() => {
+    const preferredDrawerId =
+      selectedCashDrawerChoice?.drawer.id ??
+      cashDrawers.find((drawer) => !drawer.currentSession)?.id ??
+      cashDrawers[0]?.id ??
+      '';
+
+    setCashDrawerToOpenId(preferredDrawerId);
+    setOpeningBalanceValue(0);
+    setCashDrawerRequestError(null);
+    setCashDrawerDialogOpen(true);
+  }, [cashDrawers, selectedCashDrawerChoice]);
+
+  const handleCreateCashDrawerSession = useCallback(async () => {
+    if (!cashDrawerToOpenId) {
+      const message = t('cashDrawer.messages.selectDrawer');
+      setCashDrawerRequestError(message);
+      cmxMessage.error(message);
+      return;
+    }
+
+    setOpeningDrawerSession(true);
+    setCashDrawerRequestError(null);
+
+    try {
+      const res = await fetch(`/api/v1/cash-drawers/${cashDrawerToOpenId}/open-session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCSRFHeader(csrfToken),
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          openingBalance: openingBalanceValue,
+        }),
+      });
+
+      const json = await res.json().catch(() => ({}));
+      const message =
+        typeof json.error === 'string' && json.error.trim().length > 0
+          ? json.error
+          : t('cashDrawer.messages.openFailed');
+
+      if (!res.ok || !json.success) {
+        setCashDrawerRequestError(message);
+        cmxMessage.error(message);
+        return;
+      }
+
+      const createdSession = json.data as CashDrawerSessionOption;
+      setSelectedCashDrawerSessionId(createdSession.id);
+      setCashDrawerDialogOpen(false);
+      setCashDrawerToOpenId('');
+      setOpeningBalanceValue(0);
+      await refetchCashDrawers();
+      cmxMessage.success(t('cashDrawer.messages.sessionOpened'));
+    } catch {
+      const message = t('cashDrawer.messages.openFailed');
+      setCashDrawerRequestError(message);
+      cmxMessage.error(message);
+    } finally {
+      setOpeningDrawerSession(false);
+    }
+  }, [cashDrawerToOpenId, csrfToken, openingBalanceValue, refetchCashDrawers, t]);
 
   // Promo handlers
   const handleValidatePromoCode = async () => {
@@ -1150,6 +1382,12 @@ export function PaymentModalV4({
       return;
     }
 
+    if (cashDrawerRequired && cashDrawerBlockingMessage) {
+      scrollAndFocusTarget(cashDrawerCardRef.current);
+      cmxMessage.error(cashDrawerBlockingMessage);
+      return;
+    }
+
     const payload = {
       amountToCharge: settledNowAmount,
       totals: {
@@ -1170,6 +1408,9 @@ export function PaymentModalV4({
       }),
       outstandingPolicy: effectiveOutstandingPolicy,
       creditLimitOverride: creditLimitOverride || undefined,
+      ...(cashDrawerRequired && selectedCashDrawerSessionId && {
+        cashDrawerSessionId: selectedCashDrawerSessionId,
+      }),
       ...(settlementLegEntries.length > 0 && {
         paymentLegs: settlementLegEntries.map(({ leg }) => leg),
       }),
@@ -1188,7 +1429,13 @@ export function PaymentModalV4({
       cmxMessage.error(t('partialPayment.validation.amountMustBePositive'));
       return;
     }
-    onSubmit(submissionData, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
+    onSubmit(submissionData, {
+      ...parsed.data,
+      creditLimitOverride: creditLimitOverride || undefined,
+      ...(cashDrawerRequired && selectedCashDrawerSessionId && {
+        cashDrawerSessionId: selectedCashDrawerSessionId,
+      }),
+    });
   };
 
   // Payment icon helper
@@ -1367,6 +1614,9 @@ export function PaymentModalV4({
         })
       );
     }
+    if (cashDrawerBlockingMessage) {
+      items.push(cashDrawerBlockingMessage);
+    }
     if (paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
         paymentMethod !== PAYMENT_METHODS.INVOICE &&
         settledNowAmount <= 0) {
@@ -1393,6 +1643,7 @@ export function PaymentModalV4({
     giftCardValidating,
     hasCheckLegWithoutNumber,
     liveWalletBalanceDisplay,
+    cashDrawerBlockingMessage,
     paymentMethod,
     pinRequired,
     promoCodeValidating,
@@ -1470,6 +1721,11 @@ export function PaymentModalV4({
       return;
     }
 
+    if (cashDrawerBlockingMessage) {
+      scrollAndFocusTarget(cashDrawerCardRef.current);
+      return;
+    }
+
     if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
       scrollAndFocusTarget(payOnCollectionPolicyButtonRef.current);
       return;
@@ -1492,6 +1748,7 @@ export function PaymentModalV4({
     giftCardValidating,
     hasCheckLegWithoutNumber,
     walletLegExceedsLiveBalance,
+    cashDrawerBlockingMessage,
     paymentLegs,
     paymentMethod,
     pinRequired,
@@ -1676,6 +1933,146 @@ export function PaymentModalV4({
                     </CmxCardContent>
                   </CmxCard>
                   </div>
+
+                  {cashDrawerRequired && (
+                    <div ref={cashDrawerCardRef}>
+                      <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
+                        <CmxCardHeader className="border-b border-slate-100 pb-2">
+                          <CmxCardTitle className={`flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <Banknote className="h-4 w-4" />
+                            {t('cashDrawer.title')}
+                          </CmxCardTitle>
+                        </CmxCardHeader>
+                        <CmxCardContent className="space-y-3 pt-4">
+                          <p className="text-xs leading-5 text-slate-500">{t('cashDrawer.subtitle')}</p>
+
+                          {cashDrawersLoading ? (
+                            <div className="space-y-2">
+                              <CmxSkeleton className="h-10 w-full" />
+                              <CmxSkeleton className="h-20 w-full" />
+                            </div>
+                          ) : (
+                            <>
+                              {cashDrawerRequestError && (
+                                <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                                  {cashDrawerRequestError}
+                                </div>
+                              )}
+
+                              {cashDrawerSessionChoices.length > 1 && (
+                                <div className="space-y-2">
+                                  <label className={`block text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {t('cashDrawer.selectLabel')}
+                                  </label>
+                                  <CmxSelectDropdown
+                                    value={selectedCashDrawerSessionId}
+                                    onValueChange={(value) => {
+                                      setSelectedCashDrawerSessionId(value);
+                                      setCashDrawerRequestError(null);
+                                    }}
+                                    emptyLabel={t('cashDrawer.selectPlaceholder')}
+                                  >
+                                    <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
+                                      <CmxSelectDropdownValue
+                                        displayValue={
+                                          selectedCashDrawerChoice
+                                            ? `${getDrawerDisplayName(selectedCashDrawerChoice.drawer)} • ${selectedCashDrawerChoice.session.session_no}`
+                                            : t('cashDrawer.selectPlaceholder')
+                                        }
+                                        placeholder={t('cashDrawer.selectPlaceholder')}
+                                      />
+                                    </CmxSelectDropdownTrigger>
+                                    <CmxSelectDropdownContent>
+                                      {cashDrawerSessionChoices.map(({ drawer, session }) => (
+                                        <CmxSelectDropdownItem key={session.id} value={session.id}>
+                                          {`${getDrawerDisplayName(drawer)} • ${session.session_no}`}
+                                        </CmxSelectDropdownItem>
+                                      ))}
+                                    </CmxSelectDropdownContent>
+                                  </CmxSelectDropdown>
+                                </div>
+                              )}
+
+                              {selectedCashDrawerChoice ? (
+                                <div className="rounded-2xl border border-cyan-200 bg-cyan-50/80 p-3">
+                                  <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                    <div className={`${isRTL ? 'text-right' : 'text-left'}`}>
+                                      <p className="text-sm font-semibold text-slate-900">
+                                        {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
+                                      </p>
+                                      <p className="text-xs text-slate-500">
+                                        {selectedCashDrawerChoice.session.session_no}
+                                      </p>
+                                    </div>
+                                    <Badge variant="secondary" className="rounded-full bg-cyan-600 px-2.5 py-1 text-[11px] font-semibold text-white">
+                                      {t('cashDrawer.selectedBadge')}
+                                    </Badge>
+                                  </div>
+                                  <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                                    <div>
+                                      <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
+                                      <p>{selectedCashDrawerChoice.session.opened_at
+                                        ? new Intl.DateTimeFormat(isRTL ? 'ar' : 'en-US', {
+                                            year: 'numeric',
+                                            month: 'short',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                          }).format(new Date(selectedCashDrawerChoice.session.opened_at))
+                                        : '—'}</p>
+                                    </div>
+                                    <div>
+                                      <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
+                                      <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className={`rounded-2xl border px-3 py-3 text-xs ${
+                                  cashDrawerSessionChoices.length === 0
+                                    ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600'
+                                }`}>
+                                  {cashDrawerSessionChoices.length === 0
+                                    ? t('cashDrawer.messages.noOpenSession')
+                                    : t('cashDrawer.messages.sessionRequired')}
+                                </div>
+                              )}
+                            </>
+                          )}
+
+                          <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <CmxButton
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void refetchCashDrawers()}
+                              disabled={cashDrawersFetching}
+                              className="rounded-xl"
+                            >
+                              {cashDrawersFetching ? (
+                                <Loader2 className="me-1 h-4 w-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="me-1 h-4 w-4" />
+                              )}
+                              {t('cashDrawer.refresh')}
+                            </CmxButton>
+                            <CmxButton
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={handleOpenCashDrawerDialog}
+                              disabled={!canOpenNewCashDrawerSession}
+                              className="rounded-xl"
+                            >
+                              <Plus className="me-1 h-4 w-4" />
+                              {t('cashDrawer.openSession')}
+                            </CmxButton>
+                          </div>
+                        </CmxCardContent>
+                      </CmxCard>
+                    </div>
+                  )}
 
                   <CmxCard className="overflow-hidden border-slate-200 bg-white/95 shadow-sm">
                     <CmxCardHeader className="border-b border-slate-100 pb-2">
@@ -2582,6 +2979,97 @@ export function PaymentModalV4({
               </CmxDialogFooter>
             </form>
           </div>
+        </CmxDialogContent>
+      </CmxDialog>
+
+      <CmxDialog open={cashDrawerDialogOpen} onOpenChange={setCashDrawerDialogOpen}>
+        <CmxDialogContent className="max-w-lg">
+          <CmxDialogHeader>
+            <CmxDialogTitle>{t('cashDrawer.dialogTitle')}</CmxDialogTitle>
+          </CmxDialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-slate-600">{t('cashDrawer.dialogDescription')}</p>
+
+            {cashDrawerRequestError && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {cashDrawerRequestError}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('cashDrawer.drawerLabel')}
+              </label>
+              <CmxSelectDropdown
+                value={cashDrawerToOpenId}
+                onValueChange={(value) => {
+                  setCashDrawerToOpenId(value);
+                  setCashDrawerRequestError(null);
+                }}
+                emptyLabel={t('cashDrawer.drawerPlaceholder')}
+              >
+                <CmxSelectDropdownTrigger dir={isRTL ? 'rtl' : 'ltr'}>
+                  <CmxSelectDropdownValue
+                    displayValue={
+                      (() => {
+                        const selectedDrawer = cashDrawers.find((drawer) => drawer.id === cashDrawerToOpenId);
+                        return selectedDrawer
+                          ? getDrawerDisplayName(selectedDrawer)
+                          : t('cashDrawer.drawerPlaceholder');
+                      })()
+                    }
+                    placeholder={t('cashDrawer.drawerPlaceholder')}
+                  />
+                </CmxSelectDropdownTrigger>
+                <CmxSelectDropdownContent>
+                  {cashDrawers
+                    .filter((drawer) => !drawer.currentSession)
+                    .map((drawer) => (
+                      <CmxSelectDropdownItem key={drawer.id} value={drawer.id}>
+                        {getDrawerDisplayName(drawer)}
+                      </CmxSelectDropdownItem>
+                    ))}
+                </CmxSelectDropdownContent>
+              </CmxSelectDropdown>
+            </div>
+
+            <div className="space-y-2">
+              <label className={`block text-sm font-medium text-slate-900 ${isRTL ? 'text-right' : 'text-left'}`}>
+                {t('cashDrawer.openingBalanceLabel')}
+              </label>
+              <CmxMoneyField
+                value={openingBalanceValue}
+                decimalPlaces={decimalPlaces}
+                showZero
+                aria-label={t('cashDrawer.openingBalanceLabel')}
+                placeholder={formatAmount(0)}
+                onValueChange={(value) => {
+                  setOpeningBalanceValue(value);
+                  setCashDrawerRequestError(null);
+                }}
+              />
+            </div>
+          </div>
+          <CmxDialogFooter className={`flex gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
+            <CmxButton type="button" variant="outline" onClick={() => setCashDrawerDialogOpen(false)}>
+              {tCommon('cancel')}
+            </CmxButton>
+            <CmxButton
+              type="button"
+              onClick={() => void handleCreateCashDrawerSession()}
+              disabled={openingDrawerSession || !cashDrawerToOpenId}
+              className="bg-gradient-to-r from-teal-600 to-cyan-700"
+            >
+              {openingDrawerSession ? (
+                <>
+                  <Loader2 className="me-2 h-4 w-4 animate-spin" />
+                  {t('cashDrawer.openingAction')}
+                </>
+              ) : (
+                t('cashDrawer.openSession')
+              )}
+            </CmxButton>
+          </CmxDialogFooter>
         </CmxDialogContent>
       </CmxDialog>
 

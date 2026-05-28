@@ -124,6 +124,8 @@ export const newOrderPaymentPayloadSchema = z
     currencyExRate: z.number().min(0).optional(),
     /** B2B: When true, admin overrides credit limit (warn mode). Passed to create-with-payment. */
     creditLimitOverride: z.boolean().optional(),
+    /** OPEN cash-drawer session chosen for any cash-taking legs in this checkout. */
+    cashDrawerSessionId: z.string().uuid().optional(),
     /** Split-payment legs. When provided, each leg amount must be > 0 and the sum must equal finalTotal. */
     paymentLegs: z.array(paymentLegSchema).optional(),
   })

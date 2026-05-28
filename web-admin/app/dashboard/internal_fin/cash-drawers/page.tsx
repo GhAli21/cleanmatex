@@ -103,7 +103,7 @@ export default async function CashDrawersPage() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm">
                       {openSession ? (
                         <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-                          Open â€” {openSession.session_no}
+                          Open [{openSession.session_no}]
                         </span>
                       ) : (
                         <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">

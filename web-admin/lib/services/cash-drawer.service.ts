@@ -20,6 +20,29 @@ export interface SessionCloseResult {
   isBalanced: boolean;
 }
 
+export interface CashDrawerWithCurrentSession {
+  id: string;
+  tenant_org_id: string;
+  branch_id: string | null;
+  drawer_code: string;
+  drawer_name: string;
+  drawer_name2: string | null;
+  drawer_type: string;
+  currency_code: string;
+  requires_session: boolean;
+  opening_float_required: boolean;
+  max_cash_limit: number | null;
+  assigned_terminal_id: string | null;
+  is_active: boolean;
+  rec_status: number;
+  currentSession: {
+    id: string;
+    session_no: string;
+    opened_at: string | null;
+    opening_float_amount: number;
+  } | null;
+}
+
 export async function getDrawers(tenantId: string, branchId?: string) {
   return withTenantContext(tenantId, () =>
     prisma.org_cash_drawers_mst.findMany({
@@ -32,6 +55,133 @@ export async function getDrawers(tenantId: string, branchId?: string) {
       orderBy: { created_at: 'asc' },
     })
   );
+}
+
+/**
+ * Returns active drawers together with their current OPEN session, if one exists.
+ *
+ * Why:
+ * POS cash collection needs a single place to show whether a cashier can take
+ * cash immediately or must open a session first. Returning the drawer and its
+ * open session in one payload keeps the client logic deterministic.
+ *
+ * @param tenantId Tenant identifier used to scope drawer and session lookups.
+ * @param branchId Optional branch filter so POS checkout resolves branch-local drawers first.
+ * @returns Active drawers plus a nullable `currentSession` snapshot for each drawer.
+ *
+ * @example
+ * await getDrawersWithCurrentSession('tenant-001', 'branch-001');
+ */
+export async function getDrawersWithCurrentSession(
+  tenantId: string,
+  branchId?: string
+): Promise<CashDrawerWithCurrentSession[]> {
+  const drawers = await getDrawers(tenantId, branchId);
+
+  if (drawers.length === 0) {
+    return [];
+  }
+
+  const sessions = await withTenantContext(tenantId, () =>
+    prisma.org_cash_drawer_sessions_mst.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        cash_drawer_id: { in: drawers.map((drawer) => drawer.id) },
+        status: 'OPEN',
+        is_active: true,
+      },
+      select: {
+        id: true,
+        cash_drawer_id: true,
+        session_no: true,
+        opened_at: true,
+        opening_float_amount: true,
+      },
+    })
+  );
+
+  const sessionMap = new Map(sessions.map((session) => [session.cash_drawer_id, session]));
+
+  return drawers.map((drawer) => {
+    const currentSession = sessionMap.get(drawer.id) ?? null;
+
+    return {
+      id: drawer.id,
+      tenant_org_id: drawer.tenant_org_id,
+      branch_id: drawer.branch_id,
+      drawer_code: drawer.drawer_code,
+      drawer_name: drawer.drawer_name,
+      drawer_name2: drawer.drawer_name2,
+      drawer_type: drawer.drawer_type,
+      currency_code: drawer.currency_code,
+      requires_session: drawer.requires_session,
+      opening_float_required: drawer.opening_float_required,
+      max_cash_limit: drawer.max_cash_limit != null ? Number(drawer.max_cash_limit) : null,
+      assigned_terminal_id: drawer.assigned_terminal_id,
+      is_active: drawer.is_active,
+      rec_status: drawer.rec_status,
+      currentSession: currentSession
+        ? {
+            id: currentSession.id,
+            session_no: currentSession.session_no,
+            opened_at: currentSession.opened_at?.toISOString() ?? null,
+            opening_float_amount: Number(currentSession.opening_float_amount),
+          }
+        : null,
+    };
+  });
+}
+
+/**
+ * Resolves the OPEN cash-drawer session to use for a cash-taking flow.
+ *
+ * Why:
+ * order submission can safely auto-bind a session only when there is exactly
+ * one valid OPEN session in scope. Multiple open sessions require an explicit
+ * cashier choice to avoid routing cash into the wrong drawer.
+ *
+ * @param tenantId Tenant identifier used to scope session lookups.
+ * @param branchId Optional branch filter so branch checkout resolves only local sessions.
+ * @param requestedSessionId Session ID already chosen by the caller, if any.
+ * @returns The provided session ID or the single resolvable OPEN session ID.
+ * @throws Error('CASH_DRAWER_SESSION_REQUIRED') when no OPEN session exists in scope.
+ * @throws Error('CASH_DRAWER_SESSION_SELECTION_REQUIRED') when multiple OPEN sessions exist in scope.
+ *
+ * @example
+ * await resolveCashDrawerSessionId('tenant-001', 'branch-001');
+ */
+export async function resolveCashDrawerSessionId(
+  tenantId: string,
+  branchId?: string,
+  requestedSessionId?: string
+): Promise<string> {
+  if (requestedSessionId) {
+    return requestedSessionId;
+  }
+
+  const sessions = await withTenantContext(tenantId, () =>
+    prisma.org_cash_drawer_sessions_mst.findMany({
+      where: {
+        tenant_org_id: tenantId,
+        status: 'OPEN',
+        is_active: true,
+        ...(branchId ? { branch_id: branchId } : {}),
+      },
+      select: { id: true },
+      orderBy: [{ opened_at: 'desc' }],
+      take: 2,
+    })
+  );
+
+  if (sessions.length === 0) {
+    throw new Error('CASH_DRAWER_SESSION_REQUIRED');
+  }
+
+  if (sessions.length > 1) {
+    throw new Error('CASH_DRAWER_SESSION_SELECTION_REQUIRED');
+  }
+
+  return sessions[0].id;
 }
 
 export async function openSession(

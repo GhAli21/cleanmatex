@@ -29,6 +29,7 @@ import { addVoucherLine } from '@/lib/services/voucher-line.service';
 import { postAndWireBizVoucher, getVoucherLinkedEffects } from '@/lib/services/voucher-wiring.service';
 import { buildSettlementPlan, validateSettlementPlan } from '@/lib/services/order-settlement-planner.service';
 import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config.service';
+import { resolveCashDrawerSessionId } from '@/lib/services/cash-drawer.service';
 import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
@@ -451,6 +452,18 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     };
   });
 
+  // Respect an explicitly chosen session first; only auto-resolve when the
+  // checkout payload omitted it and there is exactly one OPEN session in scope.
+  const cashDrawerSessionId = settlementLegs.some(
+    ({ settlementOption }) => settlementOption.requiresCashDrawer
+  )
+    ? await resolveCashDrawerSessionId(
+        tenantId,
+        branchId,
+        input.cashDrawerSessionId ?? undefined
+      )
+    : undefined;
+
   // orderId placeholder — plan is built before tx1 so we use '' here;
   // voucher lines use result.orderId directly after tx1.
   const plan = buildSettlementPlan(
@@ -460,7 +473,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     settlementLegs,
     paymentLegs,
     paymentTypeCodeForOrder,
-    input.cashDrawerSessionId ?? undefined
+    cashDrawerSessionId
   );
 
   await validateSettlementPlan(plan, tenantId);
@@ -838,7 +851,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       taxLines,
       discountLines:       financialDiscountLines,
       settlementLegs,
-      cashDrawerSessionId: input.cashDrawerSessionId ?? undefined,
+      cashDrawerSessionId,
       settledBy:           userId,
       wiringMode:          plan.shouldCreateReceiptVoucher,
     })
