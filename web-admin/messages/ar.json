@@ -5024,9 +5024,12 @@
     "rememberMe": "تذكرني",
     "login": {
       "brandAlt": "شعار CleanMateX النصي",
+      "mascotAlt": "التميمة الخاصة بتسجيل دخول CleanMateX",
       "eyebrow": "منصة تشغيل المغاسل",
       "title": "سجل الدخول إلى CleanMateX",
       "subtitle": "مرحباً بعودتك. أدخل بياناتك للوصول إلى مساحة العمل الخاصة بالمستأجر.",
+      "languageEnglish": "الإنجليزية",
+      "languageArabic": "العربية",
       "emailLabel": "البريد الإلكتروني",
       "emailPlaceholder": "admin@demo-laundry.example",
       "passwordLabel": "كلمة المرور",

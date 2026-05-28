@@ -5024,9 +5024,12 @@
     "rememberMe": "Remember me",
     "login": {
       "brandAlt": "CleanMateX wordmark",
+      "mascotAlt": "CleanMateX login mascot",
       "eyebrow": "Laundry operations platform",
       "title": "Sign in to CleanMateX",
       "subtitle": "Welcome back. Enter your credentials to access your tenant workspace.",
+      "languageEnglish": "English",
+      "languageArabic": "Arabic",
       "emailLabel": "Email address",
       "emailPlaceholder": "admin@demo-laundry.example",
       "passwordLabel": "Password",
