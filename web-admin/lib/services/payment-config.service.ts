@@ -61,6 +61,7 @@ interface PaymentMethodSourceRow {
   eff_default_creation_status: string | null;
   eff_allow_status_override: boolean | null;
   eff_requires_reference: boolean | null;
+  eff_requires_cash_drawer: boolean | null;
   eff_is_user_id_required: boolean | null;
 }
 
@@ -184,7 +185,9 @@ function mapTenantMethodRow(row: PaymentMethodSourceRow): OrgPaymentMethodConfig
     supports_change_return: row.supports_change_return,
     requires_reference: row.eff_requires_reference ?? row.requires_reference,
     requires_approval: row.requires_approval,
-    requires_cash_drawer: row.requires_cash_drawer,
+    // Same NULL-inherits-sys pattern as requires_reference (migration 0328 made
+    // both columns nullable; sys row carries the default for that method code).
+    requires_cash_drawer: row.eff_requires_cash_drawer ?? row.requires_cash_drawer,
     requires_terminal: row.requires_terminal,
     min_amount: toNumber(row.min_amount),
     max_amount: toNumber(row.max_amount),
@@ -248,6 +251,10 @@ function mergeBranchOverrides(
       branchOverride.allowed_for_refund ?? row.allowed_for_refund,
     requires_cash_drawer:
       branchOverride.cash_drawer_required ?? row.requires_cash_drawer,
+    // Branch override wins over sys fallback: if the branch sets cash_drawer_required
+    // explicitly, eff_* must reflect that so mapTenantMethodRow doesn't fall back to sys.
+    eff_requires_cash_drawer:
+      branchOverride.cash_drawer_required ?? row.eff_requires_cash_drawer,
     requires_terminal:
       branchOverride.terminal_required ?? row.requires_terminal,
     min_amount: branchOverride.min_amount ?? row.min_amount,
@@ -306,6 +313,7 @@ async function loadTenantPaymentMethodRows({
             default_creation_status: true,
             allow_status_override: true,
             requires_reference: true,
+            requires_cash_drawer: true,
             is_user_id_required: true,
           },
         },
@@ -325,7 +333,8 @@ async function loadTenantPaymentMethodRows({
           is_globally_disabled: boolean;
           default_creation_status: string;
           allow_status_override: boolean;
-          requires_reference: boolean;
+          requires_reference: boolean | null;
+          requires_cash_drawer: boolean | null;
           is_user_id_required: boolean;
         };
         sys_payment_gateway_cd: {
@@ -390,6 +399,8 @@ async function loadTenantPaymentMethodRows({
         row.allow_status_override ?? row.sys_payment_method_cd?.allow_status_override ?? null,
       eff_requires_reference:
         row.requires_reference ?? row.sys_payment_method_cd?.requires_reference ?? null,
+      eff_requires_cash_drawer:
+        row.requires_cash_drawer ?? row.sys_payment_method_cd?.requires_cash_drawer ?? null,
       eff_is_user_id_required:
         row.is_user_id_required ?? row.sys_payment_method_cd?.is_user_id_required ?? null,
     }));

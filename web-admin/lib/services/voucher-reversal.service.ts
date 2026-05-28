@@ -135,10 +135,16 @@ export async function reverseBizVoucher(
       }
 
       // Mark original voucher as REVERSED
+      // B8 fix (RESUME doc 2026-05-28): sync legacy `status` to 'voided' on the
+      // REVERSED transition. posting_status stays at its previous value
+      // ('POSTED') because the wiring effect WAS posted to downstream — what
+      // changed is the business state, not the posting/wiring history. The
+      // CHECK constraint chk_fin_posting_status has no 'REVERSED' value.
       await db.org_fin_vouchers_mst.updateMany({
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status:  VOUCHER_STATUS.REVERSED,
+          status:          'voided',
           reversed_at:     now,
           reversed_by:     userId,
           reversal_reason: reason,

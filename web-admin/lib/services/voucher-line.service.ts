@@ -118,6 +118,12 @@ export async function addVoucherLine(
           branch_id:              input.branch_id ?? null,
           cash_drawer_session_id: input.cash_drawer_session_id ?? null,
           payment_method_code:    input.payment_method_code ?? null,
+          // B5 fix: these three were dropped by the original create payload, leaving
+          // org_payment_method_id NULL on every voucher line and breaking the wiring
+          // handler's link from voucher line -> org_order_payments_dtl.org_payment_method_id.
+          org_payment_method_id:  input.org_payment_method_id ?? null,
+          payment_terminal_id:    input.payment_terminal_id ?? null,
+          credit_application_type: input.credit_application_type ?? null,
           amount:                 input.amount,
           currency_code:          input.currency_code ?? null,
           currency_ex_rate:       input.currency_ex_rate ?? null,

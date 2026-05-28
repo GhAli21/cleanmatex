@@ -615,7 +615,12 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
                                                                                         currency_code:   serverTotals.currencyCode,
                                                                                                 total_amount:    plan.immediateSettlementAmount,
                                                                                                         branch_id:       branchId,
-                                                                                                                idempotency_key: `${input.idempotencyKey}_vch`,
+                                                                                                                // P3 Fix A (B6 RESUME doc): sub-keys must be prefixed with result.orderId,
+                                                                                                                // NOT input.idempotencyKey. The route owns root-key idempotency; if the
+                                                                                                                // route created a fresh orderId (e.g. attempt 1 failed before its root
+                                                                                                                // key landed), the voucher sub-keys MUST also be fresh — otherwise the
+                                                                                                                // voucher header from attempt 1 leaks back via the unique constraint.
+                                                                                                                idempotency_key: `${result.orderId}_vch`,
                                                                                                                       }, userId)
                                                                                                                           );
 
@@ -646,7 +651,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           card_brand_code:        leg.cardBrandCode,
           card_last4:             leg.cardLast4,
           auth_code:              leg.authCode,
-          idempotency_key:        `${input.idempotencyKey}_vl_rp_${leg.legIndex}`,
+          idempotency_key:        `${result.orderId}_vl_rp_${leg.legIndex}`,
         }, userId)
       );
     }
@@ -664,7 +669,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
           amount:                  leg.amount,
           currency_code:           leg.currencyCode,
           credit_application_type: leg.creditType,
-          idempotency_key:         `${input.idempotencyKey}_vl_ca_${leg.legIndex}`,
+          idempotency_key:         `${result.orderId}_vl_ca_${leg.legIndex}`,
         }, userId)
       );
     }
@@ -674,7 +679,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         tenantId,
         voucher.id,
         userId,
-        `${input.idempotencyKey}_vch_post`
+        `${result.orderId}_vch_post`
       )
     );
   }

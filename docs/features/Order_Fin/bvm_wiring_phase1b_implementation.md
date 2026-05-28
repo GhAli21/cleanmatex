@@ -212,6 +212,16 @@ Added to `sys_payment_method_cd` (NOT NULL with system defaults) and `org_paymen
 | `default_creation_status` | TEXT | `COMPLETED` / `PENDING` / `PROCESSING` at payment creation |
 | `allow_status_override` | BOOLEAN | User can pass custom `paymentStatus` in request |
 | `is_user_id_required` | BOOLEAN | Require cashier identity recorded |
+
+---
+
+## 2026-05-28 — Step 8 Manual QA verdict + Round 2 Stabilization
+
+**QA result: 8/10 scenarios pass, 2/10 fail.** Failures: Scenario 1 (CASH — cash drawer wiring skipped) and Scenario 7 (BANK_TRANSFER retry — orphan voucher data-integrity bug). Both root-caused via Supabase MCP investigation and fixed in Round 2 (see `IMPLEMENTATION_STATUS.md` § 2026-05-28 — Round 2 Stabilization).
+
+**Migration:** `supabase/migrations/0328_fix_payment_method_drift_and_voucher_status.sql` (P1 + B8 backfill + orphan voucher cleanup).
+
+**Phase 1B is now stable.** Phase 2 entry plan extended with UI debt + schema debt sections covering the items deferred from Round 2.
 | `allow_outside_integration` | BOOLEAN | Allowed via external API |
 
 Resolved at query time via `COALESCE(org.column, sys.column)` in `checkout-config.service.ts`.

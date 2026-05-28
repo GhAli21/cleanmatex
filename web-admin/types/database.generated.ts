@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -15492,8 +15492,8 @@ export type Database = {
           rec_order: number | null
           rec_status: number
           requires_approval: boolean
-          requires_cash_drawer: boolean
-          requires_reference: boolean
+          requires_cash_drawer: boolean | null
+          requires_reference: boolean | null
           requires_terminal: boolean
           settlement_type_code: string | null
           supports_change_return: boolean
@@ -15552,8 +15552,8 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           requires_approval?: boolean
-          requires_cash_drawer?: boolean
-          requires_reference?: boolean
+          requires_cash_drawer?: boolean | null
+          requires_reference?: boolean | null
           requires_terminal?: boolean
           settlement_type_code?: string | null
           supports_change_return?: boolean
@@ -15612,8 +15612,8 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number
           requires_approval?: boolean
-          requires_cash_drawer?: boolean
-          requires_reference?: boolean
+          requires_cash_drawer?: boolean | null
+          requires_reference?: boolean | null
           requires_terminal?: boolean
           settlement_type_code?: string | null
           supports_change_return?: boolean
@@ -26504,8 +26504,8 @@ export type Database = {
           rec_order: number | null
           rec_status: number | null
           replacement_code: string | null
-          requires_cash_drawer: boolean
-          requires_reference: boolean
+          requires_cash_drawer: boolean | null
+          requires_reference: boolean | null
           updated_at: string | null
           updated_by: string | null
           updated_info: string | null
@@ -26540,8 +26540,8 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number | null
           replacement_code?: string | null
-          requires_cash_drawer?: boolean
-          requires_reference?: boolean
+          requires_cash_drawer?: boolean | null
+          requires_reference?: boolean | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null
@@ -26576,8 +26576,8 @@ export type Database = {
           rec_order?: number | null
           rec_status?: number | null
           replacement_code?: string | null
-          requires_cash_drawer?: boolean
-          requires_reference?: boolean
+          requires_cash_drawer?: boolean | null
+          requires_reference?: boolean | null
           updated_at?: string | null
           updated_by?: string | null
           updated_info?: string | null

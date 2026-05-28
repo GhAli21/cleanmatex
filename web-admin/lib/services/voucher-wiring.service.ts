@@ -144,10 +144,17 @@ export async function postAndWireBizVoucher(
       const now = new Date();
 
       // 7. Mark voucher POSTED
+      // B8 fix (RESUME doc 2026-05-28): org_fin_vouchers_mst has three columns
+      // describing the same concept (legacy `status`, Phase-1A `voucher_status`,
+      // wiring `posting_status`). Historically only voucher_status was updated,
+      // leaving 30+ rows with mismatched legacy + posting columns. Sync all
+      // three on every POSTED transition. Migration 0328 backfilled history.
       await db.org_fin_vouchers_mst.updateMany({
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status:     VOUCHER_STATUS.POSTED,
+          status:             'issued',      // legacy column: issued = posted/finalized
+          posting_status:     'POSTED',      // wiring lifecycle column
           total_amount:       recalcTotal,
           paid_amount:        recalcTotal,
           outstanding_amount: 0,

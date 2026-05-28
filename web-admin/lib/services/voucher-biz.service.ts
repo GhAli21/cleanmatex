@@ -72,9 +72,27 @@ export async function createBizVoucher(
     if (input.idempotency_key) {
       const existing = await prisma.org_fin_vouchers_mst.findFirst({
         where:  { tenant_org_id: tenantOrgId, idempotency_key: input.idempotency_key },
-        select: { id: true, voucher_no: true },
+        select: { id: true, voucher_no: true, source_ref_id: true, order_id: true },
       });
-      if (existing) return { id: existing.id, voucher_no: existing.voucher_no };
+      if (existing) {
+        // P3 Fix B (B6 RESUME doc): defense-in-depth. If the cached voucher's
+        // source_ref_id (or order_id) does NOT match the new request, the caller
+        // is reusing an idempotency key across different resources — refuse
+        // rather than silently returning a voucher tied to a different order.
+        // The orchestrator's Fix A (orderId-prefixed sub-keys) makes this
+        // unreachable in the happy path; this guard exists so future callers
+        // can't reintroduce the orphan-voucher data-integrity bug.
+        const requestedRefId   = input.source_ref_id ?? null;
+        const requestedOrderId = input.order_id ?? null;
+        const refIdMismatch    =
+          requestedRefId   !== null && existing.source_ref_id !== null && existing.source_ref_id !== requestedRefId;
+        const orderIdMismatch  =
+          requestedOrderId !== null && existing.order_id      !== null && existing.order_id      !== requestedOrderId;
+        if (refIdMismatch || orderIdMismatch) {
+          throw new Error('IDEMPOTENCY_KEY_REUSED_FOR_DIFFERENT_RESOURCE');
+        }
+        return { id: existing.id, voucher_no: existing.voucher_no };
+      }
     }
 
     return prisma.$transaction(async (tx) => {
@@ -314,12 +332,21 @@ export async function cancelBizVoucher(
     if (!voucher) throw new Error(`Voucher ${voucherId} not found`);
     assertVoucherIsMutable(voucher.voucher_status as never, 'cancel');
 
+    const now = new Date();
+    // B8 fix (RESUME doc 2026-05-28): sync legacy `status` + wiring
+    // `posting_status` alongside Phase-1A `voucher_status` so the three
+    // columns can't drift. posting_status='NOT_POSTED' is correct for a
+    // cancelled-while-DRAFT voucher (CHECK constraint allows only
+    // NOT_POSTED | POSTED | POSTING_FAILED — no CANCELLED value).
     await prisma.org_fin_vouchers_mst.updateMany({
       where: { id: voucherId, tenant_org_id: tenantOrgId },
       data: {
         voucher_status:  VOUCHER_STATUS.CANCELLED,
+        status:          'voided',
+        posting_status:  'NOT_POSTED',
         reversal_reason: reason,
-        updated_at:      new Date(),
+        voided_at:       now,
+        updated_at:      now,
         updated_by:      userId,
       },
     });

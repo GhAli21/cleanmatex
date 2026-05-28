@@ -6201,7 +6201,8 @@ model org_payment_methods_cf {
   supports_partial_payment      Boolean                         @default(true)
   supports_overpayment          Boolean                         @default(false)
   supports_change_return        Boolean                         @default(false)
-  requires_reference            Boolean                         @default(false)
+  // BVM Phase 1B D9: NULL = inherit from sys_payment_method_cd.requires_reference (migration 0328)
+  requires_reference            Boolean?
   requires_approval             Boolean                         @default(false)
   min_amount                    Decimal?                        @db.Decimal(19, 4)
   max_amount                    Decimal?                        @db.Decimal(19, 4)
@@ -6230,7 +6231,8 @@ model org_payment_methods_cf {
   platform_disabled_by          String?
   settlement_type_code          String?
   credit_application_type       String?
-  requires_cash_drawer          Boolean                         @default(false)
+  // BVM Phase 1B D9: NULL = inherit from sys_payment_method_cd.requires_cash_drawer (migration 0328)
+  requires_cash_drawer          Boolean?
   requires_terminal             Boolean                         @default(false)
   min_order_amount              Decimal?                        @db.Decimal(19, 4)
   max_order_amount              Decimal?                        @db.Decimal(19, 4)

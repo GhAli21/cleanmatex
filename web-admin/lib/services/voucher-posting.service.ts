@@ -90,11 +90,17 @@ export async function postBizVoucher(
 
       const now = new Date();
 
-      // 7. Mark voucher as POSTED — do NOT touch posting_status
+      // 7. Mark voucher as POSTED
+      // B8 fix (RESUME doc 2026-05-28): keep legacy `status` and wiring
+      // `posting_status` in sync with `voucher_status` so the three columns
+      // can't drift. (Prior comment said "do NOT touch posting_status" — that
+      // was the source of the drift; posting_status='POSTED' is now correct.)
       await db.org_fin_vouchers_mst.updateMany({
         where: { id: voucherId, tenant_org_id: tenantOrgId },
         data: {
           voucher_status: VOUCHER_STATUS.POSTED,
+          status:         'issued',
+          posting_status: 'POSTED',
           total_amount:   recalcTotal,
           paid_amount:    recalcTotal,
           outstanding_amount: 0,

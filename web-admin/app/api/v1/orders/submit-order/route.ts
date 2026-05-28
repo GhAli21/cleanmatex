@@ -84,12 +84,14 @@ export async function POST(request: NextRequest) {
   // ─── Idempotency fast-path + payload-hash conflict detection (D11 + S2) ───
   // Route owns idempotency; orchestrator is deliberately unaware.
   //
-  // 1. Compute SHA-256 of the canonicalized request body
-  // 2. Look up org_idempotency_keys by (tenant, key, resource_type='submit_order')
-  //    - hash matches → return cached order (200)
-  //    - hash differs → 409 IDEMPOTENCY_CONFLICT
-  //    - no row (legacy path) → fall through to order-level fast-path
-  // 3. After a fresh successful submit, store hash + resource_id for future retries.
+  // P3 (B6 RESUME doc 2026-05-28): the hash row is now stored BEFORE the
+  // orchestrator runs (with resource_id=null as a placeholder). The placeholder
+  // is updated to the real order id on success, and left as-is on failure.
+  // Why: a previous failure with no row let attempt 2 fall through and create
+  // a NEW orderId. Combined with stale voucher sub-keys (now fixed via Fix A),
+  // that produced the orphan voucher data-integrity bug. Pre-storing the
+  // claim makes failed attempts visible to the next retry instead of silently
+  // producing a fresh order.
   const currentHash = hashPayload(input);
   const idempotencyRecord = await findIdempotencyHash(
     tenantId,
@@ -128,6 +130,47 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+
+    // P3: hash row exists but resource_id is null → the prior attempt EITHER
+    // (a) succeeded and the post-success update of resource_id failed (partial
+    //     success — recoverable via the legacy match-by-key fallback below), or
+    // (b) failed before completing. We can't distinguish without checking the
+    // order table for a row carrying this idempotency_key.
+    const recoveredOrder = await prisma.$queryRaw<{ id: string; order_no: string; current_status: string }[]>`
+      SELECT id, order_no, current_status
+      FROM org_orders_mst
+      WHERE tenant_org_id   = ${tenantId}::uuid
+        AND idempotency_key = ${input.idempotencyKey}
+      LIMIT 1
+    `;
+    if (recoveredOrder.length > 0) {
+      // Heal the orphaned hash row by attaching the real resource_id.
+      await storeIdempotencyHash(
+        tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE, currentHash, recoveredOrder[0].id
+      ).catch(() => { /* non-fatal */ });
+      return NextResponse.json({
+        success: true,
+        data: {
+          order: {
+            id:            recoveredOrder[0].id,
+            orderNo:       recoveredOrder[0].order_no,
+            currentStatus: recoveredOrder[0].current_status,
+          },
+          fromCache: true,
+        },
+      });
+    }
+
+    // True failed-prior-attempt. Refuse the retry so the caller surfaces the
+    // failure to the user — they must issue a new idempotency key to retry.
+    return NextResponse.json(
+      {
+        success: false,
+        errorCode: 'PRIOR_ATTEMPT_FAILED',
+        error: 'A previous submission with this idempotency key did not complete. Refresh and retry with a new key.',
+      },
+      { status: 409 }
+    );
   }
 
   // Legacy path: prior submits may have written only org_orders_mst.idempotency_key
@@ -153,6 +196,26 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // ─── Pre-orchestrator placeholder ───
+  // Stake a claim on this idempotency key BEFORE running the orchestrator.
+  // If the orchestrator fails, this row remains with resource_id=null and the
+  // next retry hits the PRIOR_ATTEMPT_FAILED branch above. If storing this
+  // claim itself fails, the request must abort — proceeding without the claim
+  // is what allowed the B6 orphan voucher to be created.
+  try {
+    await storeIdempotencyHash(
+      tenantId, input.idempotencyKey, IDEMPOTENCY_RESOURCE, currentHash, null
+    );
+  } catch (err) {
+    logger.error('[submit-order] failed to stake idempotency claim — aborting before orchestrator',
+      err instanceof Error ? err : new Error(String(err)),
+      { feature: 'orders', action: 'submit-order' });
+    return NextResponse.json(
+      { success: false, errorCode: 'IDEMPOTENCY_CLAIM_FAILED', error: 'Could not reserve idempotency key. Please retry.' },
+      { status: 500 }
+    );
+  }
+
   // 5. Resolve branch
   const branchId = await resolveOrderBranch(tenantId, input.branchId ?? undefined);
 
@@ -175,9 +238,10 @@ export async function POST(request: NextRequest) {
         AND tenant_org_id = ${tenantId}::uuid
     `.catch(() => {/* non-fatal — idempotency key store failure does not fail the request */});
 
-    // Store payload hash + resource_id for future S2 conflict detection.
-    // Failure here is non-fatal — the order succeeded; future retries will fall
-    // through to the legacy match-by-key path until this row appears.
+    // P3: update the pre-orchestrator placeholder hash row with the real
+    // resource_id. Failure is non-fatal — the order succeeded, and the
+    // recovery branch above (hash row exists + resource_id null + order
+    // exists by key) will heal the row on the next retry.
     await storeIdempotencyHash(
       tenantId,
       input.idempotencyKey,
@@ -185,7 +249,7 @@ export async function POST(request: NextRequest) {
       currentHash,
       result.order.id
     ).catch((err: unknown) => {
-      logger.warn?.('[submit-order] failed to store idempotency hash', {
+      logger.warn?.('[submit-order] failed to update idempotency hash with resource_id', {
         feature: 'orders', action: 'submit-order',
         error: err instanceof Error ? err.message : String(err),
       });

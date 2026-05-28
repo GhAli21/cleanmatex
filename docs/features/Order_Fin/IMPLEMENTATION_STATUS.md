@@ -110,3 +110,50 @@ Renamed from `current_status.md` for parity with `docs/features/AR_Invoice/IMPLE
 3. **Legacy idempotency rows** — production rows written before S2 don't have `payload_hash`. They are honored as match-by-key only (no conflict check). Future submits will write the hash.
 
 See `BVM_PHASE_2_ENTRY_PLAN.md` for next session's scope.
+
+---
+
+## 2026-05-28 — Round 2 Stabilization (post-manual-QA)
+
+**Context:** Step 8 manual smoke testing of the 2026-05-28 Round 1 stabilization surfaced 5 new bugs (B5–B9). Investigation against the remote DB via Supabase MCP confirmed root causes; this round applied the forward fixes plus a corrective data migration. Resume doc: `C:\Users\JHNLP\.claude\plans\sleepy-zooming-goose-RESUME.md`.
+
+### Bugs fixed
+
+| ID | Severity | Fix |
+|---|---|---|
+| B5 | Cash drawer wiring skipped | Migration 0328 part 1: synced `org_payment_methods_cf.requires_cash_drawer` + `requires_reference` from sys defaults (migration 0325 wrote a no-op COALESCE because the org columns were NOT NULL DEFAULT FALSE). Dropped NOT NULL + DEFAULT on both columns so future tenant rows can use COALESCE. Service-level: added `requires_cash_drawer` sys fallback in `payment-config.service.ts` mirroring `requires_reference`. Voucher-line bug: `addVoucherLine.create()` was dropping `org_payment_method_id`, `payment_terminal_id`, `credit_application_type` from the payload — added them. |
+| B6 | Idempotency sub-key bleed (data integrity) | **Fix A:** voucher sub-keys (`_vch`, `_vl_rp_N`, `_vl_ca_N`, `_vch_post`) in `order-submit-orchestrator.service.ts` are now prefixed with `result.orderId` instead of `input.idempotencyKey` — so a failed attempt's voucher row can't leak across to a fresh retry order. **Fix B:** `createBizVoucher` now compares cached voucher's `source_ref_id`/`order_id` against the new request and throws `IDEMPOTENCY_KEY_REUSED_FOR_DIFFERENT_RESOURCE` on mismatch (belt-and-suspenders). **Route fix:** `submit-order` route now stakes an idempotency-hash placeholder BEFORE the orchestrator runs; failed attempts surface as `PRIOR_ATTEMPT_FAILED` on retry (with a recovery branch for partial-success). |
+| B7 | `allow_status_override` not honored | **Documented Phase 2** — `paymentLegSchema` has no `paymentStatus` field; planner explicitly defers the override. No code change. |
+| B8 | Voucher status triple-column drift | Migration 0328 part 2: backfilled 30 historical rows. Code-sync added in `voucher-wiring.service.ts` (POSTED), `voucher-posting.service.ts` (POSTED), `voucher-biz.service.ts` cancelBizVoucher (CANCELLED), `voucher-reversal.service.ts` (REVERSED). All transitions now keep `voucher_status` + legacy `status` + `posting_status` in sync. Mapping: DRAFT→draft/NOT_POSTED, POSTED→issued/POSTED, CANCELLED→voided/NOT_POSTED, REVERSED→voided + posting_status unchanged. |
+| B9 | Frontend UI gaps | **Deferred to Phase 2** — Payment Modal v4 missing WALLET/CHECK validation/HYPERPAY; Payment Method settings UI missing D9 toggles. No code change. |
+| Orphan voucher cleanup | Test data | Migration 0328 part 3: voided RV-2026-000012 (the single voucher in the system with header.source_ref_id ≠ line.order_id), reversed its line, detached `order_payment.fin_voucher_id` on the surviving order, soft-deleted the failed-attempt-1 order. |
+
+### Files created
+
+- `supabase/migrations/0328_fix_payment_method_drift_and_voucher_status.sql` — 3-part atomic migration (P1 + B8 backfill + orphan cleanup)
+
+### Files modified
+
+- `web-admin/prisma/schema.prisma` — `org_payment_methods_cf.requires_cash_drawer` + `requires_reference` flipped to `Boolean?`
+- `web-admin/lib/services/payment-config.service.ts` — `requires_cash_drawer` sys fallback (`eff_requires_cash_drawer`), select list update, branch-merge precedence
+- `web-admin/lib/services/voucher-line.service.ts` — `addVoucherLine.create()` now persists `org_payment_method_id`, `payment_terminal_id`, `credit_application_type`
+- `web-admin/lib/services/order-submit-orchestrator.service.ts` — Fix A: orderId-prefixed voucher sub-keys (4 sites)
+- `web-admin/lib/services/voucher-biz.service.ts` — Fix B: header guard in `createBizVoucher`; cancel transition syncs all 3 columns
+- `web-admin/lib/services/voucher-wiring.service.ts` — POSTED transition syncs all 3 columns
+- `web-admin/lib/services/voucher-posting.service.ts` — POSTED transition syncs all 3 columns (removed the "do NOT touch posting_status" code path)
+- `web-admin/lib/services/voucher-reversal.service.ts` — REVERSED transition syncs legacy `status` to 'voided'
+- `web-admin/app/api/v1/orders/submit-order/route.ts` — pre-orchestrator idempotency claim + PRIOR_ATTEMPT_FAILED + recovery branch for partial success
+
+### Verification
+
+- `npx tsc --noEmit` — 0 errors
+- `npx jest __tests__/utils/money.test.ts __tests__/utils/idempotency.test.ts __tests__/services/order-settlement-planner.service.test.ts __tests__/services/discount-service.test.ts` — 41/41 pass
+- Manual application: migration applied + types regenerated by user; no DB errors
+
+### Out of scope (Phase 2)
+
+- Payment Modal V4 UI: WALLET method, CHECK validation message, HYPERPAY/gateway button enabling
+- Payment Method settings UI: 4 D9 nullable column toggles + tenant-level `currency_code`
+- `paymentStatus` field on `paymentLegSchema` + planner override honoring (B7)
+- Triple-column cleanup migration: collapse `status` + `voucher_status` + `posting_status` into a single authoritative column (after legacy `status` is no longer read by any code)
+

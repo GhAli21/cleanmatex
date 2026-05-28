@@ -129,6 +129,31 @@ If the lock-ordering constant uncovers a missing index on a balance column (e.g.
 2. ✅ Forced failure mid-redemption (e.g. simulated lock timeout on `org_loyalty_accounts_mst`): the voucher transaction rolls back. `org_orders_mst` shows no payment; stored-value balances unchanged; outbox emits no event.
 3. ✅ Idempotency replay: same order, same key, same body → second voucher post is a no-op (skipped via pre-check on every redemption ledger).
 4. ✅ Multi-balance order (gift-card + wallet + loyalty in one submit): locks taken in the order specified by `STORED_VALUE_LOCK_ORDER` regardless of caller leg ordering.
+
+---
+
+## UI debt carried into Phase 2 (added 2026-05-28 Round 2 Stabilization)
+
+These were uncovered by manual QA Step 8 of the Phase 1B stabilization. Code fixes for the backend bugs landed in Round 2; the UI work below remains pending for Phase 2.
+
+| Item | Symptom | Phase 2 task |
+|---|---|---|
+| Payment Modal v4 — WALLET method missing | Scenario 4 (multi-leg CASH+WALLET) can't be exercised from UI | Add WALLET leg builder to `payment-modal-v4.tsx`; wire to stored-value balance lookup |
+| Payment Modal v4 — CHECK silent submit-block | Scenario 6: submit button silently disabled with no validation message when `checkNumber` is missing | Surface `CHECK_NUMBER_REQUIRED` validation in modal footer instead of disabling button |
+| Payment Modal v4 — HYPERPAY/gateway silent submit-block | Scenario 8: submit button silently disabled on gateway methods | Implement gateway-initiation flow or show "Gateway not yet supported in admin" message |
+| Payment Method settings UI — 4 D9 toggles missing | `allow_status_override`, `default_creation_status`, `is_user_id_required`, `allow_outside_integration` cannot be edited per tenant | Add toggles + select to the Payment Method settings form; null = inherit sys |
+| Payment Method settings UI — `currency_code` per-method | Save requires `currency_code` on every method row; should be tenant-level | Move `currency_code` to tenant settings; remove from per-method form |
+| Status-override paymentStatus field | `allow_status_override` flag exists in DB but planner ignores override because `paymentLegSchema` has no `paymentStatus` field | Add `paymentStatus` optional field to `paymentLegSchema` + honor in planner when `allow_status_override = true` |
+
+---
+
+## Schema debt carried into Phase 2 (added 2026-05-28 Round 2 Stabilization)
+
+| Item | Notes | Phase 2 task |
+|---|---|---|
+| Voucher status triple-column cleanup | `org_fin_vouchers_mst` has `status` (legacy lowercase), `voucher_status` (Phase-1A uppercase), `posting_status` (wiring). All three are now code-synced (B8 fix), but the redundancy remains. | Audit every read of `status` (legacy); migrate readers to `voucher_status`; then DROP the legacy column. Same for `posting_status` if no consumer remains. |
+| `org_payment_methods_cf` D9 NULL semantics | Migration 0328 made `requires_cash_drawer` + `requires_reference` nullable. Service layer correctly falls back to sys. Other D9 columns (`default_creation_status`, `allow_status_override`, `is_user_id_required`, `allow_outside_integration`) are already nullable. | Add a `pg_check` or migration assertion that every nullable D9 column is read with sys fallback in the service. |
+
 5. ✅ CUSTOMER_CREDIT redemption without `creditReferenceId` → `CUSTOMER_CREDIT_REFERENCE_REQUIRED` thrown at planner validation; no voucher created.
 6. ✅ All concurrency tests green (model on `__tests__/integration/gift-card-redemption.test.ts`).
 7. ✅ Build green, all existing tests still green.
