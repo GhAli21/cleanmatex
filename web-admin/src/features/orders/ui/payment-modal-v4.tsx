@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useFocusTrap } from '@/lib/hooks/use-focus-trap';
-import { useForm, Controller, type Resolver } from 'react-hook-form';
+import { useForm, Controller, type FieldErrors, type Resolver } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -32,7 +32,7 @@ import {
   type OutstandingPolicy,
   type PaymentLeg,
 } from '@/lib/validations/new-order-payment-schemas';
-import { CmxConfirmDialog, cmxMessage } from '@ui/feedback';
+import { CmxConfirmDialog, CmxSummaryMessage, cmxMessage } from '@ui/feedback';
 import { ORDER_DEFAULTS } from '@/lib/constants/order-defaults';
 import { NEW_ORDER_PROMO_GIFT_DISABLED } from '@/lib/constants/order-checkout-flags';
 import { PAYMENT_METHODS } from '@/lib/constants/order-types';
@@ -461,6 +461,33 @@ export function PaymentModalV4({
       pinInputRef.current?.select();
     }, 60);
   }, [open, pinRequired]);
+
+  useEffect(() => {
+    if (paymentMethod !== PAYMENT_METHODS.CHECK) {
+      setValue('checkNumber', '', { shouldValidate: false, shouldDirty: false });
+      setValue('checkBank', '', { shouldValidate: false, shouldDirty: false });
+      setValue('checkDate', '', { shouldValidate: false, shouldDirty: false });
+      return;
+    }
+
+    const activeCheckLeg =
+      paymentLegs[activeLegIndex]?.method === PAYMENT_METHODS.CHECK
+        ? paymentLegs[activeLegIndex]
+        : paymentLegs.find((leg) => leg.method === PAYMENT_METHODS.CHECK);
+
+    setValue('checkNumber', activeCheckLeg?.checkNumber ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
+    });
+    setValue('checkBank', activeCheckLeg?.checkBank ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
+    });
+    setValue('checkDate', activeCheckLeg?.checkDate ?? '', {
+      shouldValidate: false,
+      shouldDirty: false,
+    });
+  }, [activeLegIndex, paymentLegs, paymentMethod, setValue]);
 
   // Preview-payment fetch (debounced 300ms)
   const fetchPreview = useCallback(async () => {
@@ -1070,6 +1097,21 @@ export function PaymentModalV4({
     onSubmit(submissionData, { ...parsed.data, creditLimitOverride: creditLimitOverride || undefined });
   };
 
+  const onInvalidForm = useCallback((formErrors: FieldErrors<PaymentFormData>) => {
+    const firstFieldError = Object.values(formErrors).find((value) => value?.message);
+    if (firstFieldError?.message) {
+      cmxMessage.error(String(firstFieldError.message));
+      return;
+    }
+
+    if (paymentMethod === PAYMENT_METHODS.CHECK) {
+      cmxMessage.error(t('checkNumber.required'));
+      return;
+    }
+
+    cmxMessage.error(t('messages.validationErrors'));
+  }, [paymentMethod, t]);
+
   // Payment icon helper
   const getPaymentIcon = (id: string) => {
     const cls = 'w-5 h-5';
@@ -1171,6 +1213,9 @@ export function PaymentModalV4({
   const showDeferredExplanation =
     settlementLegEntries.length === 0 &&
     (paymentMethod === PAYMENT_METHODS.PAY_ON_COLLECTION || paymentMethod === PAYMENT_METHODS.INVOICE);
+  const hasCheckLegWithoutNumber = paymentLegs.some(
+    (leg) => leg.method === PAYMENT_METHODS.CHECK && !leg.checkNumber?.trim()
+  );
   const activeLegOption = activeLeg
     ? getMethodOption(activeLeg.method, activeLeg.gateway_code)
     : undefined;
@@ -1192,6 +1237,64 @@ export function PaymentModalV4({
     });
     focusAmountEditor();
   }, [focusAmountEditor, settlementLegEntries]);
+
+  const validationItems = useMemo(() => {
+    const items: string[] = [];
+
+    if (promoCodeValidating) {
+      items.push(t('promoCode.validating'));
+    }
+    if (giftCardValidating) {
+      items.push(t('giftCard.checking'));
+    }
+    if (errors.checkNumber?.message) {
+      items.push(String(errors.checkNumber.message));
+    }
+    if (pinRequired) {
+      items.push(t('giftCard.pinPendingError'));
+    }
+    if (hasCheckLegWithoutNumber) {
+      items.push(t('splitPayment.validation.checkNumberRequired'));
+    }
+    if (paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION &&
+        paymentMethod !== PAYMENT_METHODS.INVOICE &&
+        settledNowAmount <= 0) {
+      items.push(t('partialPayment.validation.amountMustBePositive'));
+    }
+    if (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') {
+      items.push(t('remainder.validation.required'));
+    }
+    if (serverTotals?.creditLimit?.wouldExceed) {
+      if (serverTotals.creditLimit.mode === 'warn' && !creditLimitOverride) {
+        items.push(t('b2b.creditExceededWarn'));
+      } else if (serverTotals.creditLimit.mode !== 'warn') {
+        items.push(t('b2b.creditExceeded'));
+      }
+    }
+
+    return [...new Set(items)];
+  }, [
+    creditLimitOverride,
+    effectiveOutstandingPolicy,
+    errors.checkNumber?.message,
+    giftCardValidating,
+    hasCheckLegWithoutNumber,
+    paymentMethod,
+    pinRequired,
+    promoCodeValidating,
+    remainingBalance,
+    serverTotals?.creditLimit?.mode,
+    serverTotals?.creditLimit?.wouldExceed,
+    settledNowAmount,
+    t,
+  ]);
+
+  const submitDisabled =
+    loading ||
+    totalsLoading ||
+    promoCodeValidating ||
+    giftCardValidating ||
+    validationItems.length > 0;
 
   const submitButtonLabel = useMemo(() => {
     const epsilon = Math.pow(10, -(decimalPlaces + 1));
@@ -1270,7 +1373,7 @@ export function PaymentModalV4({
               </CmxButton>
             </CmxDialogHeader>
 
-            <form onSubmit={handleSubmit(onSubmitForm)} className="flex min-h-0 flex-1 flex-col">
+            <form onSubmit={handleSubmit(onSubmitForm, onInvalidForm)} className="flex min-h-0 flex-1 flex-col">
               <div className="flex-1 overflow-auto bg-[rgb(var(--cmx-background-rgb,248_250_252))] p-4">
               <div className="grid min-h-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
                 <div className="space-y-4">
@@ -1652,21 +1755,34 @@ export function PaymentModalV4({
                                   label={`${t('splitPayment.checkNumber')} *`}
                                   value={activeLeg.checkNumber ?? ''}
                                   dir="ltr"
+                                  error={errors.checkNumber?.message}
                                   placeholder={t('checkNumber.placeholder')}
-                                  onChange={(event) => updateLeg(activeLegIndex, 'checkNumber', event.target.value || undefined)}
+                                  onChange={(event) => {
+                                    const nextValue = event.target.value || undefined;
+                                    updateLeg(activeLegIndex, 'checkNumber', nextValue);
+                                    setValue('checkNumber', nextValue ?? '', { shouldValidate: true, shouldDirty: true });
+                                  }}
                                 />
                                 <CmxInput
                                   label={t('splitPayment.checkBankName')}
                                   value={activeLeg.checkBank ?? ''}
                                   dir="ltr"
                                   placeholder="—"
-                                  onChange={(event) => updateLeg(activeLegIndex, 'checkBank', event.target.value || undefined)}
+                                  onChange={(event) => {
+                                    const nextValue = event.target.value || undefined;
+                                    updateLeg(activeLegIndex, 'checkBank', nextValue);
+                                    setValue('checkBank', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
+                                  }}
                                 />
                                 <CmxInput
                                   type="date"
                                   label={t('splitPayment.checkDueDate')}
                                   value={activeLeg.checkDate ?? ''}
-                                  onChange={(event) => updateLeg(activeLegIndex, 'checkDate', event.target.value || undefined)}
+                                  onChange={(event) => {
+                                    const nextValue = event.target.value || undefined;
+                                    updateLeg(activeLegIndex, 'checkDate', nextValue);
+                                    setValue('checkDate', nextValue ?? '', { shouldValidate: false, shouldDirty: true });
+                                  }}
                                 />
                               </div>
                             )}
@@ -2126,6 +2242,14 @@ export function PaymentModalV4({
             </div>
 
               <CmxDialogFooter className="flex-col items-stretch gap-2 border-t border-slate-200 bg-white">
+                {validationItems.length > 0 ? (
+                  <CmxSummaryMessage
+                    type="warning"
+                    title={t('messages.validationErrors')}
+                    items={validationItems}
+                    className="w-full"
+                  />
+                ) : null}
                 <div className={`flex w-full gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                   <CmxButton type="button" variant="outline" onClick={closeWithGuard} className="flex-1 rounded-2xl border-slate-300">
                     {tCommon('cancel')}
@@ -2133,15 +2257,7 @@ export function PaymentModalV4({
                   <CmxButton
                     type="submit"
                     loading={loading}
-                    disabled={
-                      loading ||
-                      totalsLoading ||
-                      promoCodeValidating ||
-                      giftCardValidating ||
-                      (remainingBalance > 0.001 && effectiveOutstandingPolicy === 'NONE') ||
-                      ((paymentMethod !== PAYMENT_METHODS.PAY_ON_COLLECTION && paymentMethod !== PAYMENT_METHODS.INVOICE) && settledNowAmount <= 0) ||
-                      (serverTotals?.creditLimit?.wouldExceed && (serverTotals.creditLimit.mode !== 'warn' || !creditLimitOverride))
-                    }
+                    disabled={submitDisabled}
                     className="flex-1 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 font-bold shadow-sm"
                     size="lg"
                   >
