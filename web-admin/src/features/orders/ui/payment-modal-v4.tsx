@@ -846,6 +846,22 @@ export function PaymentModalV4({
     [isRTL]
   );
 
+  const formatCashDrawerOpenedAt = useCallback(
+    (openedAt: string | null) => {
+      if (!openedAt) {
+        return '—';
+      }
+      return new Intl.DateTimeFormat(isRTL ? 'ar' : 'en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(new Date(openedAt));
+    },
+    [isRTL]
+  );
+
   const cashDrawerSessionChoices = useMemo(
     () =>
       cashDrawers.flatMap((drawer) =>
@@ -2011,15 +2027,7 @@ export function PaymentModalV4({
                                   <div className="mt-3 grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
                                     <div>
                                       <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
-                                      <p>{selectedCashDrawerChoice.session.opened_at
-                                        ? new Intl.DateTimeFormat(isRTL ? 'ar' : 'en-US', {
-                                            year: 'numeric',
-                                            month: 'short',
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                          }).format(new Date(selectedCashDrawerChoice.session.opened_at))
-                                        : '—'}</p>
+                                      <p>{formatCashDrawerOpenedAt(selectedCashDrawerChoice.session.opened_at)}</p>
                                     </div>
                                     <div>
                                       <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
@@ -2934,6 +2942,64 @@ export function PaymentModalV4({
                       <div className="mt-2 rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2">
                         <SummaryRow label={t('summary.paidAmount') || 'Pay now'} value={`${currencyCode} ${formatAmount(payNowAmount)}`} />
                       </div>
+                      {cashDrawerRequired && (
+                        <div className={`rounded-2xl border px-3 py-3 ${
+                          selectedCashDrawerChoice
+                            ? 'border-cyan-200 bg-cyan-50/80'
+                            : 'border-amber-200 bg-amber-50'
+                        }`}>
+                          <div className={`flex items-start justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                            <div className={isRTL ? 'text-right' : 'text-left'}>
+                              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">
+                                {t('cashDrawer.boundTitle')}
+                              </p>
+                              <p className={`mt-1 text-xs ${selectedCashDrawerChoice ? 'text-slate-600' : 'text-amber-800'}`}>
+                                {selectedCashDrawerChoice
+                                  ? t('cashDrawer.boundHint')
+                                  : cashDrawerBlockingMessage}
+                              </p>
+                            </div>
+                            <Badge
+                              variant="secondary"
+                              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                selectedCashDrawerChoice
+                                  ? 'bg-cyan-600 text-white'
+                                  : 'bg-amber-600 text-white'
+                              }`}
+                            >
+                              {selectedCashDrawerChoice
+                                ? t('cashDrawer.boundBadge')
+                                : t('cashDrawer.pendingBadge')}
+                            </Badge>
+                          </div>
+
+                          {selectedCashDrawerChoice ? (
+                            <div className="mt-3 space-y-2">
+                              <div className={`flex items-center justify-between gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <div className={isRTL ? 'text-right' : 'text-left'}>
+                                  <p className="text-sm font-semibold text-slate-900">
+                                    {getDrawerDisplayName(selectedCashDrawerChoice.drawer)}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {selectedCashDrawerChoice.session.session_no}
+                                  </p>
+                                </div>
+                                <Banknote className="h-4 w-4 text-cyan-700" />
+                              </div>
+                              <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+                                <div>
+                                  <p className="font-medium text-slate-500">{t('cashDrawer.openedAt')}</p>
+                                  <p>{formatCashDrawerOpenedAt(selectedCashDrawerChoice.session.opened_at)}</p>
+                                </div>
+                                <div>
+                                  <p className="font-medium text-slate-500">{t('cashDrawer.openingBalance')}</p>
+                                  <p>{`${selectedCashDrawerChoice.drawer.currency_code} ${formatAmount(selectedCashDrawerChoice.session.opening_float_amount)}`}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                       {customerCreditAmount > 0 && (
                         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2">
                           <SummaryRow label={t('customerCredits.title')} value={`${currencyCode} ${formatAmount(customerCreditAmount)}`} />
