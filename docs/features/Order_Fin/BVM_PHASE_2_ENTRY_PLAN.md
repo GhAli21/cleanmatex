@@ -1,8 +1,26 @@
 # BVM Wiring Phase 2 — Entry Plan
 
 **Created:** 2026-05-28
-**Status:** Draft — ready for review before next session
+**Status:** ✅ Done (2026-05-28) — Steps 0–4 + 6 shipped; Step 5 deferred to Phase 2.1; Step 8 = user manual QA.
 **Predecessor:** BVM Phase 1B + 2026-05-28 Stabilization (see `IMPLEMENTATION_STATUS.md`)
+
+**Step status (added 2026-05-28 close):**
+
+| Step | Status | Notes |
+|---|---|---|
+| 0 — Discovery | ✅ Done | Schema verified, gaps identified |
+| 1 — Migration 0329 (FK linkage) | ✅ Done | 10 composite FKs + 10 partial indexes + loyalty columns added |
+| 2 — `STORED_VALUE_LOCK_ORDER` + planner sort | ✅ Done | +2 tests |
+| 3b — `tx?` threaded through 3 voucher services | ✅ Done | |
+| 3c — Standardised 5 `redeem*Tx` (idempotency-skip + voucher backlink) | ✅ Done | |
+| 3d — Orchestrator consolidated into one voucher tx | ✅ Done | TX2 atomicity guarantee |
+| 4 — `wiringMode` gate fix (no double-debit) + retire legacy route | ✅ Done | Critical bug fix |
+| 5 — `input.giftCardId` as voucher line | ⏸ **Deferred to Phase 2.1** | Needs voucher-total semantic decision (see IMPLEMENTATION_STATUS.md Step 5 note) |
+| 6 — Contract tests | ✅ Done | +8 Phase 2 tests; 69/69 pass across Phase 2 sweep |
+| 7 — Docs (this plan + status + CHANGELOG) | ✅ Done | |
+| 8 — Manual QA (user) | ⏳ User running 4 acceptance scenarios | |
+
+See `IMPLEMENTATION_STATUS.md` § "2026-05-28 — Phase 2 (Stored-Value Consolidation)" for the detailed change log.
 
 ---
 

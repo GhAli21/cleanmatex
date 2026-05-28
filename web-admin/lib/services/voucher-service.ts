@@ -348,17 +348,37 @@ function mapRowToVoucherData(row: {
   voucher_category: string;
   voucher_subtype: string | null;
   voucher_type: string | null;
+  voucher_status?: string | null;
+  posting_status?: string | null;
+  direction?: string | null;
+  voucher_date?: Date | null;
+  voucher_datetime?: Date | null;
+  party_type?: string | null;
+  party_name?: string | null;
   invoice_id: string | null;
   order_id: string | null;
   customer_id: string | null;
+  supplier_id?: string | null;
+  employee_id?: string | null;
   total_amount: unknown;
+  paid_amount?: unknown;
+  outstanding_amount?: unknown;
+  refunded_amount?: unknown;
   currency_code: string | null;
+  currency_ex_rate?: unknown;
   status: string;
   issued_at: Date | null;
   voided_at: Date | null;
   void_reason: string | null;
   reason_code: string | null;
   reversed_by_voucher_id: string | null;
+  reversed_at?: Date | null;
+  reversal_reason?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  source_module?: string | null;
+  source_ref_type?: string | null;
+  source_ref_id?: string | null;
   content_html: string | null;
   content_text: string | null;
   metadata: unknown;
@@ -375,17 +395,37 @@ function mapRowToVoucherData(row: {
     voucher_category: row.voucher_category,
     voucher_subtype: row.voucher_subtype,
     voucher_type: row.voucher_type,
+    voucher_status: row.voucher_status ?? null,
+    posting_status: row.posting_status ?? null,
+    direction: row.direction ?? null,
+    voucher_date: row.voucher_date ?? null,
+    voucher_datetime: row.voucher_datetime ?? null,
+    party_type: row.party_type ?? null,
+    party_name: row.party_name ?? null,
     invoice_id: row.invoice_id,
     order_id: row.order_id,
     customer_id: row.customer_id,
+    supplier_id: row.supplier_id ?? null,
+    employee_id: row.employee_id ?? null,
     total_amount: Number(row.total_amount),
+    paid_amount: row.paid_amount != null ? Number(row.paid_amount) : null,
+    outstanding_amount: row.outstanding_amount != null ? Number(row.outstanding_amount) : null,
+    refunded_amount: row.refunded_amount != null ? Number(row.refunded_amount) : null,
     currency_code: row.currency_code,
+    currency_ex_rate: row.currency_ex_rate != null ? Number(row.currency_ex_rate) : null,
     status: row.status,
     issued_at: row.issued_at,
     voided_at: row.voided_at,
     void_reason: row.void_reason,
     reason_code: row.reason_code,
     reversed_by_voucher_id: row.reversed_by_voucher_id,
+    reversed_at: row.reversed_at ?? null,
+    reversal_reason: row.reversal_reason ?? null,
+    description: row.description ?? null,
+    notes: row.notes ?? null,
+    source_module: row.source_module ?? null,
+    source_ref_type: row.source_ref_type ?? null,
+    source_ref_id: row.source_ref_id ?? null,
     content_html: row.content_html,
     content_text: row.content_text,
     metadata: row.metadata,

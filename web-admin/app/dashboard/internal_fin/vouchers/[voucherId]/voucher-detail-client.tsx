@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
 import { VoucherStatusBadge } from '@features/finance/vouchers/ui/voucher-status-badge';
 import { VoucherDirectionBadge } from '@features/finance/vouchers/ui/voucher-direction-badge';
-import { Plus } from 'lucide-react';
+import { ArrowUpRight, Plus } from 'lucide-react';
 import { VoucherLineTable } from '@features/finance/vouchers/ui/voucher-line-table';
 import { VoucherCancelDialog } from '@features/finance/vouchers/ui/voucher-cancel-dialog';
 import { VoucherReversalDialog } from '@features/finance/vouchers/ui/voucher-reversal-dialog';
@@ -21,6 +22,7 @@ import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { useMessage } from '@ui/feedback/useMessage';
 import type { BizVoucherDetailData, CreateVoucherLineInput } from '@/lib/types/voucher';
 import type { LinkedEffectsResult } from '@/lib/types/voucher-wiring';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
 interface VoucherDetailClientProps {
   voucher: BizVoucherDetailData;
@@ -28,16 +30,91 @@ interface VoucherDetailClientProps {
   linkedEffects?: LinkedEffectsResult | null;
 }
 
+function formatDate(value?: string | Date | null) {
+  if (!value) return '—';
+  return new Date(value).toLocaleString();
+}
+
+function VoucherCopyValue({
+  value,
+  maxLength,
+  className = '',
+}: {
+  value: string | number | null | undefined;
+  maxLength?: number;
+  className?: string;
+}) {
+  return (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className={`px-0 py-0 text-sm text-foreground ${className}`}
+    />
+  );
+}
+
+function VoucherDetailField({
+  label,
+  value,
+  copyValue,
+  maxLength,
+  href,
+  linkLabel,
+  viewLabel,
+}: {
+  label: string;
+  value: ReactNode;
+  copyValue?: string | number | null;
+  maxLength?: number;
+  href?: string | null;
+  linkLabel?: string;
+  viewLabel: string;
+}) {
+  return (
+    <div className="rounded-lg border border-border/70 bg-background p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        {copyValue !== undefined ? (
+          <VoucherCopyValue value={copyValue} maxLength={maxLength} className="font-medium" />
+        ) : (
+          <div className="text-sm font-medium text-foreground">{value}</div>
+        )}
+        {copyValue === undefined && value}
+        {href && (
+          <Link
+            href={href}
+            className="inline-flex items-center gap-1 rounded-full border border-border px-2 py-1 text-xs font-medium text-primary transition-colors hover:bg-muted"
+          >
+            {linkLabel ?? viewLabel}
+            <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function VoucherDetailClient({ voucher, userRole, linkedEffects }: VoucherDetailClientProps) {
   const t = useTranslations('finance.vouchers');
   const tCommon = useTranslations('common');
   const router = useRouter();
   const { showSuccess, showError } = useMessage();
-  const [isPending, startTransition] = useTransition();
+  const [isPending] = useTransition();
   const [cancelOpen, setCancelOpen] = useState(false);
   const [reversalOpen, setReversalOpen] = useState(false);
   const [addLineOpen, setAddLineOpen] = useState(false);
   const [postPreviewOpen, setPostPreviewOpen] = useState(false);
+
+  const sourceRefLink =
+    voucher.source_module === 'ORDERS' && voucher.source_ref_id
+      ? `/dashboard/orders/${voucher.source_ref_id}/full`
+      : voucher.source_module === 'INVOICES' && voucher.source_ref_id
+        ? `/dashboard/internal_fin/invoices/${voucher.source_ref_id}`
+        : voucher.source_module === 'PAYMENTS' && voucher.source_ref_id
+          ? `/dashboard/internal_fin/payments/${voucher.source_ref_id}`
+          : null;
 
   const canPost      = hasVoucherPermission(userRole, 'fin_vouchers:post')            && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
   const canCancel    = hasVoucherPermission(userRole, 'fin_vouchers:cancel')          && voucher.voucher_status === VOUCHER_STATUS.DRAFT;
@@ -116,54 +193,34 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
             </div>
           </CmxCardHeader>
           <CmxCardContent className="space-y-5">
-
-            {/* ── Identity row ── */}
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-4">
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('voucherNo')}</dt>
-                <dd className="mt-1 font-mono font-medium text-gray-900">{voucher.voucher_no}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('voucherType')}</dt>
-                <dd className="mt-1 text-gray-900">{voucher.voucher_type}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{tCommon('status')}</dt>
-                <dd className="mt-1"><VoucherStatusBadge status={voucher.voucher_status} /></dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('direction')}</dt>
-                <dd className="mt-1"><VoucherDirectionBadge direction={voucher.direction} /></dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('voucherDate')}</dt>
-                <dd className="mt-1 text-gray-900">
-                  {voucher.voucher_date ? new Date(voucher.voucher_date).toLocaleDateString() : '—'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('postingStatus')}</dt>
-                <dd className="mt-1">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    voucher.posting_status === 'POSTED'         ? 'bg-green-100 text-green-800'
-                    : voucher.posting_status === 'POSTING_FAILED' ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {voucher.posting_status}
-                  </span>
-                </dd>
-              </div>
-              {voucher.currency_code && (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('currencyCode')}</dt>
-                  <dd className="mt-1 font-mono text-gray-900">{voucher.currency_code}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('createdAt')}</dt>
-                <dd className="mt-1 text-gray-700">{new Date(voucher.created_at).toLocaleDateString()}</dd>
-              </div>
-            </dl>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <VoucherDetailField label={t('voucherNo')} value={voucher.voucher_no} copyValue={voucher.voucher_no} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('voucherType')} value={voucher.voucher_type} copyValue={voucher.voucher_type} viewLabel={tCommon('view')} />
+              <VoucherDetailField
+                label={tCommon('status')}
+                value={<VoucherStatusBadge status={voucher.voucher_status} />}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField
+                label={t('direction')}
+                value={<VoucherDirectionBadge direction={voucher.direction} />}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField label={t('voucherDate')} value={formatDate(voucher.voucher_date)} copyValue={formatDate(voucher.voucher_date)} viewLabel={tCommon('view')} />
+              <VoucherDetailField
+                label={t('voucherDateTime')}
+                value={formatDate(voucher.voucher_datetime)}
+                copyValue={formatDate(voucher.voucher_datetime)}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField label={t('postingStatus')} value={voucher.posting_status} copyValue={voucher.posting_status} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('currencyCode')} value={voucher.currency_code ?? '—'} copyValue={voucher.currency_code} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('currencyExRate')} value={voucher.currency_ex_rate ?? '—'} copyValue={voucher.currency_ex_rate ?? null} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('createdAt')} value={formatDate(voucher.created_at)} copyValue={formatDate(voucher.created_at)} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('createdBy')} value={voucher.created_by ?? '—'} copyValue={voucher.created_by} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('updatedAt')} value={formatDate(voucher.updated_at)} copyValue={formatDate(voucher.updated_at)} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('updatedBy')} value={voucher.updated_by ?? '—'} copyValue={voucher.updated_by} viewLabel={tCommon('view')} />
+            </div>
 
             {/* ── Amount block ── */}
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
@@ -232,45 +289,55 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
               </div>
             </div>
 
-            {/* ── Party & notes row ── */}
-            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
-              {voucher.party_type && (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('partyType')}</dt>
-                  <dd className="mt-1 text-gray-900">{voucher.party_type}</dd>
-                </div>
-              )}
-              {voucher.party_name && (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('party')}</dt>
-                  <dd className="mt-1 text-gray-900">{voucher.party_name}</dd>
-                </div>
-              )}
-              {voucher.voucher_status === VOUCHER_STATUS.POSTED && voucher.posted_at && (
-                <div>
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('postedAt')}</dt>
-                  <dd className="mt-1 text-gray-700">{new Date(voucher.posted_at).toLocaleDateString()}</dd>
-                </div>
-              )}
-              {voucher.description && (
-                <div className="col-span-2 sm:col-span-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('description')}</dt>
-                  <dd className="mt-1 text-gray-700">{voucher.description}</dd>
-                </div>
-              )}
-              {voucher.notes && (
-                <div className="col-span-2 sm:col-span-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('notes')}</dt>
-                  <dd className="mt-1 text-gray-700">{voucher.notes}</dd>
-                </div>
-              )}
-              {voucher.reversal_reason && (
-                <div className="col-span-2 sm:col-span-3">
-                  <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{t('reversalReason')}</dt>
-                  <dd className="mt-1 text-gray-700">{voucher.reversal_reason}</dd>
-                </div>
-              )}
-            </dl>
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <VoucherDetailField label={t('partyType')} value={voucher.party_type ?? '—'} copyValue={voucher.party_type} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('party')} value={voucher.party_name ?? '—'} copyValue={voucher.party_name} viewLabel={tCommon('view')} />
+              <VoucherDetailField
+                label={t('orderId')}
+                value={voucher.order_id ?? '—'}
+                copyValue={voucher.order_id}
+                href={voucher.order_id ? `/dashboard/orders/${voucher.order_id}/full` : null}
+                linkLabel={t('relatedOrder')}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField
+                label={t('invoiceId')}
+                value={voucher.invoice_id ?? '—'}
+                copyValue={voucher.invoice_id}
+                href={voucher.invoice_id ? `/dashboard/internal_fin/invoices/${voucher.invoice_id}` : null}
+                linkLabel={t('relatedInvoice')}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField
+                label={t('customerId')}
+                value={voucher.customer_id ?? '—'}
+                copyValue={voucher.customer_id}
+                href={voucher.customer_id ? `/dashboard/customers/${voucher.customer_id}` : null}
+                linkLabel={t('relatedCustomer')}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField label={t('supplierId')} value={voucher.supplier_id ?? '—'} copyValue={voucher.supplier_id} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('employeeId')} value={voucher.employee_id ?? '—'} copyValue={voucher.employee_id} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('sourceModule')} value={voucher.source_module ?? '—'} copyValue={voucher.source_module} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('sourceRefType')} value={voucher.source_ref_type ?? '—'} copyValue={voucher.source_ref_type} viewLabel={tCommon('view')} />
+              <VoucherDetailField
+                label={t('sourceRefId')}
+                value={voucher.source_ref_id ?? '—'}
+                copyValue={voucher.source_ref_id}
+                href={sourceRefLink}
+                linkLabel={t('openSource')}
+                viewLabel={tCommon('view')}
+              />
+              <VoucherDetailField label={t('postedAt')} value={formatDate(voucher.posted_at)} copyValue={formatDate(voucher.posted_at)} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('postedBy')} value={voucher.posted_by ?? '—'} copyValue={voucher.posted_by} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('reversedAt')} value={formatDate(voucher.reversed_at)} copyValue={formatDate(voucher.reversed_at)} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('reversalReason')} value={voucher.reversal_reason ?? '—'} copyValue={voucher.reversal_reason} viewLabel={tCommon('view')} />
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              <VoucherDetailField label={t('description')} value={voucher.description ?? '—'} copyValue={voucher.description} viewLabel={tCommon('view')} />
+              <VoucherDetailField label={t('notes')} value={voucher.notes ?? '—'} copyValue={voucher.notes} viewLabel={tCommon('view')} />
+            </div>
 
             {voucher.voucher_status === VOUCHER_STATUS.POSTED && (
               <p className="rounded-md bg-blue-50 px-4 py-3 text-sm text-blue-700">

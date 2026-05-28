@@ -20,6 +20,7 @@ const mockLoyaltyAccountFindFirst   = jest.fn();
 const mockLoyaltyTierFindFirst      = jest.fn();
 const mockLoyaltyAccountUpdate      = jest.fn();
 const mockLoyaltyTxnCreate          = jest.fn();
+const mockLoyaltyTxnFindFirst       = jest.fn();
 const mockOutboxCreate              = jest.fn();
 
 const mockTxQueryRaw = jest.fn();
@@ -27,7 +28,13 @@ const mockTxQueryRaw = jest.fn();
 const mockTx = {
   $queryRaw:                   (...a: unknown[]) => mockTxQueryRaw(...a),
   org_loyalty_accounts_mst:   { update: (...a: unknown[]) => mockLoyaltyAccountUpdate(...a) },
-  org_loyalty_txn_dtl:        { create: (...a: unknown[]) => mockLoyaltyTxnCreate(...a) },
+  org_loyalty_txn_dtl:        {
+    // Phase 2 BVM Wiring: redeemPointsTx calls findFirst first for the
+    // idempotency-skip check. Default returns null (no cached row) so
+    // existing test cases stay green; specific tests override below.
+    findFirst: (...a: unknown[]) => mockLoyaltyTxnFindFirst(...a),
+    create:    (...a: unknown[]) => mockLoyaltyTxnCreate(...a),
+  },
   org_domain_events_outbox:   { create: (...a: unknown[]) => mockOutboxCreate(...a) },
 };
 
@@ -170,6 +177,44 @@ describe('loyalty.service — redeemPointsTx', () => {
     await expect(
       redeemPointsTx(mockTx as Parameters<typeof redeemPointsTx>[0], { ...baseParams, pointsToRedeem: 100 })
     ).rejects.toThrow('Insufficient loyalty points');
+  });
+
+  // Phase 2 BVM Wiring — standardised contract
+  it('Phase 2: returns cached row when idempotency_key already produced a ledger entry', async () => {
+    const cached = { id: 'loy-txn-existing' };
+    mockLoyaltyTxnFindFirst.mockResolvedValueOnce(cached);
+
+    const result = await redeemPointsTx(
+      mockTx as Parameters<typeof redeemPointsTx>[0],
+      baseParams,
+    );
+
+    expect(result).toBe(cached);
+    expect(mockTxQueryRaw).not.toHaveBeenCalled();
+    expect(mockLoyaltyAccountUpdate).not.toHaveBeenCalled();
+    expect(mockLoyaltyTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('Phase 2: persists fin_voucher_id + fin_voucher_trx_line_id on the new ledger row', async () => {
+    mockLoyaltyTxnFindFirst.mockResolvedValueOnce(null);
+    mockTxQueryRaw.mockResolvedValue([{ id: 'acct-1', points_balance: 500 }]);
+    mockLoyaltyAccountUpdate.mockResolvedValue({});
+    mockLoyaltyTxnCreate.mockResolvedValue({ id: 'loy-txn-new' });
+
+    await redeemPointsTx(mockTx as Parameters<typeof redeemPointsTx>[0], {
+      ...baseParams,
+      voucherId:     'vch-5',
+      voucherLineId: 'vch-line-5',
+    });
+
+    expect(mockLoyaltyTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          fin_voucher_id:          'vch-5',
+          fin_voucher_trx_line_id: 'vch-line-5',
+        }),
+      }),
+    );
   });
 });
 

@@ -190,7 +190,8 @@
       "Bash(head -40 ../docs/features/AR_Invoice/IMPLEMENTATION_STATUS.md 2>&1)",
       "Read(//f/jhapp/docs/features/AR_Invoice/**)",
       "Bash(grep -B2 -A2 \"Read\\(//f/jhapp\" \"F:/jhapp/cleanmatex/.claude/settings.local.json\")",
-      "mcp__supabase_remote_db__execute_sql"
+      "mcp__supabase_remote_db__execute_sql",
+      "Bash(echo \"EXIT=$?\")"
     ],
     "deny": [
       "Read(node_modules)",

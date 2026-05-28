@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Plus, Inbox } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
@@ -14,20 +14,40 @@ import type { OrgCashDrawer, OrgCashDrawerSession } from '@/lib/types/payment';
 import { toggleCashDrawerActive } from '@/app/actions/payment-config/cash-drawers-actions';
 import { CashDrawerFormDialog } from './cash-drawer-form-dialog';
 import { CashDrawerSessionCard } from './cash-drawer-session-card';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
 interface CashDrawersTabProps {
   drawers: Array<OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }>;
+  branches: Array<{ id: string; branch_name: string }>;
+  terminals: Array<{ id: string; terminal_name: string; terminal_code: string; branch_id: string | null }>;
   isLoading?: boolean;
   onRefresh: () => void;
 }
 
-export function CashDrawersTab({ drawers, isLoading, onRefresh }: CashDrawersTabProps) {
+export function CashDrawersTab({ drawers, branches, terminals, isLoading, onRefresh }: CashDrawersTabProps) {
   const t = useTranslations('paymentConfig');
-  const [isPending, startTransition] = useTransition();
   const [showCreate, setShowCreate] = useState(false);
   const [editTarget, setEditTarget] = useState<OrgCashDrawer | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<OrgCashDrawer | null>(null);
   const [sessionTarget, setSessionTarget] = useState<(OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) | null>(null);
+  const branchNameById = new Map(branches.map((branch) => [branch.id, branch.branch_name]));
+  const terminalById = new Map(terminals.map((terminal) => [terminal.id, terminal]));
+
+  const CopyValue = ({
+    value,
+    maxLength,
+  }: {
+    value: string | number | null | undefined;
+    maxLength?: number;
+  }) => (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className="px-0 py-0 text-sm text-foreground"
+    />
+  );
 
   const handleDeactivate = async () => {
     if (!deactivateTarget) return;
@@ -53,12 +73,25 @@ export function CashDrawersTab({ drawers, isLoading, onRefresh }: CashDrawersTab
           </CmxButton>
         </div>
         <CmxEmptyState icon={<Inbox className="h-8 w-8" />} title={t('cashDrawers.empty.title')} />
-        <CashDrawerFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
+        <CashDrawerFormDialog
+          branches={branches}
+          terminals={terminals}
+          open={showCreate}
+          onClose={() => setShowCreate(false)}
+          onSuccess={() => { setShowCreate(false); onRefresh(); }}
+        />
       </>
     );
   }
 
   const columns = [
+    {
+      key: 'code',
+      header: t('cashDrawers.code'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
+        <CopyValue value={d.drawer_code} />
+      ),
+    },
     {
       key: 'name',
       header: t('cashDrawers.name'),
@@ -81,6 +114,55 @@ export function CashDrawersTab({ drawers, isLoading, onRefresh }: CashDrawersTab
       header: t('cashDrawers.currency'),
       render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
         <span className="font-mono text-sm">{d.currency_code}</span>
+      ),
+    },
+    {
+      key: 'branch',
+      header: t('cashDrawers.branch'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
+        <div className="space-y-1 text-sm">
+          <div className="font-medium">{branchNameById.get(d.branch_id) ?? d.branch_id}</div>
+          <CopyValue value={d.branch_id} maxLength={12} />
+        </div>
+      ),
+    },
+    {
+      key: 'requirements',
+      header: t('cashDrawers.requirements'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
+        <div className="flex flex-wrap gap-1">
+          {d.requires_session && <Badge variant="secondary">{t('cashDrawers.requiresSession')}</Badge>}
+          {d.opening_float_required && <Badge variant="secondary">{t('cashDrawers.openingFloatRequired')}</Badge>}
+          {!d.requires_session && !d.opening_float_required && (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'assignedTerminal',
+      header: t('cashDrawers.assignedTerminal'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => {
+        const terminal = d.assigned_terminal_id ? terminalById.get(d.assigned_terminal_id) : null;
+        if (!terminal) {
+          return <span className="text-xs text-muted-foreground">{t('cashDrawers.unassignedTerminal')}</span>;
+        }
+
+        return (
+          <div className="space-y-1 text-sm">
+            <div className="font-medium">{terminal.terminal_name}</div>
+            <CopyValue value={terminal.terminal_code} />
+          </div>
+        );
+      },
+    },
+    {
+      key: 'limits',
+      header: t('cashDrawers.maxCashLimit'),
+      render: (d: OrgCashDrawer & { currentSession: OrgCashDrawerSession | null }) => (
+        <span className="text-sm font-medium">
+          {d.max_cash_limit != null ? d.max_cash_limit.toLocaleString() : '—'}
+        </span>
       ),
     },
     {
@@ -121,9 +203,22 @@ export function CashDrawersTab({ drawers, isLoading, onRefresh }: CashDrawersTab
         </CmxButton>
       </div>
       <CmxDataTable columns={columns} data={drawers} />
-      <CashDrawerFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
+      <CashDrawerFormDialog
+        branches={branches}
+        terminals={terminals}
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSuccess={() => { setShowCreate(false); onRefresh(); }}
+      />
       {editTarget && (
-        <CashDrawerFormDialog drawer={editTarget} open={!!editTarget} onClose={() => setEditTarget(null)} onSuccess={() => { setEditTarget(null); onRefresh(); }} />
+        <CashDrawerFormDialog
+          branches={branches}
+          terminals={terminals}
+          drawer={editTarget}
+          open={!!editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => { setEditTarget(null); onRefresh(); }}
+        />
       )}
       {sessionTarget?.currentSession && (
         <CashDrawerSessionCard

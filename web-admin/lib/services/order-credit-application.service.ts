@@ -76,7 +76,16 @@ export interface ApplyOrderCreditResult {
  * @param params.referenceNo optional human-readable reference to persist
  * @returns created order credit application row
  */
-async function applyStoredValueDebitTx(
+/**
+ * Per-type dispatcher for stored-value debits.
+ *
+ * Phase 2 (BVM Wiring): the orchestrator calls this for each credit-application
+ * leg of submit-order, passing the just-created voucher line so the ledger row
+ * stores fin_voucher_id + fin_voucher_trx_line_id (back-link FK from migration
+ * 0329). Existing callers (post-order credit application) can omit
+ * voucherId/voucherLineId and behavior is unchanged.
+ */
+export async function applyStoredValueDebitTx(
   tx: PrismaTransactionClient,
   params: {
     tenantId: string;
@@ -89,6 +98,10 @@ async function applyStoredValueDebitTx(
     currencyCode: string;
     idempotencyKey?: string;
     referenceNo?: string;
+    /** Phase 2: voucher header id to record on the ledger row. */
+    voucherId?: string;
+    /** Phase 2: voucher line id to record on the ledger row. */
+    voucherLineId?: string;
   }
 ) {
   const {
@@ -102,6 +115,8 @@ async function applyStoredValueDebitTx(
     currencyCode,
     idempotencyKey,
     referenceNo,
+    voucherId,
+    voucherLineId,
   } = params;
 
   if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
@@ -111,6 +126,8 @@ async function applyStoredValueDebitTx(
       amount,
       orderId,
       idempotencyKey,
+      voucherId,
+      voucherLineId,
     });
   } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE) {
     await redeemAdvanceTx(tx, {
@@ -118,6 +135,9 @@ async function applyStoredValueDebitTx(
       customerId,
       amount,
       orderId,
+      idempotencyKey,
+      voucherId,
+      voucherLineId,
     });
   } else if (creditType === CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT) {
     if (!creditReferenceId) {
@@ -129,6 +149,9 @@ async function applyStoredValueDebitTx(
       creditNoteId: creditReferenceId,
       amount,
       orderId,
+      idempotencyKey,
+      voucherId,
+      voucherLineId,
     });
   } else if (creditType === CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT) {
     const loyaltyConfig = await getLoyaltyConfig(tenantId);
@@ -143,7 +166,13 @@ async function applyStoredValueDebitTx(
       pointsToRedeem,
       monetaryAmount: amount,
       orderId,
+      // Phase 2 (Fix A pattern): when caller supplies a deterministic key (e.g.
+      // orchestrator's `${orderId}_sv_lp_${legIndex}`) reuse it so replays
+      // collapse onto the existing ledger row. Date.now() fallback is kept for
+      // legacy callers that don't pass a key.
       idempotencyKey: idempotencyKey ?? `loyalty-credit-${orderId}-${Date.now()}`,
+      voucherId,
+      voucherLineId,
     });
   } else if (creditType === CREDIT_APPLICATION_TYPES.GIFT_CARD) {
     if (!creditReferenceId) {
@@ -157,6 +186,8 @@ async function applyStoredValueDebitTx(
       tenantOrgId: tenantId,
       idempotencyKey,
       invoiceCurrency: currencyCode,
+      voucherId,
+      voucherLineId,
     });
   } else {
     throw new Error(`Unsupported credit application type: ${creditType}`);
@@ -164,17 +195,21 @@ async function applyStoredValueDebitTx(
 
   return tx.org_order_credit_apps_dtl.create({
     data: {
-      tenant_org_id: tenantId,
-      order_id: orderId,
-      credit_type: creditType,
-      credit_source_id: creditReferenceId ?? null,
-      applied_amount: amount,
-      currency_code: currencyCode,
-      reference_no: referenceNo ?? null,
-      applied_by: appliedBy,
-      idempotency_key: idempotencyKey ?? null,
-      is_active: true,
-      rec_status: 1,
+      tenant_org_id:           tenantId,
+      order_id:                orderId,
+      credit_type:             creditType,
+      credit_source_id:        creditReferenceId ?? null,
+      applied_amount:          amount,
+      currency_code:           currencyCode,
+      reference_no:            referenceNo ?? null,
+      applied_by:              appliedBy,
+      idempotency_key:         idempotencyKey ?? null,
+      // Phase 2: voucher backlink on the order_credit_apps_dtl row too
+      // (col + FK already existed before migration 0329; this fills it).
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
+      is_active:               true,
+      rec_status:              1,
     },
   });
 }

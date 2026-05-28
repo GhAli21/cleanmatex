@@ -681,9 +681,13 @@ export async function redeemGiftCardTx(
     idempotencyKey?: string;
     /** Optional: invoice/order currency for cross-currency mismatch enforcement. */
     invoiceCurrency?: string;
+    /** Phase 2: voucher header that produced this redemption (org_fin_vouchers_mst.id). */
+    voucherId?: string;
+    /** Phase 2: voucher line that produced this redemption (org_fin_voucher_trx_lines_dtl.id). */
+    voucherLineId?: string;
   }
 ): Promise<{ newBalance: number; skipped?: boolean }> {
-  const { giftCardId, amount, orderId, invoiceId, branchId, processedBy, tenantOrgId, idempotencyKey, invoiceCurrency } = params;
+  const { giftCardId, amount, orderId, invoiceId, branchId, processedBy, tenantOrgId, idempotencyKey, invoiceCurrency, voucherId, voucherLineId } = params;
 
   // Idempotency check: if we've already processed this key, return current balance
   if (idempotencyKey) {
@@ -758,19 +762,22 @@ export async function redeemGiftCardTx(
 
   await tx.org_gift_card_txn_dtl.create({
     data: {
-      tenant_org_id: row.tenant_org_id,
-      gift_card_id: row.id,
-      branch_id: branchId,
-      transaction_type: GIFT_CARD_TXN_TYPE.REDEEM,
+      tenant_org_id:           row.tenant_org_id,
+      gift_card_id:            row.id,
+      branch_id:               branchId,
+      transaction_type:        GIFT_CARD_TXN_TYPE.REDEEM,
       amount,
-      balance_before: availableBefore,
-      balance_after: availableAfter,
-      order_id: orderId,
-      invoice_id: invoiceId,
-      transaction_date: new Date(),
-      processed_by: processedBy,
-      idempotency_key: idempotencyKey,
-      notes: orderId ? `Redeemed for order ${orderId}` : 'Gift card redemption',
+      balance_before:          availableBefore,
+      balance_after:           availableAfter,
+      order_id:                orderId,
+      invoice_id:              invoiceId,
+      transaction_date:        new Date(),
+      processed_by:            processedBy,
+      idempotency_key:         idempotencyKey,
+      // Phase 2: voucher backlink (FK from migration 0329).
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
+      notes:                   orderId ? `Redeemed for order ${orderId}` : 'Gift card redemption',
     },
   });
 

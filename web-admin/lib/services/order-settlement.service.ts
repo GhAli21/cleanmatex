@@ -207,6 +207,17 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
           throw new Error('CREDIT_APPLICATION_TYPE_REQUIRED');
         }
         const creditType = option.creditApplicationType;
+
+        // Phase 2 (BVM Wiring) consolidation: when the caller already ran the
+        // BVM voucher tx (wiringMode=true), the stored-value ledger debits
+        // and the credit-application fact row were both written there. The
+        // entire CREDIT_APPLICATION branch in settleOrder must be a no-op or
+        // we double-debit the customer's balance. The orchestrator's TX2 owns
+        // the redemption now; settleOrder only writes the order snapshot.
+        if (wiringMode) {
+          continue;
+        }
+
         const order = await tx.org_orders_mst.findFirstOrThrow({
           where: { id: orderId, tenant_org_id: tenantId },
           select: { customer_id: true },
@@ -246,23 +257,20 @@ export async function settleOrder(params: SettlementParams): Promise<SettlementR
         // Gift card debit happens earlier in create-with-payment to preserve
         // the legacy two-transaction order create flow. The settlement step
         // records only the order-level credit application fact.
-        // In wiringMode the BVM wiring handler creates this row — skip to avoid double-write.
-        if (!wiringMode) {
-          await tx.org_order_credit_apps_dtl.create({
-            data: {
-              tenant_org_id: tenantId,
-              order_id: orderId,
-              currency_code: currencyCode,
-              credit_type: creditType,
-              credit_source_id: creditReferenceId ?? null,
-              applied_amount: amount,
-              reference_no: leg.reference ?? null,
-              applied_by: settledBy ?? null,
-              is_active: true,
-              rec_status: 1,
-            },
-          });
-        }
+        await tx.org_order_credit_apps_dtl.create({
+          data: {
+            tenant_org_id:    tenantId,
+            order_id:         orderId,
+            currency_code:    currencyCode,
+            credit_type:      creditType,
+            credit_source_id: creditReferenceId ?? null,
+            applied_amount:   amount,
+            reference_no:     leg.reference ?? null,
+            applied_by:       settledBy ?? null,
+            is_active:        true,
+            rec_status:       1,
+          },
+        });
       }
     }
 

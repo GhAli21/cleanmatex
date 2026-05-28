@@ -7,6 +7,7 @@
 
 'use client'
 
+/** Supported UI locales for the tenant-facing web app. */
 export type Locale = 'en' | 'ar';
 
 /**
@@ -41,6 +42,7 @@ export function setLocale(locale: Locale): void {
 
   // Save to cookie for server-side access
   document.cookie = `locale=${locale}; path=/; max-age=31536000`; // 1 year
+  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000`; // next-intl middleware
 
   // Update HTML attributes immediately
   document.documentElement.lang = locale;
@@ -50,6 +52,7 @@ export function setLocale(locale: Locale): void {
 /**
  * Check if current locale is RTL
  *
+ * @param locale - Locale to inspect.
  * @returns true if current locale is 'ar' (RTL), false otherwise
  */
 export function isRTLLocale(locale: Locale): boolean {

@@ -16,6 +16,10 @@ import 'server-only';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
+
+/** Prisma transaction client type — accepted as optional `tx` so submit-order
+ *  can compose voucher posting with stored-value redemptions atomically. */
+type PrismaTransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 import {
   VOUCHER_STATUS,
   WIRING_STATUS,
@@ -77,18 +81,17 @@ const LINE_SELECT = {
 } as const;
 
 /**
- * Post a DRAFT voucher and wire all eligible lines to their operational tables.
- * Posting + wiring happen in one Prisma transaction — full rollback on any failure.
+ * Internal core. Runs against the supplied tx client; assumes the caller
+ * established tenant context.
  */
-export async function postAndWireBizVoucher(
+async function postAndWireBizVoucherInTx(
+  tx: PrismaTransactionClient,
   tenantOrgId: string,
   voucherId: string,
   userId: string,
-  idempotencyKey?: string
+  idempotencyKey?: string,
 ): Promise<PostAndWireResult> {
-  return withTenantContext(tenantOrgId, async () => {
-    return prisma.$transaction(async (tx) => {
-      const db = tx as typeof prisma;
+  const db = tx as typeof prisma;
 
       // 1. Idempotency check
       if (idempotencyKey) {
@@ -302,8 +305,32 @@ export async function postAndWireBizVoucher(
       }
 
       return result;
-    });
-  });
+}
+
+/**
+ * Post a DRAFT voucher and wire all eligible lines to their operational tables.
+ * Posting + wiring happen in one Prisma transaction — full rollback on any failure.
+ *
+ * When `tx` is supplied, joins the caller's transaction (no nested
+ * `$transaction`, no nested `withTenantContext`) so submit-order can cover
+ * header create + lines + stored-value debits + post-and-wire atomically.
+ * Existing callers can omit `tx` and the function opens its own.
+ */
+export async function postAndWireBizVoucher(
+  tenantOrgId: string,
+  voucherId: string,
+  userId: string,
+  idempotencyKey?: string,
+  tx?: PrismaTransactionClient,
+): Promise<PostAndWireResult> {
+  if (tx) {
+    return postAndWireBizVoucherInTx(tx, tenantOrgId, voucherId, userId, idempotencyKey);
+  }
+  return withTenantContext(tenantOrgId, async () =>
+    prisma.$transaction((innerTx) =>
+      postAndWireBizVoucherInTx(innerTx, tenantOrgId, voucherId, userId, idempotencyKey),
+    ),
+  );
 }
 
 /**

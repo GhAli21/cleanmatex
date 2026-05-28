@@ -1552,6 +1552,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_adv_txn_fin_voucher"
+            columns: ["tenant_org_id", "fin_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_adv_txn_voucher_line"
+            columns: ["tenant_org_id", "fin_voucher_trx_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
             foreignKeyName: "org_advance_txn_dtl_advance_id_fkey"
             columns: ["advance_id"]
             isOneToOne: false
@@ -3879,6 +3893,20 @@ export type Database = {
           txn_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_cn_txn_fin_voucher"
+            columns: ["tenant_org_id", "fin_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_cn_txn_voucher_line"
+            columns: ["tenant_org_id", "fin_voucher_trx_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "org_credit_note_txn_dtl_credit_note_id_fkey"
             columns: ["credit_note_id"]
@@ -11066,6 +11094,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_gc_txn_fin_voucher"
+            columns: ["tenant_org_id", "fin_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_gc_txn_voucher_line"
+            columns: ["tenant_org_id", "fin_voucher_trx_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
             foreignKeyName: "fk_org_gift_card_trans_branch"
             columns: ["branch_id", "tenant_org_id"]
             isOneToOne: false
@@ -12493,6 +12535,8 @@ export type Database = {
           created_info: string | null
           credit_app_id: string | null
           customer_id: string
+          fin_voucher_id: string | null
+          fin_voucher_trx_line_id: string | null
           id: string
           idempotency_key: string | null
           notes: string | null
@@ -12511,6 +12555,8 @@ export type Database = {
           created_info?: string | null
           credit_app_id?: string | null
           customer_id: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -12529,6 +12575,8 @@ export type Database = {
           created_info?: string | null
           credit_app_id?: string | null
           customer_id?: string
+          fin_voucher_id?: string | null
+          fin_voucher_trx_line_id?: string | null
           id?: string
           idempotency_key?: string | null
           notes?: string | null
@@ -12541,6 +12589,20 @@ export type Database = {
           txn_type?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_loyalty_txn_fin_voucher"
+            columns: ["tenant_org_id", "fin_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_loyalty_txn_voucher_line"
+            columns: ["tenant_org_id", "fin_voucher_trx_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "org_loyalty_txn_dtl_account_id_fkey"
             columns: ["account_id"]
@@ -19500,6 +19562,20 @@ export type Database = {
           wallet_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_wallet_txn_fin_voucher"
+            columns: ["tenant_org_id", "fin_voucher_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_vouchers_mst"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
+          {
+            foreignKeyName: "fk_wallet_txn_voucher_line"
+            columns: ["tenant_org_id", "fin_voucher_trx_line_id"]
+            isOneToOne: false
+            referencedRelation: "org_fin_voucher_trx_lines_dtl"
+            referencedColumns: ["tenant_org_id", "id"]
+          },
           {
             foreignKeyName: "org_wallet_txn_dtl_tenant_org_id_fkey"
             columns: ["tenant_org_id"]

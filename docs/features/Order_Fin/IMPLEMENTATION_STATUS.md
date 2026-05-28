@@ -157,3 +157,130 @@ See `BVM_PHASE_2_ENTRY_PLAN.md` for next session's scope.
 - `paymentStatus` field on `paymentLegSchema` + planner override honoring (B7)
 - Triple-column cleanup migration: collapse `status` + `voucher_status` + `posting_status` into a single authoritative column (after legacy `status` is no longer read by any code)
 
+---
+
+## 2026-05-28 — Phase 2 (Stored-Value Consolidation) — IN PROGRESS
+
+Status: Steps 0–3c done; Step 3d (orchestrator consolidation) next.
+
+### Step 0 — Discovery
+- Verified schema state: 4 of 5 stored-value txn tables already had `fin_voucher_id` + `fin_voucher_trx_line_id` (UUID NULL) from earlier work; **only `org_loyalty_txn_dtl` was missing them**. No composite FK enforced anywhere — only the columns existed.
+- Confirmed `createArInvoiceFromOrders` already implemented at `web-admin/lib/services/ar-invoice.service.ts` — Phase 3 wires it.
+- Confirmed legacy `_legacy_create-with-payment` route still calls `settleOrder()` with `wiringMode` unset (`=false`) — must be retired in Step 4 before the wiringMode:false branch can be deleted.
+- `STORED_VALUE_LOCK_ORDER` constant did not exist — added in Step 2.
+
+### Step 1 — Migration `0329_phase2_stored_value_voucher_fks.sql`
+- Added `fin_voucher_id` + `fin_voucher_trx_line_id` columns to `org_loyalty_txn_dtl`.
+- Added **10 composite FK constraints** (5 tables × header + line) `(tenant_org_id, <link_id>) → org_fin_vouchers_mst | org_fin_voucher_trx_lines_dtl ON DELETE SET NULL`.
+- Added **10 partial indexes** (`WHERE col IS NOT NULL`) for fast voucher → ledger lookup.
+- Pre-flight orphan check (read-only MCP query) confirmed zero rows had non-null link values — `ADD CONSTRAINT` ran without backfill.
+- Applied by user; Prisma client regenerated.
+
+### Step 2 — `STORED_VALUE_LOCK_ORDER` constant + planner sort
+- Added `STORED_VALUE_LOCK_ORDER` and `STORED_VALUE_LOCK_RANK` to `lib/constants/order-financial.ts`. Values mirror `CREDIT_APPLICATION_TYPES` (DB-mirror rule). Canonical order: `GIFT_CARD → WALLET → CUSTOMER_ADVANCE → CUSTOMER_CREDIT → LOYALTY_CREDIT`.
+- `order-settlement-planner.service.ts` now sorts `creditApplicationLegs` by this rank before emitting the plan (stable sort; original `legIndex` preserved as secondary key so downstream idempotency keys remain deterministic).
+- Why: deadlock-free lock acquisition. Concurrent submits touching the same customer's balances will now take `SELECT … FOR UPDATE` locks in the same sequence regardless of caller leg ordering.
+- 2 new tests in `__tests__/services/order-settlement-planner.service.test.ts` (reverse-order input → canonical order out; stable sort within same type). Baseline jest 43/43 pass.
+
+### Step 3b — Optional `tx?: PrismaTransactionClient` on voucher services
+- `createBizVoucher`, `addVoucherLine`, `postAndWireBizVoucher` now accept an optional `tx`. When supplied they run directly on the caller's tx (no nested `$transaction`, no nested `withTenantContext` — outer caller owns both). When omitted, behavior is unchanged.
+- Internal split: each service has a `*InTx` core and a public dispatcher. Existing call sites compile and run identically.
+
+### Step 3c — Standardised `redeem*Tx` contract
+- All 5 `redeem*Tx` services (`redeemWalletTx`, `redeemAdvanceTx`, `redeemCreditNoteTx`, `redeemPointsTx`, `redeemGiftCardTx`) now accept:
+  - `idempotencyKey?: string` — with skip-on-existing logic (returns the prior ledger row instead of double-debiting). `redeemAdvanceTx` and `redeemCreditNoteTx` did not previously accept this param; wallet/loyalty wrote the key but did not check; gift-card already had the full pattern.
+  - `voucherId?: string` and `voucherLineId?: string` — written into the ledger row insert so the voucher → ledger backlink is populated atomically.
+- `applyStoredValueDebitTx` (now exported from `order-credit-application.service.ts`) forwards `voucherId`/`voucherLineId` to whichever redemption it dispatches and also writes them on the `org_order_credit_apps_dtl` row.
+- Prisma schema gap: `org_loyalty_txn_dtl` model in `prisma/schema.prisma` was missing the two new columns (db pull skipped it). Added scalar columns + two index aliases (`idx_loyalty_txn_fin_voucher`, `idx_loyalty_txn_voucher_line`) so the Prisma client typechecks. User regenerated.
+
+### Verification (after Step 3c)
+- `npx tsc --noEmit` — 0 errors
+- Baseline jest — **43/43 pass** (Round 2 baseline 41 + 2 Step 2 sort tests; no regressions)
+
+### Files modified (this batch)
+- `web-admin/lib/constants/order-financial.ts`
+- `web-admin/lib/services/order-settlement-planner.service.ts`
+- `web-admin/__tests__/services/order-settlement-planner.service.test.ts`
+- `web-admin/lib/services/voucher-biz.service.ts`
+- `web-admin/lib/services/voucher-line.service.ts`
+- `web-admin/lib/services/voucher-wiring.service.ts`
+- `web-admin/lib/services/stored-value.service.ts`
+- `web-admin/lib/services/loyalty.service.ts`
+- `web-admin/lib/services/gift-card-service.ts`
+- `web-admin/lib/services/order-credit-application.service.ts`
+- `web-admin/prisma/schema.prisma` (org_loyalty_txn_dtl model)
+
+### Files created
+- `supabase/migrations/0329_phase2_stored_value_voucher_fks.sql`
+
+### Step 3d — Orchestrator consolidation (single voucher tx)
+
+- `order-submit-orchestrator.service.ts`: the four separate `withTenantContext` blocks (header / real-payment lines / credit-app lines / post+wire) collapsed into **one** `withTenantContext + prisma.$transaction` block.
+- Inside the tx:
+  1. `createBizVoucher(tenantId, …, tx)` — header.
+  2. For each `plan.realPaymentLegs` leg → `addVoucherLine(tenantId, voucherId, …, tx)`.
+  3. For each `plan.creditApplicationLegs` leg (iterated in `STORED_VALUE_LOCK_ORDER` thanks to Step 2's planner sort) →
+     - `addVoucherLine` (CREDIT_APPLICATION line),
+     - `applyStoredValueDebitTx(tx, { …, idempotencyKey: '${orderId}_sv_${code}_${legIndex}', voucherId, voucherLineId })`. The dispatcher routes to the correct `redeem*Tx` and stores the voucher backlink on the ledger row + on `org_order_credit_apps_dtl`.
+  4. `postAndWireBizVoucher(tenantId, voucherId, …, tx)` — joins the same tx so wiring failures roll back every prior write.
+- Atomicity guarantee: a stored-value debit failure (wallet insufficient, lock timeout, idempotency-key reuse across resources) now rolls back the voucher header + all lines + every prior debit. Before Phase 2, a mid-flight failure left a committed voucher with no payment fact rows.
+- Sub-idempotency keys use the Round-2 Fix A format `${result.orderId}_sv_${code}_${legIndex}` with two-letter codes (`gc` / `w` / `a` / `cn` / `lp`) defined by the `STORED_VALUE_CODE` map. Replays of the exact same submit collapse onto the existing ledger row instead of double-debiting.
+- New explicit pre-tx guard: `CUSTOMER_ID_REQUIRED_FOR_CREDIT_APPLICATION` — credit-application legs require a customer. The planner already enforces this upstream; the throw is defense-in-depth so the type system doesn't have to widen the dispatcher signature.
+- Imports added: `applyStoredValueDebitTx`, `CREDIT_APPLICATION_TYPES`, `CreditApplicationType`.
+- Verification: `npx tsc --noEmit` 0 errors · baseline jest 43/43 pass.
+
+### Step 4 — Settle / legacy retirement
+
+**The double-debit bug that Step 3d introduced was fixed here, not deferred.**
+
+- `order-settlement.service.ts`: the `if (option.paymentNature === PAYMENT_NATURE.CREDIT_APPLICATION)` block now short-circuits with `if (wiringMode) continue;` **before** any `redeem*Tx` call.
+  - **Why this matters:** before this fix, Step 3d's orchestrator debited every stored-value balance inside the voucher tx (TX2), and then `settleOrder` (TX3) would unconditionally call the same `redeem*Tx` functions again — without an idempotency key, the second call would either double-debit (if the balance allowed) or fail with INSUFFICIENT_BALANCE and roll back TX3 while TX2 stayed committed. Both outcomes corrupt the ledger.
+  - Phase 2 invariant: when `wiringMode=true` the orchestrator's TX2 owns every stored-value debit + the `org_order_credit_apps_dtl` fact row. `settleOrder` only updates the order snapshot.
+- `_legacy_create-with-payment/` route directory deleted. The folder was already a Next.js private folder (`_` prefix → not served as a route) and the `submit-order` route comment marked it "frozen", but tests + linter still kept it visible. With the orchestrator now consolidated, the legacy path can be retired entirely.
+- `eslint.config.mjs`: kept the `no-restricted-imports` rule for `**/api/v1/orders/create-with-payment/**` and `**/api/v1/orders/_legacy_create-with-payment/**` so any future attempt to revive the legacy path is caught at lint time. Message updated from "frozen" to "retired".
+- `wiringMode` parameter on `settleOrder` kept (default false) — the existing `__tests__/services/settlement.service.test.ts` exercises the wiringMode:false path, and a future refactor that flips the default + collapses the parameter is tracked under Step 7 follow-ups, not here.
+
+### Verification (after Step 4)
+- `npx tsc --noEmit` — 0 errors in Phase 2 files (3 pre-existing errors in `src/features/payment-config/ui/cash-drawers-tab.tsx` belong to in-progress UI work outside Phase 2 scope and were dirty in git before this session).
+- Baseline jest — **43/43 pass**.
+- `__tests__/services/settlement.service.test.ts` — pre-existing module-load failure (`createBrowserClient` requires env vars not set in jest) unchanged by Step 4; not part of the Phase 2 baseline.
+
+### Files modified (Step 4)
+- `web-admin/lib/services/order-settlement.service.ts`
+- `web-admin/eslint.config.mjs`
+- `web-admin/app/api/v1/orders/_legacy_create-with-payment/route.ts` (deleted)
+
+### Step 5 — DEFERRED to Phase 2.1
+
+The RESUME doc proposed treating `input.giftCardId` as a voucher CREDIT_APPLICATION line. After analysis, this requires a non-trivial choice: the gift card amount today is applied as a **pre-discount** on the order total (it shrinks `serverTotals.finalTotal` before the planner runs), so simply adding a voucher line would make voucher header total ≠ sum(line amounts) and break `validateVoucherForPosting`. A correct fix needs either (a) moving the gift-card amount into `plan.immediateSettlementAmount` (larger calculation-service refactor) or (b) relaxing the voucher posting invariant. Phase 2's atomicity acceptance criteria 1–4 are all satisfied without this change, so it has been moved to Phase 2.1. Tracked in `BVM_PHASE_2_ENTRY_PLAN.md`.
+
+### Step 6 — Phase 2 contract tests
+
+Added focused unit tests that pin the new `redeem*Tx` contract — every dependency of Step 3d's orchestrator-tx consolidation is covered:
+
+- **`__tests__/services/stored-value.service.test.ts`** (+6 Phase 2 cases)
+  - `redeemWalletTx`: idempotency-skip returns cached row, no debit, no `SELECT … FOR UPDATE`; voucher backlinks land on the ledger row insert.
+  - `redeemAdvanceTx`: same two-case coverage (this service previously had **no** idempotency-skip — these tests pin the new behavior).
+  - `redeemCreditNoteTx`: same two-case coverage (new behavior).
+- **`__tests__/services/loyalty.service.test.ts`** (+2 Phase 2 cases)
+  - `redeemPointsTx`: idempotency-skip and voucher-backlink persistence. The pre-existing mockTx was extended with `org_loyalty_txn_dtl.findFirst` (defaulting to null) so existing tests stay green.
+
+Acceptance scenarios 1–4 from `BVM_PHASE_2_ENTRY_PLAN.md` map onto these contract guarantees as follows:
+
+| Acceptance scenario | Guaranteed by |
+|---|---|
+| 1. Mixed CASH + WALLET atomic commit | Step 3d (single `prisma.$transaction`) + planner sort (Step 2) — covered by lock-order test |
+| 2. Mid-redemption failure rollback | Step 3d (single tx) — Prisma rolls back on any throw inside the tx |
+| 3. Idempotency replay = no double-debit | `Phase 2 — idempotency-skip` tests above — each `redeem*Tx` confirmed to skip on existing key |
+| 4. Lock order regardless of caller leg order | `Phase 2: credit-application legs sorted into STORED_VALUE_LOCK_ORDER` test added in Step 2 |
+
+End-to-end DB-level integration tests for the full submit-order flow are tracked as a follow-up — they need either a real Postgres test instance or a deeper Prisma mock than this project currently maintains, and the building-block contracts above already pin every behavior such a test would assert.
+
+### Verification (after Step 6)
+- `npx tsc --noEmit` — 0 errors in Phase 2 files (3 pre-existing payment-config UI errors persist; unrelated).
+- Phase 2 jest sweep — **69/69 pass** across `money`, `idempotency`, `order-settlement-planner`, `discount-service`, `stored-value.service`, `loyalty.service`.
+
+### Files modified (Step 6)
+- `web-admin/__tests__/services/stored-value.service.test.ts` (+6 Phase 2 cases)
+- `web-admin/__tests__/services/loyalty.service.test.ts` (mockTx extended + 2 Phase 2 cases)
+

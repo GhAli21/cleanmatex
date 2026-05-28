@@ -68,17 +68,37 @@ export interface VoucherData {
   voucher_category: string;
   voucher_subtype: string | null;
   voucher_type: string | null;
+  voucher_status?: string | null;
+  posting_status?: string | null;
+  direction?: string | null;
+  voucher_date?: Date | null;
+  voucher_datetime?: Date | null;
+  party_type?: string | null;
+  party_name?: string | null;
   invoice_id: string | null;
   order_id: string | null;
   customer_id: string | null;
+  supplier_id?: string | null;
+  employee_id?: string | null;
   total_amount: number;
+  paid_amount?: number | null;
+  outstanding_amount?: number | null;
+  refunded_amount?: number | null;
   currency_code: string | null;
+  currency_ex_rate?: number | null;
   status: string;
   issued_at: Date | null;
   voided_at: Date | null;
   void_reason: string | null;
   reason_code: string | null;
   reversed_by_voucher_id: string | null;
+  reversed_at?: Date | null;
+  reversal_reason?: string | null;
+  description?: string | null;
+  notes?: string | null;
+  source_module?: string | null;
+  source_ref_type?: string | null;
+  source_ref_id?: string | null;
   content_html: string | null;
   content_text: string | null;
   metadata: unknown;
@@ -207,6 +227,8 @@ export interface VoucherLineData {
   target_id: string | null;
   order_id: string | null;
   customer_id: string | null;
+  supplier_id?: string | null;
+  employee_id?: string | null;
   payment_method_code: string | null;
   amount: number;
   currency_code: string | null;
@@ -216,6 +238,7 @@ export interface VoucherLineData {
   expense_category_code: string | null;
   party_name: string | null;
   description: string | null;
+  notes?: string | null;
   line_status: string;
   wiring_status: string;
   reversed_line_id: string | null;
@@ -228,10 +251,14 @@ export interface VoucherLineData {
   cash_drawer_session_id: string | null;
   card_brand_code: string | null;
   card_last4: string | null;
+  auth_code?: string | null;
   gateway_code: string | null;
+  gateway_transaction_id?: string | null;
   gateway_reference: string | null;
   bank_reference: string | null;
   check_number: string | null;
+  check_bank?: string | null;
+  check_date?: Date | null;
   branch_id: string | null;
 }
 
@@ -245,9 +272,14 @@ export interface BizVoucherDetailData {
   posting_status: GlPostingStatus;
   direction: VoucherDirection | null;
   voucher_date: string | null;
+  voucher_datetime?: string | null;
   party_type: PartyType | null;
+  supplier_id?: string | null;
+  employee_id?: string | null;
   party_name: string | null;
   customer_id: string | null;
+  order_id?: string | null;
+  invoice_id?: string | null;
   total_amount: number;
   subtotal_amount: number | null;
   discount_amount: number | null;
@@ -257,8 +289,12 @@ export interface BizVoucherDetailData {
   refunded_amount: number | null;
   outstanding_amount: number | null;
   currency_code: string | null;
+  currency_ex_rate?: number | null;
   description: string | null;
   notes: string | null;
+  source_module?: string | null;
+  source_ref_type?: string | null;
+  source_ref_id?: string | null;
   posted_at: Date | null;
   posted_by: string | null;
   reversed_at: Date | null;
@@ -266,6 +302,7 @@ export interface BizVoucherDetailData {
   created_at: Date;
   created_by: string | null;
   updated_at: Date | null;
+  updated_by?: string | null;
   lines: VoucherLineData[];
 }
 

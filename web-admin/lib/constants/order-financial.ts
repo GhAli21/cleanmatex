@@ -44,6 +44,40 @@ export const CREDIT_APPLICATION_TYPES = {
 export type CreditApplicationType =
   (typeof CREDIT_APPLICATION_TYPES)[keyof typeof CREDIT_APPLICATION_TYPES];
 
+/**
+ * Canonical lock-acquisition order for stored-value balances inside the
+ * submit-order voucher transaction (Phase 2 BVM Wiring).
+ *
+ * Why a fixed order:
+ * Submit-order can debit multiple stored-value balances for the same customer
+ * in a single transaction (gift card + wallet + loyalty). Two concurrent
+ * submits that touch the same customer's balances in opposite orders would
+ * deadlock on SELECT … FOR UPDATE. Sorting every redemption batch by this
+ * canonical order before taking row locks guarantees a deterministic lock
+ * sequence and eliminates the deadlock window.
+ *
+ * Values mirror CREDIT_APPLICATION_TYPES (DB-mirror rule).
+ */
+export const STORED_VALUE_LOCK_ORDER = [
+  CREDIT_APPLICATION_TYPES.GIFT_CARD,
+  CREDIT_APPLICATION_TYPES.WALLET,
+  CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE,
+  CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT,
+  CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT,
+] as const satisfies readonly CreditApplicationType[];
+
+/** Rank lookup for sorting stored-value legs by STORED_VALUE_LOCK_ORDER. */
+export const STORED_VALUE_LOCK_RANK: Readonly<Record<CreditApplicationType, number>> =
+  Object.freeze(
+    STORED_VALUE_LOCK_ORDER.reduce(
+      (acc, type, index) => {
+        acc[type] = index;
+        return acc;
+      },
+      {} as Record<CreditApplicationType, number>,
+    ),
+  );
+
 /** Refund reason codes mirrored from `sys_refund_reason_codes_cd.reason_code`. */
 export const REFUND_REASON_CODES = {
   DUPLICATE: 'DUPLICATE',

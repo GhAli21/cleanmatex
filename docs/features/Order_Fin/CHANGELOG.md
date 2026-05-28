@@ -1,5 +1,38 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-28 (later in day) — BVM Wiring Phase 2: Stored-Value Consolidation
+
+### Closed in this session
+
+**Migration:** `supabase/migrations/0329_phase2_stored_value_voucher_fks.sql`
+- Added `fin_voucher_id` + `fin_voucher_trx_line_id` to `org_loyalty_txn_dtl`.
+- Added 10 composite FK constraints `(tenant_org_id, <link_id>) → org_fin_vouchers_mst | org_fin_voucher_trx_lines_dtl ON DELETE SET NULL` across all 5 stored-value txn tables.
+- Added 10 partial indexes (`WHERE col IS NOT NULL`).
+
+**New invariant — stored-value atomicity:**
+- Submit-order's voucher creation, line inserts, every `redeem*Tx` debit, and `postAndWireBizVoucher` now run in **one `prisma.$transaction`**. A failure anywhere inside rolls back the voucher header, every line, every prior balance debit.
+- Previously: a mid-flow failure could leave the voucher header committed with no payment fact rows.
+
+**Service contracts standardised:**
+- All 5 `redeem*Tx` services accept `idempotencyKey?`, `voucherId?`, `voucherLineId?` with uniform skip-on-existing semantics. `redeemAdvanceTx` and `redeemCreditNoteTx` previously had no idempotency support — Phase 2 closes that drift.
+- `createBizVoucher`, `addVoucherLine`, `postAndWireBizVoucher` accept an optional `tx?: PrismaTransactionClient` to join the caller's transaction.
+- `applyStoredValueDebitTx` (now exported) forwards `voucherId`/`voucherLineId` to every dispatch path and writes them on `org_order_credit_apps_dtl`.
+
+**Lock-order discipline:**
+- New `STORED_VALUE_LOCK_ORDER` constant (`GIFT_CARD → WALLET → CUSTOMER_ADVANCE → CUSTOMER_CREDIT → LOYALTY_CREDIT`).
+- Planner sorts `creditApplicationLegs` by `STORED_VALUE_LOCK_RANK` → concurrent submits take row locks in the same sequence — deadlock-free.
+
+**Critical bug prevented (Step 4):**
+- `order-settlement.service.ts`: the `CREDIT_APPLICATION` branch now short-circuits with `if (wiringMode) continue;` BEFORE any `redeem*Tx` call. Without this guard, the orchestrator-tx consolidation would have caused `settleOrder` to debit every stored-value balance a second time.
+
+**Legacy retirement:** `app/api/v1/orders/_legacy_create-with-payment/` deleted (Next.js private folder, never served). ESLint rule kept as a future-proof guard.
+
+**Deferred to Phase 2.1:** `input.giftCardId` as a voucher line — needs a voucher-total semantic decision.
+
+**Tests:** +8 contract tests; Phase 2 sweep 69/69 pass.
+
+---
+
 ## 2026-05-28
 
 ### BVM Wiring Phase 1B — Pre-Phase-2 Stabilization Session

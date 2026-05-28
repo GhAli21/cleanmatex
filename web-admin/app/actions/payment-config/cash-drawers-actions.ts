@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
+import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import type {
   OrgCashDrawer,
   OrgCashDrawerSession,
@@ -16,6 +17,11 @@ import type {
 } from '@/lib/types/payment';
 
 const REVALIDATE_PATH = '/dashboard/settings/payments';
+
+async function resolveTenantCurrencyCode(tenantId: string, userId?: string | null): Promise<string> {
+  const config = await getCurrencyConfigAction(tenantId, undefined, userId ?? undefined);
+  return config.currencyCode;
+}
 
 /** List cash drawers, optionally filtered by branch. Includes current open session if any. */
 export async function getCashDrawers(
@@ -67,6 +73,7 @@ export async function createCashDrawer(
 ): Promise<{ success: boolean; data?: OrgCashDrawer; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_cash_drawers_mst.create({
         data: {
@@ -76,7 +83,7 @@ export async function createCashDrawer(
           drawer_name: input.drawer_name,
           drawer_name2: input.drawer_name2 ?? null,
           drawer_type: input.drawer_type,
-          currency_code: input.currency_code,
+          currency_code: tenantCurrencyCode,
           requires_session: input.requires_session ?? true,
           opening_float_required: input.opening_float_required ?? true,
           max_cash_limit: input.max_cash_limit ?? null,
@@ -119,6 +126,7 @@ export async function updateCashDrawer(
       const row = await prisma.org_cash_drawers_mst.update({
         where: { id },
         data: {
+          ...(input.branch_id !== undefined && { branch_id: input.branch_id }),
           ...(input.drawer_name !== undefined && { drawer_name: input.drawer_name }),
           ...(input.drawer_name2 !== undefined && { drawer_name2: input.drawer_name2 }),
           ...(input.drawer_type !== undefined && { drawer_type: input.drawer_type }),

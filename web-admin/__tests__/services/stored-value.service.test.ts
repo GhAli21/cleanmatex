@@ -56,6 +56,8 @@ import {
   getWalletBalance,
   topUpWalletTx,
   redeemWalletTx,
+  redeemAdvanceTx,
+  redeemCreditNoteTx,
   issueCreditNote,
 } from '@/lib/services/stored-value.service';
 import { Decimal } from '@prisma/client/runtime/library';
@@ -219,6 +221,201 @@ describe('stored-value.service — issueCreditNote', () => {
           status:            'ACTIVE',
         }),
       })
+    );
+  });
+});
+
+// ============================================================================
+// Phase 2 BVM Wiring — standardised redeem*Tx contract
+//
+// Every redeem*Tx must:
+//   (a) skip on existing idempotency_key (return cached row, no balance debit),
+//   (b) persist fin_voucher_id + fin_voucher_trx_line_id on the ledger row
+//       insert when the caller supplies voucherId/voucherLineId.
+// ============================================================================
+
+describe('Phase 2 — redeemWalletTx idempotency-skip + voucher backlink', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('returns the cached ledger row without debiting when idempotency_key already exists', async () => {
+    const cachedRow = { id: 'wallet-txn-existing', amount: -20 };
+    mockWalletTxnFindFirst.mockResolvedValueOnce(cachedRow);
+
+    const tx = makeTx(100);
+    const result = await redeemWalletTx(tx as Parameters<typeof redeemWalletTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      amount:         20,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_w_0',
+    });
+
+    expect(result).toBe(cachedRow);
+    // No FOR UPDATE lookup, no update, no insert — Phase 2 contract.
+    expect(mockTxQueryRaw).not.toHaveBeenCalled();
+    expect(mockWalletUpdate).not.toHaveBeenCalled();
+    expect(mockWalletTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('writes fin_voucher_id + fin_voucher_trx_line_id when voucher backlinks are provided', async () => {
+    mockWalletTxnFindFirst.mockResolvedValueOnce(null);
+    mockTxQueryRaw.mockResolvedValue([{ id: 'w1', balance: 100, currency_code: 'OMR' }]);
+    mockWalletUpdate.mockResolvedValue({ id: 'w1', balance: new Decimal('80') });
+    mockWalletTxnCreate.mockResolvedValue({ id: 'wallet-txn-new' });
+
+    const tx = makeTx(100);
+    await redeemWalletTx(tx as Parameters<typeof redeemWalletTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      amount:         20,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_w_0',
+      voucherId:      'vch-1',
+      voucherLineId:  'vch-line-1',
+    });
+
+    expect(mockWalletTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          idempotency_key:         'order-1_sv_w_0',
+          fin_voucher_id:          'vch-1',
+          fin_voucher_trx_line_id: 'vch-line-1',
+        }),
+      }),
+    );
+  });
+});
+
+describe('Phase 2 — redeemAdvanceTx idempotency-skip + voucher backlink', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const mockAdvanceTxnFindFirst = jest.fn();
+  const mockAdvanceTxnCreate    = jest.fn();
+  const mockAdvanceUpdate       = jest.fn();
+
+  const makeAdvanceTx = () => ({
+    $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
+    org_customer_advances_mst: {
+      findFirst: jest.fn(),
+      create:    jest.fn(),
+      update:    (...a: unknown[]) => mockAdvanceUpdate(...a),
+    },
+    org_advance_txn_dtl: {
+      findFirst: (...a: unknown[]) => mockAdvanceTxnFindFirst(...a),
+      create:    (...a: unknown[]) => mockAdvanceTxnCreate(...a),
+    },
+  });
+
+  it('skips on existing idempotency_key without taking SELECT FOR UPDATE', async () => {
+    const cached = { id: 'adv-txn-existing' };
+    mockAdvanceTxnFindFirst.mockResolvedValueOnce(cached);
+
+    const tx = makeAdvanceTx();
+    const result = await redeemAdvanceTx(tx as Parameters<typeof redeemAdvanceTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      amount:         10,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_a_0',
+    });
+
+    expect(result).toBe(cached);
+    expect(mockTxQueryRaw).not.toHaveBeenCalled();
+    expect(mockAdvanceUpdate).not.toHaveBeenCalled();
+    expect(mockAdvanceTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('persists fin_voucher_id + fin_voucher_trx_line_id on the new ledger row', async () => {
+    mockAdvanceTxnFindFirst.mockResolvedValueOnce(null);
+    mockTxQueryRaw.mockResolvedValue([{ id: 'adv-1', balance: 50, currency_code: 'OMR' }]);
+    mockAdvanceUpdate.mockResolvedValue({ id: 'adv-1' });
+    mockAdvanceTxnCreate.mockResolvedValue({ id: 'adv-txn-new' });
+
+    const tx = makeAdvanceTx();
+    await redeemAdvanceTx(tx as Parameters<typeof redeemAdvanceTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      amount:         15,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_a_0',
+      voucherId:      'vch-2',
+      voucherLineId:  'vch-line-2',
+    });
+
+    expect(mockAdvanceTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          idempotency_key:         'order-1_sv_a_0',
+          fin_voucher_id:          'vch-2',
+          fin_voucher_trx_line_id: 'vch-line-2',
+        }),
+      }),
+    );
+  });
+});
+
+describe('Phase 2 — redeemCreditNoteTx idempotency-skip + voucher backlink', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const mockCnTxnFindFirst = jest.fn();
+  const mockCnTxnCreate    = jest.fn();
+  const mockCnMstUpdate    = jest.fn();
+
+  const makeCnTx = () => ({
+    $queryRaw: (...a: unknown[]) => mockTxQueryRaw(...a),
+    org_credit_notes_mst: { update: (...a: unknown[]) => mockCnMstUpdate(...a) },
+    org_credit_note_txn_dtl: {
+      findFirst: (...a: unknown[]) => mockCnTxnFindFirst(...a),
+      create:    (...a: unknown[]) => mockCnTxnCreate(...a),
+    },
+  });
+
+  it('skips on existing idempotency_key', async () => {
+    const cached = { id: 'cn-txn-existing' };
+    mockCnTxnFindFirst.mockResolvedValueOnce(cached);
+
+    const tx = makeCnTx();
+    const result = await redeemCreditNoteTx(tx as Parameters<typeof redeemCreditNoteTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      creditNoteId:   'cn-1',
+      amount:         5,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_cn_0',
+    });
+
+    expect(result).toBe(cached);
+    expect(mockTxQueryRaw).not.toHaveBeenCalled();
+    expect(mockCnMstUpdate).not.toHaveBeenCalled();
+    expect(mockCnTxnCreate).not.toHaveBeenCalled();
+  });
+
+  it('persists fin_voucher_id + fin_voucher_trx_line_id on the ledger row', async () => {
+    mockCnTxnFindFirst.mockResolvedValueOnce(null);
+    mockTxQueryRaw.mockResolvedValue([{ id: 'cn-1', remaining_balance: 30, currency_code: 'OMR' }]);
+    mockCnMstUpdate.mockResolvedValue({ id: 'cn-1' });
+    mockCnTxnCreate.mockResolvedValue({ id: 'cn-txn-new' });
+
+    const tx = makeCnTx();
+    await redeemCreditNoteTx(tx as Parameters<typeof redeemCreditNoteTx>[0], {
+      tenantId:       TENANT,
+      customerId:     CUST,
+      creditNoteId:   'cn-1',
+      amount:         12,
+      orderId:        ORDER,
+      idempotencyKey: 'order-1_sv_cn_0',
+      voucherId:      'vch-3',
+      voucherLineId:  'vch-line-3',
+    });
+
+    expect(mockCnTxnCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          idempotency_key:         'order-1_sv_cn_0',
+          fin_voucher_id:          'vch-3',
+          fin_voucher_trx_line_id: 'vch-line-3',
+        }),
+      }),
     );
   });
 });

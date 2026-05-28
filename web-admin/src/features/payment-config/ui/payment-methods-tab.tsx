@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Settings, CreditCard, Plus } from 'lucide-react';
 import { CmxButton } from '@ui/primitives';
 import { CmxDataTable } from '@ui/data-display';
@@ -15,9 +15,12 @@ import {
   togglePaymentMethodEnabled,
   softDeletePaymentMethodConfig,
 } from '@/app/actions/payment-config/payment-methods-actions';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { EnablePaymentMethodDialog } from './enable-payment-method-dialog';
 import { PaymentMethodConfigDialog } from './payment-method-config-dialog';
 import { CmxConfirmDialog } from '@ui/feedback';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
+import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
 
 interface PaymentMethodsTabProps {
   methods: OrgPaymentMethodConfig[];
@@ -27,14 +30,43 @@ interface PaymentMethodsTabProps {
 
 export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMethodsTabProps) {
   const t = useTranslations('paymentConfig');
+  const locale = useLocale();
   const [isPending, startTransition] = useTransition();
   const [showEnableDialog, setShowEnableDialog] = useState(false);
   const [configTarget, setConfigTarget] = useState<OrgPaymentMethodConfig | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OrgPaymentMethodConfig | null>(null);
   const [localEnabled, setLocalEnabled] = useState<Record<string, boolean>>({});
+  const { currencyCode: tenantCurrencyCode, decimalPlaces } = useTenantCurrency();
+
+  const moneyLocale = locale === 'ar' ? 'ar' : 'en';
 
   const getEnabled = (m: OrgPaymentMethodConfig) =>
     localEnabled[m.id] !== undefined ? localEnabled[m.id] : m.is_enabled;
+
+  const formatAmount = (amount: number | null) =>
+    amount == null
+      ? '—'
+      : formatMoneyAmountWithCode(amount, {
+          currencyCode: tenantCurrencyCode,
+          decimalPlaces,
+          locale: moneyLocale,
+        });
+
+  const CopyValue = ({
+    value,
+    maxLength,
+  }: {
+    value: string | number | null | undefined;
+    maxLength?: number;
+  }) => (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className="px-0 py-0 text-sm text-foreground"
+    />
+  );
 
   const handleToggle = (method: OrgPaymentMethodConfig, val: boolean) => {
     setLocalEnabled((prev) => ({ ...prev, [method.id]: val }));
@@ -86,6 +118,13 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
 
   const columns = [
     {
+      key: 'payment_method_code',
+      header: t('methods.code'),
+      render: (m: OrgPaymentMethodConfig) => (
+        <CopyValue value={m.payment_method_code} />
+      ),
+    },
+    {
       key: 'display_name',
       header: t('methods.name'),
       render: (m: OrgPaymentMethodConfig) => (
@@ -103,6 +142,22 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
       ),
     },
     {
+      key: 'routing',
+      header: t('methods.routing'),
+      render: (m: OrgPaymentMethodConfig) => (
+        <div className="space-y-1 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">{t('methods.gatewayCode')}</span>
+            {m.gateway_code ? <Badge variant="outline">{m.gateway_code}</Badge> : <span className="text-muted-foreground">—</span>}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground">{t('methods.currencyCode')}</span>
+            <Badge variant="secondary">{m.currency_code ?? tenantCurrencyCode}</Badge>
+          </div>
+        </div>
+      ),
+    },
+    {
       key: 'channels',
       header: t('methods.channels.label'),
       render: (m: OrgPaymentMethodConfig) => (
@@ -111,6 +166,41 @@ export function PaymentMethodsTab({ methods, isLoading, onRefresh }: PaymentMeth
           {m.allowed_in_customer_app && <Badge variant="secondary">{t('methods.channels.app')}</Badge>}
           {m.allowed_in_staff_app && <Badge variant="secondary">{t('methods.channels.staff')}</Badge>}
           {m.allowed_in_admin_app && <Badge variant="secondary">{t('methods.channels.admin')}</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'purposesAndRequirements',
+      header: t('methods.purposesAndRequirements'),
+      render: (m: OrgPaymentMethodConfig) => (
+        <div className="flex max-w-md flex-wrap gap-1">
+          {m.allowed_for_pay_now && <Badge variant="outline">{t('methods.purposes.payNow')}</Badge>}
+          {m.allowed_for_pay_on_collection && <Badge variant="outline">{t('methods.purposes.payOnCollection')}</Badge>}
+          {m.allowed_for_invoice_payment && <Badge variant="outline">{t('methods.purposes.invoicePayment')}</Badge>}
+          {m.allowed_for_refund && <Badge variant="outline">{t('methods.purposes.refund')}</Badge>}
+          {m.requires_reference && <Badge variant="secondary">{t('methods.requiresReference')}</Badge>}
+          {m.requires_cash_drawer && <Badge variant="secondary">{t('methods.requiresCashDrawer')}</Badge>}
+          {m.requires_terminal && <Badge variant="secondary">{t('methods.requiresTerminal')}</Badge>}
+        </div>
+      ),
+    },
+    {
+      key: 'limits',
+      header: t('methods.limits'),
+      render: (m: OrgPaymentMethodConfig) => (
+        <div className="space-y-1 text-sm">
+          <div>
+            <span className="text-muted-foreground">{t('methods.minAmount')}</span>{' '}
+            <span className="font-medium">{formatAmount(m.min_amount)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('methods.maxAmount')}</span>{' '}
+            <span className="font-medium">{formatAmount(m.max_amount)}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('methods.feeType')}</span>{' '}
+            <span className="font-medium">{t(`methods.feeTypes.${m.fee_type}` as never)}</span>
+          </div>
         </div>
       ),
     },

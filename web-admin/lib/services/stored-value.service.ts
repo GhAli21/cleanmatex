@@ -89,11 +89,40 @@ export async function topUpWalletTx(
   });
 }
 
+/**
+ * Debit wallet balance inside an existing Prisma transaction.
+ *
+ * Phase 2 BVM Wiring contract:
+ *  - `idempotencyKey` enables skip-on-existing (returns the cached ledger row
+ *    without re-debiting the balance).
+ *  - `voucherId` / `voucherLineId` are persisted onto the ledger row so the
+ *    voucher → ledger backlink is queryable (FK from migration 0329).
+ *
+ * Uses SELECT … FOR UPDATE inside the caller's tx to prevent concurrent
+ * double-debit.
+ */
 export async function redeemWalletTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; amount: number; orderId: string; idempotencyKey?: string }
+  params: {
+    tenantId: string;
+    customerId: string;
+    amount: number;
+    orderId: string;
+    idempotencyKey?: string;
+    voucherId?: string;
+    voucherLineId?: string;
+  }
 ) {
-  const { tenantId, customerId, amount, orderId, idempotencyKey } = params;
+  const { tenantId, customerId, amount, orderId, idempotencyKey, voucherId, voucherLineId } = params;
+
+  // Phase 2: idempotency-skip. If this key already produced a ledger row,
+  // return it instead of double-debiting the balance.
+  if (idempotencyKey) {
+    const existing = await tx.org_wallet_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   // SELECT FOR UPDATE
   const wallet = await tx.$queryRaw<{ id: string; balance: number; currency_code: string }[]>`
@@ -117,17 +146,19 @@ export async function redeemWalletTx(
 
   return tx.org_wallet_txn_dtl.create({
     data: {
-      tenant_org_id:   tenantId,
-      wallet_id:       wallet[0].id,
-      customer_id:     customerId,
-      txn_type:        STORED_VALUE_TXN_TYPES.REDEMPTION,
-      amount:          -amount,
-      currency_code:   wallet[0].currency_code,
-      balance_before:  balanceBefore,
-      balance_after:   balanceAfter,
-      order_id:        orderId,
-      idempotency_key: idempotencyKey ?? null,
-      rec_status:      1,
+      tenant_org_id:            tenantId,
+      wallet_id:                wallet[0].id,
+      customer_id:              customerId,
+      txn_type:                 STORED_VALUE_TXN_TYPES.REDEMPTION,
+      amount:                   -amount,
+      currency_code:            wallet[0].currency_code,
+      balance_before:           balanceBefore,
+      balance_after:            balanceAfter,
+      order_id:                 orderId,
+      idempotency_key:          idempotencyKey ?? null,
+      fin_voucher_id:           voucherId ?? null,
+      fin_voucher_trx_line_id:  voucherLineId ?? null,
+      rec_status:               1,
     },
   });
 }
@@ -203,11 +234,34 @@ export async function issueAdvanceTx(
   });
 }
 
+/**
+ * Debit customer-advance balance inside an existing Prisma transaction.
+ *
+ * Phase 2 BVM Wiring contract:
+ *  - `idempotencyKey` enables skip-on-existing.
+ *  - `voucherId` / `voucherLineId` persist the voucher → ledger backlink
+ *    (FK from migration 0329).
+ */
 export async function redeemAdvanceTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; amount: number; orderId: string }
+  params: {
+    tenantId: string;
+    customerId: string;
+    amount: number;
+    orderId: string;
+    idempotencyKey?: string;
+    voucherId?: string;
+    voucherLineId?: string;
+  }
 ) {
-  const { tenantId, customerId, amount, orderId } = params;
+  const { tenantId, customerId, amount, orderId, idempotencyKey, voucherId, voucherLineId } = params;
+
+  if (idempotencyKey) {
+    const existing = await tx.org_advance_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   const rows = await tx.$queryRaw<{ id: string; balance: number; currency_code: string }[]>`
     SELECT id, balance::float8, currency_code
@@ -230,16 +284,19 @@ export async function redeemAdvanceTx(
 
   return tx.org_advance_txn_dtl.create({
     data: {
-      tenant_org_id:  tenantId,
-      advance_id:     rows[0].id,
-      customer_id:    customerId,
-      txn_type:       STORED_VALUE_TXN_TYPES.REDEMPTION,
-      amount:         -amount,
-      currency_code:  rows[0].currency_code,
-      balance_before: balanceBefore,
-      balance_after:  balanceAfter,
-      order_id:       orderId,
-      rec_status:     1,
+      tenant_org_id:           tenantId,
+      advance_id:              rows[0].id,
+      customer_id:             customerId,
+      txn_type:                STORED_VALUE_TXN_TYPES.REDEMPTION,
+      amount:                  -amount,
+      currency_code:           rows[0].currency_code,
+      balance_before:          balanceBefore,
+      balance_after:           balanceAfter,
+      order_id:                orderId,
+      idempotency_key:         idempotencyKey ?? null,
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
+      rec_status:              1,
     },
   });
 }
@@ -286,11 +343,34 @@ export async function issueCreditNote(
   );
 }
 
+/**
+ * Debit credit-note balance inside an existing Prisma transaction.
+ *
+ * Phase 2 BVM Wiring contract:
+ *  - `idempotencyKey` enables skip-on-existing.
+ *  - `voucherId` / `voucherLineId` persist the voucher → ledger backlink.
+ */
 export async function redeemCreditNoteTx(
   tx: PrismaTransactionClient,
-  params: { tenantId: string; customerId: string; creditNoteId: string; amount: number; orderId: string }
+  params: {
+    tenantId: string;
+    customerId: string;
+    creditNoteId: string;
+    amount: number;
+    orderId: string;
+    idempotencyKey?: string;
+    voucherId?: string;
+    voucherLineId?: string;
+  }
 ) {
-  const { tenantId, creditNoteId, amount, orderId, customerId } = params;
+  const { tenantId, creditNoteId, amount, orderId, customerId, idempotencyKey, voucherId, voucherLineId } = params;
+
+  if (idempotencyKey) {
+    const existing = await tx.org_credit_note_txn_dtl.findFirst({
+      where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+    });
+    if (existing) return existing;
+  }
 
   const rows = await tx.$queryRaw<{ id: string; remaining_balance: number; currency_code: string }[]>`
     SELECT id, remaining_balance::float8, currency_code FROM org_credit_notes_mst
@@ -317,16 +397,19 @@ export async function redeemCreditNoteTx(
 
   return tx.org_credit_note_txn_dtl.create({
     data: {
-      tenant_org_id:  tenantId,
-      credit_note_id: creditNoteId,
-      customer_id:    customerId,
-      txn_type:       STORED_VALUE_TXN_TYPES.REDEMPTION,
-      amount:         -amount,
-      currency_code:  rows[0].currency_code,
-      balance_before: balanceBefore,
-      balance_after:  newBalance,
-      order_id:       orderId,
-      rec_status:     1,
+      tenant_org_id:           tenantId,
+      credit_note_id:          creditNoteId,
+      customer_id:             customerId,
+      txn_type:                STORED_VALUE_TXN_TYPES.REDEMPTION,
+      amount:                  -amount,
+      currency_code:           rows[0].currency_code,
+      balance_before:          balanceBefore,
+      balance_after:           newBalance,
+      order_id:                orderId,
+      idempotency_key:         idempotencyKey ?? null,
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
+      rec_status:              1,
     },
   });
 }

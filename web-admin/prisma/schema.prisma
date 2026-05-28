@@ -7316,28 +7316,36 @@ model org_loyalty_accounts_mst {
 }
 
 model org_loyalty_txn_dtl {
-  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tenant_org_id   String   @db.Uuid
-  account_id      String   @db.Uuid
-  customer_id     String   @db.Uuid
-  txn_type        String
-  points          Int
-  points_before   Int
-  points_after    Int
-  order_id        String?  @db.Uuid
-  credit_app_id   String?  @db.Uuid
-  idempotency_key String?
-  notes           String?
-  performed_by    String?  @db.Uuid
-  created_at      DateTime @default(now()) @db.Timestamptz(6)
-  created_by      String?  @db.Uuid
-  created_info    String?
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tenant_org_id           String   @db.Uuid
+  account_id              String   @db.Uuid
+  customer_id             String   @db.Uuid
+  txn_type                String
+  points                  Int
+  points_before           Int
+  points_after            Int
+  order_id                String?  @db.Uuid
+  credit_app_id           String?  @db.Uuid
+  idempotency_key         String?
+  // Phase 2 BVM Wiring (migration 0329): voucher header/line backlink so each
+  // loyalty redemption row is joinable to org_fin_vouchers_mst and
+  // org_fin_voucher_trx_lines_dtl. Composite FK enforced in DB; Prisma sees
+  // only the scalar columns and the index aliases below.
+  fin_voucher_id          String?  @db.Uuid
+  fin_voucher_trx_line_id String?  @db.Uuid
+  notes                   String?
+  performed_by            String?  @db.Uuid
+  created_at              DateTime @default(now()) @db.Timestamptz(6)
+  created_by              String?  @db.Uuid
+  created_info            String?
 
   org_loyalty_accounts_mst org_loyalty_accounts_mst @relation(fields: [account_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 
   @@unique([tenant_org_id, idempotency_key], map: "uq_loyalty_txn_idempotency")
   @@index([tenant_org_id, account_id], map: "idx_loyalty_txn_account")
   @@index([tenant_org_id, order_id], map: "idx_loyalty_txn_order")
+  @@index([tenant_org_id, fin_voucher_id], map: "idx_loyalty_txn_fin_voucher")
+  @@index([tenant_org_id, fin_voucher_trx_line_id], map: "idx_loyalty_txn_voucher_line")
   @@schema("public")
 }
 

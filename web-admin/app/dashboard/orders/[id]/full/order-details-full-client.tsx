@@ -21,6 +21,7 @@ import { CmxCard, CmxCardHeader, CmxCardTitle, CmxCardContent } from '@ui/primit
 import { CmxButton } from '@ui/primitives/cmx-button';
 import { CmxInput } from '@ui/primitives/cmx-input';
 import { CmxTextarea } from '@ui/primitives/cmx-textarea';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 import { isPreparationEnabled } from '@/lib/config/features';
 import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
 import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
@@ -530,7 +531,14 @@ export function OrderDetailsFullClient({
               return (
                 <div key={key} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
                   <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{displayKey}</dt>
-                  <dd className="text-sm text-gray-900 break-all">{formatMasterValue(key, val)}</dd>
+                  <dd className="min-w-0 break-all">
+                    <CmxCopyableCell
+                      as="span"
+                      value={formatMasterValue(key, val)}
+                      align={isRTL ? 'right' : 'left'}
+                      className="px-0 py-0 text-sm text-gray-900"
+                    />
+                  </dd>
                 </div>
               );
             })}
@@ -933,7 +941,14 @@ export function OrderDetailsFullClient({
                     .map((row) => (
                       <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-2 last:border-0`}>
                         <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[7rem]">{row.label}</dt>
-                        <dd className="text-sm text-gray-900 break-all">{String(row.value)}</dd>
+                        <dd className="min-w-0 break-all">
+                          <CmxCopyableCell
+                            as="span"
+                            value={String(row.value)}
+                            align={isRTL ? 'right' : 'left'}
+                            className="px-0 py-0 text-sm text-gray-900"
+                          />
+                        </dd>
                       </div>
                     ))}
                 </dl>
@@ -1343,7 +1358,14 @@ export function OrderDetailsFullClient({
                     .map((row) => (
                       <div key={row.label} className={`flex ${isRTL ? 'flex-row-reverse' : ''} gap-2 border-b border-gray-100 pb-3 last:border-0`}>
                         <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">{row.label}</dt>
-                        <dd className="text-sm text-gray-900 break-all">{String(row.value)}</dd>
+                        <dd className="min-w-0 break-all">
+                          <CmxCopyableCell
+                            as="span"
+                            value={String(row.value)}
+                            align={isRTL ? 'right' : 'left'}
+                            className="px-0 py-0 text-sm text-gray-900"
+                          />
+                        </dd>
                       </div>
                     ))}
                 </dl>
@@ -1365,8 +1387,13 @@ export function OrderDetailsFullClient({
                     <dt className="text-sm font-medium text-gray-500 shrink-0 min-w-[8rem]">
                       {t.customerLoyaltyPoints ?? 'Loyalty Points'}
                     </dt>
-                    <dd className="text-sm text-gray-900">
-                      {String((order.org_customers_mst as Record<string, unknown>).loyalty_points ?? 0)}
+                    <dd>
+                      <CmxCopyableCell
+                        as="span"
+                        value={String((order.org_customers_mst as Record<string, unknown>).loyalty_points ?? 0)}
+                        align={isRTL ? 'right' : 'left'}
+                        className="px-0 py-0 text-sm text-gray-900"
+                      />
                     </dd>
                   </div>
                 </dl>
@@ -1388,9 +1415,12 @@ export function OrderDetailsFullClient({
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
                       {t.masterField_customer_notes ?? 'Customer Notes'}
                     </p>
-                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.customer_notes)}
-                    </p>
+                    <CmxCopyableCell
+                      as="span"
+                      value={String(order.customer_notes)}
+                      align={isRTL ? 'right' : 'left'}
+                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                    />
                   </div>
                 )}
                 {order.payment_notes && (
@@ -1398,9 +1428,12 @@ export function OrderDetailsFullClient({
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
                       {t.masterField_payment_notes ?? 'Payment Notes'}
                     </p>
-                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.payment_notes)}
-                    </p>
+                    <CmxCopyableCell
+                      as="span"
+                      value={String(order.payment_notes)}
+                      align={isRTL ? 'right' : 'left'}
+                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                    />
                   </div>
                 )}
               </CmxCardContent>
@@ -1423,9 +1456,12 @@ export function OrderDetailsFullClient({
             </CmxCardHeader>
             <CmxCardContent className="pt-0">
               {order.customer_notes ? (
-                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {String(order.customer_notes)}
-                </p>
+                <CmxCopyableCell
+                  as="span"
+                  value={String(order.customer_notes)}
+                  align={isRTL ? 'right' : 'left'}
+                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                />
               ) : (
                 <p className="text-sm text-gray-400 italic">{t.noNotes ?? 'No customer notes'}</p>
               )}
@@ -1441,9 +1477,12 @@ export function OrderDetailsFullClient({
             </CmxCardHeader>
             <CmxCardContent className="pt-0">
               {order.internal_notes ? (
-                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {String(order.internal_notes)}
-                </p>
+                <CmxCopyableCell
+                  as="span"
+                  value={String(order.internal_notes)}
+                  align={isRTL ? 'right' : 'left'}
+                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                />
               ) : (
                 <p className="text-sm text-gray-400 italic">{t.noInternalNotes ?? 'No internal notes'}</p>
               )}
@@ -1459,9 +1498,12 @@ export function OrderDetailsFullClient({
             </CmxCardHeader>
             <CmxCardContent className="pt-0">
               {order.payment_notes ? (
-                <p className={`text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {String(order.payment_notes)}
-                </p>
+                <CmxCopyableCell
+                  as="span"
+                  value={String(order.payment_notes)}
+                  align={isRTL ? 'right' : 'left'}
+                  className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed ${isRTL ? 'text-right' : 'text-left'}`}
+                />
               ) : (
                 <p className="text-sm text-gray-400 italic">{t.noPaymentNotes ?? 'No payment notes'}</p>
               )}
@@ -1482,9 +1524,12 @@ export function OrderDetailsFullClient({
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
                       {t.masterField_cancelled_note ?? 'Cancellation Note'}
                     </p>
-                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.cancelled_note)}
-                    </p>
+                    <CmxCopyableCell
+                      as="span"
+                      value={String(order.cancelled_note)}
+                      align={isRTL ? 'right' : 'left'}
+                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                    />
                   </div>
                 )}
                 {order.return_reason && (
@@ -1492,9 +1537,12 @@ export function OrderDetailsFullClient({
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
                       {t.masterField_return_reason ?? 'Return Reason'}
                     </p>
-                    <p className={`text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {String(order.return_reason)}
-                    </p>
+                    <CmxCopyableCell
+                      as="span"
+                      value={String(order.return_reason)}
+                      align={isRTL ? 'right' : 'left'}
+                      className={`px-0 py-0 text-sm text-gray-800 whitespace-pre-wrap ${isRTL ? 'text-right' : 'text-left'}`}
+                    />
                   </div>
                 )}
               </CmxCardContent>

@@ -12,6 +12,7 @@ import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, Cm
 import { cmxMessage } from '@ui/feedback';
 import { getBranchPaymentMethods, softDeleteBranchPaymentMethod } from '@/app/actions/payment-config/branch-payment-methods-actions';
 import { BranchOverrideDialog } from './branch-override-dialog';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
 interface Branch {
   id: string;
@@ -96,7 +97,28 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
 
   const hasOverride = (row: MergedRow) => !!row.id;
 
+  const CopyValue = ({
+    value,
+    maxLength,
+  }: {
+    value: string | number | null | undefined;
+    maxLength?: number;
+  }) => (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className="px-0 py-0 text-sm text-foreground"
+    />
+  );
+
   const columns = [
+    {
+      key: 'payment_method_code',
+      header: t('methods.code'),
+      render: (row: MergedRow) => <CopyValue value={row.payment_method_code} />,
+    },
     {
       key: 'name',
       header: t('methods.name'),
@@ -118,6 +140,32 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
         ),
     },
     {
+      key: 'purposes',
+      header: t('branches.purposes'),
+      render: (row: MergedRow) => {
+        const chips = [
+          row.allowed_for_pay_now && t('branches.allowedForPayNow'),
+          row.allowed_for_pay_on_collection && t('branches.allowedForCollection'),
+          row.allowed_for_invoice_payment && t('branches.allowedForInvoice'),
+          row.allowed_for_refund && t('branches.allowedForRefund'),
+        ].filter(Boolean);
+
+        if (!chips.length) {
+          return <span className="text-xs text-muted-foreground">{t('branches.fromTenant')}</span>;
+        }
+
+        return (
+          <div className="flex flex-wrap gap-1">
+            {chips.map((chip) => (
+              <Badge key={chip as string} variant="outline" className="text-xs">
+                {chip}
+              </Badge>
+            ))}
+          </div>
+        );
+      },
+    },
+    {
       key: 'channels',
       header: t('tabs.channels'),
       render: (row: MergedRow) => {
@@ -133,6 +181,19 @@ export function BranchOverridesTab({ branches, isLoading }: BranchOverridesTabPr
           </div>
         ) : <span className="text-xs text-muted-foreground">—</span>;
       },
+    },
+    {
+      key: 'requirements',
+      header: t('branches.requirements'),
+      render: (row: MergedRow) => (
+        <div className="flex flex-wrap gap-1">
+          {row.cash_drawer_required && <Badge variant="secondary">{t('branches.cashDrawerRequired')}</Badge>}
+          {row.terminal_required && <Badge variant="secondary">{t('branches.terminalRequired')}</Badge>}
+          {!row.cash_drawer_required && !row.terminal_required && (
+            <span className="text-xs text-muted-foreground">—</span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'enabled',

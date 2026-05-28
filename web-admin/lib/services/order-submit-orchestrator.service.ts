@@ -20,6 +20,7 @@ import { createInvoice } from '@/lib/services/invoice-service';
 import { allocateArPaymentTx } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { redeemGiftCardTx } from '@/lib/services/gift-card-service';
+import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrder } from '@/lib/services/order-settlement.service';
 import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
@@ -31,7 +32,8 @@ import { listEffectivePaymentMethodConfigs } from '@/lib/services/payment-config
 import { calculateTax } from '@/lib/services/tax-engine.service';
 import { PAYMENT_METHODS, getPaymentTypeFromMethod } from '@/lib/constants/order-types';
 import { getPaymentTypeFromOutstandingPolicy } from '@/lib/constants/payment';
-import { TAX_TYPES } from '@/lib/constants/order-financial';
+import { TAX_TYPES, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
+import type { CreditApplicationType } from '@/lib/constants/order-financial';
 import { LINE_ROLE, LINE_TYPE, VOUCHER_TYPE } from '@/lib/constants/voucher';
 import { logger } from '@/lib/utils/logger';
 import { sumMoney } from '@/lib/utils/money';
@@ -74,6 +76,21 @@ function withinTolerance(a: number, b: number): boolean {
 function toNum(d: Decimal | null | undefined): number {
   return d ? Number(d) : 0;
 }
+
+/**
+ * Short code per stored-value type, used as the discriminator in the Phase 2
+ * sub-idempotency key format `${orderId}_sv_${code}_${legIndex}`.
+ *
+ * Why short codes: keeps the unique-index entries in each *_txn_dtl ledger
+ * table lean and matches the Round-2 Fix A pattern (orderId-prefixed sub-keys).
+ */
+const STORED_VALUE_CODE: Record<CreditApplicationType, 'gc' | 'w' | 'a' | 'cn' | 'lp'> = {
+  [CREDIT_APPLICATION_TYPES.GIFT_CARD]:        'gc',
+  [CREDIT_APPLICATION_TYPES.WALLET]:           'w',
+  [CREDIT_APPLICATION_TYPES.CUSTOMER_ADVANCE]: 'a',
+  [CREDIT_APPLICATION_TYPES.CUSTOMER_CREDIT]:  'cn',
+  [CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT]:   'lp',
+};
 
 function buildDifferences(
   client: { subtotal: number; manualDiscount?: number; promoDiscount?: number; vatValue: number; finalTotal: number },
@@ -598,89 +615,145 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     })
   );
 
-  // ── 5. Voucher creation + wiring (only when real/credit-app legs exist) ───────
-    let voucherPostResult: PostAndWireResult | null = null;
+  // ── 5. Voucher creation + lines + stored-value debits + post & wire ──────────
+  //
+  // Phase 2 (BVM Wiring) consolidation: header create → real-payment lines →
+  // credit-application lines + the matching stored-value redemption (with the
+  // voucher line backlink) → post & wire all run inside ONE Prisma transaction.
+  //
+  // Why one tx: a mid-flow failure (wallet insufficient, lock timeout, etc.)
+  // must roll back the voucher header AND any partial debits. Previously each
+  // step lived in its own withTenantContext, so a wallet-debit failure would
+  // leave the voucher header committed with no payment fact rows.
+  //
+  // Lock order: plan.creditApplicationLegs are already sorted by
+  // STORED_VALUE_LOCK_ORDER (planner Step 2), so `SELECT … FOR UPDATE` inside
+  // each redeem*Tx is acquired in canonical sequence regardless of how the
+  // client submitted the legs.
+  let voucherPostResult: PostAndWireResult | null = null;
 
-      if (plan.shouldCreateReceiptVoucher) {
-          const voucher = await withTenantContext(tenantId, () =>
-                createBizVoucher(tenantId, {
-                        voucher_type:    VOUCHER_TYPE.RECEIPT,
-                                direction:       'IN',
-                                        party_type:      'CUSTOMER',
-                                                customer_id:     input.customerId ?? undefined,
-                                                        order_id:        result.orderId,
-                                                                source_module:   'ORDERS',
-                                                                        source_ref_type: 'ORDER',
-                                                                                source_ref_id:   result.orderId,
-                                                                                        currency_code:   serverTotals.currencyCode,
-                                                                                                total_amount:    plan.immediateSettlementAmount,
-                                                                                                        branch_id:       branchId,
-                                                                                                                // P3 Fix A (B6 RESUME doc): sub-keys must be prefixed with result.orderId,
-                                                                                                                // NOT input.idempotencyKey. The route owns root-key idempotency; if the
-                                                                                                                // route created a fresh orderId (e.g. attempt 1 failed before its root
-                                                                                                                // key landed), the voucher sub-keys MUST also be fresh — otherwise the
-                                                                                                                // voucher header from attempt 1 leaks back via the unique constraint.
-                                                                                                                idempotency_key: `${result.orderId}_vch`,
-                                                                                                                      }, userId)
-                                                                                                                          );
-
-    for (const leg of plan.realPaymentLegs) {
-      await withTenantContext(tenantId, () =>
-        addVoucherLine(tenantId, voucher.id, {
-          line_type:              LINE_TYPE.RECEIPT,
-          line_role:              LINE_ROLE.ORDER_PAYMENT,
-          direction:              'IN',
-          target_type:            'ORDER',
-          order_id:               result.orderId,
-          customer_id:            input.customerId ?? undefined,
-          branch_id:              branchId,
-          payment_method_code:    leg.paymentMethodCode,
-          org_payment_method_id:  leg.orgPaymentMethodId,
-          amount:                 leg.amount,
-          currency_code:          leg.currencyCode,
-          cash_drawer_session_id: leg.cashDrawerSessionId,
-          tendered_amount:        leg.tenderedAmount,
-          gateway_code:           leg.gatewayCode,
-          gateway_transaction_id: leg.gatewayTransactionId,
-          gateway_reference:      leg.gatewayReference,
-          bank_reference:         leg.bankReference,
-          check_number:           leg.checkNumber,
-          check_bank:             leg.checkBank,
-          check_date:             leg.checkDate,
-          payment_terminal_id:    leg.terminalId,
-          card_brand_code:        leg.cardBrandCode,
-          card_last4:             leg.cardLast4,
-          auth_code:              leg.authCode,
-          idempotency_key:        `${result.orderId}_vl_rp_${leg.legIndex}`,
-        }, userId)
-      );
-    }
-
-    for (const leg of plan.creditApplicationLegs) {
-      await withTenantContext(tenantId, () =>
-        addVoucherLine(tenantId, voucher.id, {
-          line_type:               LINE_TYPE.CREDIT_APPLICATION,
-          line_role:               LINE_ROLE.ORDER_CREDIT_APPLICATION,
-          direction:               'NEUTRAL',
-          target_type:             'ORDER',
-          order_id:                result.orderId,
-          customer_id:             input.customerId ?? undefined,
-          branch_id:               branchId,
-          amount:                  leg.amount,
-          currency_code:           leg.currencyCode,
-          credit_application_type: leg.creditType,
-          idempotency_key:         `${result.orderId}_vl_ca_${leg.legIndex}`,
-        }, userId)
-      );
-    }
-
+  if (plan.shouldCreateReceiptVoucher) {
     voucherPostResult = await withTenantContext(tenantId, () =>
-      postAndWireBizVoucher(
-        tenantId,
-        voucher.id,
-        userId,
-        `${result.orderId}_vch_post`
-      )
+      prisma.$transaction(async (tx) => {
+        // 5.1 Voucher header
+        const voucher = await createBizVoucher(
+          tenantId,
+          {
+            voucher_type:    VOUCHER_TYPE.RECEIPT,
+            direction:       'IN',
+            party_type:      'CUSTOMER',
+            customer_id:     input.customerId ?? undefined,
+            order_id:        result.orderId,
+            source_module:   'ORDERS',
+            source_ref_type: 'ORDER',
+            source_ref_id:   result.orderId,
+            currency_code:   serverTotals.currencyCode,
+            total_amount:    plan.immediateSettlementAmount,
+            branch_id:       branchId,
+            // P3 Fix A (B6 RESUME doc): sub-keys are prefixed with
+            // result.orderId so a fresh retry order produces fresh
+            // sub-keys (no cross-order leak via the unique constraint).
+            idempotency_key: `${result.orderId}_vch`,
+          },
+          userId,
+          tx,
+        );
+
+        // 5.2 Real-payment lines (cash, card, gateway, check, bank transfer)
+        for (const leg of plan.realPaymentLegs) {
+          await addVoucherLine(
+            tenantId,
+            voucher.id,
+            {
+              line_type:              LINE_TYPE.RECEIPT,
+              line_role:              LINE_ROLE.ORDER_PAYMENT,
+              direction:              'IN',
+              target_type:            'ORDER',
+              order_id:               result.orderId,
+              customer_id:            input.customerId ?? undefined,
+              branch_id:              branchId,
+              payment_method_code:    leg.paymentMethodCode,
+              org_payment_method_id:  leg.orgPaymentMethodId,
+              amount:                 leg.amount,
+              currency_code:          leg.currencyCode,
+              cash_drawer_session_id: leg.cashDrawerSessionId,
+              tendered_amount:        leg.tenderedAmount,
+              gateway_code:           leg.gatewayCode,
+              gateway_transaction_id: leg.gatewayTransactionId,
+              gateway_reference:      leg.gatewayReference,
+              bank_reference:         leg.bankReference,
+              check_number:           leg.checkNumber,
+              check_bank:             leg.checkBank,
+              check_date:             leg.checkDate,
+              payment_terminal_id:    leg.terminalId,
+              card_brand_code:        leg.cardBrandCode,
+              card_last4:             leg.cardLast4,
+              auth_code:              leg.authCode,
+              idempotency_key:        `${result.orderId}_vl_rp_${leg.legIndex}`,
+            },
+            userId,
+            undefined,
+            tx,
+          );
+        }
+
+        // 5.3 Credit-application legs: voucher line + matching stored-value
+        // debit. Iteration order follows STORED_VALUE_LOCK_ORDER (planner
+        // sort) so concurrent submits take row locks in the same sequence.
+        for (const leg of plan.creditApplicationLegs) {
+          const line = await addVoucherLine(
+            tenantId,
+            voucher.id,
+            {
+              line_type:               LINE_TYPE.CREDIT_APPLICATION,
+              line_role:               LINE_ROLE.ORDER_CREDIT_APPLICATION,
+              direction:               'NEUTRAL',
+              target_type:             'ORDER',
+              order_id:                result.orderId,
+              customer_id:             input.customerId ?? undefined,
+              branch_id:               branchId,
+              amount:                  leg.amount,
+              currency_code:           leg.currencyCode,
+              credit_application_type: leg.creditType,
+              idempotency_key:         `${result.orderId}_vl_ca_${leg.legIndex}`,
+            },
+            userId,
+            undefined,
+            tx,
+          );
+
+          if (!input.customerId) {
+            // Credit-application legs require a customer. The planner already
+            // validates this upstream, but the type system can't see that —
+            // throw rather than passing `undefined` into the dispatcher.
+            throw new Error('CUSTOMER_ID_REQUIRED_FOR_CREDIT_APPLICATION');
+          }
+
+          await applyStoredValueDebitTx(tx, {
+            tenantId,
+            orderId:           result.orderId,
+            customerId:        input.customerId,
+            creditType:        leg.creditType,
+            amount:             leg.amount,
+            creditReferenceId: leg.creditReferenceId,
+            appliedBy:         userId,
+            currencyCode:      leg.currencyCode,
+            idempotencyKey:    `${result.orderId}_sv_${STORED_VALUE_CODE[leg.creditType]}_${leg.legIndex}`,
+            voucherId:         voucher.id,
+            voucherLineId:     line.id,
+          });
+        }
+
+        // 5.4 Post + wire — joins the same tx so a wiring failure rolls back
+        // the header, every line, every stored-value debit atomically.
+        return postAndWireBizVoucher(
+          tenantId,
+          voucher.id,
+          userId,
+          `${result.orderId}_vch_post`,
+          tx,
+        );
+      }),
     );
   }
 

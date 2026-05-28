@@ -258,6 +258,64 @@ describe('buildSettlementPlan', () => {
     expect(plan.realPaymentLegs[0].checkDate).toBe('2026-05-28');
   });
 
+  it('Phase 2: credit-application legs are sorted into STORED_VALUE_LOCK_ORDER regardless of caller ordering', () => {
+    // Caller submits legs in REVERSE canonical order (loyalty → wallet → gift card).
+    // Planner MUST emit them as gift card → wallet → loyalty so every concurrent
+    // submit acquires balance-row locks in the same sequence (deadlock-free).
+    const loyalty  = makeCreditOption(CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT);
+    const wallet   = makeCreditOption(CREDIT_APPLICATION_TYPES.WALLET);
+    const giftCard = makeCreditOption(CREDIT_APPLICATION_TYPES.GIFT_CARD);
+
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      30,
+      CURRENCY,
+      [makeLeg(loyalty, 5), makeLeg(wallet, 15), makeLeg(giftCard, 10)],
+      [
+        makeOriginalLeg('LOYALTY_CREDIT', 5),
+        makeOriginalLeg('WALLET', 15),
+        makeOriginalLeg('GIFT_CARD', 10),
+      ],
+      'PAY_IN_ADVANCE'
+    );
+
+    expect(plan.creditApplicationLegs.map(l => l.creditType)).toEqual([
+      CREDIT_APPLICATION_TYPES.GIFT_CARD,
+      CREDIT_APPLICATION_TYPES.WALLET,
+      CREDIT_APPLICATION_TYPES.LOYALTY_CREDIT,
+    ]);
+    // Original legIndex values must survive the sort so downstream idempotency
+    // keys (e.g. `${orderId}_sv_gc_${legIndex}`) remain stable per leg.
+    expect(plan.creditApplicationLegs.map(l => l.legIndex)).toEqual([2, 1, 0]);
+  });
+
+  it('Phase 2: stable sort within the same credit type preserves caller legIndex', () => {
+    // Two wallet legs (e.g. promo wallet + standard wallet) at indices 0 and 2.
+    // Sort is stable → both end up before the gift-card leg at index 1, in
+    // their original order.
+    const wallet   = makeCreditOption(CREDIT_APPLICATION_TYPES.WALLET);
+    const giftCard = makeCreditOption(CREDIT_APPLICATION_TYPES.GIFT_CARD);
+
+    const plan = buildSettlementPlan(
+      ORDER_ID,
+      30,
+      CURRENCY,
+      [makeLeg(wallet, 5), makeLeg(giftCard, 10), makeLeg(wallet, 15)],
+      [
+        makeOriginalLeg('WALLET', 5),
+        makeOriginalLeg('GIFT_CARD', 10),
+        makeOriginalLeg('WALLET', 15),
+      ],
+      'PAY_IN_ADVANCE'
+    );
+
+    expect(plan.creditApplicationLegs.map(l => ({ type: l.creditType, idx: l.legIndex }))).toEqual([
+      { type: CREDIT_APPLICATION_TYPES.GIFT_CARD,      idx: 1 },
+      { type: CREDIT_APPLICATION_TYPES.WALLET,         idx: 0 },
+      { type: CREDIT_APPLICATION_TYPES.WALLET,         idx: 2 },
+    ]);
+  });
+
   it('gateway leg resolves to PROCESSING by default-status fallback when D9 not set', () => {
     // defaultCreationStatus is empty string here → fallback kicks in
     const gateway = makeRealOption({

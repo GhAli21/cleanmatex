@@ -60,8 +60,11 @@ const eslintConfig = [...nextVitals, {
           message: '@ui/compat has been removed. Use @ui/primitives, @ui/feedback, or @ui/overlays. See docs/dev/ui-migration-guide.md',
         },
         {
+          // Phase 2 (BVM Wiring): the legacy route folder
+          // (_legacy_create-with-payment) was retired. The rule stays so that
+          // any future revival attempt is caught at lint time.
           group: ['**/api/v1/orders/create-with-payment/**', '**/api/v1/orders/_legacy_create-with-payment/**'],
-          message: 'Legacy order route is frozen. Use /api/v1/orders/submit-order and the submitOrder() orchestrator instead.',
+          message: 'The legacy create-with-payment route is retired. Use /api/v1/orders/submit-order and the submitOrder() orchestrator.',
         },
       ],
     }],

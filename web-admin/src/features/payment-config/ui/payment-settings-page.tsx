@@ -11,12 +11,14 @@ import { useTranslations } from 'next-intl';
 import { CreditCard } from 'lucide-react';
 import { CmxTabsPanel } from '@ui/navigation';
 import { CmxSkeletonTable } from '@ui/primitives';
+import { CmxCard, CmxCardContent } from '@ui/primitives/cmx-card';
 import { cmxMessage } from '@ui/feedback';
 import { PaymentMethodsTab } from '@features/payment-config/ui/payment-methods-tab';
 import { CardBrandsTab } from '@features/payment-config/ui/card-brands-tab';
 import { BranchOverridesTab } from '@features/payment-config/ui/branch-overrides-tab';
 import { TerminalsTab } from '@features/payment-config/ui/terminals-tab';
 import { CashDrawersTab } from '@features/payment-config/ui/cash-drawers-tab';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { getCardBrandConfigs } from '@/app/actions/payment-config/card-brands-actions';
 import { getPaymentMethodConfigs } from '@/app/actions/payment-config/payment-methods-actions';
 import { getTerminals } from '@/app/actions/payment-config/terminals-actions';
@@ -41,6 +43,7 @@ export function PaymentSettingsPage() {
   const t = useTranslations('paymentConfig');
   const tCommon = useTranslations('common');
   const [, startTransition] = useTransition();
+  const { currencyCode: tenantCurrencyCode } = useTenantCurrency();
 
   const [methods, setMethods] = useState<OrgPaymentMethodConfig[]>([]);
   const [cardBrands, setCardBrands] = useState<OrgCardBrandConfig[]>([]);
@@ -156,6 +159,7 @@ export function PaymentSettingsPage() {
       content: (
         <TerminalsTab
           terminals={terminals}
+          branches={branches}
           isLoading={terminalsLoading}
           onRefresh={loadTerminals}
         />
@@ -167,6 +171,8 @@ export function PaymentSettingsPage() {
       content: (
         <CashDrawersTab
           drawers={drawers}
+          branches={branches}
+          terminals={terminals}
           isLoading={drawersLoading}
           onRefresh={loadDrawers}
         />
@@ -182,6 +188,38 @@ export function PaymentSettingsPage() {
           <h1 className="text-xl font-semibold">{t('title')}</h1>
           <p className="text-sm text-muted-foreground">{t('subtitle')}</p>
         </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <CmxCard>
+          <CmxCardContent className="p-5">
+            <p className="text-sm text-muted-foreground">{t('overview.tenantCurrency')}</p>
+            <p className="mt-2 font-mono text-2xl font-semibold text-foreground">{tenantCurrencyCode}</p>
+          </CmxCardContent>
+        </CmxCard>
+        <CmxCard>
+          <CmxCardContent className="p-5">
+            <p className="text-sm text-muted-foreground">{t('overview.enabledMethods')}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {methods.filter((method) => method.is_enabled).length}
+            </p>
+          </CmxCardContent>
+        </CmxCard>
+        <CmxCard>
+          <CmxCardContent className="p-5">
+            <p className="text-sm text-muted-foreground">{t('overview.activeTerminals')}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {terminals.filter((terminal) => terminal.is_enabled).length}
+            </p>
+          </CmxCardContent>
+        </CmxCard>
+        <CmxCard>
+          <CmxCardContent className="p-5">
+            <p className="text-sm text-muted-foreground">{t('overview.openDrawers')}</p>
+            <p className="mt-2 text-2xl font-semibold text-foreground">
+              {drawers.filter((drawer) => drawer.currentSession != null).length}
+            </p>
+          </CmxCardContent>
+        </CmxCard>
       </div>
       <CmxTabsPanel tabs={tabs} />
     </div>

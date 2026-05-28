@@ -2,7 +2,11 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
-import { PAYMENT_NATURE, CREDIT_APPLICATION_TYPES } from '@/lib/constants/order-financial';
+import {
+  PAYMENT_NATURE,
+  CREDIT_APPLICATION_TYPES,
+  STORED_VALUE_LOCK_RANK,
+} from '@/lib/constants/order-financial';
 import type { ResolvedSettlementLeg } from '@/lib/types/order-financial';
 import type { PaymentLeg } from '@/lib/validations/new-order-payment-schemas';
 import type {
@@ -134,6 +138,15 @@ export function buildSettlementPlan(
     }
     // DEFERRED_SETTLEMENT / AR_ALLOCATION / INTERNAL_ADJUSTMENT → outstanding; no voucher line
   }
+
+  // Sort credit-application legs into STORED_VALUE_LOCK_ORDER so every submit
+  // takes balance-row locks in the same sequence, eliminating the deadlock
+  // window when two concurrent submits touch the same customer's balances.
+  // Secondary key: original legIndex — preserves caller order within a type.
+  creditApplicationLegs.sort((a, b) => {
+    const rankDiff = STORED_VALUE_LOCK_RANK[a.creditType] - STORED_VALUE_LOCK_RANK[b.creditType];
+    return rankDiff !== 0 ? rankDiff : a.legIndex - b.legIndex;
+  });
 
   const realPaymentAmount         = realPaymentLegs.reduce((s, l) => s + l.amount, 0);
   const creditAppliedAmount       = creditApplicationLegs.reduce((s, l) => s + l.amount, 0);

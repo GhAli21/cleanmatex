@@ -1,8 +1,8 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
-import { useForm } from 'react-hook-form';
+import { useForm, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CmxDialog, CmxDialogContent, CmxDialogHeader, CmxDialogTitle, CmxDialogFooter } from '@ui/overlays';
 import { CmxButton } from '@ui/primitives';
@@ -10,27 +10,42 @@ import { CmxInput } from '@ui/primitives';
 import { CmxSwitch } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
-import { createCashDrawerSchema, type CreateCashDrawerFormValues } from '../model/cash-drawer-schema';
+import {
+  createCashDrawerSchema,
+  updateCashDrawerSchema,
+  type CreateCashDrawerFormValues,
+} from '../model/cash-drawer-schema';
 import { createCashDrawer, updateCashDrawer } from '@/app/actions/payment-config/cash-drawers-actions';
 import { DRAWER_TYPES } from '@/lib/constants/payment';
 import type { OrgCashDrawer } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface CashDrawerFormDialogProps {
   drawer?: OrgCashDrawer;
+  branches: Array<{ id: string; branch_name: string }>;
+  terminals: Array<{ id: string; terminal_name: string; terminal_code: string; branch_id: string | null }>;
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-const COMMON_CURRENCIES = ['OMR', 'SAR', 'AED', 'KWD', 'BHD', 'QAR', 'USD'];
+const NO_TERMINAL_VALUE = '__no_terminal__';
 
-export function CashDrawerFormDialog({ drawer, open, onClose, onSuccess }: CashDrawerFormDialogProps) {
+export function CashDrawerFormDialog({
+  drawer,
+  branches,
+  terminals,
+  open,
+  onClose,
+  onSuccess,
+}: CashDrawerFormDialogProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
   const isEdit = !!drawer;
+  const { currencyCode: tenantCurrencyCode } = useTenantCurrency();
 
   const form = useForm<CreateCashDrawerFormValues>({
-    resolver: zodResolver(createCashDrawerSchema),
+    resolver: zodResolver(isEdit ? updateCashDrawerSchema : createCashDrawerSchema) as Resolver<CreateCashDrawerFormValues>,
     defaultValues: drawer ? {
       drawer_name: drawer.drawer_name,
       drawer_name2: drawer.drawer_name2 ?? '',
@@ -40,18 +55,41 @@ export function CashDrawerFormDialog({ drawer, open, onClose, onSuccess }: CashD
       requires_session: drawer.requires_session,
       opening_float_required: drawer.opening_float_required,
       max_cash_limit: drawer.max_cash_limit ?? undefined,
+      assigned_terminal_id: drawer.assigned_terminal_id ?? undefined,
     } : {
       drawer_type: DRAWER_TYPES.COUNTER,
+      branch_id: branches[0]?.id,
+      currency_code: tenantCurrencyCode,
       requires_session: true,
       opening_float_required: true,
+      assigned_terminal_id: undefined,
     },
   });
+
+  useEffect(() => {
+    form.setValue('currency_code', tenantCurrencyCode);
+  }, [form, tenantCurrencyCode]);
+
+  const selectedBranchId = form.watch('branch_id');
+  const branchScopedTerminals = terminals.filter((terminal) => !selectedBranchId || terminal.branch_id === null || terminal.branch_id === selectedBranchId);
 
   const handleSubmit = (values: CreateCashDrawerFormValues) => {
     startTransition(async () => {
       const result = isEdit
-        ? await updateCashDrawer(drawer!.id, values)
-        : await createCashDrawer(values);
+        ? await updateCashDrawer(drawer!.id, {
+            branch_id: values.branch_id,
+            drawer_name: values.drawer_name,
+            drawer_name2: values.drawer_name2,
+            drawer_type: values.drawer_type,
+            requires_session: values.requires_session,
+            opening_float_required: values.opening_float_required,
+            max_cash_limit: values.max_cash_limit,
+            assigned_terminal_id: values.assigned_terminal_id,
+          })
+        : await createCashDrawer({
+            ...values,
+            currency_code: tenantCurrencyCode,
+          });
       if (result.success) {
         cmxMessage.success(t('cashDrawers.saved'));
         form.reset();
@@ -94,25 +132,53 @@ export function CashDrawerFormDialog({ drawer, open, onClose, onSuccess }: CashD
               </CmxSelectDropdownContent>
             </CmxSelectDropdown>
           </div>
-          {!isEdit && (
-            <div>
-              <label className="text-sm font-medium">{t('cashDrawers.currency')}</label>
-              <CmxSelectDropdown value={form.watch('currency_code') ?? ''} onValueChange={(v) => form.setValue('currency_code', v)}>
-                <CmxSelectDropdownTrigger><CmxSelectDropdownValue placeholder={t('cashDrawers.selectCurrency')} /></CmxSelectDropdownTrigger>
-                <CmxSelectDropdownContent>
-                  {COMMON_CURRENCIES.map((c) => (
-                    <CmxSelectDropdownItem key={c} value={c}>{c}</CmxSelectDropdownItem>
-                  ))}
-                </CmxSelectDropdownContent>
-              </CmxSelectDropdown>
-              {form.formState.errors.currency_code && (
-                <p className="text-xs text-destructive mt-1">{form.formState.errors.currency_code.message}</p>
-              )}
-            </div>
-          )}
+          <div>
+            <label className="text-sm font-medium">{t('cashDrawers.branch')}</label>
+            <CmxSelectDropdown value={form.watch('branch_id') ?? ''} onValueChange={(v) => form.setValue('branch_id', v)}>
+              <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                {branches.map((branch) => (
+                  <CmxSelectDropdownItem key={branch.id} value={branch.id}>{branch.branch_name}</CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
+          </div>
+          <div>
+            <label className="text-sm font-medium">{t('cashDrawers.currency')}</label>
+            <CmxInput value={tenantCurrencyCode} disabled className="font-mono" />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('cashDrawers.currencyLockedHint')}
+            </p>
+            {form.formState.errors.currency_code && (
+              <p className="text-xs text-destructive mt-1">{form.formState.errors.currency_code.message}</p>
+            )}
+          </div>
           <div>
             <label className="text-sm font-medium">{t('cashDrawers.maxCashLimit')}</label>
-            <CmxInput type="number" step="0.001" {...form.register('max_cash_limit', { valueAsNumber: true })} />
+            <CmxInput
+              type="number"
+              step="0.001"
+              {...form.register('max_cash_limit', {
+                setValueAs: (value) => (value === '' ? undefined : Number(value)),
+              })}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">{t('cashDrawers.assignedTerminal')}</label>
+            <CmxSelectDropdown
+              value={form.watch('assigned_terminal_id') ?? NO_TERMINAL_VALUE}
+              onValueChange={(value) => form.setValue('assigned_terminal_id', value === NO_TERMINAL_VALUE ? undefined : value)}
+            >
+              <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                <CmxSelectDropdownItem value={NO_TERMINAL_VALUE}>{t('cashDrawers.unassignedTerminal')}</CmxSelectDropdownItem>
+                {branchScopedTerminals.map((terminal) => (
+                  <CmxSelectDropdownItem key={terminal.id} value={terminal.id}>
+                    {terminal.terminal_name} ({terminal.terminal_code})
+                  </CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm">{t('cashDrawers.requiresSession')}</span>

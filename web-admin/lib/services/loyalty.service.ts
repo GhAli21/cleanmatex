@@ -48,6 +48,11 @@ export async function getCustomerTier(
 /* eslint-disable jsdoc/require-jsdoc, jsdoc/require-param, jsdoc/require-returns */
 /**
  * Redeem loyalty points within a transaction (SELECT FOR UPDATE).
+ *
+ * Phase 2 BVM Wiring contract:
+ *  - `idempotencyKey` (required) enables skip-on-existing.
+ *  - `voucherId` / `voucherLineId` persist the voucher → ledger backlink
+ *    (columns added by migration 0329).
  */
 export async function redeemPointsTx(
   tx: PrismaTransactionClient,
@@ -58,9 +63,18 @@ export async function redeemPointsTx(
     monetaryAmount: number;
     orderId:        string;
     idempotencyKey: string;
+    voucherId?:     string;
+    voucherLineId?: string;
   }
 ) {
-  const { tenantId, customerId, pointsToRedeem, orderId, idempotencyKey } = params;
+  const { tenantId, customerId, pointsToRedeem, orderId, idempotencyKey, voucherId, voucherLineId } = params;
+
+  // Phase 2: idempotency-skip. If this key already produced a ledger row,
+  // return it instead of re-debiting points.
+  const existing = await tx.org_loyalty_txn_dtl.findFirst({
+    where: { tenant_org_id: tenantId, idempotency_key: idempotencyKey },
+  });
+  if (existing) return existing;
 
   const rows = await tx.$queryRaw<{ id: string; points_balance: number }[]>`
     SELECT id, points_balance FROM org_loyalty_accounts_mst
@@ -82,15 +96,17 @@ export async function redeemPointsTx(
 
   return tx.org_loyalty_txn_dtl.create({
     data: {
-      tenant_org_id:   tenantId,
-      account_id:      rows[0].id,
-      customer_id:     customerId,
-      txn_type:        LOYALTY_TXN_TYPES.REDEEM,
-      points:          -pointsToRedeem,
-      points_before:   pointsBefore,
-      points_after:    pointsAfter,
-      order_id:        orderId,
-      idempotency_key: idempotencyKey,
+      tenant_org_id:           tenantId,
+      account_id:              rows[0].id,
+      customer_id:              customerId,
+      txn_type:                LOYALTY_TXN_TYPES.REDEEM,
+      points:                  -pointsToRedeem,
+      points_before:           pointsBefore,
+      points_after:            pointsAfter,
+      order_id:                orderId,
+      idempotency_key:         idempotencyKey,
+      fin_voucher_id:          voucherId ?? null,
+      fin_voucher_trx_line_id: voucherLineId ?? null,
     },
   });
 }

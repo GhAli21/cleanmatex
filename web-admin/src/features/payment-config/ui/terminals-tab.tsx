@@ -14,14 +14,16 @@ import { CmxConfirmDialog } from '@ui/feedback';
 import type { OrgPaymentTerminal } from '@/lib/types/payment';
 import { toggleTerminalEnabled, softDeleteTerminal } from '@/app/actions/payment-config/terminals-actions';
 import { TerminalFormDialog } from './terminal-form-dialog';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
 interface TerminalsTabProps {
   terminals: OrgPaymentTerminal[];
+  branches: Array<{ id: string; branch_name: string }>;
   isLoading?: boolean;
   onRefresh: () => void;
 }
 
-export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabProps) {
+export function TerminalsTab({ terminals, branches, isLoading, onRefresh }: TerminalsTabProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
   const [showCreate, setShowCreate] = useState(false);
@@ -31,6 +33,23 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
 
   const getEnabled = (t: OrgPaymentTerminal) =>
     localEnabled[t.id] !== undefined ? localEnabled[t.id] : t.is_enabled;
+  const branchNameById = new Map(branches.map((branch) => [branch.id, branch.branch_name]));
+
+  const CopyValue = ({
+    value,
+    maxLength,
+  }: {
+    value: string | number | null | undefined;
+    maxLength?: number;
+  }) => (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className="px-0 py-0 text-sm text-foreground"
+    />
+  );
 
   const handleToggle = (terminal: OrgPaymentTerminal, val: boolean) => {
     setLocalEnabled((prev) => ({ ...prev, [terminal.id]: val }));
@@ -67,7 +86,12 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
           </CmxButton>
         </div>
         <CmxEmptyState icon={<Monitor className="h-8 w-8" />} title={t('terminals.empty.title')} />
-        <TerminalFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
+        <TerminalFormDialog
+          branches={branches}
+          open={showCreate}
+          onClose={() => setShowCreate(false)}
+          onSuccess={() => { setShowCreate(false); onRefresh(); }}
+        />
       </>
     );
   }
@@ -76,7 +100,7 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
     {
       key: 'code',
       header: t('terminals.code'),
-      render: (term: OrgPaymentTerminal) => <span className="font-mono text-sm">{term.terminal_code}</span>,
+      render: (term: OrgPaymentTerminal) => <CopyValue value={term.terminal_code} />,
     },
     {
       key: 'name',
@@ -97,6 +121,38 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
       key: 'gateway',
       header: t('terminals.gateway'),
       render: (term: OrgPaymentTerminal) => term.gateway_code ? <Badge>{term.gateway_code}</Badge> : <span className="text-muted-foreground">—</span>,
+    },
+    {
+      key: 'branch',
+      header: t('terminals.branch'),
+      render: (term: OrgPaymentTerminal) => (
+        <div className="space-y-1 text-sm">
+          <div className="font-medium">
+            {term.branch_id ? (branchNameById.get(term.branch_id) ?? term.branch_id) : t('terminals.unassignedBranch')}
+          </div>
+          {term.branch_id && <CopyValue value={term.branch_id} maxLength={12} />}
+        </div>
+      ),
+    },
+    {
+      key: 'deviceDetails',
+      header: t('terminals.deviceDetails'),
+      render: (term: OrgPaymentTerminal) => (
+        <div className="space-y-1 text-sm">
+          <div>
+            <span className="text-muted-foreground">{t('terminals.serialNo')}</span>{' '}
+            <span className="font-medium">{term.serial_no ?? '—'}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('terminals.merchantId')}</span>{' '}
+            <span className="font-medium">{term.merchant_id ?? '—'}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('terminals.externalId')}</span>{' '}
+            <span className="font-medium">{term.terminal_external_id ?? '—'}</span>
+          </div>
+        </div>
+      ),
     },
     {
       key: 'is_enabled',
@@ -126,9 +182,20 @@ export function TerminalsTab({ terminals, isLoading, onRefresh }: TerminalsTabPr
         </CmxButton>
       </div>
       <CmxDataTable columns={columns} data={terminals} />
-      <TerminalFormDialog open={showCreate} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); onRefresh(); }} />
+      <TerminalFormDialog
+        branches={branches}
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        onSuccess={() => { setShowCreate(false); onRefresh(); }}
+      />
       {editTarget && (
-        <TerminalFormDialog terminal={editTarget} open={!!editTarget} onClose={() => setEditTarget(null)} onSuccess={() => { setEditTarget(null); onRefresh(); }} />
+        <TerminalFormDialog
+          branches={branches}
+          terminal={editTarget}
+          open={!!editTarget}
+          onClose={() => setEditTarget(null)}
+          onSuccess={() => { setEditTarget(null); onRefresh(); }}
+        />
       )}
       <CmxConfirmDialog
         open={!!deleteTarget}

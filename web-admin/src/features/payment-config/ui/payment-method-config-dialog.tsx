@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,6 +15,7 @@ import { updatePaymentMethodConfigSchema, type UpdatePaymentMethodConfigFormValu
 import { updatePaymentMethodConfig } from '@/app/actions/payment-config/payment-methods-actions';
 import { PAYMENT_NATURE, FEE_TYPES } from '@/lib/constants/payment';
 import type { OrgPaymentMethodConfig } from '@/lib/types/payment';
+import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 
 interface PaymentMethodConfigDialogProps {
   method: OrgPaymentMethodConfig;
@@ -26,6 +27,7 @@ interface PaymentMethodConfigDialogProps {
 export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: PaymentMethodConfigDialogProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
+  const { currencyCode: tenantCurrencyCode } = useTenantCurrency();
 
   const form = useForm<UpdatePaymentMethodConfigFormValues>({
     resolver: zodResolver(updatePaymentMethodConfigSchema),
@@ -60,9 +62,16 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
     },
   });
 
+  useEffect(() => {
+    form.setValue('currency_code', tenantCurrencyCode);
+  }, [form, tenantCurrencyCode]);
+
   const handleSubmit = (values: UpdatePaymentMethodConfigFormValues) => {
     startTransition(async () => {
-      const result = await updatePaymentMethodConfig(method.id, values);
+      const result = await updatePaymentMethodConfig(method.id, {
+        ...values,
+        currency_code: tenantCurrencyCode,
+      });
       if (result.success) {
         cmxMessage.success(t('methods.saved'));
         onSuccess();
@@ -198,12 +207,10 @@ export function PaymentMethodConfigDialog({ method, open, onClose, onSuccess }: 
                 </div>
                 <div>
                   <label className="text-sm font-medium">{t('methods.currencyCode')}</label>
-                  <CmxInput
-                    {...form.register('currency_code')}
-                    maxLength={3}
-                    placeholder="e.g. SAR"
-                    className="uppercase"
-                  />
+                  <CmxInput value={tenantCurrencyCode} disabled className="font-mono" />
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {t('methods.currencyLockedHint')}
+                  </p>
                 </div>
               </div>
               <div>

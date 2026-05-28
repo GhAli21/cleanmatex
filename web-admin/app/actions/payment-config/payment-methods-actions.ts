@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { getAuthContext } from '@/lib/auth/server-auth';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { prisma } from '@/lib/db/prisma';
+import { getCurrencyConfigAction } from '@/app/actions/tenant/get-currency-config';
 import {
   getTenantPaymentMethodConfigById,
   listTenantPaymentMethodConfigs,
@@ -36,6 +37,11 @@ function maskMethodConfig(row: OrgPaymentMethodConfig): OrgPaymentMethodConfig {
     ...row,
     gateway_config: maskGatewayConfig(row.gateway_config as Record<string, unknown>) as GatewayConfig,
   };
+}
+
+async function resolveTenantCurrencyCode(tenantId: string, userId?: string | null): Promise<string> {
+  const config = await getCurrencyConfigAction(tenantId, undefined, userId ?? undefined);
+  return config.currencyCode;
 }
 
 /** List all sys_payment_method_cd codes NOT yet configured for this tenant */
@@ -100,6 +106,7 @@ export async function createPaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
     return withTenantContext(tenantId, async () => {
       const row = await prisma.org_payment_methods_cf.create({
         data: {
@@ -127,7 +134,7 @@ export async function createPaymentMethodConfig(
           requires_approval: input.requires_approval ?? false,
           min_amount: input.min_amount ?? null,
           max_amount: input.max_amount ?? null,
-          currency_code: input.currency_code ?? null,
+          currency_code: tenantCurrencyCode,
           fee_type: input.fee_type ?? 'NONE',
           fee_amount: input.fee_amount ?? 0,
           fee_rate: input.fee_rate ?? 0,
@@ -154,6 +161,7 @@ export async function updatePaymentMethodConfig(
 ): Promise<{ success: boolean; data?: OrgPaymentMethodConfig; error?: string }> {
   try {
     const { tenantId, userId } = await getAuthContext();
+    const tenantCurrencyCode = await resolveTenantCurrencyCode(tenantId, userId);
     return withTenantContext(tenantId, async () => {
       const existing = await prisma.org_payment_methods_cf.findFirst({
         where: { id, tenant_org_id: tenantId, is_active: true },
@@ -184,7 +192,7 @@ export async function updatePaymentMethodConfig(
           ...(input.requires_terminal !== undefined && { requires_terminal: input.requires_terminal }),
           ...(input.min_amount !== undefined && { min_amount: input.min_amount }),
           ...(input.max_amount !== undefined && { max_amount: input.max_amount }),
-          ...(input.currency_code !== undefined && { currency_code: input.currency_code }),
+          currency_code: tenantCurrencyCode,
           ...(input.fee_type !== undefined && { fee_type: input.fee_type }),
           ...(input.fee_amount !== undefined && { fee_amount: input.fee_amount }),
           ...(input.fee_rate !== undefined && { fee_rate: input.fee_rate }),

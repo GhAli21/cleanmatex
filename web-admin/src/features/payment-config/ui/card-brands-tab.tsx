@@ -9,6 +9,7 @@ import { cmxMessage, CmxStatusBadge } from '@ui/feedback';
 import { toggleCardBrandActive } from '@/app/actions/payment-config/card-brands-actions';
 import { CardBrandConfigDialog } from './card-brand-config-dialog';
 import type { OrgCardBrandConfig } from '@/lib/types/payment';
+import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
 
 /**
  * Props for the tenant card brand management tab.
@@ -31,6 +32,22 @@ export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabPro
 
   const getActive = (brand: OrgCardBrandConfig) =>
     localActive[brand.id] !== undefined ? localActive[brand.id] : brand.is_active;
+
+  const CopyValue = ({
+    value,
+    maxLength,
+  }: {
+    value: string | number | null | undefined;
+    maxLength?: number;
+  }) => (
+    <CmxCopyableCell
+      as="span"
+      value={value}
+      maxLength={maxLength}
+      align="left"
+      className="px-0 py-0 text-sm text-foreground"
+    />
+  );
 
   /**
    * Applies optimistic active-state toggles so enable/disable feels immediate
@@ -70,7 +87,7 @@ export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabPro
       key: 'card_brand_code',
       header: t('cardBrands.code'),
       render: (brand: OrgCardBrandConfig) => (
-        <span className="font-mono text-sm">{brand.card_brand_code}</span>
+        <CopyValue value={brand.card_brand_code} />
       ),
     },
     {
@@ -107,6 +124,24 @@ export function CardBrandsTab({ brands, isLoading, onRefresh }: CardBrandsTabPro
       header: t('cardBrands.recOrder'),
       render: (brand: OrgCardBrandConfig) => (
         <span>{brand.rec_order ?? '—'}</span>
+      ),
+    },
+    {
+      key: 'audit',
+      header: t('cardBrands.audit'),
+      render: (brand: OrgCardBrandConfig) => (
+        <div className="space-y-1 text-sm">
+          <div>
+            <span className="text-muted-foreground">{t('cardBrands.updatedBy')}</span>{' '}
+            <span className="font-medium">{brand.updated_by ?? '—'}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t('cardBrands.updatedAt')}</span>{' '}
+            <span className="font-medium">
+              {brand.updated_at ? new Date(brand.updated_at).toLocaleString() : '—'}
+            </span>
+          </div>
+        </div>
       ),
     },
     {

@@ -9,19 +9,22 @@ import { CmxButton } from '@ui/primitives';
 import { CmxInput } from '@ui/primitives';
 import { CmxSelectDropdown, CmxSelectDropdownTrigger, CmxSelectDropdownValue, CmxSelectDropdownContent, CmxSelectDropdownItem } from '@ui/forms';
 import { cmxMessage } from '@ui/feedback';
-import { createTerminalSchema, updateTerminalSchema, type CreateTerminalFormValues, type UpdateTerminalFormValues } from '../model/terminal-schema';
+import { createTerminalSchema, updateTerminalSchema, type CreateTerminalFormValues } from '../model/terminal-schema';
 import { createTerminal, updateTerminal } from '@/app/actions/payment-config/terminals-actions';
 import { TERMINAL_TYPES } from '@/lib/constants/payment';
 import type { OrgPaymentTerminal } from '@/lib/types/payment';
 
 interface TerminalFormDialogProps {
   terminal?: OrgPaymentTerminal;
+  branches: Array<{ id: string; branch_name: string }>;
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function TerminalFormDialog({ terminal, open, onClose, onSuccess }: TerminalFormDialogProps) {
+const NO_BRANCH_VALUE = '__no_branch__';
+
+export function TerminalFormDialog({ terminal, branches, open, onClose, onSuccess }: TerminalFormDialogProps) {
   const t = useTranslations('paymentConfig');
   const [isPending, startTransition] = useTransition();
   const isEdit = !!terminal;
@@ -33,10 +36,13 @@ export function TerminalFormDialog({ terminal, open, onClose, onSuccess }: Termi
       terminal_name2: terminal.terminal_name2 ?? '',
       terminal_type: terminal.terminal_type,
       gateway_code: terminal.gateway_code ?? '',
+      branch_id: terminal.branch_id ?? undefined,
       serial_no: terminal.serial_no ?? '',
       merchant_id: terminal.merchant_id ?? '',
+      terminal_external_id: terminal.terminal_external_id ?? '',
     } : {
       terminal_type: TERMINAL_TYPES.POS_CARD_TERMINAL,
+      branch_id: undefined,
     },
   });
 
@@ -91,12 +97,35 @@ export function TerminalFormDialog({ terminal, open, onClose, onSuccess }: Termi
             </CmxSelectDropdown>
           </div>
           <div>
+            <label className="text-sm font-medium">{t('terminals.branch')}</label>
+            <CmxSelectDropdown
+              value={form.watch('branch_id') ?? NO_BRANCH_VALUE}
+              onValueChange={(value) => form.setValue('branch_id', value === NO_BRANCH_VALUE ? undefined : value)}
+            >
+              <CmxSelectDropdownTrigger><CmxSelectDropdownValue /></CmxSelectDropdownTrigger>
+              <CmxSelectDropdownContent>
+                <CmxSelectDropdownItem value={NO_BRANCH_VALUE}>{t('terminals.unassignedBranch')}</CmxSelectDropdownItem>
+                {branches.map((branch) => (
+                  <CmxSelectDropdownItem key={branch.id} value={branch.id}>{branch.branch_name}</CmxSelectDropdownItem>
+                ))}
+              </CmxSelectDropdownContent>
+            </CmxSelectDropdown>
+          </div>
+          <div>
+            <label className="text-sm font-medium">{t('terminals.gateway')}</label>
+            <CmxInput {...form.register('gateway_code')} placeholder="HYPERPAY" />
+          </div>
+          <div>
             <label className="text-sm font-medium">{t('terminals.serialNo')}</label>
             <CmxInput {...form.register('serial_no')} />
           </div>
           <div>
             <label className="text-sm font-medium">{t('terminals.merchantId')}</label>
             <CmxInput {...form.register('merchant_id')} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">{t('terminals.externalId')}</label>
+            <CmxInput {...form.register('terminal_external_id')} />
           </div>
           <CmxDialogFooter>
             <CmxButton type="button" variant="outline" onClick={onClose} disabled={isPending}>{t('common.cancel')}</CmxButton>
