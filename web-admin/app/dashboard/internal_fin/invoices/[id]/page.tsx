@@ -45,7 +45,7 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
   const statusKey = AR_STATUS_TRANSLATION_KEYS[invoice.status];
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 overflow-x-hidden p-6">
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-white via-slate-50 to-amber-50 p-6 lg:flex-row lg:items-start lg:justify-between">
         <div className="space-y-3">
           <div className="flex items-center gap-3 rtl:flex-row-reverse">
@@ -97,7 +97,7 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
         />
       </div>
 
-      <CmxCard>
+      <CmxCard className="min-w-0">
         <CmxCardHeader>
           <CmxCardTitle>{tAr('detail.summaryTitle')}</CmxCardTitle>
         </CmxCardHeader>
@@ -123,7 +123,9 @@ export default async function ArInvoiceDetailPage({ params }: PageProps) {
 
       <ArInvoiceDetailActions detail={detail} />
 
-      <ArInvoiceDetailTabs detail={detail} />
+      <div className="min-w-0">
+        <ArInvoiceDetailTabs detail={detail} />
+      </div>
     </div>
   );
 }
