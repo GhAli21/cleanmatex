@@ -16,6 +16,8 @@ import type { VoucherData } from '@/lib/types/voucher';
 interface OrdersVouchersTabRprtProps {
   vouchers: VoucherData[];
   orderId: string;
+  /** Base path for order detail (default: full details page) */
+  orderBasePath?: string;
   filterByInvoiceId?: string | null;
   translations: {
     emptyVouchers: string;
@@ -45,6 +47,7 @@ function buildSourceLink(voucher: VoucherData): string | null {
 export function OrdersVouchersTabRprt({
   vouchers,
   orderId,
+  orderBasePath,
   filterByInvoiceId,
   translations: t,
 }: OrdersVouchersTabRprtProps) {
@@ -54,6 +57,7 @@ export function OrdersVouchersTabRprt({
   const isRTL = useRTL();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = isRTL ? 'ar' : 'en';
+  const base = orderBasePath ?? `/dashboard/orders/${orderId}/full`;
 
   const filtered = filterByInvoiceId
     ? vouchers.filter((voucher) => voucher.invoice_id === filterByInvoiceId)
@@ -61,7 +65,7 @@ export function OrdersVouchersTabRprt({
 
   const goToPayments = (voucherId: string) => {
     router.replace(
-      `/dashboard/orders/${orderId}/full?tab=payments&voucherId=${encodeURIComponent(voucherId)}`
+      `${base}?tab=payments_credits&voucherId=${encodeURIComponent(voucherId)}`
     );
   };
 

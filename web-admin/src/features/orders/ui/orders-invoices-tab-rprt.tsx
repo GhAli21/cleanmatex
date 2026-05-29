@@ -12,6 +12,8 @@ import type { Invoice } from '@/lib/types/payment';
 interface OrdersInvoicesTabRprtProps {
   invoices: Invoice[];
   orderId: string;
+  /** Base path for order detail (default: full details page) */
+  orderBasePath?: string;
   translations: {
     emptyInvoices: string;
     viewPayments: string;
@@ -24,22 +26,24 @@ interface OrdersInvoicesTabRprtProps {
 export function OrdersInvoicesTabRprt({
   invoices,
   orderId,
+  orderBasePath,
   translations: t,
 }: OrdersInvoicesTabRprtProps) {
   const router = useRouter();
   const isRTL = useRTL();
   const { currencyCode, decimalPlaces } = useTenantCurrency();
   const moneyLocale = isRTL ? 'ar' : 'en';
+  const base = orderBasePath ?? `/dashboard/orders/${orderId}/full`;
 
   const goToPayments = (invoiceId: string) => {
     router.replace(
-      `/dashboard/orders/${orderId}/full?tab=payments&invoiceId=${encodeURIComponent(invoiceId)}`
+      `${base}?tab=payments&invoiceId=${encodeURIComponent(invoiceId)}`
     );
   };
 
   const goToVouchers = (invoiceId: string) => {
     router.replace(
-      `/dashboard/orders/${orderId}/full?tab=vouchers&invoiceId=${encodeURIComponent(invoiceId)}`
+      `${base}?tab=vouchers&invoiceId=${encodeURIComponent(invoiceId)}`
     );
   };
 

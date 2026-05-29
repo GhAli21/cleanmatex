@@ -1,33 +1,77 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ChevronLeft, Edit, Clock, Package, Link2, Copy, LayoutList } from 'lucide-react';
 import { useRTL } from '@/lib/hooks/useRTL';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useTenantSettingsWithDefaults } from '@/lib/hooks/useTenantSettings';
 import { useTenantCurrency } from '@/lib/context/tenant-currency-context';
 import { formatMoneyAmountWithCode } from '@/lib/money/format-money';
+import { mapOrderFinancialSummaryView } from '@features/orders/lib/map-order-financial-summary-view';
+import { OrderFinancialSummaryCards } from '@features/orders/ui/order-financial/order-financial-summary-cards';
+import { OrderFinancialSummaryTab } from '@features/orders/ui/order-financial/order-financial-summary-tab';
+import { OrderPaymentsCreditsTables } from '@features/orders/ui/order-financial/order-payments-credits-tables';
+import { OrderInvoiceTaxTab } from '@features/orders/ui/order-financial/order-invoice-tax-tab';
+import { OrderFinancialDebugPanel } from '@features/orders/ui/order-financial/order-financial-debug-panel';
 import { OrderTimeline } from '@features/orders/ui/order-timeline';
 import { OrderItemsList } from '@features/orders/ui/order-items-list';
 import { OrderActions } from '@features/orders/ui/order-actions';
 import { PrintLabelButton } from '@features/orders/ui/print-label-button';
-import { OrderDiscountBreakdown } from '@features/orders/ui/order-discount-breakdown';
+import { OrdersFinancialTabRprt } from '@features/orders/ui/orders-financial-tab-rprt';
+import { OrdersInvoicesTabRprt } from '@features/orders/ui/orders-invoices-tab-rprt';
+import { OrdersVouchersTabRprt } from '@features/orders/ui/orders-vouchers-tab-rprt';
+import { OrdersPreferencesTabRprt } from '@features/orders/ui/orders-preferences-tab-rprt';
+import { OrdersEditHistoryTabRprt } from '@features/orders/ui/orders-edit-history-tab-rprt';
+import type { OrderEditHistoryEntry } from '@features/orders/ui/orders-edit-history-tab-rprt';
 import { isPreparationEnabled } from '@/lib/config/features';
-import type { OrderDiscountLine } from '@/lib/db/order-discounts-types';
+import type { OrderFinancialData } from '@/app/actions/orders/get-order-financial';
+import type { OrderPreferenceDtlColumn, OrderPreferenceRow } from '@/lib/orders/order-preferences-dtl';
 import type { PaymentTransaction } from '@/lib/types/payment';
 import type { Invoice } from '@/lib/types/payment';
 import type { PaymentMethodCode } from '@/lib/types/payment';
+import type { VoucherData } from '@/lib/types/voucher';
+import { CmxTabsPanel } from '@ui/navigation';
+import { CmxCard, CmxCardContent, CmxCardHeader, CmxCardTitle } from '@ui/primitives/cmx-card';
+import { CmxButton } from '@ui/primitives';
+import { CmxInput } from '@ui/primitives';
+import { CmxTextarea } from '@ui/primitives';
+import { Badge } from '@ui/primitives/badge';
 import { isOrderPaidStatus } from '@/lib/utils/order-payment-status';
+import type { OrderStatus } from '@/lib/types/workflow';
+import type { PrintLabelOrderInput } from '@features/orders/ui/print-label-button';
+
+const TAB_IDS = [
+  'financial_summary',
+  'master',
+  'items',
+  'preferences',
+  'financial_details',
+  'payments_credits',
+  'invoices',
+  'vouchers',
+  'history',
+  'edit_history',
+  'debug',
+  'actions',
+] as const;
+
+type TabId = (typeof TAB_IDS)[number];
 
 interface OrderDetailClientProps {
-  order: any;
-  discountLines?: OrderDiscountLine[];
+  order: Record<string, unknown>;
+  financialData?: OrderFinancialData;
+  orderPreferences: OrderPreferenceRow[];
+  orderPreferenceDtlColumnLabels: Record<OrderPreferenceDtlColumn, string>;
   unappliedPayments: PaymentTransaction[];
   orderInvoices: Invoice[];
+  vouchers: VoucherData[];
+  editHistory: OrderEditHistoryEntry[];
   tenantOrgId: string;
   userId: string;
+  canViewFinancialDebug: boolean;
   processPaymentAction: (
     tenantOrgId: string,
     userId: string,
@@ -47,70 +91,7 @@ interface OrderDetailClientProps {
     userId?: string,
     orderId?: string
   ) => Promise<{ success: boolean; error?: string }>;
-  translations: {
-    backToOrders: string;
-    edit: string;
-    totalAmount: string;
-    paid: string;
-    pendingPayment: string;
-    preparationStatus: string;
-    startPreparation: string;
-    continuePreparation: string;
-    completed: string;
-    numberOfBags: string;
-    qrCode: string;
-    retail: string;
-    customerInformation: string;
-    name: string;
-    phone: string;
-    email: string;
-    address: string;
-    loyaltyPoints: string;
-    points: string;
-    orderItems: string;
-    notes: string;
-    customerNotes: string;
-    internalNotes: string;
-    paymentNotes: string;
-    cancelledNote: string;
-    returnReason: string;
-    cancelledAt: string;
-    returnedAt: string;
-    cancellationReturn: string;
-    photos: string;
-    orderTimeline: string;
-    quickActions: string;
-    paymentDetails: string;
-    subtotal: string;
-    discount: string;
-    tax: string;
-    total: string;
-    paidAmount: string;
-    balance: string;
-    paymentMethod: string;
-    received: string;
-    readyBy: string;
-    unappliedPayments: string;
-    applyToInvoice: string;
-    noUnappliedPayments: string;
-    recordDepositPos: string;
-    selectInvoiceToApply: string;
-    paymentKind: string;
-    viewFullDetails?: string;
-    publicTrackingLink?: string;
-    kindDeposit: string;
-    kindPos: string;
-    recordPaymentTitle: string;
-    recordPaymentAmount: string;
-    recordPaymentMethod: string;
-    recordPaymentCash: string;
-    recordPaymentCard: string;
-    recordPaymentSubmit: string;
-    recordPaymentProcessing: string;
-    recordPaymentCancel: string;
-    recordPaymentSuccess: string;
-    recordPaymentError: string;
-  };
+  translations: Record<string, string>;
   locale: 'en' | 'ar';
   returnUrl?: string;
   returnLabel?: string;
@@ -118,11 +99,16 @@ interface OrderDetailClientProps {
 
 export function OrderDetailClient({
   order,
-  discountLines = [],
+  financialData,
+  orderPreferences,
+  orderPreferenceDtlColumnLabels,
   unappliedPayments,
   orderInvoices,
+  vouchers,
+  editHistory,
   tenantOrgId,
   userId,
+  canViewFinancialDebug,
   processPaymentAction,
   applyPaymentToInvoiceAction,
   translations: t,
@@ -132,6 +118,9 @@ export function OrderDetailClient({
 }: OrderDetailClientProps) {
   const isRTL = useRTL();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tFin = useTranslations('orders.detail.financial');
+  const tFull = useTranslations('orders.detailFull');
   const { currentTenant } = useAuth();
   const { trackByPiece } = useTenantSettingsWithDefaults(currentTenant?.tenant_id || '');
   const { decimalPlaces, currencyCode: tenantCurrencyCode } = useTenantCurrency();
@@ -145,11 +134,76 @@ export function OrderDetailClient({
       locale: moneyLocale,
     });
 
+  const tabFromUrl = searchParams.get('tab');
+  const activeTab: TabId = TAB_IDS.includes(tabFromUrl as TabId)
+    ? (tabFromUrl as TabId)
+    : 'financial_summary';
+
+  const handleTabChange = (tabId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tabId);
+    router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const preferenceExtraTotal = useMemo(
+    () =>
+      orderPreferences.reduce((sum, row) => sum + Number(row.extra_price ?? 0), 0),
+    [orderPreferences]
+  );
+
+  const primaryArInvoice = orderInvoices[0];
+  const arInvoiceView = primaryArInvoice
+    ? {
+        id: primaryArInvoice.id,
+        invoiceNo: primaryArInvoice.invoice_no,
+        status: primaryArInvoice.status,
+        amount: Number(primaryArInvoice.total ?? 0),
+        dueDate: primaryArInvoice.due_date,
+        paidAmount: Number(primaryArInvoice.paid_amount ?? 0),
+        outstandingAmount: Number(primaryArInvoice.outstanding_amount ?? 0),
+      }
+    : null;
+
+  const financialViewModel = useMemo(() => {
+    if (!financialData?.snapshot) return null;
+    const customer = order.org_customers_mst as {
+      sys_customers_mst?: { first_name?: string; last_name?: string };
+      customer_name?: string;
+    } | undefined;
+    const customerName =
+      order.customer_name?.toString() ||
+      [customer?.sys_customers_mst?.first_name, customer?.sys_customers_mst?.last_name]
+        .filter(Boolean)
+        .join(' ') ||
+      undefined;
+    const branch = order.branch as { branch_name?: string } | undefined;
+    return mapOrderFinancialSummaryView({
+      ...financialData,
+      order: {
+        service_charge: Number(order.service_charge ?? 0),
+        rounding_adjustment_amount: Number(order.rounding_adjustment_amount ?? 0),
+        net_receivable_amount: Number(order.net_receivable_amount ?? 0),
+        financial_engine_version:
+          order.financial_engine_version != null
+            ? Number(order.financial_engine_version)
+            : null,
+        gift_card_applied_amount: Number(order.gift_card_applied_amount ?? 0),
+        status: String(order.status ?? ''),
+        received_at: order.received_at ? String(order.received_at) : undefined,
+        customer_name: customerName,
+        branch_name: branch?.branch_name,
+      },
+      preferenceExtraTotal,
+      pieceExtraTotal: 0,
+      arInvoice: arInvoiceView,
+      taxDocument: null,
+    });
+  }, [financialData, order, preferenceExtraTotal, arInvoiceView]);
+
   const [applyModalPaymentId, setApplyModalPaymentId] = useState<string | null>(null);
   const [applyModalInvoiceId, setApplyModalInvoiceId] = useState<string>('');
   const [applyError, setApplyError] = useState<string | null>(null);
   const [applyPending, startApplyTransition] = useTransition();
-
   const [depositAmount, setDepositAmount] = useState<number>(0);
   const [depositMethod, setDepositMethod] = useState<PaymentMethodCode>('CASH');
   const [depositKind, setDepositKind] = useState<'deposit' | 'pos'>('deposit');
@@ -159,6 +213,41 @@ export function OrderDetailClient({
   const [depositPending, startDepositTransition] = useTransition();
 
   const tenantId = currentTenant?.tenant_id;
+  const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {
+    paymentTypeCode: typeof order.payment_type_code === 'string' ? order.payment_type_code : null,
+    payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
+    outstandingAmount: Number(order.outstanding_amount ?? 0),
+  });
+
+  const statusColors: Record<string, string> = {
+    intake: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950 dark:text-blue-200',
+    preparation: 'bg-purple-100 text-purple-800 border-purple-200',
+    processing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    ready: 'bg-green-100 text-green-800 border-green-200',
+    delivered: 'bg-gray-100 text-gray-800 border-gray-200',
+    cancelled: 'bg-red-100 text-red-800 border-red-200',
+  };
+
+  const customer = (order.org_customers_mst as {
+    sys_customers_mst?: { first_name?: string; last_name?: string; phone?: string; email?: string };
+    loyalty_points?: number;
+  })?.sys_customers_mst;
+  const items = (order.items ?? order.org_order_items_dtl ?? []) as unknown[];
+
+  const publicTrackingPath = tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
+  const publicTrackingUrl =
+    typeof window !== 'undefined' && publicTrackingPath
+      ? `${window.location.origin}${publicTrackingPath}`
+      : '';
+
+  async function handleCopyPublicLink() {
+    if (!publicTrackingUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicTrackingUrl);
+    } catch {
+      // ignore
+    }
+  }
 
   const handleApplyToInvoice = () => {
     if (!applyModalPaymentId || !applyModalInvoiceId) return;
@@ -168,7 +257,7 @@ export function OrderDetailClient({
         applyModalPaymentId,
         applyModalInvoiceId,
         userId,
-        order.id
+        String(order.id)
       );
       if (result.success) {
         setApplyModalPaymentId(null);
@@ -185,656 +274,480 @@ export function OrderDetailClient({
     setDepositError(null);
     setDepositSuccess(null);
     if (depositAmount <= 0) {
-      setDepositError(t.recordPaymentError);
+      setDepositError(t.recordPaymentError ?? 'Error');
       return;
     }
     startDepositTransition(async () => {
       const result = await processPaymentAction(tenantOrgId, userId, {
-        orderId: order.id,
+        orderId: String(order.id),
         paymentKind: depositKind,
         paymentMethod: depositMethod,
         amount: depositAmount,
         notes: depositNotes || undefined,
       });
       if (result.success) {
-        setDepositSuccess(t.recordPaymentSuccess);
+        setDepositSuccess(t.recordPaymentSuccess ?? 'Success');
         setDepositAmount(0);
         setDepositNotes('');
         router.refresh();
       } else {
-        setDepositError(result.error ?? t.recordPaymentError);
+        setDepositError(result.error ?? t.recordPaymentError ?? 'Error');
       }
     });
   };
 
-  const publicTrackingPath =
-    tenantId ? `/public/orders/${tenantId}/${order.order_no}` : '';
+  const masterFields = [
+    { label: tFin('header.orderNo'), value: order.order_no },
+    { label: tFin('header.customer'), value: financialViewModel?.customerName ?? '—' },
+    { label: tFin('header.branch'), value: financialViewModel?.branchName ?? '—' },
+    { label: tFin('header.orderStatus'), value: String(order.status ?? '—') },
+    { label: tFin('header.paymentStatus'), value: String(order.payment_status ?? '—') },
+    { label: tFin('header.paymentPlan'), value: String(order.payment_type_code ?? '—') },
+    { label: tFin('header.currency'), value: orderCurrency },
+  ];
 
-  const publicTrackingUrl =
-    typeof window !== 'undefined' && publicTrackingPath
-      ? `${window.location.origin}${publicTrackingPath}`
-      : '';
-  const normalizedOrderPaid = isOrderPaidStatus(String(order.payment_status ?? ''), {
-    paymentTypeCode: typeof order.payment_type_code === 'string' ? order.payment_type_code : null,
-    payOnCollectionAmount: Number(order.pay_on_collection_amount ?? 0),
-    outstandingAmount: Number(order.outstanding_amount ?? 0),
-  });
-
-  async function handleCopyPublicLink() {
-    if (!publicTrackingUrl) return;
-    try {
-      await navigator.clipboard.writeText(publicTrackingUrl);
-    } catch {
-      // Silently ignore copy errors
-    }
-  }
-
-  // Status badge colors
-  const statusColors = {
-    intake: 'bg-blue-100 text-blue-800 border-blue-200',
-    preparation: 'bg-purple-100 text-purple-800 border-purple-200',
-    processing: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-    ready: 'bg-green-100 text-green-800 border-green-200',
-    delivered: 'bg-gray-100 text-gray-800 border-gray-200',
-    cancelled: 'bg-red-100 text-red-800 border-red-200',
-  };
-
-  const priorityColors = {
-    normal: 'bg-gray-100 text-gray-700',
-    urgent: 'bg-orange-100 text-orange-700',
-    express: 'bg-red-100 text-red-700',
-  };
-
-  const preparationStatusColors = {
-    pending: 'bg-gray-100 text-gray-700',
-    in_progress: 'bg-blue-100 text-blue-700',
-    completed: 'bg-green-100 text-green-700',
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className={`flex items-center ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-        <div className={`flex items-center gap-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <Link
-            href={returnUrl}
-            className={`inline-flex items-center text-sm text-gray-600 hover:text-gray-900 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <ChevronLeft className={`w-4 h-4 ${isRTL ? 'ml-1 rotate-180' : 'mr-1'}`} />
-            {returnLabel || t.backToOrders}
-          </Link>
-        </div>
-        <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-          <PrintLabelButton order={order} />
-          <Link
-            href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent(`/dashboard/orders/${order.id}`)}${returnLabel ? `&returnLabel=${encodeURIComponent(returnLabel)}` : ''}`}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <LayoutList className="w-4 h-4" />
-            {t.viewFullDetails ?? 'View full details'}
-          </Link>
-          <Link
-            href={`/dashboard/orders/${order.id}/edit`}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 ${isRTL ? 'flex-row-reverse' : ''}`}
-          >
-            <Edit className="w-4 h-4" />
-            {t.edit}
-          </Link>
-          {publicTrackingPath && (
-            <button
-              type="button"
-              onClick={handleCopyPublicLink}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 ${isRTL ? 'flex-row-reverse' : ''}`}
-            >
-              <Link2 className="w-4 h-4" />
-              <span>
-                {t.publicTrackingLink ?? 'Public tracking link'}
-              </span>
-              <Copy className="w-3 h-3 opacity-70" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Order Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className={`flex items-start ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-          <div className={isRTL ? 'text-right' : 'text-left'}>
-            <div className={`flex items-center gap-3 mb-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <h1 className={`text-2xl font-bold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{order.order_no}</h1>
-              <span
-                className={`px-3 py-1 text-xs font-medium rounded-full border ${
-                  statusColors[order.status as keyof typeof statusColors] || statusColors.intake
-                }`}
-              >
-                {order.status.replace('_', ' ').toUpperCase()}
-              </span>
-              <span
-                className={`px-3 py-1 text-xs font-medium rounded-full ${
-                  priorityColors[order.priority as keyof typeof priorityColors] || priorityColors.normal
-                }`}
-              >
-                {order.priority?.toUpperCase() || 'NORMAL'}
-              </span>
-              {order.is_retail && (
-                <span className="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                  {t.retail}
-                </span>
-              )}
-            </div>
-            {order.received_at && (
-              <p className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {new Date(order.received_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
-              </p>
-            )}
-            <div className={`flex items-center gap-4 text-sm text-gray-600 ${isRTL ? 'flex-row-reverse' : ''}`}>
-              <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <Clock className="w-4 h-4" />
-                {t.received}: {new Date(order.received_at!).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
-              </span>
-              {order.ready_by && (
-                <span className={`flex items-center gap-1 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <Package className="w-4 h-4" />
-                  {t.readyBy}: {new Date(order.ready_by).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                    dateStyle: 'medium',
-                    timeStyle: 'short',
-                  })}
-                </span>
-              )}
-            </div>
-          </div>
-          <div className={isRTL ? 'text-left' : 'text-right'}>
-            <div className={`text-sm text-gray-600 mb-1 ${isRTL ? 'text-left' : 'text-right'}`}>{t.totalAmount}</div>
-            <div className={`text-3xl font-bold text-gray-900 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {fmtOrderMoney(parseFloat(order.total?.toString() || '0'))}
-            </div>
-            <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-left' : 'text-right'}`}>
-              {normalizedOrderPaid ? (
-                <span className="text-green-600 font-medium">✓ {t.paid}</span>
-              ) : (
-                <span className="text-orange-600 font-medium">{t.pendingPayment}</span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Preparation Status */}
-        {order.preparation_status && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className={`flex items-center ${isRTL ? 'flex-row-reverse justify-between' : 'justify-between'}`}>
-              <div className={`flex items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                <span className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.preparationStatus}:</span>
-                <span
-                  className={`px-2 py-1 text-xs font-medium rounded ${
-                    preparationStatusColors[order.preparation_status as keyof typeof preparationStatusColors] ||
-                    preparationStatusColors.pending
-                  }`}
-                >
-                  {order.preparation_status.replace('_', ' ').toUpperCase()}
-                </span>
+  const tabs = [
+    {
+      id: 'financial_summary',
+      label: tFin('tabs.financialSummary'),
+      content: financialViewModel ? (
+        <OrderFinancialSummaryTab viewModel={financialViewModel} />
+      ) : (
+        <p className="text-sm text-muted-foreground">{tFin('financialDataUnavailable')}</p>
+      ),
+    },
+    {
+      id: 'master',
+      label: tFin('tabs.master'),
+      content: (
+        <CmxCard>
+          <CmxCardHeader>
+            <CmxCardTitle>{tFin('tabs.master')}</CmxCardTitle>
+          </CmxCardHeader>
+          <CmxCardContent className="grid gap-3 sm:grid-cols-2">
+            {masterFields.map((f) => (
+              <div key={f.label} className={isRTL ? 'text-right' : 'text-left'}>
+                <div className="text-xs text-muted-foreground">{f.label}</div>
+                <div className="text-sm font-medium">{String(f.value)}</div>
               </div>
-              {isPreparationEnabled() && order.preparation_status === 'pending' && (
-                <Link
-                  href={`/dashboard/preparation/${order.id}`}
-                  className={`text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-left' : 'text-right'}`}
-                >
-                  {isRTL ? '← ' : ''}{t.startPreparation}{isRTL ? '' : ' →'}
-                </Link>
-              )}
-              {isPreparationEnabled() && order.preparation_status === 'in_progress' && (
-                <Link
-                  href={`/dashboard/preparation/${order.id}`}
-                  className={`text-sm font-medium text-blue-600 hover:text-blue-700 ${isRTL ? 'text-left' : 'text-right'}`}
-                >
-                  {isRTL ? '← ' : ''}{t.continuePreparation}{isRTL ? '' : ' →'}
-                </Link>
-              )}
-            </div>
-            {order.prepared_at && (
-              <div className={`text-xs text-gray-500 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t.completed}: {new Date(order.prepared_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM')}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Bags & QR Code */}
-        {(order.bag_count || order.qr_code) && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4">
-              {order.bag_count && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.numberOfBags}</div>
-                  <div className={`text-lg font-semibold text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>{order.bag_count}</div>
-                </div>
-              )}
-              {order.qr_code && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 mb-2 ${isRTL ? 'text-right' : 'text-left'}`}>{t.qrCode}</div>
-                  <div
-                    className="w-24 h-24 border border-gray-200 rounded"
-                    dangerouslySetInnerHTML={{ __html: order.qr_code }}
+            ))}
+          </CmxCardContent>
+        </CmxCard>
+      ),
+    },
+    {
+      id: 'items',
+      label: tFin('tabs.items'),
+      content: (
+        <CmxCard>
+          <CmxCardContent className="pt-6">
+            <OrderItemsList
+              items={items as Parameters<typeof OrderItemsList>[0]['items']}
+              orderId={String(order.id)}
+              tenantId={currentTenant?.tenant_id}
+              branchId={order.branch_id as string | undefined}
+              trackByPiece={trackByPiece}
+              readOnly
+            />
+          </CmxCardContent>
+        </CmxCard>
+      ),
+    },
+    {
+      id: 'preferences',
+      label: tFin('tabs.preferences'),
+      content: (
+        <OrdersPreferencesTabRprt
+          preferences={orderPreferences}
+          currencyCode={orderCurrency}
+          locale={locale}
+          dtlColumnLabels={orderPreferenceDtlColumnLabels}
+          translations={{
+            emptyPreferences: tFull('emptyPreferences'),
+            levelOrder: tFull('preferences.levelOrder'),
+            levelItem: tFull('preferences.levelItem'),
+            levelPiece: tFull('preferences.levelPiece'),
+            kindServicePrefs: tFull('preferences.kindServicePrefs'),
+            kindPackingPrefs: tFull('preferences.kindPackingPrefs'),
+            kindConditionStain: tFull('preferences.kindConditionStain'),
+            kindConditionDamage: tFull('preferences.kindConditionDamage'),
+            kindColor: tFull('preferences.kindColor'),
+            kindNote: tFull('preferences.kindNote'),
+            ownerSystem: tFull('preferences.ownerSystem'),
+            ownerOverride: tFull('preferences.ownerOverride'),
+            sourceOrderCreate: tFull('preferences.sourceOrderCreate'),
+            sourceManual: tFull('preferences.sourceManual'),
+            sourceOrderUpdate: tFull('preferences.sourceOrderUpdate'),
+            totalExtraCharge: tFull('preferences.totalExtraCharge'),
+            orderLevelPrefs: tFull('preferences.orderLevelPrefs'),
+            itemLevelPrefs: tFull('preferences.itemLevelPrefs'),
+            pieceLevelPrefs: tFull('preferences.pieceLevelPrefs'),
+            rowCountSuffix: tFull('preferences.rowCountSuffix'),
+            paginationRowsPerPage: tFull('preferences.pagination.rowsPerPage'),
+            paginationShowing: tFull('preferences.pagination.showing'),
+            paginationPrevious: tFull('preferences.pagination.previous'),
+            paginationNext: tFull('preferences.pagination.next'),
+            paginationPageOf: tFull('preferences.pagination.pageOf'),
+            paginationFirst: tFull('preferences.pagination.first'),
+            paginationLast: tFull('preferences.pagination.last'),
+            paginationGoToPage: tFull('preferences.pagination.goToPage'),
+            paginationGo: tFull('preferences.pagination.go'),
+            paginationResetFilters: tFull('preferences.pagination.resetFilters'),
+            paginationFilterPlaceholder: tFull('preferences.pagination.filterPlaceholder'),
+            paginationEmptyFiltered: tFull('preferences.pagination.emptyFiltered'),
+            paginationGlobalSearchPlaceholder: tFull('preferences.pagination.globalSearchPlaceholder'),
+            paginationExportCsv: tFull('preferences.pagination.exportCsv'),
+            paginationColumnsMenu: tFull('preferences.pagination.columnsMenu'),
+            paginationToggleColumns: tFull('preferences.pagination.toggleColumns'),
+            paginationClearColumnFilter: tFull('preferences.pagination.clearColumnFilter'),
+            paginationEmptyFilteredHint: tFull('preferences.pagination.emptyFilteredHint'),
+            paginationDensity: tFull('preferences.pagination.density'),
+            paginationDensityCompact: tFull('preferences.pagination.densityCompact'),
+            paginationDensityStandard: tFull('preferences.pagination.densityStandard'),
+            paginationDensityComfortable: tFull('preferences.pagination.densityComfortable'),
+            paginationCopyToClipboard: tFull('preferences.pagination.copyToClipboard'),
+            valueYes: tFull('preferences.confirmed'),
+            valueNo: tFull('preferences.notConfirmed'),
+          }}
+        />
+      ),
+    },
+    {
+      id: 'financial_details',
+      label: tFin('tabs.financialDetails'),
+      content: financialData ? (
+        <OrdersFinancialTabRprt {...financialData} />
+      ) : (
+        <p className="text-sm text-muted-foreground">{tFin('financialDataUnavailable')}</p>
+      ),
+    },
+    {
+      id: 'payments_credits',
+      label: tFin('tabs.paymentsCredits'),
+      content: financialViewModel ? (
+        <OrderPaymentsCreditsTables viewModel={financialViewModel} />
+      ) : null,
+    },
+    {
+      id: 'invoices',
+      label: tFin('tabs.invoices'),
+      content: financialViewModel ? (
+        <OrderInvoiceTaxTab viewModel={financialViewModel} />
+      ) : (
+        <OrdersInvoicesTabRprt
+          invoices={orderInvoices}
+          orderId={String(order.id)}
+          orderBasePath={`/dashboard/orders/${order.id}`}
+          translations={{
+            emptyInvoices: t.emptyInvoices ?? tFull('emptyInvoices'),
+            viewPayments: t.viewPayments ?? tFull('viewPayments'),
+            viewReceiptVouchers: t.viewReceiptVouchers ?? tFull('viewReceiptVouchers'),
+            invoiceNo: t.invoiceNo ?? 'Invoice #',
+          }}
+        />
+      ),
+    },
+    {
+      id: 'vouchers',
+      label: tFin('tabs.vouchers'),
+      content: (
+        <OrdersVouchersTabRprt
+          vouchers={vouchers}
+          orderId={String(order.id)}
+          orderBasePath={`/dashboard/orders/${order.id}`}
+          translations={{
+            emptyVouchers: t.emptyVouchers ?? tFull('emptyVouchers'),
+            viewPayments: t.viewPayments ?? tFull('viewPayments'),
+            voucherNo: t.voucherNo ?? 'Voucher #',
+          }}
+        />
+      ),
+    },
+    {
+      id: 'history',
+      label: tFin('tabs.history'),
+      content: (
+        <CmxCard>
+          <CmxCardContent className="pt-6">
+            <OrderTimeline
+              orderId={String(order.id)}
+              currentStatus={String(order.status) as OrderStatus}
+            />
+          </CmxCardContent>
+        </CmxCard>
+      ),
+    },
+    {
+      id: 'edit_history',
+      label: tFin('tabs.editHistory'),
+      content: (
+        <OrdersEditHistoryTabRprt
+          entries={editHistory}
+          translations={{
+            emptyEditHistory: t.emptyEditHistory ?? tFull('editHistory.empty'),
+            editHistoryTitle: t.editHistoryTitle ?? tFull('editHistory.title'),
+            editNo: t.editNo ?? tFull('editHistory.editNo'),
+            editedBy: t.editedBy ?? tFull('editHistory.editedBy'),
+            editedAt: t.editedAt ?? tFull('editHistory.editedAt'),
+            changeSummary: t.changeSummary ?? tFull('editHistory.changeSummary'),
+            fieldChanges: t.fieldChanges ?? tFull('editHistory.fieldChanges'),
+            itemChanges: t.itemChanges ?? tFull('editHistory.itemChanges'),
+            pricingChanges: t.pricingChanges ?? tFull('editHistory.pricingChanges'),
+            paymentAdjustment: t.paymentAdjustment ?? tFull('editHistory.paymentAdjustment'),
+            fieldName: t.fieldName ?? tFull('editHistory.fieldName'),
+            oldValue: t.oldValue ?? tFull('editHistory.oldValue'),
+            newValue: t.newValue ?? tFull('editHistory.newValue'),
+            itemAdded: t.itemAdded ?? tFull('editHistory.itemAdded'),
+            itemRemoved: t.itemRemoved ?? tFull('editHistory.itemRemoved'),
+            itemModified: t.itemModified ?? tFull('editHistory.itemModified'),
+            oldSubtotal: t.oldSubtotal ?? tFull('editHistory.oldSubtotal'),
+            newSubtotal: t.newSubtotal ?? tFull('editHistory.newSubtotal'),
+            oldTotal: t.oldTotal ?? tFull('editHistory.oldTotal'),
+            newTotal: t.newTotal ?? tFull('editHistory.newTotal'),
+            difference: t.difference ?? tFull('editHistory.difference'),
+            noChangesRecorded: t.noChangesRecorded ?? tFull('editHistory.noChangesRecorded'),
+            charge: t.charge ?? tFull('editHistory.charge'),
+            refund: t.refund ?? tFull('editHistory.refund'),
+            ipAddress: t.ipAddress ?? tFull('editHistory.ipAddress'),
+            viewDetails: t.viewDetails ?? tFull('editHistory.viewDetails'),
+            hideDetails: t.hideDetails ?? tFull('editHistory.hideDetails'),
+            qty: t.qty ?? tFull('editHistory.qty'),
+            price: t.price ?? tFull('editHistory.price'),
+            totalPrice: t.totalPrice ?? tFull('editHistory.totalPrice'),
+            notes: t.notes ?? tFull('editHistory.notes'),
+            stain: t.stain ?? tFull('editHistory.stain'),
+            damage: t.damage ?? tFull('editHistory.damage'),
+            stainNotes: t.stainNotes ?? tFull('editHistory.stainNotes'),
+            damageNotes: t.damageNotes ?? tFull('editHistory.damageNotes'),
+            yes: t.commonYes ?? 'Yes',
+            no: t.commonNo ?? 'No',
+          }}
+        />
+      ),
+    },
+    ...(canViewFinancialDebug
+      ? [
+          {
+            id: 'debug',
+            label: tFin('tabs.debug'),
+            content: financialViewModel ? (
+              <OrderFinancialDebugPanel viewModel={financialViewModel} />
+            ) : null,
+          },
+        ]
+      : []),
+    {
+      id: 'actions',
+      label: tFin('tabs.actions'),
+      content: (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t.quickActions}</CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent>
+              <OrderActions
+                order={
+                  order as {
+                    id: string;
+                    status: string;
+                    tenant_org_id: string;
+                  }
+                }
+              />
+            </CmxCardContent>
+          </CmxCard>
+          <CmxCard>
+            <CmxCardHeader>
+              <CmxCardTitle>{t.recordDepositPos}</CmxCardTitle>
+            </CmxCardHeader>
+            <CmxCardContent>
+              <form onSubmit={handleRecordDepositPos} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium">{t.recordPaymentAmount}</label>
+                  <CmxInput
+                    type="number"
+                    step={10 ** -decimalPlaces}
+                    min={0}
+                    value={depositAmount || ''}
+                    onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
+                    className="mt-1 text-end"
                   />
                 </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Details */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Customer Information */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.customerInformation}</h2>
-            <div className="space-y-3">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.name}</div>
-                <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.org_customers_mst.sys_customers_mst?.first_name}{' '}
-                  {order.org_customers_mst.sys_customers_mst?.last_name || ''}
-                </div>
-              </div>
-              {order.org_customers_mst.sys_customers_mst?.phone && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.phone}</div>
-                  <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {order.org_customers_mst.sys_customers_mst.phone}
-                  </div>
-                </div>
-              )}
-              {order.org_customers_mst.sys_customers_mst?.email && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.email}</div>
-                  <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {order.org_customers_mst.sys_customers_mst.email}
-                  </div>
-                </div>
-              )}
-              {order.org_customers_mst.sys_customers_mst?.address && (
-                <div className={isRTL ? 'text-right' : 'text-left'}>
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.address}</div>
-                  <div className={`text-base text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {order.org_customers_mst.sys_customers_mst.address}
-                  </div>
-                </div>
-              )}
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.loyaltyPoints}</div>
-                <div className={`text-base font-medium text-gray-900 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.org_customers_mst.loyalty_points || 0} {t.points}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Order Items */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.orderItems}</h2>
-            <OrderItemsList 
-              items={order.org_order_items_dtl} 
-              orderId={order.id}
-              tenantId={currentTenant?.tenant_id}
-              branchId={order.branch_id}
-              trackByPiece={trackByPiece}
-              readOnly={true}
-            />
-          </div>
-
-          {/* Notes */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.notes}</h2>
-            <div className="space-y-4">
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.customerNotes}</div>
-                <div className={`text-sm text-gray-600 bg-blue-50 border border-blue-100 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.customer_notes || '—'}
-                </div>
-              </div>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.internalNotes}</div>
-                <div className={`text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.internal_notes || '—'}
-                </div>
-              </div>
-              <div className={isRTL ? 'text-right' : 'text-left'}>
-                <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.paymentNotes}</div>
-                <div className={`text-sm text-gray-600 bg-amber-50 border border-amber-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                  {order.payment_notes || '—'}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Cancellation / Return */}
-          {(order.cancelled_at || order.returned_at) && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t.cancellationReturn || 'Cancellation & Return'}
-              </h2>
-              <div className="space-y-4">
-                {order.cancelled_at && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.cancelledAt}</div>
-                    <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {new Date(order.cancelled_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </div>
-                  </div>
-                )}
-                {order.cancelled_note && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.cancelledNote}</div>
-                    <div className={`text-sm text-gray-600 bg-red-50 border border-red-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {order.cancelled_note}
-                    </div>
-                  </div>
-                )}
-                {order.returned_at && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.returnedAt}</div>
-                    <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {new Date(order.returned_at).toLocaleString(locale === 'ar' ? 'ar-OM' : 'en-OM', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </div>
-                  </div>
-                )}
-                {order.return_reason && (
-                  <div className={isRTL ? 'text-right' : 'text-left'}>
-                    <div className={`text-sm font-medium text-gray-700 mb-1 ${isRTL ? 'text-right' : 'text-left'}`}>{t.returnReason}</div>
-                    <div className={`text-sm text-gray-600 bg-red-50 border border-red-200 rounded p-3 ${isRTL ? 'text-right' : 'text-left'}`}>
-                      {order.return_reason}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Photos */}
-          {order.photo_urls && Array.isArray(order.photo_urls) && order.photo_urls.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.photos}</h2>
-              <div className="grid grid-cols-3 gap-4">
-                {order.photo_urls.map((url: string, index: number) => (
-                  <div key={index} className="aspect-square rounded-lg overflow-hidden border border-gray-200">
-                    <img
-                      src={url}
-                      alt={`${t.photos} ${index + 1}`}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform cursor-pointer"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column - Timeline & Actions */}
-        <div className="space-y-6">
-          {/* Order Timeline */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.orderTimeline}</h2>
-            <OrderTimeline orderId={order.id} currentStatus={order.status} />
-          </div>
-
-          {/* Quick Actions */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.quickActions}</h2>
-            <OrderActions order={order} />
-          </div>
-
-          {/* Payment Details */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>{t.paymentDetails}</h2>
-            <div className="space-y-3">
-              <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                <span className="text-gray-600">{t.subtotal}</span>
-                <span className="font-medium text-gray-900">
-                  {fmtOrderMoney(parseFloat(order.subtotal?.toString() || '0'))}
-                </span>
-              </div>
-              {order.discount && parseFloat(order.discount.toString()) > 0 && (
-                <div className="text-sm">
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-                    <span className="text-gray-600">{t.discount}</span>
-                    <span className="font-medium text-red-600">
-                      -{fmtOrderMoney(parseFloat(order.discount.toString()))}
-                    </span>
-                  </div>
-                  {discountLines.length > 0 && (
-                    <OrderDiscountBreakdown
-                      lines={discountLines}
-                      locale={locale}
-                    />
-                  )}
-                </div>
-              )}
-              {order.tax && parseFloat(order.tax.toString()) > 0 && (
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                  <span className="text-gray-600">{t.tax}</span>
-                  <span className="font-medium text-gray-900">
-                    {fmtOrderMoney(parseFloat(order.tax.toString()))}
-                  </span>
-                </div>
-              )}
-              <div className="pt-3 border-t border-gray-200">
-                <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
-                  <span className="text-base font-semibold text-gray-900">{t.total}</span>
-                  <span className="text-base font-bold text-gray-900">
-                    {fmtOrderMoney(parseFloat(order.total?.toString() || '0'))}
-                  </span>
-                </div>
-              </div>
-              {order.paid_amount && parseFloat(order.paid_amount.toString()) > 0 && (
-                <>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.paidAmount}</span>
-                    <span className="font-medium text-green-600">
-                      {fmtOrderMoney(parseFloat(order.paid_amount.toString()))}
-                    </span>
-                  </div>
-                  <div className={`flex ${isRTL ? 'flex-row-reverse' : 'justify-between'} text-sm`}>
-                    <span className="text-gray-600">{t.balance}</span>
-                    <span className="font-medium text-orange-600">
-                      {fmtOrderMoney(
-                        parseFloat(order.total?.toString() || '0') -
-                          parseFloat(order.paid_amount.toString())
-                      )}
-                    </span>
-                  </div>
-                </>
-              )}
-              {order.payment_method_code && (
-                <div className="pt-3 border-t border-gray-200">
-                  <div className={`text-sm text-gray-600 ${isRTL ? 'text-right' : 'text-left'}`}>{t.paymentMethod}</div>
-                  <div className={`text-sm font-medium text-gray-900 mt-1 ${isRTL ? 'text-right' : 'text-left'}`}>
-                    {order.payment_method_code.replace('_', ' ').toUpperCase()}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Unapplied payments */}
-          {unappliedPayments.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-                {t.unappliedPayments}
-              </h2>
-              <ul className="space-y-2">
-                {unappliedPayments.map((p) => (
-                  <li
-                    key={p.id}
-                    className={`flex ${isRTL ? 'flex-row-reverse' : ''} items-center justify-between rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-sm`}
-                  >
-                    <span className="font-medium text-gray-900">
-                      {fmtOrderMoney(Number(p.paid_amount))}
-                    </span>
-                    <span className="text-gray-600">
-                      {p.payment_method_code}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setApplyModalPaymentId(p.id);
-                        setApplyModalInvoiceId('');
-                        setApplyError(null);
-                      }}
-                      className="text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      {t.applyToInvoice}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* Apply to invoice modal */}
-          {applyModalPaymentId && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true" aria-labelledby="apply-invoice-title">
-              <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
-                <h3 id="apply-invoice-title" className="text-lg font-semibold text-gray-900 mb-4">
-                  {t.selectInvoiceToApply}
-                </h3>
-                <select
-                  value={applyModalInvoiceId}
-                  onChange={(e) => setApplyModalInvoiceId(e.target.value)}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                  aria-label={t.selectInvoiceToApply}
-                >
-                  <option value="">—</option>
-                  {orderInvoices.map((inv) => (
-                    <option key={inv.id} value={inv.id}>
-                      {inv.invoice_no} — {fmtOrderMoney(Number(inv.total))}
-                    </option>
-                  ))}
-                </select>
-                {applyError && (
-                  <p className="mt-2 text-sm text-red-600">{applyError}</p>
-                )}
-                <div className={`flex gap-2 mt-4 ${isRTL ? 'flex-row-reverse' : ''}`}>
-                  <button
+                <div className="flex gap-2">
+                  <CmxButton
                     type="button"
-                    onClick={() => {
-                      setApplyModalPaymentId(null);
-                      setApplyModalInvoiceId('');
-                      setApplyError(null);
-                    }}
-                    className="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    {t.recordPaymentCancel}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!applyModalInvoiceId || applyPending}
-                    onClick={handleApplyToInvoice}
-                    className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {applyPending ? t.recordPaymentProcessing : t.applyToInvoice}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Record deposit / POS */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className={`text-lg font-semibold text-gray-900 mb-4 ${isRTL ? 'text-right' : 'text-left'}`}>
-              {t.recordDepositPos}
-            </h2>
-            <form onSubmit={handleRecordDepositPos} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t.recordPaymentAmount}</label>
-                <input
-                  type="number"
-                  step={10 ** -decimalPlaces}
-                  min={0}
-                  value={depositAmount || ''}
-                  onChange={(e) => setDepositAmount(Number(e.target.value) || 0)}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-right"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t.recordPaymentMethod}</label>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
+                    variant={depositMethod === 'CASH' ? 'primary' : 'outline'}
+                    size="sm"
+                    className="flex-1"
                     onClick={() => setDepositMethod('CASH')}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                      depositMethod === 'CASH' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                    }`}
                   >
                     {t.recordPaymentCash}
-                  </button>
-                  <button
+                  </CmxButton>
+                  <CmxButton
                     type="button"
+                    variant={depositMethod === 'CARD' ? 'primary' : 'outline'}
+                    size="sm"
+                    className="flex-1"
                     onClick={() => setDepositMethod('CARD')}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                      depositMethod === 'CARD' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                    }`}
                   >
                     {t.recordPaymentCard}
-                  </button>
+                  </CmxButton>
                 </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">{t.paymentKind}</label>
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDepositKind('deposit')}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                      depositKind === 'deposit' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                    }`}
-                  >
-                    {t.kindDeposit}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDepositKind('pos')}
-                    className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                      depositKind === 'pos' ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-300 bg-white text-gray-700'
-                    }`}
-                  >
-                    {t.kindPos}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Notes</label>
-                <textarea
+                <CmxTextarea
                   value={depositNotes}
                   onChange={(e) => setDepositNotes(e.target.value)}
                   rows={2}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  placeholder={t.notes}
                 />
-              </div>
-              {depositError && <p className="text-sm text-red-600">{depositError}</p>}
-              {depositSuccess && <p className="text-sm text-green-600">{depositSuccess}</p>}
-              <button
-                type="submit"
-                disabled={depositPending || depositAmount <= 0}
-                className="w-full rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                {depositPending ? t.recordPaymentProcessing : t.recordPaymentSubmit}
-              </button>
-            </form>
-          </div>
+                {depositError && <p className="text-sm text-destructive">{depositError}</p>}
+                {depositSuccess && <p className="text-sm text-emerald-600">{depositSuccess}</p>}
+                <CmxButton type="submit" variant="primary" disabled={depositPending || depositAmount <= 0} className="w-full">
+                  {depositPending ? t.recordPaymentProcessing : t.recordPaymentSubmit}
+                </CmxButton>
+              </form>
+            </CmxCardContent>
+          </CmxCard>
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className={`flex flex-wrap items-center gap-3 ${isRTL ? 'flex-row-reverse' : 'justify-between'}`}>
+        <Link
+          href={returnUrl}
+          className={`inline-flex items-center text-sm text-muted-foreground hover:text-foreground ${isRTL ? 'flex-row-reverse' : ''}`}
+        >
+          <ChevronLeft className={`h-4 w-4 ${isRTL ? 'ms-1 rotate-180' : 'me-1'}`} />
+          {returnLabel || t.backToOrders}
+        </Link>
+        <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+          <PrintLabelButton
+            order={order as PrintLabelOrderInput}
+          />
+          <Link href={`/dashboard/orders/${order.id}/full?returnUrl=${encodeURIComponent(`/dashboard/orders/${order.id}`)}`}>
+            <CmxButton variant="outline" size="sm" className="gap-2">
+              <LayoutList className="h-4 w-4" />
+              {t.viewFullDetails}
+            </CmxButton>
+          </Link>
+          <Link href={`/dashboard/orders/${order.id}/edit`}>
+            <CmxButton variant="outline" size="sm" className="gap-2">
+              <Edit className="h-4 w-4" />
+              {t.edit}
+            </CmxButton>
+          </Link>
+          {publicTrackingPath && (
+            <CmxButton variant="outline" size="sm" onClick={handleCopyPublicLink} className="gap-2">
+              <Link2 className="h-4 w-4" />
+              {t.publicTrackingLink}
+              <Copy className="h-3 w-3 opacity-70" />
+            </CmxButton>
+          )}
         </div>
       </div>
+
+      <CmxCard>
+        <CmxCardContent className="pt-6">
+          <div className={`flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between ${isRTL ? 'lg:flex-row-reverse' : ''}`}>
+            <div className={`space-y-2 ${isRTL ? 'text-right' : 'text-left'}`}>
+              <div className={`flex flex-wrap items-center gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <h1 className="text-2xl font-bold">{String(order.order_no)}</h1>
+                <span
+                  className={`rounded-full border px-3 py-0.5 text-xs font-medium ${
+                    statusColors[String(order.status)] ?? statusColors.intake
+                  }`}
+                >
+                  {String(order.status).replace(/_/g, ' ').toUpperCase()}
+                </span>
+                {normalizedOrderPaid ? (
+                  <Badge variant="success">{t.paid}</Badge>
+                ) : (
+                  <Badge variant="warning">{t.pendingPayment}</Badge>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {tFin('header.customer')}: {financialViewModel?.customerName ?? '—'}
+                {' · '}
+                {tFin('header.paymentPlan')}: {String(order.payment_type_code ?? '—')}
+              </p>
+              {order.received_at && (
+                <p className={`flex items-center gap-1 text-sm text-muted-foreground ${isRTL ? 'flex-row-reverse' : ''}`}>
+                  <Clock className="h-4 w-4" />
+                  {new Date(String(order.received_at)).toLocaleString(moneyLocale === 'ar' ? 'ar-OM' : 'en-OM')}
+                </p>
+              )}
+            </div>
+            <div className={isRTL ? 'text-left' : 'text-right'}>
+              <div className="text-xs text-muted-foreground">{tFin('card.orderTotal')}</div>
+              <div className="text-3xl font-bold tabular-nums">
+                {fmtOrderMoney(Number(order.total ?? 0))}
+              </div>
+            </div>
+          </div>
+
+          {order.preparation_status && (
+            <div className="mt-4 border-t border-border pt-4">
+              <div className={`flex items-center justify-between ${isRTL ? 'flex-row-reverse' : ''}`}>
+                <span className="text-sm text-muted-foreground">
+                  {t.preparationStatus}: {String(order.preparation_status)}
+                </span>
+                {isPreparationEnabled() && order.preparation_status === 'pending' && (
+                  <Link href={`/dashboard/preparation/${order.id}`} className="text-sm font-medium text-primary">
+                    {t.startPreparation}
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+        </CmxCardContent>
+      </CmxCard>
+
+      {financialViewModel && <OrderFinancialSummaryCards viewModel={financialViewModel} />}
+
+      <CmxTabsPanel tabs={tabs} value={activeTab} onChange={handleTabChange} />
+
+      {applyModalPaymentId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" role="dialog" aria-modal="true">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-card p-6 shadow-xl">
+            <h3 className="mb-4 text-lg font-semibold">{t.selectInvoiceToApply}</h3>
+            <select
+              value={applyModalInvoiceId}
+              onChange={(e) => setApplyModalInvoiceId(e.target.value)}
+              className="w-full rounded-md border border-input px-3 py-2 text-sm"
+            >
+              <option value="">—</option>
+              {orderInvoices.map((inv) => (
+                <option key={inv.id} value={inv.id}>
+                  {inv.invoice_no} — {fmtOrderMoney(Number(inv.total))}
+                </option>
+              ))}
+            </select>
+            {applyError && <p className="mt-2 text-sm text-destructive">{applyError}</p>}
+            <div className={`mt-4 flex gap-2 ${isRTL ? 'flex-row-reverse' : ''}`}>
+              <CmxButton
+                variant="outline"
+                onClick={() => {
+                  setApplyModalPaymentId(null);
+                  setApplyModalInvoiceId('');
+                  setApplyError(null);
+                }}
+              >
+                {t.recordPaymentCancel}
+              </CmxButton>
+              <CmxButton
+                variant="primary"
+                disabled={!applyModalInvoiceId || applyPending}
+                onClick={handleApplyToInvoice}
+              >
+                {applyPending ? t.recordPaymentProcessing : t.applyToInvoice}
+              </CmxButton>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -31,6 +31,11 @@ export interface OrderFinancialSnapshot {
   payOnCollectionAmount: number;
   giftCardAppliedAmount: number;
   changeReturnedAmount: number;
+  serviceChargeAmount: number;
+  roundingAmount: number;
+  netReceivableAmount: number;
+  financialEngineVersion: number | null;
+  vatAmount: number;
 }
 
 export interface OrderChargeRow {
@@ -62,6 +67,7 @@ export interface OrderPaymentRow {
   gateway_reference: string | null;
   branch_payment_method_id: string | null;
   created_at: string;
+  fin_voucher_id: string | null;
 }
 
 export interface OrderCreditApplicationRow {
@@ -73,6 +79,7 @@ export interface OrderCreditApplicationRow {
   reference_no: string | null;
   applied_by: string | null;
   applied_at: string;
+  fin_voucher_id: string | null;
 }
 
 export interface OrderRefundRow {
@@ -183,6 +190,11 @@ export async function getOrderFinancialSummary(
           pay_on_collection_amount: true,
           gift_card_applied_amount: true,
           change_returned_amount: true,
+          service_charge: true,
+          rounding_adjustment_amount: true,
+          net_receivable_amount: true,
+          financial_engine_version: true,
+          vat_amount: true,
         },
       })
     ),
@@ -275,6 +287,11 @@ export async function getOrderFinancialSummary(
     payOnCollectionAmount: toNumber(order.pay_on_collection_amount),
     giftCardAppliedAmount: toNumber(order.gift_card_applied_amount),
     changeReturnedAmount: toNumber(order.change_returned_amount),
+    serviceChargeAmount: toNumber(order.service_charge),
+    roundingAmount: toNumber(order.rounding_adjustment_amount),
+    netReceivableAmount: toNumber(order.net_receivable_amount),
+    financialEngineVersion: order.financial_engine_version ?? null,
+    vatAmount: toNumber(order.vat_amount),
   };
 
   const voucherReferences = [
@@ -379,6 +396,7 @@ export async function getOrderFinancialSummary(
       gateway_reference: row.gateway_reference ?? null,
       branch_payment_method_id: row.branch_payment_method_id ?? null,
       created_at: toIso(row.created_at),
+      fin_voucher_id: row.fin_voucher_id ?? null,
     })),
     creditApplications: creditApplications.map((row) => ({
       id: row.id,
@@ -389,6 +407,7 @@ export async function getOrderFinancialSummary(
       reference_no: row.reference_no ?? null,
       applied_by: row.applied_by ?? null,
       applied_at: toIso(row.applied_at),
+      fin_voucher_id: row.fin_voucher_id ?? null,
     })),
     refunds: refunds.map((row) => ({
       id: row.id,
