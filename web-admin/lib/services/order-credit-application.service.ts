@@ -102,6 +102,12 @@ export async function applyStoredValueDebitTx(
     voucherId?: string;
     /** Phase 2: voucher line id to record on the ledger row. */
     voucherLineId?: string;
+    /**
+     * submit-order + BVM wiring: debit stored value only; the wiring handler
+     * persists `org_order_credit_apps_dtl` during postAndWire (avoids duplicate
+     * rows on the same `fin_voucher_trx_line_id` unique index).
+     */
+    skipCreditAppRow?: boolean;
   }
 ) {
   const {
@@ -117,6 +123,7 @@ export async function applyStoredValueDebitTx(
     referenceNo,
     voucherId,
     voucherLineId,
+    skipCreditAppRow,
   } = params;
 
   if (creditType === CREDIT_APPLICATION_TYPES.WALLET) {
@@ -191,6 +198,10 @@ export async function applyStoredValueDebitTx(
     });
   } else {
     throw new Error(`Unsupported credit application type: ${creditType}`);
+  }
+
+  if (skipCreditAppRow) {
+    return undefined;
   }
 
   return tx.org_order_credit_apps_dtl.create({
@@ -315,6 +326,10 @@ export async function applyOrderCreditApplication(
       idempotencyKey,
       referenceNo: reference,
     });
+
+    if (!creditApp) {
+      throw new Error('Credit application row was not created');
+    }
 
     const snapshot = await recalculateOrderFinancialSnapshotTx(tx, tenantId, orderId);
 

@@ -25,6 +25,14 @@ export const orderCreditApplicationWiringHandler: WiringHandler = {
     userId: string,
     tx: Prisma.TransactionClient
   ): Promise<string> {
+    const existing = await tx.org_order_credit_apps_dtl.findFirst({
+      where:  { fin_voucher_trx_line_id: line.id, tenant_org_id: tenantOrgId },
+      select: { id: true },
+    });
+    if (existing) {
+      return existing.id;
+    }
+
     const now = new Date();
 
     const created = await tx.org_order_credit_apps_dtl.create({

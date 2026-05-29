@@ -46,6 +46,7 @@ import {
   getWalletLegMaxAmount,
   walletLegExceedsBalance,
   parseDecimalDraft,
+  sanitizeDecimalDraft,
   syncDiscountFromPercent,
   syncDiscountPercentFromAmount,
   type PaymentKeypadKey,
@@ -467,6 +468,7 @@ export function PaymentModalV4({
 
   const [totalsLoading, setTotalsLoading] = useState(false);
   const debounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeLegDraftSyncKeyRef = useRef<string | null>(null);
   const pinInputRef  = useRef<HTMLInputElement | null>(null);
   const amountInputRef = useRef<HTMLInputElement | null>(null);
   const amountDiscountInputRef = useRef<HTMLInputElement | null>(null);
@@ -1961,12 +1963,27 @@ export function PaymentModalV4({
 
   useEffect(() => {
     if (!activeLeg) {
+      activeLegDraftSyncKeyRef.current = null;
       setActiveAmountDraft('');
       return;
     }
 
-    setActiveAmountDraft(formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces));
-  }, [activeLeg, decimalPlaces]);
+    const activeLegDraftSyncKey = `${activeLegIndex}:${activeLeg.method}:${activeLeg.gateway_code ?? ''}`;
+    const normalizedLegDraft = formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces);
+    const normalizedCurrentDraft = sanitizeDecimalDraft(activeAmountDraft, decimalPlaces);
+    const currentDraftAmount = parseDecimalDraft(normalizedCurrentDraft);
+    const legAmount = activeLeg.amount ?? 0;
+    const sameLeg = activeLegDraftSyncKeyRef.current === activeLegDraftSyncKey;
+    const draftMatchesSameLegAmount = sameLeg && currentDraftAmount === legAmount;
+
+    activeLegDraftSyncKeyRef.current = activeLegDraftSyncKey;
+
+    if (draftMatchesSameLegAmount) {
+      return;
+    }
+
+    setActiveAmountDraft(normalizedLegDraft);
+  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces]);
 
   const handleKeypadPress = useCallback((key: PaymentKeypadKey) => {
     if (!activeLeg) return;

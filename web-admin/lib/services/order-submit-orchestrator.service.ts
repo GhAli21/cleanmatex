@@ -803,6 +803,7 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
             idempotencyKey:    `${result.orderId}_sv_${STORED_VALUE_CODE[leg.creditType]}_${leg.legIndex}`,
             voucherId:         voucher.id,
             voucherLineId:     line.id,
+            skipCreditAppRow:  true,
           });
         }
 
