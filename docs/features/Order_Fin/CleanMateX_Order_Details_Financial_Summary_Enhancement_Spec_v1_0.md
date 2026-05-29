@@ -6,8 +6,8 @@
 **Status:** Ready for AI Coding Assistant Implementation  
 **Target Area:** CleanMateX Web Admin / Order Details Page  
 **Related Architecture:** Order Fin, Business Voucher Wiring, AR Invoice Receivable-Only ADR, Tax Document Module, Order Submit Flow  
-**Primary Goal:** Replace the old accounting-style order details financial panel with a clear, production-grade financial summary that separates order value, real payments, credit applications, receivables, pay-on-collection, and tax document status.
-
+**Primary Goal:** Replace the old page order details, with financial panel with a clear, production-grade financial summary that separates order value, real payments, credit applications, receivables, pay-on-collection, and tax document status.
+https://cmx.cleanmatex.com/dashboard/orders/[id]
 ---
 
 # Table of Contents
@@ -158,6 +158,10 @@ Receivable / Collection section
 Tax Document section
 Payments & Credits detail tables
 Items & Pieces financial details
+Business Voucher posting
+AR invoice creation
+Refund processing
+Order editing workflow
 Debug / Raw Snapshot tab
 Calculation consistency checks
 Status badges and warnings
@@ -171,12 +175,8 @@ Localization support
 This enhancement does not implement:
 
 ```text
-Business Voucher posting
-AR invoice creation
 Tax Document Module creation
 ZATCA XML submission
-Refund processing
-Order editing workflow
 ```
 
 It only improves the Order Details UI using existing or planned data.
@@ -188,15 +188,19 @@ It only improves the Order Details UI using existing or planned data.
 The new Order Details page should use this structure:
 
 ```text
-Full Order Details
+New Order Details
 ├── Header / Context
 ├── Financial Summary Cards
 ├── Tabs
+│   ├── Order Master Data
 │   ├── Financial Summary
 │   ├── Items & Pieces
-│   ├── Payments & Credits
-│   ├── Invoice / Tax
-│   ├── History
+│   ├── Preferences 
+│   ├── Financial Details ( Charges, Discounts, Taxes, Payments , Credit Applications, Refunds, Adjustments )
+│   ├── Receipt Vouchers
+│   ├── Invoices
+│   ├── Order History
+│   ├── Order Edit History
 │   └── Debug
 ```
 
@@ -206,16 +210,6 @@ Default tab:
 
 ```text
 Financial Summary
-```
-
-## 5.2 Debug Tab Visibility
-
-The Debug tab must be permission-controlled.
-
-Recommended permission:
-
-```text
-orders:financial_debug:view
 ```
 
 ---

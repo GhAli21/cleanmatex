@@ -16,7 +16,11 @@ export async function PATCH(
   const csrf = await validateCSRF(request);
   if (csrf) return csrf;
 
-  const auth = await requirePermission('reconciliation:acknowledge')(request);
+  // Phase 4 R1: corrected from 'reconciliation:acknowledge' (unseeded code)
+  // to 'reconciliation:acknowledge_issues' which is what migration 0294 seeds
+  // into sys_auth_permissions. The wrong code caused PATCH to always return 403
+  // for every role, blocking acknowledge/resolve workflows.
+  const auth = await requirePermission('reconciliation:acknowledge_issues')(request);
   if (auth instanceof NextResponse) return auth;
   const { tenantId, userId } = auth;
 

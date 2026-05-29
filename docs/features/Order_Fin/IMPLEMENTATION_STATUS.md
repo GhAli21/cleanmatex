@@ -563,3 +563,92 @@ The previously-failed Round-2 test order `01a1c005-cb1f-4693-9b5c-3bd888efe28f` 
 - [ ] User to re-run M1 (gift + cash + CREDIT_INVOICE → expect AR invoice total = 1.040)
 - [ ] User to commit + push
 
+
+
+---
+
+## BVM Wiring Phase 4 — Reconciliation — In progress (2026-05-29)
+
+**Plan:** `docs/features/Order_Fin/bvm_wiring_phase4_to_6_RESUME.md` § Phase 4. Scope locked = **B** (PRD §22.1 + §24.3 expansion). Predecessor commit: Phase 3 Round 3 close.
+
+### Step 0 — Discovery findings (read-only)
+
+Substantial pre-existing infrastructure from the earlier "Order Financial Platform" program (Phase 6/7) already ships reconciliation:
+
+| Layer | Artifact | State |
+|---|---|---|
+| Schema | `org_fin_recon_runs_mst`, `org_fin_recon_issues_dtl` (mig 0293) | ✅ live |
+| Permissions | `reconciliation:view`, `reconciliation:run`, `reconciliation:acknowledge_issues` (mig 0294) | ✅ seeded for super_admin / tenant_admin / admin / branch_manager-view |
+| Navigation | `billing_reconciliation` → `/dashboard/internal_fin/reconciliation` (mig 0295 + 0306) | ✅ DB ⇄ navigation.ts in sync |
+| Service | `lib/services/reconciliation.service.ts` | ⚠ 8 checks, doesn't use 0329 FK backlinks, hard-coded `total_checked:8`, per-row insert loop |
+| API routes | `/api/v1/finance/reconciliation/runs[/runId]`, `/issues/[issueId]`, `/orders/[id]/financial-reconcile*` | ⚠ issues PATCH route uses wrong permission code (`reconciliation:acknowledge` vs seeded `reconciliation:acknowledge_issues`) — always 403 |
+| UI | `app/dashboard/internal_fin/reconciliation/page.tsx` + `[runId]/page.tsx` + 2 `src/features/billing/ui/*-client.tsx` | ⚠ raw HTML (not Cmx), no RTL classes, mojibake placeholders, hardcoded English "Cancel" |
+| i18n | `billing.reconciliation.*` in en.json + ar.json | ⚠ needs gap audit + new keys for expanded checks |
+| Tests | `__tests__/services/reconciliation.service.test.ts`, `__tests__/integration/reconciliation-run.test.ts`, `e2e/reconciliation.spec.ts` | ⚠ ~5 happy paths only; no PRD §22.1 coverage, no multi-tenant, no FK-link assertions |
+
+**Bugs catalogued (R1–R8):**
+1. **R1** — issues PATCH wrong permission code (always 403).
+2. **R2** — service doesn't use 0329 FK backlinks (PRD §22.1 `*_LEDGER_LINK_EXISTS` impossible).
+3. **R3** — PRD §22.1 specifies 23 checks; service implements 8.
+4. **R4** — PRD §24.3 voucher-scoped `GET /vouchers/[id]/reconciliation` missing; no `voucher-reconciliation.service.ts` per PRD §23.1.
+5. **R5** — UI raw HTML, violates Cmx-only rule.
+6. **R6** — no RTL classes, mojibake in placeholder/copy text.
+7. **R7** — service writes issues per-row via `withTenantContext` loop; hard-coded `total_checked:8`.
+8. **R8** — duplicate `orders/[id]/financial-reconcile*` routes (GET vs POST) — needs clearer JSDoc cross-ref.
+
+**Scope decision:** Scope B selected — bug-fix + PRD §22.1 expanded checks (using 0329 FK backlinks) + PRD §24.3 voucher-scoped endpoint + UI Cmx/RTL migration + i18n cleanup + test expansion. Estimated 2 sessions.
+
+### Verification (after Step 0)
+- `npx tsc --noEmit` filtered = 0 errors.
+- Baseline jest sweep = **120/120 pass** (RESUME doc stated 117/117; live count is 120/120 after Phase 3 Round 3).
+
+### Step 1 — Migration 0330 — **SKIPPED (no schema gap)**
+
+Rationale:
+- All three reconciliation permissions (`view`, `run`, `acknowledge_issues`) are already seeded by mig 0294.
+- 0329 added the voucher↔ledger FK backlinks needed for PRD §22.1 `*_LINK_EXISTS` checks.
+- All operational tables required by the expanded 23 checks already exist.
+- `org_fin_recon_issues_dtl` audit-field debt (missing `is_active`, `rec_status`, `rec_notes`, `rec_order`, `created_by/info`, `updated_*`) deferred to Phase 6 schema-debt cleanup — no functional impact on Phase 4 checks.
+- `WARNING` reconciliation status from PRD §22.2 maps to internal `PARTIAL` (DB CHECK constraint allows PENDING/RUNNING/PASSED/FAILED/PARTIAL); kept stable to avoid migration churn.
+
+No migration file created. Pattern mirrors Phase 3 Step 1 SKIP decision.
+
+
+### Step 2 — Service layer rewrite — **PARTIAL (mid-session checkpoint)**
+
+Mid-Phase-4 checkpoint before `/clear`. Tree state is verified clean (tsc=0 errors, baseline jest=120/120). Resume doc: `docs/features/Order_Fin/bvm_wiring_phase4_RESUME.md`.
+
+**Sub-steps complete:**
+
+- **Step 2a** — BUG-R1 fix: `app/api/v1/finance/reconciliation/issues/[issueId]/route.ts` permission code corrected from `reconciliation:acknowledge` (unseeded; always 403) to `reconciliation:acknowledge_issues` (seeded by mig 0294). JSDoc comment explains the regression and the migration source-of-truth.
+- **Step 2b** — Constants + shared helpers:
+  - `lib/constants/order-financial.ts` — `RECONCILIATION_CHECK_NAMES` extended with 20 new BVM Phase 4 codes sourced from PRD §22.1. Legacy codes retained for backward compatibility with persisted rows. JSDoc block explains the closed-enum invariant.
+  - `lib/services/reconciliation/types.ts` — NEW module: `CheckResult` interface, `ReconciliationSummary`, `RECONCILIATION_TOLERANCE = 0.01`, `toNumber()`, `summarizeIssues()`, `persistReconciliationIssues()` (bulk createMany helper that replaces the pre-Phase-4 per-row insert loop).
+- **Step 2c** — `lib/services/reconciliation/stored-value-checks.ts` — NEW module. 6 check functions:
+  - `checkWalletBalanceMatchesLedger` (STORED_VALUE_LEDGER — factored from existing service; snapshot invariant, not window-scoped).
+  - `checkWalletLedgerLink` (WALLET_LEDGER_LINK_EXISTS — uses 0329 FK backlink).
+  - `checkAdvanceLedgerLink` (ADVANCE_LEDGER_LINK_EXISTS).
+  - `checkGiftCardLedgerLink` (GIFT_CARD_LEDGER_LINK_EXISTS).
+  - `checkCreditNoteLedgerLink` (CREDIT_NOTE_LEDGER_LINK_EXISTS).
+  - `checkLoyaltyLedgerLink` (LOYALTY_LEDGER_LINK_EXISTS).
+  - **Open TODO (T1):** per-table debit-only filter missing. Module not wired into the orchestrator yet, so no production impact. Resume doc Step 2c continuation will MCP-query each table's `txn_type`/`transaction_type` enum and add the right filter before wiring.
+
+**Sub-steps NOT YET STARTED (resume here):**
+
+- Step 2d — `ar-checks.ts` (INVOICE_PAYMENT_LINK_EXISTS, REFUND_LINK_EXISTS)
+- Step 2e — `order-checks.ts` (factor existing + add 6 new link/discount checks)
+- Step 2f — `order-snapshot-checks.ts` (5 snapshot/charge checks)
+- Step 2g — `voucher-checks.ts` (5 voucher integrity + cash-movement checks)
+- Step 2h — Rewrite `reconciliation.service.ts` orchestrator: wire all modules, bulk insert, dynamic total_checked
+- Step 2i — NEW `voucher-reconciliation.service.ts` (PRD §23.1 + §24.3)
+- Step 2j — Update existing recon tests for the new createMany contract
+
+### Verification (after Step 2c checkpoint)
+
+- `npx tsc --noEmit` filtered = **0 errors**.
+- Phase 2 + Phase 3 jest sweep = **120/120 pass** unchanged (new modules unused by orchestrator yet, so cannot regress).
+
+### Mid-session handoff artifacts
+
+- `docs/features/Order_Fin/bvm_wiring_phase4_RESUME.md` — single-source-of-truth resume doc with the one-line prompt for the new session, full Unit A→E plan, bug status, dirty-file split, sanity test, and the open TODO (T1).
+

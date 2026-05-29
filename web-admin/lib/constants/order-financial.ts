@@ -124,7 +124,19 @@ export const PROMO_TYPES = {
 export type PromoType = (typeof PROMO_TYPES)[keyof typeof PROMO_TYPES];
 
 /** Reconciliation check identifiers written to issue rows and reports. */
+/**
+ * Reconciliation check identifiers persisted in `org_fin_recon_issues_dtl.check_name`.
+ *
+ * Why a closed enum:
+ * The reconciliation UI groups issues by check, the CSV export labels them, and
+ * downstream remediation playbooks are keyed by these strings. Drift between
+ * service and DB silently hides regressions, so every check name lives here.
+ *
+ * Phase 4 (BVM Wiring) expansion sources the names from PRD §22.1; legacy
+ * pre-BVM names are retained for backward compatibility with persisted rows.
+ */
 export const RECONCILIATION_CHECK_NAMES = {
+  // ─── Legacy Order Financial Platform checks (pre-BVM) ─────────────────────
   PAYMENT_TOTAL_MATCH: 'PAYMENT_TOTAL_MATCH',
   CREDIT_APP_BALANCE: 'CREDIT_APP_BALANCE',
   OUTSTANDING_TOTAL_MATCH: 'OUTSTANDING_TOTAL_MATCH',
@@ -135,6 +147,43 @@ export const RECONCILIATION_CHECK_NAMES = {
   DISCOUNT_VALIDATION: 'DISCOUNT_VALIDATION',
   REFUND_CONSISTENCY: 'REFUND_CONSISTENCY',
   OUTBOX_PROCESSED: 'OUTBOX_PROCESSED',
+
+  // ─── BVM Phase 4 — voucher integrity (PRD §22.1) ──────────────────────────
+  VOUCHER_TOTAL_EQUALS_LINES: 'VOUCHER_TOTAL_EQUALS_LINES',
+  NO_DUPLICATE_OPERATIONAL_EFFECT: 'NO_DUPLICATE_OPERATIONAL_EFFECT',
+  GATEWAY_STATE_VALID: 'GATEWAY_STATE_VALID',
+
+  // ─── BVM Phase 4 — order ↔ voucher link checks (PRD §22.1) ────────────────
+  ORDER_PAYMENT_LINK_EXISTS: 'ORDER_PAYMENT_LINK_EXISTS',
+  ORDER_PAYMENT_AMOUNT_MATCHES_LINE: 'ORDER_PAYMENT_AMOUNT_MATCHES_LINE',
+  ORDER_CREDIT_APPLICATION_LINK_EXISTS: 'ORDER_CREDIT_APPLICATION_LINK_EXISTS',
+  ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE: 'ORDER_CREDIT_APPLICATION_AMOUNT_MATCHES_LINE',
+  ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS: 'ORDER_CREDIT_APPLICATION_NOT_IN_PAYMENTS',
+  ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS: 'ORDER_CREDIT_APPLICATION_NOT_IN_DISCOUNTS',
+
+  // ─── BVM Phase 4 — order snapshot integrity (PRD §22.1) ───────────────────
+  ORDER_CHARGES_MATCH_SNAPSHOT: 'ORDER_CHARGES_MATCH_SNAPSHOT',
+  ORDER_PIECES_MATCH_CHARGES: 'ORDER_PIECES_MATCH_CHARGES',
+  ORDER_PREFERENCES_MATCH_CHARGES: 'ORDER_PREFERENCES_MATCH_CHARGES',
+  PIECE_EXTRA_PRICE_INCLUDED_ONCE: 'PIECE_EXTRA_PRICE_INCLUDED_ONCE',
+  PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE: 'PREFERENCE_EXTRA_PRICE_INCLUDED_ONCE',
+
+  // ─── BVM Phase 4 — stored-value ledger backlink checks (PRD §22.1) ────────
+  // Use the FK backlinks added in migration 0329 (fin_voucher_id +
+  // fin_voucher_trx_line_id on every stored-value txn table).
+  WALLET_LEDGER_LINK_EXISTS: 'WALLET_LEDGER_LINK_EXISTS',
+  ADVANCE_LEDGER_LINK_EXISTS: 'ADVANCE_LEDGER_LINK_EXISTS',
+  GIFT_CARD_LEDGER_LINK_EXISTS: 'GIFT_CARD_LEDGER_LINK_EXISTS',
+  CREDIT_NOTE_LEDGER_LINK_EXISTS: 'CREDIT_NOTE_LEDGER_LINK_EXISTS',
+  LOYALTY_LEDGER_LINK_EXISTS: 'LOYALTY_LEDGER_LINK_EXISTS',
+
+  // ─── BVM Phase 4 — cash drawer integrity (PRD §22.1) ──────────────────────
+  CASH_MOVEMENT_LINK_EXISTS: 'CASH_MOVEMENT_LINK_EXISTS',
+  CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT: 'CASH_MOVEMENT_AMOUNT_EQUALS_RETAINED_AMOUNT',
+
+  // ─── BVM Phase 4 — AR / refund link checks (PRD §22.1) ────────────────────
+  INVOICE_PAYMENT_LINK_EXISTS: 'INVOICE_PAYMENT_LINK_EXISTS',
+  REFUND_LINK_EXISTS: 'REFUND_LINK_EXISTS',
 } as const;
 /** Derived union for reconciliation check identifiers. */
 export type ReconciliationCheckName =
