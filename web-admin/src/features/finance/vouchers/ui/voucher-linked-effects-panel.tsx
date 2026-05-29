@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   CmxCard,
   CmxCardHeader,
@@ -8,17 +8,24 @@ import {
   CmxCardContent,
 } from '@ui/primitives/cmx-card';
 import type { LinkedEffectsResult } from '@/lib/types/voucher-wiring';
+import type { CmxDataTableSimpleColumn } from '@ui/data-display';
+import { VoucherDetailCopyValue, VoucherDetailDataTable } from './voucher-detail-data-table';
 
 interface VoucherLinkedEffectsPanelProps {
   effects: LinkedEffectsResult;
 }
 
-function AmountCell({ amount }: { amount: { toString(): string } }) {
-  return <span className="tabular-nums">{Number(amount).toFixed(2)}</span>;
+function formatAmount(amount: { toString(): string }, locale: string) {
+  return new Intl.NumberFormat(locale === 'ar' ? 'ar-OM' : 'en-OM', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(Number(amount));
 }
 
 export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanelProps) {
   const t = useTranslations('finance.vouchers.linkedEffects');
+  const locale = useLocale();
+  const textAlign = locale === 'ar' ? 'right' : 'left';
 
   const hasAny =
     effects.orderPayments.length > 0 ||
@@ -42,29 +49,19 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('orderPayments')}</CmxCardTitle>
           </CmxCardHeader>
-          <CmxCardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">{t('effectId')}</th>
-                    <th className="py-2 text-start font-medium">{t('orderRef')}</th>
-                    <th className="py-2 text-end font-medium">{t('amountLabel')}</th>
-                    <th className="py-2 text-start font-medium">{t('methodOrType')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {effects.orderPayments.map((p) => (
-                    <tr key={p.id}>
-                      <td className="py-2 font-mono text-xs text-muted-foreground">{p.id.slice(0, 8)}…</td>
-                      <td className="py-2">{p.order_id ? <span className="font-mono text-xs">{(p.order_id as string).slice(0, 8)}…</span> : '—'}</td>
-                      <td className="py-2 text-end"><AmountCell amount={p.amount} /></td>
-                      <td className="py-2">{p.payment_method_code ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <CmxCardContent className="p-0">
+            <VoucherDetailDataTable
+              columns={[
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'order_id', header: t('orderRef'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.order_id} maxLength={12} align={textAlign} /> },
+                { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
+                { key: 'payment_method_code', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_method_code} align={textAlign} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+                { key: 'payment_status', header: t('paymentStatus'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.payment_status} align={textAlign} /> },
+              ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['orderPayments'][number]>[]}
+              data={effects.orderPayments}
+              emptyStateTitle={t('noEffects')}
+            />
           </CmxCardContent>
         </CmxCard>
       )}
@@ -74,27 +71,18 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('cashMovements')}</CmxCardTitle>
           </CmxCardHeader>
-          <CmxCardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">{t('effectId')}</th>
-                    <th className="py-2 text-end font-medium">{t('amountLabel')}</th>
-                    <th className="py-2 text-start font-medium">{t('methodOrType')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {effects.cashDrawerMovements.map((m) => (
-                    <tr key={m.id}>
-                      <td className="py-2 font-mono text-xs text-muted-foreground">{m.id.slice(0, 8)}…</td>
-                      <td className="py-2 text-end"><AmountCell amount={m.amount} /></td>
-                      <td className="py-2">{m.movement_type ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <CmxCardContent className="p-0">
+            <VoucherDetailDataTable
+              columns={[
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'session_id', header: t('sessionId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.session_id} maxLength={12} align={textAlign} /> },
+                { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
+                { key: 'movement_type', header: t('movementType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.movement_type} align={textAlign} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+              ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['cashDrawerMovements'][number]>[]}
+              data={effects.cashDrawerMovements}
+              emptyStateTitle={t('noEffects')}
+            />
           </CmxCardContent>
         </CmxCard>
       )}
@@ -104,29 +92,18 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('creditApplications')}</CmxCardTitle>
           </CmxCardHeader>
-          <CmxCardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-muted-foreground">
-                    <th className="py-2 text-start font-medium">{t('effectId')}</th>
-                    <th className="py-2 text-start font-medium">{t('orderRef')}</th>
-                    <th className="py-2 text-end font-medium">{t('amountLabel')}</th>
-                    <th className="py-2 text-start font-medium">{t('methodOrType')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {effects.creditApplications.map((c) => (
-                    <tr key={c.id}>
-                      <td className="py-2 font-mono text-xs text-muted-foreground">{c.id.slice(0, 8)}…</td>
-                      <td className="py-2">{c.order_id ? <span className="font-mono text-xs">{(c.order_id as string).slice(0, 8)}…</span> : '—'}</td>
-                      <td className="py-2 text-end"><AmountCell amount={c.amount} /></td>
-                      <td className="py-2">{c.credit_type ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <CmxCardContent className="p-0">
+            <VoucherDetailDataTable
+              columns={[
+                { key: 'id', header: t('effectId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.id} maxLength={12} align={textAlign} /> },
+                { key: 'order_id', header: t('orderRef'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.order_id} maxLength={12} align={textAlign} /> },
+                { key: 'amount', header: t('amountLabel'), sortable: false, align: 'right', render: (row) => <VoucherDetailCopyValue value={Number(row.amount)} displayValue={formatAmount(row.amount, locale)} align="right" className="font-medium" /> },
+                { key: 'credit_type', header: t('methodOrType'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.credit_type} align={textAlign} /> },
+                { key: 'line_id', header: t('lineId'), sortable: false, render: (row) => <VoucherDetailCopyValue value={row.line_id} maxLength={12} align={textAlign} /> },
+              ] satisfies CmxDataTableSimpleColumn<LinkedEffectsResult['creditApplications'][number]>[]}
+              data={effects.creditApplications}
+              emptyStateTitle={t('noEffects')}
+            />
           </CmxCardContent>
         </CmxCard>
       )}

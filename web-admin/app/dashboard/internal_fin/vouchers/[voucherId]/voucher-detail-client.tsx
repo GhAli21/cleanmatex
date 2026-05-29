@@ -22,7 +22,7 @@ import { VOUCHER_STATUS } from '@/lib/constants/voucher';
 import { useMessage } from '@ui/feedback/useMessage';
 import type { BizVoucherDetailData, CreateVoucherLineInput } from '@/lib/types/voucher';
 import type { LinkedEffectsResult } from '@/lib/types/voucher-wiring';
-import { CmxCopyableCell } from '@ui/data-display/cmx-copyable-cell';
+import { VoucherDetailCopyValue } from '@features/finance/vouchers/ui/voucher-detail-data-table';
 
 interface VoucherDetailClientProps {
   voucher: BizVoucherDetailData;
@@ -33,26 +33,6 @@ interface VoucherDetailClientProps {
 function formatDate(value?: string | Date | null) {
   if (!value) return '—';
   return new Date(value).toLocaleString();
-}
-
-function VoucherCopyValue({
-  value,
-  maxLength,
-  className = '',
-}: {
-  value: string | number | null | undefined;
-  maxLength?: number;
-  className?: string;
-}) {
-  return (
-    <CmxCopyableCell
-      as="span"
-      value={value}
-      maxLength={maxLength}
-      align="left"
-      className={`px-0 py-0 text-sm text-foreground ${className}`}
-    />
-  );
 }
 
 function VoucherDetailField({
@@ -77,7 +57,7 @@ function VoucherDetailField({
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {copyValue !== undefined ? (
-          <VoucherCopyValue value={copyValue} maxLength={maxLength} className="font-medium" />
+          <VoucherDetailCopyValue value={copyValue} maxLength={maxLength} className="font-medium" />
         ) : (
           <div className="text-sm font-medium text-foreground">{value}</div>
         )}
