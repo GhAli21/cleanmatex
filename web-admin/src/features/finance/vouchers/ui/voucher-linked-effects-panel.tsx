@@ -45,7 +45,7 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
   return (
     <div className="min-w-0 space-y-4">
       {effects.orderPayments.length > 0 && (
-        <CmxCard>
+        <CmxCard className="min-w-0">
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('orderPayments')}</CmxCardTitle>
           </CmxCardHeader>
@@ -67,7 +67,7 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
       )}
 
       {effects.cashDrawerMovements.length > 0 && (
-        <CmxCard>
+        <CmxCard className="min-w-0">
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('cashMovements')}</CmxCardTitle>
           </CmxCardHeader>
@@ -88,7 +88,7 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
       )}
 
       {effects.creditApplications.length > 0 && (
-        <CmxCard>
+        <CmxCard className="min-w-0">
           <CmxCardHeader>
             <CmxCardTitle className="text-base">{t('creditApplications')}</CmxCardTitle>
           </CmxCardHeader>

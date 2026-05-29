@@ -149,9 +149,9 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
 
   return (
     <>
-      <div className="grid gap-6">
+      <div className="grid min-w-0 gap-6">
         {/* Header card */}
-        <CmxCard>
+        <CmxCard className="min-w-0">
           <CmxCardHeader className="flex flex-row items-center justify-between">
             <CmxCardTitle>{t('voucherSummary')}</CmxCardTitle>
             <div className="flex items-center gap-2 rtl:flex-row-reverse">
@@ -328,7 +328,7 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
         </CmxCard>
 
         {/* Lines card */}
-        <CmxCard>
+        <CmxCard className="min-w-0">
           <CmxCardHeader className="flex flex-row items-center justify-between rtl:flex-row-reverse">
             <CmxCardTitle>{t('transactionLines')}</CmxCardTitle>
             {canAddLine && (
@@ -354,7 +354,7 @@ export function VoucherDetailClient({ voucher, userRole, linkedEffects }: Vouche
 
         {/* Linked effects panel — shown once voucher is posted and wired */}
         {voucher.voucher_status === VOUCHER_STATUS.POSTED && linkedEffects && (
-          <div>
+          <div className="min-w-0">
             <h2 className="mb-3 text-base font-semibold text-gray-800">
               {t('linkedEffects.title')}
             </h2>
