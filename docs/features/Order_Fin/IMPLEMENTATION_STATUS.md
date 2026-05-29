@@ -504,3 +504,62 @@ The order `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf` (the failing one) will NOT be a
 
 The next fresh submit-order request will produce the correct sized invoice (or no invoice when outstanding = 0).
 
+---
+
+## BVM Wiring Phase 3 Round 3 — gift-card-as-discount semantic fix (2026-05-29 same day)
+
+**Triggered by:** Round 2 manual QA — order `01a1c005-cb1f-4693-9b5c-3bd888efe28f` (gross 2.140, gift-card 0.100, finalTotal 2.040, cash 1.000) produced an AR invoice of **0.94** instead of the expected **1.040**. Same double-count in `org_orders_mst.outstanding_amount`.
+
+**Root cause (deeper analysis):**
+
+`order-calculation.service.ts:322-323` computes `finalTotal = amountBeforeGiftCard - giftCardApplied` — the pricing engine treats gift-card as a **discount**, already deducted from the price. Then Phase 3 Step 4 synthesizes gift-card as a CREDIT_APPLICATION leg in the planner, so `plan.creditAppliedAmount` includes it. The outstanding formula `finalTotal − realPayment − creditApplied` then subtracts the gift-card amount a **second** time:
+
+- Expected: 2.040 − 1.000 (cash) = **1.040** (Remaining Balance shown in UI)
+- Round 2 produced: 2.040 − 1.000 (cash) − 0.100 (gift, double-counted) = **0.94** ❌
+
+**Round 3 fix — distinguish gift-card from other credit-applications:**
+
+Gift-card is a pricing discount that the engine has already applied to `finalTotal`. Wallet / advance / credit-note / loyalty are NOT pre-deducted — they reduce outstanding at settlement time.
+
+New orchestrator math:
+```ts
+const giftCardApplied = serverTotals.giftCardApplied ?? 0;
+const settlementCreditApplied = Math.max(0, plan.creditAppliedAmount - giftCardApplied);
+const correctedOutstanding = Math.max(
+  0,
+  serverTotals.finalTotal - plan.realPaymentAmount - settlementCreditApplied
+);
+```
+
+Used by:
+- `shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE' && correctedOutstanding > TOLERANCE`
+- AR writer call: `expected_total_amount: correctedOutstanding`
+- `breakdown.outstanding: correctedOutstanding` (persists into `org_orders_mst.outstanding_amount` via settleOrder)
+- `breakdown.netReceivable: finalTotal - settlementCreditApplied` (informational; excludes gift-card)
+- `breakdown.creditsTotal: plan.creditAppliedAmount` (informational; total balance debited — gift-card stays included here because the voucher line DID debit a balance)
+
+**Voucher line preserved.** Gift-card still appears as `LINE_ROLE.ORDER_CREDIT_APPLICATION` on the voucher (M3 expectation unchanged) — the line tracks the gift-card BALANCE DEBIT, separate from the pricing math.
+
+### Verification (Round 3)
+- `npx tsc --noEmit` filtered = 0 errors.
+- Jest sweep **120/120 pass** — updated AR Round-2 test now pins the post-discount receivable semantic (expects `expected_total_amount = 1.04`, not 0.94).
+- `npm run build` succeeds.
+
+### Files modified (Round 3)
+- `web-admin/lib/services/order-submit-orchestrator.service.ts` (new `correctedOutstanding` computation hoisted above the `shouldCreateArInvoice` gate; `breakdown` block updated to use it; per-block JSDoc explains the gift-card-as-discount rule)
+- `web-admin/__tests__/services/ar-invoice.service.test.ts` (Round-2 test renamed → Round-3, asserts `expected_total_amount = 1.04` for the gift+cash CREDIT_INVOICE pattern)
+- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md` (this section)
+- `docs/features/Order_Fin/CHANGELOG.md`
+
+### Round 3 production-data side effects
+
+The previously-failed Round-2 test order `01a1c005-cb1f-4693-9b5c-3bd888efe28f` (AR invoice `ARI-000014`, total 0.94, OVERDUE) and `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf` (AR invoice `ARI-000012`, total 2.04, OVERDUE) are both pre-Round-3 artifacts. Recommended: void both via the AR invoice UI. The next fresh submit will write the correct receivable.
+
+### Phase 3 exit checklist update
+- [x] Round 3 fix landed
+- [x] All step exit criteria green
+- [x] 120/120 jest pass
+- [x] `npm run build` succeeds
+- [ ] User to re-run M1 (gift + cash + CREDIT_INVOICE → expect AR invoice total = 1.040)
+- [ ] User to commit + push
+

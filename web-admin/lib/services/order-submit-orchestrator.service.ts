@@ -604,19 +604,38 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     }),
   };
 
+  // Phase 3 Round 3 — gift-card is a pricing discount, not a settlement credit.
+  // See `order-calculation.service.ts:322-323`: `serverTotals.finalTotal` is
+  // already net of `giftCardApplied`. Treating it ALSO as a credit-application
+  // (Phase 3 Step 4 voucher synthesis) double-counts it. Wallet / advance /
+  // credit-note / loyalty are NOT pre-deducted from finalTotal — those DO
+  // legitimately settle the post-discount price.
+  //
+  // `settlementCreditApplied` covers wallet+advance+cn+loyalty only.
+  // `correctedOutstanding` is the actual receivable after cash + non-gift
+  // credit applications. Used by:
+  //  (a) the `shouldCreateArInvoice` zero-outstanding gate
+  //  (b) the AR writer's `expected_total_amount` input
+  //  (c) `breakdown.outstanding` snapshot persisted by settleOrder
+  const giftCardApplied = serverTotals.giftCardApplied ?? 0;
+  const settlementCreditApplied = Math.max(0, plan.creditAppliedAmount - giftCardApplied);
+  const correctedOutstanding = Math.max(
+    0,
+    serverTotals.finalTotal - plan.realPaymentAmount - settlementCreditApplied
+  );
+
   // ADR_ar_invoice_is_receivable_only.md — `org_invoice_mst` rows represent
   // AR receivables only. Fully-paid cash/card/gateway orders and PAY_ON_COLLECTION
   // orders do NOT produce an AR invoice row at submit time. CREDIT_INVOICE / B2B
   // orders DO. The voucher receipt print serves as the cash-sale fiscal artifact
   // (Tax Documents Module replaces this dual role in a future feature).
   //
-  // Phase 3 Round 2 — ADR_no_ar_invoice_when_zero_outstanding.md:
+  // ADR_no_ar_invoice_when_zero_outstanding.md (Phase 3 Round 2):
   // also require a non-zero receivable. A CREDIT_INVOICE order whose cash +
-  // credit-application legs fully cover the sale produces ONLY a voucher
-  // (no AR invoice header, no AR ledger debit, no AR_INVOICE_ISSUED outbox).
+  // credit-application legs fully cover the sale produces ONLY a voucher.
   const shouldCreateArInvoice =
     effectiveOutstandingPolicy === 'CREDIT_INVOICE'
-    && plan.outstandingAmount > TOLERANCE;
+    && correctedOutstanding > TOLERANCE;
 
   const result = await withTenantContext(tenantId, async () =>
     prisma.$transaction(async (tx) => {
@@ -633,19 +652,18 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // OPEN-with-ledger-debit semantics atomically inside this same tx.
         // The `${orderId}_ar` idempotency key collapses replays onto the same
         // invoice row via `withIdempotency` (24h TTL).
-        // Phase 3 Round 2: `expected_total_amount = plan.outstandingAmount`
-        // sizes the invoice to the receivable AFTER cash + every credit-app
-        // leg has been recorded on the voucher. The previous full-sale
-        // sizing forced a downstream AR allocation step that violated the
-        // `chk_payments_voucher_required` check constraint on
-        // `org_payments_dtl_tr`.
+        // Phase 3 Round 3: `expected_total_amount = correctedOutstanding`
+        // sizes the invoice to the actual receivable (post-discount price
+        // minus cash minus non-gift-card credit-applications). Gift-card was
+        // already deducted from `serverTotals.finalTotal` by the pricing
+        // engine — it must NOT be subtracted again here.
         const invoiceDetail = await createArInvoiceFromOrders(
           {
             order_ids:                [orderId],
             customer_id:              input.customerId,
             currency_code:            serverTotals.currencyCode,
             gift_card_applied_amount: serverTotals.giftCardApplied,
-            expected_total_amount:    plan.outstandingAmount,
+            expected_total_amount:    correctedOutstanding,
             issueImmediately:         true,
             idempotency_key:          `${orderId}_ar`,
             allocation_policy:        'REMAINING_ONLY',
@@ -868,15 +886,6 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
       : [];
   const taxTotal = taxLines.reduce((sum, line) => sum + line.taxAmount, 0);
 
-  // Phase 3 (BVM Wiring): credits/outstanding math switched from
-  // `serverTotals.giftCardApplied` (gift-card only) to `plan.creditAppliedAmount`
-  // (gift-card + wallet + advance + credit-note + loyalty) so the order
-  // snapshot accurately reflects every credit-application leg now that
-  // gift-card flows through the planner. Outstanding uses
-  // `plan.realPaymentAmount` instead of `amountToCharge` because
-  // `amountToCharge` filters only by DEFERRED_METHODS — wallet/advance legs
-  // arriving via paymentLegs would otherwise leak into the subtraction and
-  // double-count.
   const breakdown: FinancialBreakdownSnapshot = {
     subtotal:         serverTotals.subtotal,
     chargesTotal:     0,
@@ -886,11 +895,15 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     taxBreakdown:     taxLines,
     taxTotal,
     grandTotal:       serverTotals.finalTotal,
+    // creditsTotal is informational: total balance debited via voucher
+    // CREDIT_APPLICATION lines (gift-card + wallet + advance + cn + loyalty).
     creditsTotal:     plan.creditAppliedAmount,
-    netReceivable:    serverTotals.finalTotal - plan.creditAppliedAmount,
+    // netReceivable: post-discount price minus settlement-time credits
+    // (excludes gift-card since it was already a price discount).
+    netReceivable:    serverTotals.finalTotal - settlementCreditApplied,
     paymentLegsTotal: amountToCharge,
     changeReturned:   0,
-    outstanding:      Math.max(0, serverTotals.finalTotal - plan.creditAppliedAmount - plan.realPaymentAmount),
+    outstanding:      correctedOutstanding,
     currencyCode:     serverTotals.currencyCode,
     decimalPlaces:    serverTotals.decimalPlaces,
   };

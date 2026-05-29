@@ -430,13 +430,19 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     ).rejects.toThrow('ERP-Lite COA missing');
   });
 
-  it('Phase 3 Round 2: expected_total_amount sizes invoice to receivable, not full order outstanding', async () => {
-    // Submit-order scenario: order.total = 2.04, cash 1.00, gift-card 0.10,
-    // outstanding 0.94. With the legacy default the AR invoice would size
-    // to 2.04 (the order's outstanding at tx1 time, before any payment is
-    // applied). The Round-2 fix passes plan.outstandingAmount = 0.94 so the
-    // invoice header, the per-order link, and the line summary all reflect
-    // the actual receivable.
+  it('Phase 3 Round 3: expected_total_amount sizes invoice to the post-discount receivable (cash + non-gift credits only)', async () => {
+    // Submit-order scenario:
+    //  - subtotal 2.000 + VAT 0.100 + tax 0.040 = 2.140 (gross)
+    //  - gift-card pricing discount 0.100 → finalTotal 2.040 (post-discount)
+    //  - cash 1.000
+    //  - outstanding = finalTotal - cash = 1.040
+    //
+    // Round 3 fix: gift-card is a pricing discount (already in finalTotal),
+    // NOT a settlement credit-app. The orchestrator computes
+    // `correctedOutstanding = finalTotal - realPayment - settlementCreditApplied`
+    // (where settlementCreditApplied excludes gift-card) and passes it
+    // through as `expected_total_amount`. This test pins that the writer
+    // honors whatever the orchestrator computed.
     mockOrderFindMany.mockResolvedValue([
       defaultOrder({ total: 2.04, outstanding_amount: 2.04 }),
     ]);
@@ -451,21 +457,21 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
         order_ids: ['11111111-1111-1111-1111-111111111111'],
         idempotency_key: 'order-1_ar',
         issueImmediately: true,
-        expected_total_amount: 0.94,
+        expected_total_amount: 1.04, // corrected: NOT 0.94 (gift-card not subtracted twice)
         due_date: futureDueDate,
       },
       { tenantId: 'tenant-123', userId: 'user-123' }
     );
 
-    // Invoice header reflects the receivable, not the full sale.
+    // Invoice header reflects the actual receivable.
     const createPayload = mockInvoiceCreate.mock.calls[0][0].data as {
       subtotal: number;
       total: number;
       outstanding_amount: number;
     };
-    expect(createPayload.subtotal).toBe(0.94);
-    expect(createPayload.total).toBe(0.94);
-    expect(createPayload.outstanding_amount).toBe(0.94);
+    expect(createPayload.subtotal).toBe(1.04);
+    expect(createPayload.total).toBe(1.04);
+    expect(createPayload.outstanding_amount).toBe(1.04);
 
     // Per-order link mirrors the same amount (single-order path).
     const orderLinkPayload = mockOrdersDtlCreateMany.mock.calls[0][0].data as Array<{
@@ -473,8 +479,8 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
       outstanding_amount: number;
       order_total_amount: number;
     }>;
-    expect(orderLinkPayload[0].invoiced_amount).toBe(0.94);
-    expect(orderLinkPayload[0].outstanding_amount).toBe(0.94);
+    expect(orderLinkPayload[0].invoiced_amount).toBe(1.04);
+    expect(orderLinkPayload[0].outstanding_amount).toBe(1.04);
     // order_total_amount stays at the full sale for audit visibility.
     expect(orderLinkPayload[0].order_total_amount).toBe(2.04);
 
@@ -483,13 +489,13 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
       unit_price: number;
       total_amount: number;
     }>;
-    expect(linePayload[0].unit_price).toBe(0.94);
-    expect(linePayload[0].total_amount).toBe(0.94);
+    expect(linePayload[0].unit_price).toBe(1.04);
+    expect(linePayload[0].total_amount).toBe(1.04);
 
     // AR ledger debit fires only for the receivable (no over-debit).
     expect(mockLedgerCreate).toHaveBeenCalledTimes(1);
     const ledgerPayload = mockLedgerCreate.mock.calls[0][0].data as { amount: number };
-    expect(ledgerPayload.amount).toBe(0.94);
+    expect(ledgerPayload.amount).toBe(1.04);
   });
 
   it('Phase 3 Round 2: when expected_total_amount is omitted, legacy full-sale sizing is preserved', async () => {

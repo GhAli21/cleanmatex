@@ -1,5 +1,39 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-29 — BVM Wiring Phase 3 Round 3: gift-card-as-discount semantic fix
+
+**Surfaced by:** Round-2 manual QA — AR invoice produced 0.94 instead of expected 1.040 because the pricing engine already deducts gift-card from `finalTotal` and the planner then subtracted it again as a credit-application.
+
+### Shipped
+
+- **Orchestrator distinguishes gift-card from at-settlement credit-applications.** New `settlementCreditApplied = plan.creditAppliedAmount - giftCardApplied` and `correctedOutstanding = finalTotal - realPayment - settlementCreditApplied` hoisted before the `shouldCreateArInvoice` gate.
+- **AR invoice `expected_total_amount` now uses `correctedOutstanding`.**
+- **`shouldCreateArInvoice` gate now uses `correctedOutstanding`.**
+- **`breakdown.outstanding`/`netReceivable` use the same corrected math** — also fixes the order's persisted `outstanding_amount` snapshot.
+- **Voucher line for gift-card preserved.** Gift-card still emits `LINE_ROLE.ORDER_CREDIT_APPLICATION` (M3 expectation unchanged) — the line tracks the BALANCE DEBIT, separate from pricing math.
+- **AR test updated** (`ar-invoice.service.test.ts` Round-2 case → Round-3) to assert `expected_total_amount = 1.04` for the canonical gift+cash+CREDIT_INVOICE scenario.
+
+### Verification
+- `npx tsc --noEmit` filtered = 0 errors
+- 120/120 jest pass
+- `npm run build` succeeds
+
+### Files modified
+- `web-admin/lib/services/order-submit-orchestrator.service.ts`
+- `web-admin/__tests__/services/ar-invoice.service.test.ts`
+- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`
+- `docs/features/Order_Fin/CHANGELOG.md`
+
+### Production-data artifacts
+
+Two pre-Round-3 AR invoices are still in the DB from earlier QA attempts:
+- `ARI-000012` (order `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf`, total 2.04, pre-Round-1 inflated)
+- `ARI-000014` (order `01a1c005-cb1f-4693-9b5c-3bd888efe28f`, total 0.94, pre-Round-3 under-sized)
+
+Recommended cleanup: void both via the AR invoice UI with reason "QA test artifact — pre Round-3 sizing bug". The orders themselves are valid; only the AR invoice headers are wrong.
+
+---
+
 ## 2026-05-29 — BVM Wiring Phase 3 Round 2: AR invoice = receivable, zero-outstanding gate, TX4 removed
 
 **Surfaced by:** Manual QA scenario M1 — `chk_payments_voucher_required` constraint violation + inflated AR invoice total.
