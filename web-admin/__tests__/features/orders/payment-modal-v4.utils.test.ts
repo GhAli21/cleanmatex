@@ -30,6 +30,10 @@ describe('payment-modal-v4 utils', () => {
     expect(draft).toBe('0.5');
   });
 
+  it('supports clearing a draft in one tap', () => {
+    expect(applyKeypadInput('12.5', 'clear', 3)).toBe('');
+  });
+
   it('supports quick-add keypad shortcuts', () => {
     const draft = applyKeypadInput('1.5', '+10', 3);
     expect(draft).toBe('11.5');

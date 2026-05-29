@@ -61,6 +61,7 @@ import { CmxTextarea } from '@ui/primitives';
 import { CmxSwitch } from '@ui/primitives';
 import { CmxSkeleton } from '@ui/primitives';
 import { Badge } from '@ui/primitives/badge';
+import { CmxKeypad } from '@ui/utilities';
 import {
   CmxSelectDropdown,
   CmxSelectDropdownTrigger,
@@ -204,6 +205,25 @@ type StoredValueSummaryResponse = {
     currency_code: string;
   }>;
 };
+
+const PAYMENT_KEYPAD_KEYS: readonly PaymentKeypadKey[] = [
+  '1',
+  '2',
+  '3',
+  '+10',
+  '4',
+  '5',
+  '6',
+  '+20',
+  '7',
+  '8',
+  '9',
+  '+50',
+  '.',
+  '0',
+  'backspace',
+  'clear',
+] as const;
 
 interface PaymentModalProps {
   open: boolean;
@@ -2494,30 +2514,28 @@ export function PaymentModalV4({
 
                       <CmxCard className="border-slate-200 shadow-sm">
                         <CmxCardContent className="pt-4">
-                          <div className="grid grid-cols-4 gap-2">
-                            {(['1', '2', '3', '+10', '4', '5', '6', '+20', '7', '8', '9', '+50', '.', '0', 'backspace'] as PaymentKeypadKey[]).map((key) => (
-                              <CmxButton
-                                key={key}
-                                type="button"
-                                variant={key.startsWith('+') ? 'secondary' : 'outline'}
-                                size="lg"
-                                onClick={() => handleKeypadPress(key)}
-                                onMouseDown={(event) => event.preventDefault()}
-                                className={`h-20 rounded-2xl border-slate-200 text-2xl font-semibold text-slate-800 shadow-sm ${key.startsWith('+') ? 'bg-slate-50 text-cyan-700' : 'bg-white'} ${key === 'backspace' ? 'col-span-1' : ''}`}
-                              >
-                                {key === 'backspace' ? '⌫' : key}
-                              </CmxButton>
-                            ))}
-                            <CmxButton
-                              type="button"
-                              variant="primary"
-                              size="lg"
-                              onClick={focusAmountEditor}
-                              className="h-20 rounded-2xl bg-gradient-to-r from-teal-600 to-cyan-700 text-2xl font-semibold shadow-sm"
-                            >
-                              {t('workspace.enter') || 'Enter'}
-                            </CmxButton>
-                          </div>
+                          <CmxKeypad
+                            keys={PAYMENT_KEYPAD_KEYS}
+                            disabled={!activeLeg}
+                            onKeyPress={handleKeypadPress}
+                            getKeyAriaLabel={(key) => {
+                              if (key === 'backspace') return t('workspace.backspace') || 'Backspace';
+                              if (key === 'clear') return tCommon('clear');
+                              return undefined;
+                            }}
+                            renderKeyLabel={(key) => {
+                              if (key === 'backspace') return '⌫';
+                              if (key === 'clear') return tCommon('clear');
+                              return key;
+                            }}
+                            getKeyClassName={(key) => {
+                              if (key === 'clear') {
+                                return 'text-base font-bold uppercase tracking-[0.18em]';
+                              }
+
+                              return key.startsWith('+') ? undefined : 'bg-white';
+                            }}
+                          />
                         </CmxCardContent>
                       </CmxCard>
 

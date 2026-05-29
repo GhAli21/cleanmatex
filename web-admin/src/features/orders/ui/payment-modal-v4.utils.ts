@@ -13,6 +13,7 @@ export type PaymentKeypadKey =
   | '9'
   | '.'
   | 'backspace'
+  | 'clear'
   | '+10'
   | '+20'
   | '+50';
@@ -51,6 +52,10 @@ export function applyKeypadInput(
 ): string {
   if (key === 'backspace') {
     return currentDraft.slice(0, -1);
+  }
+
+  if (key === 'clear') {
+    return '';
   }
 
   if (key === '+10' || key === '+20' || key === '+50') {
