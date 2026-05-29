@@ -281,6 +281,17 @@ export function PaymentModalV4({
   const tCommon = useTranslations('common');
   const tGiftCardErrors = useTranslations('marketing.giftCards.errors');
   const isRTL = useRTL();
+  const isB2BCustomer = customerType === 'b2b';
+  const defaultOutstandingPolicy: OutstandingPolicy = isRetailOnlyOrder
+    ? 'NONE'
+    : isB2BCustomer
+      ? 'CREDIT_INVOICE'
+      : 'PAY_ON_COLLECTION';
+  const defaultPaymentMethod: PaymentMethodCode = isRetailOnlyOrder
+    ? PAYMENT_METHODS.CASH
+    : isB2BCustomer
+      ? PAYMENT_METHODS.INVOICE
+      : PAYMENT_METHODS.PAY_ON_COLLECTION;
 
   const resolveGiftCardError = useCallback(
     (result: ValidateGiftCardResult): string => {
@@ -314,7 +325,7 @@ export function PaymentModalV4({
       getPaymentFormSchema(total, t('validation.discountExceedsTotal'))
     ) as Resolver<PaymentFormData>,
     defaultValues: {
-      paymentMethod: isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION,
+      paymentMethod: defaultPaymentMethod,
       checkNumber: '',
       checkBank: '',
       checkDate: '',
@@ -327,7 +338,7 @@ export function PaymentModalV4({
       giftCardAmount: 0,
       payAllOrders: false,
       paymentNotes: '',
-      outstandingPolicy: isRetailOnlyOrder ? 'NONE' : 'PAY_ON_COLLECTION',
+      outstandingPolicy: defaultOutstandingPolicy,
       b2bContractId: '',
       costCenterCode: '',
       poNumber: '',
@@ -703,7 +714,7 @@ export function PaymentModalV4({
   useEffect(() => {
     if (open) {
       reset({
-        paymentMethod: isRetailOnlyOrder ? PAYMENT_METHODS.CASH : PAYMENT_METHODS.PAY_ON_COLLECTION,
+        paymentMethod: defaultPaymentMethod,
         checkNumber: '',
         checkBank: '',
         checkDate: '',
@@ -717,7 +728,7 @@ export function PaymentModalV4({
         giftCardId: '',
         payAllOrders: false,
         paymentNotes: initialPaymentNotes ?? '',
-        outstandingPolicy: isRetailOnlyOrder ? 'NONE' : 'PAY_ON_COLLECTION',
+        outstandingPolicy: defaultOutstandingPolicy,
         b2bContractId: '',
         costCenterCode: '',
         poNumber: '',
@@ -749,7 +760,30 @@ export function PaymentModalV4({
       setPaymentLegs([]);
       setTaxProfileEntries([]);
     }
-  }, [open, reset, isRetailOnlyOrder, initialPaymentNotes]);
+  }, [open, reset, defaultPaymentMethod, defaultOutstandingPolicy, initialPaymentNotes]);
+
+  useEffect(() => {
+    if (!open || isDirtySinceOpen || paymentLegs.length > 0) {
+      return;
+    }
+
+    if (paymentMethod !== defaultPaymentMethod) {
+      setValue('paymentMethod', defaultPaymentMethod, { shouldDirty: false });
+    }
+
+    if (outstandingPolicy !== defaultOutstandingPolicy) {
+      setValue('outstandingPolicy', defaultOutstandingPolicy, { shouldDirty: false });
+    }
+  }, [
+    defaultOutstandingPolicy,
+    defaultPaymentMethod,
+    isDirtySinceOpen,
+    open,
+    outstandingPolicy,
+    paymentLegs.length,
+    paymentMethod,
+    setValue,
+  ]);
 
   const currencyCode  = currencyConfig?.currencyCode ?? ORDER_DEFAULTS.CURRENCY;
   const decimalPlaces = currencyConfig?.decimalPlaces ?? 3;
@@ -1625,7 +1659,7 @@ export function PaymentModalV4({
   const effectiveOutstandingPolicy = deriveOutstandingPolicy(
     settledNowAmount,
     totals.finalTotal,
-    (outstandingPolicy as OutstandingPolicy | undefined) ?? 'PAY_ON_COLLECTION'
+    (outstandingPolicy as OutstandingPolicy | undefined) ?? defaultOutstandingPolicy
   );
   const showDeferredExplanation =
     settlementLegEntries.length === 0 &&
@@ -1638,7 +1672,7 @@ export function PaymentModalV4({
     : undefined;
   const summaryMethodLabel = activeLeg
     ? getOptionDisplayName(activeLegOption, activeLeg.method)
-    : getPaymentLabel(paymentMethod || PAYMENT_METHODS.PAY_ON_COLLECTION);
+    : getPaymentLabel(paymentMethod || defaultPaymentMethod);
   const paymentLegsTotal = settlementLegEntries.reduce((sum, { leg }) => sum + (leg.amount || 0), 0);
   const customerHeaderName = customerDisplayName?.trim() || t('customerCard.walkInCustomer');
   const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
@@ -2001,7 +2035,7 @@ export function PaymentModalV4({
                                 <span className="flex min-w-0 flex-1 flex-col">
                                   <span className="flex items-start justify-between gap-2">
                                     <span className="text-[15px] font-semibold leading-5 text-slate-900">{optionLabel}</span>
-                                    {option.payment_method_code === PAYMENT_METHODS.PAY_ON_COLLECTION && (
+                                    {option.payment_method_code === defaultPaymentMethod && (
                                       <Badge variant="secondary" className="rounded-full bg-teal-600 px-2.5 py-1 text-[11px] font-semibold text-white">
                                         {t('methods.defaultBadge')}
                                       </Badge>

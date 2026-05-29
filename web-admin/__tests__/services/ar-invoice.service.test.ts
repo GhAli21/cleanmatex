@@ -1,6 +1,7 @@
 const mockOrderFindMany = jest.fn();
 const mockInvoiceCreate = jest.fn();
 const mockInvoiceFindUnique = jest.fn();
+const mockTxInvoiceFindUnique = jest.fn();
 const mockTransaction = jest.fn();
 const mockIdempotencyFindFirst = jest.fn();
 const mockIdempotencyUpsert = jest.fn();
@@ -73,6 +74,7 @@ function buildTxMock() {
     },
     org_invoice_mst: {
       create: mockInvoiceCreate,
+      findUnique: mockTxInvoiceFindUnique,
     },
     org_invoice_orders_dtl: {
       createMany: mockOrdersDtlCreateMany,
@@ -121,6 +123,40 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     // The producer only reads `created.id` etc from the createInvoice mock —
     // getArInvoiceDetail is called once at the end for the resourceId/data result.
     mockInvoiceFindUnique.mockImplementation(async (args: { where: { id_tenant_org_id: { id: string } } }) => ({
+      id: args.where.id_tenant_org_id.id,
+      tenant_org_id: 'tenant-123',
+      invoice_no: 'AR-INV-0001',
+      customer_id: 'customer-1',
+      order_id: 'order-1',
+      branch_id: 'branch-1',
+      currency_code: 'OMR',
+      currency_ex_rate: 1,
+      subtotal: 50,
+      discount: 0,
+      tax: 0,
+      total: 50,
+      paid_amount: 0,
+      outstanding_amount: 50,
+      due_date: null,
+      status: AR_INVOICE_STATUSES.OPEN,
+      invoice_type_cd: 'ORDER_CREDIT',
+      invoice_date: new Date('2026-05-29'),
+      issued_at: new Date('2026-05-29'),
+      issued_by: 'user-123',
+      created_at: new Date('2026-05-29'),
+      updated_at: null,
+      metadata: null,
+      org_customers_mst: { name: 'Acme', name2: null },
+      org_orders_mst: { order_no: 'ORD-1001' },
+      org_invoice_lines_dtl: [],
+      org_invoice_orders_dtl: [],
+      org_invoice_payments_dtl: [],
+      org_invoice_adjustments_dtl: [],
+      org_invoice_status_history_dtl: [],
+      org_customer_ar_ledger_dtl: [],
+    }));
+
+    mockTxInvoiceFindUnique.mockImplementation(async (args: { where: { id_tenant_org_id: { id: string } } }) => ({
       id: args.where.id_tenant_org_id.id,
       tenant_org_id: 'tenant-123',
       invoice_no: 'AR-INV-0001',
@@ -416,5 +452,32 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     expect(mockTransaction).not.toHaveBeenCalled();
     // The producer still wrote through to the caller-supplied tx mocks.
     expect(mockInvoiceCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('Phase 3: caller-supplied tx hydrates the created invoice through the same tx reader', async () => {
+    mockOrderFindMany.mockResolvedValue([defaultOrder()]);
+    setupInvoiceCreate(AR_INVOICE_STATUSES.OPEN);
+    mockInvoiceFindUnique.mockResolvedValueOnce(null);
+
+    const callerTx = buildTxMock();
+
+    await expect(
+      createArInvoiceFromOrders(
+        {
+          order_ids: ['11111111-1111-1111-1111-111111111111'],
+          idempotency_key: 'order-1_ar',
+          issueImmediately: true,
+        },
+        { tenantId: 'tenant-123', userId: 'user-123' },
+        callerTx as unknown as Parameters<typeof createArInvoiceFromOrders>[2]
+      )
+    ).resolves.toMatchObject({
+      invoice: {
+        id: 'invoice-1',
+      },
+    });
+
+    expect(mockTxInvoiceFindUnique).toHaveBeenCalledTimes(1);
+    expect(mockInvoiceFindUnique).not.toHaveBeenCalled();
   });
 });

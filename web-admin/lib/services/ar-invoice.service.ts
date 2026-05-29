@@ -58,6 +58,7 @@ import type {
 
 type PrismaTx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 type PrismaSqlExecutor = Pick<typeof prisma, '$queryRaw'>;
+type ArInvoiceReader = Pick<PrismaTx, 'org_invoice_mst'>;
 
 interface ArActorContext {
   tenantId?: string;
@@ -1244,34 +1245,42 @@ export async function getArInvoiceDetail(invoiceId: string, actor: ArActorContex
   const tenantId = await resolveTenantId(actor.tenantId);
 
   return withTenantContext(tenantId, async () => {
-    const invoice = await prisma.org_invoice_mst.findUnique({
-      where: { id_tenant_org_id: { id: invoiceId, tenant_org_id: tenantId } },
-      include: {
-        org_customers_mst: { select: { name: true, name2: true } },
-        org_orders_mst: { select: { order_no: true } },
-        org_invoice_lines_dtl: { orderBy: { line_no: 'asc' } },
-        org_invoice_orders_dtl: { orderBy: { created_at: 'asc' } },
-        org_invoice_payments_dtl: { orderBy: { allocation_no: 'asc' } },
-        org_invoice_adjustments_dtl: { orderBy: { adjustment_no: 'asc' } },
-        org_invoice_status_history_dtl: { orderBy: { created_at: 'asc' } },
-        org_customer_ar_ledger_dtl: { orderBy: [{ event_at: 'asc' }, { entry_no: 'asc' }] },
-      },
-    });
-
-    if (!invoice) {
-      throw new Error('AR invoice not found');
-    }
-
-    return {
-      invoice: mapInvoiceHeader(invoice),
-      lines: invoice.org_invoice_lines_dtl.map(mapInvoiceLine),
-      orders: invoice.org_invoice_orders_dtl.map(mapOrderLink),
-      allocations: invoice.org_invoice_payments_dtl.map(mapAllocation),
-      adjustments: invoice.org_invoice_adjustments_dtl.map(mapAdjustment),
-      history: invoice.org_invoice_status_history_dtl.map(mapHistory),
-      ledger: invoice.org_customer_ar_ledger_dtl.map(mapLedger),
-    };
+    return getArInvoiceDetailWithReader(prisma, invoiceId, tenantId);
   });
+}
+
+async function getArInvoiceDetailWithReader(
+  reader: ArInvoiceReader,
+  invoiceId: string,
+  tenantId: string
+): Promise<ArInvoiceDetail> {
+  const invoice = await reader.org_invoice_mst.findUnique({
+    where: { id_tenant_org_id: { id: invoiceId, tenant_org_id: tenantId } },
+    include: {
+      org_customers_mst: { select: { name: true, name2: true } },
+      org_orders_mst: { select: { order_no: true } },
+      org_invoice_lines_dtl: { orderBy: { line_no: 'asc' } },
+      org_invoice_orders_dtl: { orderBy: { created_at: 'asc' } },
+      org_invoice_payments_dtl: { orderBy: { allocation_no: 'asc' } },
+      org_invoice_adjustments_dtl: { orderBy: { adjustment_no: 'asc' } },
+      org_invoice_status_history_dtl: { orderBy: { created_at: 'asc' } },
+      org_customer_ar_ledger_dtl: { orderBy: [{ event_at: 'asc' }, { entry_no: 'asc' }] },
+    },
+  });
+
+  if (!invoice) {
+    throw new Error('AR invoice not found');
+  }
+
+  return {
+    invoice: mapInvoiceHeader(invoice),
+    lines: invoice.org_invoice_lines_dtl.map(mapInvoiceLine),
+    orders: invoice.org_invoice_orders_dtl.map(mapOrderLink),
+    allocations: invoice.org_invoice_payments_dtl.map(mapAllocation),
+    adjustments: invoice.org_invoice_adjustments_dtl.map(mapAdjustment),
+    history: invoice.org_invoice_status_history_dtl.map(mapHistory),
+    ledger: invoice.org_customer_ar_ledger_dtl.map(mapLedger),
+  };
 }
 
 export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActorContext = {}) {
@@ -1392,7 +1401,7 @@ export async function createArInvoice(input: CreateArInvoiceInput, actor: ArActo
             userId,
           });
 
-          const detail = await getArInvoiceDetail(created.id, { tenantId });
+          const detail = await getArInvoiceDetailWithReader(tx, created.id, tenantId);
           return { resourceId: created.id, data: detail };
         },
       });
@@ -1659,7 +1668,7 @@ async function createArInvoiceFromOrdersInTx(
         );
       }
 
-      const detail = await getArInvoiceDetail(created.id, { tenantId });
+      const detail = await getArInvoiceDetailWithReader(tx, created.id, tenantId);
       return { resourceId: created.id, data: detail };
     },
   });
