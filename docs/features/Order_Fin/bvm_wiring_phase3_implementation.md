@@ -251,6 +251,21 @@ git revert <phase-3-commit>
 
 ---
 
+## Phase 3 Round 2 — receivable-only AR invoice + TX4 removal (2026-05-29 same day)
+
+After scenario M1 surfaced a constraint violation + inflated AR invoice, the AR invoice creation rules were tightened:
+
+1. **AR writer accepts `expected_total_amount`** — submit-order passes `plan.outstandingAmount`; legacy callers omit and keep full-sale sizing.
+2. **AR invoice gate now also requires non-zero outstanding** — see new ADR [`docs/features/AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md`](../AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md). Fully-paid `CREDIT_INVOICE` orders produce only a voucher, no AR invoice header.
+3. **Orchestrator TX4 (legacy AR allocation) removed** — `recordPaymentTransaction` + `allocateArPaymentTx` calls deleted from the submit-order path. They duplicated payment facts already on the voucher and violated `chk_payments_voucher_required`. Future B2B payments still allocate via the existing AR collection flow.
+4. **Tests added** — `expected_total_amount` override + legacy fallback (2 cases in `__tests__/services/ar-invoice.service.test.ts`). Full sweep 120/120 pass.
+
+### Round 2 Cleanup needed in production
+
+Order `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf` from the M1 QA attempt has an inflated AR invoice `ARI-000012` (total 2.04, OVERDUE) committed before Round 2. Recommended: void it through the AR invoice UI with reason "QA test artifact — Phase 3 Round 1 inflated". The voucher and order rows for that submit are correct.
+
+---
+
 ## Follow-ups (Phase 6 candidates)
 
 1. Retire `createInvoice` from `invoice-service.ts` once `createInvoiceAction` (`app/actions/payments/invoice-actions.ts:38`) migrates to the canonical writer.

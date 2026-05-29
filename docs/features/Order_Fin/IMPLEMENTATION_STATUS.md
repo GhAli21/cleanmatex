@@ -451,3 +451,56 @@ End-to-end DB-level integration tests for the full submit-order flow remain defe
 - [ ] User to commit with `DD_MM_YYYY_N` prefix
 - [ ] Manual QA the 5 scenarios in `bvm_wiring_phase3_implementation.md` § Acceptance scenarios (recommended before merging to main)
 
+---
+
+## BVM Wiring Phase 3 Round 2 — In progress (2026-05-29 same day)
+
+**Triggered by:** Manual QA scenario M1 failed with `chk_payments_voucher_required` constraint violation on `org_payments_dtl_tr` and an inflated AR invoice amount (`total = full sale` rather than `total = receivable`).
+
+**Root cause:**
+1. The orchestrator's TX4 "AR payment tracking" block called `recordPaymentTransaction` with `skipReceiptVoucher: true`, which left `voucher_id` NULL on the legacy `org_payments_dtl_tr` row. The check constraint (migration `0132`) rejected the row.
+2. The AR invoice was sized to `sum(order.outstanding_amount)`, which at TX1 time equals the full sale (no payments yet applied). The downstream TX4 cash allocation was supposed to bring outstanding down — but it failed on the constraint, leaving outstanding inflated.
+
+**Round 2 fixes (production-ready, ADR-backed):**
+
+1. **AR writer accepts `expected_total_amount` input** (`web-admin/lib/validations/ar-invoice-schemas.ts`, `web-admin/lib/services/ar-invoice.service.ts`):
+   - When provided, the invoice header `subtotal`/`total`/`outstanding_amount` use it directly.
+   - For single-order callers (submit-order), the per-order link `invoiced_amount`/`outstanding_amount` and the line-summary `unit_price`/`total_amount` mirror it.
+   - AR ledger `INVOICE_ISSUED` debit (when `issueImmediately: true`) reflects the same amount.
+   - When omitted, the writer falls back to the legacy `sum(order.outstanding_amount)` — preserves API-route behavior.
+
+2. **Orchestrator passes `expected_total_amount: plan.outstandingAmount`** (`order-submit-orchestrator.service.ts`).
+
+3. **Orchestrator TX4 AR-allocation block REMOVED** entirely. Rationale: with the AR invoice sized to the actual receivable, there's nothing to allocate against it at submit time. Cash and credit-applications are already accounted for by the voucher. Future B2B payments will allocate via the existing AR collection flow (`POST /api/v1/ar/invoices/[id]/payments`).
+   - Removed imports: `recordPaymentTransaction`, `allocateArPaymentTx`.
+   - Removed deleted JSDoc step references.
+
+4. **Zero-outstanding gate** (new ADR — `docs/features/AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md`):
+   - `shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE' && plan.outstandingAmount > TOLERANCE`.
+   - A `CREDIT_INVOICE` order whose cash + credit-applications fully cover the sale produces ONLY a voucher — no AR invoice header, no AR ledger debit, no AR_INVOICE_ISSUED outbox event.
+
+**Test coverage added:**
+- `__tests__/services/ar-invoice.service.test.ts` — +2 cases:
+  - `expected_total_amount` sizes invoice header + per-order link + line summary + AR ledger debit all to the receivable (0.94 from full sale 2.04).
+  - Omitting `expected_total_amount` preserves legacy full-sale sizing (API-route behavior).
+
+**Verification:**
+- `npx tsc --noEmit` filtered = 0 errors.
+- Phase 2 baseline + Phase 3 + Phase 3 Round 2 = **120/120 jest pass**.
+- `npm run build` succeeds.
+
+**Files modified (Round 2):**
+- `web-admin/lib/validations/ar-invoice-schemas.ts` (+1 input field)
+- `web-admin/lib/services/ar-invoice.service.ts` (subtotal override + per-order link/line overrides)
+- `web-admin/lib/services/order-submit-orchestrator.service.ts` (gate update, expected_total_amount pass-through, TX4 block removed, JSDoc cleanup, dead imports removed)
+- `web-admin/__tests__/services/ar-invoice.service.test.ts` (+2 Round 2 cases)
+- `docs/features/AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md` (new ADR)
+
+**What this means for the M1 order in production:**
+
+The order `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf` (the failing one) will NOT be auto-corrected — its AR invoice (`ARI-000012`, total 2.04, OVERDUE) is already committed from before the fix. Options for cleanup:
+1. **Recommended:** Leave it; manually void the invoice via the AR invoice UI (status → VOID with reason "QA test artifact — Phase 3 Round 1 inflated").
+2. Run a one-off cleanup SQL after Round 2 deploys.
+
+The next fresh submit-order request will produce the correct sized invoice (or no invoice when outstanding = 0).
+

@@ -43,7 +43,7 @@ export function VoucherLinkedEffectsPanel({ effects }: VoucherLinkedEffectsPanel
   }
 
   return (
-    <div className="space-y-4">
+    <div className="min-w-0 space-y-4">
       {effects.orderPayments.length > 0 && (
         <CmxCard>
           <CmxCardHeader>

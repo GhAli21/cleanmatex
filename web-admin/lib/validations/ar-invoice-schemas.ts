@@ -98,6 +98,16 @@ export const createArInvoiceFromOrdersSchema = z.object({
   // exists; pass it through so the canonical writer can mirror the legacy
   // `createInvoice` behavior of stamping the column for reporting.
   gift_card_applied_amount: z.number().nonnegative().optional(),
+  // Phase 3 Round 2: when provided, the AR invoice is sized to this amount —
+  // representing the actual receivable AFTER payments + credit-applications
+  // have already been recorded outside the AR ledger (cash on the voucher,
+  // gift-card / wallet / advance on the voucher's CREDIT_APPLICATION lines).
+  // Without this, the writer falls back to `sum(order.outstanding_amount)`
+  // which equals the order total at submit-order tx1 time (no payments yet
+  // applied) and yields an inflated invoice. Submit-order passes
+  // `plan.outstandingAmount`; API-route callers omit it and keep the legacy
+  // full-sale semantics.
+  expected_total_amount: z.number().nonnegative().optional(),
 });
 
 export const updateArInvoiceSchema = z.object({

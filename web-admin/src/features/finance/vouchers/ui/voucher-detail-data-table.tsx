@@ -49,15 +49,17 @@ export function VoucherDetailDataTable<TData>({
   scrollAreaClassName,
 }: VoucherDetailDataTableProps<TData>) {
   return (
-    <CmxDataTable
-      columns={columns}
-      data={data}
-      emptyStateTitle={emptyStateTitle}
-      emptyStateDescription={emptyStateDescription}
-      paginationFooter="never"
-      enableZebraStriping
-      className={cn('rounded-none border-0 shadow-none', className)}
-      scrollAreaClassName={cn('max-h-[28rem] overflow-auto', scrollAreaClassName)}
-    />
+    <div className="min-w-0 max-w-full overflow-hidden">
+      <CmxDataTable
+        columns={columns}
+        data={data}
+        emptyStateTitle={emptyStateTitle}
+        emptyStateDescription={emptyStateDescription}
+        paginationFooter="never"
+        enableZebraStriping
+        className={cn('w-full min-w-0 max-w-full overflow-hidden rounded-none border-0 shadow-none', className)}
+        scrollAreaClassName={cn('w-full min-w-0 max-w-full overflow-x-auto overflow-y-auto max-h-[28rem]', scrollAreaClassName)}
+      />
+    </div>
   );
 }

@@ -1,5 +1,45 @@
 # Changelog Ã¢â‚¬â€ Order Financial Platform
 
+## 2026-05-29 — BVM Wiring Phase 3 Round 2: AR invoice = receivable, zero-outstanding gate, TX4 removed
+
+**Surfaced by:** Manual QA scenario M1 — `chk_payments_voucher_required` constraint violation + inflated AR invoice total.
+
+### Shipped
+
+1. **AR writer `expected_total_amount` input** — `createArInvoiceFromOrders` now accepts an optional amount that sizes the invoice header, per-order link, line summary, and AR ledger debit. Single-order callers (submit-order) use it; multi-order API-route callers keep legacy full-sale sizing by omitting it.
+
+2. **Orchestrator: zero-outstanding gate** — `shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE' && plan.outstandingAmount > TOLERANCE`. New ADR `docs/features/AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md` documents the rule.
+
+3. **Orchestrator: TX4 AR-allocation block REMOVED.** Cash + credit-application legs are already accounted for by the BVM voucher. The legacy `recordPaymentTransaction` + `allocateArPaymentTx` flow only existed to bring an inflated invoice's outstanding down — now unnecessary. Also closes the `chk_payments_voucher_required` violation (the offending call site is gone). Imports cleaned up.
+
+4. **Orchestrator: AR invoice sized to `plan.outstandingAmount`.** Passes through the new writer input.
+
+### Tests
+
+- `__tests__/services/ar-invoice.service.test.ts` — +2 cases (expected_total override + legacy fallback). Sweep now **120/120 pass**.
+
+### Production AR invoice for the failing M1 order
+
+The pre-Round-2 AR invoice `ARI-000012` (total 2.04, OVERDUE) for order `d9a306fc-e3d7-4b40-9205-a1e5f21e5dcf` is already committed. Recommended cleanup: void it through the AR invoice UI with reason "QA test artifact — Phase 3 Round 1 inflated". The next fresh submit will produce the correct sized invoice.
+
+### Verification
+
+- `npx tsc --noEmit` filtered = 0 errors.
+- 120/120 jest pass.
+- `npm run build` succeeds.
+
+### Files modified (Round 2)
+
+- `web-admin/lib/validations/ar-invoice-schemas.ts`
+- `web-admin/lib/services/ar-invoice.service.ts`
+- `web-admin/lib/services/order-submit-orchestrator.service.ts`
+- `web-admin/__tests__/services/ar-invoice.service.test.ts`
+- `docs/features/AR_Invoice/ADR_no_ar_invoice_when_zero_outstanding.md` (new)
+- `docs/features/Order_Fin/IMPLEMENTATION_STATUS.md`
+- `docs/features/Order_Fin/CHANGELOG.md`
+
+---
+
 ## 2026-05-29 — BVM Wiring Phase 3: AR Invoice canonical writer + Gift-card-as-voucher-line
 
 ### Shipped in this session

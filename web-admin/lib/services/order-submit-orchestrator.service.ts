@@ -15,11 +15,10 @@ import { prisma } from '@/lib/db/prisma';
 import { withTenantContext } from '@/lib/db/tenant-context';
 import { OrderService } from '@/lib/services/order-service';
 import { calculateOrderTotals } from '@/lib/services/order-calculation.service';
-import { allocateArPaymentTx, createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
+import { createArInvoiceFromOrders } from '@/lib/services/ar-invoice.service';
 import { applyPromoCodeTx } from '@/lib/services/discount-service';
 import { applyStoredValueDebitTx } from '@/lib/services/order-credit-application.service';
 import { settleOrder } from '@/lib/services/order-settlement.service';
-import { recordPaymentTransaction } from '@/lib/services/payment-service';
 import { checkCreditLimit } from '@/lib/services/credit-limit.service';
 import { createBizVoucher } from '@/lib/services/voucher-biz.service';
 import { addVoucherLine } from '@/lib/services/voucher-line.service';
@@ -238,8 +237,7 @@ export async function resolveOrderBranch(
  *  5. Build + validate settlement plan (fail-fast before any voucher creation)
  *  6. Create receipt voucher + lines + post+wire (when plan.shouldCreateReceiptVoucher)
  *  7. settleOrder(wiringMode) — skips payment fact rows when wiring ran
- *  8. AR payment tracking via recordPaymentTransaction + allocateArPaymentTx
- *  9. Return SubmitOrderResult (order snapshot + voucher + effects + warnings)
+ *  8. Return SubmitOrderResult (order snapshot + voucher + effects + warnings)
  *
  * @param params Submission context containing tenant scope, actor identity, input payload, and request audit data.
  * @returns SubmitOrderResult containing order snapshot, optional voucher summary,
@@ -611,7 +609,14 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
   // orders do NOT produce an AR invoice row at submit time. CREDIT_INVOICE / B2B
   // orders DO. The voucher receipt print serves as the cash-sale fiscal artifact
   // (Tax Documents Module replaces this dual role in a future feature).
-  const shouldCreateArInvoice = effectiveOutstandingPolicy === 'CREDIT_INVOICE';
+  //
+  // Phase 3 Round 2 — ADR_no_ar_invoice_when_zero_outstanding.md:
+  // also require a non-zero receivable. A CREDIT_INVOICE order whose cash +
+  // credit-application legs fully cover the sale produces ONLY a voucher
+  // (no AR invoice header, no AR ledger debit, no AR_INVOICE_ISSUED outbox).
+  const shouldCreateArInvoice =
+    effectiveOutstandingPolicy === 'CREDIT_INVOICE'
+    && plan.outstandingAmount > TOLERANCE;
 
   const result = await withTenantContext(tenantId, async () =>
     prisma.$transaction(async (tx) => {
@@ -628,12 +633,19 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
         // OPEN-with-ledger-debit semantics atomically inside this same tx.
         // The `${orderId}_ar` idempotency key collapses replays onto the same
         // invoice row via `withIdempotency` (24h TTL).
+        // Phase 3 Round 2: `expected_total_amount = plan.outstandingAmount`
+        // sizes the invoice to the receivable AFTER cash + every credit-app
+        // leg has been recorded on the voucher. The previous full-sale
+        // sizing forced a downstream AR allocation step that violated the
+        // `chk_payments_voucher_required` check constraint on
+        // `org_payments_dtl_tr`.
         const invoiceDetail = await createArInvoiceFromOrders(
           {
             order_ids:                [orderId],
             customer_id:              input.customerId,
             currency_code:            serverTotals.currencyCode,
             gift_card_applied_amount: serverTotals.giftCardApplied,
+            expected_total_amount:    plan.outstandingAmount,
             issueImmediately:         true,
             idempotency_key:          `${orderId}_ar`,
             allocation_policy:        'REMAINING_ONLY',
@@ -908,60 +920,23 @@ export async function submitOrder(params: SubmitOrderParams): Promise<SubmitOrde
     })
   );
 
-  // ── 8. AR payment tracking (writes to AR tables, not org_order_payments_dtl) ──
-  // ADR_ar_invoice_is_receivable_only.md — AR allocation only makes sense when
-  // an AR invoice row exists (CREDIT_INVOICE / B2B). For fully-paid cash/card
-  // sales, BVM wiring's voucher + org_order_payments_dtl IS the canonical
-  // record of payment; the legacy AR tracking block would only add duplicate
-  // rows in org_payments_dtl_tr and try to allocate against a null invoice.
-  if (result.invoiceId && hasImmediatePayment && amountToCharge > 0) {
-    const invoiceIdForAr = result.invoiceId;
-    const immediateLegs = paymentLegs.filter((leg) => !DEFERRED_METHODS.has(leg.method));
-
-    await withTenantContext(tenantId, async () =>
-      prisma.$transaction(async (tx) => {
-        for (const leg of immediateLegs) {
-          const payment = await recordPaymentTransaction(
-            {
-              invoice_id:          invoiceIdForAr,
-              order_id:            result.orderId,
-              customer_id:         input.customerId,
-              paid_amount:         leg.amount,
-              payment_method_code: leg.method as PaymentMethodCode,
-              payment_type_code:   getPaymentTypeFromMethod(leg.method),
-              paid_by:             userId,
-              branch_id:           branchId,
-              currency_code:       serverTotals.currencyCode,
-              currency_ex_rate:    1,
-              check_number:        leg.checkNumber,
-              check_bank:          leg.checkBank,
-              check_date:          leg.checkDate ? new Date(leg.checkDate) : undefined,
-              rec_notes:           input.paymentNotes,
-              trans_desc:          input.paymentNotes,
-              payment_channel:     'web_admin_checkout',
-              // BVM wiring already created the receipt voucher (RV-*) — skip the legacy VCR-RCP-* voucher
-              skipReceiptVoucher:  plan.shouldCreateReceiptVoucher,
-            },
-            tx
-          );
-
-          await allocateArPaymentTx(
-            tx,
-            invoiceIdForAr,
-            {
-              payment_id:              payment.id,
-              voucher_id:              payment.voucher_id,
-              allocated_amount:        leg.amount,
-              unapplied_credit_amount: 0,
-              applied_at:              new Date().toISOString(),
-              notes:                   input.paymentNotes,
-            },
-            { tenantId, userId, userName }
-          );
-        }
-      })
-    );
-  }
+  // ── 8. Legacy AR payment tracking — REMOVED in Phase 3 Round 2 ───────────────
+  //
+  // Why removed: with `expected_total_amount = plan.outstandingAmount` the AR
+  // invoice is sized to the receivable AFTER cash + every credit-application
+  // leg has been recorded on the voucher. There is nothing left to allocate
+  // against the invoice at submit time — the cash and gift-card / wallet /
+  // advance / etc. are already accounted for by the voucher (RV-*) and its
+  // trx lines. Future B2B payments on this invoice will allocate via the
+  // existing AR collection flow (POST /api/v1/ar/invoices/[id]/payments).
+  //
+  // The previous block called `recordPaymentTransaction` with
+  // `skipReceiptVoucher: true` which left `org_payments_dtl_tr.voucher_id`
+  // NULL and violated `chk_payments_voucher_required`. It also duplicated
+  // payment facts already captured by BVM wiring's voucher in tx2.
+  //
+  // ADR_ar_invoice_is_receivable_only.md remains authoritative on the
+  // receivable-only semantic.
 
   // ── 9. Build response ─────────────────────────────────────────────────────────
   const finalOrder = await withTenantContext(tenantId, () =>

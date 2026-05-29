@@ -1482,13 +1482,29 @@ async function createArInvoiceFromOrdersInTx(
         orders.find((order) => order.currency_code)?.currency_code ??
         ORDER_DEFAULTS.CURRENCY;
       const branchId = orders[0]?.branch_id ?? null;
-      const subtotal = orders.reduce((sum, order) => {
+      // Phase 3 Round 2: receivable-only invoice sizing.
+      //
+      // Why: at submit-order tx1 time the source order has no payments yet
+      // applied (settle runs in tx3), so `order.outstanding_amount` equals
+      // the full sale. Sizing the invoice to that value and then relying on
+      // a downstream cash-allocation tx (the old TX4 path) violated the
+      // `chk_payments_voucher_required` constraint and inflated the invoice
+      // header until allocation completed.
+      //
+      // When `expected_total_amount` is provided, the AR invoice represents
+      // the actual receivable after cash + every CREDIT_APPLICATION leg has
+      // been recorded on the voucher. Submit-order passes
+      // `plan.outstandingAmount` (= finalTotal − realPayment − creditApplied).
+      // API-route callers omit it and keep the legacy full-sale semantics.
+      const legacySubtotal = orders.reduce((sum, order) => {
         const outstanding = toNumber(
           order.outstanding_amount ??
           calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
         );
         return sum + outstanding;
       }, 0);
+      const subtotal =
+        input.expected_total_amount != null ? input.expected_total_amount : legacySubtotal;
       const invoiceDate = normalizeDateOnly(input.invoice_date) ?? new Date();
       const dueDate = normalizeDateOnly(input.due_date) ?? orders[0]?.payment_due_date ?? invoiceDate;
       const invoiceNo = await nextArInvoiceNumber(tenantId, tx);
@@ -1571,21 +1587,31 @@ async function createArInvoiceFromOrdersInTx(
         })
       );
 
+      // Phase 3 Round 2: keep per-order link + line summary consistent with the
+      // header `subtotal`. When `expected_total_amount` was provided AND there is
+      // exactly one source order (the submit-order flow), the order link's
+      // `invoiced_amount`/`outstanding_amount` and the line summary mirror that
+      // amount instead of `order.outstanding_amount` (which is the full sale at
+      // tx1 time). For multi-order API-route callers we keep the legacy split.
+      const useExpectedSingleOrder =
+        input.expected_total_amount != null && orders.length === 1;
+
       await tx.org_invoice_orders_dtl.createMany({
         data: orders.map((order) => {
-          const outstanding = toNumber(
+          const orderOutstanding = toNumber(
             order.outstanding_amount ??
             calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
           );
+          const invoiced = useExpectedSingleOrder ? subtotal : orderOutstanding;
           return {
             tenant_org_id: tenantId,
             invoice_id: created.id,
             order_id: order.id,
             order_total_amount: toNumber(order.total),
-            invoiced_amount: outstanding,
+            invoiced_amount: invoiced,
             paid_before_amount: toNumber(order.paid_amount),
             credit_before_amount: 0,
-            outstanding_amount: outstanding,
+            outstanding_amount: invoiced,
             allocation_policy: input.allocation_policy,
             created_by: userId,
             updated_by: userId,
@@ -1595,10 +1621,11 @@ async function createArInvoiceFromOrdersInTx(
 
       await tx.org_invoice_lines_dtl.createMany({
         data: orders.map((order, index) => {
-          const outstanding = toNumber(
+          const orderOutstanding = toNumber(
             order.outstanding_amount ??
             calculateOutstandingAmount(toNumber(order.total), toNumber(order.paid_amount))
           );
+          const lineAmount = useExpectedSingleOrder ? subtotal : orderOutstanding;
           return {
             tenant_org_id: tenantId,
             invoice_id: created.id,
@@ -1610,13 +1637,13 @@ async function createArInvoiceFromOrdersInTx(
             description: `Order ${order.order_no ?? order.id}`,
             description2: null,
             quantity: 1,
-            unit_price: outstanding,
-            subtotal_amount: outstanding,
+            unit_price: lineAmount,
+            subtotal_amount: lineAmount,
             discount_amount: 0,
-            taxable_amount: outstanding,
+            taxable_amount: lineAmount,
             tax_rate: null,
             tax_amount: 0,
-            total_amount: outstanding,
+            total_amount: lineAmount,
             currency_code: currencyCode,
             currency_ex_rate: toNumber(orders[0]?.currency_ex_rate ?? 1),
             metadata: { order_no: order.order_no } as Prisma.InputJsonValue,

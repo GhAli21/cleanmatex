@@ -113,7 +113,7 @@ export function VoucherLineTable({ lines, voucherStatus, onDeleteLine }: Voucher
   }
 
   return (
-    <div>
+    <div className="min-w-0 max-w-full overflow-hidden">
       <VoucherDetailDataTable columns={columns} data={lines} emptyStateTitle={t('noLines')} />
       {lines.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 bg-muted/20 px-4 py-3 text-sm">

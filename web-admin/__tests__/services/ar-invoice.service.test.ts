@@ -430,6 +430,94 @@ describe('ar-invoice.service createArInvoiceFromOrders', () => {
     ).rejects.toThrow('ERP-Lite COA missing');
   });
 
+  it('Phase 3 Round 2: expected_total_amount sizes invoice to receivable, not full order outstanding', async () => {
+    // Submit-order scenario: order.total = 2.04, cash 1.00, gift-card 0.10,
+    // outstanding 0.94. With the legacy default the AR invoice would size
+    // to 2.04 (the order's outstanding at tx1 time, before any payment is
+    // applied). The Round-2 fix passes plan.outstandingAmount = 0.94 so the
+    // invoice header, the per-order link, and the line summary all reflect
+    // the actual receivable.
+    mockOrderFindMany.mockResolvedValue([
+      defaultOrder({ total: 2.04, outstanding_amount: 2.04 }),
+    ]);
+    setupInvoiceCreate(AR_INVOICE_STATUSES.OPEN);
+
+    const futureDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+
+    await createArInvoiceFromOrders(
+      {
+        order_ids: ['11111111-1111-1111-1111-111111111111'],
+        idempotency_key: 'order-1_ar',
+        issueImmediately: true,
+        expected_total_amount: 0.94,
+        due_date: futureDueDate,
+      },
+      { tenantId: 'tenant-123', userId: 'user-123' }
+    );
+
+    // Invoice header reflects the receivable, not the full sale.
+    const createPayload = mockInvoiceCreate.mock.calls[0][0].data as {
+      subtotal: number;
+      total: number;
+      outstanding_amount: number;
+    };
+    expect(createPayload.subtotal).toBe(0.94);
+    expect(createPayload.total).toBe(0.94);
+    expect(createPayload.outstanding_amount).toBe(0.94);
+
+    // Per-order link mirrors the same amount (single-order path).
+    const orderLinkPayload = mockOrdersDtlCreateMany.mock.calls[0][0].data as Array<{
+      invoiced_amount: number;
+      outstanding_amount: number;
+      order_total_amount: number;
+    }>;
+    expect(orderLinkPayload[0].invoiced_amount).toBe(0.94);
+    expect(orderLinkPayload[0].outstanding_amount).toBe(0.94);
+    // order_total_amount stays at the full sale for audit visibility.
+    expect(orderLinkPayload[0].order_total_amount).toBe(2.04);
+
+    // Line summary uses the same amount.
+    const linePayload = mockLinesDtlCreateMany.mock.calls[0][0].data as Array<{
+      unit_price: number;
+      total_amount: number;
+    }>;
+    expect(linePayload[0].unit_price).toBe(0.94);
+    expect(linePayload[0].total_amount).toBe(0.94);
+
+    // AR ledger debit fires only for the receivable (no over-debit).
+    expect(mockLedgerCreate).toHaveBeenCalledTimes(1);
+    const ledgerPayload = mockLedgerCreate.mock.calls[0][0].data as { amount: number };
+    expect(ledgerPayload.amount).toBe(0.94);
+  });
+
+  it('Phase 3 Round 2: when expected_total_amount is omitted, legacy full-sale sizing is preserved', async () => {
+    // API-route flow (POST /api/v1/ar/invoices/from-orders) does NOT pass
+    // expected_total_amount, so the writer must fall back to summing
+    // order.outstanding_amount across orders. This pins that contract.
+    mockOrderFindMany.mockResolvedValue([
+      defaultOrder({ total: 2.04, outstanding_amount: 2.04 }),
+    ]);
+    setupInvoiceCreate(AR_INVOICE_STATUSES.DRAFT);
+
+    await createArInvoiceFromOrders(
+      {
+        order_ids: ['11111111-1111-1111-1111-111111111111'],
+        idempotency_key: 'from-orders-legacy',
+        // no expected_total_amount, no issueImmediately
+      },
+      { tenantId: 'tenant-123', userId: 'user-123' }
+    );
+
+    const createPayload = mockInvoiceCreate.mock.calls[0][0].data as {
+      subtotal: number;
+      total: number;
+    };
+    expect(createPayload.subtotal).toBe(2.04);
+    expect(createPayload.total).toBe(2.04);
+  });
+
   it('Phase 3: caller-supplied tx skips outer prisma.$transaction wrapper (atomic with order tx)', async () => {
     mockOrderFindMany.mockResolvedValue([defaultOrder()]);
     setupInvoiceCreate(AR_INVOICE_STATUSES.OPEN);
