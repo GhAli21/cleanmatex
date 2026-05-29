@@ -402,6 +402,7 @@ export function PaymentModalV4({
 
   const [creditLimitOverride, setCreditLimitOverride] = useState(false);
   const [activeLegIndex, setActiveLegIndex] = useState(0);
+  const [activeAmountDraft, setActiveAmountDraft] = useState('');
   const [isDirtySinceOpen, setIsDirtySinceOpen] = useState(false);
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [selectedCashDrawerSessionId, setSelectedCashDrawerSessionId] = useState('');
@@ -1017,22 +1018,15 @@ export function PaymentModalV4({
             getWalletLegMaxAmount(liveWalletBalance, paymentLegs, idx, totals.finalTotal, decimalPlaces)
           ) as PaymentLeg[K])
         : value;
-    const shouldRemove = key === 'amount' && (!normalizedValue || Number(normalizedValue) <= 0);
 
     setIsDirtySinceOpen(true);
     setPaymentLegs((prev) => {
       const target = prev[idx];
       if (!target) return prev;
-      if (shouldRemove) {
-        return prev.filter((_, currentIdx) => currentIdx !== idx);
-      }
       const updated = [...prev];
       updated[idx] = { ...updated[idx], [key]: normalizedValue };
       return updated;
     });
-    if (shouldRemove) {
-      setActiveLegIndex((prev) => Math.max(0, prev > idx ? prev - 1 : prev === idx ? prev - 1 : prev));
-    }
   }, [decimalPlaces, liveWalletBalance, paymentLegs, totals.finalTotal]);
 
   const upsertSettlementLeg = useCallback(
@@ -1146,6 +1140,11 @@ export function PaymentModalV4({
       paymentLegs
         .map((leg, index) => ({ leg, index }))
         .filter(({ leg }) => (leg.amount ?? 0) > 0),
+    [paymentLegs]
+  );
+
+  const editableLegEntries = useMemo(
+    () => paymentLegs.map((leg, index) => ({ leg, index })),
     [paymentLegs]
   );
 
@@ -1678,16 +1677,16 @@ export function PaymentModalV4({
   const customerHeaderMeta = customerPhone?.trim() || customerId || t('customerCard.noReference');
 
   const cycleActiveLeg = useCallback(() => {
-    if (settlementLegEntries.length <= 1) return;
+    if (editableLegEntries.length <= 1) return;
     setActiveLegIndex((prev) => {
-      const currentPosition = settlementLegEntries.findIndex((entry) => entry.index === prev);
+      const currentPosition = editableLegEntries.findIndex((entry) => entry.index === prev);
       const nextPosition = currentPosition >= 0
-        ? (currentPosition + 1) % settlementLegEntries.length
+        ? (currentPosition + 1) % editableLegEntries.length
         : 0;
-      return settlementLegEntries[nextPosition]?.index ?? prev;
+      return editableLegEntries[nextPosition]?.index ?? prev;
     });
     focusAmountEditor();
-  }, [focusAmountEditor, settlementLegEntries]);
+  }, [editableLegEntries, focusAmountEditor]);
 
   const scrollAndFocusTarget = useCallback(
     (
@@ -1940,16 +1939,27 @@ export function PaymentModalV4({
     }
   }, [paymentMethod, setValue]);
 
+  useEffect(() => {
+    if (!activeLeg) {
+      setActiveAmountDraft('');
+      return;
+    }
+
+    setActiveAmountDraft(formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces));
+  }, [activeLeg, decimalPlaces]);
+
   const handleKeypadPress = useCallback((key: PaymentKeypadKey) => {
     if (!activeLeg) return;
     const nextDraft = applyKeypadInput(
-      formatDecimalDraft(activeLeg.amount ?? 0, decimalPlaces),
+      activeAmountDraft,
       key,
       decimalPlaces
     );
     const nextAmount = parseDecimalDraft(nextDraft);
-    updateLeg(activeLegIndex, 'amount', Math.max(0, Math.min(totals.finalTotal, nextAmount)));
-  }, [activeLeg, activeLegIndex, decimalPlaces, totals.finalTotal, updateLeg]);
+    const cappedAmount = Math.max(0, Math.min(totals.finalTotal, nextAmount));
+    setActiveAmountDraft(nextAmount > totals.finalTotal ? formatDecimalDraft(cappedAmount, decimalPlaces) : nextDraft);
+    updateLeg(activeLegIndex, 'amount', cappedAmount);
+  }, [activeAmountDraft, activeLeg, activeLegIndex, decimalPlaces, totals.finalTotal, updateLeg]);
 
   const closeWithGuard = useCallback(() => {
     if (!isDirtySinceOpen) {
@@ -2301,13 +2311,13 @@ export function PaymentModalV4({
                       <div className={`flex items-center justify-between gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
                         <CmxCardTitle className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
                           {t('splitPayment.title')}
-                          {settlementLegEntries.length > 0 && (
+                          {editableLegEntries.length > 0 && (
                             <Badge variant="secondary" className="ms-2 rounded-full bg-slate-100 text-slate-600">
-                              {settlementLegEntries.length}
+                              {editableLegEntries.length}
                             </Badge>
                           )}
                         </CmxCardTitle>
-                        {settlementLegEntries.length > 0 && (
+                        {editableLegEntries.length > 0 && (
                           <span className="text-xs font-semibold text-cyan-700">
                             {t('splitPayment.legSum')}: {currencyCode} {formatAmount(paymentLegsTotal)}
                           </span>
@@ -2315,10 +2325,10 @@ export function PaymentModalV4({
                       </div>
                     </CmxCardHeader>
                     <CmxCardContent className="space-y-2">
-                      {settlementLegEntries.length === 0 ? (
+                      {editableLegEntries.length === 0 ? (
                         <p className="text-xs text-slate-500">{t('workspace.addSplitHint') || 'Select an immediate method to start collecting payment.'}</p>
                       ) : (
-                        settlementLegEntries.map(({ leg, index }) => {
+                        editableLegEntries.map(({ leg, index }) => {
                           const option = getMethodOption(leg.method, leg.gateway_code);
                           const label = getOptionDisplayName(option, leg.method);
                           return (
@@ -2446,13 +2456,15 @@ export function PaymentModalV4({
                             <div className="min-w-0 flex-1 px-3">
                               <CmxMoneyField
                                 ref={amountInputRef}
+                                draftValue={activeAmountDraft}
                                 value={activeLeg?.amount ?? null}
                                 decimalPlaces={decimalPlaces}
                                 showZero
                                 aria-label={t('workspace.editingAmount') || 'Editing amount'}
                                 dir="ltr"
-                                onValueChange={(value) => {
+                                onValueChange={(value, draft) => {
                                   if (!activeLeg) return;
+                                  setActiveAmountDraft(draft);
                                   updateLeg(activeLegIndex, 'amount', value);
                                 }}
                                 placeholder={formatAmount(0)}
@@ -2490,6 +2502,7 @@ export function PaymentModalV4({
                                 variant={key.startsWith('+') ? 'secondary' : 'outline'}
                                 size="lg"
                                 onClick={() => handleKeypadPress(key)}
+                                onMouseDown={(event) => event.preventDefault()}
                                 className={`h-20 rounded-2xl border-slate-200 text-2xl font-semibold text-slate-800 shadow-sm ${key.startsWith('+') ? 'bg-slate-50 text-cyan-700' : 'bg-white'} ${key === 'backspace' ? 'col-span-1' : ''}`}
                               >
                                 {key === 'backspace' ? '⌫' : key}

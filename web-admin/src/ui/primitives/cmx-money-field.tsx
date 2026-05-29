@@ -14,6 +14,8 @@ export interface CmxMoneyFieldProps
   extends Omit<CmxInputProps, 'type' | 'value' | 'onChange' | 'inputMode'> {
   /** Canonical numeric value controlled by the parent. */
   value: number | null | undefined
+  /** Optional externally controlled draft string for advanced editors such as keypads. */
+  draftValue?: string
   /** Maximum supported decimal places. */
   decimalPlaces?: number
   /** Called whenever the sanitized numeric value changes. */
@@ -59,6 +61,7 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
   (
     {
       value,
+      draftValue,
       decimalPlaces = 3,
       onValueChange,
       showZero = false,
@@ -74,10 +77,15 @@ export const CmxMoneyField = React.forwardRef<HTMLInputElement, CmxMoneyFieldPro
     )
 
     React.useEffect(() => {
+      if (typeof draftValue === 'string') {
+        setDraft(draftValue)
+        return
+      }
+
       if (!isFocused) {
         setDraft(formatMoneyDraft(value, decimalPlaces, showZero))
       }
-    }, [decimalPlaces, isFocused, showZero, value])
+    }, [decimalPlaces, draftValue, isFocused, showZero, value])
 
     return (
       <CmxInput

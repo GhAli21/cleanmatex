@@ -23,6 +23,13 @@ describe('payment-modal-v4 utils', () => {
     expect(draft).toBe('12.5');
   });
 
+  it('supports decimal-first keypad entry after clearing a leg', () => {
+    let draft = '';
+    draft = applyKeypadInput(draft, '.', 3);
+    draft = applyKeypadInput(draft, '5', 3);
+    expect(draft).toBe('0.5');
+  });
+
   it('supports quick-add keypad shortcuts', () => {
     const draft = applyKeypadInput('1.5', '+10', 3);
     expect(draft).toBe('11.5');
